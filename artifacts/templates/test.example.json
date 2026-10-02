@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "run_id": "example-run",
+  "iteration": 1,
+  "agent": "orchestrator-name",
+  "role": "dynamic-test",
+  "base_sha": "0123456789abcdef0123456789abcdef01234567",
+  "target_sha": "89abcdef0123456789abcdef0123456789abcdef",
+  "status": "blocked",
+  "created_at": "2026-10-02T00:00:00Z",
+  "finished_at": "2026-10-02T00:00:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": true,
+  "tests": []
+}

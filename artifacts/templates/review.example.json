@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "example-run",
+  "iteration": 1,
+  "agent": "reviewer-name",
+  "role": "static-review",
+  "base_sha": "0123456789abcdef0123456789abcdef01234567",
+  "target_sha": "89abcdef0123456789abcdef0123456789abcdef",
+  "status": "clean",
+  "created_at": "2026-10-02T00:00:00Z",
+  "findings": []
+}

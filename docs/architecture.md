@@ -1,6 +1,6 @@
 # 시스템 아키텍처 및 책임 구조 (architecture.md)
 
-아키텍처 결정의 기준은 [revisions_and_decisions.md](revisions_and_decisions.md)다. 이 문서는 런타임 구성요소와 각 계층의 책임을 정한다.
+아키텍처 결정의 기준은 [revisions_and_decisions.md](../md/revisions_and_decisions.md)다. 이 문서는 런타임 구성요소와 각 계층의 책임을 정한다.
 
 ## 1. 구성
 
@@ -32,15 +32,22 @@ Supabase
 - `src/components/game/`: 공용 카탈로그 선택, 요청 제출, 개인 아이콘 업로드/표시.
 - `src/lib/`: Supabase 브라우저 클라이언트, 날짜·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
+- `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.
+- `docs/`: 진행 현황, 아키텍처, 인수인계, 구현 체크리스트, 변경 이력, 주의사항.
+- `docs/ai-collaboration-usage.md`: 초보 개발자를 위한 Maker/Reviewer/Orchestrator 역할별 수동 협업 절차.
+- `artifacts/`: run manifest, 반복별 정적 리뷰/테스트 JSON, 민감정보를 제거한 종료 보고서 및 JSON Schema.
+- `scripts/collaboration/`: 깨끗한 저장소 상태를 확인하고 실행 전용 Git worktree를 만드는 스크립트.
+- `.worktrees/`: run별 격리 작업 트리 위치이며 Git에서 제외한다. 자동 강제 초기화는 사용하지 않는다.
 
 ## 4. Storage 및 캐시
 
 - `user-icons`는 비공개 버킷이다. 키는 `{user_id}/{game_id}.webp`이며 Storage RLS는 인증된 소유자 경로만 허용한다.
 - 업로드 전 원본(최대 5 MiB)을 256×256 WebP로 변환한다. 결과가 100 KiB를 넘으면 업로드를 거부하고 안내한다.
 - 앱은 소유자 세션으로 객체를 가져와 표시한다. 공개 URL은 만들지 않는다.
-- 오프라인 캐시는 유효 세션에서 읽기 전용이다. 세션 만료 시 개인 데이터 캐시를 표시하지 않는다.
+- 계정 삭제 요청에서는 소유자의 Storage 아이콘 객체를 정리한 뒤 Auth 계정 삭제를 완료해야 한다. 사용자 테이블의 cascade 삭제만으로 Storage 객체가 제거된다고 가정하지 않는다.
+- 오프라인 캐시는 유효 세션에서 읽기 전용이다. 만료 예정 지출 모달은 오프라인에서 닫을 수 있고, 온라인 복귀 때 미해결 항목을 재조회해 다시 처리를 요구한다. 세션 만료 시 개인 데이터 캐시를 표시하지 않는다.
 
 ## 5. 배포 및 미검증 사항
 
 - Tauri는 Next.js 정적 export 산출물을 표시하고, PWA는 같은 프론트엔드 기능을 모바일 브라우저에 제공한다.
-- DDL/RPC/RLS는 [SCHEMA.sql](SCHEMA.sql)에 둔다. 작성된 SQL은 실제 Supabase/PostgreSQL에서 아직 실행 검증되지 않았으므로 배포 전에 [to-do.md](to-do.md)의 검증 단계를 완료한다.
+- DDL/RPC/RLS는 [SCHEMA.sql](../md/SCHEMA.sql)에 둔다. 작성된 SQL은 실제 Supabase/PostgreSQL에서 아직 실행 검증되지 않았으므로 배포 전에 [to-do.md](to-do.md)의 검증 단계를 완료한다.

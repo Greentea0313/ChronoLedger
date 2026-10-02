@@ -1,0 +1,6 @@
+# Keep sanitized JSON/Markdown reports; exclude raw logs and credentials.
+**/raw-logs/
+**/*.log
+**/*.trace
+**/*.tmp
+**/.env*

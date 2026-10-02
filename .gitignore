@@ -1,0 +1,8 @@
+# Local-only execution worktrees
+.worktrees/
+
+# Credentials and local environment files
+.env
+.env.*
+!.env.example
+!.env.test.example

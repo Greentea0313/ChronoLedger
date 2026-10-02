@@ -1,5 +1,35 @@
 # 구현 체크리스트 (to-do.md)
 
+## Phase 0. SRS 및 설계 진입 게이트
+- [x] 0.1 예정 취소/복구와 환불 상태 전이를 분리하고 물리 삭제 금지 정책 및 RPC 경로를 명세했다.
+- [x] 0.2 앱 예상 적립식을 `floor(final_amount * rate / 100)`으로 정하고 공식 정산 비보장 및 수동 보정 정책을 명세했다.
+- [x] 0.3 일정-게임 일치, 템플릿 소유권 및 게임 일치 검증 규칙을 명세하고 SQL 트리거 초안을 추가했다.
+- [x] 0.4 만료 예정 지출과 온라인 강제 처리, 오프라인 캐시 읽기 선택을 명세했다.
+- [x] 0.5 가입 시 초기 재무/지갑 기본값과 멱등 초기화 트리거 초안을 추가했다.
+- [ ] 0.6 SRS 초안 작성 완료. 사용자 요구사항 리뷰/승인 및 SQL 실행 검증 후 설계 진입을 판정한다.
+  - 참고: [SRS 초안](../md/SRS.md), [이전 준비도 검토](../md/srs-readiness-review.md), [차단 항목 설명](../md/planning-blockers.md), [결정안 검토](../md/resolved-blockers-review.md). 검토 기록은 당시 상태의 이력이며 최신 기준은 SRS/결정 보완이다.
+
+---
+
+### 문서 정리
+- [x] 오래된 기획 검토 문서를 참조 상태와 최신 기준 문서에 따라 정리
+  - 삭제: `md/fix-proposals.md`, `md/revisions_and_decisions_review.md` (구식 Gemini.sql/Downloads 기준, 활성 문서 참조 없음)
+  - 보존: 현재 체크리스트/인수인계에서 참조하는 SRS 준비도 및 차단 항목 검토 이력
+- [x] SKILL에서 지정한 개발 운영 문서를 `docs/`로 이동하고 문서 링크를 갱신
+  - 완료 파일: `docs/architecture.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/known-pitfalls.md`, `docs/progress.md`, `docs/changelog.md`
+  - 기획 기준 문서와 SQL은 `md/`에 유지
+- [x] 멀티 에이전트 협업 아키텍처 검토 의견을 별도 문서로 작성
+  - 결과: `md/multi_agent_collaboration_architecture_review.md` (§8에 최종 보완안 재검토 추가)
+  - 검토만 완료했으며 파이프라인 채택이나 구현은 결정하지 않음
+- [x] 협업 산출물 Schema, 저장 규칙, 보고서 템플릿 및 안전한 worktree 생성 스크립트 추가
+  - 결과: `artifacts/`, `scripts/collaboration/New-CollaborationRun.ps1`
+  - 정적 확인: JSON 문법, PowerShell 구문, 상대 Markdown 링크 통과
+  - 현재 실행 환경은 깨끗하지 않고 Docker가 없어 실제 run/샌드박스 검증은 보류
+- [x] 초보 개발자용 AI 협업 사용 안내 작성 (`docs/ai-collaboration-usage.md`)
+- [ ] 깨끗한 커밋 상태에서 run 생성 스크립트를 검증하고 생성된 전용 worktree/manifest가 일치하는지 확인
+- [ ] Docker 기반 테스트 샌드박스를 사용할 수 있는 환경에서 격리·네트워크·환경변수 제한을 검증
+- [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인
+
 ### Phase 1. 환경 세팅, 테스트 인프라 및 Tauri 스파이크
 - [ ] 1.1 Next.js 14+ (App Router) 정적 export 프로젝트 초기화
   - 대상 파일: `package.json`, `next.config.mjs`, `src/app/layout.tsx`
@@ -36,7 +66,7 @@
 - [ ] 2.3 RLS 보안 격리 및 원장 쓰기 봉쇄 검증
   - 대상 파일: `md/SCHEMA.sql`
   - 작업: 일반 사용자 역할/JWT로 자산, 확정 지출, 지갑, 원장 및 요청 승인 상태에 직접 쓰기를 시도
-  - verify: RPC만 허용된 변경은 직접 쓰기에서 RLS/권한 오류로 차단되는지 확인
+  - verify: RPC만 허용된 변경은 직접 쓰기에서 RLS/권한 오류로 차단되는지 확인. 구독 템플릿 DELETE와 expenses DELETE도 거부되는지 확인
 - [ ] 2.4 재현 가능한 DB/RPC/RLS 검증 케이스 준비
   - 대상 파일: `md/TESTS.sql`, `md/SCHEMA.sql`
   - 작업: 테스트 역할/JWT, 초기 데이터, 실행 순서, 각 케이스의 기대 성공/실패 결과를 문서화
@@ -57,6 +87,10 @@
   - 대상 파일: `src-tauri/tauri.conf.json`, `src/lib/tauri-auth.ts`
   - 작업: `tauri-plugin-deep-link` 연동 및 `myapp://auth/callback` 리스너 작성
   - verify: 외부 브라우저에서 인증 후 데스크톱 앱 창으로 세션 토큰이 전달되어 로그인되는지 확인
+- [ ] 3.3 사용자 계정 삭제 및 개인 데이터/Storage 정리 흐름
+  - 대상 파일: 인증 설정 화면, 서버 측 계정 삭제 경로, `user-icons` Storage 정책
+  - 작업: 본인 확인 후 비공개 아이콘 객체를 제거하고 Auth 계정 삭제를 완료한다. 공용 게임/일정은 보존한다.
+  - verify: 계정 삭제 완료 후 개인 테이블 행과 Storage 객체가 남지 않고 공용 카탈로그는 유지되는지 확인
 
 ---
 
@@ -71,8 +105,8 @@
   - verify: 소유자 경로 정책이 타 사용자 읽기/쓰기 요청을 거부하고 `image/webp`, 102,400 bytes 이하 결과만 업로드하며 교체 후 새 이미지가 표시되는지 확인
 - [ ] 4.3 공용 게임 카탈로그 구독 및 커스텀 아이콘 등록 UI
   - 대상 파일: `src/components/game/game-select-modal.tsx`
-  - 작업: 공용 `games` 중 내 게임으로 `user_games`에 등록 및 커스텀 아이콘 교체 기능 구현
-  - verify: 내 게임 목록에 추가된 게임이 커스텀 아이콘과 함께 표시되는지 확인
+  - 작업: 공용 `games` 중 내 게임으로 `user_games`에 등록 및 커스텀 아이콘 교체 기능 구현. 게임 구독 제거 시 사용자 커스텀 아이콘 객체도 Storage에서 삭제한다.
+  - verify: 내 게임 목록에 추가된 게임이 커스텀 아이콘과 함께 표시되고, 게임 제거 완료 후 해당 사용자의 아이콘 객체가 남지 않는지 확인
 - [ ] 4.4 일반 유저 게임/일정 추가·수정 요청 모달 및 관리자 승인 UI
   - 대상 파일: `src/components/game/schedule-request-modal.tsx`, `src/app/admin/requests/page.tsx`
   - 작업: 게임 요청(`game_requests`)과 일정 요청(`schedule_requests`)을 분리하고 승인/반려 RPC 연동
@@ -88,7 +122,7 @@
 - [ ] 5.2 정기 구독 멱등성 보장 지연 생성 (Lazy Generation)
   - 대상 파일: `src/lib/subscription-sync.ts`
   - 작업: 당월 캘린더 로드 시 누락된 `is_active = true` 템플릿만 자동 INSERT (`billing_cycle` 기반 유니크 제약 연동); 취소 회차는 자동 재생성하지 않음
-  - verify: 새로고침을 여러 번 하거나 동시 접속해도 `expenses`에 동일 월 구독 지출이 1건만 생성되는지 확인
+  - verify: 새로고침을 여러 번 하거나 동시 접속해도 `expenses`에 동일 월 구독 지출이 1건만 생성되는지 확인. 템플릿 비활성화는 생성된 미결제 회차를 `TEMPLATE_DEACTIVATION`으로 보존 취소하고, 재활성화는 과거 회차를 자동 복구하지 않으며 소유자가 재활성화 후 명시적으로 복구해야 하는지 확인
 - [ ] 5.3 미니멀 데스크톱 캘린더 (금액 완전 배제, 버전/픽업 배너 및 메모 도트)
   - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/schedule-banner.tsx`
   - 작업: 타일 내부 금액 텍스트 완전 제거, 게임 아이콘, 버전/픽업 배너 바, 개인 메모 힌트 도트 렌더링 구현
@@ -133,3 +167,8 @@
   - 대상 파일: `src-tauri/tauri.conf.json`
   - 작업: `npm run tauri build` 실행 및 Windows 독립 실행 파일(`.exe`) 추출
   - verify: 추출된 실행 파일을 단독 실행하여 로그인, 캘린더 배너, 결제 등록이 정상 동작하는지 확인
+
+
+
+
+

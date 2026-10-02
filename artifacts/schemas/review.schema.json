@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chronoledger.local/schemas/review.schema.json",
+  "title": "Static review result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "iteration", "agent", "role", "base_sha", "target_sha", "status", "created_at", "findings"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "run_id": { "type": "string", "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$" },
+    "iteration": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "agent": { "type": "string", "minLength": 1 },
+    "role": { "const": "static-review" },
+    "base_sha": { "$ref": "#/$defs/sha" },
+    "target_sha": { "$ref": "#/$defs/sha" },
+    "status": { "enum": ["clean", "findings", "blocked"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
+  },
+  "allOf": [
+    { "if": { "properties": { "status": { "const": "clean" } } }, "then": { "properties": { "findings": { "maxItems": 0 } } } },
+    { "if": { "properties": { "status": { "const": "findings" } } }, "then": { "properties": { "findings": { "minItems": 1 } } } }
+  ],
+  "$defs": {
+    "sha": { "type": "string", "pattern": "^[0-9a-fA-F]{7,64}$" },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "severity", "file", "line", "evidence", "impact", "recommendation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["P1", "P2", "P3", "P4"] },
+        "file": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$)).+$" },
+        "line": { "type": "integer", "minimum": 1 },
+        "evidence": { "type": "string", "minLength": 1 },
+        "impact": { "type": "string", "minLength": 1 },
+        "recommendation": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

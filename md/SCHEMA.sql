@@ -13,6 +13,26 @@ CREATE TABLE public.user_finances (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 신규 가입 시 기본 재정 및 스토어 지갑을 무음 생성한다.
+CREATE OR REPLACE FUNCTION public.handle_new_user_setup()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.user_finances(user_id, total_asset, default_budget)
+    VALUES (NEW.id, 0, 0) ON CONFLICT (user_id) DO NOTHING;
+
+    INSERT INTO public.store_wallets(user_id, platform, current_balance, earn_rate, user_tier)
+    VALUES
+        (NEW.id, 'GOOGLE_PLAY', 0, 0.10, 'BRONZE'),
+        (NEW.id, 'GALAXY_STORE', 0, 0.10, NULL)
+    ON CONFLICT (user_id, platform) DO NOTHING;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_handle_new_user_setup
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_setup();
+
 -- 2. 월별 소비 예산
 CREATE TABLE public.monthly_budgets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -139,6 +159,7 @@ CREATE TABLE public.expenses (
     schedule_id UUID REFERENCES public.game_schedules(id) ON DELETE SET NULL,
     template_id UUID REFERENCES public.subscription_templates(id) ON DELETE SET NULL,
     billing_cycle VARCHAR(7), -- YYYY-MM 형식 정기 구독 식별자
+    cancellation_kind VARCHAR(30) CHECK (cancellation_kind IN ('PLANNED_CANCEL', 'TEMPLATE_DEACTIVATION', 'PAYMENT_REFUND')),
     title VARCHAR(150) NOT NULL,
     category VARCHAR(50) NOT NULL CHECK (category IN ('게임', '정기 구독', '식비/카페', '교통/이동', '생활/쇼핑', '기타')),
     status VARCHAR(20) NOT NULL DEFAULT 'PLANNED' CHECK (status IN ('CONFIRMED', 'PLANNED', 'CANCELLED')),
@@ -163,10 +184,31 @@ CREATE TABLE public.expenses (
     CONSTRAINT chk_expense_math CHECK (
         final_amount = original_price - discount_amount - point_discount_amount AND
         point_discount_amount <= (original_price - discount_amount)
+    ),
+    CONSTRAINT chk_expense_cancellation_kind CHECK (
+        (status = 'CANCELLED' AND cancellation_kind IS NOT NULL)
+        OR (status <> 'CANCELLED' AND cancellation_kind IS NULL)
     )
 );
 ALTER TABLE public.expenses ADD CONSTRAINT chk_expense_earned_points_platform
     CHECK (earned_points = 0 OR point_platform IS NOT NULL);
+
+-- 구독 템플릿 비활성화 시 이미 생성된 미결제 회차를 보존 취소한다.
+CREATE OR REPLACE FUNCTION public.cancel_planned_expenses_on_template_deactivation()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.is_active = true AND NEW.is_active = false THEN
+        UPDATE public.expenses
+        SET status = 'CANCELLED', cancellation_kind = 'TEMPLATE_DEACTIVATION'
+        WHERE template_id = NEW.id AND status = 'PLANNED';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_cancel_planned_expenses_on_template_deactivation
+AFTER UPDATE OF is_active ON public.subscription_templates
+FOR EACH ROW EXECUTE FUNCTION public.cancel_planned_expenses_on_template_deactivation();
 
 -- 멱등성 보장 인덱스: 동일 구독 템플릿의 같은 월 중복 생성 원천 차단
 CREATE UNIQUE INDEX idx_expenses_template_billing_cycle 
@@ -301,8 +343,10 @@ BEGIN
         v_wallet_balance := v_new_balance;
     END IF;
 
-    IF p_point_platform IS NOT NULL THEN
-        v_earned_points := ROUND(v_final_amount * v_earn_rate / 100);
+    -- 포인트 적립은 실제 결제수단으로 선택한 스토어에서만 계산한다.
+    IF p_payment_method IN ('GOOGLE_PLAY', 'GALAXY_STORE') THEN
+        -- 앱 추정 적립 산식: floor(final_amount * rate / 100). Google 공식 정산액 보장 아님.
+        v_earned_points := FLOOR(v_final_amount * v_earn_rate / 100);
     END IF;
     IF v_earned_points > 0 THEN
         v_new_balance := coalesce(v_wallet_balance, 0) + v_earned_points;
@@ -399,9 +443,71 @@ BEGIN
         IF NOT FOUND THEN RAISE EXCEPTION '사용자 자산 설정이 없습니다.'; END IF;
     END IF;
 
-    UPDATE public.expenses SET status = 'CANCELLED' WHERE id = p_expense_id AND user_id = v_user_id;
+    UPDATE public.expenses SET status = 'CANCELLED', cancellation_kind = 'PAYMENT_REFUND'
+    WHERE id = p_expense_id AND user_id = v_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- 예정 취소와 복구는 전용 경로로 수행한다. 구독 비활성화 취소는 복구 가능하지만 환불은 불가하다.
+CREATE OR REPLACE FUNCTION public.cancel_planned_expense(p_expense_id UUID)
+RETURNS VOID AS $$
+DECLARE v_user_id UUID := auth.uid();
+BEGIN
+    IF v_user_id IS NULL THEN RAISE EXCEPTION '인증되지 않은 사용자입니다.'; END IF;
+    UPDATE public.expenses
+    SET status = 'CANCELLED', cancellation_kind = 'PLANNED_CANCEL'
+    WHERE id = p_expense_id AND user_id = v_user_id AND status = 'PLANNED';
+    IF NOT FOUND THEN RAISE EXCEPTION '취소할 수 있는 예정 지출이 아닙니다.'; END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.restore_cancelled_expense(p_expense_id UUID)
+RETURNS VOID AS $$
+DECLARE v_user_id UUID := auth.uid();
+BEGIN
+    IF v_user_id IS NULL THEN RAISE EXCEPTION '인증되지 않은 사용자입니다.'; END IF;
+    UPDATE public.expenses AS e
+    SET status = 'PLANNED', cancellation_kind = NULL
+    WHERE e.id = p_expense_id AND e.user_id = v_user_id AND e.status = 'CANCELLED'
+      AND (
+          e.cancellation_kind = 'PLANNED_CANCEL'
+          OR (e.cancellation_kind = 'TEMPLATE_DEACTIVATION' AND EXISTS (
+              SELECT 1 FROM public.subscription_templates AS t
+              WHERE t.id = e.template_id AND t.user_id = v_user_id AND t.is_active = true
+          ))
+      );
+    IF NOT FOUND THEN RAISE EXCEPTION '복구 가능한 예정 취소 항목이 아닙니다.'; END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- 일정 및 구독 템플릿 참조는 본인 소유와 게임 관계가 일치해야 한다.
+CREATE OR REPLACE FUNCTION public.validate_expense_references()
+RETURNS TRIGGER AS $$
+DECLARE v_schedule_game UUID; v_template_user UUID; v_template_game UUID;
+BEGIN
+    IF NEW.schedule_id IS NOT NULL THEN
+        SELECT game_id INTO v_schedule_game FROM public.game_schedules WHERE id = NEW.schedule_id;
+        IF NOT FOUND OR NEW.game_id IS DISTINCT FROM v_schedule_game THEN
+            RAISE EXCEPTION '지출 게임과 일정 게임이 일치해야 합니다.';
+        END IF;
+    END IF;
+    IF NEW.template_id IS NOT NULL THEN
+        SELECT user_id, game_id INTO v_template_user, v_template_game
+        FROM public.subscription_templates WHERE id = NEW.template_id;
+        IF NOT FOUND OR v_template_user IS DISTINCT FROM NEW.user_id THEN
+            RAISE EXCEPTION '본인 소유의 구독 템플릿만 연결할 수 있습니다.';
+        END IF;
+        IF v_template_game IS NOT NULL AND NEW.game_id IS DISTINCT FROM v_template_game THEN
+            RAISE EXCEPTION '지출 게임과 구독 템플릿 게임이 일치해야 합니다.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_validate_expense_references
+BEFORE INSERT OR UPDATE OF user_id, game_id, schedule_id, template_id ON public.expenses
+FOR EACH ROW EXECUTE FUNCTION public.validate_expense_references();
 
 -- 3. 지갑 설정 변경 RPC (등급 및 적립률)
 CREATE OR REPLACE FUNCTION public.update_store_wallet_settings(
@@ -660,15 +766,21 @@ CREATE POLICY "Read own finances" ON public.user_finances FOR SELECT TO authenti
 CREATE POLICY "Manage own budgets" ON public.monthly_budgets FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Manage own user_games" ON public.user_games FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Manage own memos" ON public.personal_memos FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Manage own templates" ON public.subscription_templates FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Read own templates" ON public.subscription_templates FOR SELECT TO authenticated
+    USING (auth.uid() = user_id);
+CREATE POLICY "Insert own templates" ON public.subscription_templates FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Update own templates" ON public.subscription_templates FOR UPDATE TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+-- 물리 삭제는 정책으로 금지한다. 구독 종료는 is_active=false로 처리한다.
 CREATE POLICY "Read own expenses" ON public.expenses FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Insert own planned expenses" ON public.expenses FOR INSERT TO authenticated
     WITH CHECK (auth.uid() = user_id AND status = 'PLANNED' AND earned_points = 0 AND used_points = 0);
 CREATE POLICY "Update own planned expenses" ON public.expenses FOR UPDATE TO authenticated
     USING (auth.uid() = user_id AND status = 'PLANNED')
     WITH CHECK (auth.uid() = user_id AND status = 'PLANNED' AND earned_points = 0 AND used_points = 0);
-CREATE POLICY "Delete own planned expenses" ON public.expenses FOR DELETE TO authenticated
-    USING (auth.uid() = user_id AND status = 'PLANNED');
+-- expenses는 물리 삭제를 허용하지 않는다. 예정 취소/복구는 전용 RPC로 수행한다.
 
 -- 원장 및 지갑: 일반 유저는 직접 수정 불가, 오직 SELECT만 허용 (RPC를 통해서만 쓰기 허용)
 CREATE POLICY "Read own wallets" ON public.store_wallets FOR SELECT TO authenticated USING (auth.uid() = user_id);
@@ -677,6 +789,8 @@ CREATE POLICY "Read own point transactions" ON public.store_point_transactions F
 -- SECURITY DEFINER 함수는 기본 PUBLIC 실행 권한을 회수하고 필요한 인증 사용자에게만 허용한다.
 REVOKE ALL ON FUNCTION public.process_expense_payment(UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.refund_expense_payment(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.cancel_planned_expense(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.restore_cancelled_expense(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.update_store_wallet_settings(VARCHAR, VARCHAR, NUMERIC) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.adjust_wallet_balance(VARCHAR, BIGINT, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.set_user_finance_settings(BIGINT, BIGINT) FROM PUBLIC, anon;
@@ -686,6 +800,8 @@ REVOKE ALL ON FUNCTION public.approve_game_request(UUID, TEXT) FROM PUBLIC, anon
 REVOKE ALL ON FUNCTION public.reject_game_request(UUID, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.process_expense_payment(UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.refund_expense_payment(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cancel_planned_expense(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.restore_cancelled_expense(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_store_wallet_settings(VARCHAR, VARCHAR, NUMERIC) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.adjust_wallet_balance(VARCHAR, BIGINT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.set_user_finance_settings(BIGINT, BIGINT) TO authenticated;
