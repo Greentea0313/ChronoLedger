@@ -11,12 +11,14 @@
 - 주요 차단 항목 설명: [planning-blockers.md](../md/planning-blockers.md)
 - 진행 현황: [progress.md](progress.md)
 - 구현 순서와 검증 목록: [to-do.md](to-do.md)
+- Gemini 작업 진행 기록: [to-do_Gemini.md](to-do_Gemini.md) (외부 배포 완료 표시는 로컬 증거와 별도로 확인 필요)
 - AI 협업 초보자용 사용법: [ai-collaboration-usage.md](ai-collaboration-usage.md)
-- SRS 검토 재개 체크포인트: [srs-review-checkpoint.md](srs-review-checkpoint.md). 이번 작업은 체크포인트 저장 후 중단한다. 사용자가 나중에 재개하면 이 문서와 SRS를 먼저 읽어 시작 지점을 확인한다(다음 위치: §5).
+- SRS 검토/검증 체크포인트: [srs-review-checkpoint.md](srs-review-checkpoint.md). SRS 승인 및 테스트 프로젝트 rollback-only SQL 스모크 테스트가 완료되어 설계 단계 진입이 승인됐다.
 - 오래된 검토 문서 정리: 미사용 상태이며 구식 입력 파일을 참조하던 `md/fix-proposals.md`, `md/revisions_and_decisions_review.md`는 삭제했다. 명시적으로 과거 이력으로 링크된 SRS/차단 항목 검토 문서는 보존했다.
-- 프로젝트는 문서 기반 기획/요구사항 정리 단계다. 코드는 구현되지 않았고 SQL은 실제 Supabase/PostgreSQL에서 검증되지 않았다.
-- `SRS.md` v1 초안은 작성됐으나 사용자 리뷰/승인 전이다. 승인 및 DB 실행 검증 전까지 설계 단계 공식 진입은 보류한다.
-- SRS는 항목별 사용자 검토를 진행 중이다. §4.8 아이콘/메모 검토를 완료했고 다음은 §5 외부 인터페이스 및 환경이다.
+- SRS 요구사항 검토·승인과 테스트 프로젝트의 SQL 스모크 테스트가 완료되어 설계 단계 진입이 승인됐다.
+- `SRS.md` v1.0 요구사항은 사용자 승인됐고, `md/TESTS.sql`의 rollback-only smoke suite도 최종 PASS를 확인했다. Phase 0.6 완료 및 설계 진입이 승인됐다.
+- 지원 플랫폼은 Windows용 Tauri v2 데스크톱과 Android PWA다. 성능 목표는 설계 단계에서 측정 환경과 함께 확정한다.
+- Gemini의 2026-10-03 진행표를 `.worktrees/phase1-setup`과 대조했다. Tauri v2 및 shadcn 설정은 반영됐다. 다만 `/auth/callback`이 로그인 폼이고 Tauri 딥링크 처리에 PKCE 교환/cold-start 수신이 없어 OAuth 완료로 볼 수 없다. 버튼 무반응의 원인은 아직 미확정이다. [to-do.md](to-do.md)의 대조 절을 따른다.
 
 ## 확정된 주요 결정
 
@@ -28,17 +30,17 @@
 - 자산 차감은 사용자가 선택하는 `deduct_from_asset`에 따른다. 오늘 결제는 기본 켬, 과거 내역은 기본 끔이며 환불은 차감된 자산을 복원한다.
 - 커스텀 아이콘은 소유자 전용 비공개 Storage에 저장한다. 오프라인에서는 유효 세션의 캐시 조회를 허용하고 쓰기는 막으며, 만료 예정 항목 처리는 온라인 복귀 후 요구한다.
 
-## 설계 진입 전 해결 사항
+## 설계 진입 게이트 (완료)
 
-- 사용자 리뷰로 [SRS.md](../md/SRS.md)의 요구사항/가정을 승인 또는 수정한다.
-- SRS의 수용 기준에 대한 재현 가능한 테스트 환경 검증을 수행한다.
-- 검증 결과를 반영하고 설계 단계 진입 여부를 결정한다.
+- 승인된 [SRS.md](../md/SRS.md) 요구사항과 테스트 프로젝트 rollback-only SQL 스모크 검증을 완료했다.
+- `md/TESTS.sql`의 핵심 DDL/RPC/RLS 동작 점검은 `ON_ERROR_STOP=1`에서 최종 PASS를 확인했다.
+- Phase 0.6 완료 및 설계 단계 진입을 승인했다. 전체 SRS 수용 기준 테스트는 설계/테스트 계획에서 상세화한다.
 
 ## 다음 작업
 
-- 사용자가 후속 작업을 시작하면 `srs-review-checkpoint.md`를 먼저 읽고 그때의 SRS 상태와 적절한 시작 지점을 확인한다. 전체 리뷰 승인 뒤 `to-do.md`의 SQL 검증 항목을 진행한다.
-- 최신 결정은 `resolved-blockers.md`와 `revisions_and_decisions.md`의 2026-10-02 보완 항목을 우선한다.
-
+- 승인된 SRS를 기준으로 Web/PWA 우선의 시스템 구조, 컴포넌트/API, 데이터 흐름, 보안 및 테스트 설계를 진행한다.
+- 브라우저/Android PWA 인증 callback과 핵심 기능을 완성하고 수용 기준별 테스트를 추적한다. Windows Tauri OAuth 딥링크·패키징은 Web/PWA MVP 이후 진행한다.
+- 측정 환경과 함께 성능 목표를 확정한다. 상세 순서는 [to-do.md](to-do.md)를 따른다.
 ## 멀티 에이전트 협업 검토
 
 - 설계안과 검토 의견은 각각 [협업 아키텍처](../md/multi_agent_collaboration_architecture.md), [검토 문서](../md/multi_agent_collaboration_architecture_review.md)에 기록했다.

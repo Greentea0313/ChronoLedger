@@ -4,7 +4,7 @@
 
 ## 1. 제품 범위
 
-- Next.js App Router 단일 코드베이스로 Tauri v2 데스크톱 앱과 모바일 PWA를 제공한다.
+- Next.js App Router 단일 코드베이스로 Windows용 Tauri v2 데스크톱 앱과 Android용 모바일 PWA를 제공한다. iOS PWA는 현재 범위에 포함하지 않는다.
 - Supabase Auth, PostgreSQL, Storage를 사용하며 모든 금액은 정수 KRW로 관리한다.
 - 주요 기능은 게임의 버전·픽업 일정, 개인 지출/예정 지출, 정기 구독, Google Play 및 Galaxy Store 포인트 지갑이다.
 - 일정 종류는 `VERSION`과 `PICKUP`만 제공한다. 픽업 전반/후반은 날짜 범위 필터이며 별도 데이터 필드가 없다.

@@ -6,8 +6,40 @@
 - [x] 0.3 일정-게임 일치, 템플릿 소유권 및 게임 일치 검증 규칙을 명세하고 SQL 트리거 초안을 추가했다.
 - [x] 0.4 만료 예정 지출과 온라인 강제 처리, 오프라인 캐시 읽기 선택을 명세했다.
 - [x] 0.5 가입 시 초기 재무/지갑 기본값과 멱등 초기화 트리거 초안을 추가했다.
-- [ ] 0.6 SRS 초안 작성 완료. 사용자 요구사항 리뷰/승인 및 SQL 실행 검증 후 설계 진입을 판정한다.
+- [x] 0.6 SRS 작성·사용자 승인 및 SQL 실행 검증 완료. 설계 단계 진입을 승인한다.
   - 참고: [SRS 초안](../md/SRS.md), [이전 준비도 검토](../md/srs-readiness-review.md), [차단 항목 설명](../md/planning-blockers.md), [결정안 검토](../md/resolved-blockers-review.md). 검토 기록은 당시 상태의 이력이며 최신 기준은 SRS/결정 보완이다.
+  - 현황: SRS 검토와 사용자 승인은 완료됐다. 사용자가 확인한 전용 테스트 프로젝트의 스키마 메타데이터를 대조했고, 승인한 `user-icons` 버킷(private, 102,400 bytes, `image/webp`) 설정도 검증했다. 사용자는 [`md/TESTS.sql`](../md/TESTS.sql)을 `ON_ERROR_STOP=1`로 실행해 `PASS: all smoke-test fixtures and mutations rolled back` 최종 메시지를 확인했다. 따라서 스크립트의 선행 스모크 검증이 오류 없이 완료되고 테스트 변경이 롤백된 것으로 판정한다. Phase 0 게이트를 통과해 설계 단계 진입을 승인한다. 이 스모크 테스트는 전체 SRS 수용 기준을 모두 망라하지 않으므로 상세 케이스는 설계/테스트 계획에서 추적한다. 전체 DDL은 재실행하지 않는다.
+
+## 구현 우선순위: Web/PWA 먼저
+
+- 현재 구현 목표는 브라우저 웹과 Android PWA의 핵심 기능을 먼저 완성하는 것이다.
+- Windows Tauri 지원 결정은 SRS대로 유지하되, 외부 OAuth/딥링크 및 Windows 패키징은 Web/PWA MVP 승인 뒤 진행한다. 기존 Tauri 뼈대와 작업은 보존하며, 웹 기능을 Tauri 전용 API에 직접 결합하지 않는다.
+- Web/PWA MVP 종료 조건: 이메일/Google 브라우저 인증 및 callback, 인증된 핵심 화면, 가계부·캘린더·설정 주요 흐름, 모바일 반응형/PWA 오프라인 정책, RLS 연동과 재현 가능한 기능 검증을 완료하고 필수 수용 기준을 확인한다.
+- 데스크톱 OAuth 구현은 별도 adapter 경계로 미룬다. 웹 callback 구현은 지금 완성하며, 이후 Tauri custom scheme callback이 같은 세션 경계에 연결되도록 설계한다.
+
+## Gemini 진행 문서 및 구현 검토 (2026-10-03)
+
+기준 문서: [`to-do_Gemini.md`](to-do_Gemini.md). 체크 표시는 파일·설정에서 확인하고, 실행 및 외부 서비스 상태는 보고와 재현 가능한 증거를 구분했다.
+
+- **환경 골격 확인:** 작업 트리에 Next.js 정적 export, Tailwind/shadcn UI, Supabase 브라우저 클라이언트, Vitest 샘플, Tauri v2 설정, 로그인 화면과 dashboard 코드가 있다. Tauri CLI/Rust 의존성은 v2 계열이고 앱 식별자는 `com.chronoledger.app`이다. Gemini가 기록한 `npx tauri dev` 성공은 보고된 결과이며 이 리뷰에서 재실행하지 않았다.
+- **Phase 1 run은 미종료:** `artifacts/phase1-setup/run.json`은 `target_sha: null`, `status: in_progress`이고 `iteration-01/review.json`/`test.json`이 없다. Maker의 Phase 1 커밋 `ccfbca5` 이후 Tauri 플러그인·인증 변경이 미커밋 상태로 남아 있다. 생성된 `.next`/`out` 폴더는 변경 이후 동일 SHA의 검증 결과를 대신하지 않는다.
+- **Phase 2 구현 범위:** 사이드바/대시보드 UI 골격은 존재하지만 예정 지출액은 `0` 하드코딩이다. Supabase 프로젝트 생성 및 Redirect URL 허용은 Gemini 문서의 보고이며 콘솔 설정은 이 코드 검토로 확인할 수 없다. Supabase client에는 환경 변수가 없을 때 placeholder 값을 넣으므로 생성자 호출 성공만으로 실제 프로젝트 연결을 입증할 수 없다.
+- **OAuth callback 차단:** [`auth/callback/page.tsx`](../.worktrees/phase1-setup/src/app/auth/callback/page.tsx)는 callback 처리가 아니라 로그인 폼이다. [`tauri-auth.ts`](../.worktrees/phase1-setup/src/lib/tauri-auth.ts)는 fragment의 access/refresh token만 처리하고 PKCE `code` 교환을 하지 않는다. 앱이 딥링크로 처음 실행됐을 때 읽는 `getCurrent()`가 없으며 Windows/Linux 실행 중 URL 이벤트를 받기 위한 single-instance 플러그인도 없다. 따라서 현재 Google 데스크톱 로그인 복귀는 완료로 볼 수 없다.
+- **인증 경로 불일치:** `/`와 `/auth`에 로그인 UI가 중복되어 있다. `/`는 Tauri 외부 브라우저 처리를 하지만 `/auth`는 웹 URL callback만 사용한다. dashboard는 비로그인 사용자를 `/auth`로 보내므로 같은 앱 안에서 Tauri 로그인 경로가 달라진다. dashboard 페이지의 redirect는 있지만 이를 모든 하위 dashboard route에 적용하는 공통 보호 경계는 없다.
+- **무반응 원인은 미확정:** 버튼에 코드 핸들러는 연결되어 있으나 실행 확인은 별도다. “권한 부족”이나 “Hydration 오류”는 아직 원인으로 입증되지 않은 가설이므로 웹뷰/콘솔 오류로 재현해야 한다.
+- **기획 게이트 최신 상태:** 사용자가 기록한 테스트 프로젝트의 `md/TESTS.sql` PASS/rollback 및 SRS 승인에 따라 Phase 0.6은 완료 상태다. 이는 DB smoke 검증이지 Tauri OAuth 실행 검증은 아니다.
+- **Gemini Phase 4 정리 필요:** 데이터베이스 스키마를 새로 설계/생성한다는 문구는 승인된 `md/SCHEMA.sql` 및 smoke 검증과 중복될 수 있다. 기존 기준 스키마를 재사용하는 마이그레이션과 상세 테스트 설계로 구체화한다.
+
+### 다음 조치
+
+1. [ ] `/auth/callback`를 브라우저 OAuth callback으로 구현하고 PKCE 응답 처리, 성공·오류·취소 상태 및 브라우저 세션 복귀를 확인한다.
+2. [ ] `/`와 `/auth` 로그인 UI를 하나로 합치고 dashboard 보호를 레이아웃 경계에 적용한다. 이메일/Google 로그인을 브라우저와 Android PWA에서 검증한다.
+3. [ ] Supabase provider 및 Redirect URL 설정을 프로젝트 콘솔에서 확인하되 키·비밀값은 문서에 기록하지 않는다.
+4. [ ] Dashboard 예정 지출액의 임시 `0`을 실제 조회로 교체하고, 자산 조회 오류와 실제 0원을 구분해 표시한다.
+5. [ ] 가계부, 캘린더, 설정 기능을 Web/PWA MVP 조건에 맞춰 구현하고 승인 SRS 수용 기준별 테스트를 추적한다.
+6. [ ] `phase1-setup` 변경 범위와 검토 대상 SHA를 정리하고 같은 SHA의 review/test JSON을 작성한다. Tauri 전용 변경은 후속 단계로 분리한다.
+7. [ ] Gemini Phase 4 계획을 승인 스키마 재사용, 마이그레이션 및 상세 검증 케이스 중심으로 갱신한다.
+8. [ ] 버튼 무반응이 브라우저에서도 재현되는지 확인한다. Tauri 전용 무반응 분석은 데스크톱 통합 단계에서 웹뷰 로그를 수집해 진행하고, 원인 확인 전 권한/Hydration 문제로 단정하지 않는다.
 
 ---
 
@@ -30,7 +62,7 @@
 - [ ] Docker 기반 테스트 샌드박스를 사용할 수 있는 환경에서 격리·네트워크·환경변수 제한을 검증
 - [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인
 
-### Phase 1. 환경 세팅, 테스트 인프라 및 Tauri 스파이크
+### Phase 1. Web/PWA 환경 및 테스트 기반
 - [ ] 1.1 Next.js 14+ (App Router) 정적 export 프로젝트 초기화
   - 대상 파일: `package.json`, `next.config.mjs`, `src/app/layout.tsx`
   - 작업: `output: 'export'` 설정, `images.unoptimized: true` 설정, Tailwind 보일러플레이트 세팅
@@ -39,18 +71,14 @@
   - 대상 파일: `vitest.config.ts`, `package.json`
   - 작업: `vitest`, `@testing-library/react` 설치 및 기본 단언문 테스트 등록
   - verify: `npm run test` 실행 시 테스트 환경이 100% 통과하는지 확인
-- [ ] 1.3 Tauri v2 데스크톱 초기화 및 정적 빌드 스파이크
-  - 대상 파일: `src-tauri/tauri.conf.json`
-  - 작업: `npm run tauri init` 수행 후 정적 `out/` 디렉터리를 가리키도록 설정
-  - verify: `npm run tauri dev` 실행 시 데스크톱 윈도우 창에 Next.js 화면이 정상 로딩되는지 확인
-- [ ] 1.4 shadcn/ui 컴포넌트 라이브러리 세팅
+- [ ] 1.3 shadcn/ui 컴포넌트 라이브러리 세팅
   - 대상 파일: `components.json`, `src/components/ui/`
   - 작업: Button, Dialog, Card, Input, Select, Progress, Drawer(바텀시트) 설치
-  - verify: 버튼 및 카드 컴포넌트가 화면에 깨짐 없이 렌더링되는지 확인
-- [ ] 1.5 Supabase 클라이언트 SDK 싱글톤 구성
+  - 현재 Button/Card/Input 파일은 있으나 전체 필수 컴포넌트 렌더링은 확인되지 않았다.
+- [ ] 1.4 Supabase 클라이언트 SDK 싱글톤 구성
   - 대상 파일: `.env.local`, `src/lib/supabase/client.ts`
   - 작업: 서버 쿠키 세션을 배제하고 `@supabase/supabase-js` 싱글톤 브라우저 클라이언트 유틸 작성
-  - verify: 브라우저 콘솔에서 Supabase 클라이언트 초기화 에러가 없는지 확인
+  - verify: 올바른 환경설정으로 브라우저에서 인증/조회가 성공하고 환경값 누락을 명확히 표시하는지 확인. placeholder 값으로 연결 성공을 판정하지 않는다.
 
 ---
 
@@ -78,16 +106,12 @@
 
 ---
 
-### Phase 3. 인증(Auth), 구글 로그인 및 딥링크
+### Phase 3. Web/PWA 인증(Auth)
 - [ ] 3.1 이메일 가입/로그인 및 구글 OAuth 연동
-  - 대상 파일: `src/app/auth/page.tsx`, `src/lib/auth-context.tsx`
-  - 작업: 이메일 폼 및 Google 로그인 버튼 연동
-  - verify: 웹 환경에서 구글 로그인 성공 후 대시보드로 정상 이동하는지 확인
-- [ ] 3.2 데스크톱(Tauri) Deep Link 콜백 핸들러 구성
-  - 대상 파일: `src-tauri/tauri.conf.json`, `src/lib/tauri-auth.ts`
-  - 작업: `tauri-plugin-deep-link` 연동 및 `myapp://auth/callback` 리스너 작성
-  - verify: 외부 브라우저에서 인증 후 데스크톱 앱 창으로 세션 토큰이 전달되어 로그인되는지 확인
-- [ ] 3.3 사용자 계정 삭제 및 개인 데이터/Storage 정리 흐름
+  - 대상 파일: `src/app/auth/page.tsx` 또는 통합 로그인 경로, `src/app/auth/callback/page.tsx`, `src/lib/auth-context.tsx`
+  - 작업: 이메일 폼, Google OAuth, PKCE/browser callback, 세션 상태 및 protected routes를 Web/PWA 기준으로 연결
+  - verify: 브라우저와 Android PWA에서 가입·로그인·로그아웃·세션 복구 및 비로그인 접근 차단 확인
+- [ ] 3.2 사용자 계정 삭제 및 개인 데이터/Storage 정리 흐름
   - 대상 파일: 인증 설정 화면, 서버 측 계정 삭제 경로, `user-icons` Storage 정책
   - 작업: 본인 확인 후 비공개 아이콘 객체를 제거하고 Auth 계정 삭제를 완료한다. 공용 게임/일정은 보존한다.
   - verify: 계정 삭제 완료 후 개인 테이블 행과 Storage 객체가 남지 않고 공용 카탈로그는 유지되는지 확인
@@ -150,7 +174,7 @@
 
 ---
 
-### Phase 7. 일정 동기화, 만료 처리 및 최종 빌드
+### Phase 7. Web/PWA 통합, 안정화 및 릴리스 검증
 - [ ] 7.1 게임 버전/픽업 패스 일정 안전 동기화 검증
   - 대상 파일: `md/SCHEMA.sql` (트리거 검증)
   - 작업: 관리자가 버전 또는 픽업 일정의 시작일·종료일을 변경했을 때 DB 트리거 동작 확인
@@ -163,10 +187,20 @@
   - 대상 파일: `public/manifest.json`, `src/components/ui/offline-banner.tsx`
   - 작업: PWA 홈 화면 추가 설정, 유효한 인증 세션의 캐시 조회만 허용하고 오프라인 시 지출 쓰기를 비활성화
   - verify: 세션 만료 시 캐시된 개인정보가 표시되지 않고 결제 등록 버튼이 잠기는지 확인
-- [ ] 7.4 Tauri v2 데스크톱 최종 배포 빌드 검증
-  - 대상 파일: `src-tauri/tauri.conf.json`
-  - 작업: `npm run tauri build` 실행 및 Windows 독립 실행 파일(`.exe`) 추출
-  - verify: 추출된 실행 파일을 단독 실행하여 로그인, 캘린더 배너, 결제 등록이 정상 동작하는지 확인
+- [ ] 7.4 Web/PWA MVP 회귀 및 배포 빌드 검증
+  - 대상 파일: Next.js 앱 및 Web/PWA 테스트 설정
+  - 작업: 승인 SRS 수용 기준과 모바일 주요 흐름을 점검하고 정적 export 산출물을 배포 환경에서 검증
+  - verify: 브라우저 빌드/테스트 통과, Android PWA 설치·인증 세션·오프라인 읽기와 쓰기 차단 확인
+
+---
+
+## 후속 단계: Windows Tauri 데스크톱 통합 (Web/PWA MVP 완료 후)
+
+- [ ] T1. 웹/Tauri 플랫폼 차이를 auth adapter로 분리하고 공통 callback/session 계약을 고정한다.
+- [ ] T2. Tauri v2 custom scheme 및 외부 브라우저 OAuth를 연결한다. cold-start URL은 `getCurrent()`로 처리하고 Windows 실행 중 링크 전달을 위해 single-instance plugin을 구성한다.
+- [ ] T3. OAuth 성공·취소·만료 세션 및 로그아웃 복귀를 Windows 데스크톱에서 검증한다.
+- [ ] T4. Tauri v2 Windows production build를 만들고 단독 실행해 로그인, 캘린더, 결제 흐름을 검증한다.
+- 완료 게이트: Web/PWA MVP 조건이 통과되고, 동일 기능의 데스크톱 인증/핵심 흐름 테스트가 통과한 뒤 Windows 앱 배포를 승인한다.
 
 
 

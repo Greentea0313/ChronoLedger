@@ -1,7 +1,20 @@
 # 변경 이력
 
+## 2026-10-05
+
+- 사용자와 합의한 Web/Android PWA 우선 개발 순서를 `docs/to-do.md`에 반영했다. Windows Tauri 지원은 유지하고 데스크톱 OAuth 딥링크 및 패키징을 Web/PWA MVP 후속 단계로 옮겼다.
+- 진행 현황 및 인수인계의 다음 작업 순서를 갱신했다.
+
+## 2026-10-03
+
+- 테스트 프로젝트의 읽기 전용 메타데이터를 `SCHEMA.sql`과 대조했다. 핵심 테이블, 컬럼, RLS/정책, RPC 권한, 트리거 및 인코딩이 대체로 일치함을 확인했다.
+- 사용자가 확인·승인한 프로젝트에 `user-icons` 버킷을 생성하고 private, 102,400 bytes, `image/webp` 설정을 확인했다.
+- 사용자가 `md/TESTS.sql` rollback-only smoke suite를 `ON_ERROR_STOP=1`로 실행했다. 최종 `PASS: all smoke-test fixtures and mutations rolled back` 출력으로 선행 검증 통과와 fixture 롤백을 확인했다.
+- `docs/to-do.md`의 Phase 0.6을 완료하고 설계 단계 진입을 승인했다. 전체 SRS 수용 기준의 상세 테스트 케이스와 성능 목표는 설계 단계에서 정한다.
+- 갱신된 Gemini 진행표를 작업 트리와 재검토했다. Tauri v2와 shadcn 설정은 반영됐지만 OAuth callback 화면, PKCE 교환 및 Windows 딥링크 수신에 누락이 있어 인증 완료 판정을 보류하고 관련 과제를 `docs/to-do.md`에 기록했다.
 ## 2026-10-02
 
+- `docs/to-do_Gemini.md`와 `phase1-setup` 작업 트리를 대조해 구현 초안, 미확인된 DB 배포 주장, 미완료 리뷰/테스트 증거, 계획의 Tauri v2와 작업 트리 v3 alpha 불일치를 `docs/to-do.md`에 기록했다. 후속 검증 항목을 추가했다.
 - 낡은 제안·검토 문서 2개(`md/fix-proposals.md`, `md/revisions_and_decisions_review.md`)를 삭제했다. 최신 요구사항 문서와 명시적인 역사 기록으로 연결된 검토 자료는 유지했다.
 - 초보 개발자를 위한 AI 협업 안내서를 추가했다. Maker/Reviewer/Orchestrator 역할, PowerShell run 생성, 동일 Target SHA 검토·시험, 안전 규칙 및 현재 수동 연동 제약을 설명한다.
 
@@ -29,3 +42,4 @@
 - 멀티 에이전트 협업 설계의 병목과 파일 프로토콜, 반복 종료 조건 및 적용 범위에 관한 검토 의견을 `md/multi_agent_collaboration_architecture_review.md`에 기록했다.
 - 사용자가 보완한 최종 설계안을 다시 검토해 이전 지적의 반영을 확인하고, 공유 작업 트리에서 `git reset --hard`를 자동 실행할 때의 데이터 손실 위험과 안전 대안을 추가했다.
 - 협업 실행용 run/review/test Schema와 아티팩트 규약, 사용자 보고서 템플릿, 깨끗한 Git 상태에서만 격리 worktree를 생성하는 PowerShell 스크립트를 추가했다. 설계안은 자동 강제 reset 대신 실패 상태 보존을 사용하도록 수정했다.
+- (2026-10-02 당시 상태) SRS §5~§10 검토를 완료하고 플랫폼 범위를 Windows 데스크톱/Android PWA로 확정했다. 당시 SQL 실행 검증은 보류 중이었으며 2026-10-03 기록에서 완료 및 설계 진입 승인으로 갱신됐다.

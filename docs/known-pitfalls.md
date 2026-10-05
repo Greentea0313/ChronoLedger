@@ -30,10 +30,22 @@
    - 권한은 `app_metadata.role=admin`의 JWT 클레임을 사용한다. `user_metadata`나 브라우저 환경변수로 관리자 권한을 결정하지 않는다. 역할 변경 후 기존 세션의 JWT가 갱신되어야 권한이 반영된다.
 
 10. **DB 초안 검증 상태**
-   - SQL은 아직 대상 Supabase 프로젝트에서 실행되지 않았다. 배포 전 [to-do.md](to-do.md)의 격리·RPC·트리거 검증을 수행하고 실패를 수정한 뒤 결과를 기록한다.
+   - 사용자가 테스트 프로젝트에서 `md/TESTS.sql` rollback-only smoke suite를 PASS로 실행했고 테스트 변경이 롤백됐음을 확인했다. 이는 핵심 흐름의 스모크 통과이지 전체 SRS 수용 기준 검증 완료가 아니다. 전체 DDL을 재실행하지 말고 상세 검증은 [to-do.md](to-do.md)의 계획을 따른다.
 
 11. **문서 이동 후 상대 링크**
    - 운영 문서는 `docs/`, 기획 기준 문서는 `md/`에 둔다. 파일을 이동할 때는 상대 링크와 마스터 문서의 경로 참조도 함께 확인한다.
 
 12. **제안된 자동 Git 롤백의 작업 손실 위험**
    - 이전 협업 설계안의 `git reset --hard <base_sha>`를 공유 작업 트리에서 실행하면 사용자의 미커밋 변경이 삭제될 수 있다. 최신 설계는 자동 reset을 제거했지만, 미래의 정리 스크립트도 공유 작업 트리를 초기화하지 않도록 유지한다.
+
+13. **협업 산출물 체크 표시와 실제 증거 구분**
+   - 체크리스트에 완료 표시가 있어도 동일 `target_sha`의 리뷰/테스트 결과나 외부 시스템 적용 증거가 없으면 검증 완료로 취급하지 않는다. 격리 worktree의 커밋/산출물과 테스트 환경을 확인하고, Supabase 원격 적용은 비밀값을 수집하지 않고 테스트 프로젝트의 재현 기록으로 확인한다.
+
+14. **Tauri 계획 버전과 구현 버전 일치**
+   - 기준 계획은 Tauri v2이며 Phase 1 커밋은 v2 계열 의존성과 `com.chronoledger.app`을 사용한다. 플러그인 변경 후에도 `package.json`, Cargo 의존성, `tauri.conf.json`을 함께 확인하고 Tauri build/dev 검증을 다시 수행한다.
+
+15. **OAuth 딥링크 callback과 PKCE**
+   - 현재 `.worktrees/phase1-setup/src/lib/tauri-auth.ts`는 URL fragment의 access/refresh token만 읽는다. Supabase PKCE callback은 query의 `code`를 `exchangeCodeForSession()`으로 교환해야 한다. Tauri 앱이 딥링크로 처음 열릴 때는 `getCurrent()`를 확인하고, Windows/Linux의 실행 중 URL 이벤트는 single-instance 전달 설정을 확인한다.
+
+16. **중복 로그인 경로**
+   - `/`와 `/auth` 로그인 UI의 OAuth 처리 방식이 다르면 사용자가 어느 경로에 도착하는지에 따라 데스크톱 인증이 달라진다. 인증 진입을 통합하고 `/auth/callback`이 로그인 폼을 다시 보여주지 않는지 확인한다.
