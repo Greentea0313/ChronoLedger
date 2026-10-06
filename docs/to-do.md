@@ -36,6 +36,7 @@
 - [ ] Netlify 후보 확인: 정적 export 산출물과 `/auth` 하위 경로, Google OAuth callback/Redirect URL, PWA service worker 및 Preview/Production 환경 변수 분리를 작은 검증 브랜치에서 확인한다. 결과가 확인되기 전까지 Netlify는 채택 확정이 아니다.
   - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 5개 통과.
   - 원격 검증 대기: Netlify CLI/site 연결이 없어 Deploy Preview를 만들거나 확인하지 못했다. Preview 도메인 OAuth 허용목록 및 Preview/Production 변수 분리는 미검증이다.
+  - 현재 앱과 문서는 `main`에 통합되어 원격에 push됐다. Netlify 새 프로젝트 생성/로그인과 저장소 연결은 사용자 설정 대기다.
   - 현재 앱 worktree에는 `public/`, PWA manifest, service worker가 없으므로 PWA 자산 경로 점검은 해당 산출물이 추가된 뒤 수행한다.
   - 검토 메모: 공식 Netlify 문서는 OpenNext 어댑터를 통한 Next.js 서버 기능을 지원한다고 설명하며, Next.js static export 문서는 Server Actions·cookies·동적 Route Handler 등 서버 기능이 export 대상에서 제외된다고 명시한다. Tauri의 Next.js 안내도 `output: 'export'`와 `out` 디렉터리를 요구한다. 그러므로 제안의 Web 일반 Next 빌드와 Tauri 정적 빌드는 별도 설정/빌드 증명이 필요하다. 현재 Next.js 설정에서 전환이 쉬운지, PWA 서비스워커가 각 산출물과 공존하는지는 구현 확인 전 미정이다. ([Netlify](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/), [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports), [Tauri + Next.js](https://v2.tauri.app/start/frontend/nextjs/))
   - 제안서의 예시 폴더는 `app/`, `components/` 루트를 제안하지만 architecture 문서의 현행 앱 경로는 `src/app/`, `src/components/`다. 이 제안 구조는 현재 저장소 구조를 설명하는 것으로 취급하지 않는다.
