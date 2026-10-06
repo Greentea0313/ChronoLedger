@@ -35,8 +35,10 @@
 - [ ] 사용자는 Netlify를 우선 후보로 고려한다. [`Netlify_Web_Architecture_Proposal.md`](Netlify_Web_Architecture_Proposal.md)의 2026-10-07 재검토 권고에 따라 우선 현재 `output: 'export'` 산출물을 Deploy Preview에서 검증한다. 정적 경로가 웹 요구를 막는 증거가 나오기 전에는 Web/Desktop 이중 빌드나 SRS 변경을 하지 않는다.
 - [ ] Netlify 후보 확인: 정적 export 산출물과 `/auth` 하위 경로, Google OAuth callback/Redirect URL, PWA service worker 및 Preview/Production 환경 변수 분리를 작은 검증 브랜치에서 확인한다. 결과가 확인되기 전까지 Netlify는 채택 확정이 아니다.
   - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 5개 통과.
-  - 원격 검증 대기: Netlify CLI/site 연결이 없어 Deploy Preview를 만들거나 확인하지 못했다. Preview 도메인 OAuth 허용목록 및 Preview/Production 변수 분리는 미검증이다.
-  - 현재 앱과 문서는 `main`에 통합되어 원격에 push됐다. Netlify 새 프로젝트 생성/로그인과 저장소 연결은 사용자 설정 대기다.
+  - 원격 검증: `chronoledger-validation-20261007` 사이트에 `out`의 Draft Deploy를 생성했다(Production 아님). 응답은 Netlify Edge Access로 HTTP 401이어서 인증된 브라우저에서 `/`, `/auth`, `/auth/callback`, `/dashboard` 페이지 렌더를 확인해야 한다.
+  - Draft Deploy는 GitHub 자동 배포에 연결되지 않았다. 추후 Git 연동/PR Deploy Preview 설정은 Production branch 배포를 시작하지 않는 방식으로 별도 검토한다. CLI가 만든 루트 `.netlify/`는 Git에서 무시한다.
+  - Preview 도메인 OAuth 허용목록과 연결 후 Preview/Production 환경 변수 분리는 미검증이다. OAuth callback은 허용 URL 추가 전 수행하지 않는다.
+  - 현재 앱과 문서는 `main`에 통합되어 원격에 push됐다.
   - 현재 앱 worktree에는 `public/`, PWA manifest, service worker가 없으므로 PWA 자산 경로 점검은 해당 산출물이 추가된 뒤 수행한다.
   - 검토 메모: 공식 Netlify 문서는 OpenNext 어댑터를 통한 Next.js 서버 기능을 지원한다고 설명하며, Next.js static export 문서는 Server Actions·cookies·동적 Route Handler 등 서버 기능이 export 대상에서 제외된다고 명시한다. Tauri의 Next.js 안내도 `output: 'export'`와 `out` 디렉터리를 요구한다. 그러므로 제안의 Web 일반 Next 빌드와 Tauri 정적 빌드는 별도 설정/빌드 증명이 필요하다. 현재 Next.js 설정에서 전환이 쉬운지, PWA 서비스워커가 각 산출물과 공존하는지는 구현 확인 전 미정이다. ([Netlify](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/), [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports), [Tauri + Next.js](https://v2.tauri.app/start/frontend/nextjs/))
   - 제안서의 예시 폴더는 `app/`, `components/` 루트를 제안하지만 architecture 문서의 현행 앱 경로는 `src/app/`, `src/components/`다. 이 제안 구조는 현재 저장소 구조를 설명하는 것으로 취급하지 않는다.

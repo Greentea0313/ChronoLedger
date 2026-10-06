@@ -2,7 +2,8 @@
 
 ## 웹 우선순위 및 Netlify 재검토 (2026-10-07)
 
-- Netlify 검증의 로컬 단계: 앱 브랜치에서 `npm run build`가 lint와 타입 검사 포함 성공해 `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산을 생성했고 OAuth callback 테스트 5개도 통과했다. 빌드를 막던 불필요한 `@ts-ignore`와 `any` 검사를 최소 수정했다. 앱에는 `public/`, manifest, service worker가 없어 PWA 경로 검증은 아직 대상이 없다. Netlify CLI/site 연결이 없어 원격 Deploy Preview, Preview OAuth redirect, 환경변수 분리는 미검증이다.
+- Netlify 검증의 로컬 단계: 앱 브랜치에서 `npm run build`가 lint와 타입 검사 포함 성공해 `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산을 생성했고 OAuth callback 테스트 5개도 통과했다. 빌드를 막던 불필요한 `@ts-ignore`와 `any` 검사를 최소 수정했다. 앱에는 `public/`, manifest, service worker가 없어 PWA 경로 검증은 아직 대상이 아니다. Draft를 생성했으나 Edge Access로 HTTP 401이어서 인증 브라우저 경로 검증은 남아 있다.
+- Netlify Git import 마법사가 `main` 첫 Production 배포를 시작하므로 이를 취소하고, 공식 CLI Draft Deploy(`--dir out --no-build`, `--prod` 없이)를 생성했다. Draft URL은 만들어졌으나 Netlify Edge Access로 HTTP 401이 반환되어 인증된 브라우저에서 페이지별 동작 검증을 이어가야 한다. CLI 사이트는 로컬 `.netlify/` 메타데이터에 연결됐지만 GitHub continuous deployment에는 연결하지 않았다. OAuth callback은 Netlify 도메인 허용목록을 갱신하기 전 실제 인증하지 않는다.
 - 앱 코드와 최신 문서를 `main`에 통합해 `origin/main`으로 push했다 (`2135bb0`). 폴더 점검에서 추적된 94개 파일에 `.env`, 의존성/빌드 산출물, worktree 및 일반적인 비밀값 패턴은 없었다. `.worktrees/`와 로컬 환경 파일은 ignore 처리된다. Phase 1 run manifest는 여전히 `target_sha: null`, `in_progress`이므로 미완료로 유지한다.
 - 2026-10-07 현재 상태: 사용자는 웹사이트 기능 개발을 우선하고 Android PWA 실기기 인증 검증은 보류했다(제품 범위는 유지). Netlify는 유력 후보이나 아직 미채택이다. 기존 정적 export를 Deploy Preview에서 먼저 검증하며, 필요 증거 전에는 일반 Next.js 런타임/이중 빌드를 도입하지 않는다. 이전 날짜가 붙은 세부 결정은 아래 이력 항목을 참조한다.
 - 2026-10-07: 사용자는 Android PWA 실기기 검증을 보류하고 웹사이트 개발을 우선하기로 했다. Netlify를 후보로 고려하되, 기존 제안서 재검토는 `현재 정적 export를 Netlify에서 검증하는 최소 경로`를 먼저 권고한다. 플랫폼 및 이중 빌드 최종 채택은 Deploy Preview 확인 전까지 미정이다.

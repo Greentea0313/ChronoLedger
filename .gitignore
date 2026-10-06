@@ -2,6 +2,7 @@
 
 # Local-only execution worktrees
 .worktrees/
+/.netlify/
 
 # dependencies
 /node_modules

@@ -48,7 +48,7 @@
 ## 다음 작업
 
 - 사용자 우선순위는 웹사이트 개발이다. Android PWA 실기기 로그인 검증은 보류하되 제품 범위에서는 제외하지 않는다.
-- Netlify는 후보이며 아직 확정 채택이 아니다. 로컬 `npm run build`에서 lint·타입 검사 포함 정적 export와 주요 HTML/자산 경로가 통과했고 OAuth callback 테스트 5개도 통과했다. Netlify CLI/site link가 없어 Deploy Preview, preview OAuth redirect, 환경변수 분리는 미검증이다. 현재 앱에 PWA manifest/service worker도 없어 해당 자산 경로는 아직 검증할 수 없다.
+- Netlify는 후보이며 아직 확정 채택이 아니다. 로컬 `npm run build`에서 lint·타입 검사 포함 정적 export와 주요 HTML/자산 경로가 통과했고 OAuth callback 테스트 5개도 통과했다. Netlify CLI Draft Deploy(`out`, `--no-build`, 비-production)를 만들었으나 Edge Access가 HTTP 401을 반환해 인증 브라우저에서 경로별 렌더 검증은 대기 중이다. 현재 CLI 사이트는 로컬 `.netlify/` 메타데이터에 연결됐고 GitHub 자동 배포에는 연결하지 않았다. Preview OAuth redirect와 Preview/Production 환경 변수 분리는 미검증이며, PWA manifest/service worker도 없어 해당 자산 검증은 아직 할 수 없다.
 - 최신 앱 코드와 프로젝트 문서는 `main`에 통합해 `origin/main`으로 push했다. 폴더 점검에서 추적된 비밀/생성 산출물은 찾지 못했고 `.worktrees/` 및 `.env.local`은 무시된다. `artifacts/phase1-setup/run.json`은 `target_sha: null`, `in_progress`인 기존 미완료 기록이므로 종료 처리하지 않았다.
 
 - [상세 설계](detailed-design.md)는 승인 SRS/SPEC/SCHEMA를 흐름과 호출 경계로 연결한 초안이다. 예산 집계는 공유 클라이언트 도메인 함수, 오프라인 데이터는 계정별 IndexedDB에 고정 TTL 없이 저장하고 마지막 동기화 시각을 표시하며 네트워크 복귀 즉시 재조회하고 로그아웃/세션 만료 시 제거하기로 했다. 계정 삭제 부분 실패는 대기 상태를 유지하면서 재시도 간격을 늘려 완료까지 재시도하고, 대기 중 일반 접근은 차단하며 상태 화면만 허용한다. 데이터 정리 후 Auth 삭제 전에 주소 사본 없이 상태별 이메일을 보내며, Auth 삭제 실패 시 진행 상태를 알리고 삭제만 재시도한다. 게임 구독 해제도 Storage 정리 대기 작업과 재시도 후 행을 삭제하며, 처리 중에는 목록에 “삭제 처리 중”으로 표시하기로 했다. 성능 기준 기기는 중급 Android 실기기다. worker/메일 전달 구조와 성능 측정 세부조건은 미결정이다. Netlify 제안은 보류하며, 채택 시 계정 삭제 진입점은 Netlify 서버 함수로 하는 방향이다.
