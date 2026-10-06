@@ -37,7 +37,8 @@
   - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 5개 통과.
   - 원격 정적 경로 검증: `chronoledger-validation-20261007` Draft Deploy(Production 아님)에서 사용자가 로그인 화면, `/auth`, callback 안내, 비로그인 `/dashboard` → `/auth` 보호 동작을 확인했다. 비인증 HTTP 요청은 Netlify Edge Access에 의해 401이며 예상된 사이트 접근 제한이다.
   - Draft Deploy는 GitHub 자동 배포에 연결되지 않았다. 추후 Git 연동/PR Deploy Preview 설정은 Production branch 배포를 시작하지 않는 방식으로 별도 검토한다. CLI가 만든 루트 `.netlify/`는 Git에서 무시한다.
-  - Preview 도메인 OAuth 허용목록과 OAuth 실인증, GitHub PR Deploy Preview, Preview/Production 환경 변수 분리는 미검증이다. 실제 callback 검증 전 Supabase 허용 Redirect URL에 Draft callback 주소를 임시 추가해야 한다.
+  - 다음 검증 단계: Supabase Authentication → URL Configuration → Redirect URLs에 `https://6ac51bafa812ad0b6d62149b--chronoledger-validation-20261007.netlify.app/auth/callback`을 임시 추가하고 Draft URL에서 Google OAuth 왕복을 검증한 뒤 임시 허용 URL 정리 여부를 확인한다. 오늘은 사용자가 중단을 요청해 미실행이다.
+  - GitHub PR Deploy Preview와 Netlify site-level Preview/Production 환경 변수 분리는 미검증이다. 현재 Draft는 로컬 `.env.local`로 빌드한 `out`을 업로드했으며 Netlify Git 빌드 설정은 연결하지 않았다.
   - 현재 앱과 문서는 `main`에 통합되어 원격에 push됐다.
   - 현재 앱 worktree에는 `public/`, PWA manifest, service worker가 없으므로 PWA 자산 경로 점검은 해당 산출물이 추가된 뒤 수행한다.
   - 검토 메모: 공식 Netlify 문서는 OpenNext 어댑터를 통한 Next.js 서버 기능을 지원한다고 설명하며, Next.js static export 문서는 Server Actions·cookies·동적 Route Handler 등 서버 기능이 export 대상에서 제외된다고 명시한다. Tauri의 Next.js 안내도 `output: 'export'`와 `out` 디렉터리를 요구한다. 그러므로 제안의 Web 일반 Next 빌드와 Tauri 정적 빌드는 별도 설정/빌드 증명이 필요하다. 현재 Next.js 설정에서 전환이 쉬운지, PWA 서비스워커가 각 산출물과 공존하는지는 구현 확인 전 미정이다. ([Netlify](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/), [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports), [Tauri + Next.js](https://v2.tauri.app/start/frontend/nextjs/))
