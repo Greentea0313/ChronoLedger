@@ -5,7 +5,7 @@
 - 2026-10-07 사용자 지시에 따라 Android PWA 실기기 인증 검증을 보류하고 웹사이트 기능 개발을 우선하도록 작업 상태를 변경했다. Netlify 제안서를 재검토해 정적 export Deploy Preview를 먼저 검증하고, 필요가 입증되기 전에는 Web/Desktop 이중 빌드 및 Next.js 서버 기능을 도입하지 않는 권고를 기록했다.
 - Netlify 사전검증에서 앱 브랜치의 일반 production build, 주요 정적 경로와 참조 자산, OAuth callback 테스트 5개를 확인했다. 빌드를 막던 lint 위반 두 건도 최소 수정했다. Netlify 연결이 없어 Deploy Preview 검증은 미완료이며 현재 앱에 PWA manifest/service worker는 없다.
 - 로컬 앱 브랜치와 원격 `main`의 차이를 검토해 최신 앱 코드·문서를 통합하고 push했다. 루트 `.gitignore`에 `.worktrees/` 및 일반 로컬 환경 파일 규칙을 보존해 중첩 worktree가 실수로 추적되지 않도록 했다.
-- GitHub import 화면에서 `main` Production 배포를 피하고 Netlify CLI로 검증된 `out`을 Draft Deploy했다. 초안은 성공 생성됐지만 Edge Access 응답이 HTTP 401이므로 인증 브라우저 경로 검증을 남겼다. GitHub 자동 배포/프로덕션 배포는 시작하지 않았다.
+- GitHub import 화면에서 `main` Production 배포를 피하고 Netlify CLI로 검증된 `out`을 Draft Deploy했다. 사용자가 루트/`/auth` 로그인, callback 안내, 비로그인 대시보드 차단 동작을 확인했다. 익명 HTTP의 401은 Edge Access에 의한 것이다. GitHub 자동 배포/프로덕션 배포는 시작하지 않았다.
 
 ## 2026-10-06
 - 로컬 브라우저 Google OAuth를 실제 검증하고 중복 code 교환 및 React Strict Mode cleanup 문제를 수정했다. 로그인 UI를 `/auth`로 단일화하고 dashboard layout 인증 gate를 추가했으며 root 이동과 비로그인 직접 접근 차단을 확인했다. Android PWA 실기기 검증은 남아 있다.
