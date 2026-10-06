@@ -1,6 +1,6 @@
 # 협업 실행 아티팩트
 
-이 폴더는 협업 실행별 계획, 정적 리뷰, 테스트 결과 및 사용자용 종료 보고서를 공유한다. 에이전트 제품 간 자동 호출은 구성되어 있지 않으며, 각 역할은 아래 계약에 맞는 파일을 생성·검토한다.
+이 폴더는 협업 실행별 계획, 정적 리뷰, 테스트 결과 및 사용자용 종료 보고서를 공유한다. VS Code GitHub Copilot은 저장소의 `.github/copilot-instructions.md`와 `.github/agents/chronoledger-reviewer.agent.md`를 통해 Reviewer로 사용할 수 있다. AI 제품 간 자동 호출은 구성되어 있지 않으며, 사용자가 같은 SHA와 아래 산출물 계약을 각 역할에 전달하고 결과 파일을 확인·저장한다. 초보자 절차는 [AI 협업 사용 안내](../docs/ai-collaboration-usage.md)를 참고한다.
 
 ## 디렉터리 규약
 
@@ -17,6 +17,7 @@ artifacts/<run_id>/
 - `run_id`는 소문자 영문/숫자로 시작하는 고유한 하이픈 구분 이름이다. 같은 ID를 재사용하지 않는다.
 - `run.json`은 목표, 수용 기준, Base SHA, 전용 브랜치/worktree, 최대 반복 수를 기록한다.
 - 결과 JSON은 `schemas/`의 JSON Schema를 따른다. 모든 검토/테스트 결과는 같은 `target_sha`를 기준으로 판정한다.
+- Copilot이 응답으로 반환한 리뷰는 사용자가 내용을 확인해 적절한 `iteration-XX/review.json`에 저장한다. Copilot 프로필이 로드됐거나 JSON이 스키마 검증됐다고 가정하지 않는다.
 - 예시 파일은 `templates/`를 참고한다. 새 실행은 아래 PowerShell 스크립트로 만든다.
 - 실행 예: `./scripts/collaboration/New-CollaborationRun.ps1 -RunId "expense-refund-review" -Objective "환불 RPC 검증" -AcceptanceCriteria @("환불 성공 시 원장 잔액이 일치", "실패 시 모든 변경이 롤백")`
 - 로그 원문, 환경 변수 파일, 토큰, 비밀번호, 개인정보는 이 폴더에 저장하거나 Git에 추가하지 않는다. 민감값이 포함될 수 있는 로그는 `raw-logs/`에 임시로 두며 Git에서 제외된다.

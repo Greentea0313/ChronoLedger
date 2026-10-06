@@ -2,12 +2,14 @@
 
 아키텍처 결정의 기준은 [revisions_and_decisions.md](../md/revisions_and_decisions.md)다. 이 문서는 런타임 구성요소와 각 계층의 책임을 정한다.
 
+화면 흐름, 데이터 계약, RPC 경계, 보안 및 검증 설계는 [detailed-design.md](detailed-design.md)를 참조한다. 이 문서는 승인 기준을 구체화하며 미승인 구현 선택은 미결정으로 남긴다.
+
 ## 1. 구성
 
 ```text
 Next.js App Router
-├── 모바일: PWA
-└── 데스크톱: Tauri v2 정적 앱
+├── 모바일: PWA (SRS 제품 범위; 앱 버전/첫 릴리스 미결정)
+└── 데스크톱: Windows Tauri v2 정적 export (SRS 상위 방향; 앱 릴리스 버전 미결정)
         │ Supabase SDK / 인증 세션
         ▼
 Supabase
@@ -27,14 +29,18 @@ Supabase
 ## 3. 클라이언트 모듈 책임
 
 - `src/app/`: 인증, 캘린더, 설정, 관리자 요청 화면의 라우팅과 페이지 조립.
+- `src/app/page.tsx`는 단일 로그인 경로 `/auth`로 이동한다. `src/app/dashboard/layout.tsx`는 세션 로딩과 사용자 존재 여부를 확인해 보호 화면 렌더링을 제어한다. 데이터 권한은 Supabase RLS가 강제한다.
 - `src/components/calendar/`: 반응형 월간 캘린더, 일정 배너, 메모 도트, 선택 날짜 상세 및 예산 화면. 타일에는 금액을 그리지 않는다.
 - `src/components/expense/`: 예정 지출 입력, 결제/환불 RPC 호출, 예산 요약 및 만료 예정 지출 흐름.
 - `src/components/game/`: 공용 카탈로그 선택, 요청 제출, 개인 아이콘 업로드/표시.
-- `src/lib/`: Supabase 브라우저 클라이언트, 날짜·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
+- `src/lib/`: 단일 Supabase client(브라우저 PKCE/Tauri implicit 런타임 설정 및 callback URL 자동 감지 비활성화), 인증 상태, 날짜·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
 - `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.
 - `docs/`: 진행 현황, 아키텍처, 인수인계, 구현 체크리스트, 변경 이력, 주의사항.
 - `docs/ai-collaboration-usage.md`: 초보 개발자를 위한 Maker/Reviewer/Orchestrator 역할별 수동 협업 절차.
+- `.github/copilot-instructions.md`, `.github/agents/`: VS Code GitHub Copilot의 저장소 지침 및 선택 가능한 Maker/Reviewer 프로필. 자동 AI 간 호출이나 권한 강제 기능은 포함하지 않는다.
+- `md/ChronoLedger_UI_Design_Sheet.md`, `docs/design-v1-ko.html`: SRS에 근거한 UI 설계 참조 및 정적 한국어 대시보드 목업. 시각 스타일은 제안이며 목업은 실제 반응형·기능 구현이 아니다.
+- `docs/Netlify_Web_Architecture_Proposal.md`: Netlify/Web·Desktop 빌드 분리 제안. 아직 승인되지 않아 런타임 결정으로 적용하지 않는다.
 - `artifacts/`: run manifest, 반복별 정적 리뷰/테스트 JSON, 민감정보를 제거한 종료 보고서 및 JSON Schema.
 - `scripts/collaboration/`: 깨끗한 저장소 상태를 확인하고 실행 전용 Git worktree를 만드는 스크립트.
 - `.worktrees/`: run별 격리 작업 트리 위치이며 Git에서 제외한다. 자동 강제 초기화는 사용하지 않는다.
@@ -49,5 +55,7 @@ Supabase
 
 ## 5. 배포 및 미검증 사항
 
-- Tauri는 Next.js 정적 export 산출물을 표시하고, PWA는 같은 프론트엔드 기능을 모바일 브라우저에 제공한다.
-- DDL/RPC/RLS는 [SCHEMA.sql](../md/SCHEMA.sql)에 둔다. 작성된 SQL은 실제 Supabase/PostgreSQL에서 아직 실행 검증되지 않았으므로 배포 전에 [to-do.md](to-do.md)의 검증 단계를 완료한다.
+- SRS는 Android PWA와 Windows Tauri v2, 단일 Next.js 코드베이스 및 Tauri 정적 export 방향을 정한다. Android PWA 실기기 검증은 웹사이트 우선 요청에 따라 보류됐으나 제품 범위는 유지한다. 앱 릴리스 버전은 미결정이다.
+- 사용자는 Netlify를 웹 호스팅 후보로 고려한다. 우선 기존 `output: 'export'` 산출물을 Deploy Preview에서 검증하고, 서버 기능 요구 증거 없이 Web/Desktop 빌드를 분리하지 않는다. Netlify 채택은 preview 검증 전까지 미확정이며 체크 항목은 [to-do.md](to-do.md)에 둔다.
+- UI 설계는 [UI Design Sheet](../md/ChronoLedger_UI_Design_Sheet.md)를 따른다. 이는 SRS가 정한 동작을 보존하며, `[PROPOSED]`로 표시된 시각/배치 선택은 구현 전에 확정한다. [한국어 HTML 목업](design-v1-ko.html)은 단일 대시보드의 정적 시각 참고 자료다.
+- DDL/RPC/RLS는 [SCHEMA.sql](../md/SCHEMA.sql)에 둔다. 사용자는 전용 테스트 프로젝트에서 rollback-only smoke suite의 최종 PASS 및 fixture 롤백을 확인했다. 이는 전체 SRS 수용 기준 또는 Production 배포 검증을 뜻하지 않는다.

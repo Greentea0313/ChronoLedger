@@ -1,5 +1,27 @@
 # 프로젝트 진행 현황
 
+## 웹 우선순위 및 Netlify 재검토 (2026-10-07)
+
+- Netlify 검증의 로컬 단계: 앱 worktree `d2fe261`에서 `next build --no-lint`가 성공해 `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML과 참조 자산을 생성했고 OAuth callback 단위 테스트 5개도 통과했다. 일반 `npm run build`는 기존 `src/app/layout.tsx`의 `@ts-ignore`, `src/lib/tauri-auth.ts`의 `any` lint 오류로 실패했다. 앱에는 `public/`, manifest, service worker가 없어 해당 PWA 경로 검증은 아직 대상이 없다. Netlify CLI와 site link가 없고 브라우저도 공유되지 않아 원격 Deploy Preview/OAuth redirect/preview 환경 분리는 미검증이다.
+- 2026-10-07 현재 상태: 사용자는 웹사이트 기능 개발을 우선하고 Android PWA 실기기 인증 검증은 보류했다(제품 범위는 유지). Netlify는 유력 후보이나 아직 미채택이다. 기존 정적 export를 Deploy Preview에서 먼저 검증하며, 필요 증거 전에는 일반 Next.js 런타임/이중 빌드를 도입하지 않는다. 이전 날짜가 붙은 세부 결정은 아래 이력 항목을 참조한다.
+- 2026-10-07: 사용자는 Android PWA 실기기 검증을 보류하고 웹사이트 개발을 우선하기로 했다. Netlify를 후보로 고려하되, 기존 제안서 재검토는 `현재 정적 export를 Netlify에서 검증하는 최소 경로`를 먼저 권고한다. 플랫폼 및 이중 빌드 최종 채택은 Deploy Preview 확인 전까지 미정이다.
+- 사용자는 ChronoLedger를 과제 제출물이 아닌 개인 프로젝트로 진행하기로 결정했다. 과제 조건(SQLite, 별도 Node.js 웹서버, 게시판)은 제품 범위에 추가하지 않고 기존 승인된 Supabase PostgreSQL/Next.js 정적 export 및 회원·관리자 요구사항을 유지한다. Netlify나 상시 Node.js 서버 채택 결정은 아니다.
+- 사용자의 요청에 따라 [상세 설계](detailed-design.md)를 추가했다. 승인 SRS/SPEC/SCHEMA를 런타임 경계, 데이터 책임, Supabase/RPC 계약, 핵심 사용자 흐름, 보안·오류 정책 및 요구사항별 검증 계획으로 연결했다.
+- 사용자는 모바일·데스크톱 앱의 구체 릴리스 버전 번호와 시점/구성을 미결정으로 유지하도록 요청했다. 기존 결정인 Android PWA와 Windows Tauri v2, 단일 Next.js 코드베이스/Tauri 정적 export, Web/PWA 우선 순서는 그대로 유지한다. Netlify 및 Web/Desktop 빌드 분리는 별도 미결정이다.
+- 사용자는 월 예산 합계 및 경고를 공유 클라이언트 도메인 함수에서 계산하고 온라인 RLS 조회와 허용된 오프라인 캐시에 동일 규칙을 적용하기로 결정했다. 오프라인 데이터는 계정별 IndexedDB에 저장하고 고정 TTL 없이 다음 성공 동기화/로그아웃/세션 만료까지 유지하며 마지막 동기화 시각을 표시한다. 네트워크 복귀 때 관련 화면 데이터를 즉시 재조회하고 성공 전까지 캐시를 유지한다. 계정 삭제는 대기 상태를 보존하고 서버가 Storage 정리를 재시도하는 방식으로 결정했다. 대기 중에는 세션을 유지하지만 일반 기능/데이터를 차단하고 상태 화면만 허용한다. 실패 시 재시도 간격을 늘려 완료까지 자동 재시도한다. 데이터 정리 뒤 Auth 삭제 전에 주소 사본 없이 “정리 완료, 계정 삭제 마무리 중” 메일을 보내며, Auth 삭제 실패 시 상태 화면에서 알리고 삭제만 재시도한다. 게임 구독 해제도 아이콘 정리를 서버가 재시도하고 완료 후 구독 행을 제거하며, 처리 중에는 목록에 표시하고 중복 요청을 막는다. worker/메일 전달 구조는 추가 설계 대상이다. 성능 측정 기준 기기는 중급 Android 실기기로 선택됐다. Netlify 제안은 보류하고 현재 Web/PWA 기준으로 MVP를 진행하기로 했다. Netlify 채택 시 계정 삭제 진입점은 Netlify 서버 함수로 하는 방향이다. UI/접근성 값과 성능 측정 세부조건·목표도 남은 설계 항목이다.
+- 사용자가 추가한 UI 디자인 시트, `design-v1-ko.html`, Netlify 제안서를 승인 SRS와 기존 Web/PWA 우선순위에 대조했다. UI 시트의 달력 제한(VERSION/PICKUP, 금액 없음, 메모 표시 1개), 지출 상태/예산/모바일 상세 설계는 승인 요구와 부합한다. 색상/레이아웃 등 `[PROPOSED]` 값은 시각 제안으로 구분했다. HTML은 단일 화면의 정적 목업이며 인터랙션 또는 반응형 동작을 증명하지 않는다.
+- Netlify 문서 자체가 `Decision Proposal`이다. 플랫폼과 Web/Desktop 빌드 전략을 확정하지 않고 `docs/to-do.md`에 사용자 결정 및 승인 후 호환성 검증 과제를 남겼다.
+- 협업 AI 우선 요구에 따라 `.github/copilot-instructions.md`와 `.github/agents/chronoledger-{maker,reviewer}.agent.md`를 추가했다. 기존 파일 기반 run/SHA/JSON 규약과 연결했고, Reviewer 역할 문구만으로 읽기 전용 실행 권한을 보장하지 않는다는 점을 명시했다.
+- Copilot 역할과 사용 절차를 `docs/ai-collaboration-usage.md`, `md/multi_agent_collaboration_architecture.md`, `artifacts/README.md`에 반영했다. VS Code의 실사용 프로필 인식/도구 제한/아티팩트 저장은 아직 사용자의 VS Code 환경에서 확인하지 않았다. AI 간 자동 호출도 구성하지 않았다.
+- `docs/architecture.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/changelog.md`를 갱신했다. 문서 정합성만 검토했으며 앱 테스트/빌드/배포 및 실제 Copilot 세션 실행은 수행하지 않았다.
+- 브라우저 OAuth callback 구현과 실제 로컬 Google 인증, `/auth` 로그인 통합 및 dashboard layout 인증 gate를 검증했다. Android PWA 실기기 검증과 Tauri 딥링크는 각각 후속 Web/PWA·데스크톱 단계로 남아 있다.
+- Phase 1 협업 run은 `target_sha: null`, `in_progress`이며 동일-SHA review/test 산출물이 없어 완료로 표시하지 않는다.
+- 기존 Netlify 제안서의 A안(일반 Next.js 웹 런타임 + Tauri 정적 빌드)은 현 요구에 비해 복잡도가 커 즉시 채택할 근거가 부족하다. 배포 preview에서 정적 export, auth callback, 하위 경로, PWA service worker 및 환경변수 분리를 확인한 뒤 필요 시에만 서버 런타임/이중 빌드를 재논의한다.
+- 사용자는 Supabase Google provider 활성화와 `http://localhost:3000/auth/callback` 등록을 확인했다. 실제 브라우저 Google OAuth가 PKCE code를 교환하고 세션을 저장해 `/dashboard`로 이동하는 것을 검증했다. callback 테스트는 Strict Mode 재실행 케이스를 포함해 5개로 늘렸다.
+- 검증 중 발견한 중복 URL code 교환 및 React Strict Mode cleanup 문제를 수정했다. 단일 Supabase client에서 브라우저는 PKCE, Tauri는 기존 implicit flow를 사용하며 URL 자동 세션 감지는 비활성화했다.
+- `/`의 중복 로그인 폼을 `/auth` 이동 페이지로 바꾸고 dashboard layout에 인증 gate를 적용했다. 로그인 상태의 root 이동 및 로그아웃 후 직접 dashboard 접근 차단을 브라우저에서 확인했다. Android PWA 실기기 인증은 미검증이다.
+- 변경 파일의 callback 단위 테스트 5개, ESLint 및 `npx tsc --noEmit`은 통과했다. `npm run build`는 컴파일 후 기존 `src/app/layout.tsx`의 `@ts-ignore`와 `src/lib/tauri-auth.ts`의 `any` lint 오류로 중단됐다. Phase 1 run은 여전히 `target_sha: null`, `in_progress`다.
+
 ## 현재 상태
 
 - 프로젝트는 SRS 사용자 검토·승인과 SQL rollback-only 스모크 테스트를 마쳐 설계 단계 진입이 승인됐다.
@@ -102,5 +124,3 @@
 - Windows용 Tauri v2 데스크톱 실행 파일과 Android PWA만 지원하고 iOS PWA는 제외하기로 결정했다. 성능 수치 목표는 설계 단계에서 측정 환경과 함께 정하기로 했다.
 - 사용자가 검토 반영된 SRS 요구사항을 승인했다. [SRS](../md/SRS.md) 상태와 체크포인트에 승인 사실을 기록했다.
 - (당시 체크포인트 기록, 2026-10-03 스모크 실행 전) SQL 검증은 미수행 상태였고 `public.expenses` 존재 때문에 DDL 적용을 보류했다. 이후 사용자가 rollback-only 스모크 검증을 완료해 최신 상태는 위의 설계 진입 승인으로 갱신됐다.
-
-

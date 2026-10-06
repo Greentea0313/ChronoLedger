@@ -12,10 +12,33 @@
 
 ## 구현 우선순위: Web/PWA 먼저
 
-- 현재 구현 목표는 브라우저 웹과 Android PWA의 핵심 기능을 먼저 완성하는 것이다.
+- 과제 제출 조건은 적용하지 않는다. 개인 프로젝트로서 승인된 SRS/SPEC/SCHEMA를 기준으로 진행하며, SQLite·별도 Node.js 웹서버·게시판 요구사항을 추가하지 않는다.
+- 현재 구현 목표는 웹사이트 기능을 우선 완성하는 것이다. Android PWA 실기기 인증 검증은 사용자의 요청으로 후순위에 보류하지만 제품 범위에서 제외하지 않는다.
 - Windows Tauri 지원 결정은 SRS대로 유지하되, 외부 OAuth/딥링크 및 Windows 패키징은 Web/PWA MVP 승인 뒤 진행한다. 기존 Tauri 뼈대와 작업은 보존하며, 웹 기능을 Tauri 전용 API에 직접 결합하지 않는다.
-- Web/PWA MVP 종료 조건: 이메일/Google 브라우저 인증 및 callback, 인증된 핵심 화면, 가계부·캘린더·설정 주요 흐름, 모바일 반응형/PWA 오프라인 정책, RLS 연동과 재현 가능한 기능 검증을 완료하고 필수 수용 기준을 확인한다.
+- 웹 MVP 종료 조건: 이메일/Google 브라우저 인증 및 callback, 인증된 핵심 화면, 가계부·캘린더·설정 주요 흐름, RLS 연동과 재현 가능한 기능 검증을 완료하고 필수 수용 기준을 확인한다. Android PWA 실기기 설치/인증 검증은 별도 후속 검증으로 둔다.
 - 데스크톱 OAuth 구현은 별도 adapter 경계로 미룬다. 웹 callback 구현은 지금 완성하며, 이후 Tauri custom scheme callback이 같은 세션 경계에 연결되도록 설계한다.
+
+## 상세 설계 문서
+
+- [x] 승인 SRS/SPEC/SCHEMA를 런타임 경계, 데이터 책임, RPC 계약, 주요 흐름, 보안, 오류 및 검증 추적으로 연결하는 [상세 설계](detailed-design.md) 초안을 작성했다.
+- [ ] 모바일·데스크톱 앱의 구체 릴리스 버전 번호와 시점/구성은 미결정으로 유지한다. 기존 결정인 Android PWA + Windows Tauri v2, 단일 Next.js 코드베이스/Tauri 정적 export, Web/PWA 우선 순서는 그대로 유지한다. Netlify 및 Web/Desktop 빌드 분리 제안은 별도 미결정 항목이다.
+- [ ] 상세 설계의 남은 미결정 항목(계정/게임 정리 worker 및 이메일 전달 구조, UI/접근성 제안)을 구현 전에 결정하거나 검증 계획을 승인한다. 실패 시 재시도 간격을 늘리고, Storage 정리가 성공한 뒤에만 관련 행을 제거한다. 게임 정리 중에는 목록에 “삭제 처리 중”으로 표시한다. 계정별 IndexedDB 캐시는 고정 TTL 없이 마지막 동기화 시각을 표시하고, 네트워크 복귀 때 즉시 재조회하며 로그아웃/세션 만료 때 삭제한다.
+- [ ] SRS 수용 기준별 세부 테스트 케이스와 성능 측정 환경·목표를 릴리스 검증 자료로 구체화한다. 기준 기기는 중급 Android 실기기로 정했다.
+
+## 설계 자료 검토 및 협업 파이프라인
+
+- [x] UI 디자인 시트와 한국어 HTML 목업을 SRS와 대조하고 아키텍처/구현 체크리스트에 참조를 추가했다.
+- [x] VS Code GitHub Copilot 저장소 지침과 Maker/Reviewer 프로필을 추가하고 사용자 안내를 연결했다.
+- [ ] VS Code에서 Copilot이 `.github/copilot-instructions.md`와 두 에이전트 프로필을 인식하는지 진단 화면에서 확인한다.
+- [ ] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Copilot Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다.
+- [ ] 디자인 구현 시작 전 사용자와 확정할 시각 제안(색상/글꼴/간격/내비게이션/브레이크포인트)을 골라 기록하고, HTML 목업의 모바일 반응형과 인터랙션을 실제 구현 수용 기준으로 구체화한다.
+- [ ] 사용자는 Netlify를 우선 후보로 고려한다. [`Netlify_Web_Architecture_Proposal.md`](Netlify_Web_Architecture_Proposal.md)의 2026-10-07 재검토 권고에 따라 우선 현재 `output: 'export'` 산출물을 Deploy Preview에서 검증한다. 정적 경로가 웹 요구를 막는 증거가 나오기 전에는 Web/Desktop 이중 빌드나 SRS 변경을 하지 않는다.
+- [ ] Netlify 후보 확인: 정적 export 산출물과 `/auth` 하위 경로, Google OAuth callback/Redirect URL, PWA service worker 및 Preview/Production 환경 변수 분리를 작은 검증 브랜치에서 확인한다. 결과가 확인되기 전까지 Netlify는 채택 확정이 아니다.
+  - 로컬 검증: 앱 worktree에서 `next build --no-lint` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 5개 통과. 일반 build는 기존 lint 오류 두 건으로 실패했다.
+  - 원격 검증 대기: Netlify CLI/site 연결 및 공유된 Netlify 브라우저 세션이 없어 Deploy Preview를 만들거나 확인하지 못했다. Preview 도메인 OAuth 허용목록 및 Preview/Production 변수 분리는 미검증이다.
+  - 현재 앱 worktree에는 `public/`, PWA manifest, service worker가 없으므로 PWA 자산 경로 점검은 해당 산출물이 추가된 뒤 수행한다.
+  - 검토 메모: 공식 Netlify 문서는 OpenNext 어댑터를 통한 Next.js 서버 기능을 지원한다고 설명하며, Next.js static export 문서는 Server Actions·cookies·동적 Route Handler 등 서버 기능이 export 대상에서 제외된다고 명시한다. Tauri의 Next.js 안내도 `output: 'export'`와 `out` 디렉터리를 요구한다. 그러므로 제안의 Web 일반 Next 빌드와 Tauri 정적 빌드는 별도 설정/빌드 증명이 필요하다. 현재 Next.js 설정에서 전환이 쉬운지, PWA 서비스워커가 각 산출물과 공존하는지는 구현 확인 전 미정이다. ([Netlify](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/), [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports), [Tauri + Next.js](https://v2.tauri.app/start/frontend/nextjs/))
+  - 제안서의 예시 폴더는 `app/`, `components/` 루트를 제안하지만 architecture 문서의 현행 앱 경로는 `src/app/`, `src/components/`다. 이 제안 구조는 현재 저장소 구조를 설명하는 것으로 취급하지 않는다.
 
 ## Gemini 진행 문서 및 구현 검토 (2026-10-03)
 
@@ -23,23 +46,25 @@
 
 - **환경 골격 확인:** 작업 트리에 Next.js 정적 export, Tailwind/shadcn UI, Supabase 브라우저 클라이언트, Vitest 샘플, Tauri v2 설정, 로그인 화면과 dashboard 코드가 있다. Tauri CLI/Rust 의존성은 v2 계열이고 앱 식별자는 `com.chronoledger.app`이다. Gemini가 기록한 `npx tauri dev` 성공은 보고된 결과이며 이 리뷰에서 재실행하지 않았다.
 - **Phase 1 run은 미종료:** `artifacts/phase1-setup/run.json`은 `target_sha: null`, `status: in_progress`이고 `iteration-01/review.json`/`test.json`이 없다. Maker의 Phase 1 커밋 `ccfbca5` 이후 Tauri 플러그인·인증 변경이 미커밋 상태로 남아 있다. 생성된 `.next`/`out` 폴더는 변경 이후 동일 SHA의 검증 결과를 대신하지 않는다.
-- **Phase 2 구현 범위:** 사이드바/대시보드 UI 골격은 존재하지만 예정 지출액은 `0` 하드코딩이다. Supabase 프로젝트 생성 및 Redirect URL 허용은 Gemini 문서의 보고이며 콘솔 설정은 이 코드 검토로 확인할 수 없다. Supabase client에는 환경 변수가 없을 때 placeholder 값을 넣으므로 생성자 호출 성공만으로 실제 프로젝트 연결을 입증할 수 없다.
-- **OAuth callback 차단:** [`auth/callback/page.tsx`](../.worktrees/phase1-setup/src/app/auth/callback/page.tsx)는 callback 처리가 아니라 로그인 폼이다. [`tauri-auth.ts`](../.worktrees/phase1-setup/src/lib/tauri-auth.ts)는 fragment의 access/refresh token만 처리하고 PKCE `code` 교환을 하지 않는다. 앱이 딥링크로 처음 실행됐을 때 읽는 `getCurrent()`가 없으며 Windows/Linux 실행 중 URL 이벤트를 받기 위한 single-instance 플러그인도 없다. 따라서 현재 Google 데스크톱 로그인 복귀는 완료로 볼 수 없다.
-- **인증 경로 불일치:** `/`와 `/auth`에 로그인 UI가 중복되어 있다. `/`는 Tauri 외부 브라우저 처리를 하지만 `/auth`는 웹 URL callback만 사용한다. dashboard는 비로그인 사용자를 `/auth`로 보내므로 같은 앱 안에서 Tauri 로그인 경로가 달라진다. dashboard 페이지의 redirect는 있지만 이를 모든 하위 dashboard route에 적용하는 공통 보호 경계는 없다.
+- **Phase 2 구현 범위:** Dashboard의 자산/예정 지출 조회는 Supabase query로 연결되어 있다. 예정 지출 query의 KST 월 경계, 다음 달 제외, 실제 0원과 조회 오류 분기는 아직 수용 테스트로 확인하지 않았다. 실제 Supabase 프로젝트 설정은 환경 파일의 비밀값이 아닌 키 존재 여부만 확인하고, 콘솔 상태는 사용자 확인 및 OAuth 왕복으로 검증했다.
+- **OAuth 상태:** callback의 PKCE code 교환, provider 오류/취소, code 누락, 세션 교환 실패 처리를 구현하고 5개 단위 테스트를 통과했다. Google provider와 `http://localhost:3000/auth/callback` 등록 후 실제 브라우저 로그인·세션 저장·dashboard 복귀를 확인했다. Android PWA 실기기 검증과 Phase 1 run의 동일-SHA 검토/검증 산출물은 남아 있다.
+- **인증 경계:** `/`는 단일 로그인 경로 `/auth`로 이동하고 dashboard layout이 인증 로딩 및 사용자 존재를 확인해 비인증 화면 렌더링을 막는다. 브라우저에서 로그인 후 dashboard 복귀와 로그아웃 뒤 직접 dashboard 접근 차단을 확인했다. 최종 데이터 권한은 Supabase RLS가 강제한다.
 - **무반응 원인은 미확정:** 버튼에 코드 핸들러는 연결되어 있으나 실행 확인은 별도다. “권한 부족”이나 “Hydration 오류”는 아직 원인으로 입증되지 않은 가설이므로 웹뷰/콘솔 오류로 재현해야 한다.
 - **기획 게이트 최신 상태:** 사용자가 기록한 테스트 프로젝트의 `md/TESTS.sql` PASS/rollback 및 SRS 승인에 따라 Phase 0.6은 완료 상태다. 이는 DB smoke 검증이지 Tauri OAuth 실행 검증은 아니다.
 - **Gemini Phase 4 정리 필요:** 데이터베이스 스키마를 새로 설계/생성한다는 문구는 승인된 `md/SCHEMA.sql` 및 smoke 검증과 중복될 수 있다. 기존 기준 스키마를 재사용하는 마이그레이션과 상세 테스트 설계로 구체화한다.
 
 ### 다음 조치
 
-1. [ ] `/auth/callback`를 브라우저 OAuth callback으로 구현하고 PKCE 응답 처리, 성공·오류·취소 상태 및 브라우저 세션 복귀를 확인한다.
-2. [ ] `/`와 `/auth` 로그인 UI를 하나로 합치고 dashboard 보호를 레이아웃 경계에 적용한다. 이메일/Google 로그인을 브라우저와 Android PWA에서 검증한다.
-3. [ ] Supabase provider 및 Redirect URL 설정을 프로젝트 콘솔에서 확인하되 키·비밀값은 문서에 기록하지 않는다.
-4. [ ] Dashboard 예정 지출액의 임시 `0`을 실제 조회로 교체하고, 자산 조회 오류와 실제 0원을 구분해 표시한다.
-5. [ ] 가계부, 캘린더, 설정 기능을 Web/PWA MVP 조건에 맞춰 구현하고 승인 SRS 수용 기준별 테스트를 추적한다.
-6. [ ] `phase1-setup` 변경 범위와 검토 대상 SHA를 정리하고 같은 SHA의 review/test JSON을 작성한다. Tauri 전용 변경은 후속 단계로 분리한다.
-7. [ ] Gemini Phase 4 계획을 승인 스키마 재사용, 마이그레이션 및 상세 검증 케이스 중심으로 갱신한다.
-8. [ ] 버튼 무반응이 브라우저에서도 재현되는지 확인한다. Tauri 전용 무반응 분석은 데스크톱 통합 단계에서 웹뷰 로그를 수집해 진행하고, 원인 확인 전 권한/Hydration 문제로 단정하지 않는다.
+1. [x] **[Web/PWA MVP · callback 구현]** `.worktrees/phase1-setup`에서 PKCE callback과 provider 오류/취소, code 누락, 교환 실패 처리를 구현했다. Supabase URL 자동 세션 감지를 끄고 callback에서 code를 한 번만 교환하며 React Strict Mode에서도 완료되도록 수정했다. 관련 단위 테스트 5개 통과.
+2. [x] Google provider 활성화와 `http://localhost:3000/auth/callback` Redirect URL 등록을 사용자 확인 및 성공한 실제 OAuth 왕복으로 검증했다. 키·비밀값은 문서에 기록하지 않았다.
+3. [x] **[실환경 인증 · 브라우저]** localhost에서 Google OAuth, PKCE code 교환, 세션 저장 및 `/dashboard` 복귀를 확인했다.
+4. [보류] **[실환경 인증 · Android PWA]** 사용자가 Android 실기기 검증을 미루기로 했다. 웹 MVP 우선 진행 기간에는 실행하지 않으며, PWA origin과 Redirect URL이 준비된 뒤 재개한다.
+5. [x] `/`는 `/auth`로 이동하고 로그인 UI를 단일화했다. dashboard 레이아웃에 인증 gate를 적용했으며 로그인 상태의 root 이동과 로그아웃 후 직접 `/dashboard` 접근이 `/auth`로 돌아오는 동작을 브라우저에서 확인했다. 데이터 접근 권한의 최종 집행은 SRS대로 RLS가 담당한다.
+6. [ ] Dashboard 예정 지출은 실제 조회로 연결되어 있다. 현재 달력 월 계산과 조회가 KST 경계 및 다음 달 시작일 exclusive 조건을 모두 만족하는지 검증·보완하고, 실제 0원과 조회 오류를 테스트 데이터로 구분한다.
+7. [ ] 가계부, 캘린더, 설정 기능을 Web/PWA MVP 조건에 맞춰 구현하고 승인 SRS 수용 기준별 테스트를 추적한다.
+8. [ ] `phase1-setup` 변경 범위와 검토 대상 SHA를 정리하고 같은 SHA의 review/test JSON을 작성한다. Tauri 전용 변경은 후속 단계로 분리한다.
+9. [ ] Gemini Phase 4 계획을 승인 스키마 재사용, 마이그레이션 및 상세 검증 케이스 중심으로 갱신한다.
+10. [ ] 버튼 무반응이 브라우저에서도 재현되는지 확인한다. Tauri 전용 무반응 분석은 데스크톱 통합 단계에서 웹뷰 로그를 수집해 진행하고, 원인 확인 전 권한/Hydration 문제로 단정하지 않는다.
 
 ---
 
@@ -58,6 +83,10 @@
   - 정적 확인: JSON 문법, PowerShell 구문, 상대 Markdown 링크 통과
   - 현재 실행 환경은 깨끗하지 않고 Docker가 없어 실제 run/샌드박스 검증은 보류
 - [x] 초보 개발자용 AI 협업 사용 안내 작성 (`docs/ai-collaboration-usage.md`)
+- [x] VS Code GitHub Copilot 저장소 지침 및 Maker/Reviewer custom agent 프로필 추가 (`.github/`)
+- [x] UI 디자인 시트/목업과 Netlify 배포 제안 검토 결과를 진행 문서에 기록
+- [ ] VS Code의 Copilot custom agent 인식 및 동일-SHA 리뷰 실행 검증 (사용자 VS Code 환경 확인)
+- [ ] Netlify와 두 빌드 타깃 제안에 대한 사용자 결정
 - [ ] 깨끗한 커밋 상태에서 run 생성 스크립트를 검증하고 생성된 전용 worktree/manifest가 일치하는지 확인
 - [ ] Docker 기반 테스트 샌드박스를 사용할 수 있는 환경에서 격리·네트워크·환경변수 제한을 검증
 - [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인
@@ -201,8 +230,3 @@
 - [ ] T3. OAuth 성공·취소·만료 세션 및 로그아웃 복귀를 Windows 데스크톱에서 검증한다.
 - [ ] T4. Tauri v2 Windows production build를 만들고 단독 실행해 로그인, 캘린더, 결제 흐름을 검증한다.
 - 완료 게이트: Web/PWA MVP 조건이 통과되고, 동일 기능의 데스크톱 인증/핵심 흐름 테스트가 통과한 뒤 Windows 앱 배포를 승인한다.
-
-
-
-
-

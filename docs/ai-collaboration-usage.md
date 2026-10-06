@@ -1,6 +1,6 @@
 # AI 협업 사용 안내 (초보자용)
 
-이 문서는 Maker, Reviewer, Orchestrator 역할을 맡은 AI를 사용해 한 작업을 만들고 서로 확인하는 방법을 설명한다. 현재 역할 간 자동 호출은 설정되어 있지 않으므로, 사람이 프롬프트와 파일을 전달하며 진행한다.
+이 문서는 Maker, Reviewer, Orchestrator 역할을 맡은 AI를 사용해 한 작업을 만들고 서로 확인하는 방법을 설명한다. VS Code의 GitHub Copilot을 저장소 수준의 Reviewer/Maker로 사용할 수 있게 `.github/` 지침과 에이전트 프로필을 마련했다. 역할 간 자동 호출은 설정되어 있지 않으므로, 사람이 프롬프트와 파일을 전달하며 진행한다.
 
 ## 먼저 알아둘 말
 
@@ -16,11 +16,27 @@
 
 | 역할 | 담당 | 하는 일 | 하지 않는 일 |
 |---|---|---|---|
-| Maker | Codex 등 구현 AI | 요청된 코드 변경, 자체 확인, 변경 커밋 생성 | 범위를 벗어난 결정을 사용자 대신 내리지 않음 |
-| Reviewer | Gemini Code Assist 등 검토 AI | Base와 Target 변경을 읽고 문제 및 근거를 기록 | 파일을 수정하거나 결과를 다수결로 판정하지 않음 |
-| Orchestrator | Gemini Spark 등 조정 AI 또는 사용자 | 격리 환경에서 검증을 실행하고 결과를 모아 상태를 정리 | 프로젝트 코드를 수정하거나 호스트에서 임의로 위험한 명령을 실행하지 않음 |
+| Maker | Codex 또는 VS Code의 GitHub Copilot Maker 프로필 | 요청된 코드 변경, 자체 확인, 변경 커밋 생성 | 범위를 벗어난 결정을 사용자 대신 내리지 않음 |
+| Reviewer | VS Code의 GitHub Copilot Reviewer 프로필 (또는 Gemini Code Assist) | Base와 Target 변경을 읽고 문제 및 근거를 기록 | 구현 파일을 수정하거나 결과를 다수결로 판정하지 않음 |
+| Orchestrator | Codex 또는 사용자 | 같은 Target SHA의 결과를 모으고, 안전한 환경에서 검증 상태를 정리 | Reviewer의 지적을 확인 없이 정답으로 처리하지 않음 |
 
-제품이나 계정에서 특정 AI를 사용할 수 없다면 해당 역할을 다른 AI나 사람이 맡을 수 있다. 중요한 점은 역할을 구분하고 각 역할의 결과를 파일로 남기는 것이다.
+제품이나 계정에서 특정 AI를 사용할 수 없다면 해당 역할을 다른 AI나 사람이 맡을 수 있다. 저장소를 VS Code로 연 뒤 Copilot Chat의 에이전트 선택 메뉴에서 `ChronoLedger Reviewer` 또는 `ChronoLedger Maker`를 선택한다. 프로필이 목록에 나타나지 않으면 Agent Customizations 진단 화면에서 로드 오류를 확인한다. 중요한 점은 역할을 구분하고 각 역할의 결과를 파일로 남기는 것이다.
+
+Copilot은 `.github/copilot-instructions.md`의 저장소 지침을 받으며, `.github/agents/`의 프로필을 선택해 역할에 맞는 지시를 적용한다. 프로필의 역할 설명만으로 읽기 전용 권한이 강제되지는 않으므로 Reviewer 세션에서는 VS Code가 제공하는 도구/실행 권한을 제한하고, Copilot이 제안한 변경을 승인하지 않는다. 사용자가 최종 변경 및 결과 파일을 확인한다.
+
+초보자용 Reviewer 요청 예시:
+
+```text
+이 run의 Reviewer 역할로 검토해줘.
+Run ID: <run-id>
+Base SHA: <base-sha>
+Target SHA: <target-sha>
+수용 기준: <run.json에서 복사>
+검토 범위: Target SHA의 변경과 직접 관련된 코드
+review.schema.json 형식에 맞춰 결과를 작성하고, 코드는 수정하지 마.
+```
+
+VS Code에서 Copilot Chat을 열고 에이전트 선택 목록에서 `ChronoLedger Reviewer`를 고른 뒤 이 요청을 전달한다. Agent Customizations 진단에서 프로필이 로드됐는지 확인한다. 결과는 SHA와 근거를 직접 확인한 뒤 지정한 `review.json`에 저장한다.
 
 ## 작업 순서
 
@@ -72,6 +88,8 @@ Maker에게 `run.json`의 목표와 수용 기준을 전달한다. 반드시 `.w
 
 Reviewer에게 Base SHA와 Target SHA 사이의 변경, 필요한 관련 파일, 수용 기준을 전달한다. 읽기 전용으로 검토하고 결과를 `artifacts/<RunId>/iteration-01/review.json`에 기록하도록 요청한다. 결과 형식은 `artifacts/schemas/review.schema.json`과 `artifacts/templates/review.example.json`을 참고한다.
 
+Copilot을 사용할 경우 `ChronoLedger Reviewer` 프로필을 선택하고 run ID, Base/Target SHA, 수용 기준, 검토 범위를 제공한다. 가능하면 VS Code에서 `.worktrees/<RunId>` 폴더를 별도 창으로 열고, Maker가 만든 Target SHA 커밋이 현재 `HEAD`인지와 작업 트리가 깨끗한지 확인한 뒤 리뷰한다. 기준 SHA와 대상 SHA가 다른 상태라면 해당 두 커밋 간 변경을 전달하거나 리뷰를 시작하지 않는다. 반환된 JSON을 직접 검토해 해당 run 폴더에 저장한다. Copilot이 파일을 자동 저장했거나 SHA/스키마를 검증했다고 가정하지 않는다.
+
 각 발견 사항은 파일, 줄, 근거, 영향, 권장 조치를 포함해야 한다. 문제가 없으면 근거와 검토 범위를 명시한 빈 발견 목록을 기록한다. 파일을 직접 고치게 하지 않는다.
 
 ### 6. Orchestrator가 격리 환경에서 시험한다
@@ -95,12 +113,13 @@ Orchestrator에게 같은 Target SHA, 수용 기준, 프로젝트의 시험 지�
 - 자동 `git reset --hard`를 실행하지 않는다. 실패한 브랜치와 worktree를 검토할 수 있도록 보존한다.
 - 비밀번호, 토큰, 개인정보, 운영 `.env`, 마스킹되지 않은 로그를 공유 아티팩트에 저장하지 않는다.
 - 실제로 수행하지 않은 빌드나 테스트를 통과했다고 보고하지 않는다.
-- 현재 AI 간 자동 연결은 설정되어 있지 않다. 프롬프트 전달과 아티팩트 파일 작성은 수동으로 해야 한다.
+- Copilot 프로필은 저장소에 포함된 역할 지침이다. 별도 Copilot 구독/VS Code 로그인 상태, 실제 프로필 인식 및 작업은 사용자 환경에서 확인해야 하며 AI 간 자동 호출/결과 파일 기록은 제공하지 않는다. 프롬프트 전달과 아티팩트 기록은 수동으로 한다.
 
 ## 이 프로젝트에서 아직 확인되지 않은 점
 
 - 실행 준비 스크립트는 구문 검토만 되었고, 실제 새 worktree와 manifest 생성 흐름은 아직 동작 검증되지 않았다.
 - 현재 환경에는 Docker가 확인되지 않아 컨테이너 테스트를 실행할 수 없다.
+- VS Code에서 Copilot 프로필이 인식되는지와 도구 권한을 Reviewer 역할에 맞게 제한할 수 있는지 실제 작업으로 확인하지 않았다.
 - Gemini AI가 같은 로컬 파일을 직접 읽고 쓰도록 연결되어 있지 않다. 사용 가능한 제품 기능에 따라 파일을 직접 전달해야 한다.
 
 세부 파일 규약과 격리 정책은 [아티팩트 안내](../artifacts/README.md), 역할 설계는 [협업 아키텍처](../md/multi_agent_collaboration_architecture.md)를 참고한다.

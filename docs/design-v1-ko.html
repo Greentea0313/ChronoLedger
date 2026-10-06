@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChronoLedger V1 - 한국어판</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0F1115;color:#F5F7FA;font-family:Pretendard,system-ui,sans-serif;font-size:15px}
+header{display:flex;align-items:center;gap:16px;padding:0 24px;height:56px;border-bottom:1px solid #2A2F3A;background:#171A21}
+.brand{font-weight:700;font-size:17px}
+nav{display:flex;gap:12px;font-size:14px;color:#9BA3B2}
+nav b{color:#F5F7FA}
+.hspace{flex:1}
+.budget-pill{border:1px solid #2A2F3A;border-radius:999px;padding:6px 12px;font-size:12px;color:#9BA3B2}
+.budget-pill strong{color:#F5B942}
+.layout{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:24px;max-width:1440px;margin:0 auto}
+.card{background:#171A21;border:1px solid #2A2F3A;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.cal{padding:20px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cal-head h1{font-size:22px;font-weight:700}
+.btn{height:40px;padding:0 16px;border-radius:10px;border:1px solid #2A2F3A;background:#1F2430;color:#F5F7FA;font-size:14px;font-weight:600;cursor:pointer}
+.btn.primary{background:#7C8CFF;border-color:#7C8CFF}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.dow{font-size:12px;color:#6F7785;text-align:center;padding:4px}
+.tile{min-height:86px;background:#1F2430;border:1px solid #2A2F3A;border-radius:10px;padding:8px;font-size:12px;position:relative}
+.tile .d{color:#9BA3B2}
+.tile.today{border-color:#7C8CFF}
+.tile.selected{outline:2px solid #7C8CFF}
+.tile.out{opacity:.35}
+.icon{width:24px;height:24px;border-radius:6px;background:#7C8CFF;display:flex;align-items:center;justify-content:center;font-size:14px;margin:6px 0}
+.banner{font-size:11px;font-weight:600;background:#65A9FF22;color:#65A9FF;border-radius:6px;padding:2px 6px;display:inline-block}
+.banner.pick{background:#7C8CFF22;color:#91A0FF}
+.dot{position:absolute;right:8px;bottom:8px;width:6px;height:6px;border-radius:50%;background:#9BA3B2}
+.sidebar{padding:20px;display:flex;flex-direction:column;gap:16px}
+.sec h3{font-size:17px;font-weight:600;margin-bottom:8px}
+.sched{border:1px solid #2A2F3A;border-radius:10px;padding:12px;background:#1F2430;font-size:14px}
+.spend{border:1px solid #2A2F3A;border-radius:10px;padding:12px;background:#1F2430}
+.badge{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 8px;background:#65A9FF22;color:#65A9FF}
+.badge.conf{background:#4CD6A522;color:#4CD6A5}
+.amt{font-size:20px;font-weight:700;margin:8px 0}
+.actions{display:flex;gap:8px;margin-top:8px}
+.budgetbar{height:8px;background:#1F2430;border-radius:999px;overflow:hidden;margin-top:8px}
+.budgetbar i{display:block;height:100%;width:82%;background:#F5B942}
+.note{font-size:12px;color:#6F7785}
+.memo{font-size:14px;color:#9BA3B2}
+footer{padding:16px 24px;color:#6F7785;font-size:12px;text-align:center}
+.tag{font-size:12px;color:#6F7785}
+</style>
+</head>
+<body>
+<header><div class="brand">ChronoLedger</div><nav><b>대시보드</b><span>지출</span><span>통계</span><span>게임</span><span>구독</span><span>지갑</span></nav><div class="hspace"></div><div class="budget-pill">예산 <strong>경고 82%</strong></div><div class="tag">동기화 ● &nbsp; 내 계정 ▾</div></header>
+<div class="layout">
+<div class="card cal">
+<div class="cal-head"><h1>2026년 10월</h1><button class="btn">오늘</button></div>
+<div class="grid"><div class="dow">월</div><div class="dow">화</div><div class="dow">수</div><div class="dow">목</div><div class="dow">금</div><div class="dow">토</div><div class="dow">일</div>
+<div class="tile out"><span class="d">29</span></div><div class="tile out"><span class="d">30</span></div>
+<div class="tile"><span class="d">1</span><div class="icon">🎮</div></div>
+<div class="tile"><span class="d">2</span><span class="banner">VERSION</span></div>
+<div class="tile"><span class="d">3</span><div class="icon">🎮</div></div>
+<div class="tile"><span class="d">4</span></div><div class="tile"><span class="d">5</span><span class="dot"></span></div>
+<div class="tile selected"><span class="d">6</span><div class="icon">🎮</div><span class="banner pick">PICKUP</span><span class="dot"></span></div>
+<div class="tile"><span class="d">7</span></div><div class="tile"><span class="d">8</span><span class="dot"></span></div><div class="tile"><span class="d">9</span></div><div class="tile"><span class="d">10</span><span class="banner pick">PICKUP</span></div><div class="tile"><span class="d">11</span><div class="icon">🎮</div></div><div class="tile"><span class="d">12</span></div>
+</div>
+<div style="margin-top:16px;font-size:14px;color:#9BA3B2">예산 ₩300,000 &nbsp;·&nbsp; 예상 지출 ₩248,000</div>
+<div class="budgetbar"><i></i></div><div class="note">상태: 경고 (82%) · 달력 타일에 금액 미표시 [FR-020 준수]</div>
+</div>
+<div class="card sidebar">
+<div class="sec"><h3>10월 6일</h3><div class="note">선택일 상세 · 오른쪽 상세 패널</div></div>
+<div class="sec"><h3>일정</h3><div class="sched">게임 A &nbsp;<span class="badge">PICKUP</span><br><span class="note">10/04 — 10/10</span></div></div>
+<div class="sec"><h3>예정 지출</h3><div class="spend"><span class="badge">예정</span><div style="margin-top:6px">게임 A 패키지</div><div class="amt">₩30,000</div><div class="note">목표일 2026-10-06</div><div class="actions"><button class="btn primary">결제 확정</button><button class="btn">예정 취소</button></div></div></div>
+<div class="sec"><h3>확정 지출</h3><div class="spend"><span class="badge conf">확정</span><div class="amt">₩24,000</div><div class="actions"><button class="btn">환불</button></div></div></div>
+<div class="sec"><h3>메모</h3><div class="memo">• 메모 1 (달력 타일은 점 1개만)</div><div class="actions"><button class="btn">메모 추가</button></div></div>
+</div>
+</div>
+<footer>V1 한국어판 — tokens: 배경 #0F1115 / 기본 #7C8CFF / 모서리 12 / 사이드바 340px / 컨트롤 40px</footer>
+</body>
+</html>

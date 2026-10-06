@@ -1,0 +1,11 @@
+# ChronoLedger instructions for GitHub Copilot
+
+- Before any project or implementation task, read `md/SKILL.md` and `md/agent_rules.md`. Follow them together with the user's current request; the current user request takes precedence over source documents that merely describe a proposal or design.
+- Treat `md/revisions_and_decisions.md` and the approved `md/SRS.md` as product authorities. Use `md/SPEC.md` and `md/SCHEMA.sql` for their respective details. If they conflict, report the conflict and do not silently choose.
+- For UI work, read `md/ChronoLedger_UI_Design_Sheet.md` and use `docs/design-v1-ko.html` as a visual reference. Preserve fixed SRS behavior; the sheet marks visual proposals separately. The HTML is a static mockup, not a functional or responsive implementation.
+- `docs/Netlify_Web_Architecture_Proposal.md` is a proposal, not an accepted deployment decision. Do not change build/deployment architecture or rewrite SRS decisions based on it alone. Record unresolved choices in `docs/to-do.md` and ask the user when a choice blocks implementation.
+- Respect the Web/Android PWA first sequence in `docs/to-do.md`; Windows Tauri OAuth/deep-link/packaging follows the Web/PWA MVP.
+- Keep changes scoped, preserve existing user changes, and do not run destructive Git commands or expose secrets. Do not state that a build, test, deployment, or external setting succeeded unless it was actually verified.
+- In collaboration runs, read the run manifest and schemas under `artifacts/`; base all review/test results on the exact `target_sha`. Save outputs only to the assigned run/iteration paths and never include credentials, personal data, or raw sensitive logs.
+- For a review role, report evidence, file and line, impact, and recommendation in `artifacts/schemas/review.schema.json` format; do not modify implementation files. A role description is not a technical permission boundary, so the user must select restrictive tools/permissions and inspect proposed changes.
+- After meaningful work, update the relevant documents under `docs/` as required by `md/SKILL.md`, including progress, handoff, to-do, architecture when structure changes, and changelog.
