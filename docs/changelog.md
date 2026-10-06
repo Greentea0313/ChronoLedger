@@ -3,7 +3,7 @@
 ## 2026-10-07
 
 - 2026-10-07 사용자 지시에 따라 Android PWA 실기기 인증 검증을 보류하고 웹사이트 기능 개발을 우선하도록 작업 상태를 변경했다. Netlify 제안서를 재검토해 정적 export Deploy Preview를 먼저 검증하고, 필요가 입증되기 전에는 Web/Desktop 이중 빌드 및 Next.js 서버 기능을 도입하지 않는 권고를 기록했다.
-- Netlify 사전검증에서 앱 worktree 정적 export 빌드(기존 lint 오류를 분리하기 위해 `--no-lint` 사용), 주요 정적 경로와 참조 자산, OAuth callback 테스트 5개를 확인했다. Netlify 연결 및 공유 브라우저가 없어 Deploy Preview 검증은 미완료이며 현재 앱에 PWA manifest/service worker는 없다.
+- Netlify 사전검증에서 앱 브랜치의 일반 production build, 주요 정적 경로와 참조 자산, OAuth callback 테스트 5개를 확인했다. 빌드를 막던 lint 위반 두 건도 최소 수정했다. Netlify 연결이 없어 Deploy Preview 검증은 미완료이며 현재 앱에 PWA manifest/service worker는 없다.
 
 ## 2026-10-06
 - 로컬 브라우저 Google OAuth를 실제 검증하고 중복 code 교환 및 React Strict Mode cleanup 문제를 수정했다. 로그인 UI를 `/auth`로 단일화하고 dashboard layout 인증 gate를 추가했으며 root 이동과 비로그인 직접 접근 차단을 확인했다. Android PWA 실기기 검증은 남아 있다.
