@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-10-06
+
+- 브라우저 Google OAuth를 실제 Supabase localhost 설정으로 검증하고 중복 code 교환 및 Strict Mode effect cleanup 문제를 수정했다. 로그인 화면을 `/auth`로 통합하고 dashboard layout 인증 gate를 적용했다. callback 테스트 5개를 통과했으며 Android PWA 실기기 E2E는 남아 있다.
+
 ## 2026-10-02
 
 - 낡은 제안·검토 문서 2개(`md/fix-proposals.md`, `md/revisions_and_decisions_review.md`)를 삭제했다. 최신 요구사항 문서와 명시적인 역사 기록으로 연결된 검토 자료는 유지했다.

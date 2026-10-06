@@ -1,15 +1,48 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase/client'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const { user, isLoading } = useAuth()
+  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/auth')
+    }
+  }, [isLoading, router, user])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    setIsLoggingOut(true)
+    setLogoutError(null)
+
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        setLogoutError(`로그아웃하지 못했습니다: ${error.message}`)
+        return
+      }
+      router.replace('/auth')
+    } catch (cause: unknown) {
+      const description = cause instanceof Error ? cause.message : String(cause)
+      setLogoutError(`로그아웃 중 오류가 발생했습니다: ${description}`)
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
+  if (isLoading || !user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
+        <p role="status">인증 확인 중...</p>
+      </main>
+    )
   }
 
   return (
@@ -31,11 +64,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ⚙️ 설정
           </Link>
         </nav>
+        {logoutError && <p role="alert" className="mb-3 text-sm text-red-400">{logoutError}</p>}
         <button 
           onClick={handleLogout} 
+          disabled={isLoggingOut}
           className="p-3 mt-auto rounded border border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white transition-colors text-left"
         >
-          로그아웃
+          {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
         </button>
       </aside>
 

@@ -1,12 +1,21 @@
 # 프로젝트 진행 현황
 
+## 브라우저 OAuth 및 dashboard 보호 (2026-10-06)
+
+- Supabase client는 브라우저/PWA에서 PKCE, Tauri에서 기존 implicit flow를 사용한다. Supabase의 callback URL 자동 감지를 끄고 `/auth/callback`에서 authorization code를 명시적으로 한 번 교환한다.
+- 실제 OAuth 재현 중 자동 code 교환 중복과 React Strict Mode effect cleanup으로 진행 UI가 멈추는 문제를 수정했다. provider 오류/취소, code 누락, 교환 오류 및 Strict Mode 재실행을 callback 테스트 5개로 검증했다.
+- 사용자가 Google provider 활성화 및 `http://localhost:3000/auth/callback` Redirect URL 등록을 확인했다. 실제 브라우저 로그인에서 token 교환 HTTP 200, 세션 저장 및 dashboard 복귀를 확인했다. Android PWA 설치 환경 검증은 남아 있다.
+- `/`는 `/auth`로 이동하며 `dashboard/layout.tsx`가 세션 로딩 중 콘텐츠를 숨기고 비인증 사용자를 `/auth`로 보낸다. 브라우저에서 root 이동과 로그아웃 후 직접 dashboard 접근 차단을 확인했다. 데이터 권한은 RLS가 최종 집행한다.
+- 변경 파일 ESLint, `npx tsc --noEmit`, callback 테스트 5개를 통과했다. `npm run build`는 Next.js 컴파일 후 기존 `src/app/layout.tsx`의 `@ts-ignore`, `src/lib/tauri-auth.ts`의 `any` lint 오류로 중단됐다.
+- 다음: Android PWA 실기기 OAuth 검증, dashboard 예정 지출 조회의 KST 월 경계/0원-오류 구분 검증. Tauri OAuth deep link는 Web/PWA MVP 이후다.
+
 ## 현재 상태
 
-- 프로젝트는 문서 기반 기획/요구사항 정리 단계이며, 기능 구현을 시작하지 않았다.
-- 사용자의 결정들을 문서와 SQL 초안에 반영했고 SRS v1 초안을 작성했다. SRS를 사용자와 항목별로 검토 중이며 승인 전까지 공식 설계 진입은 보류한다.
-- PostgreSQL/Supabase 실행 검증과 자동 테스트는 하지 않았다.
+- SRS v1.0의 사용자 승인을 받았고 테스트 프로젝트에서 rollback-only SQL smoke suite의 최종 PASS/rollback을 확인해 설계 단계 진입이 승인됐다.
+- Web/PWA 우선 구현 중이다. 브라우저 Google OAuth는 실제 로컬 Supabase 설정으로 성공 검증했으며 Android PWA E2E는 남아 있다.
+- 전체 PostgreSQL/Supabase 검증 범위 및 나머지 SRS 수용 기준 테스트는 설계/구현 과정에서 계속 추적한다.
 - 멀티 에이전트 협업의 초보자용 사용 안내를 `docs/ai-collaboration-usage.md`에 추가했다. AI 간 자동 연동은 여전히 미설정이며 역할 간 파일 전달은 수동이다.
-- 이번 작업은 체크포인트 저장 후 중단한다. 사용자가 나중에 재개를 요청하면 [SRS 검토 체크포인트](srs-review-checkpoint.md)를 먼저 읽고 남은 작업과 시작 위치를 확인한다. 다음 검토 위치는 SRS §5이다.
+- 다음: Android PWA 실기기에서 Google OAuth 성공·취소·세션 복귀를 검증하고 Web/PWA MVP 인증 경로를 완성한다. Windows Tauri OAuth 딥링크는 MVP 이후 진행한다.
 
 ## 이번 작업 (2026-10-02)
 
@@ -81,5 +90,3 @@
 - 사용자는 내 게임 목록에서 게임을 제거할 때 해당 게임의 사용자 커스텀 아이콘 Storage 객체도 삭제하기로 결정했다. 이를 SRS, SPEC 및 구현 체크리스트에 반영했다.
 - 사용자는 같은 날짜에 개인 메모를 여러 개 허용하고 캘린더 타일에는 도트 하나만 표시하기로 결정했다. 상세 영역에는 해당 날짜의 메모 전체를 표시하도록 SRS와 SPEC을 정합화했다. 현재 SQL 초안은 날짜당 유일성 제약이 없어 다중 메모를 허용한다.
 - 다음 검토 위치는 SRS §5 외부 인터페이스 및 환경이다. §4.8 완료만 반영했으며 SRS 전체 승인/설계 단계 진입은 보류 상태다.
-
-

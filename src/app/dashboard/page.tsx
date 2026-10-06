@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
 import { Wallet, CreditCard, LogOut, AlertCircle } from "lucide-react"
 
 export default function DashboardPage() {
@@ -19,19 +19,9 @@ export default function DashboardPage() {
   const [assetError, setAssetError] = useState<string | null>(null)
 
   const [isDataLoading, setIsDataLoading] = useState(true)
+  const [logoutError, setLogoutError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/")
-      return
-    }
-
-    if (user) {
-      fetchDashboardData()
-    }
-  }, [user, authLoading, router])
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setIsDataLoading(true)
     setExpenseError(null)
     setAssetError(null)
@@ -69,17 +59,34 @@ export default function DashboardPage() {
         const total = expenseData?.reduce((acc, curr) => acc + (curr.final_amount || 0), 0) || 0
         setPlannedExpense(total)
       }
-    } catch (err) {
-      setAssetError("네트워크 오류")
-      setExpenseError("네트워크 오류")
+    } catch (cause: unknown) {
+      const description = cause instanceof Error ? cause.message : String(cause)
+      setAssetError(`네트워크 오류: ${description}`)
+      setExpenseError(`네트워크 오류: ${description}`)
     } finally {
       setIsDataLoading(false)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      void fetchDashboardData()
+    }
+  }, [authLoading, fetchDashboardData, user])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/")
+    setLogoutError(null)
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        setLogoutError(`로그아웃하지 못했습니다: ${error.message}`)
+        return
+      }
+      router.replace("/auth")
+    } catch (cause: unknown) {
+      const description = cause instanceof Error ? cause.message : String(cause)
+      setLogoutError(`로그아웃 중 오류가 발생했습니다: ${description}`)
+    }
   }
 
   if (authLoading) {
@@ -99,6 +106,7 @@ export default function DashboardPage() {
             로그아웃
           </Button>
         </header>
+        {logoutError && <p role="alert" className="text-sm text-red-400">{logoutError}</p>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-gray-800 border-gray-700">

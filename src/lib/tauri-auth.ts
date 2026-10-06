@@ -2,7 +2,7 @@ import { onOpenUrl } from '@tauri-apps/plugin-deep-link'
 import { supabase } from '@/lib/supabase/client'
 
 export async function setupDeepLink() {
-  if (typeof window === 'undefined' || !(window as any).__TAURI_INTERNALS__) return
+  if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return
 
   try {
     await onOpenUrl(async (urls) => {

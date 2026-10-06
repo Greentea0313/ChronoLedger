@@ -6,7 +6,7 @@
 - [x] 0.3 일정-게임 일치, 템플릿 소유권 및 게임 일치 검증 규칙을 명세하고 SQL 트리거 초안을 추가했다.
 - [x] 0.4 만료 예정 지출과 온라인 강제 처리, 오프라인 캐시 읽기 선택을 명세했다.
 - [x] 0.5 가입 시 초기 재무/지갑 기본값과 멱등 초기화 트리거 초안을 추가했다.
-- [ ] 0.6 SRS 초안 작성 완료. 사용자 요구사항 리뷰/승인 및 SQL 실행 검증 후 설계 진입을 판정한다.
+- [x] 0.6 SRS v1.0 사용자 승인 및 테스트 프로젝트 rollback-only SQL 스모크 검증을 완료해 설계 단계 진입을 승인했다.
   - 참고: [SRS 초안](../md/SRS.md), [이전 준비도 검토](../md/srs-readiness-review.md), [차단 항목 설명](../md/planning-blockers.md), [결정안 검토](../md/resolved-blockers-review.md). 검토 기록은 당시 상태의 이력이며 최신 기준은 SRS/결정 보완이다.
 
 ---
@@ -81,8 +81,12 @@
 ### Phase 3. 인증(Auth), 구글 로그인 및 딥링크
 - [ ] 3.1 이메일 가입/로그인 및 구글 OAuth 연동
   - 대상 파일: `src/app/auth/page.tsx`, `src/lib/auth-context.tsx`
-  - 작업: 이메일 폼 및 Google 로그인 버튼 연동
-  - verify: 웹 환경에서 구글 로그인 성공 후 대시보드로 정상 이동하는지 확인
+  - [x] 브라우저 Google 로그인에 PKCE flow를 사용하고 `/auth/callback`에서 authorization code를 세션으로 교환한다.
+  - [x] callback의 공급자 오류/취소, code 누락, code 교환 실패 및 Strict Mode 재실행에서도의 성공 이동을 Vitest 5개로 검증한다.
+  - [x] Google provider 활성화 및 `http://localhost:3000/auth/callback` Redirect URL 등록을 확인하고 실제 브라우저 OAuth code 교환·세션 저장·dashboard 복귀를 검증한다.
+  - [ ] Android PWA 실기기에서 로그인·취소·세션 복귀를 검증하고 사용하는 PWA origin을 Redirect URLs에 등록한다.
+  - [x] `/` 로그인 UI를 `/auth`로 단일화하고 dashboard layout 인증 gate를 추가했다. 로그인 사용자 이동 및 로그아웃 후 비인증 직접 접근 차단을 브라우저에서 확인했다. RLS는 별도 데이터 권한 경계로 유지한다.
+  - verify: Android PWA에서 OAuth 성공·취소 및 세션 복귀를 실제 설치 환경으로 확인한다.
 - [ ] 3.2 데스크톱(Tauri) Deep Link 콜백 핸들러 구성
   - 대상 파일: `src-tauri/tauri.conf.json`, `src/lib/tauri-auth.ts`
   - 작업: `tauri-plugin-deep-link` 연동 및 `myapp://auth/callback` 리스너 작성
@@ -167,8 +171,5 @@
   - 대상 파일: `src-tauri/tauri.conf.json`
   - 작업: `npm run tauri build` 실행 및 Windows 독립 실행 파일(`.exe`) 추출
   - verify: 추출된 실행 파일을 단독 실행하여 로그인, 캘린더 배너, 결제 등록이 정상 동작하는지 확인
-
-
-
 
 

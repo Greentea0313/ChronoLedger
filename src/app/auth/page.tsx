@@ -55,7 +55,7 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     try {
       setMessage("구글 로그인 URL 요청 중...");
-      const isDesktop = typeof window !== 'undefined' && !!(window as any).__TAURI_INTERNALS__;
+      const isDesktop = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
       const redirectUrl = isDesktop 
         ? 'chronoledger://auth/callback' 
         : `${window.location.origin}/auth/callback`;
@@ -79,10 +79,9 @@ export default function AuthPage() {
         await open(data.url);
         setMessage("웹 브라우저에서 로그인을 완료해주세요.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("구글 로그인 에러:", error);
-      // Tauri가 던지는 문자열 에러를 처리하도록 개선
-      const errMsg = typeof error === 'string' ? error : error.message;
+      const errMsg = error instanceof Error ? error.message : String(error);
       setMessage(`실행 오류: ${errMsg}`);
     }
   }

@@ -1,59 +1,64 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 
 export default function AuthCallbackPage() {
-  const [message, setMessage] = useState("인증 토큰을 확인하는 중입니다...")
+  const router = useRouter()
+  const started = useRef(false)
+  const [message, setMessage] = useState('Google 인증 응답을 확인하고 있습니다...')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    let isMounted = true
+    if (started.current) return
+    started.current = true
 
-    const checkSession = async () => {
-      // 1. 이미 세션이 발급되었는지 즉시 확인
-      const { data: { session }, error } = await supabase.auth.getSession()
-      
-      if (error) {
-        setMessage(`에러 발생: ${error.message}`)
+    const completeSignIn = async () => {
+      const callbackUrl = new URL(window.location.href)
+      const oauthError = callbackUrl.searchParams.get('error')
+
+      if (oauthError) {
+        const description = callbackUrl.searchParams.get('error_description')
+        setError(description || `Google 인증이 완료되지 않았습니다 (${oauthError}).`)
         return
       }
 
-      if (session) {
-        setMessage("인증 완료! 대시보드로 이동합니다...")
-        window.location.href = '/dashboard' // Next.js 라우터 캐시 우회를 위해 강제 이동
+      const code = callbackUrl.searchParams.get('code')
+      if (!code) {
+        setError('인증 응답에 코드가 없습니다. 로그인 화면으로 돌아가 다시 시도해주세요.')
         return
       }
 
-      // 2. 세션이 없다면 Supabase가 URL의 ?code= 를 자동으로 교환할 때까지 리스너로 대기
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && newSession) {
-          setMessage("인증 완료! 대시보드로 이동합니다...")
-          window.location.href = '/dashboard'
-        }
-      })
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
-      // 3. 5초 이상 지연되면 무한 로딩을 막고 메인으로 복귀
-      setTimeout(() => {
-        if (isMounted) {
-          setMessage("인증 응답이 지연되었습니다. 메인 화면으로 돌아갑니다.")
-          setTimeout(() => { window.location.href = '/' }, 2000)
-        }
-      }, 5000)
-
-      return () => {
-        isMounted = false
-        subscription.unsubscribe()
+      if (exchangeError) {
+        setError(`로그인 세션을 만들지 못했습니다: ${exchangeError.message}`)
+        return
       }
+
+      setMessage('인증이 완료되었습니다. 대시보드로 이동합니다...')
+      router.replace('/dashboard')
     }
 
-    checkSession()
-  }, [])
+    completeSignIn().catch((cause: unknown) => {
+      const description = cause instanceof Error ? cause.message : String(cause)
+      setError(`인증 처리 중 오류가 발생했습니다: ${description}`)
+    })
+  }, [router])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-900 text-blue-400">
-      <div className="text-center space-y-4">
-        <p className="animate-pulse font-semibold text-lg">{message}</p>
+    <main className="flex min-h-screen items-center justify-center bg-gray-900 p-4 text-blue-400">
+      <div className="space-y-4 text-center">
+        {error ? (
+          <>
+            <p role="alert" className="font-semibold">{error}</p>
+            <a className="font-semibold underline" href="/auth">로그인 화면으로 돌아가기</a>
+          </>
+        ) : (
+          <p role="status" className="animate-pulse text-lg font-semibold">{message}</p>
+        )}
       </div>
-    </div>
+    </main>
   )
 }

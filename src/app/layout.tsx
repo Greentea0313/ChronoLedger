@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-// @ts-ignore
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 
