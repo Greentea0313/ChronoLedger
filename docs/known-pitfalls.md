@@ -52,3 +52,6 @@
 
 17. **PowerShell JSON UTF-8 BOM 및 에이전트 실행 환경**
    - Windows PowerShell은 `Set-Content -Encoding utf8`로 JSON manifest에 BOM을 쓸 수 있다. Python JSON loader는 `utf-8-sig`를 사용해 BOM을 처리한다. VS Code custom-agent subagent 위임은 harness/도구 지원에 의존하므로 첫 사용 전에 Local harness에서 프로필 탐지와 Run Subagent를 확인한다. 역할 설정만으로 도구 권한이 격리된다고 가정하지 않는다.
+
+18. **Run Target SHA와 worktree HEAD의 범위 불일치**
+   - 기존 run을 계속할 때는 manifest의 Target SHA, 현재 worktree HEAD 및 run objective가 같은 변경 범위를 가리키는지 확인한다. 이후 작업이 다른 기능 범위로 이동했다면 Target SHA를 임의로 최신 HEAD로 덮지 말고, 이전 run을 근거와 함께 종료한 뒤 고유 ID와 명시된 BaseRef로 새 run을 만든다.

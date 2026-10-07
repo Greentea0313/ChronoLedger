@@ -2,19 +2,23 @@
 
 ## 최신 작업 상태 (2026-10-07)
 
+- 협업 도구/문서는 main의 `f163157`, 대시보드·게임 UI는 `collab/phase1-setup`의 `674f741`에 분리 커밋했다. 둘 다 로컬 전용이며 push/merge하지 않았다.
+- 기존 `phase1-setup` run의 Target은 `dda0cae...`이나 전용 worktree가 Phase 4 변경을 포함한 `674f741...`로 이동했다. 범위가 달라 기존 run을 review/test한 것으로 간주하지 않고 `abandoned`로 종료했다. 보고서는 `artifacts/phase1-setup/iteration-01/human-report.md`에 있다.
+- `674f741`에서 앱 테스트 15개, ESLint, dummy Supabase 환경변수로 정적 build가 통과했다. 실제 Supabase/RLS/RPC, Tauri 및 요청 제출 UI는 미검증/미완료다.
+- 다음 run은 고유 ID로 생성하고 BaseRef를 `collab/phase1-setup`으로 지정해 Phase 4.4 요청 제출 UI를 구현한다. Maker 커밋 후 Target SHA를 고정하고 같은 SHA에 Reviewer와 테스트를 수행한다.
 - 최소 개입 협업을 위해 [ChronoLedger Orchestrator](../.github/agents/chronoledger-orchestrator.agent.md), [초보자 가이드](ChronoLedger_collaboration_guide.md), 협업 artifact Schema 검증기를 추가했다. Local harness 기반이며 실제 에이전트 인식/통합 실행은 아직 검증 전이다.
 - Gemini Reviewer는 선택형 외부 리뷰로 둔다. 전체 diff에 대한 사용자 승인 없이 외부 API를 호출하지 않는다.
 - Gemini Reviewer 제한 PoC를 [구현 문서](ChronoLedger_pipeline_auto.md)에 따라 추가했다. 단일 run/SHA 검증, 전체 diff의 사용자 승인, JSON Schema 검증과 no-overwrite 결과 저장이 적용됐고 오프라인 테스트 12개가 통과했다. 실제 Gemini API 실행·외부 전송·품질/비용 평가는 하지 않았으므로 도입 결정은 보류 상태다.
 - 제안서의 독립 검토 의견은 [전달용 문서](ChronoLedger_pipeline_auto_review.md)에 정리했다.
 - 체크리스트 기준: 현재 작업 우선순위와 상태는 [공용 `to-do.md`](to-do.md)가 단일 기준이다. [Gemini 진행 기록](to-do_Gemini.md)은 보존용 별도 이력이며, 상충하는 상태나 검증 주장은 증거 대조 전까지 기준으로 사용하지 않는다.
-- Phase 4 초기 구현은 `.worktrees/phase1-setup` worktree의 `collab/phase1-setup` 브랜치에 미커밋 상태로 남아 있다. 기본 브랜치에 통합되지 않았다.
+- Phase 4 초기 구현은 `.worktrees/phase1-setup` worktree의 `collab/phase1-setup` 브랜치에 커밋됐지만 기본 브랜치에는 통합되지 않았다.
 - 관리자 요청 페이지와 게임 선택 모달의 DB 필드/RPC 인자 불일치를 해당 worktree에서 수정했다. 관리자 역할 gate, 게임 기본 아이콘 URL 입력, RPC 실패 시 비원자적 직접 갱신 제거를 반영했다.
 - 앱 전체 Vitest 5개 파일·15개 테스트, ESLint, dummy Supabase 환경변수로 실행한 정적 빌드가 통과했다. 실제 Supabase/RLS/Storage 통합과 브라우저 이미지 흐름은 확인하지 않았다.
-- Phase 4.4 사용자 요청 제출 모달이 빠져 있어 이 단계는 미완료다. 다음으로 두 worktree를 별도 커밋하고 clean main 상태에서 run 생성 및 동일 Target SHA 리뷰/테스트 흐름을 검증한다.
+- Phase 4.4 사용자 요청 제출 모달이 빠져 있어 이 단계는 미완료다. 별도 Phase 4.4 run에서 동일 Target SHA 리뷰/테스트 흐름을 검증한다.
 
 ## 다음 작업
 
-- 변경을 별도 커밋해 main이 깨끗해진 뒤 VS Code Local harness에서 run 생성→Maker→SHA 고정→Reviewer→Schema 검증까지 첫 통합 smoke run을 수행한다. 현재 변경을 stash/삭제하거나 기존 run을 덮어쓰지 않는다.
+- VS Code Local harness에서 run 생성→Maker→SHA 고정→Reviewer→Schema 검증까지 Phase 4.4 전체 run을 수행한다. 기존 변경을 stash/삭제하거나 과거 run을 덮어쓰지 않는다.
 - 사용자가 Gemini Reviewer PoC의 외부 API 전송 및 도입 여부를 결정한다. 승인 전에는 실제 API 호출을 하지 않는다.
 - 승인한다면 별도 run/SHA에서 전체 diff를 검토하고 제한된 실 API 검증을 수행한 뒤 정확성·비용·실패 동작을 기록한다.
 - [Phase 5.1 ~ 5.2] 말일 보정을 포함한 날짜 연산 코어(`src/lib/calendar-utils.ts`) 작성 및 정기 구독 멱등성 보장 지연 생성 모듈(`src/lib/subscription-sync.ts`) 구현을 진행한다[cite: 4].

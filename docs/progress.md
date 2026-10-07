@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## 협업 run 검증 재개 (2026-10-07)
+
+- 협업 파이프라인 및 운영 문서를 main의 `f163157`에 커밋했고, 대시보드·게임 UI 변경을 `collab/phase1-setup`의 `674f741`에 별도 커밋했다. 두 커밋 모두 로컬에만 있으며 push/merge하지 않았다.
+- 기존 `phase1-setup` run은 원래 Target SHA(`dda0cae`)와 후속 Phase 4 변경의 범위가 달라 review/test 증거 없이 `abandoned` 처리했다. 종료 보고서는 `artifacts/phase1-setup/iteration-01/human-report.md`에 있다.
+- `674f741`의 앱 전체 테스트 15개, lint, dummy Supabase 환경변수를 사용한 정적 build가 통과했다. 이는 `phase1-setup`의 옛 Target SHA에 대한 테스트 증거가 아니다.
+- 다음: `.worktrees/phase1-setup`의 커밋을 BaseRef로 삼는 고유 run에서 남은 Phase 4.4 요청 제출 UI를 Maker→Reviewer→동일 SHA 테스트 흐름으로 구현·검증한다. Tauri는 Web/PWA MVP 이후로 미룬다.
+
 ## 최소 개입 협업 Orchestrator 준비 (2026-10-07)
 
 - VS Code Local harness에서 Maker/Reviewer를 위임하는 `ChronoLedger Orchestrator` 프로필과 초보자용 [협업 가이드](ChronoLedger_collaboration_guide.md)를 추가했다.

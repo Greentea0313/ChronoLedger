@@ -2,6 +2,7 @@
 
 ## 2026-10-07
 
+- 협업 파이프라인 변경을 main `f163157`, Phase 4 초기 구현을 `collab/phase1-setup` `674f741`에 분리 커밋했다. Target SHA와 범위가 어긋난 기존 `phase1-setup` run은 review/test가 없음을 기록하고 `abandoned`로 종료했다.
 - Local harness용 ChronoLedger Orchestrator와 Maker/Reviewer 자동 위임 절차, 사용자 개입 지점 가이드, 협업 JSON Schema validator 및 테스트를 추가했다. VS Code 실제 위임 흐름은 검증 전이다.
 - Windows PowerShell이 UTF-8 BOM으로 저장할 수 있는 run manifest를 Gemini Reviewer JSON loader가 읽도록 보완했다.
 - Gemini Reviewer 단일 run/SHA PoC와 오프라인 회귀 테스트를 추가했다. 전체 diff를 표시하고 인터랙티브 승인을 요구하며, manifest/결과를 기존 JSON Schema로 검증하고 검증된 결과만 no-overwrite 방식으로 저장한다. API 호출·외부 전송 승인·도입 결정은 수행하지 않았다.

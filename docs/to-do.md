@@ -76,9 +76,10 @@
 5. [x] `/`는 `/auth`로 이동하고 로그인 UI를 단일화했다. dashboard 레이아웃에 인증 gate를 적용했으며 로그인 상태의 root 이동과 로그아웃 후 직접 `/dashboard` 접근이 `/auth`로 돌아오는 동작을 브라우저에서 확인했다. 데이터 접근 권한의 최종 집행은 SRS대로 RLS가 담당한다.
 6. [ ] Dashboard 예정 지출은 실제 조회로 연결되어 있다. 현재 달력 월 계산과 조회가 KST 경계 및 다음 달 시작일 exclusive 조건을 모두 만족하는지 검증·보완하고, 실제 0원과 조회 오류를 테스트 데이터로 구분한다.
 7. [ ] 가계부, 캘린더, 설정 기능을 Web/PWA MVP 조건에 맞춰 구현하고 승인 SRS 수용 기준별 테스트를 추적한다.
-8. [ ] `phase1-setup` 변경 범위와 검토 대상 SHA를 정리하고 같은 SHA의 review/test JSON을 작성한다. Tauri 전용 변경은 후속 단계로 분리한다.
-9. [ ] Gemini Phase 4 계획을 승인 스키마 재사용, 마이그레이션 및 상세 검증 케이스 중심으로 갱신한다.
-10. [ ] 버튼 무반응이 브라우저에서도 재현되는지 확인한다. Tauri 전용 무반응 분석은 데스크톱 통합 단계에서 웹뷰 로그를 수집해 진행하고, 원인 확인 전 권한/Hydration 문제로 단정하지 않는다.
+8. [x] 기존 `phase1-setup` run은 Target SHA(`dda0cae`)와 후속 Phase 4 변경의 범위가 달라 review/test 증거 없이 종료했다. 상태를 `abandoned`로 기록하고 [종료 보고서](../artifacts/phase1-setup/iteration-01/human-report.md)를 보존했다. Tauri 검증은 Web/PWA MVP 이후로 둔다.
+9. [ ] `collab/phase1-setup`의 커밋을 BaseRef로 고유 Phase 4.4 run을 만들고, 사용자 요청 제출 UI를 Maker→Reviewer→동일 Target SHA 테스트 흐름으로 검증한다.
+10. [ ] Gemini Phase 4 계획을 승인 스키마 재사용, 마이그레이션 및 상세 검증 케이스 중심으로 갱신한다.
+11. [ ] 버튼 무반응이 브라우저에서도 재현되는지 확인한다. Tauri 전용 무반응 분석은 데스크톱 통합 단계에서 웹뷰 로그를 수집해 진행하고, 원인 확인 전 권한/Hydration 문제로 단정하지 않는다.
 
 ---
 

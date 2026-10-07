@@ -30,7 +30,7 @@ artifacts/<run_id>/
 - 실행 브랜치는 `.worktrees/<run_id>`의 전용 Git worktree에서 작업한다.
 - `scripts/collaboration/New-CollaborationRun.ps1`은 저장소가 깨끗할 때만 worktree를 만든다. 미커밋/미추적 변경을 자동 stash, 복사, 폐기하지 않는다.
 - 실패하거나 반복 한도에 도달해도 공유 작업 트리에 `git reset --hard`를 실행하지 않는다. 브랜치, worktree 및 비밀정보를 제거한 보고서를 보존한다.
-- 워킹 트리가 깨끗해지고 설계·스크립트가 커밋된 뒤에만 새 run을 만든다. 현재 작업 중인 변경을 보존하려고 본 설정 작업에서는 새 worktree를 만들지 않았다.
+- main의 협업 도구 변경은 `f163157`, Phase 4 초기 구현은 `collab/phase1-setup`의 `674f741`로 각각 커밋했다. 기존 `phase1-setup` run은 Target SHA와 후속 변경 범위가 달라 `abandoned` 처리했으며, 새 Phase 4.4 run은 고유 ID와 `collab/phase1-setup` BaseRef로 생성한다.
 
 ## 현재 상태
 
