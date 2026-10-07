@@ -2,6 +2,12 @@
 
 ## 최신 작업 상태 (2026-10-07)
 
+- 전체 run 검증 전 phase1 worktree를 점검하면서 관리자 요청 UI의 필드·RPC 인자와 승인 스키마 불일치를 수정했다. 관리자 요청 조회는 `app_metadata.role=admin`으로 제한하고, 게임 승인 때 기본 아이콘 URL을 입력받는다. RPC 실패 시 직접 상태 갱신 fallback은 제거했다.
+- 게임 선택 UI도 `games.name`을 사용하도록 맞췄다. 앱 전체 테스트 15개, ESLint 및 dummy Supabase 환경변수를 사용한 정적 빌드가 통과했다. 실제 Supabase 통합, Tauri 실행 및 협업 run은 미검증 상태다.
+- 두 worktree 변경의 별도 커밋과 clean main 상태에서의 실제 run 생성/위임 검증이 다음 단계다. 푸시, 병합, 배포 및 Gemini live 호출은 하지 않는다.
+- 분업 경계: 구현·로컬 검증·문서화는 이 세션에서 수행하고, Gemini에는 커밋 후 동일 Target SHA의 읽기 전용 리뷰를 별도로 요청하도록 [to-do.md](to-do.md)에 분리했다. Gemini 자동 연결은 없으며 리뷰 요청 전이다.
+- Dashboard 예정 지출 query는 KST 현재 달 DATE 범위와 승인된 월 귀속 날짜(`end_date`, 없으면 `target_date`)를 사용한다. 실제 0원/빈 결과와 재무 행 누락·조회 실패 상태를 분리했다.
+- `npx vitest run src/lib/dashboard-date.test.ts src/app/dashboard/page.test.tsx`의 두 파일·7개 테스트, `npm run lint`, `npx tsc --noEmit`, 정적 `npm run build`가 통과했다. Vite `configLoader: 'native'` 호환성 경고가 있었고 원격 Supabase 통합 query는 실행하지 않았다.
 - `/auth`를 앱과 맞는 다크 테마로 개선했다. 이메일/비밀번호 레이블, 이메일 로그인·가입과 Google 대체 액션을 명확히 배치하고 기존 인증 처리는 유지했다. 320/390/768/1280px에서 넘침이 없으며 입력 영역이 44px 이상임을 확인했다. 키보드 순서(이메일, 비밀번호, 로그인, 가입, Google)도 확인했다.
 - 브라우저 접근성 트리에서 H1/H2 구조 및 폼/버튼 이름을 확인했다. 주요 로그인 텍스트 대비는 최소 6.13:1, dashboard 텍스트 조합은 최소 5.31:1, 로그인 초점 표시 대비는 5.21:1이다.
 - 공용 `CardTitle`을 H2로 수정했고 dashboard 로딩·오류 알림 역할, nav 이름과 장식 아이콘 처리를 보완했다. dashboard는 보호 상태라 브라우저에서 인증된 런타임이나 실제 스크린리더를 검증하지 않았다.

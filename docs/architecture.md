@@ -27,11 +27,12 @@ Supabase
 ## 3. 클라이언트 모듈 책임
 
 - `src/app/`: 인증, 캘린더, 설정, 관리자 요청 화면의 라우팅과 페이지 조립.
+- 관리자 요청 화면은 JWT `app_metadata.role=admin` 사용자를 대상으로만 요청을 조회하며, 상태 변경은 원자적 승인/반려 RPC에 맡긴다. 클라이언트 gate와 별개로 RLS 및 RPC 권한 검사가 최종 경계다.
 - `src/app/page.tsx`는 단일 로그인 화면인 `/auth`로 이동한다. `src/app/dashboard/layout.tsx`는 세션 로딩 중 dashboard 내용을 숨기고 비인증 사용자를 `/auth`로 보낸다. 클라이언트 gate는 데이터 권한을 대신하지 않으며 RLS가 최종 집행한다.
 - `src/components/calendar/`: 반응형 월간 캘린더, 일정 배너, 메모 도트, 선택 날짜 상세 및 예산 화면. 타일에는 금액을 그리지 않는다.
 - `src/components/expense/`: 예정 지출 입력, 결제/환불 RPC 호출, 예산 요약 및 만료 예정 지출 흐름.
 - `src/components/game/`: 공용 카탈로그 선택, 요청 제출, 개인 아이콘 업로드/표시.
-- `src/lib/`: 단일 Supabase client(브라우저/PWA PKCE, Tauri implicit flow, callback URL 자동 감지 비활성화), 인증 상태, 날짜·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
+- `src/lib/`: 단일 Supabase client(브라우저/PWA PKCE, Tauri implicit flow, callback URL 자동 감지 비활성화), 인증 상태, KST 날짜 범위·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
 - `public/fonts/a2z/`: A2Z WOFF2 9개 굵기와 SIL OFL 1.1 고지. `src/app/globals.css`에서 제품 글꼴로 로드한다.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
 - `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.

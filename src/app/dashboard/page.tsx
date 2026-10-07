@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Wallet, CreditCard, LogOut, AlertCircle } from "lucide-react"
+import { getKstMonthDateRange } from "@/lib/dashboard-date"
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
@@ -27,42 +28,40 @@ export default function DashboardPage() {
     setAssetError(null)
 
     try {
-      // 1. 총 자산 조회
       const { data: assetData, error: aError } = await supabase
         .from('user_finances')
         .select('total_asset')
         .eq('user_id', user?.id)
-        .single()
+        .maybeSingle()
 
       if (aError) {
-        if (aError.code === 'PGRST116') {
-          setTotalAsset(0) 
-        } else {
-          setAssetError("자산 데이터를 불러올 수 없습니다.")
-        }
+        setAssetError("자산 데이터를 불러올 수 없습니다.")
+      } else if (!assetData) {
+        setAssetError("자산 데이터가 아직 설정되지 않았습니다.")
       } else {
-        setTotalAsset(assetData?.total_asset || 0)
+        setTotalAsset(assetData.total_asset)
       }
+    } catch {
+      setAssetError("자산 데이터를 불러올 수 없습니다.")
+    }
 
-      // 2. 이번 달 예정 지출 조회 (target_date, final_amount 적용)
-      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+    try {
+      const { startDate, endDateExclusive } = getKstMonthDateRange(new Date())
       const { data: expenseData, error: eError } = await supabase
         .from('expenses')
         .select('final_amount')
         .eq('user_id', user?.id)
         .eq('status', 'PLANNED')
-        .gte('target_date', startOfMonth) // 올바른 날짜 컬럼명 적용
+        .or(`and(end_date.gte.${startDate},end_date.lt.${endDateExclusive}),and(end_date.is.null,target_date.gte.${startDate},target_date.lt.${endDateExclusive})`)
 
       if (eError) {
         setExpenseError("지출 데이터를 불러올 수 없습니다.")
       } else {
-        const total = expenseData?.reduce((acc, curr) => acc + (curr.final_amount || 0), 0) || 0
+        const total = expenseData.reduce((acc, curr) => acc + curr.final_amount, 0)
         setPlannedExpense(total)
       }
-    } catch (cause: unknown) {
-      const description = cause instanceof Error ? cause.message : String(cause)
-      setAssetError(`네트워크 오류: ${description}`)
-      setExpenseError(`네트워크 오류: ${description}`)
+    } catch {
+      setExpenseError("지출 데이터를 불러올 수 없습니다.")
     } finally {
       setIsDataLoading(false)
     }

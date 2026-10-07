@@ -40,3 +40,6 @@
 
 13. **중첩 앱 worktree의 ESLint 설정 경로**
    - 앱 worktree는 저장소 루트 아래 중첩되어 있으므로 로컬 `.eslintrc.json`에 `"root": true`를 두어야 부모 저장소의 설정이 합쳐지지 않는다. 누락되면 부모 `.eslintrc.json` 위치에서 `next/core-web-vitals`를 해석하려다 실패할 수 있다. 수정 후 `npm run lint`와 `npm run build`로 확인한다.
+
+14. **월별 DATE 조회와 KST 경계**
+   - PostgreSQL `DATE` 값을 JavaScript 로컬 자정에서 `toISOString()`으로 변환하지 않는다. `Asia/Seoul`에서 연·월을 구한 뒤 `YYYY-MM-01`부터 다음 달 1일 전까지 반개구간으로 조회해 UTC/호스트 로컬 시간대에 따른 월 경계 이동을 막는다.

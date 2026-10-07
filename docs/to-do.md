@@ -34,6 +34,11 @@
 - [ ] Docker 기반 테스트 샌드박스를 사용할 수 있는 환경에서 격리·네트워크·환경변수 제한을 검증
 - [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인
 
+### Gemini 분업 후보 (별도 검토, 미착수)
+- [ ] 이번 Dashboard KST 월간 예정 지출 변경을 커밋한 뒤, 전용 run의 동일 Target SHA를 기준으로 Gemini에 읽기 전용 코드 리뷰를 요청한다. 검토 범위는 월 경계/날짜 귀속 및 0원·오류 상태 처리와 승인 SRS/상세 설계 일치 여부로 한정하고, 결과는 run의 `review.json`으로 받는다.
+  - 현재 구현·테스트·문서화는 이 작업 세션에서 수행한다. Gemini에는 구현을 맡기지 않는다.
+  - Gemini의 저장소 직접 연결은 구성되어 있지 않다. clean tree에서 run을 만든 후 수동으로 자료를 전달해야 하며, run 생성 전까지는 미착수다.
+
 ### Phase 1. 환경 세팅, 테스트 인프라 및 Tauri 스파이크
 - [ ] 1.1 Next.js 14+ (App Router) 정적 export 프로젝트 초기화
   - 대상 파일: `package.json`, `next.config.mjs`, `src/app/layout.tsx`
@@ -118,8 +123,8 @@
   - verify: 내 게임 목록에 추가된 게임이 커스텀 아이콘과 함께 표시되고, 게임 제거 완료 후 해당 사용자의 아이콘 객체가 남지 않는지 확인
 - [ ] 4.4 일반 유저 게임/일정 추가·수정 요청 모달 및 관리자 승인 UI
   - 대상 파일: `src/components/game/schedule-request-modal.tsx`, `src/app/admin/requests/page.tsx`
-  - 작업: 게임 요청(`game_requests`)과 일정 요청(`schedule_requests`)을 분리하고 승인/반려 RPC 연동
-  - verify: 승인 요청의 상태 변경과 카탈로그/일정 반영이 원자적으로 완료되는지 확인
+  - 작업: 게임 요청(`game_requests`)과 일정 요청(`schedule_requests`)을 분리하고 승인/반려 RPC 연동. 관리자 화면은 `app_metadata.role=admin`으로 제한하고 게임 승인 시 기본 아이콘 URL을 지정한다.
+  - verify: 승인된 DB 필드 및 RPC 인자 사용을 단위 테스트로 확인했다. 실제 Supabase에서 RLS/역할 제한, 승인·반려 RPC의 원자적 반영과 요청 제출 UI는 아직 검증해야 한다.
 
 ---
 
