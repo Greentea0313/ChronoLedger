@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Wallet, CreditCard, LogOut, AlertCircle } from "lucide-react"
 import { getKstMonthDateRange } from "@/lib/dashboard-date"
+import { RequestSubmissionModal } from "@/components/game/request-submission-modal"
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
@@ -95,15 +96,18 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-4xl mx-auto space-y-8">
-        <header className="flex justify-between items-center pb-4 border-b border-gray-800">
+        <header className="flex flex-col items-start justify-between gap-4 pb-4 border-b border-gray-800 sm:flex-row sm:items-center">
           <div>
             <h1 className="text-2xl font-bold text-blue-400">ChronoLedger</h1>
             <p className="text-sm text-gray-400 mt-1">{user?.email} 님, 환영합니다.</p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-            <LogOut className="w-4 h-4 mr-2" />
-            로그아웃
-          </Button>
+          <div className="flex items-center gap-2">
+            <RequestSubmissionModal />
+            <Button variant="outline" onClick={handleLogout} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <LogOut className="w-4 h-4 mr-2" />
+              로그아웃
+            </Button>
+          </div>
         </header>
         {logoutError && <p role="alert" className="text-sm text-red-400">{logoutError}</p>}
 

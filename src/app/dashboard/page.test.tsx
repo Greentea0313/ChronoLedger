@@ -124,6 +124,14 @@ describe("DashboardPage", () => {
     expect(zeroAmountCount()).toBe(1)
   })
 
+  it("provides a dashboard entry point to request games and schedules", async () => {
+    financeQuery.maybeSingle.mockResolvedValue({ data: { total_asset: 0 }, error: null })
+    expenseQuery.or.mockResolvedValue({ data: [], error: null })
+
+    await renderPage()
+
+    expect(Array.from(container.querySelectorAll("button")).some((button) => button.textContent === "게임·일정 요청")).toBe(true)
+  })
   it("does not display a failed planned-expense query as zero", async () => {
     financeQuery.maybeSingle.mockResolvedValue({
       data: { total_asset: 0 },

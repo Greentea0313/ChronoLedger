@@ -43,3 +43,5 @@
 
 14. **월별 DATE 조회와 KST 경계**
    - PostgreSQL `DATE` 값을 JavaScript 로컬 자정에서 `toISOString()`으로 변환하지 않는다. `Asia/Seoul`에서 연·월을 구한 뒤 `YYYY-MM-01`부터 다음 달 1일 전까지 반개구간으로 조회해 UTC/호스트 로컬 시간대에 따른 월 경계 이동을 막는다.
+15. **npm lockfile과 manifest 불일치**
+   - `npm ci`는 동기화된 `package.json`/`package-lock.json`만 설치한다. 현재 lockfile에는 manifest 의존성 그래프에서 요구하는 항목 일부가 없어 `npm ci`가 실패한다. 검증용 의존성 설치 시 lockfile을 묵시적으로 갱신하지 말고 discrepancy를 별도 검토해 정식 동기화를 수행한다. 이 세션은 `npm install --no-package-lock --legacy-peer-deps`를 사용했고 package manifests를 변경하지 않았다.

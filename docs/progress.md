@@ -1,5 +1,13 @@
 # 프로젝트 진행 현황
 
+## Phase 4.4 사용자 게임·일정 요청 제출 UI (2026-10-07)
+
+- 대시보드에 게임 및 일정 요청 모달 진입점을 추가했다. 게임 요청은 `game_requests.name`/`memo`, 일정 요청은 `schedule_requests`의 스키마 필드만 INSERT하며 `user_id`는 인증 사용자에서 가져오고 요청 상태·관리자 필드는 전송하지 않는다. 일정 수정 제안은 승인 스키마의 `target_schedule_id`로 구분한다.
+- 필수 입력, 스키마 허용 일정 종류, 유효한 날짜 및 종료일 순서를 검사하고 DB/RLS 실패를 사용자 오류로 표시한다. 본인 요청 상태와 관리자 메모 조회도 모달에 제공한다. 관리자 승인·반려 RPC 경로는 우회하지 않는다.
+- 전체 Vitest 6개 파일·21개 테스트, ESLint, `npx tsc --noEmit`, 더미 Supabase URL/key만 사용한 정적 Next build가 통과했다. 실제 Supabase RLS/RPC, Tauri 및 Gemini는 실행하지 않았다.
+- worktree의 의존성 부재로 npm ci는 기존 package.json/package-lock.json 불일치(잠금에 누락된 패키지 엔트리)로 실패했다. lockfile은 수정하지 않고 `npm install --no-package-lock --legacy-peer-deps`로 검증용 패키지를 설치했다.
+- 다음: 격리된 테스트 Supabase에서 요청 RLS와 관리자 RPC 원자성을 검증하고, 별도 작업으로 package manifest/lockfile 동기화를 복구한다. Tauri는 Web/PWA MVP 이후다.
+
 ## 전체 협업 run 검증 사전 정리 (2026-10-07)
 
 - 관리자 요청 UI의 조회 필터·필드명·조인 및 RPC 인자가 승인된 `md/SCHEMA.sql`과 불일치하던 부분을 수정했다. 관리자 화면은 `app_metadata.role=admin`만 요청을 조회하며 게임 승인 시 관리자가 기본 아이콘 URL을 입력한다. RPC 오류 시 직접 테이블을 갱신하던 비원자적 fallback은 제거했다.

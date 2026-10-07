@@ -1,5 +1,13 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 최신 작업 상태 (2026-10-07, Phase 4.4 요청 제출 UI)
+
+- dashboard에서 일반 사용자가 게임 추가와 일정 추가/수정 요청을 작성하고, 본인 요청의 처리 상태 및 관리자 메모를 확인할 수 있다. 클라이언트 INSERT는 승인 스키마 필드만 포함하며 `user_id`는 Auth 사용자 값, 일정 수정 대상은 `target_schedule_id`다. `request_status`, `admin_memo`, `admin` 권한은 클라이언트가 쓰지 않는다.
+- 필수값, `VERSION`/`PICKUP`, 날짜 형식 및 종료일 순서 검증, 제출 실패 표시를 구현했다. 관리자 승인/반려는 기존 RPC 흐름을 유지한다.
+- `npm test -- --run`: 6 files / 21 tests 통과. `npm run lint`, `npx tsc --noEmit`, 더미 Supabase URL/key 환경의 `npm run build` 통과. 외부 Supabase/RLS/RPC와 Tauri는 미검증이다.
+- npm ci는 기존 package-lock.json 누락 엔트리로 실패했다. `npm install --no-package-lock --legacy-peer-deps`로 설치해 검증했으며 package.json/package-lock.json은 변경하지 않았다. 작업 중 TypeScript 검사에서 드러난 React change-event 테스트 입력도 DOM input 값을 설정하는 타입 안전한 방식으로 바꿨다.
+- 다음: 격리된 Supabase 테스트 프로젝트에서 RLS 및 원자적 관리자 RPC를 검증한다. npm ci 재현성을 위한 lockfile 동기화는 별도 작업이며 Windows Tauri는 Web/PWA MVP 이후다.
+
 ## 최신 작업 상태 (2026-10-07)
 
 - 전체 run 검증 전 phase1 worktree를 점검하면서 관리자 요청 UI의 필드·RPC 인자와 승인 스키마 불일치를 수정했다. 관리자 요청 조회는 `app_metadata.role=admin`으로 제한하고, 게임 승인 때 기본 아이콘 URL을 입력받는다. RPC 실패 시 직접 상태 갱신 fallback은 제거했다.

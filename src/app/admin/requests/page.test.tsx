@@ -106,8 +106,10 @@ describe("AdminRequestsPage", () => {
 
     const iconUrlInput = container.querySelector('input[type="url"]')
     expect(iconUrlInput).not.toBeNull()
+    if (!(iconUrlInput instanceof HTMLInputElement)) throw new Error("Expected the game icon URL input.")
     await act(async () => {
-      Simulate.change(iconUrlInput!, { target: { value: "https://example.test/game.webp" } })
+      iconUrlInput.value = "https://example.test/game.webp"
+      Simulate.change(iconUrlInput)
     })
 
     const approveButton = Array.from(container.querySelectorAll("button")).find((button) =>

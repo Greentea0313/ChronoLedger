@@ -121,10 +121,12 @@
   - 대상 파일: `src/components/game/game-select-modal.tsx`
   - 작업: 공용 `games` 중 내 게임으로 `user_games`에 등록 및 커스텀 아이콘 교체 기능 구현. 게임 구독 제거 시 사용자 커스텀 아이콘 객체도 Storage에서 삭제한다.
   - verify: 내 게임 목록에 추가된 게임이 커스텀 아이콘과 함께 표시되고, 게임 제거 완료 후 해당 사용자의 아이콘 객체가 남지 않는지 확인
-- [ ] 4.4 일반 유저 게임/일정 추가·수정 요청 모달 및 관리자 승인 UI
-  - 대상 파일: `src/components/game/schedule-request-modal.tsx`, `src/app/admin/requests/page.tsx`
-  - 작업: 게임 요청(`game_requests`)과 일정 요청(`schedule_requests`)을 분리하고 승인/반려 RPC 연동. 관리자 화면은 `app_metadata.role=admin`으로 제한하고 게임 승인 시 기본 아이콘 URL을 지정한다.
-  - verify: 승인된 DB 필드 및 RPC 인자 사용을 단위 테스트로 확인했다. 실제 Supabase에서 RLS/역할 제한, 승인·반려 RPC의 원자적 반영과 요청 제출 UI는 아직 검증해야 한다.
+- [x] 4.4 일반 유저 게임/일정 추가·수정 요청 모달 및 관리자 승인 UI
+  - 대상 파일: `src/components/game/request-submission-modal.tsx`, `src/components/game/request-validation.ts`, `src/app/admin/requests/page.tsx`
+  - 작업: dashboard 모달에서 게임 요청과 일정 추가/수정 요청을 승인 스키마 필드로 제출한다. `user_id`는 Auth 사용자에서 가져오고 상태/관리자 필드는 보내지 않으며, 일정 수정은 `target_schedule_id`를 사용한다. 본인 요청 상태 조회, 필수 입력/일정 종류/날짜 검증 및 오류 안내를 제공한다. 관리자 상태 변경은 승인/반려 RPC에 맡긴다.
+  - verify: 전체 Vitest 6개 파일·21개 테스트, ESLint, TypeScript, dummy Supabase 환경값 정적 build 통과. 실제 Supabase RLS/역할 제한 및 승인·반려 RPC 원자성은 실행하지 않았다.
+  - [ ] 후속: 격리된 테스트 Supabase에서 일반 사용자 RLS 차단/허용과 관리자 승인·반려 RPC 원자성을 검증한다.
+  - [ ] 후속: 기존 `package.json`과 `package-lock.json` 동기화 후 `npm ci` 재현성을 확인한다. 현재 lockfile 누락 엔트리로 `npm ci`가 실패한다.
 
 ---
 

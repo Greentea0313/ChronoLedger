@@ -31,7 +31,7 @@ Supabase
 - `src/app/page.tsx`는 단일 로그인 화면인 `/auth`로 이동한다. `src/app/dashboard/layout.tsx`는 세션 로딩 중 dashboard 내용을 숨기고 비인증 사용자를 `/auth`로 보낸다. 클라이언트 gate는 데이터 권한을 대신하지 않으며 RLS가 최종 집행한다.
 - `src/components/calendar/`: 반응형 월간 캘린더, 일정 배너, 메모 도트, 선택 날짜 상세 및 예산 화면. 타일에는 금액을 그리지 않는다.
 - `src/components/expense/`: 예정 지출 입력, 결제/환불 RPC 호출, 예산 요약 및 만료 예정 지출 흐름.
-- `src/components/game/`: 공용 카탈로그 선택, 요청 제출, 개인 아이콘 업로드/표시.
+- `src/components/game/`: 공용 카탈로그 선택, 요청 제출, 개인 아이콘 업로드/표시. `request-submission-modal.tsx`는 대시보드 요청 진입점, 스키마 기반 제출 및 본인 요청 조회를 담당하고 `request-validation.ts`는 게임/일정 요청 입력 규칙을 검증한다.
 - `src/lib/`: 단일 Supabase client(브라우저/PWA PKCE, Tauri implicit flow, callback URL 자동 감지 비활성화), 인증 상태, KST 날짜 범위·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
 - `public/fonts/a2z/`: A2Z WOFF2 9개 굵기와 SIL OFL 1.1 고지. `src/app/globals.css`에서 제품 글꼴로 로드한다.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
