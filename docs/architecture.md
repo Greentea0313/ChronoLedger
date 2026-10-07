@@ -32,6 +32,7 @@ Supabase
 - `src/components/expense/`: 예정 지출 입력, 결제/환불 RPC 호출, 예산 요약 및 만료 예정 지출 흐름.
 - `src/components/game/`: 공용 카탈로그 선택, 요청 제출, 개인 아이콘 업로드/표시.
 - `src/lib/`: 단일 Supabase client(브라우저/PWA PKCE, Tauri implicit flow, callback URL 자동 감지 비활성화), 인증 상태, 날짜·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
+- `public/fonts/a2z/`: A2Z WOFF2 9개 굵기와 SIL OFL 1.1 고지. `src/app/globals.css`에서 제품 글꼴로 로드한다.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
 - `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.
 - `docs/`: 진행 현황, 아키텍처, 인수인계, 구현 체크리스트, 변경 이력, 주의사항.

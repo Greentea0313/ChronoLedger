@@ -11,6 +11,10 @@
 
 ---
 
+### UI 글꼴 자산
+- [x] A2Z의 SIL OFL 1.1을 확인하고 WOFF2 9개 굵기 및 저작권 고지/OFL 전문을 `public/fonts/a2z/`에 포함한다.
+- [x] 정적 export의 9개 WOFF2 파일/CSS 참조와 브라우저에서 9개 굵기 적용을 확인한다. `npm run lint`에는 별도의 ESLint 설정 로드 오류가 남아 있다.
+
 ### 문서 정리
 - [x] 오래된 기획 검토 문서를 참조 상태와 최신 기준 문서에 따라 정리
   - 삭제: `md/fix-proposals.md`, `md/revisions_and_decisions_review.md` (구식 Gemini.sql/Downloads 기준, 활성 문서 참조 없음)
@@ -86,6 +90,7 @@
   - [x] Google provider 활성화 및 `http://localhost:3000/auth/callback` Redirect URL 등록을 확인하고 실제 브라우저 OAuth code 교환·세션 저장·dashboard 복귀를 검증한다.
   - [ ] Android PWA 실기기에서 로그인·취소·세션 복귀를 검증하고 사용하는 PWA origin을 Redirect URLs에 등록한다.
   - [x] `/` 로그인 UI를 `/auth`로 단일화하고 dashboard layout 인증 gate를 추가했다. 로그인 사용자 이동 및 로그아웃 후 비인증 직접 접근 차단을 브라우저에서 확인했다. RLS는 별도 데이터 권한 경계로 유지한다.
+  - [x] `/auth`를 다크 테마에 맞춰 개선하고 레이블 및 이메일 로그인/가입/Google 액션을 정리했다. 320/390/768/1280px 반응형 확인, callback 테스트 5개 및 TypeScript 검사를 통과했다. 앱 전체 테마 전환과 접근성 심화 검증은 남아 있다.
   - verify: Android PWA에서 OAuth 성공·취소 및 세션 복귀를 실제 설치 환경으로 확인한다.
 - [ ] 3.2 데스크톱(Tauri) Deep Link 콜백 핸들러 구성
   - 대상 파일: `src-tauri/tauri.conf.json`, `src/lib/tauri-auth.ts`
@@ -171,5 +176,3 @@
   - 대상 파일: `src-tauri/tauri.conf.json`
   - 작업: `npm run tauri build` 실행 및 Windows 독립 실행 파일(`.exe`) 추출
   - verify: 추출된 실행 파일을 단독 실행하여 로그인, 캘린더 배너, 결제 등록이 정상 동작하는지 확인
-
-

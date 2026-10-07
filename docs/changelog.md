@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-10-07
+
+- `/auth` 로그인 UI를 현재 앱의 다크 테마에 맞춰 개선했다. 이메일/비밀번호 레이블과 이메일 로그인·가입·Google 버튼 배치를 정리하고, 기존 인증 동작을 유지했다. 320/390/768/1280px 화면과 callback/TypeScript 회귀를 확인했다.
+- A2Z 폰트를 SIL OFL 1.1 조건에 따라 자체 호스팅으로 추가했다. 9개 WOFF2 굵기, 내장 저작권 고지 및 OFL 전문을 포함하고 전역 CSS에서 A2Z를 기본 글꼴로 지정했다.
+
 ## 2026-10-06
 
 - 브라우저 Google OAuth를 실제 Supabase localhost 설정으로 검증하고 중복 code 교환 및 Strict Mode effect cleanup 문제를 수정했다. 로그인 화면을 `/auth`로 통합하고 dashboard layout 인증 gate를 적용했다. callback 테스트 5개를 통과했으며 Android PWA 실기기 E2E는 남아 있다.

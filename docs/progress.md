@@ -1,5 +1,18 @@
 # 프로젝트 진행 현황
 
+## 로그인 UI 개선 (2026-10-07)
+
+- `/auth`를 앱의 기존 다크 테마에 맞춘 반응형 로그인 화면으로 개선했다. 이메일/비밀번호 레이블, 이메일 로그인·가입 및 Google 버튼 구성을 정리했고 기존 인증 처리기는 유지했다.
+- 320/390/768/1280px에서 가로 넘침이 없고 입력 영역이 44px 이상임을 확인했다. 키보드 탭 순서는 이메일/비밀번호/로그인/가입/Google로 이어진다. callback 테스트 5개와 TypeScript 검사가 통과했다.
+- `npm run build`는 정적 페이지 생성을 완료해 exit 0이지만 ESLint가 `next/core-web-vitals` 설정을 로드하지 못했다. lint 성공과 구분한다.
+- 앱 전체 테마 전환 및 키보드/스크린리더 심화 검증은 후속 과제다. 실제 인증은 이번 UI 검증에서 실행하지 않았다.
+
+## 자체 호스팅 폰트 (2026-10-07)
+
+- A2Z SIL OFL 1.1을 확인해 9개 WOFF2 굵기를 `public/fonts/a2z/`에 추가했다. 제작 ZIP에 라이선스 파일이 없어 폰트 내장 저작권 표기와 OFL 전문을 함께 제공한다.
+- `src/app/globals.css`에서 A2Z를 기본 웹 글꼴로 설정했다.
+- 폰트는 브라우저와 정적 export에서 9개 굵기 적용을 확인했다. 로그인 UI 변경 후 빌드·린트 결과는 최신 인수인계 항목을 따른다.
+
 ## 브라우저 OAuth 및 dashboard 보호 (2026-10-06)
 
 - Supabase client는 브라우저/PWA에서 PKCE, Tauri에서 기존 implicit flow를 사용한다. Supabase의 callback URL 자동 감지를 끄고 `/auth/callback`에서 authorization code를 명시적으로 한 번 교환한다.

@@ -2,6 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url("/fonts/a2z/에이투지체-1Thin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url("/fonts/a2z/에이투지체-2ExtraLight.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("/fonts/a2z/에이투지체-3Light.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/a2z/에이투지체-4Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/a2z/에이투지체-5Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/a2z/에이투지체-6SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/a2z/에이투지체-7Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/a2z/에이투지체-8ExtraBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/a2z/에이투지체-9Black.woff2") format("woff2");
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -17,7 +89,7 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "A2Z", Arial, Helvetica, sans-serif;
 }
 
 @layer utilities {

@@ -1,5 +1,15 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 최신 작업 상태 (2026-10-07)
+
+- `/auth`를 앱과 맞는 다크 테마로 개선했다. 이메일/비밀번호 레이블, 이메일 로그인·가입과 Google 대체 액션을 명확히 배치하고 기존 인증 처리는 유지했다. 320/390/768/1280px에서 넘침이 없으며 입력 영역이 44px 이상임을 확인했다. 키보드 순서(이메일, 비밀번호, 로그인, 가입, Google)도 확인했다.
+- callback 회귀 테스트 5개와 `npx tsc --noEmit`이 통과했다. 실제 인증 흐름은 이번 UI 검증에서 다시 실행하지 않았다. 앱 전체 테마 전환 및 키보드/스크린리더 심화 검증은 남아 있다.
+- `npm run build`는 정적 `/`, `/auth`, `/auth/callback`, `/dashboard` 페이지 생성 후 exit 0이었으나 ESLint 설정 로드 오류를 출력했다. 이를 lint 성공으로 보지 않는다.
+- A2Z 9개 WOFF2 굵기를 `public/fonts/a2z/`에서 자체 호스팅하고 SIL OFL 1.1을 동봉했다. 제작자 제공 파일의 내장 저작권 표기(`Copyright © 2026 PT&`)와 라이선스 metadata를 확인했다.
+- 앱 전역 `src/app/globals.css`에서 A2Z 100–900을 등록했다.
+- 출처: [제작자 안내](https://freesentation.blog/a2z), [눈누 FAQ](https://noonnu.cc/font_page/1778), [SIL OFL 1.1](https://openfontlicense.org/documents/OFL.txt).
+- 앱 `/auth`에서 A2Z 9개 굵기 로드를 확인했다. 빌드·린트 결과는 알려진 ESLint 설정 경로 문제와 함께 아래 주의사항을 따른다.
+
 ## 최신 작업 상태 (2026-10-06)
 
 - Google provider와 localhost Redirect URL을 실제 확인하고 브라우저 OAuth 왕복을 검증했다. PKCE code 교환·세션 저장·dashboard 복귀가 성공한다.
