@@ -38,5 +38,5 @@
 12. **제안된 자동 Git 롤백의 작업 손실 위험**
    - 이전 협업 설계안의 `git reset --hard <base_sha>`를 공유 작업 트리에서 실행하면 사용자의 미커밋 변경이 삭제될 수 있다. 최신 설계는 자동 reset을 제거했지만, 미래의 정리 스크립트도 공유 작업 트리를 초기화하지 않도록 유지한다.
 
-13. **ESLint 설정 경로**
-   - 앱 worktree에서 `npm run lint`가 `next/core-web-vitals` 설정을 root `.eslintrc.json`에서 로드하지 못한다고 보고한다. 현재 `npm run build`는 같은 ESLint 오류를 출력해도 정적 산출물 생성을 마치고 exit 0을 반환하므로, 이를 lint 성공으로 간주하지 않는다. 원인을 수정하기 전 ESLint 검증은 미완료다.
+13. **중첩 앱 worktree의 ESLint 설정 경로**
+   - 앱 worktree는 저장소 루트 아래 중첩되어 있으므로 로컬 `.eslintrc.json`에 `"root": true`를 두어야 부모 저장소의 설정이 합쳐지지 않는다. 누락되면 부모 `.eslintrc.json` 위치에서 `next/core-web-vitals`를 해석하려다 실패할 수 있다. 수정 후 `npm run lint`와 `npm run build`로 확인한다.

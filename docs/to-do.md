@@ -13,7 +13,7 @@
 
 ### UI 글꼴 자산
 - [x] A2Z의 SIL OFL 1.1을 확인하고 WOFF2 9개 굵기 및 저작권 고지/OFL 전문을 `public/fonts/a2z/`에 포함한다.
-- [x] 정적 export의 9개 WOFF2 파일/CSS 참조와 브라우저에서 9개 굵기 적용을 확인한다. `npm run lint`에는 별도의 ESLint 설정 로드 오류가 남아 있다.
+- [x] 정적 export의 9개 WOFF2 파일/CSS 참조와 브라우저에서 9개 굵기 적용을 확인한다. 앱 worktree ESLint 설정의 `root: true`로 상위 설정 탐색 오류를 해결하고 lint/build를 통과했다.
 
 ### 문서 정리
 - [x] 오래된 기획 검토 문서를 참조 상태와 최신 기준 문서에 따라 정리
