@@ -31,7 +31,12 @@
 - [x] VS Code GitHub Copilot 저장소 지침과 Maker/Reviewer 프로필을 추가하고 사용자 안내를 연결했다.
 - [ ] VS Code에서 Copilot이 `.github/copilot-instructions.md`와 두 에이전트 프로필을 인식하는지 진단 화면에서 확인한다.
 - [ ] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Copilot Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다.
-- [ ] 디자인 구현 시작 전 사용자와 확정할 시각 제안(색상/글꼴/간격/내비게이션/브레이크포인트)을 골라 기록하고, HTML 목업의 모바일 반응형과 인터랙션을 실제 구현 수용 기준으로 구체화한다.
+- [x] 대시보드·지출·통계 반응형 시안을 만들고 주요 화면 구성과 반응형 동작을 브라우저에서 검증한다. 사용자는 대시보드 그래프 제외, 데스크톱 표/모바일 그룹 카드, 아이콘 전체 표시, 월별 세로 막대/분류별 가로 막대를 결정했다.
+- [x] 시안 검토 후 글자 크기, 쿨 뉴트럴 라이트 팔레트/대비, 기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 확정해 UI 디자인 시트·상세 설계에 기록했다.
+- [x] A2z 제작자 페이지의 SIL OFL 1.1 및 눈누의 상업 사용/수정/재배포 허용 안내를 확인했다. 재배포 시 저작권 고지와 OFL 전문이 필요하며, 폰트 자체 단독 판매는 허용되지 않는다.
+- [x] A2Z의 내장 저작권 표기와 SIL OFL 1.1을 확인하고 9개 WOFF2 굵기를 시안 및 웹 앱에서 자체 호스팅한다. 두 배포 위치에 OFL 전문을 동봉한다.
+- [x] 업데이트된 시안을 양 테마와 390/900/1280px에서 재검증해 가로 넘침과 주요 반응형 패널 위치를 확인했다.
+- [ ] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
 - [ ] 사용자는 Netlify를 우선 후보로 고려한다. [`Netlify_Web_Architecture_Proposal.md`](Netlify_Web_Architecture_Proposal.md)의 2026-10-07 재검토 권고에 따라 우선 현재 `output: 'export'` 산출물을 Deploy Preview에서 검증한다. 정적 경로가 웹 요구를 막는 증거가 나오기 전에는 Web/Desktop 이중 빌드나 SRS 변경을 하지 않는다.
 - [ ] Netlify 후보 확인: 정적 export 산출물과 `/auth` 하위 경로, Google OAuth callback/Redirect URL, PWA service worker 및 Preview/Production 환경 변수 분리를 작은 검증 브랜치에서 확인한다. 결과가 확인되기 전까지 Netlify는 채택 확정이 아니다.
   - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 5개 통과.
@@ -143,6 +148,8 @@
 - [ ] 3.1 이메일 가입/로그인 및 구글 OAuth 연동
   - 대상 파일: `src/app/auth/page.tsx` 또는 통합 로그인 경로, `src/app/auth/callback/page.tsx`, `src/lib/auth-context.tsx`
   - 작업: 이메일 폼, Google OAuth, PKCE/browser callback, 세션 상태 및 protected routes를 Web/PWA 기준으로 연결
+  - [x] 로그인 화면을 기존 앱과 맞는 다크 테마로 정리하고, 레이블이 있는 입력과 이메일 로그인/가입/Google 액션을 배치했다. 320/390/768/1280px 화면에서 넘침이 없고 입력 높이가 44px 이상임을 확인했다.
+  - 후속: 앱 전체 테마 전환은 보호 화면과 함께 적용한다. 키보드/스크린리더 심화 검증은 별도로 수행한다.
   - verify: 브라우저와 Android PWA에서 가입·로그인·로그아웃·세션 복구 및 비로그인 접근 차단 확인
 - [ ] 3.2 사용자 계정 삭제 및 개인 데이터/Storage 정리 흐름
   - 대상 파일: 인증 설정 화면, 서버 측 계정 삭제 경로, `user-icons` Storage 정책

@@ -3,7 +3,7 @@
 - **Document:** UI Design Sheet
 - **Source:** ChronoLedger Software Requirements Specification (SRS) v1.0
 - **SRS status:** Design phase approved
-- **UI scope:** Dashboard, Spending, Statistics, Games, Subscriptions, Wallets, Settings, Admin
+- **UI scope:** Authentication, Dashboard, Spending, Statistics, Games, Subscriptions, Wallets, Settings, Admin
 - **Primary desktop pattern:** Calendar-first workspace + right detail sidebar
 - **Mobile adaptation:** Bottom sheet for selected-date/detail content
 - **Notation:**
@@ -177,7 +177,7 @@ The selected-date desktop sidebar maps to a mobile bottom sheet. (FR-020)
 
 ## 3.1 Color tokens
 
-### Base
+### Dark theme
 
 | Token | Value | Usage |
 |---|---|---|
@@ -186,8 +186,9 @@ The selected-date desktop sidebar maps to a mobile bottom sheet. (FR-020)
 | `color.surface-2` | `#1F2430` | Nested surfaces, input backgrounds |
 | `color.border` | `#2A2F3A` | Dividers, borders |
 | `color.text-primary` | `#F5F7FA` | Primary text |
-| `color.text-secondary` | `#9BA3B2` | Secondary labels |
-| `color.text-muted` | `#6F7785` | Tertiary text |
+| `color.text-secondary` | `#B3BBC8` | Secondary labels |
+| `color.text-muted` | `#A0A9B8` | Tertiary text |
+| `color.control-border` | `#707A8C` | Interactive control outlines |
 
 ### Action / status
 
@@ -195,10 +196,37 @@ The selected-date desktop sidebar maps to a mobile bottom sheet. (FR-020)
 |---|---|---|
 | `color.primary` | `#7C8CFF` | Primary actions, selected controls |
 | `color.primary-hover` | `#91A0FF` | Hover |
+| `color.on-primary` | `#101426` | Text/icons on dark-theme primary actions |
 | `color.success` | `#4CD6A5` | Positive confirmation, confirmed state |
 | `color.warning` | `#F5B942` | Budget >= 80% warning |
-| `color.danger` | `#FF5A5F` | Budget > 100%, destructive action |
+| `color.danger` | `#FF7478` | Budget > 100%, destructive action |
 | `color.info` | `#65A9FF` | Informational / planned state |
+
+### Light theme
+
+| Token | Value | Usage |
+|---|---|---|
+| `color.bg` | `#F5F7FA` | App background |
+| `color.surface` | `#FFFFFF` | Cards and panels |
+| `color.surface-2` | `#F0F2F6` | Nested surfaces and inputs |
+| `color.border` | `#D8DDE7` | Subtle dividers and card borders |
+| `color.control-border` | `#848FA2` | Interactive control outlines |
+| `color.text-primary` | `#171A21` | Primary text |
+| `color.text-secondary` | `#495264` | Secondary labels |
+| `color.text-muted` | `#5D6675` | Tertiary text |
+| `color.primary` | `#5365D4` | Primary actions and selected controls |
+| `color.primary-hover` | `#4052C0` | Hover |
+| `color.on-primary` | `#FFFFFF` | Text/icons on light-theme primary actions |
+| `color.info` | `#175EA8` | Informational / planned state |
+| `color.success` | `#08764F` | Confirmed state |
+| `color.warning` | `#805300` | Budget >= 80% warning |
+| `color.danger` | `#B4232F` | Budget > 100%, destructive action |
+| `state.planned.background` | `#E8F2FC` | Planned-state label background |
+| `state.confirmed.background` | `#E6F5EF` | Confirmed-state label background |
+| `state.warning.background` | `#FFF4D8` | Budget-warning label background |
+| `state.danger.background` | `#FCEBED` | Refund/destructive label background |
+
+The light palette uses a cool-neutral canvas, white surfaces, dark navy text, and indigo actions. Contrast ratios verified for primary/secondary/muted text on white surfaces are 17.41:1, 7.85:1, and 5.80:1; white text on the primary action is 5.02:1. Planned, confirmed, warning, and danger text on their light status backgrounds are 5.79:1, 5.03:1, 6.08:1, and 5.66:1. Dark status labels range from 5.57:1 to 7.74:1, and the dark primary-action label is 6.13:1. Interactive control outlines have at least 3.04:1 contrast against their base surfaces; decorative borders remain intentionally softer.
 
 ### Spending / schedule semantics
 
@@ -213,7 +241,9 @@ The selected-date desktop sidebar maps to a mobile bottom sheet. (FR-020)
 
 ## 3.2 Typography
 
-**Font:** Pretendard `[PROPOSED]`
+**Font:** A2Z self-hosted WOFF2 family (100–900), with a system font fallback. The creator identifies it as SIL Open Font License 1.1 (OFL), which permits web embedding and redistribution with software. The project keeps the copyright notice and full OFL text alongside the font files.
+
+License references: [A2Z creator's font page](https://freesentation.blog/a2z) and [Noonnu's A2Z listing and usage FAQ](https://noonnu.cc/font_page/1778).
 
 | Token | Size | Weight | Usage |
 |---|---:|---:|---|
@@ -253,8 +283,10 @@ Recommended usage:
 | `radius.lg` | 12px |
 | `radius.xl` | 16px |
 | `radius.pill` | 999px |
-| `shadow.card` | 0 8px 24px rgba(0,0,0,0.18) |
+| `shadow.card.dark` | 0 4px 16px rgba(0,0,0,0.18) |
+| `shadow.card.light` | 0 4px 16px rgba(27,35,52,0.08) |
 | `shadow.modal` | 0 20px 60px rgba(0,0,0,0.32) |
+| `shadow.modal.light` | 0 20px 60px rgba(27,35,52,0.16) |
 
 ## 3.5 Layout tokens
 
@@ -312,6 +344,7 @@ Rules `[SRS]`:
 - Do not show amount.
 - Do not show general spending list.
 - Show at most one memo dot regardless of memo count.
+- Fit the full game icon inside its square area without cropping `[DECIDED]`.
 
 ## 4.2 Schedule Banner
 
@@ -423,6 +456,14 @@ For blocked business rules, prefer inline or modal error explanation rather than
 └─────────────────────────────────────────────────────┘
 ```
 
+## 4.10 Authentication Form `[SRS + PROPOSED]`
+
+- Keep the sign-in page in the existing dark theme until the app-wide theme switch is implemented across authenticated screens.
+- Use a centered brand introduction and form surface, followed by labeled email and password fields.
+- Stack the email sign-in and account-creation actions; separate Google sign-in as an alternate action.
+- Preserve the existing email, registration, and Google authentication handlers. These presentation choices do not change authentication behavior (FR-005).
+- Use at least 44px input targets and retain visible labels independent of placeholder text.
+
 ---
 
 # 5. Dashboard
@@ -438,6 +479,8 @@ Primary calendar-centric workspace connecting:
 - Confirmed spending
 - Memo details
 - Budget status
+
+The Dashboard shows the calendar and budget summary values without a mini monthly chart. Monthly trend charts belong on Statistics `[DECIDED]`.
 
 ## 5.2 Desktop wireframe
 
@@ -567,6 +610,8 @@ Provide a structured financial view for planned, confirmed, cancelled, and refun
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
+Use a table-first list on desktop and date-grouped cards on mobile `[DECIDED]`.
+
 ## 6.3 Spending detail panel
 
 ```text
@@ -678,7 +723,7 @@ The SRS explicitly defines budget attribution and expected-consumption warning b
 │                                                                              │
 │ Spending trend                                                              │
 │ ┌────────────────────────────────────────────────────────────────────────┐ │
-│ │                         line / bar chart                                │ │
+│ │                         monthly vertical bars                            │ │
 │ └────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ By game                              By payment method                      │
@@ -689,6 +734,8 @@ The SRS explicitly defines budget attribution and expected-consumption warning b
 │ └──────────────────────────────┘     └──────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+Use vertical bars for the monthly trend and horizontal bars for game/payment-method categories `[DECIDED]`. Select the chart library during implementation.
 
 ## 7.3 Statistics semantics
 
@@ -1335,18 +1382,31 @@ The underlying information model should remain the same; only the container/pres
 
 # 20. Open Design Decisions
 
-The SRS does not specify the following visual/interaction details. They remain implementation/design decisions:
+The following presentation decisions have been made without changing SRS behavior:
 
-1. Exact chart library and chart visual style.
-2. Exact game icon crop/fit behavior inside calendar tiles.
-3. Whether the main Dashboard includes a mini monthly summary chart or only budget summary values.
-4. Whether Spending uses a table-first or grouped-card-first layout on desktop.
-5. Exact navigation style: top navigation vs left navigation.
-6. Exact responsive breakpoint values.
-7. Exact color values, typography, shadows, radii, and motion.
-8. Exact copy for secondary notifications and empty states.
+- Dashboard: calendar and budget summary values only; no mini monthly chart.
+- Spending: table-first on desktop and date-grouped cards on mobile.
+- Calendar game icons: fit the full icon without cropping.
+- Statistics: monthly vertical bars and horizontal bars for game/payment-method categories.
+- Desktop navigation: top horizontal navigation. Mobile navigation: four primary tabs plus More.
+- Responsive behavior: desktop two-column layout at 1100px and above; calendar with a detail bottom sheet at 768–1099px; mobile shell, bottom navigation, and detail bottom sheet at 767px and below.
+- Layout and control baselines: 4px spacing unit, 16px component gap, 24px page gutter, 340px desktop detail panel, 1440px maximum content width, 12px card radius, 40px standard controls, 48px primary actions, and 44px minimum mobile touch targets.
+- Motion: restrained 120ms hover/focus, 180ms panel, and 240ms modal/bottom-sheet transitions, with reduced-motion support.
 
-These should be finalized before implementation of the visual layer, while preserving the functional requirements and business rules already fixed in SRS v1.0.
+The following remain open before the visual system is finalized:
+
+1. Exact chart library selection (implementation-time decision).
+2. Detailed keyboard/screen-reader validation and any component-specific contrast checks during product implementation.
+
+User-confirmed visual decisions:
+
+- Typography: body 15px, supporting text 12px, section heading 17px, page title 22px, and key numbers 20–28px. A2Z is self-hosted for the preview and web app with all nine weights and an OFL 1.1 notice.
+- Theme: use the current dark palette as the basis and support a cool-neutral light theme with accessible indigo and semantic colors.
+- Elevation: restrained card shadows, with a clearly stronger modal shadow.
+- Empty states: concise contextual message plus a relevant next-action button.
+- Secondary feedback: concise, neutral result messages; explain errors and available recovery actions. Keep blocked business rules inline or in a confirmation surface, not as generic toasts.
+
+Preserve the functional requirements and business rules already fixed in SRS v1.0.
 
 ---
 

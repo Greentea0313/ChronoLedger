@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>ChronoLedger UI 시안</title>
+<style>
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url("./assets/fonts/a2z/에이투지체-1Thin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url("./assets/fonts/a2z/에이투지체-2ExtraLight.woff2") format("woff2");
+}
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("./assets/fonts/a2z/에이투지체-3Light.woff2") format("woff2");
+}
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/a2z/에이투지체-4Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./assets/fonts/a2z/에이투지체-5Medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./assets/fonts/a2z/에이투지체-6SemiBold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./assets/fonts/a2z/에이투지체-7Bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("./assets/fonts/a2z/에이투지체-8ExtraBold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "A2Z";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("./assets/fonts/a2z/에이투지체-9Black.woff2") format("woff2");
+}
+:root {
+  color-scheme: dark;
+  --bg: #0F1115;
+  --surface: #171A21;
+  --surface-2: #1F2430;
+  --border: #2A2F3A;
+  --text: #F5F7FA;
+  --text-secondary: #B3BBC8;
+  --text-muted: #A0A9B8;
+  --control-border: #707A8C;
+  --primary: #7C8CFF;
+  --primary-hover: #91A0FF;
+  --on-primary: #101426;
+  --planned: #65A9FF;
+  --confirmed: #4CD6A5;
+  --warning: #F5B942;
+  --danger: #FF7478;
+  --planned-bg: rgb(101 169 255 / 12%);
+  --confirmed-bg: rgb(76 214 165 / 12%);
+  --warning-bg: rgb(245 185 66 / 12%);
+  --danger-bg: rgb(255 116 120 / 12%);
+  --shadow: 0 4px 16px rgb(0 0 0 / 18%);
+  --modal-shadow: 0 20px 60px rgb(0 0 0 / 32%);
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F5F7FA;
+  --surface: #FFFFFF;
+  --surface-2: #F0F2F6;
+  --border: #D8DDE7;
+  --text: #171A21;
+  --text-secondary: #495264;
+  --text-muted: #5D6675;
+  --control-border: #848FA2;
+  --primary: #5365D4;
+  --primary-hover: #4052C0;
+  --on-primary: #FFFFFF;
+  --planned: #175EA8;
+  --confirmed: #08764F;
+  --warning: #805300;
+  --danger: #B4232F;
+  --planned-bg: #E8F2FC;
+  --confirmed-bg: #E6F5EF;
+  --warning-bg: #FFF4D8;
+  --danger-bg: #FCEBED;
+  --shadow: 0 4px 16px rgb(27 35 52 / 8%);
+  --modal-shadow: 0 20px 60px rgb(27 35 52 / 16%);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 "A2Z", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, select { font: inherit; }
+button { color: inherit; }
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.brand { white-space: nowrap; font-size: 18px; font-weight: 750; letter-spacing: -.03em; }
+.nav { display: flex; align-items: center; gap: 4px; }
+.nav button, .mobile-nav button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0 12px;
+}
+.nav button[aria-current="page"] { background: var(--surface-2); color: var(--text); font-weight: 650; }
+.toolbar { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.budget-status { color: var(--warning); font-size: 13px; font-weight: 650; white-space: nowrap; }
+.icon-button, .button {
+  min-height: 40px;
+  border: 1px solid var(--control-border);
+  border-radius: 9px;
+  background: var(--surface-2);
+  cursor: pointer;
+  padding: 0 14px;
+}
+.button.primary { border-color: var(--primary); background: var(--primary); color: var(--on-primary); font-weight: 700; }
+.button.danger { color: var(--danger); }
+.button:focus-visible, .icon-button:focus-visible, .nav button:focus-visible, .mobile-nav button:focus-visible, select:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.page { width: min(1440px, 100%); margin: 0 auto; padding: 24px; }
+.screen { display: none; }
+.screen.active { display: block; }
+.page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+h1 { margin: 0; font-size: 22px; line-height: 1.25; letter-spacing: -.03em; }
+h2 { margin: 0; font-size: 17px; line-height: 1.35; }
+h3 { margin: 0; font-size: 17px; line-height: 1.4; }
+.subtitle, .muted { color: var(--text-secondary); }
+.caption { color: var(--text-muted); font-size: 12px; }
+.card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.summary-card { padding: 16px 18px; }
+.summary-card .value { display: block; margin-top: 7px; font-size: 24px; font-weight: 750; letter-spacing: -.03em; }
+.summary-card .meta { margin-top: 3px; color: var(--text-secondary); font-size: 12px; }
+.warning-text { color: var(--warning) !important; }
+.dashboard-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.calendar { padding: 20px; }
+.calendar-head, .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.calendar-head { margin-bottom: 16px; }
+.month-nav { display: flex; align-items: center; gap: 8px; }
+.month-nav .icon-button { width: 40px; padding: 0; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.weekday { padding: 4px 0; color: var(--text-secondary); text-align: center; font-size: 12px; font-weight: 600; }
+.day {
+  position: relative;
+  min-height: 98px;
+  overflow: hidden;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+.day.outside { opacity: .5; }
+.day.today { border-color: var(--primary); }
+.day.selected { outline: 2px solid var(--primary); outline-offset: -2px; }
+.day-number { font-size: 12px; font-weight: 600; }
+.game-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  margin: 5px 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: linear-gradient(145deg, var(--primary), #B7C0FF);
+  color: #101426;
+  font-size: 11px;
+  font-weight: 800;
+}
+.event-label, .status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.event-label.version { background: var(--planned-bg); color: var(--planned); }
+.event-label.pickup { background: var(--confirmed-bg); color: var(--confirmed); }
+.memo-dot { position: absolute; right: 9px; bottom: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+.calendar-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+.detail-panel { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+.detail-section { display: grid; gap: 9px; }
+.detail-section + .detail-section { padding-top: 14px; border-top: 1px solid var(--border); }
+.event-card, .spending-card { padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.event-card p, .spending-card p { margin: 5px 0 0; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.status.planned { background: var(--planned-bg); color: var(--planned); }
+.status.confirmed { background: var(--confirmed-bg); color: var(--confirmed); }
+.status.cancelled { background: var(--surface-2); color: var(--text-secondary); }
+.status.refund { background: var(--danger-bg); color: var(--danger); }
+.money { font-size: 20px; font-weight: 750; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.actions .button { min-height: 40px; }
+.budget-track, .bar-track { overflow: hidden; border-radius: 999px; background: var(--surface-2); }
+.budget-track { height: 8px; margin-top: 12px; }
+.budget-track span { display: block; width: 82%; height: 100%; border-radius: inherit; background: var(--warning); }
+.memo-entry { display: flex; gap: 8px; color: var(--text-secondary); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+select {
+  min-height: 40px;
+  border: 1px solid var(--control-border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 32px 0 12px;
+}
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { color: var(--text-secondary); font-size: 12px; font-weight: 650; }
+td { font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.amount-cell { text-align: right; white-space: nowrap; font-weight: 700; }
+.mobile-spending { display: none; }
+.spending-group { margin-bottom: 14px; padding: 14px; }
+.spending-item { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+.spending-item:first-of-type { margin-top: 8px; }
+.spending-item p { margin: 2px 0 0; }
+.item-right { text-align: right; white-space: nowrap; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.stats-grid .summary-card .value { font-size: 22px; }
+.chart-card { padding: 20px; }
+.chart-card h2 { margin-bottom: 16px; }
+.charts-row { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; margin-bottom: 16px; }
+.bar-chart { display: flex; min-height: 228px; align-items: end; justify-content: space-around; gap: 12px; padding: 18px 6px 0; border-bottom: 1px solid var(--border); }
+.month-bar { display: flex; width: min(52px, 13%); height: 100%; flex-direction: column; justify-content: end; align-items: center; gap: 8px; }
+.month-bar .bar { width: 100%; min-height: 8px; border-radius: 6px 6px 0 0; background: var(--primary); }
+.month-bar.current .bar { background: var(--warning); }
+.month-bar .caption { text-align: center; }
+.category-list { display: grid; gap: 16px; }
+.category-row { display: grid; grid-template-columns: minmax(82px, 1fr) 2fr auto; align-items: center; gap: 10px; }
+.category-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 10px; }
+.bar-track span { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+.category-row:nth-child(2) .bar-track span { background: var(--planned); }
+.category-row:nth-child(3) .bar-track span { background: var(--confirmed); }
+.category-row:nth-child(4) .bar-track span { background: var(--warning); }
+.category-value { font-size: 13px; font-weight: 650; white-space: nowrap; }
+.callout { margin-top: 14px; padding: 12px 14px; border-radius: 9px; background: var(--warning-bg); color: var(--warning); }
+.preview-note { margin-top: 20px; padding: 12px 14px; border: 1px dashed var(--border); border-radius: 10px; color: var(--text-secondary); font-size: 12px; }
+.mobile-nav { display: none; }
+
+@media (max-width: 1099px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .detail-panel {
+    position: fixed;
+    z-index: 4;
+    right: 24px;
+    bottom: 24px;
+    left: 24px;
+    display: grid;
+    max-height: 42vh;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: auto;
+    padding: 18px;
+    border-radius: 16px;
+  }
+  .detail-panel::before {
+    position: absolute;
+    top: 8px;
+    left: calc(50% - 20px);
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--text-muted);
+    content: "";
+  }
+  .detail-panel > .detail-section:first-child { padding-top: 8px; }
+  .detail-section + .detail-section { padding-top: 0; border-top: 0; }
+  .charts-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 767px) {
+  .topbar { min-height: 56px; gap: 10px; padding: 0 16px; }
+  .brand { font-size: 16px; }
+  .nav, .budget-status, .toolbar .account { display: none; }
+  .toolbar { gap: 6px; }
+  .icon-button { min-width: 44px; min-height: 44px; padding: 0 8px; }
+  .page { padding: 16px 12px 92px; }
+  .page-heading { align-items: flex-start; flex-direction: column; margin-bottom: 14px; }
+  .summary-grid { gap: 8px; }
+  .summary-card { padding: 12px; }
+  .summary-card .value { font-size: 20px; }
+  .calendar { padding: 12px 8px; }
+  .calendar-grid { gap: 3px; }
+  .weekday { font-size: 11px; }
+  .day { min-height: 66px; padding: 5px 4px; border-radius: 7px; }
+  .game-icon { width: 22px; height: 22px; margin: 3px 0; font-size: 9px; }
+  .event-label { max-width: 100%; padding: 1px 4px; font-size: 8px; }
+  .memo-dot { right: 5px; bottom: 5px; width: 6px; height: 6px; }
+  .calendar-legend { gap: 10px; }
+  .detail-panel { right: 8px; bottom: 68px; left: 8px; display: block; max-height: 54vh; margin-top: 0; padding: 16px; border-radius: 16px 16px 12px 12px; }
+  .detail-panel::before { top: 8px; left: calc(50% - 20px); }
+  .detail-panel > .detail-section:first-child { padding-top: 8px; }
+  .detail-section { margin-top: 12px; }
+  .detail-section + .detail-section { padding-top: 12px; border-top: 1px solid var(--border); }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .stats-grid .summary-card .value { font-size: 20px; }
+  .chart-card { padding: 16px 12px; }
+  .bar-chart { min-height: 190px; }
+  .category-row { grid-template-columns: minmax(72px, .8fr) 1fr auto; gap: 7px; }
+  .category-value { font-size: 12px; }
+  .desktop-spending { display: none; }
+  .mobile-spending { display: block; }
+  .mobile-nav {
+    position: fixed;
+    z-index: 6;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) 56px;
+    min-height: 68px;
+    padding: 6px 8px max(6px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .mobile-nav button { min-width: 44px; min-height: 44px; padding: 2px 4px; font-size: 11px; }
+  .mobile-nav button[aria-current="page"] { color: var(--primary); font-weight: 700; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">ChronoLedger</div>
+  <nav class="nav" aria-label="주요 메뉴">
+    <button type="button" data-screen="dashboard" aria-current="page">대시보드</button>
+    <button type="button" data-screen="spending">지출</button>
+    <button type="button" data-screen="statistics">통계</button>
+    <button type="button">게임</button>
+    <button type="button">구독</button>
+    <button type="button">지갑</button>
+  </nav>
+  <div class="toolbar">
+    <span class="budget-status">예산 주의 · 82%</span>
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="테마 전환">☼ / ☾</button>
+    <button class="icon-button account" type="button">계정 ▾</button>
+  </div>
+</header>
+
+<main class="page">
+  <section class="screen active" id="dashboard" aria-labelledby="dashboard-title">
+    <div class="page-heading">
+      <div><h1 id="dashboard-title">대시보드</h1><div class="subtitle">월간 캘린더와 예산 요약</div></div>
+      <button class="button" type="button">오늘로 이동</button>
+    </div>
+    <div class="summary-grid" aria-label="10월 예산 요약">
+      <article class="card summary-card"><span class="caption">10월 예산</span><strong class="value">₩300,000</strong><div class="meta">기본 예산 적용</div></article>
+      <article class="card summary-card"><span class="caption">예상 지출</span><strong class="value">₩248,000</strong><div class="meta warning-text">예산의 82% · 주의</div></article>
+      <article class="card summary-card"><span class="caption">확정 지출</span><strong class="value">₩192,000</strong><div class="meta">취소 항목 제외</div></article>
+    </div>
+    <div class="dashboard-grid">
+      <section class="card calendar" aria-label="2026년 10월 캘린더">
+        <div class="calendar-head">
+          <div class="month-nav"><button class="icon-button" type="button" aria-label="이전 달">‹</button><h2>2026년 10월</h2><button class="icon-button" type="button" aria-label="다음 달">›</button></div>
+          <span class="caption">캘린더 우선 보기</span>
+        </div>
+        <div class="calendar-grid">
+          <div class="weekday">월</div><div class="weekday">화</div><div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday">토</div><div class="weekday">일</div>
+          <div class="day outside"><span class="day-number">28</span></div><div class="day outside"><span class="day-number">29</span></div><div class="day outside"><span class="day-number">30</span></div><div class="day"><span class="day-number">1</span><div class="game-icon" aria-label="게임 A 아이콘 예시">A</div></div><div class="day"><span class="day-number">2</span><br><span class="event-label version">VERSION</span></div><div class="day"><span class="day-number">3</span></div><div class="day"><span class="day-number">4</span><div class="game-icon" aria-label="게임 A 아이콘 예시">A</div></div>
+          <div class="day"><span class="day-number">5</span><span class="memo-dot" aria-label="메모 있음"></span></div><div class="day selected"><span class="day-number">6</span><div class="game-icon" aria-label="게임 A 아이콘 예시">A</div><span class="event-label pickup">PICKUP</span><span class="memo-dot" aria-label="메모 있음"></span></div><div class="day"><span class="day-number">7</span></div><div class="day"><span class="day-number">8</span></div><div class="day"><span class="day-number">9</span><span class="event-label version">VERSION</span></div><div class="day"><span class="day-number">10</span><span class="event-label pickup">PICKUP</span></div><div class="day"><span class="day-number">11</span></div>
+          <div class="day"><span class="day-number">12</span></div><div class="day"><span class="day-number">13</span></div><div class="day"><span class="day-number">14</span><div class="game-icon" aria-label="게임 B 아이콘 예시">B</div></div><div class="day"><span class="day-number">15</span></div><div class="day"><span class="day-number">16</span><span class="memo-dot" aria-label="메모 있음"></span></div><div class="day"><span class="day-number">17</span></div><div class="day"><span class="day-number">18</span></div>
+          <div class="day"><span class="day-number">19</span></div><div class="day"><span class="day-number">20</span><span class="event-label version">VERSION</span></div><div class="day"><span class="day-number">21</span></div><div class="day"><span class="day-number">22</span></div><div class="day"><span class="day-number">23</span></div><div class="day"><span class="day-number">24</span><div class="game-icon" aria-label="게임 A 아이콘 예시">A</div></div><div class="day"><span class="day-number">25</span></div>
+          <div class="day"><span class="day-number">26</span></div><div class="day"><span class="day-number">27</span></div><div class="day"><span class="day-number">28</span></div><div class="day"><span class="day-number">29</span><span class="event-label pickup">PICKUP</span></div><div class="day"><span class="day-number">30</span></div><div class="day"><span class="day-number">31</span></div><div class="day outside"><span class="day-number">1</span></div>
+        </div>
+        <div class="calendar-legend caption"><span class="legend-item"><span class="event-label version">VERSION</span> 버전 일정</span><span class="legend-item"><span class="event-label pickup">PICKUP</span> 픽업 일정</span><span class="legend-item"><span class="legend-dot"></span> 개인 메모</span></div>
+      </section>
+      <aside class="card detail-panel" aria-label="선택 날짜 상세">
+        <section class="detail-section"><h2>10월 6일 화요일</h2><div class="caption">선택한 날짜의 상세 정보</div></section>
+        <section class="detail-section"><h3>일정</h3><div class="event-card"><div class="row-between"><strong>게임 A</strong><span class="event-label pickup">PICKUP</span></div><p class="caption">10월 4일 – 10월 10일</p></div></section>
+        <section class="detail-section"><h3>예정 지출</h3><div class="spending-card"><div class="row-between"><span>게임 A 패키지</span><span class="status planned">예정</span></div><p class="money">₩30,000</p><p class="caption">목표일 · 2026-10-06</p><div class="actions"><button class="button primary" type="button">결제 확정</button><button class="button" type="button">예정 취소</button></div></div></section>
+        <section class="detail-section"><h3>확정 지출</h3><div class="spending-card"><div class="row-between"><span>월간 구독</span><span class="status confirmed">확정</span></div><p class="money">₩24,000</p><div class="actions"><button class="button" type="button">환불</button></div></div></section>
+        <section class="detail-section"><div class="row-between"><h3>메모</h3><button class="button" type="button">메모 추가</button></div><div class="memo-entry"><span aria-hidden="true">•</span><span>다음 픽업 일정 확인</span></div><div class="memo-entry"><span aria-hidden="true">•</span><span>예산 범위 안에서 구매</span></div></section>
+      </aside>
+    </div>
+    <div class="preview-note">시안용 데이터입니다. 달력 타일에는 금액이나 일반 지출 목록을 표시하지 않습니다. 모바일에서는 날짜 상세가 바텀시트 형태로 배치됩니다.</div>
+  </section>
+
+  <section class="screen" id="spending" aria-labelledby="spending-title">
+    <div class="page-heading">
+      <div><h1 id="spending-title">지출</h1><div class="subtitle">예정·확정 지출을 확인하고 관리합니다.</div></div>
+      <button class="button primary" type="button">지출 추가</button>
+    </div>
+    <div class="summary-grid">
+      <article class="card summary-card"><span class="caption">이번 달 확정</span><strong class="value">₩192,000</strong><div class="meta">2026년 10월</div></article>
+      <article class="card summary-card"><span class="caption">이번 달 예정</span><strong class="value">₩56,000</strong><div class="meta">취소 제외</div></article>
+      <article class="card summary-card"><span class="caption">총 예상 지출</span><strong class="value">₩248,000</strong><div class="meta warning-text">예산 대비 82%</div></article>
+    </div>
+    <div class="filters" aria-label="지출 필터">
+      <select aria-label="월 선택"><option>2026년 10월</option></select>
+      <select aria-label="상태 선택"><option>모든 상태</option><option>예정</option><option>확정</option><option>취소</option></select>
+      <select aria-label="결제수단 선택"><option>모든 결제수단</option><option>보유 자산</option><option>Google Play</option><option>Galaxy Store</option></select>
+    </div>
+    <section class="card desktop-spending" aria-label="지출 표">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>날짜</th><th>지출 항목</th><th>게임</th><th>결제수단</th><th>상태</th><th class="amount-cell">금액</th><th>작업</th></tr></thead>
+          <tbody>
+            <tr><td>10월 6일</td><td>월간 구독</td><td>게임 A</td><td>보유 자산</td><td><span class="status confirmed">확정</span></td><td class="amount-cell">₩24,000</td><td><button class="button" type="button">상세</button></td></tr>
+            <tr><td>10월 6일</td><td>게임 A 패키지</td><td>게임 A</td><td>Google Play</td><td><span class="status planned">예정</span></td><td class="amount-cell">₩30,000</td><td><button class="button" type="button">확정</button></td></tr>
+            <tr><td>10월 3일</td><td>월간 패스</td><td>게임 B</td><td>Galaxy Store</td><td><span class="status confirmed">확정</span></td><td class="amount-cell">₩12,000</td><td><button class="button" type="button">상세</button></td></tr>
+            <tr><td>10월 1일</td><td>시즌 패키지</td><td>게임 A</td><td>보유 자산</td><td><span class="status cancelled">예정 취소</span></td><td class="amount-cell">₩18,000</td><td><button class="button" type="button">상세</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <div class="mobile-spending" aria-label="날짜별 지출 목록">
+      <section class="card spending-group"><div class="section-head"><h2>10월 6일</h2><span class="caption">화요일</span></div>
+        <article class="spending-item"><div><div>월간 구독</div><p class="caption">게임 A · 보유 자산</p><span class="status confirmed">확정</span></div><div class="item-right"><strong>₩24,000</strong><p><button class="button" type="button">상세</button></p></div></article>
+        <article class="spending-item"><div><div>게임 A 패키지</div><p class="caption">게임 A · Google Play</p><span class="status planned">예정</span></div><div class="item-right"><strong>₩30,000</strong><p><button class="button primary" type="button">확정</button></p></div></article>
+      </section>
+      <section class="card spending-group"><div class="section-head"><h2>10월 3일</h2><span class="caption">토요일</span></div>
+        <article class="spending-item"><div><div>월간 패스</div><p class="caption">게임 B · Galaxy Store</p><span class="status confirmed">확정</span></div><div class="item-right"><strong>₩12,000</strong><p><button class="button" type="button">상세</button></p></div></article>
+      </section>
+    </div>
+    <div class="preview-note">데스크톱은 표 우선, 모바일은 날짜별 그룹 카드입니다. 취소 내역은 기록으로 구분해 보여주며 물리 삭제 액션은 제공하지 않는 시안입니다.</div>
+  </section>
+
+  <section class="screen" id="statistics" aria-labelledby="statistics-title">
+    <div class="page-heading">
+      <div><h1 id="statistics-title">통계</h1><div class="subtitle">예산 귀속 규칙에 따른 지출 분석</div></div>
+      <div class="filters"><select aria-label="통계 기간"><option>최근 6개월</option></select><select aria-label="통계 기준"><option>결제 월 기준</option></select></div>
+    </div>
+    <div class="stats-grid">
+      <article class="card summary-card"><span class="caption">10월 예산</span><strong class="value">₩300,000</strong></article>
+      <article class="card summary-card"><span class="caption">예상 지출</span><strong class="value">₩248,000</strong></article>
+      <article class="card summary-card"><span class="caption">확정 지출</span><strong class="value">₩192,000</strong></article>
+      <article class="card summary-card"><span class="caption">예산 사용률</span><strong class="value warning-text">82%</strong></article>
+    </div>
+    <div class="charts-row">
+      <section class="card chart-card" aria-labelledby="trend-title">
+        <h2 id="trend-title">월별 지출 추이</h2>
+        <div class="bar-chart" role="img" aria-label="5월 18만원, 6월 22만원, 7월 17만원, 8월 26만원, 9월 21만원, 10월 예상 24만 8천원">
+          <div class="month-bar"><div class="bar" style="height:58%"></div><span class="caption">5월</span></div>
+          <div class="month-bar"><div class="bar" style="height:72%"></div><span class="caption">6월</span></div>
+          <div class="month-bar"><div class="bar" style="height:55%"></div><span class="caption">7월</span></div>
+          <div class="month-bar"><div class="bar" style="height:86%"></div><span class="caption">8월</span></div>
+          <div class="month-bar"><div class="bar" style="height:69%"></div><span class="caption">9월</span></div>
+          <div class="month-bar current"><div class="bar" style="height:82%"></div><span class="caption">10월*</span></div>
+        </div>
+        <div class="caption" style="margin-top:10px">* 현재 월은 확정 지출 + 남은 예정 지출</div>
+      </section>
+      <section class="card chart-card" aria-labelledby="category-title">
+        <h2 id="category-title">게임별 지출</h2>
+        <div class="category-list">
+          <div class="category-row"><span class="category-name">게임 A</span><div class="bar-track"><span style="width:88%"></span></div><span class="category-value">₩112,000</span></div>
+          <div class="category-row"><span class="category-name">게임 B</span><div class="bar-track"><span style="width:62%"></span></div><span class="category-value">₩79,000</span></div>
+          <div class="category-row"><span class="category-name">게임 C</span><div class="bar-track"><span style="width:36%"></span></div><span class="category-value">₩45,000</span></div>
+          <div class="category-row"><span class="category-name">기타</span><div class="bar-track"><span style="width:10%"></span></div><span class="category-value">₩12,000</span></div>
+        </div>
+      </section>
+    </div>
+    <section class="card chart-card">
+      <h2>결제수단별 지출</h2>
+      <div class="category-list">
+        <div class="category-row"><span class="category-name">보유 자산</span><div class="bar-track"><span style="width:76%"></span></div><span class="category-value">₩88,000</span></div>
+        <div class="category-row"><span class="category-name">Google Play</span><div class="bar-track"><span style="width:100%"></span></div><span class="category-value">₩116,000</span></div>
+        <div class="category-row"><span class="category-name">Galaxy Store</span><div class="bar-track"><span style="width:34%"></span></div><span class="category-value">₩44,000</span></div>
+      </div>
+      <div class="callout">예산의 80% 이상을 사용 중입니다. 현재 예상 지출은 82%입니다.</div>
+    </section>
+    <div class="preview-note">통계는 월별 막대 추이와 게임·결제수단별 가로 막대로 표현합니다. 이 데이터와 수치는 화면 구성 예시입니다.</div>
+  </section>
+  <div class="preview-note">A2Z를 로컬 WOFF2로 자체 호스팅합니다. 폰트 이용 조건은 <a href="./assets/fonts/a2z/OFL.txt">동봉된 OFL 1.1 전문</a>을 따릅니다. 글자 크기와 라이트·다크 팔레트는 결정된 디자인 기준을 반영한 시안입니다.</div>
+</main>
+
+<nav class="mobile-nav" aria-label="모바일 메뉴">
+  <button type="button" data-screen="dashboard" aria-current="page">대시보드</button>
+  <button type="button" data-screen="spending">지출</button>
+  <button type="button">캘린더</button>
+  <button type="button" data-screen="statistics">통계</button>
+  <button type="button" aria-label="더보기">더보기</button>
+</nav>
+<script>
+const root = document.documentElement;
+const themeToggle = document.getElementById("theme-toggle");
+const savedTheme = localStorage.getItem("chronoledger-preview-theme");
+if (savedTheme === "dark" || savedTheme === "light") {
+  root.dataset.theme = savedTheme;
+} else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+  root.dataset.theme = "light";
+}
+themeToggle.addEventListener("click", () => {
+  const theme = root.dataset.theme === "dark" ? "light" : "dark";
+  root.dataset.theme = theme;
+  localStorage.setItem("chronoledger-preview-theme", theme);
+});
+
+function activateScreen(screenId) {
+  const target = document.getElementById(screenId);
+  if (!target) return;
+  document.querySelectorAll(".screen").forEach((screen) => {
+    screen.classList.toggle("active", screen === target);
+  });
+  document.querySelectorAll("[data-screen]").forEach((button) => {
+    if (button.dataset.screen === screenId) {
+      button.setAttribute("aria-current", "page");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+document.querySelectorAll("[data-screen]").forEach((button) => {
+  button.addEventListener("click", () => activateScreen(button.dataset.screen));
+});
+</script>
+</body>
+</html>

@@ -1,5 +1,20 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 최신 작업 상태 (2026-10-07)
+
+- `/auth` 로그인 화면을 현재 앱에 맞는 다크 테마로 개선했다. 브라우저에서 320/390/768/1280px 레이아웃, 입력 라벨 및 44px 입력 영역을 확인했다. 키보드 탭 순서도 이메일·비밀번호·로그인·가입·Google 순으로 확인했다. callback 테스트 5개와 TypeScript 검사는 통과했으며 실제 인증은 재실행하지 않았다.
+- `npm run build`가 `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 경로 생성 후 exit 0으로 끝났지만 ESLint 설정을 로드하지 못했다. `npm run lint`/`build`를 lint 성공으로 간주하지 않는다.
+- 앱 전체 테마 전환은 추후 모든 보호 화면과 함께 적용한다. 로그인 화면은 현재 다크 전용으로 유지한다.
+- UI 디자인 제안 결정에 따라 [디자인 시안](design-preview-ko.html)을 추가했다. 기존 정적 참고 목업 [design-v1-ko.html](design-v1-ko.html)은 수정하지 않았다.
+- 사용자 결정은 [상세 설계](detailed-design.md) 및 [UI Design Sheet](../md/ChronoLedger_UI_Design_Sheet.md)에 기록했다: 화면 구성에 더해 글자 크기, 쿨 뉴트럴 라이트/기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 정했다.
+- 브라우저에서 대시보드·지출·통계와 반응형 390/900/1280px를 확인했다. 모바일 지출 카드와 하단 내비게이션, 768–1099px 상세 바텀시트, 저장되는 테마 전환이 동작하며 가로 넘침은 없었다.
+- 선택된 타이포그래피·팔레트·그림자를 정적 시안에 반영했다. 대비 계산에서 라이트 본문/보조/약한 텍스트 17.41:1/7.85:1/5.80:1, 기본 버튼 흰 라벨 5.02:1, 라이트 상태 라벨 5.03:1 이상, 다크 상태 라벨 5.57:1 이상을 확인했다.
+- 브라우저에서 다크/라이트 각 390/900/1280px를 재검증해 가로 넘침이 없음을 확인했다. 390px 바텀시트, 900px 중간 폭 상세 패널, 1280px 우측 상세 패널이 유지된다.
+- A2Z 9개 WOFF2 굵기를 제품의 `public/fonts/a2z/`와 정적 시안의 `docs/assets/fonts/a2z/`에서 자체 호스팅한다. 두 위치 모두 내장 저작권 표기(`Copyright © 2026 PT&`)와 SIL OFL 1.1 전문을 동봉했다.
+- 출처: [A2Z 제작자 폰트 안내](https://freesentation.blog/a2z), [눈누 라이선스 FAQ](https://noonnu.cc/font_page/1778), [SIL OFL 1.1](https://openfontlicense.org/documents/OFL.txt). 폰트 자체 단독 판매는 금지된다.
+- 브라우저에서 앱 `/auth` 경로를 열어 9개 굵기 모두 로드됨을 확인했고, 정적 export의 `out/fonts/a2z/` 및 생성 CSS에서도 9개 파일과 경로 참조를 확인했다. `npx tsc --noEmit`은 통과했다. `npm run lint`는 root `.eslintrc.json`에서 `next/core-web-vitals` 로드 실패를 보고했고, `npm run build`는 같은 lint 오류를 출력했지만 exit 0으로 정적 export를 생성했다.
+- 다음 작업: 제품 UI의 키보드/스크린리더 및 컴포넌트별 대비를 검증한다. ESLint 설정 경로 오류는 제품 lint 검증 전 별도 정리할 필요가 있다.
+
 ## 최신 작업 상태 (2026-10-06)
 
 - Google provider와 localhost Redirect URL을 실제 확인하고 브라우저 OAuth 왕복을 검증했다. PKCE code 교환·세션 저장·dashboard 복귀가 성공한다.
@@ -20,7 +35,7 @@
 - 구현 순서와 검증 목록: [to-do.md](to-do.md)
 - Gemini 작업 진행 기록: [to-do_Gemini.md](to-do_Gemini.md) (외부 배포 완료 표시는 로컬 증거와 별도로 확인 필요)
 - AI 협업 초보자용 사용법: [ai-collaboration-usage.md](ai-collaboration-usage.md)
-- UI 시트: [ChronoLedger_UI_Design_Sheet.md](../md/ChronoLedger_UI_Design_Sheet.md); 한국어 대시보드 목업: [design-v1-ko.html](design-v1-ko.html). 시트의 시각 값은 제안이며 HTML은 정적 참고용이다.
+- UI 시트: [ChronoLedger_UI_Design_Sheet.md](../md/ChronoLedger_UI_Design_Sheet.md); 참고 목업 [design-v1-ko.html](design-v1-ko.html); 사용자 결정 반영 중인 반응형 시안 [design-preview-ko.html](design-preview-ko.html). 새 시안은 정적 예시이며 제품 UI 구현을 뜻하지 않는다.
 - Netlify 웹 배포 제안: [Netlify_Web_Architecture_Proposal.md](Netlify_Web_Architecture_Proposal.md). 상태는 Decision Proposal이며 사용자가 승인하기 전에는 플랫폼/빌드 타깃 변경을 적용하지 않는다.
 - SRS 검토/검증 체크포인트: [srs-review-checkpoint.md](srs-review-checkpoint.md). SRS 승인 및 테스트 프로젝트 rollback-only SQL 스모크 테스트가 완료되어 설계 단계 진입이 승인됐다.
 - 오래된 검토 문서 정리: 미사용 상태이며 구식 입력 파일을 참조하던 `md/fix-proposals.md`, `md/revisions_and_decisions_review.md`는 삭제했다. 명시적으로 과거 이력으로 링크된 SRS/차단 항목 검토 문서는 보존했다.
