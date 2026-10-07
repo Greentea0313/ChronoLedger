@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "run_id": "phase4-request-submission",
+  "created_at": "2026-10-07T23:17:23.0249439+09:00",
+  "objective": "Complete the missing Phase 4.4 game/schedule request submission UI using the approved DB schema and existing admin review flow.",
+  "acceptance_criteria": [
+    "Add a user-facing request submission modal/component at the appropriate existing UI location supporting game requests and schedule add/edit requests per approved SRS/SPEC/SCHEMA; use schema field names/values only (game_requests.name, schedule_requests.schedule_type, etc.); derive user_id from authenticated user; client must not set admin/status fields.",
+    "Validate user inputs (including schedule date order and required values) and surface failures; preserve RLS as authority; do not bypass atomic admin RPC behavior.",
+    "Add focused regression tests for submissions/validation and any required navigation integration.",
+    "Run project tests, lint, and static build with dummy Supabase URL/key values only; no live Supabase, production credentials/data, Tauri, or Gemini.",
+    "Commit the implementation in the run worktree; Web/PWA-first, Tauri deferred."
+  ],
+  "base_sha": "674f741ee52d45bb96db3431521101a5aa01341f",
+  "target_sha": "5f7cf557844f64d77e90eb67c09974bf6aab81a0",
+  "branch": "collab/phase4-request-submission",
+  "worktree_path": ".worktrees/phase4-request-submission",
+  "max_iterations": 3,
+  "status": "completed"
+}

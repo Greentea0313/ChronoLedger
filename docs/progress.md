@@ -5,7 +5,10 @@
 - 협업 파이프라인 및 운영 문서를 main의 `f163157`에 커밋했고, 대시보드·게임 UI 변경을 `collab/phase1-setup`의 `674f741`에 별도 커밋했다. 두 커밋 모두 로컬에만 있으며 push/merge하지 않았다.
 - 기존 `phase1-setup` run은 원래 Target SHA(`dda0cae`)와 후속 Phase 4 변경의 범위가 달라 review/test 증거 없이 `abandoned` 처리했다. 종료 보고서는 `artifacts/phase1-setup/iteration-01/human-report.md`에 있다.
 - `674f741`의 앱 전체 테스트 15개, lint, dummy Supabase 환경변수를 사용한 정적 build가 통과했다. 이는 `phase1-setup`의 옛 Target SHA에 대한 테스트 증거가 아니다.
-- 다음: `.worktrees/phase1-setup`의 커밋을 BaseRef로 삼는 고유 run에서 남은 Phase 4.4 요청 제출 UI를 Maker→Reviewer→동일 SHA 테스트 흐름으로 구현·검증한다. Tauri는 Web/PWA MVP 이후로 미룬다.
+- Phase 4.4 사용자 게임/일정 요청 UI run `phase4-request-submission`을 `collab/phase1-setup` Base SHA `674f741`에서 실행하고 Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`에 고정했다. Maker가 요청 등록·일정 추가/수정 UI와 검증 테스트를 추가해 커밋했다.
+- 동일 Base/Target SHA의 ChronoLedger Reviewer 결과는 `clean`/0 findings다. Vitest 6개 파일·21개 테스트, ESLint, dummy Supabase 환경변수를 사용한 static build가 통과했고 run/review/test JSON Schema 검증도 통과했다.
+- run 결과는 `artifacts/phase4-request-submission/`에 보존했다. 격리 Docker/VM은 없어 sandbox 상태는 unavailable이며 실제 Supabase/RLS/RPC 통합 검증은 미실행이다. `npm ci`가 기존 package/lock 충돌로 실패해 lockfile을 수정하지 않고 `npm install --no-package-lock --legacy-peer-deps`로 로컬 검증 의존성을 준비했다.
+- VS Code에서 전체 Local harness 위임 및 실제 Supabase 연결은 아직 검증하지 않았다. Tauri는 Web/PWA MVP 이후로 미룬다. 새 Phase 4.4 run의 커밋도 로컬 전용이며 push/merge하지 않았다.
 
 ## 최소 개입 협업 Orchestrator 준비 (2026-10-07)
 

@@ -1,0 +1,37 @@
+{
+  "finished_at": "2026-10-07T14:34:47.3094675Z",
+  "redactions_applied": true,
+  "role": "dynamic-test",
+  "created_at": "2026-10-07T14:34:47.2901776Z",
+  "sandbox": "unavailable",
+  "run_id": "phase4-request-submission",
+  "tests": [
+    {
+      "name": "Vitest",
+      "exit_code": 0,
+      "log_path": null,
+      "command": "npx vitest run",
+      "status": "passed"
+    },
+    {
+      "name": "Lint",
+      "exit_code": 0,
+      "log_path": null,
+      "command": "npm run lint",
+      "status": "passed"
+    },
+    {
+      "name": "Static build (dummy Supabase env)",
+      "exit_code": 0,
+      "log_path": null,
+      "command": "npm run build",
+      "status": "passed"
+    }
+  ],
+  "schema_version": 1,
+  "base_sha": "674f741ee52d45bb96db3431521101a5aa01341f",
+  "target_sha": "5f7cf557844f64d77e90eb67c09974bf6aab81a0",
+  "status": "passed",
+  "iteration": 1,
+  "agent": "ChronoLedger Orchestrator"
+}

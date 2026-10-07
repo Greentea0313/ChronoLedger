@@ -77,7 +77,7 @@
 6. [ ] Dashboard 예정 지출은 실제 조회로 연결되어 있다. 현재 달력 월 계산과 조회가 KST 경계 및 다음 달 시작일 exclusive 조건을 모두 만족하는지 검증·보완하고, 실제 0원과 조회 오류를 테스트 데이터로 구분한다.
 7. [ ] 가계부, 캘린더, 설정 기능을 Web/PWA MVP 조건에 맞춰 구현하고 승인 SRS 수용 기준별 테스트를 추적한다.
 8. [x] 기존 `phase1-setup` run은 Target SHA(`dda0cae`)와 후속 Phase 4 변경의 범위가 달라 review/test 증거 없이 종료했다. 상태를 `abandoned`로 기록하고 [종료 보고서](../artifacts/phase1-setup/iteration-01/human-report.md)를 보존했다. Tauri 검증은 Web/PWA MVP 이후로 둔다.
-9. [ ] `collab/phase1-setup`의 커밋을 BaseRef로 고유 Phase 4.4 run을 만들고, 사용자 요청 제출 UI를 Maker→Reviewer→동일 Target SHA 테스트 흐름으로 검증한다.
+9. [x] `phase4-request-submission` run에서 Phase 4.4 요청 제출 UI를 구현·검증했다. Base `674f741ee52d45bb96db3431521101a5aa01341f`, Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`; 동일 SHA Reviewer clean, Vitest 21개, lint/build 및 run/review/test Schema 통과. 실제 Supabase/RLS/RPC는 미검증이고 sandbox는 unavailable이다. 산출물: [`artifacts/phase4-request-submission/`](../artifacts/phase4-request-submission/).
 10. [ ] Gemini Phase 4 계획을 승인 스키마 재사용, 마이그레이션 및 상세 검증 케이스 중심으로 갱신한다.
 11. [ ] 버튼 무반응이 브라우저에서도 재현되는지 확인한다. Tauri 전용 무반응 분석은 데스크톱 통합 단계에서 웹뷰 로그를 수집해 진행하고, 원인 확인 전 권한/Hydration 문제로 단정하지 않는다.
 
@@ -180,10 +180,10 @@
 - [x] 4.3 공용 게임 카탈로그 구독 및 커스텀 아이콘 등록 UI
   - 대상 파일: `src/components/game/game-select-modal.tsx`
   - 작업: 공용 `games` 중 내 게임으로 `user_games`에 등록 및 커스텀 아이콘 교체 기능 구현.
-- [ ] 4.4 일반 유저 게임/일정 추가·수정 요청 모달 및 관리자 승인 UI
+- [x] 4.4 일반 유저 게임/일정 추가·수정 요청 모달 및 관리자 승인 UI
   - 대상 파일: `src/components/game/schedule-request-modal.tsx`, `src/app/admin/requests/page.tsx`
-  - 작업: 게임 요청(`game_requests`)과 일정 요청(`schedule_requests`)을 분리하고 승인/반려 RPC 연동. 관리자 페이지와 DB 필드/RPC 인자 정합성은 보완했지만 요청 제출 모달은 아직 없다.
-  - verify: 관리자 요청 페이지 단위 테스트, 전체 앱 테스트 15개, lint와 정적 build를 통과했다. 실제 Supabase RLS/승인 RPC 통합 및 요청 제출→승인 전체 흐름은 미검증이다.
+  - 작업: 게임 요청(`game_requests`)과 일정 요청(`schedule_requests`)을 분리하고 승인/반려 RPC 연동. 사용자 게임/일정 제안 제출 UI와 관리자 페이지를 구현했다.
+  - verify: run Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`에서 Vitest 21개, lint, 정적 build, run/review/test Schema 및 동일 SHA Reviewer 검토를 통과했다. 실제 Supabase RLS/승인 RPC 통합과 sandbox 격리는 미검증이다.
 
 ---
 

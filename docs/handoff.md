@@ -3,9 +3,10 @@
 ## 최신 작업 상태 (2026-10-07)
 
 - 협업 도구/문서는 main의 `f163157`, 대시보드·게임 UI는 `collab/phase1-setup`의 `674f741`에 분리 커밋했다. 둘 다 로컬 전용이며 push/merge하지 않았다.
-- 기존 `phase1-setup` run의 Target은 `dda0cae...`이나 전용 worktree가 Phase 4 변경을 포함한 `674f741...`로 이동했다. 범위가 달라 기존 run을 review/test한 것으로 간주하지 않고 `abandoned`로 종료했다. 보고서는 `artifacts/phase1-setup/iteration-01/human-report.md`에 있다.
-- `674f741`에서 앱 테스트 15개, ESLint, dummy Supabase 환경변수로 정적 build가 통과했다. 실제 Supabase/RLS/RPC, Tauri 및 요청 제출 UI는 미검증/미완료다.
-- 다음 run은 고유 ID로 생성하고 BaseRef를 `collab/phase1-setup`으로 지정해 Phase 4.4 요청 제출 UI를 구현한다. Maker 커밋 후 Target SHA를 고정하고 같은 SHA에 Reviewer와 테스트를 수행한다.
+- 기존 `phase1-setup` run은 Target `dda0cae...`와 후속 Phase 4 변경의 범위가 달라 `abandoned` 처리했다. 동일 SHA review/test를 주장하지 않으며 보고서는 `artifacts/phase1-setup/iteration-01/human-report.md`에 있다.
+- Phase 4.4 run `phase4-request-submission`은 Base `674f741...`, Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`이다. 요청 제출 UI(게임 제안, 일정 추가/수정), 입력 검증, 소유자 요청 목록과 회귀 테스트를 추가했다.
+- 같은 Target SHA의 Reviewer는 `clean`/0 findings다. Vitest 21개, ESLint, dummy Supabase 환경변수의 정적 build 및 세 run artifact Schema가 통과했다. sandbox unavailable; 실제 Supabase/RLS/RPC 및 사용자 인증 DB 동작은 미검증이다.
+- `npm ci`는 기존 manifest/lock 충돌로 실패했으며, 검증은 `npm install --no-package-lock --legacy-peer-deps`로 설치한 로컬 의존성을 사용했다. lockfile은 이 run에서 변경하지 않았다.
 - 최소 개입 협업을 위해 [ChronoLedger Orchestrator](../.github/agents/chronoledger-orchestrator.agent.md), [초보자 가이드](ChronoLedger_collaboration_guide.md), 협업 artifact Schema 검증기를 추가했다. Local harness 기반이며 실제 에이전트 인식/통합 실행은 아직 검증 전이다.
 - Gemini Reviewer는 선택형 외부 리뷰로 둔다. 전체 diff에 대한 사용자 승인 없이 외부 API를 호출하지 않는다.
 - Gemini Reviewer 제한 PoC를 [구현 문서](ChronoLedger_pipeline_auto.md)에 따라 추가했다. 단일 run/SHA 검증, 전체 diff의 사용자 승인, JSON Schema 검증과 no-overwrite 결과 저장이 적용됐고 오프라인 테스트 12개가 통과했다. 실제 Gemini API 실행·외부 전송·품질/비용 평가는 하지 않았으므로 도입 결정은 보류 상태다.
@@ -18,7 +19,7 @@
 
 ## 다음 작업
 
-- VS Code Local harness에서 run 생성→Maker→SHA 고정→Reviewer→Schema 검증까지 Phase 4.4 전체 run을 수행한다. 기존 변경을 stash/삭제하거나 과거 run을 덮어쓰지 않는다.
+- run worktree `collab/phase4-request-submission`에서 변경을 확인하고 통합 여부를 결정한다. push/merge/deploy는 수행하지 않았다.
 - 사용자가 Gemini Reviewer PoC의 외부 API 전송 및 도입 여부를 결정한다. 승인 전에는 실제 API 호출을 하지 않는다.
 - 승인한다면 별도 run/SHA에서 전체 diff를 검토하고 제한된 실 API 검증을 수행한 뒤 정확성·비용·실패 동작을 기록한다.
 - [Phase 5.1 ~ 5.2] 말일 보정을 포함한 날짜 연산 코어(`src/lib/calendar-utils.ts`) 작성 및 정기 구독 멱등성 보장 지연 생성 모듈(`src/lib/subscription-sync.ts`) 구현을 진행한다[cite: 4].
