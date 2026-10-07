@@ -1,7 +1,11 @@
 # 변경 이력
 
-## 2026-10-07
+## 2026-10-08
 
+- Gemini Phase 4.4 검토를 위한 수동 패킷(승인 기준 요약, 프롬프트, Base/Target 정보)과 40,198-byte exact diff를 준비했다. 사용자가 수동 방식을 선택해 Gemini API run은 호출 전에 abandoned 처리했으며 어떤 diff도 외부로 전송하지 않았다.
+- 사용자가 동일 Base/Target의 Gemini 수동 정적 리뷰 결과를 전달했다. Gemini는 clean/발견 없음으로 판정했으며, 별도 결과 파일에 기록해 기존 ChronoLedger review.json은 보존했다. 실제 Supabase RLS/RPC 원자성과 npm ci 재현성은 미검증으로 유지한다.
+
+## 2026-10-07
 - Phase 4.4 협업 run에서 사용자 게임 제안 및 일정 추가/수정 요청 UI를 추가하고 입력 검증, 요청 목록, 회귀 테스트를 구현했다. 동일 Target SHA 리뷰는 clean이고 Vitest 21개, lint, dummy 환경의 정적 build 및 run 결과 Schema 검증이 통과했다. 실제 Supabase 연동과 격리 sandbox 검증은 남아 있다.
 - 협업 파이프라인 변경을 main `f163157`, Phase 4 초기 구현을 `collab/phase1-setup` `674f741`에 분리 커밋했다. Target SHA와 범위가 어긋난 기존 `phase1-setup` run은 review/test가 없음을 기록하고 `abandoned`로 종료했다.
 - Local harness용 ChronoLedger Orchestrator와 Maker/Reviewer 자동 위임 절차, 사용자 개입 지점 가이드, 협업 JSON Schema validator 및 테스트를 추가했다. VS Code 실제 위임 흐름은 검증 전이다.

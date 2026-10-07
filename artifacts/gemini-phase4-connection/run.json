@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "run_id": "gemini-phase4-connection",
+  "created_at": "2026-10-08T00:00:05.2081031+09:00",
+  "objective": "Test Gemini Reviewer API connectivity with the completed Phase 4.4 request submission implementation.",
+  "acceptance_criteria": [
+    "Review only the committed diff from Base SHA 674f741ee52d45bb96db3431521101a5aa01341f to Target SHA 5f7cf557844f64d77e90eb67c09974bf6aab81a0.",
+    "Require interactive user approval before any diff is sent to Gemini.",
+    "Validate the Gemini review response against the existing review schema and save it only to this run iteration.",
+    "Do not modify product source, run tests, or push, merge, or deploy."
+  ],
+  "base_sha": "674f741ee52d45bb96db3431521101a5aa01341f",
+  "target_sha": "5f7cf557844f64d77e90eb67c09974bf6aab81a0",
+  "branch": "collab/gemini-phase4-connection",
+  "worktree_path": ".worktrees/gemini-phase4-connection",
+  "max_iterations": 3,
+  "status": "abandoned"
+}

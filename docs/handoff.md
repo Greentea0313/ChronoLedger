@@ -1,7 +1,11 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
-## 최신 작업 상태 (2026-10-07)
+## 최신 작업 상태 (2026-10-08)
 
+- 사용자는 Gemini와의 이번 리뷰는 API 키 연결이 아니라 승인 기준/프롬프트를 직접 입력하는 수동 방식으로 진행했다. [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)과 exact diff `artifacts/gemini-phase4-connection/phase4-request-submission.diff`로 Gemini 수동 정적 리뷰를 받았다.
+- API 전송 검증용 `gemini-phase4-connection` run은 dry-run만 수행했다. API 키가 없어 호출·네트워크 전송은 없었으며, 사용자 선택에 따라 `abandoned` 처리했다. 종료 기록은 `artifacts/gemini-phase4-connection/iteration-01/human-report.md`에 있다.
+- 참조 Base/Target은 `674f741ee52d45bb96db3431521101a5aa01341f` → `5f7cf557844f64d77e90eb67c09974bf6aab81a0`이다. Gemini는 `clean`/발견 없음으로 판정했다. 결과는 `artifacts/phase4-request-submission/iteration-01/gemini-manual-review.md` 및 `gemini-review.json`에 기록했으며 기존 ChronoLedger `review.json`은 변경하지 않았다.
+- Gemini는 실제 Supabase RLS 격리, 승인/반려 RPC 원자성, `npm ci` 재현성을 미검증 항목으로 남겼다. `npm ci` 실패 및 lockfile 불일치는 기존 Phase 4.4 인수인계에도 기록된 재현성 과제다.
 - 협업 도구/문서는 main의 `f163157`, 대시보드·게임 UI는 `collab/phase1-setup`의 `674f741`에 분리 커밋했다. 둘 다 로컬 전용이며 push/merge하지 않았다.
 - 기존 `phase1-setup` run은 Target `dda0cae...`와 후속 Phase 4 변경의 범위가 달라 `abandoned` 처리했다. 동일 SHA review/test를 주장하지 않으며 보고서는 `artifacts/phase1-setup/iteration-01/human-report.md`에 있다.
 - Phase 4.4 run `phase4-request-submission`은 Base `674f741...`, Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`이다. 요청 제출 UI(게임 제안, 일정 추가/수정), 입력 검증, 소유자 요청 목록과 회귀 테스트를 추가했다.
@@ -15,13 +19,12 @@
 - Phase 4 초기 구현은 `.worktrees/phase1-setup` worktree의 `collab/phase1-setup` 브랜치에 커밋됐지만 기본 브랜치에는 통합되지 않았다.
 - 관리자 요청 페이지와 게임 선택 모달의 DB 필드/RPC 인자 불일치를 해당 worktree에서 수정했다. 관리자 역할 gate, 게임 기본 아이콘 URL 입력, RPC 실패 시 비원자적 직접 갱신 제거를 반영했다.
 - 앱 전체 Vitest 5개 파일·15개 테스트, ESLint, dummy Supabase 환경변수로 실행한 정적 빌드가 통과했다. 실제 Supabase/RLS/Storage 통합과 브라우저 이미지 흐름은 확인하지 않았다.
-- Phase 4.4 사용자 요청 제출 모달이 빠져 있어 이 단계는 미완료다. 별도 Phase 4.4 run에서 동일 Target SHA 리뷰/테스트 흐름을 검증한다.
+- Phase 4.4 요청 제출 UI는 `phase4-request-submission` run에서 구현 완료되어 기존 ChronoLedger Reviewer 검토 및 테스트를 통과했다. 실제 Supabase/RLS/RPC는 미검증이다.
 
 ## 다음 작업
 
-- run worktree `collab/phase4-request-submission`에서 변경을 확인하고 통합 여부를 결정한다. push/merge/deploy는 수행하지 않았다.
-- 사용자가 Gemini Reviewer PoC의 외부 API 전송 및 도입 여부를 결정한다. 승인 전에는 실제 API 호출을 하지 않는다.
-- 승인한다면 별도 run/SHA에서 전체 diff를 검토하고 제한된 실 API 검증을 수행한 뒤 정확성·비용·실패 동작을 기록한다.
+- 다음 검증에서는 격리된 Supabase 프로젝트에서 RLS 소유자 격리와 관리자 승인/반려 RPC 원자성을 확인하고, 별도 작업으로 `npm ci` lockfile 재현성을 해결한다.
+- Gemini API PoC의 일반적인 도입 여부는 미결정이며, 이번 작업에서는 API 연결을 하지 않았다.
 - [Phase 5.1 ~ 5.2] 말일 보정을 포함한 날짜 연산 코어(`src/lib/calendar-utils.ts`) 작성 및 정기 구독 멱등성 보장 지연 생성 모듈(`src/lib/subscription-sync.ts`) 구현을 진행한다[cite: 4].
 - [Phase 5.3 ~ 5.4] 금액 노출을 완전히 배제한 데스크톱 캘린더와 총 자산 잔고, 월 예산 진행률 바를 포함한 히어로 사이드바 컴포넌트를 작성한다[cite: 4].
 

@@ -1,5 +1,13 @@
 # 프로젝트 진행 현황
 
+## Gemini 수동 리뷰 완료 (2026-10-08)
+
+- 사용자가 Gemini API 호출보다 참조 기준과 prompt를 Gemini에 직접 제공하는 방식을 선택했고, 같은 Target SHA의 수동 정적 리뷰 결과를 전달했다.
+- Phase 4.4 변경(Base `674f741ee52d45bb96db3431521101a5aa01341f`, Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`)의 기준 요약과 검토 프롬프트를 [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)에 작성하고, 40,198-byte 전체 diff를 `artifacts/gemini-phase4-connection/phase4-request-submission.diff`에 생성했다.
+- API 연결 run `gemini-phase4-connection`은 dry-run에서 Base/Target 및 12개 파일을 확인한 뒤 사용자의 수동 전달 선택에 따라 `abandoned` 처리했다. GEMINI_API_KEY 미설정, API 호출·네트워크 요청·외부 전송 모두 없음. 종료 기록은 해당 run의 `iteration-01/human-report.md`에 있다.
+- Gemini는 `clean`/발견 없음으로 판정했다. 응답은 [`gemini-manual-review.md`](../artifacts/phase4-request-submission/iteration-01/gemini-manual-review.md)와 Schema 형식의 [`gemini-review.json`](../artifacts/phase4-request-submission/iteration-01/gemini-review.json)에 기존 ChronoLedger Reviewer 결과와 분리해 기록했다. 실제 Supabase RLS 및 관리자 RPC 원자성, `npm ci` 재현성은 후속 검증으로 남아 있다.
+- Gemini 전체 API 도입 결정은 별도 미결정이며, 이번 수동 리뷰에는 API 호출이나 전송이 없었다.
+
 ## 협업 run 검증 재개 (2026-10-07)
 
 - 협업 파이프라인 및 운영 문서를 main의 `f163157`에 커밋했고, 대시보드·게임 UI 변경을 `collab/phase1-setup`의 `674f741`에 별도 커밋했다. 두 커밋 모두 로컬에만 있으며 push/merge하지 않았다.

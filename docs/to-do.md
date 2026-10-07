@@ -110,6 +110,7 @@
 - [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인
 - [x] Gemini Reviewer 제한 PoC 구현 및 오프라인 회귀 테스트
   - 단일 run/SHA 고정, 외부 전송 전 전체 diff의 인터랙티브 승인, 기존 리뷰 JSON Schema 검증 및 결과 no-overwrite 저장을 구현했다. `scripts/collaboration`의 오프라인 테스트 12개 통과.
+- [x] Phase 4.4 변경에 대해 [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)과 exact Target diff를 Gemini에 직접 제공하고 결과를 기존 Copilot 리뷰와 분리해 기록했다. Gemini 판정은 `clean`/발견 없음이며, 실제 Supabase RLS·관리자 RPC 원자성 및 `npm ci` 재현성은 미검증이다. API 호출은 하지 않았다.
 - [ ] Gemini Reviewer PoC 외부 API 사용 및 도입 여부 결정. 결정 전 실제 API 호출은 하지 않는다. 승인 시 격리 run에서 수동 diff 확인 후 API 비용·응답·품질·실패 동작을 기록한다.
 
 ### Phase 1. Web/PWA 환경 및 테스트 기반
