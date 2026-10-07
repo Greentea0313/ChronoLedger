@@ -163,9 +163,9 @@ export default function AuthPage() {
               Google 계정으로 로그인
             </Button>
 
-            {message && (
+            {(message || loading) && (
               <p role="status" aria-live="polite" className="rounded-lg border border-[#F5B942]/30 bg-[#F5B942]/10 px-3 py-2.5 text-sm leading-6 text-[#F5B942]">
-                {message}
+                {message || "인증 정보를 확인하고 있습니다."}
               </p>
             )}
           </CardContent>

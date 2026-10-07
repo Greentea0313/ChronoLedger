@@ -108,7 +108,10 @@ export default function DashboardPage() {
         </header>
         {logoutError && <p role="alert" className="text-sm text-red-400">{logoutError}</p>}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div role="status" aria-live="polite" className="sr-only">
+          {isDataLoading ? "대시보드 정보를 불러오는 중입니다." : ""}
+        </div>
+        <div aria-busy={isDataLoading} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-400">현재 총 자산</CardTitle>
@@ -116,9 +119,9 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               {isDataLoading ? (
-                <div className="h-8 bg-gray-700 animate-pulse rounded w-1/2"></div>
+                <div aria-hidden="true" className="h-8 bg-gray-700 animate-pulse rounded w-1/2"></div>
               ) : assetError ? (
-                <div className="flex items-center text-red-400 text-sm mt-2">
+                <div role="alert" className="flex items-center text-red-400 text-sm mt-2">
                   <AlertCircle className="w-4 h-4 mr-1" />
                   {assetError}
                 </div>
@@ -135,9 +138,9 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               {isDataLoading ? (
-                <div className="h-8 bg-gray-700 animate-pulse rounded w-1/2"></div>
+                <div aria-hidden="true" className="h-8 bg-gray-700 animate-pulse rounded w-1/2"></div>
               ) : expenseError ? (
-                <div className="flex items-center text-red-400 text-sm mt-2">
+                <div role="alert" className="flex items-center text-red-400 text-sm mt-2">
                   <AlertCircle className="w-4 h-4 mr-1" />
                   {expenseError}
                 </div>
