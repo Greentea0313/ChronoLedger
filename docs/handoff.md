@@ -3,7 +3,7 @@
 ## 최신 작업 상태 (2026-10-07)
 
 - `/auth` 로그인 화면을 현재 앱에 맞는 다크 테마로 개선했다. 브라우저에서 320/390/768/1280px 레이아웃, 입력 라벨 및 44px 입력 영역을 확인했다. 키보드 탭 순서도 이메일·비밀번호·로그인·가입·Google 순으로 확인했다. callback 테스트 5개와 TypeScript 검사는 통과했으며 실제 인증은 재실행하지 않았다.
-- `npm run build`가 `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 경로 생성 후 exit 0으로 끝났지만 ESLint 설정을 로드하지 못했다. `npm run lint`/`build`를 lint 성공으로 간주하지 않는다.
+- 앱 worktree의 `.eslintrc.json`에 `root: true`를 설정해 상위 저장소 설정의 잘못된 해석을 막았다. `npm run lint`는 경고/오류 없이 통과했고 `npm run build`는 ESLint·타입 검사를 포함해 네 정적 경로를 생성했다.
 - 앱 전체 테마 전환은 추후 모든 보호 화면과 함께 적용한다. 로그인 화면은 현재 다크 전용으로 유지한다.
 - UI 디자인 제안 결정에 따라 [디자인 시안](design-preview-ko.html)을 추가했다. 기존 정적 참고 목업 [design-v1-ko.html](design-v1-ko.html)은 수정하지 않았다.
 - 사용자 결정은 [상세 설계](detailed-design.md) 및 [UI Design Sheet](../md/ChronoLedger_UI_Design_Sheet.md)에 기록했다: 화면 구성에 더해 글자 크기, 쿨 뉴트럴 라이트/기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 정했다.
@@ -12,8 +12,8 @@
 - 브라우저에서 다크/라이트 각 390/900/1280px를 재검증해 가로 넘침이 없음을 확인했다. 390px 바텀시트, 900px 중간 폭 상세 패널, 1280px 우측 상세 패널이 유지된다.
 - A2Z 9개 WOFF2 굵기를 제품의 `public/fonts/a2z/`와 정적 시안의 `docs/assets/fonts/a2z/`에서 자체 호스팅한다. 두 위치 모두 내장 저작권 표기(`Copyright © 2026 PT&`)와 SIL OFL 1.1 전문을 동봉했다.
 - 출처: [A2Z 제작자 폰트 안내](https://freesentation.blog/a2z), [눈누 라이선스 FAQ](https://noonnu.cc/font_page/1778), [SIL OFL 1.1](https://openfontlicense.org/documents/OFL.txt). 폰트 자체 단독 판매는 금지된다.
-- 브라우저에서 앱 `/auth` 경로를 열어 9개 굵기 모두 로드됨을 확인했고, 정적 export의 `out/fonts/a2z/` 및 생성 CSS에서도 9개 파일과 경로 참조를 확인했다. `npx tsc --noEmit`은 통과했다. `npm run lint`는 root `.eslintrc.json`에서 `next/core-web-vitals` 로드 실패를 보고했고, `npm run build`는 같은 lint 오류를 출력했지만 exit 0으로 정적 export를 생성했다.
-- 다음 작업: 제품 UI의 키보드/스크린리더 및 컴포넌트별 대비를 검증한다. ESLint 설정 경로 오류는 제품 lint 검증 전 별도 정리할 필요가 있다.
+- 브라우저에서 앱 `/auth` 경로를 열어 9개 굵기 모두 로드됨을 확인했고, 정적 export의 `out/fonts/a2z/` 및 생성 CSS에서도 9개 파일과 경로 참조를 확인했다. 현재 ESLint 설정 및 production build 검증은 최신 작업 상태를 따른다.
+- 다음 작업: 제품 UI의 키보드/스크린리더 및 컴포넌트별 대비를 검증한다.
 
 ## 최신 작업 상태 (2026-10-06)
 
@@ -71,7 +71,7 @@
 - 모바일·데스크톱 앱의 구체 릴리스 버전 번호와 시점/구성은 미결정이다. 기존 결정인 Android PWA/Windows Tauri v2, 단일 Next.js 코드베이스와 Tauri 정적 export, Web/PWA 우선 순서는 유지한다. Netlify 채택과 Web/Desktop 빌드 분리는 별도 미결정이다.
 - 브라우저 Google OAuth를 실제 Supabase 설정으로 검증했다. Google provider 활성화와 `http://localhost:3000/auth/callback` 등록 후 PKCE code 교환, 세션 저장 및 dashboard 복귀가 성공했다. 중복 URL code 교환과 React Strict Mode cleanup 문제를 수정하고 관련 테스트 5개가 통과했다.
 - `/`에서 단일 `/auth` 로그인 화면으로 이동하고 dashboard layout에서 비인증 접근을 막는다. 브라우저에서 로그인 상태 이동 및 로그아웃 후 직접 dashboard 접근 차단을 확인했다. 이 client gate는 RLS를 대체하지 않는다. Android PWA 실기기 왕복 검증은 남아 있다.
-- 다음 구현 후보는 dashboard 예정 지출 조회의 KST 월 경계와 0원/오류 구분 검증이다. 변경 파일 lint 및 TypeScript 검사는 통과했지만 전체 build는 기존 `src/app/layout.tsx` `@ts-ignore`, `src/lib/tauri-auth.ts` `any` lint 오류로 실패했다.
+- 다음 구현 후보는 dashboard 예정 지출 조회의 KST 월 경계와 0원/오류 구분 검증이다. 당시 전체 build에서 보고된 상위 ESLint 설정 탐색 오류는 앱 worktree의 `root: true` 설정으로 해결했고, 현재 최신 lint/build 결과를 위의 작업 상태에 기록했다.
 - Phase 1 run manifest는 `target_sha: null`, `in_progress`이므로 동일-SHA review/test 산출물 및 종료 조건을 확인하기 전까지 협업 run 완료로 취급하지 않는다.
 - VS Code Copilot 저장소 설정은 추가했다: `.github/copilot-instructions.md`, `.github/agents/chronoledger-maker.agent.md`, `.github/agents/chronoledger-reviewer.agent.md`. 프로필 인식 및 동일-SHA 리뷰 아티팩트 절차는 사용자의 VS Code 환경에서 별도로 확인한다. 역할 설명만으로 읽기 전용 권한은 강제되지 않는다.
 - 상세 설계 미결정 사항과 후속 문서 작업은 [to-do.md](to-do.md)에 추적한다.
