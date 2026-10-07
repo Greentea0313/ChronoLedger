@@ -1,5 +1,37 @@
 # 프로젝트 진행 현황
 
+## 최소 개입 협업 Orchestrator 준비 (2026-10-07)
+
+- VS Code Local harness에서 Maker/Reviewer를 위임하는 `ChronoLedger Orchestrator` 프로필과 초보자용 [협업 가이드](ChronoLedger_collaboration_guide.md)를 추가했다.
+- `New-CollaborationRun.ps1` 실행, manifest/Target SHA 관리, 리뷰·테스트 Schema 검증, 제한 반복, 사용자 개입 조건을 Orchestrator 지침에 명시했다. Gemini 외부 전송과 최종 통합은 사용자 승인 사항으로 유지한다.
+- 협업 JSON Schema 검증 CLI와 오프라인 테스트를 추가했다. PowerShell 5의 UTF-8 BOM run manifest를 Gemini Reviewer가 읽도록 JSON 로더 호환성을 보완했다.
+- VS Code Agent 발견, Local subagent 호출, clean run 생성 및 전체 협업 통합은 아직 실제 환경에서 확인하지 않았다.
+
+## Gemini Reviewer 자동화 제안서 검토 (2026-10-07)
+
+- `ChronoLedger_pipeline_auto.md`에 대한 Gemini 전달용 검토 문서 `ChronoLedger_pipeline_auto_review.md`를 작성했다. 검토 요점은 SHA/diff 고정, 외부 API 데이터 전송 승인 및 민감정보 경계, 자동화 범위, 응답 스키마·실패 처리, 효과 수치 근거 및 승인 상태다.
+- `scripts/collaboration/run_gemini_reviewer.py`에 단일 run/SHA 정적 리뷰 초안 PoC를 구현했다. 전체 diff 확인 및 인터랙티브 승인, JSON Schema 검증, 원자적 no-overwrite 저장과 실패 시 명시적 종료를 적용했다.
+- 네트워크 없는 회귀 테스트 12개가 통과했고 Python 진단 및 CLI 도움말을 확인했다. dry-run 제어 문자 escape와 전송 승인·거부 경로를 테스트한다.
+- PoC 구현은 API 연결 검증이나 도입 승인이 아니다. 실제 Gemini 호출·외부 전송 승인·품질/비용 평가는 수행하지 않았고, 사용자의 별도 도입 결정이 남아 있다.
+
+## 문서 역할 정리 (2026-10-07)
+
+- `docs/to-do.md`를 현재 구현 우선순위·완료 상태의 단일 기준으로 명시하고, `docs/to-do_Gemini.md`는 Gemini 작성 진행 기록의 보존본으로 구분했다. 과거 체크/완료 주장은 구현 및 검증 증거와 대조 전까지 미검증 기록으로 취급한다.
+
+## 커스텀 아이콘 및 카탈로그 요청 시스템 초기 구현 (2026-10-07)
+
+- 이미지 변환, 비공개 `user-icons` Storage 유틸리티, 카탈로그 선택 모달 및 관리자 요청 페이지의 초기 구현이 `.worktrees/phase1-setup` worktree에 있다. 변경은 별도 브랜치에 미커밋 상태이며 아직 기본 브랜치에 통합되지 않았다.
+- 검토 중 관리자 요청 UI의 DB 필드/RPC 인자 불일치를 발견해 worktree에서 수정했다. 관리자 화면에 `app_metadata.role=admin` gate와 게임 기본 아이콘 URL 입력을 추가하고 RPC 오류 시 직접 테이블을 갱신하던 fallback을 제거했다.
+- 앱 테스트 15개, ESLint 및 dummy Supabase 환경변수로 실행한 정적 빌드가 통과했다. 실제 Supabase/RLS/Storage 동작은 검증하지 않았다.
+- Phase 4.4 요청 제출 모달이 아직 없고, DB 연동도 검증되지 않았다. Phase 4를 완료로 처리하지 않는다. 다음 단계는 변경 커밋 후 동일 Target SHA의 전체 run 검증이다.
+
+## 대시보드 KST 월간 지출 조회 (2026-10-07)
+
+- Gemini 분업은 구현과 분리해 커밋 후 동일 Target SHA의 읽기 전용 리뷰로 표시했다. 저장소 자동 연동이 없어 아직 요청하지 않았다.
+- 예정 지출을 KST의 현재 달 기준 `[월 시작일, 다음 달 시작일)`로 조회한다. 일정 종료일이 있으면 `end_date`, 없으면 `target_date`를 월 귀속 날짜로 사용해 예산 규칙과 맞췄다.
+- 자산 행 누락은 데이터 오류로 알리고 임의로 0원 처리하지 않는다. 실제 저장된 0원과 정상 조회 결과가 없는 달의 0원은 계속 정상값으로 표시하며 조회 실패는 오류 문구로 분리했다.
+- KST 자정/월말 및 연말 경계, 정상 합계·빈 결과·자산 행 누락·지출 조회 실패를 포함한 두 Vitest 파일의 7개 테스트가 통과했다. 앱 lint, type check, 정적 build도 통과했다. Vite configLoader 호환성 경고가 있었으며 Supabase 원격 쿼리는 실행하지 않았다.
+
 ## 로그인 UI 적용 (2026-10-07)
 
 - 기존 앱과 일관되도록 `/auth`를 다크 테마로 정리했다. 이메일·비밀번호 라벨, 세로형 이메일 로그인/가입, 구분선과 Google 로그인 흐름을 유지하면서 화면 구성을 개선했다.

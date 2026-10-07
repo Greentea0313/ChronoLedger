@@ -49,3 +49,6 @@
 
 16. **중복 로그인 경로**
    - `/`와 `/auth` 로그인 UI의 OAuth 처리 방식이 다르면 사용자가 어느 경로에 도착하는지에 따라 데스크톱 인증이 달라진다. 인증 진입을 통합하고 `/auth/callback`이 로그인 폼을 다시 보여주지 않는지 확인한다.
+
+17. **PowerShell JSON UTF-8 BOM 및 에이전트 실행 환경**
+   - Windows PowerShell은 `Set-Content -Encoding utf8`로 JSON manifest에 BOM을 쓸 수 있다. Python JSON loader는 `utf-8-sig`를 사용해 BOM을 처리한다. VS Code custom-agent subagent 위임은 harness/도구 지원에 의존하므로 첫 사용 전에 Local harness에서 프로필 탐지와 Run Subagent를 확인한다. 역할 설정만으로 도구 권한이 격리된다고 가정하지 않는다.

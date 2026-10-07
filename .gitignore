@@ -6,6 +6,9 @@
 
 # dependencies
 /node_modules
+__pycache__/
+.venv/
+.venv-*/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -23,6 +26,7 @@
 # misc
 .DS_Store
 *.pem
+.netlify/
 
 # debug
 npm-debug.log*

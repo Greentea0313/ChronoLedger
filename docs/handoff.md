@@ -2,6 +2,29 @@
 
 ## 최신 작업 상태 (2026-10-07)
 
+- 최소 개입 협업을 위해 [ChronoLedger Orchestrator](../.github/agents/chronoledger-orchestrator.agent.md), [초보자 가이드](ChronoLedger_collaboration_guide.md), 협업 artifact Schema 검증기를 추가했다. Local harness 기반이며 실제 에이전트 인식/통합 실행은 아직 검증 전이다.
+- Gemini Reviewer는 선택형 외부 리뷰로 둔다. 전체 diff에 대한 사용자 승인 없이 외부 API를 호출하지 않는다.
+- Gemini Reviewer 제한 PoC를 [구현 문서](ChronoLedger_pipeline_auto.md)에 따라 추가했다. 단일 run/SHA 검증, 전체 diff의 사용자 승인, JSON Schema 검증과 no-overwrite 결과 저장이 적용됐고 오프라인 테스트 12개가 통과했다. 실제 Gemini API 실행·외부 전송·품질/비용 평가는 하지 않았으므로 도입 결정은 보류 상태다.
+- 제안서의 독립 검토 의견은 [전달용 문서](ChronoLedger_pipeline_auto_review.md)에 정리했다.
+- 체크리스트 기준: 현재 작업 우선순위와 상태는 [공용 `to-do.md`](to-do.md)가 단일 기준이다. [Gemini 진행 기록](to-do_Gemini.md)은 보존용 별도 이력이며, 상충하는 상태나 검증 주장은 증거 대조 전까지 기준으로 사용하지 않는다.
+- Phase 4 초기 구현은 `.worktrees/phase1-setup` worktree의 `collab/phase1-setup` 브랜치에 미커밋 상태로 남아 있다. 기본 브랜치에 통합되지 않았다.
+- 관리자 요청 페이지와 게임 선택 모달의 DB 필드/RPC 인자 불일치를 해당 worktree에서 수정했다. 관리자 역할 gate, 게임 기본 아이콘 URL 입력, RPC 실패 시 비원자적 직접 갱신 제거를 반영했다.
+- 앱 전체 Vitest 5개 파일·15개 테스트, ESLint, dummy Supabase 환경변수로 실행한 정적 빌드가 통과했다. 실제 Supabase/RLS/Storage 통합과 브라우저 이미지 흐름은 확인하지 않았다.
+- Phase 4.4 사용자 요청 제출 모달이 빠져 있어 이 단계는 미완료다. 다음으로 두 worktree를 별도 커밋하고 clean main 상태에서 run 생성 및 동일 Target SHA 리뷰/테스트 흐름을 검증한다.
+
+## 다음 작업
+
+- 변경을 별도 커밋해 main이 깨끗해진 뒤 VS Code Local harness에서 run 생성→Maker→SHA 고정→Reviewer→Schema 검증까지 첫 통합 smoke run을 수행한다. 현재 변경을 stash/삭제하거나 기존 run을 덮어쓰지 않는다.
+- 사용자가 Gemini Reviewer PoC의 외부 API 전송 및 도입 여부를 결정한다. 승인 전에는 실제 API 호출을 하지 않는다.
+- 승인한다면 별도 run/SHA에서 전체 diff를 검토하고 제한된 실 API 검증을 수행한 뒤 정확성·비용·실패 동작을 기록한다.
+- [Phase 5.1 ~ 5.2] 말일 보정을 포함한 날짜 연산 코어(`src/lib/calendar-utils.ts`) 작성 및 정기 구독 멱등성 보장 지연 생성 모듈(`src/lib/subscription-sync.ts`) 구현을 진행한다[cite: 4].
+- [Phase 5.3 ~ 5.4] 금액 노출을 완전히 배제한 데스크톱 캘린더와 총 자산 잔고, 월 예산 진행률 바를 포함한 히어로 사이드바 컴포넌트를 작성한다[cite: 4].
+
+## 최신 작업 상태 (2026-10-07)
+
+- Gemini 작업은 구현과 분리해 커밋 후 동일 Target SHA의 읽기 전용 리뷰로 지정했다. 외부 자동 연결이 없어 실제 전달 및 검토는 미착수다.
+- Dashboard 예정 지출 합계는 KST 현재 달의 DATE 범위(`end_date` 우선, 없으면 `target_date`)로 조회하도록 변경했다. 정상 빈 결과와 실제 0원은 0원으로 표시하고, 누락 자산 행·조회 실패는 오류 상태로 구분한다. 원격 Supabase query는 실행하지 않았다.
+- 관련 두 Vitest 파일의 7개 테스트, 앱 lint, `npx tsc --noEmit`, 정적 production build가 통과했다. Vite configLoader 향후 호환성 경고가 있었고 원격 Supabase 통합 검증은 미실행이다.
 - `/auth` 로그인 화면을 현재 앱에 맞는 다크 테마로 개선했다. 브라우저에서 320/390/768/1280px 레이아웃, 입력 라벨 및 44px 입력 영역을 확인했다. 키보드 탭 순서도 이메일·비밀번호·로그인·가입·Google 순으로 확인했다. callback 테스트 5개와 TypeScript 검사는 통과했으며 실제 인증은 재실행하지 않았다.
 - 접근성 트리에서 H1/H2 제목 구조 및 폼/버튼 이름을 확인했다. 입력 44px, 주요 버튼 48px, 각 키보드 초점 표시를 확인했다. 주요 로그인 텍스트 대비는 최소 6.13:1, 대시보드 텍스트 조합은 최소 5.31:1, 로그인 초점 표시 대비는 5.21:1이다.
 - `CardTitle`을 H2로 맞췄고 dashboard 로딩 live status, 데이터 오류 alert, 명명된 내비게이션 landmark 및 장식용 이모지 숨김을 추가했다. 보호된 dashboard 런타임과 실제 스크린리더 검증은 하지 않았다.
@@ -73,7 +96,7 @@
 - 모바일·데스크톱 앱의 구체 릴리스 버전 번호와 시점/구성은 미결정이다. 기존 결정인 Android PWA/Windows Tauri v2, 단일 Next.js 코드베이스와 Tauri 정적 export, Web/PWA 우선 순서는 유지한다. Netlify 채택과 Web/Desktop 빌드 분리는 별도 미결정이다.
 - 브라우저 Google OAuth를 실제 Supabase 설정으로 검증했다. Google provider 활성화와 `http://localhost:3000/auth/callback` 등록 후 PKCE code 교환, 세션 저장 및 dashboard 복귀가 성공했다. 중복 URL code 교환과 React Strict Mode cleanup 문제를 수정하고 관련 테스트 5개가 통과했다.
 - `/`에서 단일 `/auth` 로그인 화면으로 이동하고 dashboard layout에서 비인증 접근을 막는다. 브라우저에서 로그인 상태 이동 및 로그아웃 후 직접 dashboard 접근 차단을 확인했다. 이 client gate는 RLS를 대체하지 않는다. Android PWA 실기기 왕복 검증은 남아 있다.
-- 다음 구현 후보는 dashboard 예정 지출 조회의 KST 월 경계와 0원/오류 구분 검증이다. 당시 전체 build에서 보고된 상위 ESLint 설정 탐색 오류는 앱 worktree의 `root: true` 설정으로 해결했고, 현재 최신 lint/build 결과를 위의 작업 상태에 기록했다.
+- 다음 구현 후보는 SRS 수용 기준별 기능 흐름과 원격 Supabase 쿼리/권한 통합 검증을 진행한다. Android PWA 실기기 인증은 사용자의 보류 결정에 따라 후순위로 둔다.
 - Phase 1 run manifest는 `target_sha: null`, `in_progress`이므로 동일-SHA review/test 산출물 및 종료 조건을 확인하기 전까지 협업 run 완료로 취급하지 않는다.
 - VS Code Copilot 저장소 설정은 추가했다: `.github/copilot-instructions.md`, `.github/agents/chronoledger-maker.agent.md`, `.github/agents/chronoledger-reviewer.agent.md`. 프로필 인식 및 동일-SHA 리뷰 아티팩트 절차는 사용자의 VS Code 환경에서 별도로 확인한다. 역할 설명만으로 읽기 전용 권한은 강제되지 않는다.
 - 상세 설계 미결정 사항과 후속 문서 작업은 [to-do.md](to-do.md)에 추적한다.

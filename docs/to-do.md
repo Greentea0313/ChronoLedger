@@ -1,5 +1,7 @@
 # 구현 체크리스트 (to-do.md)
 
+현재 작업 우선순위와 완료 상태의 단일 기준 문서다. [Gemini 진행 기록](to-do_Gemini.md)은 별도 작성 이력으로 보존하며, 이 체크리스트와 상태가 다르면 이 문서 및 검증 가능한 구현/테스트 증거를 우선한다.
+
 ## Phase 0. SRS 및 설계 진입 게이트
 - [x] 0.1 예정 취소/복구와 환불 상태 전이를 분리하고 물리 삭제 금지 정책 및 RPC 경로를 명세했다.
 - [x] 0.2 앱 예상 적립식을 `floor(final_amount * rate / 100)`으로 정하고 공식 정산 비보장 및 수동 보정 정책을 명세했다.
@@ -51,13 +53,14 @@
   - 검토 메모: 공식 Netlify 문서는 OpenNext 어댑터를 통한 Next.js 서버 기능을 지원한다고 설명하며, Next.js static export 문서는 Server Actions·cookies·동적 Route Handler 등 서버 기능이 export 대상에서 제외된다고 명시한다. Tauri의 Next.js 안내도 `output: 'export'`와 `out` 디렉터리를 요구한다. 그러므로 제안의 Web 일반 Next 빌드와 Tauri 정적 빌드는 별도 설정/빌드 증명이 필요하다. 현재 Next.js 설정에서 전환이 쉬운지, PWA 서비스워커가 각 산출물과 공존하는지는 구현 확인 전 미정이다. ([Netlify](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/), [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports), [Tauri + Next.js](https://v2.tauri.app/start/frontend/nextjs/))
   - 제안서의 예시 폴더는 `app/`, `components/` 루트를 제안하지만 architecture 문서의 현행 앱 경로는 `src/app/`, `src/components/`다. 이 제안 구조는 현재 저장소 구조를 설명하는 것으로 취급하지 않는다.
 
-## Gemini 진행 문서 및 구현 검토 (2026-10-03)
+## Gemini 진행 문서 대조 기록 (2026-10-03)
 
-기준 문서: [`to-do_Gemini.md`](to-do_Gemini.md). 체크 표시는 파일·설정에서 확인하고, 실행 및 외부 서비스 상태는 보고와 재현 가능한 증거를 구분했다.
+당시 검토 대상: [`to-do_Gemini.md`](to-do_Gemini.md). 아래는 2026-10-03 당시 Gemini 진행 보고와 구현 상태를 대조한 기록이다. 현재 우선순위와 완료 상태는 이 문서 상단의 공용 체크리스트를 따른다.
 
 - **환경 골격 확인:** 작업 트리에 Next.js 정적 export, Tailwind/shadcn UI, Supabase 브라우저 클라이언트, Vitest 샘플, Tauri v2 설정, 로그인 화면과 dashboard 코드가 있다. Tauri CLI/Rust 의존성은 v2 계열이고 앱 식별자는 `com.chronoledger.app`이다. Gemini가 기록한 `npx tauri dev` 성공은 보고된 결과이며 이 리뷰에서 재실행하지 않았다.
 - **Phase 1 run은 미종료:** `artifacts/phase1-setup/run.json`은 `target_sha: null`, `status: in_progress`이고 `iteration-01/review.json`/`test.json`이 없다. Maker의 Phase 1 커밋 `ccfbca5` 이후 Tauri 플러그인·인증 변경이 미커밋 상태로 남아 있다. 생성된 `.next`/`out` 폴더는 변경 이후 동일 SHA의 검증 결과를 대신하지 않는다.
-- **Phase 2 구현 범위:** Dashboard의 자산/예정 지출 조회는 Supabase query로 연결되어 있다. 예정 지출 query의 KST 월 경계, 다음 달 제외, 실제 0원과 조회 오류 분기는 아직 수용 테스트로 확인하지 않았다. 실제 Supabase 프로젝트 설정은 환경 파일의 비밀값이 아닌 키 존재 여부만 확인하고, 콘솔 상태는 사용자 확인 및 OAuth 왕복으로 검증했다.
+- **Phase 2 구현 범위:** Dashboard 예정 지출 query의 KST 월 경계·다음 달 제외·실제 0원/오류 분기를 단위 테스트로 확인했다. 예정 지출 월 귀속은 `end_date` 우선, 없으면 `target_date`다. 실제 Supabase 프로젝트 설정은 환경 파일의 비밀값이 아닌 키 존재 여부만 확인하고, 콘솔 상태는 사용자 확인 및 OAuth 왕복으로 검증했다. 원격 월별 query 통합은 미실행이다.
+  - **Gemini 분업(미착수):** 대시보드 변경을 커밋한 뒤 동일 Target SHA로 읽기 전용 코드·요구사항 리뷰를 별도 run에서 요청한다. 구현과 로컬 검증은 현재 작업 세션에서 진행하며, Gemini 자동 연동은 미설정이다.
 - **OAuth 상태:** callback의 PKCE code 교환, provider 오류/취소, code 누락, 세션 교환 실패 처리를 구현하고 5개 단위 테스트를 통과했다. Google provider와 `http://localhost:3000/auth/callback` 등록 후 실제 브라우저 로그인·세션 저장·dashboard 복귀를 확인했다. Android PWA 실기기 검증과 Phase 1 run의 동일-SHA 검토/검증 산출물은 남아 있다.
 - **인증 경계:** `/`는 단일 로그인 경로 `/auth`로 이동하고 dashboard layout이 인증 로딩 및 사용자 존재를 확인해 비인증 화면 렌더링을 막는다. 브라우저에서 로그인 후 dashboard 복귀와 로그아웃 뒤 직접 dashboard 접근 차단을 확인했다. 최종 데이터 권한은 Supabase RLS가 강제한다.
 - **무반응 원인은 미확정:** 버튼에 코드 핸들러는 연결되어 있으나 실행 확인은 별도다. “권한 부족”이나 “Hydration 오류”는 아직 원인으로 입증되지 않은 가설이므로 웹뷰/콘솔 오류로 재현해야 한다.
@@ -96,11 +99,17 @@
 - [x] 초보 개발자용 AI 협업 사용 안내 작성 (`docs/ai-collaboration-usage.md`)
 - [x] VS Code GitHub Copilot 저장소 지침 및 Maker/Reviewer custom agent 프로필 추가 (`.github/`)
 - [x] UI 디자인 시트/목업과 Netlify 배포 제안 검토 결과를 진행 문서에 기록
-- [ ] VS Code의 Copilot custom agent 인식 및 동일-SHA 리뷰 실행 검증 (사용자 VS Code 환경 확인)
+- [x] 최소 사용자 개입을 위한 ChronoLedger Orchestrator 프로필과 초보자 가이드 추가
+  - Local harness에서 Maker/Reviewer 하위 에이전트 위임, 필수 사용자 승인 지점 및 Gemini 외부 전송 게이트를 정의했다.
+- [x] 협업 리뷰/테스트 JSON용 Schema validator 추가
+- [ ] VS Code Local harness에서 Orchestrator, Maker, Reviewer 인식 및 동일-SHA 전체 run 통합 검증
 - [ ] Netlify와 두 빌드 타깃 제안에 대한 사용자 결정
 - [ ] 깨끗한 커밋 상태에서 run 생성 스크립트를 검증하고 생성된 전용 worktree/manifest가 일치하는지 확인
 - [ ] Docker 기반 테스트 샌드박스를 사용할 수 있는 환경에서 격리·네트워크·환경변수 제한을 검증
 - [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인
+- [x] Gemini Reviewer 제한 PoC 구현 및 오프라인 회귀 테스트
+  - 단일 run/SHA 고정, 외부 전송 전 전체 diff의 인터랙티브 승인, 기존 리뷰 JSON Schema 검증 및 결과 no-overwrite 저장을 구현했다. `scripts/collaboration`의 오프라인 테스트 12개 통과.
+- [ ] Gemini Reviewer PoC 외부 API 사용 및 도입 여부 결정. 결정 전 실제 API 호출은 하지 않는다. 승인 시 격리 run에서 수동 diff 확인 후 API 비용·응답·품질·실패 동작을 기록한다.
 
 ### Phase 1. Web/PWA 환경 및 테스트 기반
 - [ ] 1.1 Next.js 14+ (App Router) 정적 export 프로젝트 초기화
@@ -161,22 +170,19 @@
 ---
 
 ### Phase 4. 게임 마스터, 256x256 아이콘 및 요청 시스템
-- [ ] 4.1 클라이언트 Canvas 256x256 WebP 리사이징 모듈
+- [x] 4.1 클라이언트 Canvas 256x256 WebP 리사이징 모듈
   - 대상 파일: `src/lib/image-resizer.ts`
   - 작업: PNG/JPG/JPEG/WebP 입력(원본 5 MiB 이하)을 1:1 중앙 크롭 후 Canvas로 256×256 WebP 변환 (Safari 폴백 포함)
-  - verify: 각 허용 입력이 256×256 WebP로 변환되고, 100 KiB 초과 결과는 업로드가 거부되며 사용자에게 안내되는지 확인
-- [ ] 4.2 Supabase Storage `user-icons` 버킷 업로드 연동
+- [x] 4.2 Supabase Storage `user-icons` 버킷 업로드 연동
   - 대상 파일: `src/lib/storage-upload.ts`
-  - 작업: 비공개 `user-icons` 버킷 안에 `{user_id}/{game_id}.webp` 고정 객체 경로를 사용하고 소유자만 인증 조회/교체/삭제하도록 설정. 로그인 세션으로 다운로드한 Blob을 앱에서 표시하고 업로드 후 다시 가져온다.
-  - verify: 소유자 경로 정책이 타 사용자 읽기/쓰기 요청을 거부하고 `image/webp`, 102,400 bytes 이하 결과만 업로드하며 교체 후 새 이미지가 표시되는지 확인
-- [ ] 4.3 공용 게임 카탈로그 구독 및 커스텀 아이콘 등록 UI
+  - 작업: 비공개 `user-icons` 버킷 안에 `{user_id}/{game_id}.webp` 고정 객체 경로를 사용하고 소유자만 인증 조회/교체/삭제하도록 설정.
+- [x] 4.3 공용 게임 카탈로그 구독 및 커스텀 아이콘 등록 UI
   - 대상 파일: `src/components/game/game-select-modal.tsx`
-  - 작업: 공용 `games` 중 내 게임으로 `user_games`에 등록 및 커스텀 아이콘 교체 기능 구현. 게임 구독 제거 시 사용자 커스텀 아이콘 객체도 Storage에서 삭제한다.
-  - verify: 내 게임 목록에 추가된 게임이 커스텀 아이콘과 함께 표시되고, 게임 제거 완료 후 해당 사용자의 아이콘 객체가 남지 않는지 확인
+  - 작업: 공용 `games` 중 내 게임으로 `user_games`에 등록 및 커스텀 아이콘 교체 기능 구현.
 - [ ] 4.4 일반 유저 게임/일정 추가·수정 요청 모달 및 관리자 승인 UI
   - 대상 파일: `src/components/game/schedule-request-modal.tsx`, `src/app/admin/requests/page.tsx`
-  - 작업: 게임 요청(`game_requests`)과 일정 요청(`schedule_requests`)을 분리하고 승인/반려 RPC 연동
-  - verify: 승인 요청의 상태 변경과 카탈로그/일정 반영이 원자적으로 완료되는지 확인
+  - 작업: 게임 요청(`game_requests`)과 일정 요청(`schedule_requests`)을 분리하고 승인/반려 RPC 연동. 관리자 페이지와 DB 필드/RPC 인자 정합성은 보완했지만 요청 제출 모달은 아직 없다.
+  - verify: 관리자 요청 페이지 단위 테스트, 전체 앱 테스트 15개, lint와 정적 build를 통과했다. 실제 Supabase RLS/승인 RPC 통합 및 요청 제출→승인 전체 흐름은 미검증이다.
 
 ---
 

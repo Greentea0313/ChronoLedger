@@ -33,17 +33,17 @@ Supabase
 - `src/components/calendar/`: 반응형 월간 캘린더, 일정 배너, 메모 도트, 선택 날짜 상세 및 예산 화면. 타일에는 금액을 그리지 않는다.
 - `src/components/expense/`: 예정 지출 입력, 결제/환불 RPC 호출, 예산 요약 및 만료 예정 지출 흐름.
 - `src/components/game/`: 공용 카탈로그 선택, 요청 제출, 개인 아이콘 업로드/표시.
-- `src/lib/`: 단일 Supabase client(브라우저 PKCE/Tauri implicit 런타임 설정 및 callback URL 자동 감지 비활성화), 인증 상태, 날짜·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
+- `src/lib/`: 단일 Supabase client(브라우저 PKCE/Tauri implicit 런타임 설정 및 callback URL 자동 감지 비활성화), 인증 상태, KST 날짜 범위·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
 - Web/PWA 앱의 `public/fonts/a2z/`: 자체 호스팅하는 A2Z WOFF2 9개 굵기 및 SIL OFL 1.1 고지.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
 - `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.
 - `docs/`: 진행 현황, 아키텍처, 인수인계, 구현 체크리스트, 변경 이력, 주의사항.
-- `docs/ai-collaboration-usage.md`: 초보 개발자를 위한 Maker/Reviewer/Orchestrator 역할별 수동 협업 절차.
-- `.github/copilot-instructions.md`, `.github/agents/`: VS Code GitHub Copilot의 저장소 지침 및 선택 가능한 Maker/Reviewer 프로필. 자동 AI 간 호출이나 권한 강제 기능은 포함하지 않는다.
+- `docs/ai-collaboration-usage.md`, `docs/ChronoLedger_collaboration_guide.md`: 기존 수동 절차와 초보자를 위한 최소 개입 협업 흐름 및 사용자 개입 안내.
+- `.github/copilot-instructions.md`, `.github/agents/`: VS Code 지침과 ChronoLedger Orchestrator/Maker/Reviewer 프로필. Local harness에서 Orchestrator가 Maker/Reviewer를 하위 에이전트로 위임하도록 구성했으며, 실제 발견·도구 권한·실행은 VS Code 환경에서 검증해야 한다.
 - `md/ChronoLedger_UI_Design_Sheet.md`, `docs/design-v1-ko.html`, `docs/design-preview-ko.html`: SRS에 근거한 UI 설계 참조 및 정적 목업. 반응형 시안은 자체 호스팅 폰트 자산을 `docs/assets/fonts/a2z/`에서 가져온다. 실제 제품 UI 구현은 별도다.
 - `docs/Netlify_Web_Architecture_Proposal.md`: Netlify/Web·Desktop 빌드 분리 제안. 아직 승인되지 않아 런타임 결정으로 적용하지 않는다.
 - `artifacts/`: run manifest, 반복별 정적 리뷰/테스트 JSON, 민감정보를 제거한 종료 보고서 및 JSON Schema.
-- `scripts/collaboration/`: 깨끗한 저장소 상태를 확인하고 실행 전용 Git worktree를 만드는 스크립트.
+- `scripts/collaboration/`: 깨끗한 저장소 상태를 확인하고 실행 전용 Git worktree를 만드는 스크립트, collaboration artifact JSON Schema 검증기 및 승인된 단일 run/SHA의 Gemini Reviewer 초안을 만드는 제한 PoC.
 - `.worktrees/`: run별 격리 작업 트리 위치이며 Git에서 제외한다. 자동 강제 초기화는 사용하지 않는다.
 
 ## 4. Storage 및 캐시

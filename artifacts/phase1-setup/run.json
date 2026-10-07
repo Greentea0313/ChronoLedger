@@ -11,7 +11,7 @@
     "Supabase 클라이언트가 에러 없이 초기화된다"
   ],
   "base_sha": "2ab2ebaac10bf7be6faee4770d108c6acbaf760f",
-  "target_sha": null,
+  "target_sha": "dda0cae9a13fe6cd7769fcb77a83167b92cb65b5",
   "branch": "collab/phase1-setup",
   "worktree_path": ".worktrees/phase1-setup",
   "max_iterations": 3,

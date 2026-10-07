@@ -2,6 +2,22 @@
 
 ## 2026-10-07
 
+- Local harness용 ChronoLedger Orchestrator와 Maker/Reviewer 자동 위임 절차, 사용자 개입 지점 가이드, 협업 JSON Schema validator 및 테스트를 추가했다. VS Code 실제 위임 흐름은 검증 전이다.
+- Windows PowerShell이 UTF-8 BOM으로 저장할 수 있는 run manifest를 Gemini Reviewer JSON loader가 읽도록 보완했다.
+- Gemini Reviewer 단일 run/SHA PoC와 오프라인 회귀 테스트를 추가했다. 전체 diff를 표시하고 인터랙티브 승인을 요구하며, manifest/결과를 기존 JSON Schema로 검증하고 검증된 결과만 no-overwrite 방식으로 저장한다. API 호출·외부 전송 승인·도입 결정은 수행하지 않았다.
+- PoC 사용법 및 제한은 `ChronoLedger_pipeline_auto.md`에 기록했다. 제안서의 독립 리뷰 전달용 `ChronoLedger_pipeline_auto_review.md`도 추가했다.
+- Gemini 작성 진행 기록과 공용 구현 체크리스트의 역할을 구분했다. 현재 우선순위·완료 상태는 `docs/to-do.md`가 기준이며, `docs/to-do_Gemini.md`는 검증 전 과거 기록으로 보존한다.
+
+## 2026-10-07 (Phase 4 초기 구현, 검증 중)
+
+- 클라이언트 Canvas 기반 256x256 WebP 이미지 리사이징 모듈(`src/lib/image-resizer.ts`)을 구현하여 5MB 이하 이미지의 1:1 중앙 크롭 및 100KB 이하 압축을 적용했다.
+- Supabase Storage `user-icons` 비공개 버킷 업로드/다운로드/삭제 유틸리티(`src/lib/storage-upload.ts`)와 공용 게임 카탈로그 구독/아이콘 등록 모달의 초기 구현을 추가했다.
+- 관리자 요청 페이지의 초기 구현에서 DB 필드/RPC 인자 불일치를 발견해 수정했다. 관리자 역할 gate, 기본 아이콘 URL 입력, RPC 실패 시 상태 직접 변경 fallback 제거를 반영했다.
+- 앱 테스트 15개, ESLint 및 dummy Supabase 환경변수를 사용한 정적 build가 통과했다. 실제 Storage/RLS/RPC 통합은 미검증이며 게임/일정 요청 제출 모달도 남아 있어 Phase 4 완료로 보지 않는다.
+
+## 2026-10-07
+
+- Dashboard의 당월 예정 지출을 KST DATE 월 범위로 조회하고 `end_date` 우선 월 귀속과 실제 0원/오류 분기를 반영했다. Gemini 분업은 커밋 이후 동일 SHA 읽기 전용 리뷰로 별도 미착수 표시했다.
 - 로그인·대시보드의 접근성을 보완했다. 카드 제목 단계, 로딩/오류 알림 역할, 내비게이션 이름 및 장식 아이콘 의미를 정리하고 브라우저에서 로그인 폼 이름, 키보드 초점, 타깃 크기와 색상 대비를 검증했다. 실제 스크린리더 및 인증 dashboard 실행 검증은 남아 있다.
 - `/auth` 로그인 화면을 앱과 일관된 다크 테마로 개선했다. 레이블이 있는 입력과 이메일 로그인·가입·Google 버튼 구성을 정리하고, 좁은 화면에서도 넘침이 없는지 확인했다. 실제 인증 동작은 유지했으며 앱 전체 테마 전환은 후속으로 남겼다.
 - 사용자와 UI 제안 항목을 이어서 결정했다. 본문 15px/보조 12px/섹션 17px/페이지 제목 22px/주요 숫자 20–28px, 쿨 뉴트럴 라이트 테마, 기존 다크 팔레트, 절제된 카드/강조 모달 그림자, 다음 행동을 제시하는 빈 상태, 짧고 중립적인 보조 피드백을 반응형 시안과 설계 문서에 반영했다. 양 테마의 텍스트·버튼·상태 라벨 대비를 계산했고, 수정 시안을 390/900/1280px에서 브라우저로 재검증했다. 제품 UI 접근성 검증은 남아 있다. 당시 라이선스 검토가 끝나지 않아 시안은 시스템 글꼴을 사용했으며, 이후 확인 결과는 아래 항목과 같다.
