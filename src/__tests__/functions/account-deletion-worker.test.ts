@@ -3,7 +3,7 @@ import { handler } from "./account-deletion-worker"
 
 const {
   createServiceClient,
-  serviceClient,
+
   rpc,
   from,
   list,
@@ -57,7 +57,7 @@ const {
   }
   return {
     createServiceClient: vi.fn(() => serviceClient),
-    serviceClient,
+    
     rpc,
     from,
     list,
@@ -74,7 +74,7 @@ const {
 
 vi.mock("../functions-lib/account-deletion", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../functions-lib/account-deletion")>()
-  return { ...actual, createServiceClient, updateDeletionJob }
+  return { ...actual, createServiceClient,updateDeletionJob }
 })
 
 describe("account-deletion-worker function", () => {
