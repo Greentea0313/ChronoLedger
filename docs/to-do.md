@@ -106,10 +106,18 @@
   - Local harness에서 Maker/Reviewer 하위 에이전트 위임, 필수 사용자 승인 지점 및 Gemini 외부 전송 게이트를 정의했다.
 - [x] 협업 리뷰/테스트 JSON용 Schema validator 추가
 - [ ] VS Code Local harness에서 Orchestrator, Maker, Reviewer 인식 및 동일-SHA 전체 run 통합 검증
+  - 현황(2026-10-08): Phase 2~6 run은 Antigravity Orchestrator가 run 생성·SHA 기록·동일-SHA Reviewer 위임·test/review JSON 검증·병합까지 수행했고, Maker(구현)는 사용자가 VS Code Copilot에 Handoff Packet을 직접 전달했다. VS Code Local harness의 자동 하위 에이전트 위임은 사용하지 않았으므로 미검증이다.
+  - 관찰: 이 환경의 Reviewer 하위 에이전트는 터미널/`git diff` 도구가 없어, Orchestrator가 exact diff(또는 diff 파일 경로)를 전달해야 검토할 수 있었다. 첫 위임 때 diff가 없어 한 차례 되묻기가 발생했다.
 - [ ] Netlify와 두 빌드 타깃 제안에 대한 사용자 결정
-- [ ] 깨끗한 커밋 상태에서 run 생성 스크립트를 검증하고 생성된 전용 worktree/manifest가 일치하는지 확인
+  - 참고: Phase 3에서 Netlify Functions(`netlify/functions`, 예약 worker)와 `netlify.toml`을 이미 도입했다. 정적 export(`out/`) 배포와 Functions 병행은 동작 중이지만, Web/Desktop 이중 빌드 분리 여부는 여전히 미결정이다.
+- [x] 깨끗한 커밋 상태에서 run 생성 스크립트를 검증하고 생성된 전용 worktree/manifest가 일치하는지 확인
+  - 검증: Phase 5·6·7 run을 깨끗한 `main`에서 `New-CollaborationRun.ps1`로 생성했고, worktree 경로·브랜치·`base_sha`가 manifest와 일치했다.
+  - 후속 발견: 스크립트가 만든 `artifacts/<run>/run.json`은 `main`에 미추적 상태로 남아 새 worktree에서 보이지 않는다. 현재는 Orchestrator가 manifest를 `main`에 커밋한 뒤 worktree에 병합하는 수동 절차로 우회한다.
+- [ ] `New-CollaborationRun.ps1`이 manifest를 커밋·전파하도록 개선하거나 위 수동 절차를 협업 가이드에 명시
 - [ ] Docker 기반 테스트 샌드박스를 사용할 수 있는 환경에서 격리·네트워크·환경변수 제한을 검증
+  - 현황: 이 PC에는 `docker` 명령이 없다. 모든 run의 `test.json`은 `sandbox: unavailable`로 기록했고, 격리 검증은 Docker 준비 전까지 보류한다.
 - [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인
+  - 현황: 미실행. Phase 4.4 수동 리뷰 패킷 외에 연결 확인 기록은 없다.
 - [x] Gemini Reviewer 제한 PoC 구현 및 오프라인 회귀 테스트
   - 단일 run/SHA 고정, 외부 전송 전 전체 diff의 인터랙티브 승인, 기존 리뷰 JSON Schema 검증 및 결과 no-overwrite 저장을 구현했다. `scripts/collaboration`의 오프라인 테스트 12개 통과.
 - [x] Phase 4.4 변경에 대해 [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)과 exact Target diff를 Gemini에 직접 제공하고 결과를 기존 Copilot 리뷰와 분리해 기록했다. Gemini 판정은 `clean`/발견 없음이며, 실제 Supabase RLS·관리자 RPC 원자성은 미검증이다. API 호출은 하지 않았다.
