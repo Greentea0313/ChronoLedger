@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "run_id": "phase6-wallet-expenses",
+  "created_at": "2026-10-08T13:59:56.3400572+00:00",
+  "objective": "Phase 6 가계부, 결제/환불 RPC 연동 및 포인트 지갑",
+  "acceptance_criteria": [
+    "6.1 스토어 지갑 위젯 및 설정 연동, 6.2 정밀 결제 모달(결제수단, 할인, 자산 차감 등) 및 process_expense_payment RPC 연동, 6.3 환불 UI 및 refund_expense_payment RPC 연동과 잔액 부족 검증"
+  ],
+  "base_sha": "2e2306f4d0c603a3ce554f407bbbd96df9761d6a",
+  "target_sha": null,
+  "branch": "collab/phase6-wallet-expenses",
+  "worktree_path": ".worktrees/phase6-wallet-expenses",
+  "max_iterations": 3,
+  "status": "in_progress"
+}
