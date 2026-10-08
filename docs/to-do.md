@@ -119,12 +119,13 @@
   - 검증: 임시 run(`script-selftest`)으로 메인 clean 유지, worktree clean, manifest 첫 커밋, `run.schema.json` 검증 통과를 확인한 뒤 임시 worktree/브랜치를 삭제했다. 구문 오류 0건. Orchestrator 스킬 4단계와 사용 안내를 갱신했다.
 - [ ] Docker 기반 테스트 샌드박스를 사용할 수 있는 환경에서 격리·네트워크·환경변수 제한을 검증
   - 현황: 이 PC에는 `docker` 명령이 없다. 모든 run의 `test.json`은 `sandbox: unavailable`로 기록했고, 격리 검증은 Docker 준비 전까지 보류한다.
-- [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인
-  - 현황: 미실행. Phase 4.4 수동 리뷰 패킷 외에 연결 확인 기록은 없다.
+- [x] ~~Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인~~ (취소)
+  - 현황: Antigravity(AGY) 도입으로 인해 다중 에이전트(Orchestrator, Maker, Reviewer) 파이프라인이 자동화되었으므로 개별 수동 연결 확인은 불필요해짐.
 - [x] Gemini Reviewer 제한 PoC 구현 및 오프라인 회귀 테스트
   - 단일 run/SHA 고정, 외부 전송 전 전체 diff의 인터랙티브 승인, 기존 리뷰 JSON Schema 검증 및 결과 no-overwrite 저장을 구현했다. `scripts/collaboration`의 오프라인 테스트 12개 통과.
 - [x] Phase 4.4 변경에 대해 [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)과 exact Target diff를 Gemini에 직접 제공하고 결과를 기존 Copilot 리뷰와 분리해 기록했다. Gemini 판정은 `clean`/발견 없음이며, 실제 Supabase RLS·관리자 RPC 원자성은 미검증이다. API 호출은 하지 않았다.
-- [ ] Gemini Reviewer PoC 외부 API 사용 및 도입 여부 결정. 결정 전 실제 API 호출은 하지 않는다. 승인 시 격리 run에서 수동 diff 확인 후 API 비용·응답·품질·실패 동작을 기록한다.
+- [x] ~~Gemini Reviewer PoC 외부 API 사용 및 도입 여부 결정~~ (대체됨)
+  - 현황: Antigravity 시스템 내장 서브에이전트(chronoledger-reviewer)로 리뷰 과정이 성공적으로 대체되어 기존 수동 PoC 및 단일 API 스크립트 도입은 폐기함.
 
 ### Phase 1. Web/PWA 환경 및 테스트 기반
 - [x] 1.1 Next.js 14+ (App Router) 정적 export 프로젝트 초기화
