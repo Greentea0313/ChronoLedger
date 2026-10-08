@@ -54,3 +54,29 @@ export function getMonthRange(year: number, month: number): MonthRange {
   return { startDate, endDateExclusive }
 }
 
+export function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number)
+  return toLocalDate(year, month, day)
+}
+
+export function getTodayLocalDate(): string {
+  return formatDate(new Date())
+}
+
+export function getGridRange(year: number, month: number): MonthRange {
+  const grid = buildCalendarGrid(year, month)
+  const last = parseLocalDate(grid[grid.length - 1].date)
+  last.setDate(last.getDate() + 1)
+  return { startDate: grid[0].date, endDateExclusive: formatDate(last) }
+}
+
+export function enumerateDates(startDate: string, endDate: string): string[] {
+  const dates: string[] = []
+  const cursor = parseLocalDate(startDate)
+  const end = parseLocalDate(endDate)
+  while (cursor <= end) {
+    dates.push(formatDate(cursor))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return dates
+}

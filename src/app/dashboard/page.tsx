@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase/client"
 import { DesktopCalendar, type DesktopCalendarDay } from "@/components/calendar/desktop-calendar"
 import { HeroSidebar, type HeroExpenseItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
-import { buildCalendarGrid, getMonthRange } from "@/lib/calendar-utils"
+import { buildCalendarGrid, enumerateDates, getGridRange, getMonthRange, getTodayLocalDate, parseLocalDate } from "@/lib/calendar-utils"
 import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
 
 interface ScheduleRow {
@@ -37,10 +37,7 @@ interface UserGameRow {
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
-  const today = new Date()
-  const [selectedDate, setSelectedDate] = useState(
-    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
-  )
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalAsset, setTotalAsset] = useState<number | null>(null)
@@ -51,17 +48,28 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [userGames, setUserGames] = useState<UserGameRow[]>([])
 
-  const year = today.getFullYear()
-  const month = today.getMonth() + 1
+  const [viewMonth, setViewMonth] = useState<{ year: number; month: number } | null>(null)
+
+  useEffect(() => {
+    const today = getTodayLocalDate()
+    const parsed = parseLocalDate(today)
+    setSelectedDate(today)
+    setViewMonth({ year: parsed.getFullYear(), month: parsed.getMonth() + 1 })
+  }, [])
+
+  const baseDate = selectedDate ?? ""
+  const year = viewMonth?.year ?? 0
+  const month = viewMonth?.month ?? 0
+  const ready = viewMonth !== null
 
   const load = useCallback(async () => {
-    if (!user) return
+    if (!user || !ready) return
     setIsLoading(true)
     setError(null)
 
     try {
       await ensureMonthlySubscriptionExpenses(user.id, year, month)
-      const { startDate, endDateExclusive } = getMonthRange(year, month)
+      const { startDate, endDateExclusive } = getGridRange(year, month)
 
       const [
         financeResult,
@@ -98,43 +106,44 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [month, user, year])
+  }, [month, ready, user, year])
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && ready) {
       void load()
     }
-  }, [authLoading, load, user])
+  }, [authLoading, load, ready, user])
 
   const dayMemos = useMemo(
-    () => memos.filter((memo) => memo.memo_date === selectedDate).map((memo) => memo.content),
-    [memos, selectedDate],
+    () => memos.filter((memo) => memo.memo_date === baseDate).map((memo) => memo.content),
+    [baseDate, memos],
   )
   const dayExpenses = useMemo<HeroExpenseItem[]>(
     () =>
       expenses
-        .filter((expense) => expense.target_date === selectedDate)
+        .filter((expense) => expense.target_date === baseDate)
         .map((expense) => ({
           ...expense,
           gameName: expense.game_id ? `게임 ${expense.game_id.slice(0, 4)}` : null,
         })),
-    [expenses, selectedDate],
+    [baseDate, expenses],
   )
-  const expectedExpense = useMemo(
-    () =>
-      expenses
-        .filter((expense) => expense.status === "PLANNED")
-        .reduce((sum, expense) => sum + expense.final_amount, 0),
-    [expenses],
-  )
+  const expectedExpense = useMemo(() => {
+    const { startDate, endDateExclusive } = ready ? getMonthRange(year, month) : { startDate: "", endDateExclusive: "" }
+    return expenses
+      .filter(
+        (expense) =>
+          (expense.status === "PLANNED" || expense.status === "CONFIRMED") &&
+          expense.target_date >= startDate &&
+          expense.target_date < endDateExclusive,
+      )
+      .reduce((sum, expense) => sum + expense.final_amount, 0)
+  }, [expenses, month, ready, year])
 
   const scheduleDates = useMemo(() => {
     const map = new Map<string, ScheduleRow[]>()
     for (const schedule of schedules) {
-      const start = new Date(schedule.start_date)
-      const end = new Date(schedule.end_date)
-      for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
-        const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`
+      for (const key of enumerateDates(schedule.start_date, schedule.end_date)) {
         map.set(key, [...(map.get(key) ?? []), schedule])
       }
     }
@@ -146,7 +155,7 @@ export default function DashboardPage() {
 
   const days = useMemo<DesktopCalendarDay[]>(
     () =>
-      buildCalendarGrid(year, month).map((cell) => {
+      (ready ? buildCalendarGrid(year, month) : []).map((cell) => {
         const daySchedules = scheduleDates.get(cell.date) ?? []
         return {
           ...cell,
@@ -162,10 +171,10 @@ export default function DashboardPage() {
           hasMemo: memoDates.has(cell.date),
         }
       }),
-    [iconGameIds, memoDates, month, scheduleDates, year],
+    [iconGameIds, memoDates, month, ready, scheduleDates, year],
   )
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || !ready) {
     return <div className="p-6 text-white">불러오는 중...</div>
   }
   if (!user) {
@@ -181,11 +190,11 @@ export default function DashboardPage() {
             year={year}
             month={month}
             days={days}
-            selectedDate={selectedDate}
+            selectedDate={baseDate}
             onSelectDate={setSelectedDate}
           />
           <MobileDrawer
-            selectedDateLabel={selectedDate}
+            selectedDateLabel={baseDate}
             totalAsset={totalAsset}
             budgetAmount={budgetAmount}
             expectedExpense={expectedExpense}
@@ -195,7 +204,7 @@ export default function DashboardPage() {
           />
         </div>
         <HeroSidebar
-          selectedDateLabel={selectedDate}
+          selectedDateLabel={baseDate}
           totalAsset={totalAsset}
           budgetAmount={budgetAmount}
           expectedExpense={expectedExpense}

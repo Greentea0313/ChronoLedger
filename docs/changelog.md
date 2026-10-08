@@ -2,6 +2,7 @@
 
 ## 2026-10-08
 
+- Phase 5 Iteration 02 리뷰 반영: 조회 범위를 42일 그리드 전체로 확장, 예상 지출에 CONFIRMED 포함(표시 월·CANCELLED 제외), date-only 문자열 로컬 파싱, 초기 날짜를 마운트 후 설정해 hydration 불일치 방지, EOF 공백 정리. tsc/Vitest(15 files/45 tests)/lint/build 통과, 실DB 검증은 미수행.
 - Phase 5 캘린더 코어를 구현했다. 6주 그리드·말일 보정 날짜 연산, 월간 구독 Lazy Generation, 금액 미표시 데스크톱 캘린더, 히어로 사이드바/모바일 바텀시트를 추가하고 대시보드를 해당 구조로 교체했다.
 - 캘린더/구독/대시보드 테스트를 추가·갱신했으며 전체 Vitest(15 files/43 tests), TypeScript check, lint, 정적 build를 통과했다.
 - Phase 3 Web/PWA 인증 흐름과 계정 삭제를 구현했다. Netlify Functions + Supabase 내구성 queue/retry worker로 사용자 아이콘/개인 행을 정리하고 Resend 멱등성 키 메일 후 Auth 계정을 삭제한다. 대기 중 접근 차단, 진행 상태 화면, OAuth/session 및 deletion worker 테스트를 추가했다. migration/실환경 인증·RLS/Storage/메일 발송은 미검증이다.

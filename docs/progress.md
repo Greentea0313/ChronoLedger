@@ -2,6 +2,7 @@
 
 ## Phase 5 미니멀 캘린더 코어 완료 (2026-10-08)
 
+- Phase 5 Iteration 02 리뷰 반영: 조회 범위를 42일 그리드 전체로 확장, 예상 지출에 CONFIRMED 포함(표시 월·CANCELLED 제외), date-only 문자열 로컬 파싱, 초기 날짜를 마운트 후 설정해 hydration 불일치 방지, EOF 공백 정리. tsc/Vitest(15 files/45 tests)/lint/build 통과, 실DB 검증은 미수행.
 - `src/lib/calendar-utils.ts`에 6주 캘린더 그리드 생성과 월말 보정 `getAdjustedBillingDate`를 구현했다.
 - `src/lib/subscription-sync.ts`에 월간 Lazy Generation을 추가했다. 활성 템플릿만 대상으로 `template_id + billing_cycle` 충돌을 무시해 중복 생성을 방지하며, 취소 회차 자동 복구는 수행하지 않는다.
 - `src/components/calendar/`에 데스크톱 캘린더(금액 미표시, `VERSION/PICKUP` 배너, 게임 아이콘, 메모 도트), 우측 히어로 사이드바, 모바일 바텀 시트를 구현했다.

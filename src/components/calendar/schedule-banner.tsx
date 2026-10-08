@@ -16,4 +16,3 @@ export function ScheduleBanner({ type }: ScheduleBannerProps) {
     </span>
   )
 }
-

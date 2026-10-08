@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import DashboardPage from "./page"
+import { getGridRange } from "@/lib/calendar-utils"
 
 const {
   from,
@@ -60,7 +61,7 @@ describe("DashboardPage", () => {
     memos.lt.mockResolvedValue({ data: [{ memo_date: selectedDate, content: "메모 1" }], error: null })
     const expenses = createQueryBuilder()
     expenses.lt.mockResolvedValue({
-      data: [{ id: "e1", title: "패키지", final_amount: 30000, status: "PLANNED", target_date: selectedDate, game_id: "game-1" }],
+      data: [{ id: "e1", title: "패키지", final_amount: 30000, status: "CONFIRMED", target_date: selectedDate, game_id: "game-1" }],
       error: null,
     })
     const userGames = createQueryBuilder()
@@ -86,5 +87,8 @@ describe("DashboardPage", () => {
     expect(screen.getByText("메모 1")).toBeTruthy()
     expect(screen.getByText("패키지")).toBeTruthy()
     expect(screen.getByText(/100,000/)).toBeTruthy()
+    expect(expenses.gte).toHaveBeenCalledWith("target_date", getGridRange(now.getFullYear(), now.getMonth() + 1).startDate)
+    expect(expenses.lt).toHaveBeenCalledWith("target_date", getGridRange(now.getFullYear(), now.getMonth() + 1).endDateExclusive)
+    expect(screen.getAllByText(/30,000/).length).toBeGreaterThan(0)
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { buildCalendarGrid, getAdjustedBillingDate } from "./calendar-utils"
+import { buildCalendarGrid, enumerateDates, getAdjustedBillingDate, getGridRange, parseLocalDate } from "./calendar-utils"
 
 describe("getAdjustedBillingDate", () => {
   it("clamps 31st to February in common years", () => {
@@ -24,3 +24,14 @@ describe("buildCalendarGrid", () => {
   })
 })
 
+describe("grid range and local date helpers", () => {
+  it("covers all 42 visible grid days with an exclusive end", () => {
+    expect(getGridRange(2026, 3)).toEqual({ startDate: "2026-03-01", endDateExclusive: "2026-04-12" })
+    expect(getGridRange(2026, 5)).toEqual({ startDate: "2026-04-26", endDateExclusive: "2026-06-07" })
+  })
+
+  it("enumerates date-only strings without timezone shift", () => {
+    expect(enumerateDates("2026-03-30", "2026-04-02")).toEqual(["2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02"])
+    expect(parseLocalDate("2026-03-01").getDate()).toBe(1)
+  })
+})

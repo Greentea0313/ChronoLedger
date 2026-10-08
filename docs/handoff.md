@@ -2,6 +2,7 @@
 
 ## Phase 5 미니멀 캘린더 코어, 메모, Lazy Generation (2026-10-08)
 
+- Phase 5 Iteration 02 리뷰 반영: 조회 범위를 42일 그리드 전체로 확장, 예상 지출에 CONFIRMED 포함(표시 월·CANCELLED 제외), date-only 문자열 로컬 파싱, 초기 날짜를 마운트 후 설정해 hydration 불일치 방지, EOF 공백 정리. tsc/Vitest(15 files/45 tests)/lint/build 통과, 실DB 검증은 미수행.
 - 신규 구현:
   - `src/lib/calendar-utils.ts`, `src/lib/subscription-sync.ts`
   - `src/components/calendar/desktop-calendar.tsx`, `schedule-banner.tsx`, `hero-sidebar.tsx`, `mobile-drawer.tsx`
