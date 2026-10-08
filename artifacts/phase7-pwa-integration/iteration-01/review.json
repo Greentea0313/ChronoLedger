@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "run_id": "phase7-pwa-integration",
+  "iteration": 1,
+  "agent": "chronoledger-reviewer",
+  "role": "static-review",
+  "base_sha": "1675eeeb7433a1cff58fb384850ab66c7446f5ff",
+  "target_sha": "21f6d002c23c6c71c3dd7409402bb060003a115a",
+  "status": "findings",
+  "created_at": "2026-10-08T14:22:17Z",
+  "findings": [
+    {
+      "id": "P7-F1",
+      "severity": "P2",
+      "file": "src/app/dashboard/page.tsx",
+      "line": 72,
+      "evidence": "isOverdueOpen starts false and is only set true by the optional overdue-count button. The modal receives onOpenChange={setIsOverdueOpen}, so Escape or an outside click dismisses it. Nothing opens it automatically after load() fills overdueExpenses, and nothing blocks the dashboard while overdue items exist.",
+      "impact": "SRS FR-061 requires overdue PLANNED expenses to be resolved while online before the calendar/dashboard can be used. A user can currently ignore them indefinitely, so overdue amounts keep counting toward their budget month and are never settled or cancelled. This misses the 7.2 expiry-modal criterion.",
+      "recommendation": "When online and overdueExpenses.length > 0, open the modal automatically after load and make it non-dismissible (preventDefault on onInteractOutside/onEscapeKeyDown, no close button). Close it only when the list is empty. When offline, keep it blocking with disabled actions and an explanatory message. Add a test for auto-open and no-dismiss."
+    },
+    {
+      "id": "P7-F2",
+      "severity": "P2",
+      "file": "src/app/dashboard/page.tsx",
+      "line": 112,
+      "evidence": "The month expense query filters on target_date within the 42-day grid, while calculateExpectedExpense attributes PLANNED rows by end_date (getBudgetDate). expense-modal.tsx inserts a pickup expense as PLANNED with target_date = paymentDate and end_date = schedule.end_date; if process_expense_payment then fails the row stays PLANNED with that target_date.",
+      "impact": "A leftover PLANNED row with payment date 10/08 and pickup end_date 11/12 belongs to November's budget but is never fetched in the November view because its target_date is outside the grid, so November expected expense and remaining budget are understated. The fetch key and the attribution key disagree.",
+      "recommendation": "Fetch by the same key used for attribution (for example an additional query for PLANNED rows whose end_date falls in the grid range), and/or insert PLANNED rows with target_date = schedule.end_date to match the schedule trigger invariant. Add a test with a PLANNED row whose target_date is outside the month but whose end_date is inside it."
+    },
+    {
+      "id": "P7-F3",
+      "severity": "P2",
+      "file": "docs/to-do.md",
+      "line": 238,
+      "evidence": "Item 7.3 is marked [x] although its verify clause requires cached reads only for a valid session and no personal data from cache after session expiry. The diff adds no Service Worker or cache layer (docs/progress.md says Service Worker/cache is not implemented); only manifest.json and an online/offline flag were added.",
+      "impact": "Part of the 7.3 acceptance criterion (valid-session cache read only) is unimplemented and unverifiable yet checked off. Offline, the installed app cannot load its shell, so the offline banner is only visible if the page was already open. This hides a release-readiness gap.",
+      "recommendation": "Either implement a minimal Service Worker with an auth-scoped cache policy cleared on sign-out/session expiry, or leave 7.3 unchecked/partial and record the gap and the deferral decision explicitly. Do not claim the cache-read acceptance as satisfied."
+    },
+    {
+      "id": "P7-F4",
+      "severity": "P3",
+      "file": "src/components/ui/offline-banner.tsx",
+      "line": 8,
+      "evidence": "The banner says expense registration, payment, refund and settings changes are unavailable until the connection returns. Only some buttons are gated (dashboard expense register, ExpenseModal submit, refund confirm, three StoreWalletWidget submits, overdue modal pay/cancel). The write handlers do not re-check isOnline, and the hook relies solely on navigator.onLine. Other write paths (memos, subscription templates, requests, budget/finance settings) were not audited.",
+      "impact": "The banner may overclaim what is actually blocked. navigator.onLine is a coarse signal, so writes in an online-but-unreachable state fall to generic errors.",
+      "recommendation": "Audit the remaining write entry points and gate them with useOnlineStatus, or narrow the banner copy to what is actually disabled. Add an offline guard inside the write handlers for defense in depth."
+    },
+    {
+      "id": "P7-F5",
+      "severity": "P3",
+      "file": "public/manifest.json",
+      "line": 18,
+      "evidence": "The same /icons/icon-512.png is declared twice, as purpose any and maskable. layout.tsx uses the 192px icon as the apple touch icon. The manifest has no id. The Maker notes say the PNGs are temporary placeholders.",
+      "impact": "A maskable icon without safe-zone padding can be cropped on Android and the apple-touch icon is not 180px. These are placeholder-grade assets, so install branding is not release-ready. No data-integrity impact.",
+      "recommendation": "Add a stable manifest id now. Track replacement with a real maskable icon (safe-zone padding) and a 180px apple-touch icon as a release-blocking to-do."
+    }
+  ]
+}
