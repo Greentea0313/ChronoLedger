@@ -25,10 +25,13 @@ $worktreePath = Join-Path $repoRoot (Join-Path '.worktrees' $RunId)
 $runPath = Join-Path $repoRoot (Join-Path 'artifacts' $RunId)
 $branch = "collab/$RunId"
 
-function Invoke-RepoGit {
-    param([Parameter(Mandatory = $true)][string[]]$GitArguments)
+function Invoke-GitIn {
+    param(
+        [Parameter(Mandatory = $true)][string]$Directory,
+        [Parameter(Mandatory = $true)][string[]]$GitArguments
+    )
 
-    $allArguments = @('-c', "safe.directory=$repoRoot", '-C', $repoRoot) + $GitArguments
+    $allArguments = @('-c', "safe.directory=$repoRoot", '-c', "safe.directory=$Directory", '-C', $Directory) + $GitArguments
     $oldEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     $output = & git @allArguments 2>&1
@@ -37,6 +40,18 @@ function Invoke-RepoGit {
         throw "git $($GitArguments -join ' ') failed (exit $LASTEXITCODE): $($output -join "`n")"
     }
     return $output
+}
+
+function Invoke-RepoGit {
+    param([Parameter(Mandatory = $true)][string[]]$GitArguments)
+
+    return Invoke-GitIn -Directory $repoRoot -GitArguments $GitArguments
+}
+
+function Invoke-WorktreeGit {
+    param([Parameter(Mandatory = $true)][string[]]$GitArguments)
+
+    return Invoke-GitIn -Directory $worktreePath -GitArguments $GitArguments
 }
 
 if (-not (Test-Path -LiteralPath (Join-Path $repoRoot '.git'))) {
@@ -63,7 +78,14 @@ $null = New-Item -ItemType Directory -Path (Split-Path -Parent $worktreePath) -F
 Invoke-RepoGit -GitArguments @('worktree', 'add', '-b', $branch, $worktreePath, $baseSha) | Out-Null
 
 # Once the isolated worktree exists, preserve it if manifest creation fails; never auto-reset or delete it.
-$iterationPath = Join-Path $runPath 'iteration-01'
+# The manifest is written inside the new worktree and committed on the run branch, so the Maker sees it
+# immediately and the primary worktree stays clean (an untracked file in the primary worktree would never
+# reach the isolated worktree). base_sha stays the commit the branch was created from, not the manifest commit.
+$workRunPath = Join-Path $worktreePath (Join-Path 'artifacts' $RunId)
+if (Test-Path -LiteralPath $workRunPath) {
+    throw "Run artifacts already exist at the base commit: $workRunPath. The worktree was preserved; choose a different run ID."
+}
+$iterationPath = Join-Path $workRunPath 'iteration-01'
 $null = New-Item -ItemType Directory -Path $iterationPath -Force
 $manifest = [ordered]@{
     schema_version = 1
@@ -78,8 +100,8 @@ $manifest = [ordered]@{
     max_iterations = $MaxIterations
     status = 'in_progress'
 }
-$tempManifest = Join-Path $runPath '.run.json.tmp'
-$manifestPath = Join-Path $runPath 'run.json'
+$tempManifest = Join-Path $workRunPath '.run.json.tmp'
+$manifestPath = Join-Path $workRunPath 'run.json'
 $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $tempManifest -Encoding utf8
 Move-Item -LiteralPath $tempManifest -Destination $manifestPath
 
@@ -91,6 +113,13 @@ Write sanitized results to `review.json` and `test.json` using `artifacts/schema
 Do not put raw logs, credentials, or personal data in shared result files.
 "@ | Set-Content -LiteralPath (Join-Path $iterationPath 'README.md') -Encoding utf8
 
+try {
+    Invoke-WorktreeGit -GitArguments @('add', '--', "artifacts/$RunId") | Out-Null
+    Invoke-WorktreeGit -GitArguments @('commit', '--only', '-m', "chore(collab): add $RunId run manifest", '--', "artifacts/$RunId") | Out-Null
+} catch {
+    throw "Worktree and manifest were created but the manifest commit failed; the worktree was preserved at $worktreePath. Commit artifacts/$RunId there manually. $($_.Exception.Message)"
+}
+
 Write-Output "Created isolated worktree: $worktreePath"
-Write-Output "Created run manifest: $manifestPath"
+Write-Output "Created run manifest (committed on $branch): $manifestPath"
 Write-Output "Branch: $branch"
