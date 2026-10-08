@@ -136,11 +136,11 @@
 ---
 
 ### Phase 2. 데이터베이스 스키마, RPC 및 RLS 배포
-- [ ] 2.1 12개 핵심 테이블 DDL 마이그레이션 적용
+- [x] 2.1 12개 핵심 테이블 DDL 마이그레이션 적용
   - 대상 파일: `md/SCHEMA.sql`
   - 작업: Supabase 대시보드 SQL 에디터에서 통합 DDL 스크립트 실행
   - verify: 12개 테이블 및 유니크 인덱스가 Table Editor에 에러 없이 생성되었는지 확인
-- [ ] 2.2 결제/환불, 지갑, 요청 승인 RPC 및 일정 동기화 트리거 배포
+- [x] 2.2 결제/환불, 지갑, 요청 승인 RPC 및 일정 동기화 트리거 배포
   - 대상 파일: `md/SCHEMA.sql`
   - 작업: `process_expense_payment`, `refund_expense_payment`, 지갑 설정/보정 RPC, 게임·일정 승인/반려 RPC, 트리거 등록
   - verify: 결제/환불 RPC의 금액·잔액·상태 검증과 게임/일정 승인 원자성 확인
@@ -148,7 +148,7 @@
   - 대상 파일: `md/SCHEMA.sql`
   - 작업: 일반 사용자 역할/JWT로 자산, 확정 지출, 지갑, 원장 및 요청 승인 상태에 직접 쓰기를 시도
   - verify: RPC만 허용된 변경은 직접 쓰기에서 RLS/권한 오류로 차단되는지 확인. 구독 템플릿 DELETE와 expenses DELETE도 거부되는지 확인
-- [ ] 2.4 재현 가능한 DB/RPC/RLS 검증 케이스 준비
+- [x] 2.4 재현 가능한 DB/RPC/RLS 검증 케이스 준비
   - 대상 파일: `md/TESTS.sql`, `md/SCHEMA.sql`
   - 작업: 테스트 역할/JWT, 초기 데이터, 실행 순서, 각 케이스의 기대 성공/실패 결과를 문서화
   - verify: 결과를 재실행할 수 있고, 실행하지 않은 케이스는 PASS로 표시하지 않는지 확인
