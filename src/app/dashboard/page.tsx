@@ -14,7 +14,10 @@ import { OverduePlannedModal, type OverduePlannedExpense } from "@/components/ex
 import { calculateExpectedExpense, findOverduePlannedExpenses } from "@/lib/budget-calculations"
 import { getKstToday } from "@/lib/dashboard-date"
 import { useOnlineStatus } from "@/lib/use-online-status"
+import { isOffline } from "@/lib/offline-guard"
 import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
+
+const EXPENSE_COLUMNS = "id, title, final_amount, status, target_date, end_date, game_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, deduct_from_asset, point_platform"
 
 interface ScheduleRow {
   id: string
@@ -69,7 +72,6 @@ export default function DashboardPage() {
   const [detailExpenseId, setDetailExpenseId] = useState<string | null>(null)
   const isOnline = useOnlineStatus()
   const [overdueExpenses, setOverdueExpenses] = useState<OverduePlannedExpense[]>([])
-  const [isOverdueOpen, setIsOverdueOpen] = useState(false)
   const [payingExpense, setPayingExpense] = useState<OverduePlannedExpense | null>(null)
   const [viewMonth, setViewMonth] = useState<{ year: number; month: number } | null>(null)
 
@@ -91,7 +93,10 @@ export default function DashboardPage() {
     setError(null)
 
     try {
-      await ensureMonthlySubscriptionExpenses(user.id, year, month)
+      const today = getKstToday()
+      if (!isOffline()) {
+        await ensureMonthlySubscriptionExpenses(user.id, year, month)
+      }
       const { startDate, endDateExclusive } = getGridRange(year, month)
 
       const [
@@ -101,6 +106,7 @@ export default function DashboardPage() {
         scheduleResult,
         memoResult,
         expenseResult,
+        endDateResult,
         userGameResult,
         overdueResult,
       ] = await Promise.all([
@@ -109,12 +115,13 @@ export default function DashboardPage() {
         supabase.from("store_wallets").select("platform, current_balance").eq("user_id", user.id),
         supabase.from("game_schedules").select("id, schedule_type, start_date, end_date, game_id").lt("start_date", endDateExclusive).gte("end_date", startDate),
         supabase.from("personal_memos").select("memo_date, content").eq("user_id", user.id).gte("memo_date", startDate).lt("memo_date", endDateExclusive),
-        supabase.from("expenses")        .select("id, title, final_amount, status, target_date, end_date, game_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, deduct_from_asset, point_platform").eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
+        supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
+        supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).eq("status", "PLANNED").gte("end_date", startDate).lt("end_date", endDateExclusive),
         supabase.from("user_games").select("game_id").eq("user_id", user.id),
-                supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price").eq("user_id", user.id).eq("status", "PLANNED").lt("target_date", getKstToday()),
-              ])
+        supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price").eq("user_id", user.id).eq("status", "PLANNED").or(`end_date.lt.${today},and(end_date.is.null,target_date.lt.${today})`),
+      ])
 
-              if (financeResult.error || budgetResult.error || walletResult.error || scheduleResult.error || memoResult.error || expenseResult.error || userGameResult.error || overdueResult.error) {
+      if (financeResult.error || budgetResult.error || walletResult.error || scheduleResult.error || memoResult.error || expenseResult.error || endDateResult.error || userGameResult.error || overdueResult.error) {
         throw new Error("DASHBOARD_FETCH_FAILED")
       }
 
@@ -124,12 +131,16 @@ export default function DashboardPage() {
       setWallets((walletResult.data ?? []) as HeroWalletItem[])
       setSchedules((scheduleResult.data ?? []) as ScheduleRow[])
       setMemos((memoResult.data ?? []) as MemoRow[])
-      setExpenses((expenseResult.data ?? []) as ExpenseRow[])
+      const mergedExpenses = new Map<string, ExpenseRow>()
+      for (const row of [...(expenseResult.data ?? []), ...(endDateResult.data ?? [])] as ExpenseRow[]) {
+        mergedExpenses.set(row.id, row)
+      }
+      setExpenses(Array.from(mergedExpenses.values()))
       setUserGames((userGameResult.data ?? []) as UserGameRow[])
       setOverdueExpenses(
         findOverduePlannedExpenses(
           ((overdueResult.data ?? []) as unknown as (OverduePlannedExpense & { status: "PLANNED" | "CONFIRMED" | "CANCELLED" })[]),
-          getKstToday(),
+          today,
         ),
       )
     } catch {
@@ -216,9 +227,7 @@ export default function DashboardPage() {
       {error && <p role="alert" className="text-red-400">{error}</p>}
       <div className="flex items-center justify-end gap-2">
         {overdueExpenses.length > 0 && (
-          <Button type="button" variant="outline" onClick={() => setIsOverdueOpen(true)}>
-            {`기한 지난 예정 ${overdueExpenses.length}건`}
-          </Button>
+          <span className="text-sm text-yellow-300">{`기한 지난 예정 ${overdueExpenses.length}건을 정리해야 합니다.`}</span>
         )}
         <Button type="button" disabled={!isOnline} onClick={() => setIsExpenseModalOpen(true)}>지출 등록</Button>
       </div>
@@ -230,10 +239,9 @@ export default function DashboardPage() {
         onCompleted={() => void load()}
       />
       <OverduePlannedModal
-        open={isOverdueOpen}
+        open={overdueExpenses.length > 0 && payingExpense === null}
         expenses={overdueExpenses}
-        onOpenChange={setIsOverdueOpen}
-        onPay={(expense) => { setIsOverdueOpen(false); setPayingExpense(expense) }}
+        onPay={setPayingExpense}
         onChanged={() => void load()}
       />
       <ExpenseDetailModal

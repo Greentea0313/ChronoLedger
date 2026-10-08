@@ -1,5 +1,6 @@
 {
   "name": "ChronoLedger",
+  "id": "/dashboard",
   "short_name": "ChronoLedger",
   "description": "게임 일정 및 지출 관리 매니저",
   "lang": "ko",
@@ -12,6 +13,6 @@
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

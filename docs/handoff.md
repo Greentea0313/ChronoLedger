@@ -1,5 +1,21 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 7 Iteration 03 (2026-10-09)
+
+- Iteration 02 변경은 미커밋 상태였고 리뷰어는 이전 HEAD를 본 것으로 보인다(작업 트리에는 자동 열림 모달·`manifest.id`가 이미 있었음). 커밋 후 같은 Target SHA로 재리뷰가 필요하다.
+- `public/sw.js` v2: 읽기 API(Supabase `/rest/v1/` GET)를 JWT `sub`별 캐시 키로 저장하고 오프라인에서만 제공한다. 익명·만료 토큰, 비-GET, 타 출처는 가로채지 않는다. 등록 시 `supabaseOrigin`을 쿼리로 전달하며 로그아웃 시 전체 삭제한다.
+- 아이콘: 시계 "C" 기본 마크로 재생성(192/512/180, maskable 512 분리). 최종 브랜드 아트는 후속.
+- 개인 데이터 캐시가 기기에 남는 위험(공용 기기)은 로그아웃 삭제로 완화했으나 강제 종료·만료 케이스는 실기 확인 필요.
+
+## Phase 7 Iteration 02 (2026-10-09)
+
+- F1: 만료 PLANNED가 있으면 `OverduePlannedModal`이 대시보드 로드 후 자동으로 열리고 닫을 수 없다(`DialogContent`의 `hideClose`, Esc/바깥 클릭 차단). 결제 모달이 열린 동안만 숨고, 결제 없이 닫으면 다시 열린다.
+- F2: 그리드 범위 `end_date` PLANNED를 별도 조회해 병합하고 만료 조회는 `end_date`(없으면 `target_date`) 기준. 일정 연결 PLANNED는 `target_date=end_date`로 저장.
+- F3: `public/sw.js`(앱 셸 정적 자산·내비게이션 폴백, 교차 출처/비-GET 미개입), `ServiceWorkerRegister`(프로덕션에서만 등록, 로그아웃 시 캐시 삭제). 개인 데이터 오프라인 조회 캐시는 미구현으로 7.3을 부분 완료로 표기.
+- F4: `src/lib/offline-guard.ts`의 `isOffline()`을 지갑 위젯·결제·환불·만료 취소·게임 추가·요청 제출·관리자 처리 핸들러와 구독 Lazy Generation 쓰기 앞에 적용. 배너 문구 정정. 계정 삭제와 로그아웃은 보안 흐름이라 가드하지 않았다.
+- F5: manifest `id: "/dashboard"`, `icon-180.png`(임시) + apple-touch 연결. 정식 아이콘 교체는 릴리스 차단 항목(to-do 7.3).
+- 미검증: 실제 브라우저의 SW 등록/오프라인 동작, Android 설치, 실DB RPC/RLS/트리거(TESTS.sql 미실행), 게임명 placeholder.
+
 ## Phase 7 PWA 통합, 예산 귀속, 오프라인 방어 (2026-10-08)
 
 - 신규: `src/lib/budget-calculations.ts`, `src/lib/use-online-status.ts`, `src/components/expense/overdue-planned-modal.tsx`, `src/components/ui/offline-banner.tsx`, `public/manifest.json`, `public/icons/*`(임시 생성 아이콘). 수정: `layout.tsx`(manifest/viewport/배너), 대시보드(만료 PLANNED 조회·모달·결제 연결), 결제/환불/지갑 위젯의 오프라인 버튼 잠금, `md/TESTS.sql`(SCH-02).

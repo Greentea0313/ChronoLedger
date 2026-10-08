@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { GOOGLE_TIER_RATES, type GoogleTier, type PointPlatform } from "@/lib/payment-calculations"
 
 interface WalletRow {
@@ -72,6 +73,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
 
   const saveGoogle = async (event: FormEvent) => {
     event.preventDefault()
+    if (isOffline()) return setMessage({ kind: "error", text: OFFLINE_WRITE_MESSAGE })
     setIsSaving(true)
     setMessage(null)
     const { error } = await supabase.rpc("update_store_wallet_settings", {
@@ -86,6 +88,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
 
   const saveGalaxy = async (event: FormEvent) => {
     event.preventDefault()
+    if (isOffline()) return setMessage({ kind: "error", text: OFFLINE_WRITE_MESSAGE })
     const rate = Number(galaxyRate)
     if (galaxyRate.trim() === "" || !Number.isFinite(rate) || rate < 0 || rate > 100) {
       return setMessage({ kind: "error", text: "적립률은 0~100 사이로 입력해 주세요." })
@@ -104,6 +107,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
 
   const saveAdjustment = async (event: FormEvent) => {
     event.preventDefault()
+    if (isOffline()) return setMessage({ kind: "error", text: OFFLINE_WRITE_MESSAGE })
     const target = Number(targetBalance)
     if (targetBalance.trim() === "" || !Number.isSafeInteger(target) || target < 0) {
       return setMessage({ kind: "error", text: "목표 잔액은 0 이상의 정수로 입력해 주세요." })

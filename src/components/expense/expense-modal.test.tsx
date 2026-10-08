@@ -75,6 +75,7 @@ describe("ExpenseModal", () => {
       final_amount: 119000,
       start_date: "2026-10-25",
       end_date: "2026-11-12",
+      target_date: "2026-11-12",
     }))
     expect(rpc).toHaveBeenCalledWith("process_expense_payment", expect.objectContaining({
       p_expense_id: "e1",

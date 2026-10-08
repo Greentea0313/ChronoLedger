@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { mapPaymentError } from "@/lib/payment-calculations"
 
 export interface ExpenseDetail {
@@ -53,6 +54,10 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: Expens
 
   const refund = async () => {
     if (!expense) return
+    if (isOffline()) {
+      setError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
     setIsSubmitting(true)
     setError(null)
     const { error: rpcError } = await supabase.rpc("refund_expense_payment", { p_expense_id: expense.id })

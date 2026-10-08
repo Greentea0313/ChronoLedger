@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { supabase } from "@/lib/supabase/client"
 import { getBudgetDate } from "@/lib/budget-calculations"
 import { useOnlineStatus } from "@/lib/use-online-status"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 
 export interface OverduePlannedExpense {
   id: string
@@ -19,17 +20,21 @@ export interface OverduePlannedExpense {
 interface OverduePlannedModalProps {
   open: boolean
   expenses: OverduePlannedExpense[]
-  onOpenChange: (open: boolean) => void
   onPay: (expense: OverduePlannedExpense) => void
   onChanged?: () => void
 }
 
-export function OverduePlannedModal({ open, expenses, onOpenChange, onPay, onChanged }: OverduePlannedModalProps) {
+/** 기한이 지난 PLANNED 항목이 남아 있는 동안 닫을 수 없는(차단형) 모달이다. 목록이 비면 부모가 open을 false로 만든다. */
+export function OverduePlannedModal({ open, expenses, onPay, onChanged }: OverduePlannedModalProps) {
   const isOnline = useOnlineStatus()
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const cancel = async (expense: OverduePlannedExpense) => {
+    if (isOffline()) {
+      setError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
     setBusyId(expense.id)
     setError(null)
     const { error: rpcError } = await supabase.rpc("cancel_planned_expense", { p_expense_id: expense.id })
@@ -42,15 +47,21 @@ export function OverduePlannedModal({ open, expenses, onOpenChange, onPay, onCha
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-gray-700 bg-gray-800 text-white">
+    <Dialog open={open}>
+      <DialogContent
+        hideClose
+        onInteractOutside={(event) => event.preventDefault()}
+        onEscapeKeyDown={(event) => event.preventDefault()}
+        className="max-h-[90vh] overflow-y-auto border-gray-700 bg-gray-800 text-white"
+      >
         <DialogHeader>
           <DialogTitle>기한이 지난 예정 지출</DialogTitle>
           <DialogDescription>
-            결제하지 않은 채 종료일이 지난 항목입니다. 결제하거나 예정을 취소해 예산에서 정리해 주세요.
+            결제하지 않은 채 종료일이 지난 항목입니다. 계속하려면 결제하거나 예정을 취소해 정리해 주세요.
           </DialogDescription>
         </DialogHeader>
 
+        {!isOnline && <p role="status" className="text-sm text-yellow-300">오프라인 상태입니다. 연결이 복구되면 결제 또는 예정 취소를 진행할 수 있습니다.</p>}
         {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
         {expenses.length === 0 && <p className="text-sm text-gray-300">정리할 항목이 없습니다.</p>}
 

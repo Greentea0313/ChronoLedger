@@ -235,10 +235,13 @@
   - 대상 파일: `src/components/expense/overdue-planned-modal.tsx`, `src/lib/budget-calculations.ts`
   - 작업: 미결제 항목은 종료일 속한 달의 예산으로 배정, 이전 달 결제 시 익월 예정액에서 자동 차감 및 만료 처리 구현
   - verify: 10/25~11/12 픽업 지출을 10월에 결제했을 때 11월 총 예상 소비액이 즉시 줄어드는지 확인
-- [x] 7.3 PWA 매니페스트 및 오프라인 방어 배너
-  - 대상 파일: `public/manifest.json`, `src/components/ui/offline-banner.tsx`
-  - 작업: PWA 홈 화면 추가 설정, 유효한 인증 세션의 캐시 조회만 허용하고 오프라인 시 지출 쓰기를 비활성화
-  - verify: 세션 만료 시 캐시된 개인정보가 표시되지 않고 결제 등록 버튼이 잠기는지 확인
+- [x] 7.3 PWA 매니페스트, Service Worker(앱 셸 + 사용자별 읽기 API 캐시) 및 오프라인 방어 배너
+  - 대상 파일: `public/manifest.json`, `public/sw.js`, `src/components/pwa/service-worker-register.tsx`, `src/components/ui/offline-banner.tsx`
+  - 작업: PWA 홈 화면 추가 설정, 앱 셸 캐시, 인증 세션의 읽기 API(Supabase REST GET) 캐시 조회, 오프라인 시 쓰기 비활성화(버튼 + 핸들러 가드)
+  - 완료: manifest(`id`, 분리된 maskable 아이콘), `sw.js`(앱 셸 + Supabase `/rest/v1/` GET을 JWT `sub`별 키로 저장, 익명·만료 토큰·비-GET·타 출처 미개입), 로그아웃/세션 없음 시 `caches` 전체 삭제, 쓰기 가드. SW 로직은 `sw.test.ts`로 단위 검증.
+  - 제한: 오프라인 조회는 온라인에서 한 번 이상 본 요청에 한한다. 만료된 토큰으로는 캐시를 제공하지 않으므로 세션 만료 후 오프라인 조회는 막힌다.
+  - verify(7.4에서 실기 확인): 실제 브라우저에서 SW 등록·오프라인 셸/데이터 조회, 로그아웃 후 캐시 삭제
+  - 후속(비차단): 아이콘은 기본 브랜드 마크(시계 "C")를 코드로 생성한 것이다. 최종 브랜드 아트가 확정되면 교체한다.
 - [ ] 7.4 Web/PWA MVP 회귀 및 배포 빌드 검증
   - 대상 파일: Next.js 앱 및 Web/PWA 테스트 설정
   - 작업: 승인 SRS 수용 기준과 모바일 주요 흐름을 점검하고 정적 export 산출물을 배포 환경에서 검증

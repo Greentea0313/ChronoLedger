@@ -1,5 +1,14 @@
 # 프로젝트 진행 현황
 
+## Phase 7 Iteration 03 (2026-10-09)
+
+- SW 읽기 API 캐시(사용자별), 기본 브랜드 아이콘, 7.3 완료 표기. 상세는 handoff.md 참조.
+
+## Phase 7 Iteration 02 (2026-10-09)
+
+- 리뷰 5건(P7-F1~F5) 반영: 차단형 만료 모달 자동 표시, end_date 기준 조회 정합, 앱 셸 Service Worker, 오프라인 쓰기 가드 확대, manifest id·apple-touch 아이콘. 7.3은 개인 데이터 오프라인 조회 캐시 미구현으로 부분 완료(체크 해제)로 정정했다.
+- 검증: tsc, Vitest(23 files/75 tests), lint, dummy 공개 Supabase 값 build(`out/sw.js` 생성) 통과. 브라우저 SW·Android·실DB 동작은 미검증.
+
 ## Phase 7 Web/PWA 통합 구현 (2026-10-08)
 
 - 7.1: `md/TESTS.sql` SCH-02 시나리오 추가(미실행, 격리 Supabase 테스트 프로젝트에서 실행 필요).

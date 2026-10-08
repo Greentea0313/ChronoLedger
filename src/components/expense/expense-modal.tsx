@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context"
 import { getKstToday } from "@/lib/dashboard-date"
 import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import {
   calculateFinalAmount,
   estimateEarnedPoints,
@@ -170,6 +171,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!user) return
+    if (isOffline()) return setError(OFFLINE_WRITE_MESSAGE)
     setError(null)
 
     const validation = validatePayment(input, getKstToday(), input.usedPoints > 0 ? (pointWallet?.current_balance ?? 0) : null)
@@ -190,7 +192,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             title: title.trim(),
             category,
             status: "PLANNED",
-            target_date: input.paymentDate,
+            target_date: schedule?.end_date ?? input.paymentDate,
             start_date: schedule?.start_date ?? null,
             end_date: schedule?.end_date ?? null,
             original_price: input.originalPrice,

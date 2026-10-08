@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
+import { useOnlineStatus } from "@/lib/use-online-status"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -40,6 +42,7 @@ export default function AdminRequestsPage() {
   const [isDataLoading, setIsDataLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const isOnline = useOnlineStatus()
   const [defaultIconUrls, setDefaultIconUrls] = useState<Record<string, string>>({})
 
   const fetchRequests = useCallback(async () => {
@@ -93,6 +96,10 @@ export default function AdminRequestsPage() {
     isApprove: boolean,
     defaultIconUrl?: string,
   ) => {
+    if (isOffline()) {
+      setError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
     setProcessingId(id)
     setError(null)
     try {
@@ -201,7 +208,7 @@ export default function AdminRequestsPage() {
                             [req.id]: event.target.value,
                           }))
                         }
-                        disabled={processingId === req.id}
+                        disabled={processingId === req.id || !isOnline}
                         className="border-gray-700 bg-gray-900 text-white"
                       />
                       <div className="flex gap-2">
@@ -209,7 +216,7 @@ export default function AdminRequestsPage() {
                         variant="outline"
                         className="flex-1 md:flex-none border-green-700 text-green-400 hover:bg-green-900/30"
                         onClick={() => processRequest("game", req.id, true, defaultIconUrls[req.id])}
-                        disabled={processingId === req.id}
+                        disabled={processingId === req.id || !isOnline}
                       >
                         {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
                         승인
@@ -218,7 +225,7 @@ export default function AdminRequestsPage() {
                         variant="outline"
                         className="flex-1 md:flex-none border-red-700 text-red-400 hover:bg-red-900/30"
                         onClick={() => processRequest("game", req.id, false)}
-                        disabled={processingId === req.id}
+                        disabled={processingId === req.id || !isOnline}
                       >
                         {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
                         반려
@@ -254,7 +261,7 @@ export default function AdminRequestsPage() {
                         variant="outline"
                         className="flex-1 md:flex-none border-green-700 text-green-400 hover:bg-green-900/30"
                         onClick={() => processRequest("schedule", req.id, true)}
-                        disabled={processingId === req.id}
+                        disabled={processingId === req.id || !isOnline}
                       >
                         {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
                         승인
@@ -263,7 +270,7 @@ export default function AdminRequestsPage() {
                         variant="outline"
                         className="flex-1 md:flex-none border-red-700 text-red-400 hover:bg-red-900/30"
                         onClick={() => processRequest("schedule", req.id, false)}
-                        disabled={processingId === req.id}
+                        disabled={processingId === req.id || !isOnline}
                       >
                         {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
                         반려
