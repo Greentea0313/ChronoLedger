@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## Phase 2.4 DB/RPC/RLS 테스트 시나리오 준비 (2026-10-08)
+
+- `md/SCHEMA.sql`의 현재 테이블, 결제·환불/지갑/요청 RPC, 일정·구독 트리거 및 권한을 기준으로 `md/TESTS.sql`의 rollback-only 시나리오를 보강했다. synthetic 사용자 두 명의 Auth/JWT, 기본 finance/wallet fixture, 실행 순서와 성공/실패 기대 조건을 문서화했다.
+- 사용자 RPC 호출은 `authenticated` 역할로 실행하며 결제·환불, 일정 동기화, 요청 승인/반려와 원자성, RLS 교차 사용자 격리·직접 쓰기 차단, anon 실행 권한을 다룬다. 오류를 유도한 예상 실패도 오류 메시지와 상태 불변을 확인한다.
+- DB 연결 및 SQL 실행은 사용자의 범위 지시에 따라 수행하지 않았다. 정적 검토와 `git diff --check`만 수행했으며, 현재 확장 시나리오의 런타임 결과는 미검증이다. 전용 비운영 Supabase 테스트 프로젝트에서 후속 실행이 필요하다.
+
 ## Phase 1 Web/PWA 기반 완료 (2026-10-08)
 
 - `collab/phase1-completion`에서 Progress/Drawer UI 컴포넌트와 의존성을 추가하고 Supabase 브라우저 client의 환경변수 누락을 명시적으로 오류 처리했다. 기존 Dialog/Select 및 PKCE/Tauri 인증 흐름은 유지했다.
