@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "run_id": "phase7-pwa-integration",
+  "created_at": "2026-10-08T14:11:33.8193236+00:00",
+  "objective": "Phase 7 Web/PWA 통합, 안정화 및 릴리스 검증",
+  "acceptance_criteria": [
+    "7.1 게임/픽업 일정 변경 시 안전 동기화 (트리거), 7.2 두 달 걸치는 픽업 일정 이월/차감 및 만료 모달, 7.3 PWA 매니페스트/오프라인 방어, 7.4 Web/PWA MVP 회귀 및 배포 빌드 검증"
+  ],
+  "base_sha": "1675eeeb7433a1cff58fb384850ab66c7446f5ff",
+  "target_sha": null,
+  "branch": "collab/phase7-pwa-integration",
+  "worktree_path": ".worktrees/phase7-pwa-integration",
+  "max_iterations": 3,
+  "status": "in_progress"
+}
