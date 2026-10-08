@@ -7,7 +7,6 @@ import { DesktopCalendar, type DesktopCalendarDay } from "@/components/calendar/
 import { HeroSidebar, type HeroExpenseItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
 import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, parseLocalDate } from "@/lib/calendar-utils"
-import { Button } from "@/components/ui/button"
 import { ExpenseModal } from "@/components/expense/expense-modal"
 import { ExpenseDetailModal } from "@/components/expense/expense-detail-modal"
 import { OverduePlannedModal, type OverduePlannedExpense } from "@/components/expense/overdue-planned-modal"
@@ -225,12 +224,11 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4">
       {error && <p role="alert" className="text-red-400">{error}</p>}
-      <div className="flex items-center justify-end gap-2">
-        {overdueExpenses.length > 0 && (
-          <span className="text-sm text-yellow-300">{`기한 지난 예정 ${overdueExpenses.length}건을 정리해야 합니다.`}</span>
-        )}
-        <Button type="button" disabled={!isOnline} onClick={() => setIsExpenseModalOpen(true)}>지출 등록</Button>
-      </div>
+      {overdueExpenses.length > 0 && (
+        <div className="flex items-center justify-end">
+          <span className="text-sm text-warning">{`기한 지난 예정 ${overdueExpenses.length}건을 정리해야 합니다.`}</span>
+        </div>
+      )}
       <ExpenseModal open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen} onCompleted={() => void load()} />
       <ExpenseModal
         open={payingExpense !== null}
@@ -267,6 +265,8 @@ export default function DashboardPage() {
             expenses={dayExpenses}
             memos={dayMemos}
             onSelectExpense={setDetailExpenseId}
+            onRegisterExpense={() => setIsExpenseModalOpen(true)}
+            registerDisabled={!isOnline}
           />
         </div>
         <HeroSidebar
@@ -278,6 +278,8 @@ export default function DashboardPage() {
           expenses={dayExpenses}
           memos={dayMemos}
           onSelectExpense={setDetailExpenseId}
+          onRegisterExpense={() => setIsExpenseModalOpen(true)}
+          registerDisabled={!isOnline}
         />
       </div>
     </div>

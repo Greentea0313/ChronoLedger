@@ -15,7 +15,6 @@ export function EmptyState({ message, hint, className, ...props }: EmptyStatePro
       )}
       {...props}
     >
-      <span aria-hidden="true" className="text-lg text-content-muted">□</span>
       <p className="text-sm text-content-secondary">{message}</p>
       {hint && <p className="text-xs text-content-muted">{hint}</p>}
     </div>

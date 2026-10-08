@@ -56,3 +56,26 @@ export async function deleteUserIcon(userId: string, gameId: string): Promise<vo
     throw new Error(`이미지 삭제에 실패했습니다: ${error.message}`)
   }
 }
+
+// 프로필 사진은 게임 아이콘과 같은 비공개 버킷의 사용자 폴더에 `profile.webp`로 저장한다.
+// 계정 삭제 워커가 사용자 폴더 전체를 정리하므로 별도 정리 로직이 필요 없다.
+const PROFILE_AVATAR_ID = 'profile'
+export const PROFILE_AVATAR_CHANGED_EVENT = 'cl-profile-avatar-changed'
+
+function notifyProfileAvatarChanged(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(PROFILE_AVATAR_CHANGED_EVENT))
+}
+
+export async function uploadProfileAvatar(userId: string, imageBlob: Blob): Promise<void> {
+  await uploadUserIcon(userId, PROFILE_AVATAR_ID, imageBlob)
+  notifyProfileAvatarChanged()
+}
+
+export function downloadProfileAvatar(userId: string): Promise<string | null> {
+  return downloadUserIcon(userId, PROFILE_AVATAR_ID)
+}
+
+export async function deleteProfileAvatar(userId: string): Promise<void> {
+  await deleteUserIcon(userId, PROFILE_AVATAR_ID)
+  notifyProfileAvatarChanged()
+}
