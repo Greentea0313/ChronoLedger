@@ -624,7 +624,7 @@ export type Database = {
           p_payment_date: string
           p_payment_method: string
           p_point_discount_amount: number
-          p_point_platform: string
+          p_point_platform: string | null
           p_used_points: number
         }
         Returns: undefined
@@ -650,7 +650,7 @@ export type Database = {
         Returns: undefined
       }
       update_store_wallet_settings: {
-        Args: { p_earn_rate: number; p_platform: string; p_tier: string }
+        Args: { p_earn_rate: number; p_platform: string; p_tier: string | null }
         Returns: undefined
       }
     }

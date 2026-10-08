@@ -3,6 +3,17 @@ export interface DateRange {
   endDateExclusive: string
 }
 
+export function getKstToday(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now)
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? ""
+  return `${value("year")}-${value("month")}-${value("day")}`
+}
+
 export function getKstMonthDateRange(now: Date): DateRange {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Seoul",

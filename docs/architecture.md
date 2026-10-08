@@ -34,6 +34,7 @@ Netlify Functions (계정 삭제 전용 서버 경계)
 
 - `src/app/`: 인증, 캘린더, 설정, 관리자 요청 화면의 라우팅과 페이지 조립.
 - `src/app/page.tsx`는 단일 로그인 경로 `/auth`로 이동한다. `src/app/dashboard/layout.tsx`는 세션 로딩과 사용자 존재 여부를 확인해 보호 화면 렌더링을 제어한다. 데이터 권한은 Supabase RLS가 강제한다.
+- `src/components/wallet/store-wallet-widget.tsx`: 스토어 지갑 설정/수동 보정 위젯(설정 페이지). `src/components/expense/expense-modal.tsx`, `expense-detail-modal.tsx`: 결제(`process_expense_payment`)와 환불(`refund_expense_payment`) 모달. `src/lib/payment-calculations.ts`: 실결제액·적립 추정·검증·RPC 오류 매핑.
 - `src/components/calendar/`: 반응형 월간 캘린더, 일정 배너, 메모 도트, 선택 날짜 상세 및 예산 화면. 타일에는 금액을 그리지 않는다.
 - `src/components/calendar/desktop-calendar.tsx`: 6주 월간 그리드와 타일 렌더링(배너/아이콘/메모 도트 전용, 금액 미표시).
 - `src/components/calendar/hero-sidebar.tsx`, `mobile-drawer.tsx`: 선택일 상세, 예산 진행률, 포인트 요약을 데스크톱/모바일 각각의 레이아웃으로 표시한다.

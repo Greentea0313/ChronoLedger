@@ -5,6 +5,7 @@ import type { FormEvent } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { StoreWalletWidget } from "@/components/wallet/store-wallet-widget"
 import { useAuth } from "@/lib/auth-context"
 import { requestAccountDeletion } from "@/lib/account-deletion"
 
@@ -39,6 +40,8 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold text-blue-400">설정</h1>
         <p className="mt-2 text-sm text-gray-300">계정과 개인정보 관리</p>
       </header>
+
+      <StoreWalletWidget />
 
       <Card className="border-red-900 bg-gray-800 text-white">
         <CardHeader>

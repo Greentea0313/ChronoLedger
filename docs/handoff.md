@@ -1,5 +1,11 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 6 가계부, 결제/환불, 포인트 지갑 (2026-10-08)
+
+- 신규: `src/lib/payment-calculations.ts`, `src/components/wallet/store-wallet-widget.tsx`, `src/components/expense/expense-modal.tsx`, `expense-detail-modal.tsx`와 각 테스트. 설정 페이지·대시보드·히어로 사이드바/모바일 드로어(`onSelectExpense`) 연동, `database.types.ts`의 `p_point_platform`/`p_tier`를 nullable로 조정.
+- 결제 흐름: RPC가 기존 PLANNED 지출만 받으므로 모달이 PLANNED 행을 먼저 insert 후 RPC를 호출한다. RPC 실패 시 생성된 행을 재사용해 재시도한다.
+- 후속: 실DB RPC/RLS/원장 검증, 실제 게임명 연동, PLANNED 지출의 결제·취소 UI 연결.
+
 ## Phase 5 미니멀 캘린더 코어, 메모, Lazy Generation (2026-10-08)
 
 - Phase 5 Iteration 02 리뷰 반영: 조회 범위를 42일 그리드 전체로 확장, 예상 지출에 CONFIRMED 포함(표시 월·CANCELLED 제외), date-only 문자열 로컬 파싱, 초기 날짜를 마운트 후 설정해 hydration 불일치 방지, EOF 공백 정리. tsc/Vitest(15 files/45 tests)/lint/build 통과, 실DB 검증은 미수행.

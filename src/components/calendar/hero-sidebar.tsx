@@ -22,6 +22,7 @@ interface HeroSidebarProps {
   wallets: HeroWalletItem[]
   expenses: HeroExpenseItem[]
   memos: string[]
+  onSelectExpense?: (expenseId: string) => void
 }
 
 export function HeroSidebarContent({
@@ -32,6 +33,7 @@ export function HeroSidebarContent({
   wallets,
   expenses,
   memos,
+  onSelectExpense,
 }: HeroSidebarProps) {
   const budgetProgress =
     budgetAmount > 0 ? Math.min(100, Math.round((expectedExpense / budgetAmount) * 100)) : 0
@@ -79,7 +81,15 @@ export function HeroSidebarContent({
               <p className="text-sm text-gray-400">해당 일자의 지출이 없습니다.</p>
             ) : (
               expenses.map((expense) => (
-                <div key={expense.id} className="rounded border border-gray-700 bg-gray-900 p-2 text-sm">
+                <div
+                  key={expense.id}
+                  className={`rounded border border-gray-700 bg-gray-900 p-2 text-sm${onSelectExpense ? " cursor-pointer" : ""}`}
+                  role={onSelectExpense ? "button" : undefined}
+                  tabIndex={onSelectExpense ? 0 : undefined}
+                  aria-label={onSelectExpense ? `${expense.title} 상세` : undefined}
+                  onClick={onSelectExpense ? () => onSelectExpense(expense.id) : undefined}
+                  onKeyDown={onSelectExpense ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectExpense(expense.id) } } : undefined}
+                >
                   <p className="font-medium">{expense.title}</p>
                   <p className="text-xs text-gray-400">{expense.gameName ?? "게임 미연결"}</p>
                   <p className="mt-1 text-blue-300">{expense.final_amount.toLocaleString()} 원</p>

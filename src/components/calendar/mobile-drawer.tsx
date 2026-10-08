@@ -21,6 +21,7 @@ interface MobileDrawerProps {
   wallets: HeroWalletItem[]
   expenses: HeroExpenseItem[]
   memos: string[]
+  onSelectExpense?: (expenseId: string) => void
 }
 
 export function MobileDrawer({
@@ -31,6 +32,7 @@ export function MobileDrawer({
   wallets,
   expenses,
   memos,
+  onSelectExpense,
 }: MobileDrawerProps) {
   return (
     <div className="lg:hidden">
@@ -54,6 +56,7 @@ export function MobileDrawer({
               wallets={wallets}
               expenses={expenses}
               memos={memos}
+              onSelectExpense={onSelectExpense}
             />
           </div>
         </DrawerContent>

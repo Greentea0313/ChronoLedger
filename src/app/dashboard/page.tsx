@@ -7,6 +7,9 @@ import { DesktopCalendar, type DesktopCalendarDay } from "@/components/calendar/
 import { HeroSidebar, type HeroExpenseItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
 import { buildCalendarGrid, enumerateDates, getGridRange, getMonthRange, getTodayLocalDate, parseLocalDate } from "@/lib/calendar-utils"
+import { Button } from "@/components/ui/button"
+import { ExpenseModal } from "@/components/expense/expense-modal"
+import { ExpenseDetailModal } from "@/components/expense/expense-detail-modal"
 import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
 
 interface ScheduleRow {
@@ -29,6 +32,15 @@ interface ExpenseRow {
   status: "PLANNED" | "CONFIRMED" | "CANCELLED"
   target_date: string
   game_id: string | null
+  category: string
+  original_price: number
+  discount_amount: number
+  point_discount_amount: number
+  used_points: number
+  earned_points: number
+  payment_method: string
+  deduct_from_asset: boolean
+  point_platform: string | null
 }
 
 interface UserGameRow {
@@ -48,6 +60,8 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [userGames, setUserGames] = useState<UserGameRow[]>([])
 
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
+  const [detailExpenseId, setDetailExpenseId] = useState<string | null>(null)
   const [viewMonth, setViewMonth] = useState<{ year: number; month: number } | null>(null)
 
   useEffect(() => {
@@ -85,7 +99,7 @@ export default function DashboardPage() {
         supabase.from("store_wallets").select("platform, current_balance").eq("user_id", user.id),
         supabase.from("game_schedules").select("id, schedule_type, start_date, end_date, game_id").lt("start_date", endDateExclusive).gte("end_date", startDate),
         supabase.from("personal_memos").select("memo_date, content").eq("user_id", user.id).gte("memo_date", startDate).lt("memo_date", endDateExclusive),
-        supabase.from("expenses").select("id, title, final_amount, status, target_date, game_id").eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
+        supabase.from("expenses").select("id, title, final_amount, status, target_date, game_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, deduct_from_asset, point_platform").eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
         supabase.from("user_games").select("game_id").eq("user_id", user.id),
       ])
 
@@ -128,6 +142,12 @@ export default function DashboardPage() {
         })),
     [baseDate, expenses],
   )
+  const detailExpense = useMemo(() => {
+    const expense = expenses.find((item) => item.id === detailExpenseId)
+    return expense
+      ? { ...expense, gameName: expense.game_id ? `게임 ${expense.game_id.slice(0, 4)}` : null }
+      : null
+  }, [detailExpenseId, expenses])
   const expectedExpense = useMemo(() => {
     const { startDate, endDateExclusive } = ready ? getMonthRange(year, month) : { startDate: "", endDateExclusive: "" }
     return expenses
@@ -184,6 +204,15 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4">
       {error && <p role="alert" className="text-red-400">{error}</p>}
+      <div className="flex justify-end">
+        <Button type="button" onClick={() => setIsExpenseModalOpen(true)}>지출 등록</Button>
+      </div>
+      <ExpenseModal open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen} onCompleted={() => void load()} />
+      <ExpenseDetailModal
+        expense={detailExpense}
+        onOpenChange={(open) => { if (!open) setDetailExpenseId(null) }}
+        onRefunded={() => void load()}
+      />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">
           <DesktopCalendar
@@ -201,6 +230,7 @@ export default function DashboardPage() {
             wallets={wallets}
             expenses={dayExpenses}
             memos={dayMemos}
+            onSelectExpense={setDetailExpenseId}
           />
         </div>
         <HeroSidebar
@@ -211,6 +241,7 @@ export default function DashboardPage() {
           wallets={wallets}
           expenses={dayExpenses}
           memos={dayMemos}
+          onSelectExpense={setDetailExpenseId}
         />
       </div>
     </div>

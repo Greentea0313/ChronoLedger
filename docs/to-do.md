@@ -211,15 +211,15 @@
 ---
 
 ### Phase 6. 가계부, 결제/환불 RPC 연동 및 포인트 지갑
-- [ ] 6.1 스토어 포인트 지갑 위젯 및 계정 등급 설정
+- [x] 6.1 스토어 포인트 지갑 위젯 및 계정 등급 설정
   - 대상 파일: `src/components/wallet/store-wallet-widget.tsx`, `src/app/settings/page.tsx`
   - 작업: `update_store_wallet_settings` RPC 연동(구글 등급별 적립률, 갤럭시 적립률 수정) 및 잔액 수동 보정 UI 구현
   - verify: 설정 변경 시 지갑 레코드가 정상 갱신되고 수동 보정 시 원장에 `MANUAL_ADJUST`가 기록되는지 확인
-- [ ] 6.2 정밀 결제 모달 및 `process_expense_payment` 연동
+- [x] 6.2 정밀 결제 모달 및 `process_expense_payment` 연동
   - 대상 파일: `src/components/expense/expense-modal.tsx`
   - 작업: 계층형 등록(카테고리 $\to$ 게임 $\to$ 버전/픽업 탭), `WALLET`/`GOOGLE_PLAY`/`GALAXY_STORE` 결제수단, 할인/포인트할인 분리 입력, 자산 차감 토글 및 RPC 호출
   - verify: 정가 119,000원, 쿠폰 5,000원(250P 소모) 입력 시 실결제액 114,000원 산출 및 잔액 차감 확인
-- [ ] 6.3 결제 취소/환불 UI 및 `refund_expense_payment` 연동
+- [x] 6.3 결제 취소/환불 UI 및 `refund_expense_payment` 연동
   - 대상 파일: `src/components/expense/expense-detail-modal.tsx`
   - 작업: 지출 상세에서 [결제 취소] 클릭 시 환불 RPC 호출 (포인트 반환, 적립 회수, 자산 복원)
   - verify: 적립 포인트를 이미 써서 잔액이 부족한 경우 환불 거부 에러 메시지가 정상 노출되는지 확인
