@@ -29,7 +29,10 @@ function Invoke-RepoGit {
     param([Parameter(Mandatory = $true)][string[]]$GitArguments)
 
     $allArguments = @('-c', "safe.directory=$repoRoot", '-C', $repoRoot) + $GitArguments
+    $oldEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     $output = & git @allArguments 2>&1
+    $ErrorActionPreference = $oldEAP
     if ($LASTEXITCODE -ne 0) {
         throw "git $($GitArguments -join ' ') failed (exit $LASTEXITCODE): $($output -join "`n")"
     }
