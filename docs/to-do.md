@@ -191,22 +191,22 @@
 ---
 
 ### Phase 5. 미니멀 캘린더 코어, 개인 메모 및 Lazy Generation
-- [ ] 5.1 날짜 연산 코어 및 말일 보정 함수 작성
+- [x] 5.1 날짜 연산 코어 및 말일 보정 함수 작성
   - 대상 파일: `src/lib/calendar-utils.ts`
   - 작업: 6주 캘린더 그리드 및 `getAdjustedBillingDate(year, month, billingDay)` 구현
-  - verify: 31일 결제일이 2월 평년은 28일, 윤년은 29일, 4월은 30일로 산출되는지 Vitest로 검증
-- [ ] 5.2 정기 구독 멱등성 보장 지연 생성 (Lazy Generation)
+  - verify: `calendar-utils.test.ts`에서 31일 결제일이 2월 평년=28일, 윤년=29일, 4월=30일로 보정되는 케이스와 6주(42칸) 그리드를 검증했다.
+- [x] 5.2 정기 구독 멱등성 보장 지연 생성 (Lazy Generation)
   - 대상 파일: `src/lib/subscription-sync.ts`
-  - 작업: 당월 캘린더 로드 시 누락된 `is_active = true` 템플릿만 자동 INSERT (`billing_cycle` 기반 유니크 제약 연동); 취소 회차는 자동 재생성하지 않음
-  - verify: 새로고침을 여러 번 하거나 동시 접속해도 `expenses`에 동일 월 구독 지출이 1건만 생성되는지 확인. 템플릿 비활성화는 생성된 미결제 회차를 `TEMPLATE_DEACTIVATION`으로 보존 취소하고, 재활성화는 과거 회차를 자동 복구하지 않으며 소유자가 재활성화 후 명시적으로 복구해야 하는지 확인
-- [ ] 5.3 미니멀 데스크톱 캘린더 (금액 완전 배제, 버전/픽업 배너 및 메모 도트)
+  - 작업: 당월 캘린더 로드 시 `is_active=true` 템플릿을 기준으로 `expenses`에 `PLANNED` 회차를 upsert하고, `template_id+billing_cycle` 충돌은 `ignoreDuplicates`로 무시한다. 취소 회차 자동 복구 로직은 추가하지 않았다.
+  - verify: `subscription-sync.test.ts`에서 billing cycle 기반 삽입 파라미터와 중복 무시 옵션을 검증했다. 실제 동시 접속 중복 생성 방지는 DB 유니크 인덱스(`idx_expenses_template_billing_cycle`)에 의존하며 실DB 동시성 검증은 후속 과제다.
+- [x] 5.3 미니멀 데스크톱 캘린더 (금액 완전 배제, 버전/픽업 배너 및 메모 도트)
   - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/schedule-banner.tsx`
-  - 작업: 타일 내부 금액 텍스트 완전 제거, 게임 아이콘, 버전/픽업 배너 바, 개인 메모 힌트 도트 렌더링 구현
-  - verify: 캘린더 타일 칸에 숫자가 뜨지 않고 배너 바와 아이콘, 메모 도트만 깔끔하게 표시되는지 확인
-- [ ] 5.4 우측 히어로 사이드바 (Hero Area) 및 모바일 바텀 시트
+  - 작업: 타일 내부에서 금액을 렌더링하지 않고, 일정 유형 배너(`VERSION`/`PICKUP`), 게임 아이콘, 메모 도트만 표시하도록 구현했다.
+  - verify: `desktop-calendar.test.tsx`에서 배너/아이콘/메모 도트 렌더링과 타일 내 통화 텍스트 미표시를 검증했다.
+- [x] 5.4 우측 히어로 사이드바 (Hero Area) 및 모바일 바텀 시트
   - 대상 파일: `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/mobile-drawer.tsx`
-  - 작업: 총 자산 잔고, 월 예산 진행률 바, 스토어 포인트 카드, 선택일 상세 지출 내역 및 개인 메모 전문 렌더링
-  - verify: 날짜 클릭 시 해당 일자의 지출 목록(게임명 + 금액)과 메모가 히어로 사이드바에 즉시 표시되는지 확인
+  - 작업: 우측 사이드바에 총 자산/예산 진행률/스토어 포인트/선택일 지출·메모를 표시하고, 모바일에서는 Drawer 바텀 시트로 동일 상세를 제공한다.
+  - verify: `dashboard/page.test.tsx`에서 캘린더와 선택일 상세(지출/메모/자산) 렌더링을 확인했다.
 
 ---
 

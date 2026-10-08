@@ -1,5 +1,24 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 5 미니멀 캘린더 코어, 메모, Lazy Generation (2026-10-08)
+
+- 신규 구현:
+  - `src/lib/calendar-utils.ts`, `src/lib/subscription-sync.ts`
+  - `src/components/calendar/desktop-calendar.tsx`, `schedule-banner.tsx`, `hero-sidebar.tsx`, `mobile-drawer.tsx`
+  - `src/app/dashboard/page.tsx` 캘린더 중심 대시보드로 전환
+- 핵심 동작:
+  - 6주(42칸) 캘린더 그리드와 말일 보정 청구일 계산
+  - 월 캘린더 로드 시 활성 구독 템플릿의 Lazy Generation 실행(중복은 DB 유니크+ignoreDuplicates로 방지)
+  - 타일에서 금액은 배제하고 배너/아이콘/메모 도트만 표시
+  - 데스크톱 우측 히어로 사이드바 + 모바일 바텀 시트에서 선택일 지출/메모 상세 제공
+- 테스트:
+  - 추가: `calendar-utils.test.ts`, `subscription-sync.test.ts`, `desktop-calendar.test.tsx`
+  - 갱신: `dashboard/page.test.tsx`
+  - 전체: Vitest 15 files/43 tests 통과
+- 미검증/후속:
+  - 실제 Supabase에서 Lazy Generation 동시성 검증(다중 탭/다중 세션)
+  - 템플릿 비활성화 후 재활성화 시 과거 회차 비자동복구 정책의 end-to-end 검증
+
 ## Phase 3 Web/PWA 인증 및 계정 삭제 구현 (2026-10-08)
 
 - 이메일 인증/가입, Google OAuth/PKCE, 세션 변경 및 dashboard gate에 대한 구현과 단위 테스트를 추가했다. 실제 Supabase OAuth 왕복은 이번 작업에서 실행하지 않았다.

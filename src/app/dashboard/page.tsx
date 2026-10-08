@@ -1,158 +1,208 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Wallet, CreditCard, LogOut, AlertCircle } from "lucide-react"
-import { getKstMonthDateRange } from "@/lib/dashboard-date"
-import { RequestSubmissionModal } from "@/components/game/request-submission-modal"
+import { DesktopCalendar, type DesktopCalendarDay } from "@/components/calendar/desktop-calendar"
+import { HeroSidebar, type HeroExpenseItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
+import { MobileDrawer } from "@/components/calendar/mobile-drawer"
+import { buildCalendarGrid, getMonthRange } from "@/lib/calendar-utils"
+import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
+
+interface ScheduleRow {
+  id: string
+  schedule_type: "VERSION" | "PICKUP"
+  start_date: string
+  end_date: string
+  game_id: string
+}
+
+interface MemoRow {
+  memo_date: string
+  content: string
+}
+
+interface ExpenseRow {
+  id: string
+  title: string
+  final_amount: number
+  status: "PLANNED" | "CONFIRMED" | "CANCELLED"
+  target_date: string
+  game_id: string | null
+}
+
+interface UserGameRow {
+  game_id: string
+}
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
-  const router = useRouter()
-
-  const [plannedExpense, setPlannedExpense] = useState<number | null>(null)
-  const [expenseError, setExpenseError] = useState<string | null>(null)
-
+  const today = new Date()
+  const [selectedDate, setSelectedDate] = useState(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
+  )
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [totalAsset, setTotalAsset] = useState<number | null>(null)
-  const [assetError, setAssetError] = useState<string | null>(null)
+  const [budgetAmount, setBudgetAmount] = useState(0)
+  const [wallets, setWallets] = useState<HeroWalletItem[]>([])
+  const [schedules, setSchedules] = useState<ScheduleRow[]>([])
+  const [memos, setMemos] = useState<MemoRow[]>([])
+  const [expenses, setExpenses] = useState<ExpenseRow[]>([])
+  const [userGames, setUserGames] = useState<UserGameRow[]>([])
 
-  const [isDataLoading, setIsDataLoading] = useState(true)
-  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const year = today.getFullYear()
+  const month = today.getMonth() + 1
 
-  const fetchDashboardData = useCallback(async () => {
-    setIsDataLoading(true)
-    setExpenseError(null)
-    setAssetError(null)
-
-    try {
-      const { data: assetData, error: aError } = await supabase
-        .from('user_finances')
-        .select('total_asset')
-        .eq('user_id', user?.id)
-        .maybeSingle()
-
-      if (aError) {
-        setAssetError("자산 데이터를 불러올 수 없습니다.")
-      } else if (!assetData) {
-        setAssetError("자산 데이터가 아직 설정되지 않았습니다.")
-      } else {
-        setTotalAsset(assetData.total_asset)
-      }
-    } catch {
-      setAssetError("자산 데이터를 불러올 수 없습니다.")
-    }
+  const load = useCallback(async () => {
+    if (!user) return
+    setIsLoading(true)
+    setError(null)
 
     try {
-      const { startDate, endDateExclusive } = getKstMonthDateRange(new Date())
-      const { data: expenseData, error: eError } = await supabase
-        .from('expenses')
-        .select('final_amount')
-        .eq('user_id', user?.id)
-        .eq('status', 'PLANNED')
-        .or(`and(end_date.gte.${startDate},end_date.lt.${endDateExclusive}),and(end_date.is.null,target_date.gte.${startDate},target_date.lt.${endDateExclusive})`)
+      await ensureMonthlySubscriptionExpenses(user.id, year, month)
+      const { startDate, endDateExclusive } = getMonthRange(year, month)
 
-      if (eError) {
-        setExpenseError("지출 데이터를 불러올 수 없습니다.")
-      } else {
-        const total = expenseData.reduce((acc, curr) => acc + curr.final_amount, 0)
-        setPlannedExpense(total)
+      const [
+        financeResult,
+        budgetResult,
+        walletResult,
+        scheduleResult,
+        memoResult,
+        expenseResult,
+        userGameResult,
+      ] = await Promise.all([
+        supabase.from("user_finances").select("total_asset, default_budget").eq("user_id", user.id).maybeSingle(),
+        supabase.from("monthly_budgets").select("budget_amount").eq("user_id", user.id).eq("year", year).eq("month", month).maybeSingle(),
+        supabase.from("store_wallets").select("platform, current_balance").eq("user_id", user.id),
+        supabase.from("game_schedules").select("id, schedule_type, start_date, end_date, game_id").lt("start_date", endDateExclusive).gte("end_date", startDate),
+        supabase.from("personal_memos").select("memo_date, content").eq("user_id", user.id).gte("memo_date", startDate).lt("memo_date", endDateExclusive),
+        supabase.from("expenses").select("id, title, final_amount, status, target_date, game_id").eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
+        supabase.from("user_games").select("game_id").eq("user_id", user.id),
+      ])
+
+      if (financeResult.error || budgetResult.error || walletResult.error || scheduleResult.error || memoResult.error || expenseResult.error || userGameResult.error) {
+        throw new Error("DASHBOARD_FETCH_FAILED")
       }
+
+      setTotalAsset(financeResult.data?.total_asset ?? null)
+      const monthlyBudget = budgetResult.data?.budget_amount ?? 0
+      setBudgetAmount(monthlyBudget > 0 ? monthlyBudget : (financeResult.data?.default_budget ?? 0))
+      setWallets((walletResult.data ?? []) as HeroWalletItem[])
+      setSchedules((scheduleResult.data ?? []) as ScheduleRow[])
+      setMemos((memoResult.data ?? []) as MemoRow[])
+      setExpenses((expenseResult.data ?? []) as ExpenseRow[])
+      setUserGames((userGameResult.data ?? []) as UserGameRow[])
     } catch {
-      setExpenseError("지출 데이터를 불러올 수 없습니다.")
+      setError("대시보드 데이터를 불러오지 못했습니다.")
     } finally {
-      setIsDataLoading(false)
+      setIsLoading(false)
     }
-  }, [user?.id])
+  }, [month, user, year])
 
   useEffect(() => {
     if (!authLoading && user) {
-      void fetchDashboardData()
+      void load()
     }
-  }, [authLoading, fetchDashboardData, user])
+  }, [authLoading, load, user])
 
-  const handleLogout = async () => {
-    setLogoutError(null)
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        setLogoutError(`로그아웃하지 못했습니다: ${error.message}`)
-        return
+  const dayMemos = useMemo(
+    () => memos.filter((memo) => memo.memo_date === selectedDate).map((memo) => memo.content),
+    [memos, selectedDate],
+  )
+  const dayExpenses = useMemo<HeroExpenseItem[]>(
+    () =>
+      expenses
+        .filter((expense) => expense.target_date === selectedDate)
+        .map((expense) => ({
+          ...expense,
+          gameName: expense.game_id ? `게임 ${expense.game_id.slice(0, 4)}` : null,
+        })),
+    [expenses, selectedDate],
+  )
+  const expectedExpense = useMemo(
+    () =>
+      expenses
+        .filter((expense) => expense.status === "PLANNED")
+        .reduce((sum, expense) => sum + expense.final_amount, 0),
+    [expenses],
+  )
+
+  const scheduleDates = useMemo(() => {
+    const map = new Map<string, ScheduleRow[]>()
+    for (const schedule of schedules) {
+      const start = new Date(schedule.start_date)
+      const end = new Date(schedule.end_date)
+      for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+        const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`
+        map.set(key, [...(map.get(key) ?? []), schedule])
       }
-      router.replace("/auth")
-    } catch (cause: unknown) {
-      const description = cause instanceof Error ? cause.message : String(cause)
-      setLogoutError(`로그아웃 중 오류가 발생했습니다: ${description}`)
     }
-  }
+    return map
+  }, [schedules])
 
-  if (authLoading) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">인증 확인 중...</div>
+  const memoDates = useMemo(() => new Set(memos.map((memo) => memo.memo_date)), [memos])
+  const iconGameIds = useMemo(() => new Set(userGames.map((game) => game.game_id)), [userGames])
+
+  const days = useMemo<DesktopCalendarDay[]>(
+    () =>
+      buildCalendarGrid(year, month).map((cell) => {
+        const daySchedules = scheduleDates.get(cell.date) ?? []
+        return {
+          ...cell,
+          schedules: daySchedules.map((schedule) => ({
+            id: schedule.id,
+            schedule_type: schedule.schedule_type,
+          })),
+          icons: daySchedules
+            .map((schedule) => schedule.game_id)
+            .filter((gameId, index, self) => self.indexOf(gameId) === index)
+            .filter((gameId) => iconGameIds.has(gameId))
+            .map((gameId) => ({ gameId, label: `게임 ${gameId.slice(0, 4)}`, icon: "🎮" })),
+          hasMemo: memoDates.has(cell.date),
+        }
+      }),
+    [iconGameIds, memoDates, month, scheduleDates, year],
+  )
+
+  if (authLoading || isLoading) {
+    return <div className="p-6 text-white">불러오는 중...</div>
+  }
+  if (!user) {
+    return <div className="p-6 text-white">로그인이 필요합니다.</div>
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <header className="flex flex-col items-start justify-between gap-4 pb-4 border-b border-gray-800 sm:flex-row sm:items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-blue-400">ChronoLedger</h1>
-            <p className="text-sm text-gray-400 mt-1">{user?.email} 님, 환영합니다.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <RequestSubmissionModal />
-            <Button variant="outline" onClick={handleLogout} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-              <LogOut className="w-4 h-4 mr-2" />
-              로그아웃
-            </Button>
-          </div>
-        </header>
-        {logoutError && <p role="alert" className="text-sm text-red-400">{logoutError}</p>}
-
-        <div role="status" aria-live="polite" className="sr-only">
-          {isDataLoading ? "대시보드 정보를 불러오는 중입니다." : ""}
+    <div className="space-y-4">
+      {error && <p role="alert" className="text-red-400">{error}</p>}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-4">
+          <DesktopCalendar
+            year={year}
+            month={month}
+            days={days}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+          />
+          <MobileDrawer
+            selectedDateLabel={selectedDate}
+            totalAsset={totalAsset}
+            budgetAmount={budgetAmount}
+            expectedExpense={expectedExpense}
+            wallets={wallets}
+            expenses={dayExpenses}
+            memos={dayMemos}
+          />
         </div>
-        <div aria-busy={isDataLoading} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400">현재 총 자산</CardTitle>
-              <Wallet className="w-4 h-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              {isDataLoading ? (
-                <div aria-hidden="true" className="h-8 bg-gray-700 animate-pulse rounded w-1/2"></div>
-              ) : assetError ? (
-                <div role="alert" className="flex items-center text-red-400 text-sm mt-2">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {assetError}
-                </div>
-              ) : (
-                <div className="text-3xl font-bold">{totalAsset?.toLocaleString()} 원</div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400">이번 달 예정 지출</CardTitle>
-              <CreditCard className="w-4 h-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              {isDataLoading ? (
-                <div aria-hidden="true" className="h-8 bg-gray-700 animate-pulse rounded w-1/2"></div>
-              ) : expenseError ? (
-                <div role="alert" className="flex items-center text-red-400 text-sm mt-2">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {expenseError}
-                </div>
-              ) : (
-                <div className="text-3xl font-bold text-yellow-500">{plannedExpense?.toLocaleString()} 원</div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <HeroSidebar
+          selectedDateLabel={selectedDate}
+          totalAsset={totalAsset}
+          budgetAmount={budgetAmount}
+          expectedExpense={expectedExpense}
+          wallets={wallets}
+          expenses={dayExpenses}
+          memos={dayMemos}
+        />
       </div>
     </div>
   )

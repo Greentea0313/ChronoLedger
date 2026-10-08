@@ -1,5 +1,14 @@
 # 프로젝트 진행 현황
 
+## Phase 5 미니멀 캘린더 코어 완료 (2026-10-08)
+
+- `src/lib/calendar-utils.ts`에 6주 캘린더 그리드 생성과 월말 보정 `getAdjustedBillingDate`를 구현했다.
+- `src/lib/subscription-sync.ts`에 월간 Lazy Generation을 추가했다. 활성 템플릿만 대상으로 `template_id + billing_cycle` 충돌을 무시해 중복 생성을 방지하며, 취소 회차 자동 복구는 수행하지 않는다.
+- `src/components/calendar/`에 데스크톱 캘린더(금액 미표시, `VERSION/PICKUP` 배너, 게임 아이콘, 메모 도트), 우측 히어로 사이드바, 모바일 바텀 시트를 구현했다.
+- `src/app/dashboard/page.tsx`를 캘린더 중심 레이아웃으로 교체하고 선택일 상세(지출/메모)와 예산/포인트 요약을 연동했다.
+- 검증: `npx tsc --noEmit`, `npm run test -- --run` (15 files / 43 tests), `npm run lint`, dummy 공개 Supabase 값으로 `npm run build` 통과.
+- 미검증: 실제 Supabase 데이터/동시성 환경에서 Lazy Generation 중복 방지 및 템플릿 비활성화/재활성화 정책 검증.
+
 ## Phase 3 Web/PWA 인증 및 계정 삭제 구현 (2026-10-08)
 
 - 이메일 가입/로그인, Google OAuth/PKCE 세션 흐름 및 보호 화면의 세션 상태 처리를 보완하고 관련 컴포넌트/상태 테스트를 추가했다.

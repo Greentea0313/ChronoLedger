@@ -58,3 +58,6 @@
 
 19. **저장소 내 중첩 Git worktree와 Vitest 검색**
    - `.worktrees/` 아래의 중첩 worktree 테스트까지 Vitest가 자동 검색하면 같은 테스트가 여러 번 실행되고 각 worktree의 React 인스턴스 분리로 hook 오류가 날 수 있다. `vitest.config.ts`에서 `configDefaults.exclude`를 보존하면서 `.worktrees/**`를 제외한다.
+
+20. **Null-byte placeholder 파일 주의**
+   - 일부 run/worktree에서 새 파일이 NUL(`0x00`) 바이트로만 채워진 placeholder 상태로 생성될 수 있다. 이 상태를 그대로 두면 TypeScript/테스트가 예측 불가능하게 실패한다. 파일을 읽었을 때 내용이 NUL로만 보이면 해당 파일을 삭제 후 정상 텍스트로 재생성한다.

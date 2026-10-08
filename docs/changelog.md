@@ -2,6 +2,8 @@
 
 ## 2026-10-08
 
+- Phase 5 캘린더 코어를 구현했다. 6주 그리드·말일 보정 날짜 연산, 월간 구독 Lazy Generation, 금액 미표시 데스크톱 캘린더, 히어로 사이드바/모바일 바텀시트를 추가하고 대시보드를 해당 구조로 교체했다.
+- 캘린더/구독/대시보드 테스트를 추가·갱신했으며 전체 Vitest(15 files/43 tests), TypeScript check, lint, 정적 build를 통과했다.
 - Phase 3 Web/PWA 인증 흐름과 계정 삭제를 구현했다. Netlify Functions + Supabase 내구성 queue/retry worker로 사용자 아이콘/개인 행을 정리하고 Resend 멱등성 키 메일 후 Auth 계정을 삭제한다. 대기 중 접근 차단, 진행 상태 화면, OAuth/session 및 deletion worker 테스트를 추가했다. migration/실환경 인증·RLS/Storage/메일 발송은 미검증이다.
 - Resend 멱등성 기간을 넘긴 미확정 발송은 자동 재전송하지 않고 `MANUAL_REVIEW`로 보류해 잠재적 중복 안내를 방지한다. 관련 선택과 수동 운영 필요성을 설계/결정 문서에 기록했다.
 - `docs/to-do.md`의 기존 Phase 2.4 충돌 마커를 제거하고, 완전한 Phase 2.4 검증 현황 및 Phase 2.5 미완료 상태를 보존했다.
