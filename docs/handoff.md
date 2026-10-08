@@ -1,5 +1,11 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 파이프라인 v2 검토 (2026-10-08)
+
+- 보완 파이프라인과 이식 검토 문서를 `docs/`에 추가했다. 채택은 미결정이며 사용자 결정 4항목은 이식 검토 §5와 `docs/to-do.md`에 있다. 권장은 문서 채택(A단계)부터 단계적 확장이다.
+- Antigravity용 `.agents/rules/language.md` 및 `.agents/skills/`의 ChronoLedger Maker/Reviewer/Orchestrator 정의를 추가했다. 기존 `.github/agents/*.agent.md`는 `.bak` 파일로 보존하고 working tree에서는 제거했다. 확장 프로그램의 실제 발견·호출은 아직 확인하지 않았다.
+- 로컬 `main`은 `origin/main`보다 앞서 있다(병합 `50d7eef` 포함). push는 사용자 지시를 기다린다.
+
 ## 최신 작업 상태 (2026-10-08)
 
 - `collab/phase4-request-submission`의 기반 구현(`674f741`)과 Phase 4.4 Target(`5f7cf557844f64d77e90eb67c09974bf6aab81a0`)을 현재 `main` 작업 트리에 통합했다. 관리자 요청 페이지, 게임/일정 요청 UI, 게임 선택 및 아이콘 업로드 흐름을 포함한다.

@@ -2,6 +2,9 @@
 
 ## 2026-10-08
 
+- 다중 에이전트 파이프라인 보완판과 현재 협업 체계 이식 검토 문서를 추가했다(문서 전용, 코드·스크립트 변경 없음).
+- Antigravity 시험용 한국어 workspace 규칙과 Maker/Reviewer/Orchestrator skills를 추가했다. 기존 Copilot agent 정의는 `.bak`으로 보존하고 `.github/agents/`의 활성 정의를 제거했다. Antigravity 내 인식·실행 여부는 미검증이다.
+
 - Phase 4 기반 및 요청 제출 변경을 `main`에 통합했다. 게임 카탈로그/아이콘 업로드, 관리자 승인 화면, 사용자 게임·일정 제안 UI와 테스트를 포함하며, 기존 최신 인증 UI와 KST 대시보드 동작을 보존한다. 중첩 worktree 테스트 검색 제외, 로그인 입력 오타 및 npm peer/lockfile 정합성도 보완했다.
 - Gemini Phase 4.4 검토를 위한 수동 패킷(승인 기준 요약, 프롬프트, Base/Target 정보)과 40,198-byte exact diff를 준비했다. 사용자가 수동 방식을 선택해 Gemini API run은 호출 전에 abandoned 처리했으며 어떤 diff도 외부로 전송하지 않았다.
 - 사용자가 동일 Base/Target의 Gemini 수동 정적 리뷰 결과를 전달했다. Gemini는 clean/발견 없음으로 판정했으며, 별도 결과 파일에 기록해 기존 ChronoLedger review.json은 보존했다. 실제 Supabase RLS/RPC 원자성은 미검증으로 유지한다.

@@ -29,9 +29,11 @@
 
 ## 설계 자료 검토 및 협업 파이프라인
 
+- [ ] 파이프라인 v2 이식 결정: (1) 설계 단계 Antigravity/Gemini 사용과 전송 승인 정책, (2) Codex/OpenCode 정식 역할 여부, (3) 참고 문서로만 둘지 가이드·Orchestrator에 반영할지, (4) Docker/VM 격리 환경 준비 여부. 상세는 [이식 검토](ChronoLedger_pipeline_v2_porting_review.md).
+
 - [x] UI 디자인 시트와 한국어 HTML 목업을 SRS와 대조하고 아키텍처/구현 체크리스트에 참조를 추가했다.
-- [x] VS Code GitHub Copilot 저장소 지침과 Maker/Reviewer 프로필을 추가하고 사용자 안내를 연결했다.
-- [ ] VS Code에서 Copilot이 `.github/copilot-instructions.md`와 두 에이전트 프로필을 인식하는지 진단 화면에서 확인한다.
+- [x] VS Code GitHub Copilot 저장소 지침과 Maker/Reviewer 프로필을 추가하고 사용자 안내를 연결했다. 기존 `.github/agents/*.agent.md` 파일은 Antigravity 전환 실험 시 `.bak`으로 보존했다.
+- [ ] Antigravity가 `.agents/rules/language.md` 및 Maker/Reviewer/Orchestrator skills를 인식하고 호출하는지 확인한다. 실제 도구 권한·격리 동작도 별도로 점검한다.
 - [ ] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Copilot Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다.
 - [x] 대시보드·지출·통계 반응형 시안을 만들고 주요 화면 구성과 반응형 동작을 브라우저에서 검증한다. 사용자는 대시보드 그래프 제외, 데스크톱 표/모바일 그룹 카드, 아이콘 전체 표시, 월별 세로 막대/분류별 가로 막대를 결정했다.
 - [x] 시안 검토 후 글자 크기, 쿨 뉴트럴 라이트 팔레트/대비, 기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 확정해 UI 디자인 시트·상세 설계에 기록했다.

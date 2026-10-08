@@ -1,5 +1,10 @@
 # 프로젝트 진행 현황
 
+## 다중 에이전트 파이프라인 보완 및 이식 검토 (2026-10-08)
+
+- 사용자 초안(5단계)을 `md/SKILL.md`, `md/agent_rules.md` 기준으로 보완한 [ChronoLedger_multi_agent_pipeline_v2.md](ChronoLedger_multi_agent_pipeline_v2.md)와 이식 검토 [ChronoLedger_pipeline_v2_porting_review.md](ChronoLedger_pipeline_v2_porting_review.md)를 작성했다.
+- Antigravity 시험을 위해 `.agents/rules/language.md`와 Maker/Reviewer/Orchestrator skill 정의를 추가하고 기존 `.github/agents/*.agent.md` 프로필은 `.bak`으로 보존한 채 제거했다. 실제 확장 프로그램에서 규칙·skill 인식 여부와 자동 위임은 검증 필요다. Antigravity/Codex/OpenCode 연동은 아직 검증하지 않았다.
+
 ## Phase 4 변경 통합 완료 (2026-10-08)
 
 - `collab/phase4-request-submission`의 기반 커밋 `674f741` 및 요청 제출 UI Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`을 현재 `main` 작업 트리에 통합했다. 게임 카탈로그/아이콘 처리, 관리자 요청 화면, 게임·일정 제안 UI와 테스트를 포함한다.
