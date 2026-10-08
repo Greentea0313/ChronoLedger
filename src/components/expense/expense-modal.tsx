@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
 import { getKstToday } from "@/lib/dashboard-date"
 import { supabase } from "@/lib/supabase/client"
+import { useOnlineStatus } from "@/lib/use-online-status"
 import {
   calculateFinalAmount,
   estimateEarnedPoints,
@@ -65,6 +66,7 @@ function toAmount(value: string): number {
 }
 
 export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense = null }: ExpenseModalProps) {
+  const isOnline = useOnlineStatus()
   const { user } = useAuth()
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("게임")
   const [games, setGames] = useState<GameOption[]>([])
@@ -346,7 +348,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
 
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
 
-          <Button type="submit" disabled={isSubmitting} className="w-full">
+          <Button type="submit" disabled={isSubmitting || !isOnline} className="w-full">
             {isSubmitting ? "처리 중..." : "결제 확정"}
           </Button>
         </form>

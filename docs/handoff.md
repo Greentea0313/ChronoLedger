@@ -1,5 +1,10 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 7 PWA 통합, 예산 귀속, 오프라인 방어 (2026-10-08)
+
+- 신규: `src/lib/budget-calculations.ts`, `src/lib/use-online-status.ts`, `src/components/expense/overdue-planned-modal.tsx`, `src/components/ui/offline-banner.tsx`, `public/manifest.json`, `public/icons/*`(임시 생성 아이콘). 수정: `layout.tsx`(manifest/viewport/배너), 대시보드(만료 PLANNED 조회·모달·결제 연결), 결제/환불/지갑 위젯의 오프라인 버튼 잠금, `md/TESTS.sql`(SCH-02).
+- 후속/미검증: TESTS.sql 실행, Android PWA 설치·오프라인·세션 만료 확인, 정식 아이콘, Service Worker 도입 여부(미결정, 도입 시 인증 세션별 캐시 정책 필요), 게임명 placeholder.
+
 ## Phase 6 가계부, 결제/환불, 포인트 지갑 (2026-10-08)
 
 - 신규: `src/lib/payment-calculations.ts`, `src/components/wallet/store-wallet-widget.tsx`, `src/components/expense/expense-modal.tsx`, `expense-detail-modal.tsx`와 각 테스트. 설정 페이지·대시보드·히어로 사이드바/모바일 드로어(`onSelectExpense`) 연동, `database.types.ts`의 `p_point_platform`/`p_tier`를 nullable로 조정.

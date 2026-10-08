@@ -2,6 +2,7 @@
 
 ## 2026-10-08
 
+- Phase 7 구현: `md/TESTS.sql`에 SCH-02(일정 날짜 변경 시 PLANNED만 동기화, CONFIRMED/CANCELLED 보존, 날짜 외 변경 무동기화) 추가, `budget-calculations.ts`(PLANNED는 종료일 월·CONFIRMED는 결제월 귀속, 만료 항목 탐지), `overdue-planned-modal.tsx`(결제/예정 취소), PWA `manifest.json`·임시 아이콘·`offline-banner.tsx`·오프라인 쓰기 버튼 잠금을 추가했다. tsc/Vitest(22 files/70 tests)/lint/build 통과, DB SQL 실행과 Android PWA 설치·오프라인 실기 검증은 미수행.
 - Phase 6 구현: 스토어 포인트 지갑 위젯(설정 페이지, `update_store_wallet_settings`/`adjust_wallet_balance`), 결제 모달(PLANNED 지출 생성 후 `process_expense_payment`), 지출 상세/환불 모달(`refund_expense_payment`, 잔액 부족 오류 안내)과 결제 계산·검증 라이브러리, 대시보드 연동을 추가했다. tsc/Vitest(19 files/59 tests)/lint/build 통과, 실DB RPC·RLS·원장 검증은 미수행.
 
 - Phase 5 Iteration 02 리뷰 반영: 조회 범위를 42일 그리드 전체로 확장, 예상 지출에 CONFIRMED 포함(표시 월·CANCELLED 제외), date-only 문자열 로컬 파싱, 초기 날짜를 마운트 후 설정해 hydration 불일치 방지, EOF 공백 정리. tsc/Vitest(15 files/45 tests)/lint/build 통과, 실DB 검증은 미수행.
