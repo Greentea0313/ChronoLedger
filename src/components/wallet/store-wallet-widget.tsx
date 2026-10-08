@@ -139,8 +139,8 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
           <p className="text-sm text-gray-300">불러오는 중...</p>
         ) : (
           <div className="grid gap-2 text-sm sm:grid-cols-2">
-            <p>{`Google Play: ${balanceOf("GOOGLE_PLAY").toLocaleString()} P`}</p>
-            <p>{`Galaxy Store: ${balanceOf("GALAXY_STORE").toLocaleString()} P`}</p>
+            <p>{            `Google: ${balanceOf("GOOGLE_PLAY").toLocaleString()} P`}</p>
+                        <p>{`Galaxy:  ${balanceOf("GALAXY_STORE").toLocaleString()} P`}</p>
           </div>
         )}
         {message && (

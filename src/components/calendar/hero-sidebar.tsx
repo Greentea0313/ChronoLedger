@@ -1,6 +1,12 @@
 import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
+
+const PLATFORM_LABELS: Record<string, string> = {
+  GOOGLE_PLAY: "Google",
+  GALAXY_STORE: "Galaxy",
+}
 
 export interface HeroExpenseItem {
   id: string
@@ -24,6 +30,8 @@ interface HeroSidebarProps {
   expenses: HeroExpenseItem[]
   memos: string[]
   onSelectExpense?: (expenseId: string) => void
+  onRegisterExpense?: () => void
+  registerDisabled?: boolean
 }
 
 export function HeroSidebarContent({
@@ -35,6 +43,8 @@ export function HeroSidebarContent({
   expenses,
   memos,
   onSelectExpense,
+  onRegisterExpense,
+  registerDisabled,
 }: HeroSidebarProps) {
   const budgetProgress =
     budgetAmount > 0 ? Math.min(100, Math.round((expectedExpense / budgetAmount) * 100)) : 0
@@ -66,7 +76,7 @@ export function HeroSidebarContent({
           ) : (
             wallets.map((wallet) => (
               <p key={wallet.platform}>
-                {wallet.platform}: {wallet.current_balance.toLocaleString()}P
+                {PLATFORM_LABELS[wallet.platform] ?? wallet.platform}: {wallet.current_balance.toLocaleString()}P
               </p>
             ))
           )}
@@ -74,14 +84,19 @@ export function HeroSidebarContent({
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>{selectedDateLabel}</CardTitle>
+          {onRegisterExpense && (
+            <Button type="button" size="sm" disabled={registerDisabled} onClick={onRegisterExpense}>
+              등록
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-3">
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">지출 내역</h3>
             {expenses.length === 0 ? (
-              <EmptyState message="해당 일자의 지출이 없습니다." hint="상단의 지출 등록으로 추가할 수 있습니다." />
+              <EmptyState message="해당 일자의 지출이 없습니다." hint="등록 버튼으로 추가할 수 있습니다." />
             ) : (
               expenses.map((expense) => (
                 <div

@@ -1,5 +1,9 @@
 # 프로젝트 진행 현황
 
+## Phase 9 Iteration 01 (2026-10-09)
+
+- 상단바 재구성 및 UI 미세 조정 구현(UI만, 가계부·일정 탭 페이지 로직은 미구현). 검증: tsc, Vitest 24 파일/79 테스트, lint, dummy env build 통과. 실브라우저 시각 확인은 미검증.
+
 ## Phase 8 Iteration 01 (2026-10-10)
 
 - UI/UX 폴리싱 구현(토큰·테마·폰트·컴포넌트·반응형). 검증: tsc는 기존 베이스의 `src/__tests__/functions` 2개 파일 모듈 미해결 오류만 존재, Vitest 22 파일/73 테스트 통과(위 2 스위트는 기존 import 오류로 실패), lint 통과, dummy env build 통과. 실브라우저 시각·대비·라이트 테마 확인은 미검증.

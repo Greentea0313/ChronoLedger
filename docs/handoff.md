@@ -1,5 +1,13 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 9 Iteration 01 (2026-10-09)
+
+- 상단바는 `src/components/layout/topbar.tsx`. 탭 이름은 홈/소비/게임이다. 내비 링크 `/dashboard/expenses`, `/dashboard/calendar` 페이지는 아직 없어 이동 시 404이며 후속 구현이 필요하다. 설정 링크는 프로필 드롭다운의 "계정" 항목(`/dashboard/settings`)으로 이동했다.
+- 프로필 버튼은 사용자 이름(`full_name` > `name` > 이메일 앞부분)과 사진(직접 업로드 > Google `avatar_url`/`picture`)을 표시하고, 사진이 없거나 로드 실패 시 이름 첫 글자 원형 아바타를 쓴다. 직접 업로드는 계정 설정(`/dashboard/settings`)의 `ProfileAvatarCard`에서 하며 비공개 `user-icons/{uid}/profile.webp`(256x256 WebP)에 저장된다. 계정 삭제 워커가 `{uid}` 폴더를 통째로 지우므로 별도 정리가 필요 없다. 표시 이름 편집은 미구현(결정 필요).
+- `docs/design-topbar-spec.md`(탭명 홈/기록/게임, 별도 ⚙️ 설정, 드롭다운에 로그아웃만)와 이번 요청(홈/소비/게임, 드롭다운에 계정+로그아웃)이 달라 요청을 따랐다.
+- 테마: 저장값(`cl-theme`)이 없으면 `prefers-color-scheme`를 따른다(인증 화면은 dark 고정 유지). 스토어 포인트 잔액 표기는 Google/Galaxy이며 설정 폼 라벨의 "Google Play/Galaxy Store"는 유지했다.
+- "등록" 버튼은 `HeroSidebarContent`의 날짜 카드 헤더 우측(`onRegisterExpense`)에 있으며 모바일 드로어도 같은 컴포넌트를 쓴다.
+
 ## Phase 8 Iteration 01 (2026-10-10)
 
 - 색은 `globals.css`의 `--*` RGB 채널 토큰과 `tailwind.config.ts` 매핑으로 관리한다. 레거시 `gray-*`/`blue-*`/`red-300·400`/`green-300·400`/`yellow-300·400`/`text-white`는 토큰으로 재매핑되어 있으므로, 채워진 primary/danger/warning 배경 위 글자는 `text-primary-foreground`를 명시해야 한다. 재매핑되지 않은 기본 팔레트(purple, red-700/900 등)는 새로 쓰지 말 것.

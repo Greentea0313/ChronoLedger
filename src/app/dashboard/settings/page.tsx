@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StoreWalletWidget } from "@/components/wallet/store-wallet-widget"
+import { ProfileAvatarCard } from "@/components/profile/profile-avatar-card"
 import { useAuth } from "@/lib/auth-context"
 import { requestAccountDeletion } from "@/lib/account-deletion"
 
@@ -40,6 +41,8 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold text-blue-400">설정</h1>
         <p className="mt-2 text-sm text-gray-300">계정과 개인정보 관리</p>
       </header>
+
+      <ProfileAvatarCard />
 
       <StoreWalletWidget />
 

@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-10-09 (Phase 9 Iteration 01)
+
+- 레이아웃 정리: 좌측 사이드바를 제거하고 상단바(`components/layout/topbar.tsx`)로 이동(홈·소비·게임, 로고 확대, 테마 토글, 프로필 드롭다운의 계정/로그아웃). 기본 테마는 저장값이 없으면 OS 설정을 따르고 토글은 유지. 빈 상태의 □ 제거, 스토어 포인트 표기를 Google/Galaxy로 변경, "지출 등록"을 "등록"으로 바꿔 일자 상세 패널(히어로 사이드바·모바일 드로어) 날짜 줄 우측으로 이동.
+
+- 프로필: 상단바 프로필 버튼에 사용자 이름과 사진(직접 업로드 > Google 사진 > 이니셜) 표시. 계정 설정(`/dashboard/settings`)에 `ProfileAvatarCard` 추가(256x256 WebP를 비공개 `user-icons/{uid}/profile.webp`에 업로드/삭제, 오프라인 시 비활성). 계정 삭제 워커가 `{uid}` 폴더를 지워 별도 정리 불필요.
+
 ## 2026-10-10 (Phase 8 Iteration 01)
 
 - UI 폴리싱: 디자인 시트 기준 dark/Cool Neutral Light 시맨틱 토큰(`globals.css` RGB 채널 변수)과 Tailwind 매핑, 레거시 gray/blue/red/green/yellow·`text-white` 유틸리티를 토큰으로 재매핑, A2Z 전역 폰트(기존 자체 호스팅 9 weight + OFL 유지), 중단점 md=900/lg=1280, 반경/그림자/전환 토큰, 테마 토글(`cl-theme`, 기본 dark, 인증 화면은 dark 고정), `EmptyState` 공통 컴포넌트, 버튼/입력/카드/다이얼로그/드로어/진행바 다듬기, 대시보드 셸(데스크톱 사이드바·모바일 상단바), 캘린더·히어로 사이드바·모바일 바텀시트 다듬기, 관리자/설정/게임 선택 하드코딩 색 교체.

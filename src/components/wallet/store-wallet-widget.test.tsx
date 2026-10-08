@@ -26,7 +26,7 @@ describe("StoreWalletWidget", () => {
   it("shows balances and saves Google tier with its official rate", async () => {
     const onChanged = vi.fn()
     render(<StoreWalletWidget onChanged={onChanged} />)
-    expect(await screen.findByText("Google Play: 1,200 P")).toBeTruthy()
+    expect(await screen.findByText("Google: 1,200 P")).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText("Google Play 등급"), { target: { value: "GOLD" } })
     fireEvent.click(screen.getByRole("button", { name: "등급 저장" }))
@@ -37,7 +37,7 @@ describe("StoreWalletWidget", () => {
 
   it("saves Galaxy rate with a null tier and rejects out-of-range rates", async () => {
     render(<StoreWalletWidget />)
-    await screen.findByText("Galaxy Store: 300 P")
+    await screen.findByText("Galaxy: 300 P")
 
     fireEvent.change(screen.getByLabelText("Galaxy Store 적립률 (%)"), { target: { value: "101" } })
     fireEvent.click(screen.getByRole("button", { name: "적립률 저장" }))
@@ -51,7 +51,7 @@ describe("StoreWalletWidget", () => {
 
   it("adjusts the wallet to a target balance with a memo", async () => {
     render(<StoreWalletWidget />)
-    await screen.findByText("Galaxy Store: 300 P")
+    await screen.findByText("Galaxy: 300 P")
 
     fireEvent.change(screen.getByLabelText("지갑"), { target: { value: "GALAXY_STORE" } })
     fireEvent.change(screen.getByLabelText("목표 잔액 (P)"), { target: { value: "500" } })
