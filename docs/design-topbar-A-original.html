@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시안 A 개정 — 상단 정리안</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0F1115;color:#F5F7FA;font:15px/1.5 "A2Z",system-ui,-apple-system,"Segoe UI",sans-serif}
+:root{--bg:#0F1115;--surface:#171A21;--surface-2:#1F2430;--border:#2A2F3A;--text:#F5F7FA;--text-secondary:#B3BBC8;--text-muted:#A0A9B8;--control-border:#707A8C;--primary:#7C8CFF;--primary-hover:#91A0FF;--on-primary:#101426;--warning:#F5B942;--danger:#FF7478}
+.topbar{position:sticky;top:0;z-index:5;display:flex;min-height:64px;align-items:center;gap:24px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.brand{white-space:nowrap;font-size:18px;font-weight:750;letter-spacing:-.03em;color:var(--primary)}
+.nav{display:flex;align-items:center;gap:4px}
+.nav button{min-height:40px;border:0;border-radius:9px;background:transparent;color:var(--text-secondary);cursor:pointer;padding:0 12px;font:inherit}
+.nav button[aria-current="page"]{background:var(--surface-2);color:var(--text);font-weight:650}
+.toolbar{display:flex;align-items:center;gap:8px;margin-left:auto}
+.icon-button,.button{min-height:40px;border:1px solid var(--control-border);border-radius:9px;background:var(--surface-2);cursor:pointer;padding:0 14px;font:inherit;color:inherit}
+.button.primary{border-color:var(--primary);background:var(--primary);color:var(--on-primary);font-weight:700}
+.account{position:relative}
+.account summary{min-height:40px;border:1px solid var(--control-border);border-radius:9px;background:var(--surface-2);cursor:pointer;padding:0 14px;line-height:38px;list-style:none}
+.account summary::-webkit-details-marker{display:none}
+.account[open] summary{border-color:var(--primary)}
+.account-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:160px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);padding:6px;box-shadow:0 12px 32px rgb(0 0 0 / 40%)}
+.account-menu button{display:block;width:100%;min-height:40px;border:0;border-radius:7px;background:transparent;color:var(--text);text-align:left;cursor:pointer;padding:0 10px;font:inherit}
+.account-menu button:hover{background:var(--surface)}
+.page{width:min(1440px,100%);margin:0 auto;padding:24px}
+.top-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.card{border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:0 4px 16px rgb(0 0 0 / 18%)}
+.calendar{padding:20px}.calendar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.weekday{padding:4px 0;color:var(--text-secondary);text-align:center;font-size:12px;font-weight:600}
+.day{min-height:98px;padding:8px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);font-size:13px;font-weight:600}
+.day.outside{opacity:.5;color:var(--text-secondary)}.day.selected{outline:2px solid var(--primary);outline-offset:-2px;background:#262c44}
+.side{display:flex;flex-direction:column;gap:14px}
+.panel{padding:18px}.panel h2{margin:0 0 10px;font-size:17px}.panel p{margin:6px 0;font-size:14px;color:var(--text-secondary)}.panel p strong,.panel p b{color:var(--text)}
+.budget-track{height:8px;margin-top:12px;overflow:hidden;border-radius:999px;background:var(--surface-2)}
+.budget-track span{display:block;width:82%;height:100%;background:var(--warning);border-radius:inherit}
+.caption{color:var(--text-muted);font-size:12px}
+.empty{border:1px dashed var(--border);border-radius:10px;padding:18px;text-align:center;color:var(--text-secondary);font-size:13px}
+.badge{position:fixed;left:16px;bottom:16px;background:var(--primary);color:var(--on-primary);font-weight:800;font-size:13px;padding:8px 12px;border-radius:999px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.nav{overflow-x:auto}.top-actions{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<header class="topbar">
+<div class="brand">ChronoLedger</div>
+<nav class="nav" aria-label="주요 메뉴">
+<button aria-current="page">홈</button><button>기록</button><button>게임</button>
+</nav>
+<div class="toolbar">
+<button class="icon-button" aria-label="테마 전환">☼ / ☾</button>
+<details class="account"><summary>계정 ▾</summary><div class="account-menu"><button type="button">로그아웃</button></div></details>
+<button class="icon-button" type="button">⚙️ 설정</button>
+</div>
+</header>
+<main class="page">
+<div class="top-actions"><span class="caption">시안 A 개정 · 원본 색감 유지 (#7C8CFF) — 상단에서 예산 표시·지출 등록 제거</span><button class="button primary" type="button">지출 등록</button></div>
+<div class="layout">
+<section class="card calendar"><div class="calendar-head"><h2 style="margin:0">2026년 10월</h2><span class="caption">오늘로 이동</span></div>
+<div class="calendar-grid"><div class="weekday">일</div><div class="weekday">월</div><div class="weekday">화</div><div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday">토</div>
+<div class="day outside">27</div><div class="day outside">28</div><div class="day outside">29</div><div class="day outside">30</div><div class="day">1</div><div class="day">2</div><div class="day">3</div>
+<div class="day">4</div><div class="day">5</div><div class="day">6</div><div class="day">7</div><div class="day">8</div><div class="day selected">9</div><div class="day">10</div>
+<div class="day">11</div><div class="day">12</div><div class="day">13</div><div class="day">14</div><div class="day">15</div><div class="day">16</div><div class="day">17</div>
+<div class="day">18</div><div class="day">19</div><div class="day">20</div><div class="day">21</div><div class="day">22</div><div class="day">23</div><div class="day">24</div>
+<div class="day">25</div><div class="day">26</div><div class="day">27</div><div class="day">28</div><div class="day">29</div><div class="day">30</div><div class="day">31</div>
+</div></section>
+<aside class="side">
+<div class="card panel"><h2>요약</h2><p>총 자산: <b>0 원</b></p><p>월 예산: <b>0 원</b></p><p>월 예상 지출: <b>0 원</b></p><div class="budget-track"><span></span></div><div class="caption" style="margin-top:8px">예산 진행률 0%</div></div>
+<div class="card panel"><h2>스토어 포인트</h2><p>GOOGLE_PLAY: 0P</p><p>GALAXY_STORE: 0P</p></div>
+<div class="card panel"><h2>2026-10-09</h2><h3 style="font-size:14px">지출 내역</h3><div class="empty">□<br>해당 일자의 지출이 없습니다.<br>지출 등록으로 추가할 수 있습니다.</div><h3 style="font-size:14px;margin-top:14px">메모</h3><div class="empty">□<br>메모가 없습니다.</div></div>
+</aside>
+</div>
+</main>
+<span class="badge">A · ORIGINAL</span>
+</body>
+</html>
