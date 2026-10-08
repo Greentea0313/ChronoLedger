@@ -1,7 +1,16 @@
 # 변경 이력
 
+## 2026-10-09 (Iteration 03)
+
+- Phase 7 Iteration 03: Iteration 02 수정이 미커밋 상태로 리뷰된 점을 확인하고 유지(자동 열림·비해제 만료 모달, `manifest.id`)하면서, Service Worker에 Supabase REST GET의 로그인 사용자별(JWT `sub`) 읽기 캐시를 추가(익명·만료 토큰·비-GET·타 출처 제외, 로그아웃 시 전체 삭제), 기본 브랜드 아이콘 재생성과 maskable 분리, 7.3 완료 표기. 실브라우저/Android 검증은 7.4로 이월.
+
+## 2026-10-09
+
+- Phase 7 Iteration 02 리뷰 반영: 기한 지난 PLANNED가 있으면 닫을 수 없는 만료 모달 자동 표시(닫기 버튼·Esc·바깥 클릭 차단, 오프라인 안내), 그리드 범위 `end_date` PLANNED 조회·병합 및 만료 조회를 종료일 기준으로 통일(일정 연결 PLANNED는 `target_date=end_date`로 저장), 앱 셸 Service Worker(`public/sw.js`)·등록/로그아웃 캐시 삭제, 전 쓰기 진입점에 오프라인 핸들러 가드(`offline-guard.ts`)와 배너 문구 정정, manifest `id`·180px apple-touch 아이콘 추가. 7.3의 개인 데이터 오프라인 조회 캐시는 미구현으로 기록(부분 완료), 정식 아이콘 교체는 릴리스 차단 항목.
+
 ## 2026-10-08
 
+- Phase 7 구현: `md/TESTS.sql`에 SCH-02(일정 날짜 변경 시 PLANNED만 동기화, CONFIRMED/CANCELLED 보존, 날짜 외 변경 무동기화) 추가, `budget-calculations.ts`(PLANNED는 종료일 월·CONFIRMED는 결제월 귀속, 만료 항목 탐지), `overdue-planned-modal.tsx`(결제/예정 취소), PWA `manifest.json`·임시 아이콘·`offline-banner.tsx`·오프라인 쓰기 버튼 잠금을 추가했다. tsc/Vitest(22 files/70 tests)/lint/build 통과, DB SQL 실행과 Android PWA 설치·오프라인 실기 검증은 미수행.
 - Phase 6 구현: 스토어 포인트 지갑 위젯(설정 페이지, `update_store_wallet_settings`/`adjust_wallet_balance`), 결제 모달(PLANNED 지출 생성 후 `process_expense_payment`), 지출 상세/환불 모달(`refund_expense_payment`, 잔액 부족 오류 안내)과 결제 계산·검증 라이브러리, 대시보드 연동을 추가했다. tsc/Vitest(19 files/59 tests)/lint/build 통과, 실DB RPC·RLS·원장 검증은 미수행.
 
 - Phase 5 Iteration 02 리뷰 반영: 조회 범위를 42일 그리드 전체로 확장, 예상 지출에 CONFIRMED 포함(표시 월·CANCELLED 제외), date-only 문자열 로컬 파싱, 초기 날짜를 마운트 후 설정해 hydration 불일치 방지, EOF 공백 정리. tsc/Vitest(15 files/45 tests)/lint/build 통과, 실DB 검증은 미수행.

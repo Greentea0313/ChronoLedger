@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
+import { useOnlineStatus } from "@/lib/use-online-status"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { validateGameRequest, validateScheduleRequest } from "./request-validation"
 
 type Game = { id: string; name: string }
@@ -47,6 +49,7 @@ const statusLabels = { PENDING: "검토 대기", APPROVED: "승인", REJECTED: "
 
 export function RequestSubmissionModal() {
   const { user } = useAuth()
+  const isOnline = useOnlineStatus()
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("submit")
   const [requestKind, setRequestKind] = useState<RequestKind>("game")
@@ -150,6 +153,10 @@ export function RequestSubmissionModal() {
     setSuccessMessage(null)
     if (!user) {
       setSubmitError("요청을 제출하려면 로그인해 주세요.")
+      return
+    }
+    if (isOffline()) {
+      setSubmitError(OFFLINE_WRITE_MESSAGE)
       return
     }
     const validationError = requestKind === "game"
@@ -304,7 +311,7 @@ export function RequestSubmissionModal() {
               </>}
               {submitError && <p role="alert" className="text-sm text-red-400">{submitError}</p>}
               {successMessage && <p role="status" className="text-sm text-green-400">{successMessage}</p>}
-              <Button type="submit" disabled={isSubmitting || !user} className="w-full">{isSubmitting ? "제출 중..." : "요청 제출"}</Button>
+              <Button type="submit" disabled={isSubmitting || !user || !isOnline} className="w-full">{isSubmitting ? "제출 중..." : "요청 제출"}</Button>
             </form>
           </TabsContent>
           <TabsContent value="history" className="space-y-4">

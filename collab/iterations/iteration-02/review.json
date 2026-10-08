@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "run_id": "phase7-pwa-integration",
+  "iteration": 2,
+  "agent": "chronoledger-reviewer",
+  "role": "static-review",
+  "base_sha": "1675eeeb7433a1cff58fb384850ab66c7446f5ff",
+  "target_sha": "27ccb0b455d027c19b43c20d84d74725d8bfcd73",
+  "status": "failed",
+  "created_at": "2026-10-08T14:35:00Z",
+  "findings": [
+    {
+      "id": "P7-ITER2-F1",
+      "severity": "P1",
+      "file": "src/app/dashboard/page.tsx",
+      "line": 233,
+      "evidence": "Overdue planned expenses are presented as an optional toggle button (`<Button onClick={() => setIsOverdueOpen(true)}>`). It does not automatically force the user to handle them, failing to satisfy the 'strict block' requirement from P7-F1.",
+      "impact": "Users can ignore overdue expenses indefinitely, causing their active budget allocation to be incorrect or stale.",
+      "recommendation": "Automatically open the `OverduePlannedModal` when `overdueExpenses.length > 0` and prevent it from being closed until all overdue items are resolved."
+    },
+    {
+      "id": "P7-ITER2-F2",
+      "severity": "P1",
+      "file": "docs/progress.md",
+      "line": 51,
+      "evidence": "Developer notes state 'Service Worker/캐시는 미구현이므로...' and no Service Worker was added to the repository, leaving P7-F3 unresolved.",
+      "impact": "The PWA lacks true offline read capability. Page refreshes or fresh navigations while offline will result in browser dinosaur errors.",
+      "recommendation": "Implement a Service Worker to cache the application shell and read API requests for offline availability."
+    },
+    {
+      "id": "P7-ITER2-F3",
+      "severity": "P2",
+      "file": "public/manifest.json",
+      "line": 2,
+      "evidence": "The manifest.json is missing the 'id' field, and docs/progress.md line 51 acknowledges that icons are still temporary placeholders ('임시 아이콘'), leaving P7-F5 unresolved.",
+      "impact": "The app may not be distinctly identifiable by the OS across installations, and shows non-production placeholders to users.",
+      "recommendation": "Add a unique 'id' field to manifest.json and replace placeholder files in public/icons/ with actual brand assets."
+    }
+  ]
+}
+

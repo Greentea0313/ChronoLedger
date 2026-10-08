@@ -1,0 +1,42 @@
+{
+  "run_id": "phase7-pwa-integration",
+  "iteration": 2,
+  "role": "maker",
+  "schema_note": "artifacts/schemas/maker.schema.json does not exist; this manifest uses an ad-hoc structure.",
+  "base_head_sha": "27ccb0b455d027c19b43c20d84d74725d8bfcd73",
+  "committed": false,
+  "findings_addressed": [
+    { "id": "P7-F1", "status": "fixed", "summary": "Overdue modal auto-opens when overdue PLANNED rows exist and cannot be dismissed (no close button, Esc/outside click blocked); offline shows an explanation." },
+    { "id": "P7-F2", "status": "fixed", "summary": "Grid fetch additionally loads PLANNED rows by end_date range (merged by id); overdue query uses end_date (fallback target_date); schedule-linked PLANNED rows are inserted with target_date=end_date." },
+    { "id": "P7-F3", "status": "partially_fixed", "summary": "App-shell Service Worker added with cache clearing on sign-out. Personal-data offline read cache intentionally not implemented; to-do 7.3 unchecked and the gap recorded." },
+    { "id": "P7-F4", "status": "fixed", "summary": "isOffline() guards added to all write handlers (wallet widget, expense, refund, overdue cancel, game add, request submission, admin processing, subscription lazy generation); related buttons disabled; banner copy corrected." },
+    { "id": "P7-F5", "status": "partially_fixed", "summary": "manifest id and 180px apple-touch icon added. Icons remain generated placeholders; replacement tracked as a release-blocking to-do." }
+  ],
+  "changed_files": [
+    "docs/architecture.md", "docs/changelog.md", "docs/handoff.md", "docs/progress.md", "docs/to-do.md",
+    "public/manifest.json", "public/sw.js", "public/icons/icon-180.png",
+    "src/app/layout.tsx", "src/app/admin/requests/page.tsx", "src/app/dashboard/page.tsx", "src/app/dashboard/page.test.tsx",
+    "src/components/ui/dialog.tsx", "src/components/ui/offline-banner.tsx",
+    "src/components/expense/expense-modal.tsx", "src/components/expense/expense-modal.test.tsx",
+    "src/components/expense/expense-detail-modal.tsx",
+    "src/components/expense/overdue-planned-modal.tsx", "src/components/expense/overdue-planned-modal.test.tsx",
+    "src/components/game/game-select-modal.tsx", "src/components/game/request-submission-modal.tsx",
+    "src/components/wallet/store-wallet-widget.tsx",
+    "src/components/pwa/service-worker-register.tsx", "src/components/pwa/service-worker-register.test.tsx",
+    "src/lib/offline-guard.ts"
+  ],
+  "checks": [
+    { "command": "npx tsc --noEmit", "result": "pass" },
+    { "command": "npx vitest run", "result": "pass", "detail": "23 files / 75 tests" },
+    { "command": "npm run lint", "result": "pass" },
+    { "command": "npm run build (dummy public Supabase env)", "result": "pass", "detail": "out/sw.js generated" },
+    { "command": "git diff --check", "result": "pass", "detail": "only LF/CRLF warnings" }
+  ],
+  "unverified": [
+    "Service Worker registration and offline shell load in a real browser",
+    "Android PWA install",
+    "Real Supabase RPC/RLS/trigger behavior (md/TESTS.sql not executed)",
+    "Real session-expiry cache clearing",
+    "Game name placeholders in the dashboard remain"
+  ]
+}

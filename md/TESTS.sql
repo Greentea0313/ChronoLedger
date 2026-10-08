@@ -49,6 +49,8 @@
 --   SUB-01 DB fixture + A JWT       템플릿 비활성화 -> 연결 PLANNED 회차 취소;
 --                                  비활성 템플릿 복구 거부, 재활성 후 복구 성공.
 --   SCH-01 DB fixture 역할         PICKUP 날짜 변경 -> 연결 PLANNED expense 동기화.
+--   SCH-02 DB fixture 역할         일정 날짜 변경 -> PLANNED만 동기화, CONFIRMED/CANCELLED 보존,
+--                                  날짜 외 컬럼 변경은 동기화 없음.
 --   REF-03 DB fixture 역할         다른 게임 ID와 일정 ID 연결 -> trigger 거부.
 --   REQ-01 authenticated / A       본인 game/schedule 요청 INSERT -> PENDING 성공.
 --   REQ-02 authenticated / A       다른 사용자 expense 조회/RPC 결제 및 직접 요청
@@ -537,6 +539,100 @@ BEGIN
 END;
 $$;
 \echo PASS: schedule change synchronizes linked planned expense dates
+
+-- SCH-02: 일정 날짜 변경 시 CONFIRMED/CANCELLED 지출은 보존되고 PLANNED만 동기화된다.
+INSERT INTO public.expenses (
+    user_id, game_id, schedule_id, title, category, status, target_date,
+    start_date, end_date, original_price, final_amount
+)
+SELECT
+    :'test_user_id'::uuid, s.game_id, s.id,
+    'Codex SQL test schedule confirmed', '게임', 'CONFIRMED',
+    s.start_date, s.start_date, s.end_date, 5000, 5000
+FROM public.game_schedules AS s
+WHERE s.id = :'test_schedule_id'::uuid
+RETURNING id AS schedule_confirmed_id \gset
+SELECT set_config('chronoledger.schedule_confirmed_id', :'schedule_confirmed_id', true);
+
+INSERT INTO public.expenses (
+    user_id, game_id, schedule_id, title, category, status, cancellation_kind,
+    target_date, start_date, end_date
+)
+SELECT
+    :'test_user_id'::uuid, s.game_id, s.id,
+    'Codex SQL test schedule cancelled', '게임', 'CANCELLED', 'PLANNED_CANCEL',
+    s.end_date, s.start_date, s.end_date
+FROM public.game_schedules AS s
+WHERE s.id = :'test_schedule_id'::uuid
+RETURNING id AS schedule_cancelled_id \gset
+SELECT set_config('chronoledger.schedule_cancelled_id', :'schedule_cancelled_id', true);
+
+SELECT set_config('chronoledger.before_start', start_date::text, true),
+       set_config('chronoledger.before_end', end_date::text, true)
+FROM public.game_schedules
+WHERE id = :'test_schedule_id'::uuid;
+
+UPDATE public.game_schedules
+SET start_date = start_date + 2, end_date = end_date + 3
+WHERE id = :'test_schedule_id'::uuid;
+DO $$
+DECLARE
+    v_before_start DATE := current_setting('chronoledger.before_start')::date;
+    v_before_end DATE := current_setting('chronoledger.before_end')::date;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.expenses AS e
+        JOIN public.game_schedules AS s ON s.id = e.schedule_id
+        WHERE e.id = current_setting('chronoledger.schedule_expense_id')::uuid
+          AND e.status = 'PLANNED'
+          AND e.start_date = s.start_date AND e.end_date = s.end_date
+          AND e.target_date = s.end_date
+          AND s.start_date = v_before_start + 2 AND s.end_date = v_before_end + 3
+    ) THEN
+        RAISE EXCEPTION 'FAIL: second schedule change did not synchronize the planned expense';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM public.expenses
+        WHERE id = current_setting('chronoledger.schedule_confirmed_id')::uuid
+          AND status = 'CONFIRMED'
+          AND start_date = v_before_start AND end_date = v_before_end
+          AND target_date = v_before_start
+          AND final_amount = 5000
+    ) THEN
+        RAISE EXCEPTION 'FAIL: CONFIRMED expense was changed by schedule sync';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM public.expenses
+        WHERE id = current_setting('chronoledger.schedule_cancelled_id')::uuid
+          AND status = 'CANCELLED'
+          AND start_date = v_before_start AND end_date = v_before_end
+          AND target_date = v_before_end
+    ) THEN
+        RAISE EXCEPTION 'FAIL: CANCELLED expense was changed by schedule sync';
+    END IF;
+END;
+$$;
+
+-- 날짜가 아닌 컬럼(title)만 변경하면 PLANNED 지출 날짜도 바뀌지 않아야 한다.
+UPDATE public.expenses
+SET start_date = start_date - 1, end_date = end_date - 1, target_date = target_date - 1
+WHERE id = current_setting('chronoledger.schedule_expense_id')::uuid;
+UPDATE public.game_schedules
+SET title = 'Codex SQL test schedule renamed'
+WHERE id = :'test_schedule_id'::uuid;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM public.expenses AS e
+        JOIN public.game_schedules AS s ON s.id = e.schedule_id
+        WHERE e.id = current_setting('chronoledger.schedule_expense_id')::uuid
+          AND e.start_date = s.start_date
+    ) THEN
+        RAISE EXCEPTION 'FAIL: non-date schedule update triggered expense sync';
+    END IF;
+END;
+$$;
+\echo PASS: schedule sync updates only PLANNED expenses and preserves CONFIRMED/CANCELLED
 
 DO $$
 DECLARE

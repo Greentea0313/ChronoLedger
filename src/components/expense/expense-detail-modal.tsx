@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabase/client"
+import { useOnlineStatus } from "@/lib/use-online-status"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { mapPaymentError } from "@/lib/payment-calculations"
 
 export interface ExpenseDetail {
@@ -37,6 +39,7 @@ function won(value: number | undefined): string {
 }
 
 export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: ExpenseDetailModalProps) {
+  const isOnline = useOnlineStatus()
   const [isConfirming, setIsConfirming] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -51,6 +54,10 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: Expens
 
   const refund = async () => {
     if (!expense) return
+    if (isOffline()) {
+      setError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
     setIsSubmitting(true)
     setError(null)
     const { error: rpcError } = await supabase.rpc("refund_expense_payment", { p_expense_id: expense.id })
@@ -96,7 +103,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: Expens
               <div className="space-y-2 rounded border border-red-900 p-3 text-sm">
                 <p>사용 포인트와 총 자산을 복원하고 적립 포인트를 회수합니다. 계속할까요?</p>
                 <div className="flex gap-2">
-                  <Button type="button" variant="destructive" disabled={isSubmitting} onClick={() => void refund()}>
+                  <Button type="button" variant="destructive" disabled={isSubmitting || !isOnline} onClick={() => void refund()}>
                     {isSubmitting ? "처리 중..." : "취소 확정"}
                   </Button>
                   <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => setIsConfirming(false)}>돌아가기</Button>

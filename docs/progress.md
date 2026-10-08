@@ -1,5 +1,21 @@
 # 프로젝트 진행 현황
 
+## Phase 7 Iteration 03 (2026-10-09)
+
+- SW 읽기 API 캐시(사용자별), 기본 브랜드 아이콘, 7.3 완료 표기. 상세는 handoff.md 참조.
+
+## Phase 7 Iteration 02 (2026-10-09)
+
+- 리뷰 5건(P7-F1~F5) 반영: 차단형 만료 모달 자동 표시, end_date 기준 조회 정합, 앱 셸 Service Worker, 오프라인 쓰기 가드 확대, manifest id·apple-touch 아이콘. 7.3은 개인 데이터 오프라인 조회 캐시 미구현으로 부분 완료(체크 해제)로 정정했다.
+- 검증: tsc, Vitest(23 files/75 tests), lint, dummy 공개 Supabase 값 build(`out/sw.js` 생성) 통과. 브라우저 SW·Android·실DB 동작은 미검증.
+
+## Phase 7 Web/PWA 통합 구현 (2026-10-08)
+
+- 7.1: `md/TESTS.sql` SCH-02 시나리오 추가(미실행, 격리 Supabase 테스트 프로젝트에서 실행 필요).
+- 7.2: `src/lib/budget-calculations.ts`, `overdue-planned-modal.tsx`, 대시보드 연동. 결제 시 RPC가 target_date를 결제일로 바꾸므로 익월 예정액이 재조회 시 즉시 줄어든다.
+- 7.3: `public/manifest.json`, 임시 아이콘(`public/icons`, 정식 브랜드 아이콘 교체 필요), `offline-banner.tsx`, `use-online-status.ts`. 오프라인에서는 지출 등록·결제·환불·지갑 설정·예정 취소 버튼이 잠긴다. Service Worker/캐시는 미구현이므로 오프라인 읽기는 이미 로드된 화면에 한정된다.
+- 7.4: tsc, Vitest(22 files/70 tests), lint, dummy 공개 Supabase 값 build 통과(`out/manifest.json` 생성 확인). Android 설치·실제 오프라인·세션 만료 동작은 미검증.
+
 ## Phase 6 가계부, 결제/환불 RPC, 포인트 지갑 구현 (2026-10-08)
 
 - 6.1 `store-wallet-widget.tsx`(구글 등급/갤럭시 적립률 저장, 잔액 수동 보정), 6.2 `expense-modal.tsx`(계층 등록, 결제수단, 할인/포인트 할인, 자산 차감, 예: 119,000-5,000=114,000), 6.3 `expense-detail-modal.tsx`(결제 취소/환불)를 구현했다.

@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
+import { useOnlineStatus } from "@/lib/use-online-status"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { GOOGLE_TIER_RATES, type GoogleTier, type PointPlatform } from "@/lib/payment-calculations"
 
 interface WalletRow {
@@ -29,6 +31,7 @@ function isGoogleTier(value: string | null): value is GoogleTier {
 export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
   const { user } = useAuth()
   const [wallets, setWallets] = useState<WalletRow[]>([])
+  const isOnline = useOnlineStatus()
   const [isLoading, setIsLoading] = useState(true)
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -70,6 +73,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
 
   const saveGoogle = async (event: FormEvent) => {
     event.preventDefault()
+    if (isOffline()) return setMessage({ kind: "error", text: OFFLINE_WRITE_MESSAGE })
     setIsSaving(true)
     setMessage(null)
     const { error } = await supabase.rpc("update_store_wallet_settings", {
@@ -84,6 +88,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
 
   const saveGalaxy = async (event: FormEvent) => {
     event.preventDefault()
+    if (isOffline()) return setMessage({ kind: "error", text: OFFLINE_WRITE_MESSAGE })
     const rate = Number(galaxyRate)
     if (galaxyRate.trim() === "" || !Number.isFinite(rate) || rate < 0 || rate > 100) {
       return setMessage({ kind: "error", text: "적립률은 0~100 사이로 입력해 주세요." })
@@ -102,6 +107,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
 
   const saveAdjustment = async (event: FormEvent) => {
     event.preventDefault()
+    if (isOffline()) return setMessage({ kind: "error", text: OFFLINE_WRITE_MESSAGE })
     const target = Number(targetBalance)
     if (targetBalance.trim() === "" || !Number.isSafeInteger(target) || target < 0) {
       return setMessage({ kind: "error", text: "목표 잔액은 0 이상의 정수로 입력해 주세요." })
@@ -150,13 +156,13 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
               <option key={tier} value={tier}>{`${tier} (${GOOGLE_TIER_RATES[tier].toFixed(2)}%)`}</option>
             ))}
           </select>
-          <Button type="submit" disabled={isSaving}>등급 저장</Button>
+          <Button type="submit" disabled={isSaving || !isOnline}>등급 저장</Button>
         </form>
 
         <form noValidate className="space-y-2" onSubmit={(event) => void saveGalaxy(event)}>
           <label htmlFor="galaxy-rate" className="block text-sm font-medium">Galaxy Store 적립률 (%)</label>
           <Input id="galaxy-rate" type="number" inputMode="decimal" min={0} max={100} step="0.01" value={galaxyRate} onChange={(event) => setGalaxyRate(event.target.value)} className="bg-gray-900 text-white" />
-          <Button type="submit" disabled={isSaving}>적립률 저장</Button>
+          <Button type="submit" disabled={isSaving || !isOnline}>적립률 저장</Button>
         </form>
 
         <form noValidate className="space-y-2" onSubmit={(event) => void saveAdjustment(event)}>
@@ -170,7 +176,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
           <Input id="adjust-target" type="number" inputMode="numeric" min={0} step={1} value={targetBalance} onChange={(event) => setTargetBalance(event.target.value)} className="bg-gray-900 text-white" />
           <label htmlFor="adjust-memo" className="block text-xs text-gray-300">메모 (선택)</label>
           <Input id="adjust-memo" value={adjustMemo} onChange={(event) => setAdjustMemo(event.target.value)} className="bg-gray-900 text-white" />
-          <Button type="submit" variant="outline" disabled={isSaving}>잔액 보정</Button>
+          <Button type="submit" variant="outline" disabled={isSaving || !isOnline}>잔액 보정</Button>
         </form>
       </CardContent>
     </Card>

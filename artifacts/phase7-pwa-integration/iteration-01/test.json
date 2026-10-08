@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "run_id": "phase7-pwa-integration",
+  "iteration": 1,
+  "agent": "chronoledger-orchestrator",
+  "role": "dynamic-test",
+  "base_sha": "1675eeeb7433a1cff58fb384850ab66c7446f5ff",
+  "target_sha": "21f6d002c23c6c71c3dd7409402bb060003a115a",
+  "status": "passed",
+  "created_at": "2026-10-08T14:19:10Z",
+  "finished_at": "2026-10-08T14:19:44Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "TypeScript Type Check",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "ESLint Check",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "Vitest Unit Tests (22 files, 70 tests)",
+      "command": "npx vitest run",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "Next.js Production Build (dummy Supabase env)",
+      "command": "npm run build",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "md/TESTS.sql DB/RLS scenarios",
+      "command": "not executed (requires isolated Supabase test project)",
+      "status": "skipped",
+      "exit_code": null
+    }
+  ]
+}
+

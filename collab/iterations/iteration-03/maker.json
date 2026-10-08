@@ -1,0 +1,50 @@
+{
+  "note": "artifacts/schemas/maker.schema.json does not exist; this is an ad-hoc structure.",
+  "run_id": "phase7-pwa-integration",
+  "iteration": 3,
+  "branch": "collab/phase7-pwa-integration",
+  "base_head": "27ccb0b",
+  "committed": false,
+  "findings": [
+    {
+      "id": "P7-ITER2-F1",
+      "status": "present_in_working_tree",
+      "detail": "Auto-open, non-dismissible OverduePlannedModal exists in the uncommitted Iteration 02 working tree (reviewer likely saw old HEAD). Commit required."
+    },
+    {
+      "id": "P7-ITER2-F2",
+      "status": "fixed",
+      "detail": "public/sw.js v2 caches app shell plus per-user (JWT sub) Supabase /rest/v1/ GET reads; anon/expired tokens, non-GET and cross-origin not intercepted; caches cleared on sign-out."
+    },
+    {
+      "id": "P7-ITER2-F3",
+      "status": "fixed",
+      "detail": "manifest id '/dashboard'; icons regenerated as basic brand mark with separate maskable 512 and apple 180. Not designer-approved art."
+    }
+  ],
+  "changed_files_new_in_iteration_03": [
+    "public/sw.js",
+    "public/manifest.json",
+    "public/icons/*",
+    "src/components/pwa/service-worker-register.tsx",
+    "src/components/pwa/sw.test.ts",
+    "docs/to-do.md",
+    "docs/progress.md",
+    "docs/handoff.md",
+    "docs/changelog.md",
+    "docs/architecture.md"
+  ],
+  "checks_run": {
+    "tsc_noEmit": "pass",
+    "vitest_run": "24 files, 79 tests pass (pwa subset re-run after tsc fix: 6 pass)",
+    "lint": "pass",
+    "build": "pass (dummy Supabase env); out/sw.js and out/icons/icon-maskable-512.png present",
+    "git_diff_check": "no whitespace errors (LF/CRLF warnings only)"
+  },
+  "unverified": [
+    "Service Worker behavior in a real browser (registration, offline shell/data load)",
+    "Android PWA install",
+    "Cache clearing on real session expiry/sign-out",
+    "Real Supabase RPC/RLS/trigger behavior (md/TESTS.sql not executed)"
+  ]
+}

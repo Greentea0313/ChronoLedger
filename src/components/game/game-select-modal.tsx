@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
+import { useOnlineStatus } from "@/lib/use-online-status"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { useAuth } from "@/lib/auth-context"
 import { resizeImageToWebP } from "@/lib/image-resizer"
 import { uploadUserIcon } from "@/lib/storage-upload"
@@ -16,6 +18,7 @@ interface Game {
 }
 
 export function GameSelectModal({ onGameAdded }: { onGameAdded: () => void }) {
+  const isOnline = useOnlineStatus()
   const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [games, setGames] = useState<Game[]>([])
@@ -60,6 +63,10 @@ export function GameSelectModal({ onGameAdded }: { onGameAdded: () => void }) {
 
   const handleSubmit = async () => {
     if (!user || !selectedGame) return
+    if (isOffline()) {
+      setError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
 
     setIsLoading(true)
     setError(null)
@@ -165,7 +172,7 @@ export function GameSelectModal({ onGameAdded }: { onGameAdded: () => void }) {
               <Button
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={handleSubmit}
-                disabled={isLoading}
+                disabled={isLoading || !isOnline}
               >
                 {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 {isLoading ? "등록 중..." : "등록 완료"}

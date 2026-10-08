@@ -7,7 +7,7 @@
     "7.1 게임/픽업 일정 변경 시 안전 동기화 (트리거), 7.2 두 달 걸치는 픽업 일정 이월/차감 및 만료 모달, 7.3 PWA 매니페스트/오프라인 방어, 7.4 Web/PWA MVP 회귀 및 배포 빌드 검증"
   ],
   "base_sha": "1675eeeb7433a1cff58fb384850ab66c7446f5ff",
-  "target_sha": null,
+  "target_sha": "21f6d002c23c6c71c3dd7409402bb060003a115a",
   "branch": "collab/phase7-pwa-integration",
   "worktree_path": ".worktrees/phase7-pwa-integration",
   "max_iterations": 3,
