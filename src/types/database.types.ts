@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          attempt_count: number
+          data_completed_at: string | null
+          email_attempted_at: string | null
+          email_sent_at: string | null
+          id: string
+          last_error_code: string | null
+          locked_until: string | null
+          requested_at: string
+          retry_after: string
+          status: string
+          status_token_hash: string
+          storage_completed_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          data_completed_at?: string | null
+          email_attempted_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          last_error_code?: string | null
+          locked_until?: string | null
+          requested_at?: string
+          retry_after?: string
+          status?: string
+          status_token_hash: string
+          storage_completed_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          data_completed_at?: string | null
+          email_attempted_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          last_error_code?: string | null
+          locked_until?: string | null
+          requested_at?: string
+          retry_after?: string
+          status?: string
+          status_token_hash?: string
+          storage_completed_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           billing_cycle: string | null
@@ -525,6 +576,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      account_deletion_is_pending: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      claim_account_deletion_requests: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempt_count: number
+          data_completed_at: string | null
+          email_attempted_at: string | null
+          email_sent_at: string | null
+          id: string
+          last_error_code: string | null
+          locked_until: string | null
+          requested_at: string
+          retry_after: string
+          status: string
+          status_token_hash: string
+          storage_completed_at: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+      }
       adjust_wallet_balance: {
         Args: { p_memo: string; p_platform: string; p_target_balance: number }
         Returns: undefined

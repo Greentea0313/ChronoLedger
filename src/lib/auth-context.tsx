@@ -1,51 +1,152 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session } from '@supabase/supabase-js'
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 import { setupDeepLink } from '@/lib/tauri-auth'
+import {
+  ACCOUNT_DELETION_STATUS_TOKEN_KEY,
+  fetchAccountDeletionStatus,
+  type AccountDeletionStatus,
+} from '@/lib/account-deletion'
 
 interface AuthContextType {
   user: User | null
   session: Session | null
   isLoading: boolean
+  isAccountDeletionStatusLoading: boolean
+  accountDeletionStatus: AccountDeletionStatus | null
+  refreshAccountDeletionStatus: () => Promise<void>
+  beginAccountDeletionTracking: (statusToken: string) => void
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, session: null, isLoading: true })
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  isLoading: true,
+  isAccountDeletionStatusLoading: true,
+  accountDeletionStatus: null,
+  refreshAccountDeletionStatus: async () => {},
+  beginAccountDeletionTracking: () => {},
+})
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isAccountDeletionStatusLoading, setIsAccountDeletionStatusLoading] = useState(true)
+  const [accountDeletionStatus, setAccountDeletionStatus] = useState<AccountDeletionStatus | null>(null)
 
   useEffect(() => {
-    try {
-      setupDeepLink().catch((err) => console.error("딥링크 에러:", err))
-    } catch (e) {
-      console.error(e)
-    }
+    void setupDeepLink().catch((error: unknown) => console.error("딥링크 초기화 실패:", error))
+
+    let authEventReceived = false
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, nextSession) => {
+      authEventReceived = true
+      setSession(nextSession)
+      setUser(nextSession?.user ?? null)
+      setIsAccountDeletionStatusLoading(true)
+      setIsLoading(false)
+    })
 
     supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) console.error("세션 에러:", error)
-      setSession(session)
-      setUser(session?.user ?? null)
+      if (error) {
+        console.error("세션 에러:", error)
+        return
+      }
+      if (!authEventReceived) {
+        setSession(session)
+        setUser(session?.user ?? null)
+      }
     }).catch((err) => {
       console.error("Supabase 에러:", err)
     }).finally(() => {
       setIsLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setIsLoading(false)
-    })
-
     return () => subscription.unsubscribe()
   }, [])
 
+  const refreshAccountDeletionStatus = useCallback(async () => {
+    try {
+      if (user) {
+        const { data, error } = await supabase
+          .from("account_deletion_requests")
+          .select("status")
+          .maybeSingle()
+
+        if (error) {
+          console.error("계정 삭제 상태를 확인하지 못했습니다:", error)
+        } else if (data) {
+          setAccountDeletionStatus(data.status as AccountDeletionStatus)
+          return
+        }
+      }
+
+      const statusToken = window.localStorage.getItem(ACCOUNT_DELETION_STATUS_TOKEN_KEY)
+      if (!statusToken) {
+        if (!accountDeletionStatus) setAccountDeletionStatus(null)
+        return
+      }
+
+      const status = await fetchAccountDeletionStatus(statusToken)
+      if (status) {
+        setAccountDeletionStatus(status)
+      } else if (accountDeletionStatus !== "COMPLETED") {
+        window.localStorage.removeItem(ACCOUNT_DELETION_STATUS_TOKEN_KEY)
+        setAccountDeletionStatus(null)
+      }
+    } catch (error) {
+      console.error("계정 삭제 진행 상태를 확인하지 못했습니다:", error)
+    } finally {
+      setIsAccountDeletionStatusLoading(false)
+    }
+  }, [accountDeletionStatus, user])
+
+  const beginAccountDeletionTracking = useCallback((statusToken: string) => {
+    window.localStorage.setItem(ACCOUNT_DELETION_STATUS_TOKEN_KEY, statusToken)
+    setAccountDeletionStatus("PENDING")
+    setIsAccountDeletionStatusLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (isLoading) return
+
+    let active = true
+    const refresh = async () => {
+      if (!active) return
+      await refreshAccountDeletionStatus()
+    }
+    void refresh()
+    const interval = window.setInterval(() => {
+      if (window.localStorage.getItem(ACCOUNT_DELETION_STATUS_TOKEN_KEY)) {
+        void refresh()
+      }
+    }, 5_000)
+    window.addEventListener("focus", refresh)
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === ACCOUNT_DELETION_STATUS_TOKEN_KEY) void refresh()
+    }
+    window.addEventListener("storage", handleStorage)
+
+    return () => {
+      active = false
+      window.clearInterval(interval)
+      window.removeEventListener("focus", refresh)
+      window.removeEventListener("storage", handleStorage)
+    }
+  }, [isLoading, refreshAccountDeletionStatus])
+
   return (
-    <AuthContext.Provider value={{ user, session, isLoading }}>
+    <AuthContext.Provider value={{
+      user,
+      session,
+      isLoading,
+      isAccountDeletionStatusLoading,
+      accountDeletionStatus,
+      refreshAccountDeletionStatus,
+      beginAccountDeletionTracking,
+    }}>
       {children}
     </AuthContext.Provider>
   )

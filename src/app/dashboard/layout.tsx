@@ -5,18 +5,24 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase/client'
+import { AccountDeletionStatusScreen } from '@/components/auth/account-deletion-status'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const { user, isLoading } = useAuth()
+  const {
+    user,
+    isLoading,
+    isAccountDeletionStatusLoading,
+    accountDeletionStatus,
+  } = useAuth()
   const [logoutError, setLogoutError] = useState<string | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && !user && !accountDeletionStatus) {
       router.replace('/auth')
     }
-  }, [isLoading, router, user])
+  }, [accountDeletionStatus, isLoading, router, user])
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -37,7 +43,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }
 
-  if (isLoading || !user) {
+  if (accountDeletionStatus) {
+    return <AccountDeletionStatusScreen />
+  }
+
+  if (isLoading || isAccountDeletionStatusLoading || !user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
         <p role="status">인증 확인 중...</p>

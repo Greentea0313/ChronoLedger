@@ -24,7 +24,7 @@
 
 - [x] 승인 SRS/SPEC/SCHEMA를 런타임 경계, 데이터 책임, RPC 계약, 주요 흐름, 보안, 오류 및 검증 추적으로 연결하는 [상세 설계](detailed-design.md) 초안을 작성했다.
 - [ ] 모바일·데스크톱 앱의 구체 릴리스 버전 번호와 시점/구성은 미결정으로 유지한다. 기존 결정인 Android PWA + Windows Tauri v2, 단일 Next.js 코드베이스/Tauri 정적 export, Web/PWA 우선 순서는 그대로 유지한다. Netlify 및 Web/Desktop 빌드 분리 제안은 별도 미결정 항목이다.
-- [ ] 상세 설계의 남은 미결정 항목(계정/게임 정리 worker 및 이메일 전달 구조, UI/접근성 제안)을 구현 전에 결정하거나 검증 계획을 승인한다. 실패 시 재시도 간격을 늘리고, Storage 정리가 성공한 뒤에만 관련 행을 제거한다. 게임 정리 중에는 목록에 “삭제 처리 중”으로 표시한다. 계정별 IndexedDB 캐시는 고정 TTL 없이 마지막 동기화 시각을 표시하고, 네트워크 복귀 때 즉시 재조회하며 로그아웃/세션 만료 때 삭제한다.
+- [ ] 남은 상세 설계 항목: 게임 구독 해제의 내구성 있는 Storage 정리 worker, UI/접근성 제안 검증. 실패 시 재시도 간격을 늘리고 Storage 정리 후에만 `user_games` 행을 제거한다. 게임 정리 중에는 목록에 “삭제 처리 중”으로 표시한다. 계정별 IndexedDB 캐시는 고정 TTL 없이 마지막 동기화 시각을 표시하고, 네트워크 복귀 때 즉시 재조회하며 로그아웃/세션 만료 때 삭제한다.
 - [ ] SRS 수용 기준별 세부 테스트 케이스와 성능 측정 환경·목표를 릴리스 검증 자료로 구체화한다. 기준 기기는 중급 Android 실기기로 정했다.
 
 ## 설계 자료 검토 및 협업 파이프라인
@@ -150,15 +150,9 @@
   - verify: RPC만 허용된 변경은 직접 쓰기에서 RLS/권한 오류로 차단되는지 확인. 구독 템플릿 DELETE와 expenses DELETE도 거부되는지 확인
 - [x] 2.4 재현 가능한 DB/RPC/RLS 검증 케이스 준비
   - 대상 파일: `md/TESTS.sql`, `md/SCHEMA.sql`
-<<<<<<< HEAD
-  - 작업: 테스트 역할/JWT, 초기 데이터, 실행 순서, 각 케이스의 기대 성공/실패 결과를 문서화
-  - verify: 결과를 재실행할 수 있고, 실행하지 않은 케이스는 PASS로 표시하지 않는지 확인
-- [x] 2.5 TypeScript Database 타입 자동 생성
-=======
   - 작업: 테스트 역할/JWT, 초기 데이터, 실행 순서, 각 케이스의 기대 성공/실패 결과를 문서화했다. 결제/환불·지갑, 구독/일정 트리거, 사용자 요청, 관리자 RPC, RLS/grants 케이스를 rollback-only SQL로 준비했다.
   - verify: 현재 확장된 `md/TESTS.sql`은 SQL/DB 미실행이며 정적 검토만 했다. 과거 Phase 0의 선행 스모크 실행 결과는 현재 파일 버전에 대한 검증이 아니다. 실제 DB 결과는 격리된 테스트 프로젝트에서 실행한 후 별도 기록한다.
 - [ ] 2.5 TypeScript Database 타입 자동 생성
->>>>>>> collab/phase2-db-tests
   - 대상 파일: `src/types/database.types.ts`
   - 작업: `npx supabase gen types typescript` 실행
   - verify: `Database['public']['Tables']['personal_memos']['Row']` 타입이 정상 임포트되는지 확인
@@ -166,16 +160,16 @@
 ---
 
 ### Phase 3. Web/PWA 인증(Auth)
-- [ ] 3.1 이메일 가입/로그인 및 구글 OAuth 연동
+- [x] 3.1 이메일 가입/로그인 및 구글 OAuth 연동
   - 대상 파일: `src/app/auth/page.tsx` 또는 통합 로그인 경로, `src/app/auth/callback/page.tsx`, `src/lib/auth-context.tsx`
-  - 작업: 이메일 폼, Google OAuth, PKCE/browser callback, 세션 상태 및 protected routes를 Web/PWA 기준으로 연결
+  - 작업: 이메일 가입/로그인, Google OAuth/PKCE callback, 세션 상태 및 protected routes를 Web/PWA 기준으로 연결했다. 별도 callback route는 기존 공유 callback 흐름을 재사용한다.
   - [x] 로그인 화면을 기존 앱과 맞는 다크 테마로 정리하고, 레이블이 있는 입력과 이메일 로그인/가입/Google 액션을 배치했다. 320/390/768/1280px 화면에서 넘침이 없고 입력 높이가 44px 이상임을 확인했다.
   - 후속: 앱 전체 테마 전환은 보호 화면과 함께 적용한다. 키보드/스크린리더 심화 검증은 별도로 수행한다.
-  - verify: 브라우저와 Android PWA에서 가입·로그인·로그아웃·세션 복구 및 비로그인 접근 차단 확인
-- [ ] 3.2 사용자 계정 삭제 및 개인 데이터/Storage 정리 흐름
+  - verify: 인증 화면/상태 단위 테스트로 검증한다. 실환경 OAuth 왕복과 Android PWA 실기기 검증은 아직 수행하지 않았다.
+- [x] 3.2 사용자 계정 삭제 및 개인 데이터/Storage 정리 흐름
   - 대상 파일: 인증 설정 화면, 서버 측 계정 삭제 경로, `user-icons` Storage 정책
-  - 작업: 본인 확인 후 비공개 아이콘 객체를 제거하고 Auth 계정 삭제를 완료한다. 공용 게임/일정은 보존한다.
-  - verify: 계정 삭제 완료 후 개인 테이블 행과 Storage 객체가 남지 않고 공용 카탈로그는 유지되는지 확인
+  - 작업: Netlify Functions 내구성 queue/worker에서 본인 확인 후 아이콘·개인 행을 정리하고 등록 이메일 알림 뒤 Auth 계정을 삭제한다. 대기 중 RLS/trigger로 개인 접근을 차단하고 공용 게임/일정은 보존한다.
+  - verify: 단위 테스트에서 순서, 재시도, provider 멱등성 경계 및 Auth 최종 삭제를 확인했다. 실제 Supabase migration/RLS/Storage, Netlify 예약 실행과 Resend 전달은 배포 환경에서 검증해야 한다. Idempotency 기간 만료 전에 발송 결과를 확정할 수 없으면 `MANUAL_REVIEW`로 멈추며 운영자 조치가 필요하다.
 
 ---
 
