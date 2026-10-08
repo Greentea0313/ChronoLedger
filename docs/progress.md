@@ -1,11 +1,21 @@
 # 프로젝트 진행 현황
 
+## Phase 4 변경 통합 완료 (2026-10-08)
+
+- `collab/phase4-request-submission`의 기반 커밋 `674f741` 및 요청 제출 UI Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`을 현재 `main` 작업 트리에 통합했다. 게임 카탈로그/아이콘 처리, 관리자 요청 화면, 게임·일정 제안 UI와 테스트를 포함한다.
+- main에 이미 반영된 최신 로그인 UI, KST 월간 지출 조회, Gemini 리뷰 기록은 유지한다. 충돌 문서는 최신 main 버전을 기준으로 보존하고 통합 상태를 별도로 기록한다.
+- 대시보드에서는 main의 KST 지출 조회를 유지하고, 누락된 자산 행을 0원으로 오인하지 않도록 요청 브랜치의 명시적 오류 처리를 채택했다.
+- 충돌을 해결해 Phase 4 변경을 `main` 작업 트리에 통합했다. `npm ci`, Vitest 6개 파일/21개 테스트, lint, dummy Supabase 환경변수의 정적 build가 통과했다.
+- Vitest 기본 검색이 저장소 안의 `.worktrees/` 테스트를 중복 실행해 React hook 오류를 냈다. `vitest.config.ts`에서 `configDefaults.exclude`를 보존하면서 `.worktrees/**`를 제외해 해결했다.
+- 기존 lockfile은 Vitest 5의 `@types/node` peer 범위와 어긋나 `npm ci`가 실패했다. `@types/node`를 `^22`로 맞추고 lockfile을 재생성한 뒤 표준 `npm ci` 통과를 확인했다. npm audit은 13개 취약점(2 moderate, 9 high, 2 critical)을 보고했으며 이번 통합에서 자동 수정하지 않았다.
+- 실제 Supabase RLS/RPC 동작 및 Docker/VM 격리 검증은 여전히 미실행이다.
+
 ## Gemini 수동 리뷰 완료 (2026-10-08)
 
 - 사용자가 Gemini API 호출보다 참조 기준과 prompt를 Gemini에 직접 제공하는 방식을 선택했고, 같은 Target SHA의 수동 정적 리뷰 결과를 전달했다.
 - Phase 4.4 변경(Base `674f741ee52d45bb96db3431521101a5aa01341f`, Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`)의 기준 요약과 검토 프롬프트를 [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)에 작성하고, 40,198-byte 전체 diff를 `artifacts/gemini-phase4-connection/phase4-request-submission.diff`에 생성했다.
 - API 연결 run `gemini-phase4-connection`은 dry-run에서 Base/Target 및 12개 파일을 확인한 뒤 사용자의 수동 전달 선택에 따라 `abandoned` 처리했다. GEMINI_API_KEY 미설정, API 호출·네트워크 요청·외부 전송 모두 없음. 종료 기록은 해당 run의 `iteration-01/human-report.md`에 있다.
-- Gemini는 `clean`/발견 없음으로 판정했다. 응답은 [`gemini-manual-review.md`](../artifacts/phase4-request-submission/iteration-01/gemini-manual-review.md)와 Schema 형식의 [`gemini-review.json`](../artifacts/phase4-request-submission/iteration-01/gemini-review.json)에 기존 ChronoLedger Reviewer 결과와 분리해 기록했다. 실제 Supabase RLS 및 관리자 RPC 원자성, `npm ci` 재현성은 후속 검증으로 남아 있다.
+- Gemini는 `clean`/발견 없음으로 판정했다. 응답은 [`gemini-manual-review.md`](../artifacts/phase4-request-submission/iteration-01/gemini-manual-review.md)와 Schema 형식의 [`gemini-review.json`](../artifacts/phase4-request-submission/iteration-01/gemini-review.json)에 기존 ChronoLedger Reviewer 결과와 분리해 기록했다. 실제 Supabase RLS 및 관리자 RPC 원자성은 후속 검증으로 남아 있다.
 - Gemini 전체 API 도입 결정은 별도 미결정이며, 이번 수동 리뷰에는 API 호출이나 전송이 없었다.
 
 ## 협업 run 검증 재개 (2026-10-07)

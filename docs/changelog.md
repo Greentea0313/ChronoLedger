@@ -2,8 +2,9 @@
 
 ## 2026-10-08
 
+- Phase 4 기반 및 요청 제출 변경을 `main`에 통합했다. 게임 카탈로그/아이콘 업로드, 관리자 승인 화면, 사용자 게임·일정 제안 UI와 테스트를 포함하며, 기존 최신 인증 UI와 KST 대시보드 동작을 보존한다. 중첩 worktree 테스트 검색 제외, 로그인 입력 오타 및 npm peer/lockfile 정합성도 보완했다.
 - Gemini Phase 4.4 검토를 위한 수동 패킷(승인 기준 요약, 프롬프트, Base/Target 정보)과 40,198-byte exact diff를 준비했다. 사용자가 수동 방식을 선택해 Gemini API run은 호출 전에 abandoned 처리했으며 어떤 diff도 외부로 전송하지 않았다.
-- 사용자가 동일 Base/Target의 Gemini 수동 정적 리뷰 결과를 전달했다. Gemini는 clean/발견 없음으로 판정했으며, 별도 결과 파일에 기록해 기존 ChronoLedger review.json은 보존했다. 실제 Supabase RLS/RPC 원자성과 npm ci 재현성은 미검증으로 유지한다.
+- 사용자가 동일 Base/Target의 Gemini 수동 정적 리뷰 결과를 전달했다. Gemini는 clean/발견 없음으로 판정했으며, 별도 결과 파일에 기록해 기존 ChronoLedger review.json은 보존했다. 실제 Supabase RLS/RPC 원자성은 미검증으로 유지한다.
 
 ## 2026-10-07
 - Phase 4.4 협업 run에서 사용자 게임 제안 및 일정 추가/수정 요청 UI를 추가하고 입력 검증, 요청 목록, 회귀 테스트를 구현했다. 동일 Target SHA 리뷰는 clean이고 Vitest 21개, lint, dummy 환경의 정적 build 및 run 결과 Schema 검증이 통과했다. 실제 Supabase 연동과 격리 sandbox 검증은 남아 있다.

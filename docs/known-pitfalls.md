@@ -55,3 +55,6 @@
 
 18. **Run Target SHA와 worktree HEAD의 범위 불일치**
    - 기존 run을 계속할 때는 manifest의 Target SHA, 현재 worktree HEAD 및 run objective가 같은 변경 범위를 가리키는지 확인한다. 이후 작업이 다른 기능 범위로 이동했다면 Target SHA를 임의로 최신 HEAD로 덮지 말고, 이전 run을 근거와 함께 종료한 뒤 고유 ID와 명시된 BaseRef로 새 run을 만든다.
+
+19. **저장소 내 중첩 Git worktree와 Vitest 검색**
+   - `.worktrees/` 아래의 중첩 worktree 테스트까지 Vitest가 자동 검색하면 같은 테스트가 여러 번 실행되고 각 worktree의 React 인스턴스 분리로 hook 오류가 날 수 있다. `vitest.config.ts`에서 `configDefaults.exclude`를 보존하면서 `.worktrees/**`를 제외한다.

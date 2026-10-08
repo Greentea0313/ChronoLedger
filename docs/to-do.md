@@ -74,10 +74,10 @@
 3. [x] **[실환경 인증 · 브라우저]** localhost에서 Google OAuth, PKCE code 교환, 세션 저장 및 `/dashboard` 복귀를 확인했다.
 4. [보류] **[실환경 인증 · Android PWA]** 사용자가 Android 실기기 검증을 미루기로 했다. 웹 MVP 우선 진행 기간에는 실행하지 않으며, PWA origin과 Redirect URL이 준비된 뒤 재개한다.
 5. [x] `/`는 `/auth`로 이동하고 로그인 UI를 단일화했다. dashboard 레이아웃에 인증 gate를 적용했으며 로그인 상태의 root 이동과 로그아웃 후 직접 `/dashboard` 접근이 `/auth`로 돌아오는 동작을 브라우저에서 확인했다. 데이터 접근 권한의 최종 집행은 SRS대로 RLS가 담당한다.
-6. [ ] Dashboard 예정 지출은 실제 조회로 연결되어 있다. 현재 달력 월 계산과 조회가 KST 경계 및 다음 달 시작일 exclusive 조건을 모두 만족하는지 검증·보완하고, 실제 0원과 조회 오류를 테스트 데이터로 구분한다.
+6. [x] Dashboard 예정 지출을 KST 현재 달 DATE 범위로 조회하며 `end_date` 우선 귀속과 다음 달 시작일 exclusive 조건을 적용했다. 실제 0원, 빈 결과, 누락 자산 행, 조회 오류를 테스트로 구분했다. 원격 Supabase 조회는 미실행이다.
 7. [ ] 가계부, 캘린더, 설정 기능을 Web/PWA MVP 조건에 맞춰 구현하고 승인 SRS 수용 기준별 테스트를 추적한다.
 8. [x] 기존 `phase1-setup` run은 Target SHA(`dda0cae`)와 후속 Phase 4 변경의 범위가 달라 review/test 증거 없이 종료했다. 상태를 `abandoned`로 기록하고 [종료 보고서](../artifacts/phase1-setup/iteration-01/human-report.md)를 보존했다. Tauri 검증은 Web/PWA MVP 이후로 둔다.
-9. [x] `phase4-request-submission` run에서 Phase 4.4 요청 제출 UI를 구현·검증했다. Base `674f741ee52d45bb96db3431521101a5aa01341f`, Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`; 동일 SHA Reviewer clean, Vitest 21개, lint/build 및 run/review/test Schema 통과. 실제 Supabase/RLS/RPC는 미검증이고 sandbox는 unavailable이다. 산출물: [`artifacts/phase4-request-submission/`](../artifacts/phase4-request-submission/).
+9. [x] `phase4-request-submission` run에서 Phase 4 기반 및 4.4 요청 제출 UI를 구현·검증해 `main`에 통합했다. Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`; 동일 SHA Reviewer clean, 원 run의 Vitest 21개/lint/build/Schema 통과, 통합 상태의 표준 `npm ci`, Vitest 21개, lint/build도 통과했다. 실제 Supabase/RLS/RPC는 미검증이고 sandbox는 unavailable이다. 산출물: [`artifacts/phase4-request-submission/`](../artifacts/phase4-request-submission/).
 10. [ ] Gemini Phase 4 계획을 승인 스키마 재사용, 마이그레이션 및 상세 검증 케이스 중심으로 갱신한다.
 11. [ ] 버튼 무반응이 브라우저에서도 재현되는지 확인한다. Tauri 전용 무반응 분석은 데스크톱 통합 단계에서 웹뷰 로그를 수집해 진행하고, 원인 확인 전 권한/Hydration 문제로 단정하지 않는다.
 
@@ -110,7 +110,7 @@
 - [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인
 - [x] Gemini Reviewer 제한 PoC 구현 및 오프라인 회귀 테스트
   - 단일 run/SHA 고정, 외부 전송 전 전체 diff의 인터랙티브 승인, 기존 리뷰 JSON Schema 검증 및 결과 no-overwrite 저장을 구현했다. `scripts/collaboration`의 오프라인 테스트 12개 통과.
-- [x] Phase 4.4 변경에 대해 [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)과 exact Target diff를 Gemini에 직접 제공하고 결과를 기존 Copilot 리뷰와 분리해 기록했다. Gemini 판정은 `clean`/발견 없음이며, 실제 Supabase RLS·관리자 RPC 원자성 및 `npm ci` 재현성은 미검증이다. API 호출은 하지 않았다.
+- [x] Phase 4.4 변경에 대해 [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)과 exact Target diff를 Gemini에 직접 제공하고 결과를 기존 Copilot 리뷰와 분리해 기록했다. Gemini 판정은 `clean`/발견 없음이며, 실제 Supabase RLS·관리자 RPC 원자성은 미검증이다. API 호출은 하지 않았다.
 - [ ] Gemini Reviewer PoC 외부 API 사용 및 도입 여부 결정. 결정 전 실제 API 호출은 하지 않는다. 승인 시 격리 run에서 수동 diff 확인 후 API 비용·응답·품질·실패 동작을 기록한다.
 
 ### Phase 1. Web/PWA 환경 및 테스트 기반

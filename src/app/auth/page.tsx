@@ -94,7 +94,7 @@ export default function AuthPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <form className="space-y-4">
-            <Inpu
+            <Input
               type="email"
               placeholder="이메일"
               value={email}
@@ -102,7 +102,7 @@ export default function AuthPage() {
               required
               className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
             />
-            <Inpu
+            <Input
               type="password"
               placeholder="비밀번호 (6자리 이상)"
               value={password}
