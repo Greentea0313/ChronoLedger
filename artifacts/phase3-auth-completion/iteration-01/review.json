@@ -1,0 +1,12 @@
+{
+  "base_sha": "abb92040b0f7457cd33d98fb87f1ce8be02951e7",
+  "findings": [],
+  "status": "clean",
+  "iteration": 1,
+  "created_at": "2026-10-08T22:13:44+09:00",
+  "target_sha": "39a116eac8dfd43cc8540b219c7b4148eb2cf9a9",
+  "schema_version": 1,
+  "run_id": "phase3-auth-completion",
+  "role": "static-review",
+  "agent": "ChronoLedger Reviewer"
+}
