@@ -7,9 +7,9 @@
     "6.1 스토어 지갑 위젯 및 설정 연동, 6.2 정밀 결제 모달(결제수단, 할인, 자산 차감 등) 및 process_expense_payment RPC 연동, 6.3 환불 UI 및 refund_expense_payment RPC 연동과 잔액 부족 검증"
   ],
   "base_sha": "2e2306f4d0c603a3ce554f407bbbd96df9761d6a",
-  "target_sha": null,
+  "target_sha": "16d17676e9f9bbc7b515bb370ddd82263107002b",
   "branch": "collab/phase6-wallet-expenses",
   "worktree_path": ".worktrees/phase6-wallet-expenses",
   "max_iterations": 3,
-  "status": "in_progress"
+  "status": "completed"
 }
