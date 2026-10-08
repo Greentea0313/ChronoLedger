@@ -112,8 +112,10 @@
   - 참고: Phase 3에서 Netlify Functions(`netlify/functions`, 예약 worker)와 `netlify.toml`을 이미 도입했다. 정적 export(`out/`) 배포와 Functions 병행은 동작 중이지만, Web/Desktop 이중 빌드 분리 여부는 여전히 미결정이다.
 - [x] 깨끗한 커밋 상태에서 run 생성 스크립트를 검증하고 생성된 전용 worktree/manifest가 일치하는지 확인
   - 검증: Phase 5·6·7 run을 깨끗한 `main`에서 `New-CollaborationRun.ps1`로 생성했고, worktree 경로·브랜치·`base_sha`가 manifest와 일치했다.
-  - 후속 발견: 스크립트가 만든 `artifacts/<run>/run.json`은 `main`에 미추적 상태로 남아 새 worktree에서 보이지 않는다. 현재는 Orchestrator가 manifest를 `main`에 커밋한 뒤 worktree에 병합하는 수동 절차로 우회한다.
-- [ ] `New-CollaborationRun.ps1`이 manifest를 커밋·전파하도록 개선하거나 위 수동 절차를 협업 가이드에 명시
+  - 후속 발견: 스크립트가 만든 `artifacts/<run>/run.json`이 `main`에 미추적 상태로 남아 새 worktree에서 보이지 않았다. Phase 5~7에서는 Orchestrator가 manifest를 `main`에 커밋한 뒤 worktree에 병합하는 수동 절차로 우회했다.
+- [x] `New-CollaborationRun.ps1`이 manifest를 커밋·전파하도록 개선
+  - 변경: manifest와 `iteration-01/README.md`를 새 worktree 안에 생성하고 `collab/<RunId>` 브랜치의 첫 커밋으로 남긴다. 메인 작업 폴더는 건드리지 않으며 `base_sha`는 기준 커밋 그대로다. 기준 커밋에 같은 run 아티팩트가 이미 있으면 중단하고, 커밋 실패 시 worktree를 보존한 채 오류를 알린다.
+  - 검증: 임시 run(`script-selftest`)으로 메인 clean 유지, worktree clean, manifest 첫 커밋, `run.schema.json` 검증 통과를 확인한 뒤 임시 worktree/브랜치를 삭제했다. 구문 오류 0건. Orchestrator 스킬 4단계와 사용 안내를 갱신했다.
 - [ ] Docker 기반 테스트 샌드박스를 사용할 수 있는 환경에서 격리·네트워크·환경변수 제한을 검증
   - 현황: 이 PC에는 `docker` 명령이 없다. 모든 run의 `test.json`은 `sandbox: unavailable`로 기록했고, 격리 검증은 Docker 준비 전까지 보류한다.
 - [ ] Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인

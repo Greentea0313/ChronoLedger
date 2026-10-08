@@ -78,7 +78,7 @@ git status --short
   )
 ```
 
-`RunId`는 고유한 소문자 영문/숫자/하이픈 이름으로 정한다. 이 명령은 `.worktrees/<RunId>`에 전용 worktree와 `collab/<RunId>` 브랜치를 만들고 `artifacts/<RunId>/run.json`을 생성한다. 이미 같은 이름이 있으면 다른 RunId를 쓴다. 선택적으로 `-BaseRef`로 기준 커밋을, `-MaxIterations`로 반복 한도를 지정할 수 있으며 한도는 1~3회다.
+`RunId`는 고유한 소문자 영문/숫자/하이픈 이름으로 정한다. 이 명령은 `.worktrees/<RunId>`에 전용 worktree와 `collab/<RunId>` 브랜치를 만들고, worktree 안의 `artifacts/<RunId>/run.json`(과 `iteration-01/README.md`)을 생성해 그 브랜치에 첫 커밋으로 남긴다. 따라서 Maker가 worktree에서 바로 manifest를 볼 수 있고, 메인 작업 폴더는 깨끗하게 유지된다. `base_sha`는 브랜치를 만든 기준 커밋이며 manifest 커밋이 아니다. 이미 같은 이름이 있으면 다른 RunId를 쓴다. 선택적으로 `-BaseRef`로 기준 커밋을, `-MaxIterations`로 반복 한도를 지정할 수 있으며 한도는 1~3회다.
 
 스크립트가 실패하면 오류 내용을 확인하고 원인을 해결한다. 특히 작업 폴더가 깨끗하지 않다는 오류는 변경을 저장/보존해야 한다는 뜻이다. 이를 우회하려고 파일을 지우거나 강제 초기화하지 않는다.
 
@@ -122,7 +122,7 @@ Orchestrator에게 같은 Target SHA, 수용 기준, 프로젝트의 시험 지�
 
 ## 이 프로젝트에서 아직 확인되지 않은 점
 
-- 실행 준비 스크립트는 구문 검토만 되었고, 실제 새 worktree와 manifest 생성 흐름은 아직 동작 검증되지 않았다.
+- 실행 준비 스크립트는 실제 run(Phase 5~7)과 임시 self-test run으로 worktree·브랜치·manifest 생성과 manifest 첫 커밋까지 동작을 확인했다. Docker 기반 격리 실행은 별개로 아직 검증되지 않았다.
 - 현재 환경에는 Docker가 확인되지 않아 컨테이너 테스트를 실행할 수 없다.
 - VS Code에서 Orchestrator/Maker/Reviewer 프로필 인식, Local subagent 위임, 도구 권한 및 전체 clean-run 흐름을 실제 작업으로 확인하지 않았다.
 - Gemini Code Assist/Spark의 로컬 파일 직접 접근이나 Copilot과의 자동 호출은 연결되어 있지 않다. Gemini API Reviewer PoC는 별도 로컬 스크립트이며, 사용자 전송 승인과 API 설정 없이는 동작하지 않는다.
