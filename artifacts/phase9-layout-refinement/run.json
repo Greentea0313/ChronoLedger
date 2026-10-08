@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "run_id": "phase9-layout-refinement",
+  "created_at": "2026-10-08T16:09:24.8430368+00:00",
+  "objective": "Phase 9 Layout and UI Refinement",
+  "acceptance_criteria": [
+    "Apply design-topbar-spec.md layout",
+    "System default theme",
+    "Remove empty square for missing schedules",
+    "Shorten store names to Google and Galaxy",
+    "Account dropdown for Logout",
+    "Increase logo font size",
+    "Relocate Add Expense button to top-right of date panel as '등록'"
+  ],
+  "base_sha": "653398731f70086e89b500cda1b490ff7b22f6bf",
+  "target_sha": null,
+  "branch": "collab/phase9-layout-refinement",
+  "worktree_path": ".worktrees/phase9-layout-refinement",
+  "max_iterations": 3,
+  "status": "in_progress"
+}
