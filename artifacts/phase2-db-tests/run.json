@@ -1,0 +1,15 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "phase2-db-tests",
+    "created_at":  "2026-10-08T12:27:54.4819619+00:00",
+    "objective":  "Phase 2.4 DB/RPC/RLS 검증 케이스 준비",
+    "acceptance_criteria":  [
+                                "md/TESTS.sql에 테스트 역할/JWT, 초기 데이터, 실행 순서, 성공/실패 기대 결과가 문서화되어 포함됨"
+                            ],
+    "base_sha":  "4397e8831d9f86cdfa539dd806b76fe69cf75b83",
+    "target_sha":  null,
+    "branch":  "collab/phase2-db-tests",
+    "worktree_path":  ".worktrees/phase2-db-tests",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
