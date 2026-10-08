@@ -6,6 +6,8 @@
 
 ## 1. 구성
 
+- UI 스타일 계층(Phase 8): `globals.css`의 RGB 채널 CSS 변수(dark 기본, `[data-theme="light"]`)가 `tailwind.config.ts`의 시맨틱 색(`bg-surface`, `text-content`, `bg-primary` 등)에 매핑된다. 레거시 gray/blue 등 유틸리티는 같은 토큰으로 재매핑된다. 중단점은 md=900, lg=1280.
+
 ```text
 Next.js App Router
 ├── 모바일: PWA (SRS 제품 범위; 앱 버전/첫 릴리스 미결정)

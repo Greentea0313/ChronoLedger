@@ -74,22 +74,82 @@
   src: url("/fonts/a2z/에이투지체-9Black.woff2") format("woff2");
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* 디자인 시트 3.1 팔레트. 값은 "R G B" 채널이라 Tailwind 투명도 수식어(/50)와 함께 쓸 수 있다. */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: 15 17 21;
+  --surface: 23 26 33;
+  --surface-2: 31 36 48;
+  --border: 42 47 58;
+  --control-border: 112 122 140;
+  --text-primary: 245 247 250;
+  --text-secondary: 179 187 200;
+  --text-muted: 160 169 184;
+  --primary: 124 140 255;
+  --primary-hover: 145 160 255;
+  --on-primary: 16 20 38;
+  --success: 76 214 165;
+  --warning: 245 185 66;
+  --danger: 255 116 120;
+  --info: 101 169 255;
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.18);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.32);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: 245 247 250;
+  --surface: 255 255 255;
+  --surface-2: 240 242 246;
+  --border: 216 221 231;
+  --control-border: 132 143 162;
+  --text-primary: 23 26 33;
+  --text-secondary: 73 82 100;
+  --text-muted: 93 102 117;
+  --primary: 83 101 212;
+  --primary-hover: 64 82 192;
+  --on-primary: 255 255 255;
+  --success: 8 118 79;
+  --warning: 128 83 0;
+  --danger: 180 35 47;
+  --info: 23 94 168;
+  --shadow-card: 0 4px 16px rgba(27, 35, 52, 0.08);
+  --shadow-modal: 0 20px 60px rgba(27, 35, 52, 0.16);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: "A2Z", Arial, Helvetica, sans-serif;
+  body {
+    color: rgb(var(--text-primary));
+    background: rgb(var(--bg));
+    font-family: "A2Z", ui-sans-serif, system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--primary));
+    outline-offset: 2px;
+  }
+
+  ::placeholder {
+    color: rgb(var(--text-muted));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer utilities {

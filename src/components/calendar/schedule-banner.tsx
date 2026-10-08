@@ -5,12 +5,12 @@ interface ScheduleBannerProps {
 export function ScheduleBanner({ type }: ScheduleBannerProps) {
   const palette =
     type === "VERSION"
-      ? "border-green-500/50 bg-green-500/15 text-green-300"
-      : "border-indigo-500/50 bg-indigo-500/15 text-indigo-300"
+      ? "border-success/50 bg-success/15 text-success"
+      : "border-primary/50 bg-primary/15 text-primary"
 
   return (
     <span
-      className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${palette}`}
+      className={`inline-flex max-w-full items-center truncate rounded border px-1 py-0.5 text-[10px] font-semibold md:px-1.5 ${palette}`}
     >
       {type}
     </span>

@@ -43,7 +43,7 @@ export default function SettingsPage() {
 
       <StoreWalletWidget />
 
-      <Card className="border-red-900 bg-gray-800 text-white">
+      <Card className="border-danger/50 text-content">
         <CardHeader>
           <CardTitle className="text-red-300">계정 삭제</CardTitle>
         </CardHeader>

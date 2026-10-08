@@ -38,11 +38,11 @@ export function MobileDrawer({
     <div className="lg:hidden">
       <Drawer>
         <DrawerTrigger asChild>
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" size="lg" className="w-full min-h-[44px]">
             선택일 상세
           </Button>
         </DrawerTrigger>
-        <DrawerContent className="max-h-[88vh] overflow-y-auto p-3">
+        <DrawerContent className="max-h-[88dvh] overflow-y-auto p-4">
           <DrawerHeader className="px-1">
             <DrawerTitle>{selectedDateLabel}</DrawerTitle>
             <DrawerDescription>지출/메모 상세</DrawerDescription>

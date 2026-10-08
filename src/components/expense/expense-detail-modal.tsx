@@ -100,7 +100,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: Expens
               <Button type="button" variant="destructive" onClick={() => setIsConfirming(true)}>결제 취소</Button>
             )}
             {expense.status === "CONFIRMED" && isConfirming && (
-              <div className="space-y-2 rounded border border-red-900 p-3 text-sm">
+              <div className="space-y-2 rounded-md border border-danger/50 p-3 text-sm">
                 <p>사용 포인트와 총 자산을 복원하고 적립 포인트를 회수합니다. 계속할까요?</p>
                 <div className="flex gap-2">
                   <Button type="button" variant="destructive" disabled={isSubmitting || !isOnline} onClick={() => void refund()}>

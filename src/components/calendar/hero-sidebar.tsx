@@ -1,5 +1,6 @@
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 
 export interface HeroExpenseItem {
   id: string
@@ -37,6 +38,8 @@ export function HeroSidebarContent({
 }: HeroSidebarProps) {
   const budgetProgress =
     budgetAmount > 0 ? Math.min(100, Math.round((expectedExpense / budgetAmount) * 100)) : 0
+  const budgetRatio = budgetAmount > 0 ? expectedExpense / budgetAmount : 0
+  const budgetTone = budgetRatio > 1 ? "bg-danger" : budgetRatio >= 0.8 ? "bg-warning" : "bg-primary"
 
   return (
     <div className="space-y-4">
@@ -48,8 +51,8 @@ export function HeroSidebarContent({
           <p>{`총 자산: ${totalAsset?.toLocaleString() ?? "-"} 원`}</p>
           <p>{`월 예산: ${budgetAmount.toLocaleString()} 원`}</p>
           <p>{`월 예상 지출: ${expectedExpense.toLocaleString()} 원`}</p>
-          <Progress value={budgetProgress} />
-          <p className="text-xs text-gray-400">{`예산 진행률 ${budgetProgress}%`}</p>
+          <Progress value={budgetProgress} indicatorClassName={budgetTone} />
+          <p className="text-xs text-content-muted">{`예산 진행률 ${budgetProgress}%`}</p>
         </CardContent>
       </Card>
 
@@ -59,7 +62,7 @@ export function HeroSidebarContent({
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           {wallets.length === 0 ? (
-            <p className="text-gray-400">지갑 정보가 없습니다.</p>
+            <EmptyState message="지갑 정보가 없습니다." hint="설정에서 스토어 포인트를 등록해 보세요." />
           ) : (
             wallets.map((wallet) => (
               <p key={wallet.platform}>
@@ -78,12 +81,12 @@ export function HeroSidebarContent({
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">지출 내역</h3>
             {expenses.length === 0 ? (
-              <p className="text-sm text-gray-400">해당 일자의 지출이 없습니다.</p>
+              <EmptyState message="해당 일자의 지출이 없습니다." hint="상단의 지출 등록으로 추가할 수 있습니다." />
             ) : (
               expenses.map((expense) => (
                 <div
                   key={expense.id}
-                  className={`rounded border border-gray-700 bg-gray-900 p-2 text-sm${onSelectExpense ? " cursor-pointer" : ""}`}
+                  className={`min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm transition-colors duration-fast${onSelectExpense ? " cursor-pointer hover:border-line-control" : ""}`}
                   role={onSelectExpense ? "button" : undefined}
                   tabIndex={onSelectExpense ? 0 : undefined}
                   aria-label={onSelectExpense ? `${expense.title} 상세` : undefined}
@@ -91,9 +94,9 @@ export function HeroSidebarContent({
                   onKeyDown={onSelectExpense ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectExpense(expense.id) } } : undefined}
                 >
                   <p className="font-medium">{expense.title}</p>
-                  <p className="text-xs text-gray-400">{expense.gameName ?? "게임 미연결"}</p>
-                  <p className="mt-1 text-blue-300">{expense.final_amount.toLocaleString()} 원</p>
-                  <p className="text-xs text-gray-400">{expense.status}</p>
+                  <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"}</p>
+                  <p className="mt-1 font-semibold text-info">{expense.final_amount.toLocaleString()} 원</p>
+                  <p className="text-xs text-content-muted">{expense.status}</p>
                 </div>
               ))
             )}
@@ -102,10 +105,10 @@ export function HeroSidebarContent({
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">메모</h3>
             {memos.length === 0 ? (
-              <p className="text-sm text-gray-400">메모가 없습니다.</p>
+              <EmptyState message="메모가 없습니다." />
             ) : (
               memos.map((memo, index) => (
-                <p key={`${memo}-${index}`} className="rounded border border-gray-700 bg-gray-900 p-2 text-sm">
+                <p key={`${memo}-${index}`} className="rounded-md border border-line bg-surface-2 p-3 text-sm">
                   {memo}
                 </p>
               ))
@@ -119,7 +122,7 @@ export function HeroSidebarContent({
 
 export function HeroSidebar(props: HeroSidebarProps) {
   return (
-    <aside className="hidden w-[340px] lg:block">
+    <aside className="hidden w-[340px] lg:sticky lg:top-0 lg:block lg:self-start">
       <HeroSidebarContent {...props} />
     </aside>
   )

@@ -161,13 +161,13 @@ export default function AdminRequestsPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <header className="pb-4 border-b border-gray-800">
-          <h1 className="text-2xl font-bold text-blue-400">관리자 - 데이터 제안 대기열</h1>
+        <header className="pb-4 border-b border-line">
+          <h1 className="text-[22px] font-bold text-content">관리자 - 데이터 제안 대기열</h1>
           <p className="text-sm text-gray-400 mt-1">유저들이 건의한 게임 및 일정 추가 요청을 검토하고 승인합니다.</p>
         </header>
 
         {error && (
-          <div className="p-4 bg-red-900/50 text-red-400 rounded-md flex items-center">
+          <div className="p-4 bg-danger/15 text-danger rounded-md flex items-center">
             <AlertCircle className="w-5 h-5 mr-2" /> {error}
           </div>
         )}
@@ -214,7 +214,7 @@ export default function AdminRequestsPage() {
                       <div className="flex gap-2">
                       <Button
                         variant="outline"
-                        className="flex-1 md:flex-none border-green-700 text-green-400 hover:bg-green-900/30"
+                        className="flex-1 md:flex-none border-success/60 text-success hover:bg-success/15"
                         onClick={() => processRequest("game", req.id, true, defaultIconUrls[req.id])}
                         disabled={processingId === req.id || !isOnline}
                       >
@@ -223,7 +223,7 @@ export default function AdminRequestsPage() {
                       </Button>
                       <Button
                         variant="outline"
-                        className="flex-1 md:flex-none border-red-700 text-red-400 hover:bg-red-900/30"
+                        className="flex-1 md:flex-none border-danger/60 text-danger hover:bg-danger/15"
                         onClick={() => processRequest("game", req.id, false)}
                         disabled={processingId === req.id || !isOnline}
                       >
@@ -247,7 +247,7 @@ export default function AdminRequestsPage() {
                   <CardContent className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="bg-purple-900 text-purple-300 text-xs px-2 py-1 rounded">
+                        <span className="bg-primary/15 text-primary text-xs px-2 py-1 rounded">
                           {req.schedule_type === "VERSION" ? "버전" : "픽업"}
                         </span>
                         <h3 className="font-bold text-lg">{req.title}</h3>
@@ -259,7 +259,7 @@ export default function AdminRequestsPage() {
                     <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
                       <Button
                         variant="outline"
-                        className="flex-1 md:flex-none border-green-700 text-green-400 hover:bg-green-900/30"
+                        className="flex-1 md:flex-none border-success/60 text-success hover:bg-success/15"
                         onClick={() => processRequest("schedule", req.id, true)}
                         disabled={processingId === req.id || !isOnline}
                       >
@@ -268,7 +268,7 @@ export default function AdminRequestsPage() {
                       </Button>
                       <Button
                         variant="outline"
-                        className="flex-1 md:flex-none border-red-700 text-red-400 hover:bg-red-900/30"
+                        className="flex-1 md:flex-none border-danger/60 text-danger hover:bg-danger/15"
                         onClick={() => processRequest("schedule", req.id, false)}
                         disabled={processingId === req.id || !isOnline}
                       >

@@ -38,11 +38,11 @@ export function DesktopCalendar({
   onSelectDate,
 }: DesktopCalendarProps) {
   return (
-    <section className="rounded-xl border border-gray-700 bg-gray-800 p-4" aria-label="월간 캘린더">
+    <section className="rounded-lg border border-line bg-surface p-3 shadow-card md:p-4" aria-label="월간 캘린더">
       <header className="mb-3 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-blue-300">{`${year}년 ${month}월`}</h2>
+        <h2 className="text-[22px] font-bold text-content">{`${year}년 ${month}월`}</h2>
       </header>
-      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs text-gray-400">
+      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs text-content-muted">
         {WEEKDAY_LABELS.map((weekday) => (
           <span key={weekday}>{weekday}</span>
         ))}
@@ -55,11 +55,12 @@ export function DesktopCalendar({
               key={day.date}
               type="button"
               onClick={() => onSelectDate(day.date)}
-              className={`relative min-h-24 rounded-md border p-2 text-left transition ${
+              aria-pressed={isSelected}
+              className={`relative min-h-14 overflow-hidden rounded-md border p-1 text-left transition-colors duration-fast md:min-h-24 md:p-2 ${
                 isSelected
-                  ? "border-blue-400 bg-gray-700"
-                  : "border-gray-700 bg-gray-900 hover:border-gray-500"
-              } ${day.inCurrentMonth ? "text-white" : "text-gray-500"}`}
+                  ? "border-primary bg-primary/15"
+                  : "border-line bg-app hover:border-line-control"
+              } ${day.inCurrentMonth ? "text-content" : "text-content-muted opacity-60"}`}
             >
               <div className="text-sm font-semibold">{day.day}</div>
               <div className="mt-1 flex flex-wrap gap-1">
@@ -74,7 +75,7 @@ export function DesktopCalendar({
                   </span>
                 ))}
               </div>
-              {day.hasMemo && <span className="absolute bottom-2 right-2 h-2 w-2 rounded-full bg-blue-300" />}
+              {day.hasMemo && <span className="absolute bottom-2 right-2 h-2 w-2 rounded-full bg-info" />}
             </button>
           )
         })}
