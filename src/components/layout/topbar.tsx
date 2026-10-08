@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle"
 export const TOPBAR_NAV_ITEMS = [
   { href: "/dashboard", label: "홈" },
   { href: "/dashboard/expenses", label: "소비" },
-  { href: "/dashboard/calendar", label: "게임" },
+  { href: "/dashboard/games", label: "게임" },
 ] as const
 
 function readString(value: unknown): string | null {
