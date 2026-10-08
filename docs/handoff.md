@@ -1,5 +1,14 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 3 Web/PWA 인증 및 계정 삭제 구현 (2026-10-08)
+
+- 이메일 인증/가입, Google OAuth/PKCE, 세션 변경 및 dashboard gate에 대한 구현과 단위 테스트를 추가했다. 실제 Supabase OAuth 왕복은 이번 작업에서 실행하지 않았다.
+- 계정 삭제는 Netlify Functions의 인증된 요청/status endpoint와 예약 worker, Supabase `account_deletion_requests` queue로 처리한다. Worker 순서는 `user-icons` Storage → 개인 테이블 → Resend 등록 이메일 알림 → Auth 사용자 삭제다. 사용자 확인 이메일은 현재 로그인 이메일과 일치해야 한다.
+- 사용자 삭제 요청 중 개인 테이블과 Storage 접근은 restrictive RLS 및 trigger로 차단한다. 공용 `games`/`game_schedules` 데이터는 worker가 삭제하지 않는다.
+- Resend stable idempotency key의 안전 기간은 유한하다. 시도 후 23시간이 지나도 결과가 불명확하면 job을 `MANUAL_REVIEW`에 보존하고 자동 재발송/ Auth 삭제를 중지한다. 운영자 확인 절차가 배포 운영 전에 마련되어야 한다.
+- 검증 완료: `npx tsc --noEmit`, 전체 Vitest 12개 파일/40개 테스트, `npm run lint`, dummy 공개 Supabase 값으로 `npm run build` 및 `out/` 생성, `git diff --check` 통과. DB migration, 실환경 RLS/Storage, OAuth 실로그인, 예약 함수, Resend 발신 도메인/환경 변수는 미실행/미설정이며 배포 환경에서 확인해야 한다.
+- dependency 설치 때 npm audit이 13개 취약점(2 moderate, 9 high, 2 critical)을 보고했다. 이 작업에서 자동 수정하지 않았고 원인/영향 범위는 후속 보안 검토가 필요하다.
+
 ## Phase 2.4 DB/RPC/RLS 테스트 시나리오 준비 (2026-10-08)
 
 - `md/TESTS.sql`은 승인된 `md/SCHEMA.sql` 기준의 재현 가능한 rollback-only 시나리오를 담는다. 실행 전용 Supabase 테스트 프로젝트, privileged DB fixture 역할, authenticated 사용자 A의 synthetic JWT, 사용자 B 격리 fixture, 관리자 claim 모의의 한계를 파일 상단에 기록했다.

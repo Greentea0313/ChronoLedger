@@ -17,6 +17,13 @@
 - 초기 검증 권고는 현재 승인된 Next.js 정적 export를 Netlify에서 제공하는 최소 경로다. Netlify의 Next.js 서버 기능 지원만으로 Web/Tauri 이중 빌드를 확정하지 않는다. 정적 export가 구체 요구를 충족하지 못한다는 검증 증거가 생길 때 빌드 분리와 SRS 변경을 다시 결정한다.
 - 권한 있는 계정 정리 등 서버 작업에는 Netlify Functions를 검토할 수 있으나, 내구성 있는 작업 저장·멱등성·재시도·모니터링은 별도 설계 조건이다. 이 기록은 아직 Netlify 배포 플랫폼이나 서버 기능 채택을 확정하지 않는다.
 
+## 계정 삭제 서버 경계 구현 선택 (2026-10-08)
+
+- 사용자는 계정 삭제 작업에 한해 Netlify Functions를 서버 경계로 채택하고, Supabase에 저장하는 내구성 queue와 예약 worker 재시도를 승인했다. 이 결정은 Netlify 전체 웹 호스팅 채택이나 Next.js 정적 export 변경, Web/Desktop 빌드 분리를 뜻하지 않는다.
+- 이메일 전달은 Resend API와 삭제 작업별 안정적인 idempotency key를 사용한다. 별도 이메일 주소 사본은 저장하지 않는다.
+- Resend의 idempotency 보장 기간(24시간)을 넘어 발송 결과가 불명확하면 중복 발송을 피하기 위해 자동 재발송하지 않고 `MANUAL_REVIEW` 상태로 전환한다. 이때 개인 데이터 접근은 계속 차단하며 운영자 확인이 필요하다. exactly-once 이메일 전송을 보장한다고 주장하지 않는다.
+- 실제 Supabase migration/RLS/Storage, Netlify 예약 실행, Resend 계정·발신 도메인 및 비밀 환경 변수는 배포 전후로 별도 검증해야 한다. 비밀값은 저장소에 두지 않는다.
+
 ---
 
 ## 1. 프로젝트 비전 및 시스템 아키텍처 원칙

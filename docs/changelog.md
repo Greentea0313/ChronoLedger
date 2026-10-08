@@ -2,6 +2,9 @@
 
 ## 2026-10-08
 
+- Phase 3 Web/PWA 인증 흐름과 계정 삭제를 구현했다. Netlify Functions + Supabase 내구성 queue/retry worker로 사용자 아이콘/개인 행을 정리하고 Resend 멱등성 키 메일 후 Auth 계정을 삭제한다. 대기 중 접근 차단, 진행 상태 화면, OAuth/session 및 deletion worker 테스트를 추가했다. migration/실환경 인증·RLS/Storage/메일 발송은 미검증이다.
+- Resend 멱등성 기간을 넘긴 미확정 발송은 자동 재전송하지 않고 `MANUAL_REVIEW`로 보류해 잠재적 중복 안내를 방지한다. 관련 선택과 수동 운영 필요성을 설계/결정 문서에 기록했다.
+- `docs/to-do.md`의 기존 Phase 2.4 충돌 마커를 제거하고, 완전한 Phase 2.4 검증 현황 및 Phase 2.5 미완료 상태를 보존했다.
 - Phase 2.4를 위해 `md/TESTS.sql`을 현재 `md/SCHEMA.sql` 기준으로 보강했다. 테스트 역할/JWT, synthetic 사용자 및 기본 finance/wallet 값, 순서별 기대 결과, authenticated RPC 호출, 실패 원자성, RLS/grants 케이스를 문서화했다. 테스트는 rollback-only로 유지했으며 DB 접속과 SQL 실행은 하지 않았다.
 - 진행 현황·인수인계·to-do에 정적 검토 범위와 현재 SQL 버전의 미실행 상태, 격리된 Supabase 테스트 프로젝트에서의 후속 실행 필요성을 기록했다.
 

@@ -11,6 +11,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@netlify/functions": "^6.0.2",
     "@radix-ui/react-dialog": "^1.2.0",
     "@radix-ui/react-progress": "^1.1.17",
     "@radix-ui/react-select": "^2.3.8",

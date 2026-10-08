@@ -16,6 +16,10 @@ Supabase
 ├── Auth: 이메일 및 Google OAuth
 ├── PostgreSQL: RLS 격리, 원자적 RPC, 일정 동기화 트리거
 └── Storage: 소유자 전용 비공개 커스텀 아이콘
+Netlify Functions (계정 삭제 전용 서버 경계)
+├── 요청 인증/확인 및 상태 조회
+├── 예약 worker: queue claim, Storage/개인 데이터 정리, Resend 알림, Auth 최종 삭제
+└── Supabase service-role 비밀값은 server environment에서만 사용
 ```
 
 ## 2. 데이터 및 권한 경계
@@ -38,6 +42,7 @@ Supabase
 - `src/components/ui/`: 공통 Button, Card, Input, Dialog, Select, Progress, Drawer UI 컴포넌트. Progress는 Radix UI, Drawer는 Vaul 기반이며 alias는 `components.json`에 정의한다.
 - Web/PWA 앱의 `public/fonts/a2z/`: 자체 호스팅하는 A2Z WOFF2 9개 굵기 및 SIL OFL 1.1 고지.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
+- `netlify/functions/`: 계정 삭제 요청·상태 endpoint와 예약 정리 worker. 이 경계만 service-role key를 사용하며, 일반 앱은 기존 정적 export/Supabase browser client 구조를 유지한다.
 - `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.
 - `docs/`: 진행 현황, 아키텍처, 인수인계, 구현 체크리스트, 변경 이력, 주의사항.
 - `docs/ai-collaboration-usage.md`, `docs/ChronoLedger_collaboration_guide.md`: 기존 수동 절차와 초보자를 위한 최소 개입 협업 흐름 및 사용자 개입 안내.
@@ -62,3 +67,4 @@ Supabase
 - 사용자는 Netlify를 웹 호스팅 후보로 고려한다. 우선 기존 `output: 'export'` 산출물을 Deploy Preview에서 검증하고, 서버 기능 요구 증거 없이 Web/Desktop 빌드를 분리하지 않는다. Netlify 채택은 preview 검증 전까지 미확정이며 체크 항목은 [to-do.md](to-do.md)에 둔다.
 - UI 설계는 [UI Design Sheet](../md/ChronoLedger_UI_Design_Sheet.md)를 따른다. 이는 SRS가 정한 동작을 보존하며, `[PROPOSED]`로 표시된 시각/배치 선택은 구현 전에 확정한다. [한국어 HTML 목업](design-v1-ko.html)은 단일 대시보드의 정적 시각 참고 자료다.
 - DDL/RPC/RLS는 [SCHEMA.sql](../md/SCHEMA.sql)에 둔다. 사용자는 전용 테스트 프로젝트에서 rollback-only smoke suite의 최종 PASS 및 fixture 롤백을 확인했다. 이는 전체 SRS 수용 기준 또는 Production 배포 검증을 뜻하지 않는다.
+- 계정 삭제 worker는 Supabase의 `account_deletion_requests` queue에서 job을 claim하고 Storage → 개인 행 → Resend 안내 → Auth 순서로 처리한다. `MANUAL_REVIEW`는 Resend 멱등성 안전 기간을 넘긴 불명확한 메일 결과의 보류 상태다. Supabase migration 적용, Netlify 예약 실행 및 provider 환경 설정은 배포 전 검증이 필요하다.

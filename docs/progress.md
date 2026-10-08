@@ -1,5 +1,13 @@
 # 프로젝트 진행 현황
 
+## Phase 3 Web/PWA 인증 및 계정 삭제 구현 (2026-10-08)
+
+- 이메일 가입/로그인, Google OAuth/PKCE 세션 흐름 및 보호 화면의 세션 상태 처리를 보완하고 관련 컴포넌트/상태 테스트를 추가했다.
+- 계정 삭제는 사용자 이메일 재확인 후 Netlify Functions 요청 경로에서 접수한다. Supabase queue/예약 worker는 private `user-icons` 객체와 개인 테이블을 정리하고, Resend idempotency key 안내 메일 뒤 Auth 사용자를 마지막에 삭제한다. pending 상태는 RLS/trigger에서 차단하며 클라이언트에는 삭제 진행 상태만 허용한다.
+- Resend 멱등성 안전 기간(23시간)을 넘겨 발송 결과를 확정할 수 없으면 자동 중복 발송 대신 `MANUAL_REVIEW`에서 멈추고 접근 차단을 유지하도록 했다.
+- 검증: `npx tsc --noEmit`, 전체 Vitest 12개 파일/40개 테스트, `npm run lint`, dummy 공개 Supabase 값으로 `npm run build` 및 `out/` 생성, `git diff --check` 통과. Supabase migration 실적용, 실제 OAuth 및 Storage/RLS, Netlify 예약 실행, Resend 전달과 배포 비밀 환경 변수는 아직 검증하지 않았다.
+- dependency 설치 시 npm audit이 13개 취약점(2 moderate, 9 high, 2 critical)을 보고했다. 이번 작업에서 자동 수정하지 않았으며 영향 범위는 별도 검토가 필요하다.
+
 ## Phase 2.4 DB/RPC/RLS 테스트 시나리오 준비 (2026-10-08)
 
 - `md/SCHEMA.sql`의 현재 테이블, 결제·환불/지갑/요청 RPC, 일정·구독 트리거 및 권한을 기준으로 `md/TESTS.sql`의 rollback-only 시나리오를 보강했다. synthetic 사용자 두 명의 Auth/JWT, 기본 finance/wallet fixture, 실행 순서와 성공/실패 기대 조건을 문서화했다.
