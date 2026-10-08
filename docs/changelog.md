@@ -2,6 +2,9 @@
 
 ## 2026-10-08
 
+- Phase 2.4를 위해 `md/TESTS.sql`을 현재 `md/SCHEMA.sql` 기준으로 보강했다. 테스트 역할/JWT, synthetic 사용자 및 기본 finance/wallet 값, 순서별 기대 결과, authenticated RPC 호출, 실패 원자성, RLS/grants 케이스를 문서화했다. 테스트는 rollback-only로 유지했으며 DB 접속과 SQL 실행은 하지 않았다.
+- 진행 현황·인수인계·to-do에 정적 검토 범위와 현재 SQL 버전의 미실행 상태, 격리된 Supabase 테스트 프로젝트에서의 후속 실행 필요성을 기록했다.
+
 - Phase 1 환경 설정을 보완했다. Progress/Drawer 컴포넌트와 의존성을 추가하고, Supabase 브라우저 singleton이 필수 공개 환경변수 누락을 명시적으로 보고하도록 했다. 기존 Dialog/Select를 확인하고 브라우저 PKCE/Tauri implicit 동작을 테스트했다.
 - 다중 에이전트 파이프라인 보완판과 현재 협업 체계 이식 검토 문서를 추가했다(문서 전용, 코드·스크립트 변경 없음).
 - Antigravity 시험용 한국어 workspace 규칙과 Maker/Reviewer/Orchestrator skills를 추가했다. 기존 Copilot agent 정의는 `.bak`으로 보존하고 `.github/agents/`의 활성 정의를 제거했다. Antigravity 내 인식·실행 여부는 미검증이다.

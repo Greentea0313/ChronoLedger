@@ -1,5 +1,11 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 2.4 DB/RPC/RLS 테스트 시나리오 준비 (2026-10-08)
+
+- `md/TESTS.sql`은 승인된 `md/SCHEMA.sql` 기준의 재현 가능한 rollback-only 시나리오를 담는다. 실행 전용 Supabase 테스트 프로젝트, privileged DB fixture 역할, authenticated 사용자 A의 synthetic JWT, 사용자 B 격리 fixture, 관리자 claim 모의의 한계를 파일 상단에 기록했다.
+- 테스트는 신규 가입 기본값, 재무/지갑 설정, 결제·환불과 포인트, 예정 지출/구독 취소·복구, 일정 변경 동기화, 게임·일정 요청 처리, 관리자 승인/반려 원자성, RLS 격리 및 anon RPC 권한을 다룬다. 사용자 RPC 호출은 `SET LOCAL ROLE authenticated`로 감싼다.
+- SQL/DB는 실행하지 않았다. 정적 검토 및 `git diff --check`만 완료했으며, 이 파일의 확장된 현재 버전은 런타임 검증 전이다. 안전한 전용 프로젝트에서 `psql -X -v ON_ERROR_STOP=1 -f md/TESTS.sql`로 실행하고 각 PASS 및 마지막 rollback 메시지를 확인해야 한다. 오류 중단 시 연결을 닫아 트랜잭션을 rollback한 뒤 상태를 확인한다.
+
 ## Phase 1 구현 인수인계 (2026-10-08)
 
 - `collab/phase1-completion`에 Progress/Drawer 컴포넌트, Radix Progress/Vaul 의존성, Supabase 브라우저 client 환경변수 검증 및 테스트를 추가했다. Dialog/Select는 기존 구현을 확인해 재사용했다.

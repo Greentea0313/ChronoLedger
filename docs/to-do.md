@@ -148,10 +148,10 @@
   - 대상 파일: `md/SCHEMA.sql`
   - 작업: 일반 사용자 역할/JWT로 자산, 확정 지출, 지갑, 원장 및 요청 승인 상태에 직접 쓰기를 시도
   - verify: RPC만 허용된 변경은 직접 쓰기에서 RLS/권한 오류로 차단되는지 확인. 구독 템플릿 DELETE와 expenses DELETE도 거부되는지 확인
-- [ ] 2.4 재현 가능한 DB/RPC/RLS 검증 케이스 준비
+- [x] 2.4 재현 가능한 DB/RPC/RLS 검증 케이스 준비
   - 대상 파일: `md/TESTS.sql`, `md/SCHEMA.sql`
-  - 작업: 테스트 역할/JWT, 초기 데이터, 실행 순서, 각 케이스의 기대 성공/실패 결과를 문서화
-  - verify: 결과를 재실행할 수 있고, 실행하지 않은 케이스는 PASS로 표시하지 않는지 확인
+  - 작업: 테스트 역할/JWT, 초기 데이터, 실행 순서, 각 케이스의 기대 성공/실패 결과를 문서화했다. 결제/환불·지갑, 구독/일정 트리거, 사용자 요청, 관리자 RPC, RLS/grants 케이스를 rollback-only SQL로 준비했다.
+  - verify: 현재 확장된 `md/TESTS.sql`은 SQL/DB 미실행이며 정적 검토만 했다. 과거 Phase 0의 선행 스모크 실행 결과는 현재 파일 버전에 대한 검증이 아니다. 실제 DB 결과는 격리된 테스트 프로젝트에서 실행한 후 별도 기록한다.
 - [ ] 2.5 TypeScript Database 타입 자동 생성
   - 대상 파일: `src/types/database.types.ts`
   - 작업: `npx supabase gen types typescript` 실행
@@ -253,4 +253,3 @@
 - [ ] T3. OAuth 성공·취소·만료 세션 및 로그아웃 복귀를 Windows 데스크톱에서 검증한다.
 - [ ] T4. Tauri v2 Windows production build를 만들고 단독 실행해 로그인, 캘린더, 결제 흐름을 검증한다.
 - 완료 게이트: Web/PWA MVP 조건이 통과되고, 동일 기능의 데스크톱 인증/핵심 흐름 테스트가 통과한 뒤 Windows 앱 배포를 승인한다.
-
