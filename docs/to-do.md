@@ -152,7 +152,7 @@
   - 대상 파일: `md/TESTS.sql`, `md/SCHEMA.sql`
   - 작업: 테스트 역할/JWT, 초기 데이터, 실행 순서, 각 케이스의 기대 성공/실패 결과를 문서화
   - verify: 결과를 재실행할 수 있고, 실행하지 않은 케이스는 PASS로 표시하지 않는지 확인
-- [ ] 2.5 TypeScript Database 타입 자동 생성
+- [x] 2.5 TypeScript Database 타입 자동 생성
   - 대상 파일: `src/types/database.types.ts`
   - 작업: `npx supabase gen types typescript` 실행
   - verify: `Database['public']['Tables']['personal_memos']['Row']` 타입이 정상 임포트되는지 확인
