@@ -23,7 +23,7 @@
 ## 상세 설계 문서
 
 - [x] 승인 SRS/SPEC/SCHEMA를 런타임 경계, 데이터 책임, RPC 계약, 주요 흐름, 보안, 오류 및 검증 추적으로 연결하는 [상세 설계](detailed-design.md) 초안을 작성했다.
-- [ ] 모바일·데스크톱 앱의 구체 릴리스 버전 번호와 시점/구성은 미결정으로 유지한다. 기존 결정인 Android PWA + Windows Tauri v2, 단일 Next.js 코드베이스/Tauri 정적 export, Web/PWA 우선 순서는 그대로 유지한다. Netlify 및 Web/Desktop 빌드 분리 제안은 별도 미결정 항목이다.
+- [x] 모바일·데스크톱 앱의 구체 릴리스 버전 번호와 시점/구성은 미결정으로 유지한다. 기존 결정인 Android PWA + Windows Tauri v2, 단일 Next.js 코드베이스/Tauri 정적 export, Web/PWA 우선 순서는 그대로 유지한다. **Netlify 배포 시 Web/Desktop 이중 빌드 분리는 하지 않고 단일 정적 export를 유지하기로 결정했다.**
 - [ ] 남은 상세 설계 항목: 게임 구독 해제의 내구성 있는 Storage 정리 worker, UI/접근성 제안 검증. 실패 시 재시도 간격을 늘리고 Storage 정리 후에만 `user_games` 행을 제거한다. 게임 정리 중에는 목록에 “삭제 처리 중”으로 표시한다. 계정별 IndexedDB 캐시는 고정 TTL 없이 마지막 동기화 시각을 표시하고, 네트워크 복귀 때 즉시 재조회하며 로그아웃/세션 만료 때 삭제한다.
 - [ ] SRS 수용 기준별 세부 테스트 케이스와 성능 측정 환경·목표를 릴리스 검증 자료로 구체화한다. 기준 기기는 중급 Android 실기기로 정했다.
 
@@ -108,8 +108,9 @@
 - [ ] VS Code Local harness에서 Orchestrator, Maker, Reviewer 인식 및 동일-SHA 전체 run 통합 검증
   - 현황(2026-10-08): Phase 2~6 run은 Antigravity Orchestrator가 run 생성·SHA 기록·동일-SHA Reviewer 위임·test/review JSON 검증·병합까지 수행했고, Maker(구현)는 사용자가 VS Code Copilot에 Handoff Packet을 직접 전달했다. VS Code Local harness의 자동 하위 에이전트 위임은 사용하지 않았으므로 미검증이다.
   - 관찰: 이 환경의 Reviewer 하위 에이전트는 터미널/`git diff` 도구가 없어, Orchestrator가 exact diff(또는 diff 파일 경로)를 전달해야 검토할 수 있었다. 첫 위임 때 diff가 없어 한 차례 되묻기가 발생했다.
-- [ ] Netlify와 두 빌드 타깃 제안에 대한 사용자 결정
-  - 참고: Phase 3에서 Netlify Functions(`netlify/functions`, 예약 worker)와 `netlify.toml`을 이미 도입했다. 정적 export(`out/`) 배포와 Functions 병행은 동작 중이지만, Web/Desktop 이중 빌드 분리 여부는 여전히 미결정이다.
+- [x] Netlify와 두 빌드 타깃 제안에 대한 사용자 결정
+  - 결정: **현재는 Web/Desktop 이중 빌드로 분리하지 않고 단일 정적 빌드(`output: 'export'`)를 유지한다.**
+  - 이유: 앱 특성상 SSR/SEO 필요성이 낮고, 복잡한 서버 로직은 Netlify Functions로, 보안은 Supabase RLS로 이미 해결되어 단일 빌드로 요구사항을 모두 충족한다. 관리 포인트(환경 변수, 빌드 설정, 테스트)가 두 배로 늘어나는 비용 대비 이득이 적다. 추후 웹에 서버 전용 기능(SSR, 쿠키 세션 등)이 필수가 되거나 정적 빌드 배포에 한계가 명확히 확인될 경우에만 환경 변수 분기 방식으로 재검토한다.
 - [x] 깨끗한 커밋 상태에서 run 생성 스크립트를 검증하고 생성된 전용 worktree/manifest가 일치하는지 확인
   - 검증: Phase 5·6·7 run을 깨끗한 `main`에서 `New-CollaborationRun.ps1`로 생성했고, worktree 경로·브랜치·`base_sha`가 manifest와 일치했다.
   - 후속 발견: 스크립트가 만든 `artifacts/<run>/run.json`이 `main`에 미추적 상태로 남아 새 worktree에서 보이지 않았다. Phase 5~7에서는 Orchestrator가 manifest를 `main`에 커밋한 뒤 worktree에 병합하는 수동 절차로 우회했다.
