@@ -7,9 +7,9 @@
                                 "5.1 날짜 연산, 5.2 Lazy Generation, 5.3 데스크톱 캘린더, 5.4 모바일 사이드바/바텀시트 구현 및 테스트 통과"
                             ],
     "base_sha":  "3cc589e0b2f9f6d628709eb77f507c776034828f",
-    "target_sha":  "62d09814f344073b2c3f8b017b282c84c3fa62fe",
+    "target_sha":  "e6bd06406acaa10afb4c6cf9383298535adc4e0b",
     "branch":  "collab/phase5-calendar-core",
     "worktree_path":  ".worktrees/phase5-calendar-core",
     "max_iterations":  3,
-    "status":  "in_progress"
+    "status":  "completed"
 }

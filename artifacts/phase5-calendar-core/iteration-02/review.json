@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "phase5-calendar-core",
+  "iteration": 2,
+  "agent": "chronoledger-reviewer",
+  "role": "static-review",
+  "base_sha": "3cc589e0b2f9f6d628709eb77f507c776034828f",
+  "target_sha": "e6bd06406acaa10afb4c6cf9383298535adc4e0b",
+  "status": "clean",
+  "created_at": "2026-10-08T13:50:39Z",
+  "findings": []
+}
