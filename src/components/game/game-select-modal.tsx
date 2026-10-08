@@ -107,7 +107,7 @@ export function GameSelectModal({ onGameAdded }: { onGameAdded: () => void }) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700 text-white border-0">
+        <Button>
           <Plus className="w-4 h-4 mr-2" /> 새 게임 추가
         </Button>
       </DialogTrigger>
@@ -170,7 +170,7 @@ export function GameSelectModal({ onGameAdded }: { onGameAdded: () => void }) {
               {error && <p className="text-sm text-red-400">{error}</p>}
 
               <Button
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full"
                 onClick={handleSubmit}
                 disabled={isLoading || !isOnline}
               >

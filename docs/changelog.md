@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-10-10 (Phase 8 Iteration 01)
+
+- UI 폴리싱: 디자인 시트 기준 dark/Cool Neutral Light 시맨틱 토큰(`globals.css` RGB 채널 변수)과 Tailwind 매핑, 레거시 gray/blue/red/green/yellow·`text-white` 유틸리티를 토큰으로 재매핑, A2Z 전역 폰트(기존 자체 호스팅 9 weight + OFL 유지), 중단점 md=900/lg=1280, 반경/그림자/전환 토큰, 테마 토글(`cl-theme`, 기본 dark, 인증 화면은 dark 고정), `EmptyState` 공통 컴포넌트, 버튼/입력/카드/다이얼로그/드로어/진행바 다듬기, 대시보드 셸(데스크톱 사이드바·모바일 상단바), 캘린더·히어로 사이드바·모바일 바텀시트 다듬기, 관리자/설정/게임 선택 하드코딩 색 교체.
+
 ## 2026-10-09 (Iteration 03)
 
 - Phase 7 Iteration 03: Iteration 02 수정이 미커밋 상태로 리뷰된 점을 확인하고 유지(자동 열림·비해제 만료 모달, `manifest.id`)하면서, Service Worker에 Supabase REST GET의 로그인 사용자별(JWT `sub`) 읽기 캐시를 추가(익명·만료 토큰·비-GET·타 출처 제외, 로그아웃 시 전체 삭제), 기본 브랜드 아이콘 재생성과 maskable 분리, 7.3 완료 표기. 실브라우저/Android 검증은 7.4로 이월.

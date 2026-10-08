@@ -1,0 +1,62 @@
+{
+  "_note": "artifacts/schemas/maker.schema.json does not exist in the repository; this is an ad-hoc manifest.",
+  "run_id": "phase8-ui-polishing",
+  "iteration": 1,
+  "role": "maker",
+  "branch": "collab/phase8-ui-polishing",
+  "base_head": "152cdd7",
+  "committed": false,
+  "summary": "Design tokens (dark default + Cool Neutral Light via data-theme), Tailwind wiring and legacy palette remap, A2Z global font (existing self-hosted 9 WOFF2 + OFL kept), breakpoints md=900/lg=1280, radius/shadow/transition tokens, theme toggle, EmptyState, polished UI primitives, dashboard shell, auth page (forced dark, stacked actions), calendar, hero sidebar and mobile bottom sheet.",
+  "changed_files": [
+    "tailwind.config.ts",
+    "src/app/globals.css",
+    "src/app/layout.tsx",
+    "src/app/page.tsx",
+    "src/app/auth/page.tsx",
+    "src/app/dashboard/layout.tsx",
+    "src/app/dashboard/settings/page.tsx",
+    "src/app/admin/requests/page.tsx",
+    "src/components/ui/button.tsx",
+    "src/components/ui/card.tsx",
+    "src/components/ui/dialog.tsx",
+    "src/components/ui/drawer.tsx",
+    "src/components/ui/input.tsx",
+    "src/components/ui/offline-banner.tsx",
+    "src/components/ui/progress.tsx",
+    "src/components/ui/select.tsx",
+    "src/components/ui/tabs.tsx",
+    "src/components/ui/textarea.tsx",
+    "src/components/ui/empty-state.tsx (new)",
+    "src/components/ui/theme-toggle.tsx (new)",
+    "src/components/calendar/desktop-calendar.tsx",
+    "src/components/calendar/hero-sidebar.tsx",
+    "src/components/calendar/mobile-drawer.tsx",
+    "src/components/calendar/schedule-banner.tsx",
+    "src/components/expense/expense-detail-modal.tsx",
+    "src/components/game/game-select-modal.tsx",
+    "docs/architecture.md",
+    "docs/changelog.md",
+    "docs/handoff.md",
+    "docs/progress.md",
+    "docs/to-do.md"
+  ],
+  "checks": {
+    "npm run lint": "passed",
+    "npm run build (dummy NEXT_PUBLIC_SUPABASE_* env)": "passed; built CSS contains token utilities",
+    "npx vitest run": "22 files / 73 tests passed; 2 suites fail to import (src/__tests__/functions/account-deletion-worker, request-account-deletion) - pre-existing in base 7a9cf2f, unrelated",
+    "npx tsc --noEmit": "only the same 4 pre-existing TS2307 errors in src/__tests__/functions"
+  },
+  "unverified": [
+    "Real-browser rendering at 390/900/1280px",
+    "Measured contrast ratios (relied on the design sheet's stated values)",
+    "Light theme across all screens (some modals audited by class only)",
+    "A2Z font loading in production",
+    "manifest.json colors left unchanged"
+  ],
+  "decisions_needed": [
+    "Theme switch is opt-in with dark default; auth page forced dark",
+    "Breakpoints globally remapped to md=900/lg=1280",
+    "Shell kept as desktop sidebar + mobile top bar; [PROPOSED] top/bottom nav not implemented",
+    "Light status backgrounds approximated by token alpha, not exact sheet hex values"
+  ]
+}

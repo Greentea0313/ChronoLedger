@@ -1,5 +1,13 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 8 Iteration 01 (2026-10-10)
+
+- 색은 `globals.css`의 `--*` RGB 채널 토큰과 `tailwind.config.ts` 매핑으로 관리한다. 레거시 `gray-*`/`blue-*`/`red-300·400`/`green-300·400`/`yellow-300·400`/`text-white`는 토큰으로 재매핑되어 있으므로, 채워진 primary/danger/warning 배경 위 글자는 `text-primary-foreground`를 명시해야 한다. 재매핑되지 않은 기본 팔레트(purple, red-700/900 등)는 새로 쓰지 말 것.
+- 테마는 `<html data-theme>`로 전환(기본 dark, localStorage `cl-theme`), 인증 화면은 dark 고정.
+- 중단점이 md=900px, lg=1280px로 바뀌었다(히어로 사이드바 lg 이상, 그 미만은 바텀시트).
+- 미검증/후속: 실브라우저 390/900/1280 시각 확인, 실제 대비 측정, 라이트 테마 전 화면 점검, 상단/하단 내비게이션 셸([PROPOSED])과 라이트 상태 배경 정확값 토큰, 정식 아이콘, `manifest.json` 색상은 기존 값 유지.
+- 기존 이슈: `src/__tests__/functions/*` 2개 테스트가 존재하지 않는 모듈을 import해 tsc/Vitest 스위트가 실패한다(Phase 8 변경과 무관, 베이스 상태).
+
 ## Phase 7 Iteration 03 (2026-10-09)
 
 - Iteration 02 변경은 미커밋 상태였고 리뷰어는 이전 HEAD를 본 것으로 보인다(작업 트리에는 자동 열림 모달·`manifest.id`가 이미 있었음). 커밋 후 같은 Target SHA로 재리뷰가 필요하다.

@@ -11,7 +11,7 @@ export default function RootPage() {
   }, [router])
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
+      <main className="flex min-h-screen items-center justify-center bg-app text-content">
       <p role="status">로그인 페이지로 이동 중...</p>
     </main>
   )

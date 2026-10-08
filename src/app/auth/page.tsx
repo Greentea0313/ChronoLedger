@@ -119,15 +119,16 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-900 p-4">
-      <Card className="w-full max-w-md border-gray-700 bg-gray-800 text-white shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-center text-3xl font-bold text-blue-400">ChronoLedger</CardTitle>
+    <div data-theme="dark" className="flex min-h-screen items-center justify-center bg-app p-4 text-content md:p-6">
+      <Card className="w-full max-w-md shadow-modal">
+        <CardHeader className="space-y-1 pb-2 pt-8">
+          <CardTitle className="text-center text-[28px] font-bold text-primary">ChronoLedger</CardTitle>
+          <p className="text-center text-sm text-content-muted">게임 일정과 지출을 한 곳에서 관리하세요.</p>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pb-8">
           <form id="auth-form" className="space-y-4" onSubmit={handleLogin}>
             <div className="space-y-2">
-              <label htmlFor="auth-email" className="text-sm font-medium text-gray-200">이메일</label>
+              <label htmlFor="auth-email" className="text-sm font-medium text-content">이메일</label>
               <Input
                 id="auth-email"
                 type="email"
@@ -135,11 +136,11 @@ export default function AuthPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
-                className="bg-gray-700 text-white placeholder:text-gray-400"
+                className="h-12"
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="auth-password" className="text-sm font-medium text-gray-200">비밀번호</label>
+              <label htmlFor="auth-password" className="text-sm font-medium text-content">비밀번호</label>
               <Input
                 id="auth-password"
                 type="password"
@@ -148,13 +149,14 @@ export default function AuthPage() {
                 onChange={(event) => setPassword(event.target.value)}
                 required
                 minLength={6}
-                className="bg-gray-700 text-white placeholder:text-gray-400"
+                className="h-12"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               <Button
                 type="submit"
-                className="w-full bg-blue-600 font-bold hover:bg-blue-700"
+                size="lg"
+                className="w-full font-bold"
                 disabled={loading}
               >
                 이메일 로그인
@@ -163,7 +165,8 @@ export default function AuthPage() {
                 type="button"
                 onClick={() => void handleSignUp()}
                 variant="outline"
-                className="w-full border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                size="lg"
+                className="w-full"
                 disabled={loading}
               >
                 회원가입
@@ -173,16 +176,17 @@ export default function AuthPage() {
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-600" />
+              <span className="w-full border-t border-line" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gray-800 px-2 text-gray-400">또는</span>
+              <span className="bg-surface px-2 text-content-muted">또는</span>
             </div>
           </div>
 
           <Button
             type="button"
-            className="w-full bg-white py-5 text-md font-bold text-gray-900 hover:bg-gray-200"
+            size="lg"
+            className="w-full bg-white font-bold text-slate-900 hover:bg-slate-200"
             onClick={() => void handleGoogleLogin()}
             disabled={loading}
           >
@@ -190,7 +194,7 @@ export default function AuthPage() {
           </Button>
 
           {message && (
-            <p role={messageIsError ? "alert" : "status"} className="text-center text-sm font-semibold text-yellow-400">
+            <p role={messageIsError ? "alert" : "status"} className={`text-center text-sm font-semibold ${messageIsError ? "text-danger" : "text-warning"}`}>
               {message}
             </p>
           )}

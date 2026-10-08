@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { handler } from "./account-deletion-worker"
+import { handler } from "../../../netlify/functions/account-deletion-worker"
 
 const {
   createServiceClient,
@@ -72,8 +72,8 @@ const {
   }
 })
 
-vi.mock("../functions-lib/account-deletion", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../functions-lib/account-deletion")>()
+vi.mock("../../../netlify/functions-lib/account-deletion", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../netlify/functions-lib/account-deletion")>()
   return { ...actual, createServiceClient,updateDeletionJob }
 })
 

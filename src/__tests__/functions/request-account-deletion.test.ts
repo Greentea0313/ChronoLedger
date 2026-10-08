@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { handler } from "./request-account-deletion"
+import { handler } from "../../../netlify/functions/request-account-deletion"
 
 const { createClientMock, serviceClient, upsert, select, single, getUser } = vi.hoisted(() => {
   const single = vi.fn()
@@ -20,8 +20,8 @@ vi.mock("@supabase/supabase-js", () => ({
   createClient: createClientMock,
 }))
 
-vi.mock("../functions-lib/account-deletion", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../functions-lib/account-deletion")>()
+vi.mock("../../../netlify/functions-lib/account-deletion", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../netlify/functions-lib/account-deletion")>()
   return { ...actual, createServiceClient: () => serviceClient }
 })
 
