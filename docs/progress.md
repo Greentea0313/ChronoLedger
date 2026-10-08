@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## Phase 1 Web/PWA 기반 완료 (2026-10-08)
+
+- `collab/phase1-completion`에서 Progress/Drawer UI 컴포넌트와 의존성을 추가하고 Supabase 브라우저 client의 환경변수 누락을 명시적으로 오류 처리했다. 기존 Dialog/Select 및 PKCE/Tauri 인증 흐름은 유지했다.
+- 검증: `npm run test -- --run` 7개 파일/24개 테스트 통과, `npm run lint` 통과, 더미 공개 Supabase 환경변수로 `npm run build` 및 정적 `out/` 생성 통과. 실제 Supabase 네트워크 인증/조회는 검증하지 않았다.
+- Maker 구현 커밋은 생성했으며, 동일 Target SHA Reviewer 및 run test artifact 기록/검증은 Orchestrator 후속 단계다. run manifest는 수정하지 않았다.
+
 ## 다중 에이전트 파이프라인 보완 및 이식 검토 (2026-10-08)
 
 - 사용자 초안(5단계)을 `md/SKILL.md`, `md/agent_rules.md` 기준으로 보완한 [ChronoLedger_multi_agent_pipeline_v2.md](ChronoLedger_multi_agent_pipeline_v2.md)와 이식 검토 [ChronoLedger_pipeline_v2_porting_review.md](ChronoLedger_pipeline_v2_porting_review.md)를 작성했다.
@@ -95,7 +101,7 @@
 - Netlify 검증: 앱 브랜치에서 `npm run build`(lint/type 포함)가 성공해 `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML/자산을 만들었고 OAuth callback 단위 테스트 5개도 통과했다. Draft URL에서 로그인 화면과 `/auth` 직접 경로, callback 안내가 열리고 비로그인 `/dashboard` 직접 접근은 `/auth`로 이동함을 사용자가 확인했다. 익명 HTTP 요청은 Netlify Edge Access로 401이다. OAuth 실인증/Redirect URL, GitHub 자동 Preview, Preview 환경변수 분리는 아직 미검증이며 앱에 PWA manifest/service worker도 없다.
 - Netlify Git import 마법사가 `main` 첫 Production 배포를 시작하므로 이를 취소하고, 공식 CLI Draft Deploy(`--dir out --no-build`, `--prod` 없이)를 생성했다. Draft는 GitHub continuous deployment에 연결하지 않았다. OAuth callback은 Netlify 도메인 허용목록 갱신 전 실제 인증하지 않는다.
 - 2026-10-07 세션 종료 상태: 사용자가 오늘 작업을 중단했다. 로컬 Supabase 환경 파일은 URL + Legacy `anon` 두 항목이며 HTTPS Supabase 주소/anon 역할/project ref가 서로 일치하고, 사용자가 대시보드의 URL과 Legacy anon 키 값도 정확히 대조했다. 실제 OAuth 허용 Redirect URL 추가와 로그인 왕복은 다음 작업으로 남긴다. Draft는 이미 생성됐지만 Netlify site-level env/ Git 연결은 설정하지 않았다.
-- 앱 코드와 최신 문서를 `main`에 통합해 `origin/main`으로 push했다 (현재 원격 `f902021`). 폴더 점검에서 추적된 94개 파일에 `.env`, 의존성/빌드 산출물, worktree 및 일반적인 비밀값 패턴은 없었다. `.worktrees/`, `.netlify/`, 로컬 환경 파일은 ignore 처리된다. Phase 1 run manifest는 여전히 `target_sha: null`, `in_progress`이므로 미완료로 유지한다.
+- 앱 코드와 최신 문서를 `main`에 통합해 `origin/main`으로 push했다 (현재 원격 `f902021`). 폴더 점검에서 추적된 94개 파일에 `.env`, 의존성/빌드 산출물, worktree 및 일반적인 비밀값 패턴은 없었다. `.worktrees/`, `.netlify/`, 로컬 환경 파일은 ignore 처리된다. 당시의 별도 `phase1-setup` run manifest는 `target_sha: null`, `in_progress` 상태였으며 이번 `phase1-completion` run과 구분한다.
 - 2026-10-07 현재 상태: 사용자는 웹사이트 기능 개발을 우선하고 Android PWA 실기기 인증 검증은 보류했다(제품 범위는 유지). Netlify는 유력 후보이나 아직 미채택이다. 기존 정적 export를 Deploy Preview에서 먼저 검증하며, 필요 증거 전에는 일반 Next.js 런타임/이중 빌드를 도입하지 않는다. 이전 날짜가 붙은 세부 결정은 아래 이력 항목을 참조한다.
 - 2026-10-07: 사용자는 Android PWA 실기기 검증을 보류하고 웹사이트 개발을 우선하기로 했다. Netlify를 후보로 고려하되, 기존 제안서 재검토는 `현재 정적 export를 Netlify에서 검증하는 최소 경로`를 먼저 권고한다. 플랫폼 및 이중 빌드 최종 채택은 Deploy Preview 확인 전까지 미정이다.
 - 사용자는 ChronoLedger를 과제 제출물이 아닌 개인 프로젝트로 진행하기로 결정했다. 과제 조건(SQLite, 별도 Node.js 웹서버, 게시판)은 제품 범위에 추가하지 않고 기존 승인된 Supabase PostgreSQL/Next.js 정적 export 및 회원·관리자 요구사항을 유지한다. Netlify나 상시 Node.js 서버 채택 결정은 아니다.
@@ -108,7 +114,7 @@
 - Copilot 역할과 사용 절차를 `docs/ai-collaboration-usage.md`, `md/multi_agent_collaboration_architecture.md`, `artifacts/README.md`에 반영했다. VS Code의 실사용 프로필 인식/도구 제한/아티팩트 저장은 아직 사용자의 VS Code 환경에서 확인하지 않았다. AI 간 자동 호출도 구성하지 않았다.
 - `docs/architecture.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/changelog.md`를 갱신했다. 문서 정합성만 검토했으며 앱 테스트/빌드/배포 및 실제 Copilot 세션 실행은 수행하지 않았다.
 - 브라우저 OAuth callback 구현과 실제 로컬 Google 인증, `/auth` 로그인 통합 및 dashboard layout 인증 gate를 검증했다. Android PWA 실기기 검증과 Tauri 딥링크는 각각 후속 Web/PWA·데스크톱 단계로 남아 있다.
-- Phase 1 협업 run은 `target_sha: null`, `in_progress`이며 동일-SHA review/test 산출물이 없어 완료로 표시하지 않는다.
+- 당시 `phase1-setup` 협업 run은 `target_sha: null`, `in_progress`였으며 동일-SHA review/test 산출물이 없어 미종료 상태다. 이는 별도의 `phase1-completion` run이다.
 - 기존 Netlify 제안서의 A안(일반 Next.js 웹 런타임 + Tauri 정적 빌드)은 현 요구에 비해 복잡도가 커 즉시 채택할 근거가 부족하다. 배포 preview에서 정적 export, auth callback, 하위 경로, PWA service worker 및 환경변수 분리를 확인한 뒤 필요 시에만 서버 런타임/이중 빌드를 재논의한다.
 - 사용자는 Supabase Google provider 활성화와 `http://localhost:3000/auth/callback` 등록을 확인했다. 실제 브라우저 Google OAuth가 PKCE code를 교환하고 세션을 저장해 `/dashboard`로 이동하는 것을 검증했다. callback 테스트는 Strict Mode 재실행 케이스를 포함해 5개로 늘렸다.
 - 검증 중 발견한 중복 URL code 교환 및 React Strict Mode cleanup 문제를 수정했다. 단일 Supabase client에서 브라우저는 PKCE, Tauri는 기존 implicit flow를 사용하며 URL 자동 세션 감지는 비활성화했다.

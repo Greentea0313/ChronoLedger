@@ -116,22 +116,22 @@
 - [ ] Gemini Reviewer PoC 외부 API 사용 및 도입 여부 결정. 결정 전 실제 API 호출은 하지 않는다. 승인 시 격리 run에서 수동 diff 확인 후 API 비용·응답·품질·실패 동작을 기록한다.
 
 ### Phase 1. Web/PWA 환경 및 테스트 기반
-- [ ] 1.1 Next.js 14+ (App Router) 정적 export 프로젝트 초기화
+- [x] 1.1 Next.js 14+ (App Router) 정적 export 프로젝트 초기화
   - 대상 파일: `package.json`, `next.config.mjs`, `src/app/layout.tsx`
   - 작업: `output: 'export'` 설정, `images.unoptimized: true` 설정, Tailwind 보일러플레이트 세팅
-  - verify: `npm run build` 실행 시 에러 없이 `out/` 정적 디렉터리가 생성되는지 확인
-- [ ] 1.2 Vitest 단위 테스트 환경 구성
+  - verify: `npm run build` 성공 및 `out/` 생성 확인 (2026-10-08)
+- [x] 1.2 Vitest 단위 테스트 환경 구성
   - 대상 파일: `vitest.config.ts`, `package.json`
   - 작업: `vitest`, `@testing-library/react` 설치 및 기본 단언문 테스트 등록
-  - verify: `npm run test` 실행 시 테스트 환경이 100% 통과하는지 확인
-- [ ] 1.3 shadcn/ui 컴포넌트 라이브러리 세팅
+  - verify: `npm run test -- --run`에서 7개 파일/24개 테스트 통과 (2026-10-08)
+- [x] 1.3 shadcn/ui 컴포넌트 라이브러리 세팅
   - 대상 파일: `components.json`, `src/components/ui/`
   - 작업: Button, Dialog, Card, Input, Select, Progress, Drawer(바텀시트) 설치
-  - 현재 Button/Card/Input 파일은 있으나 전체 필수 컴포넌트 렌더링은 확인되지 않았다.
-- [ ] 1.4 Supabase 클라이언트 SDK 싱글톤 구성
+  - Dialog/Select는 기존 구현을 재사용하고 Progress/Drawer를 추가했다. `npm run build`에서 타입 검사 및 정적 export를 확인했다.
+- [x] 1.4 Supabase 클라이언트 SDK 싱글톤 구성
   - 대상 파일: `.env.local`, `src/lib/supabase/client.ts`
   - 작업: 서버 쿠키 세션을 배제하고 `@supabase/supabase-js` 싱글톤 브라우저 클라이언트 유틸 작성
-  - verify: 올바른 환경설정으로 브라우저에서 인증/조회가 성공하고 환경값 누락을 명확히 표시하는지 확인. placeholder 값으로 연결 성공을 판정하지 않는다.
+  - 환경변수 누락 오류 및 PKCE/Tauri flow 설정은 단위 테스트로 확인했다. 실제 Supabase 인증/조회는 미검증이며 placeholder 연결을 성공으로 간주하지 않는다.
 
 ---
 

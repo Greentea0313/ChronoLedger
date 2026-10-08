@@ -2,6 +2,7 @@
 
 ## 2026-10-08
 
+- Phase 1 환경 설정을 보완했다. Progress/Drawer 컴포넌트와 의존성을 추가하고, Supabase 브라우저 singleton이 필수 공개 환경변수 누락을 명시적으로 보고하도록 했다. 기존 Dialog/Select를 확인하고 브라우저 PKCE/Tauri implicit 동작을 테스트했다.
 - 다중 에이전트 파이프라인 보완판과 현재 협업 체계 이식 검토 문서를 추가했다(문서 전용, 코드·스크립트 변경 없음).
 - Antigravity 시험용 한국어 workspace 규칙과 Maker/Reviewer/Orchestrator skills를 추가했다. 기존 Copilot agent 정의는 `.bak`으로 보존하고 `.github/agents/`의 활성 정의를 제거했다. Antigravity 내 인식·실행 여부는 미검증이다.
 

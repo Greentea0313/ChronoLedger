@@ -1,5 +1,11 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 1 구현 인수인계 (2026-10-08)
+
+- `collab/phase1-completion`에 Progress/Drawer 컴포넌트, Radix Progress/Vaul 의존성, Supabase 브라우저 client 환경변수 검증 및 테스트를 추가했다. Dialog/Select는 기존 구현을 확인해 재사용했다.
+- `npm run test -- --run` 7개 파일/24개 테스트, `npm run lint`, 더미 공개 Supabase 값으로 정적 `npm run build`와 `out/` 생성을 검증했다. 실제 Supabase 연결은 미실행이다.
+- Maker 변경은 worktree 커밋으로 기록한다. manifest 및 reviewer/test run artifact는 수정하지 않았으며, 동일 Target SHA의 review와 artifact 검증은 Orchestrator가 이어서 수행한다.
+
 ## 파이프라인 v2 검토 (2026-10-08)
 
 - 보완 파이프라인과 이식 검토 문서를 `docs/`에 추가했다. 채택은 미결정이며 사용자 결정 4항목은 이식 검토 §5와 `docs/to-do.md`에 있다. 권장은 문서 채택(A단계)부터 단계적 확장이다.
@@ -116,7 +122,7 @@
 - 브라우저 Google OAuth를 실제 Supabase 설정으로 검증했다. Google provider 활성화와 `http://localhost:3000/auth/callback` 등록 후 PKCE code 교환, 세션 저장 및 dashboard 복귀가 성공했다. 중복 URL code 교환과 React Strict Mode cleanup 문제를 수정하고 관련 테스트 5개가 통과했다.
 - `/`에서 단일 `/auth` 로그인 화면으로 이동하고 dashboard layout에서 비인증 접근을 막는다. 브라우저에서 로그인 상태 이동 및 로그아웃 후 직접 dashboard 접근 차단을 확인했다. 이 client gate는 RLS를 대체하지 않는다. Android PWA 실기기 왕복 검증은 남아 있다.
 - 다음 구현 후보는 SRS 수용 기준별 기능 흐름과 원격 Supabase 쿼리/권한 통합 검증을 진행한다. Android PWA 실기기 인증은 사용자의 보류 결정에 따라 후순위로 둔다.
-- Phase 1 run manifest는 `target_sha: null`, `in_progress`이므로 동일-SHA review/test 산출물 및 종료 조건을 확인하기 전까지 협업 run 완료로 취급하지 않는다.
+- 기존 `phase1-setup` run manifest는 `target_sha: null`, `in_progress`인 별도 과거 run이다. 이번 `phase1-completion` 결과와 혼동하거나 완료 처리하지 않는다.
 - VS Code Copilot 저장소 설정은 추가했다: `.github/copilot-instructions.md`, `.github/agents/chronoledger-maker.agent.md`, `.github/agents/chronoledger-reviewer.agent.md`. 프로필 인식 및 동일-SHA 리뷰 아티팩트 절차는 사용자의 VS Code 환경에서 별도로 확인한다. 역할 설명만으로 읽기 전용 권한은 강제되지 않는다.
 - 상세 설계 미결정 사항과 후속 문서 작업은 [to-do.md](to-do.md)에 추적한다.
 - Netlify 플랫폼 및 Web/Desktop 이중 빌드 결정은 Deploy Preview 검증 전까지 대기 중이다. 정적 export가 충족하지 못하는 구체 요구가 확인되면 그때 서버 runtime을 재평가한다.
