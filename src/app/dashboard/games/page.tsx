@@ -13,7 +13,6 @@ interface UserGameRow {
   games: {
     id: string
     name: string
-    publisher: string
   }
 }
 
@@ -43,7 +42,7 @@ export default function GamesPage() {
     const load = async () => {
       setIsLoading(true)
       const [gamesRes, templatesRes] = await Promise.all([
-        supabase.from("user_games").select(`id, game_id, games(id, name, publisher)`).eq("user_id", user.id),
+        supabase.from("user_games").select(`id, game_id, games(id, name)`).eq("user_id", user.id),
         supabase.from("subscription_templates").select("*").eq("user_id", user.id).order("billing_day", { ascending: true })
       ])
 
@@ -136,7 +135,6 @@ export default function GamesPage() {
                 {userGames.map((ug) => (
                   <div key={ug.id} className="p-3 rounded-md border border-line bg-surface-2">
                     <p className="font-semibold">{ug.games?.name || "알 수 없는 게임"}</p>
-                    <p className="text-xs text-content-secondary mt-1">{ug.games?.publisher}</p>
                   </div>
                 ))}
               </div>

@@ -52,6 +52,10 @@ interface ExpenseRow {
 
 interface UserGameRow {
   game_id: string
+  games: {
+    name: string
+    default_icon_url: string
+  }
 }
 
 export default function DashboardPage() {
@@ -116,7 +120,7 @@ export default function DashboardPage() {
         supabase.from("personal_memos").select("memo_date, content").eq("user_id", user.id).gte("memo_date", startDate).lt("memo_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).eq("status", "PLANNED").gte("end_date", startDate).lt("end_date", endDateExclusive),
-        supabase.from("user_games").select("game_id").eq("user_id", user.id),
+        supabase.from("user_games").select("game_id, games(name, default_icon_url)").eq("user_id", user.id),
         supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price").eq("user_id", user.id).eq("status", "PLANNED").or(`end_date.lt.${today},and(end_date.is.null,target_date.lt.${today})`),
       ])
 
@@ -135,7 +139,7 @@ export default function DashboardPage() {
         mergedExpenses.set(row.id, row)
       }
       setExpenses(Array.from(mergedExpenses.values()))
-      setUserGames((userGameResult.data ?? []) as UserGameRow[])
+      setUserGames((userGameResult.data ?? []) as unknown as UserGameRow[])
       setOverdueExpenses(
         findOverduePlannedExpenses(
           ((overdueResult.data ?? []) as unknown as (OverduePlannedExpense & { status: "PLANNED" | "CONFIRMED" | "CANCELLED" })[]),
@@ -191,7 +195,15 @@ export default function DashboardPage() {
   }, [schedules])
 
   const memoDates = useMemo(() => new Set(memos.map((memo) => memo.memo_date)), [memos])
-  const iconGameIds = useMemo(() => new Set(userGames.map((game) => game.game_id)), [userGames])
+  const userGamesMap = useMemo(() => {
+    const map = new Map<string, { name: string, iconUrl: string }>()
+    userGames.forEach(g => {
+      if (g.games) {
+        map.set(g.game_id, { name: g.games.name, iconUrl: g.games.default_icon_url })
+      }
+    })
+    return map
+  }, [userGames])
 
   const days = useMemo<DesktopCalendarDay[]>(
     () =>
@@ -206,12 +218,15 @@ export default function DashboardPage() {
           icons: daySchedules
             .map((schedule) => schedule.game_id)
             .filter((gameId, index, self) => self.indexOf(gameId) === index)
-            .filter((gameId) => iconGameIds.has(gameId))
-            .map((gameId) => ({ gameId, label: `게임 ${gameId.slice(0, 4)}`, icon: "🎮" })),
+            .filter((gameId) => userGamesMap.has(gameId))
+            .map((gameId) => {
+              const gameInfo = userGamesMap.get(gameId)!
+              return { gameId, label: gameInfo.name, iconUrl: gameInfo.iconUrl }
+            }),
           hasMemo: memoDates.has(cell.date),
         }
       }),
-    [iconGameIds, memoDates, month, ready, scheduleDates, year],
+    [userGamesMap, memoDates, month, ready, scheduleDates, year],
   )
 
   if (authLoading || isLoading || !ready) {

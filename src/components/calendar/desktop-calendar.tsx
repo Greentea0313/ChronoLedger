@@ -8,7 +8,7 @@ export interface CalendarScheduleItem {
 export interface CalendarGameIcon {
   gameId: string
   label: string
-  icon: string
+  iconUrl?: string
 }
 
 export interface DesktopCalendarDay {
@@ -70,8 +70,13 @@ export function DesktopCalendar({
               </div>
               <div className="mt-1 flex flex-wrap gap-1">
                 {day.icons.slice(0, 3).map((icon) => (
-                  <span key={`${day.date}-${icon.gameId}`} title={icon.label} aria-label={icon.label}>
-                    {icon.icon}
+                  <span key={`${day.date}-${icon.gameId}`} title={icon.label} aria-label={icon.label} className="h-6 w-6 inline-block overflow-hidden rounded-[6px] bg-primary/20 text-center flex items-center justify-center">
+                    {icon.iconUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={icon.iconUrl} alt={icon.label} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-sm">🎮</span>
+                    )}
                   </span>
                 ))}
               </div>
