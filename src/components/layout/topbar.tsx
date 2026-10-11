@@ -40,7 +40,7 @@ const controlClass =
 
 export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
   const pathname = usePathname()
-  const { user } = useAuth()
+  const { user, role, nickname } = useAuth()
   const { name, avatarUrl: googleAvatarUrl } = resolveProfile(user)
   const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null)
   const [avatarFailed, setAvatarFailed] = useState(false)
@@ -48,6 +48,7 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   const userId = user?.id
   const avatarUrl = customAvatarUrl ?? googleAvatarUrl
+  const displayName = nickname || name
 
   useEffect(() => {
     if (!userId) return
@@ -103,7 +104,7 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface">
       <div className="mx-auto flex min-h-16 w-full max-w-content flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2 md:px-6 lg:px-8">
-        <Link href="/dashboard" className="mr-2 text-2xl font-black tracking-tight text-primary md:mr-4">
+        <Link href="/dashboard" className="mr-2 text-2xl font-black tracking-tight text-primary md:mr-4" style={{ WebkitTextStroke: "1px black" }}>
           ChronoLedger
         </Link>
 
@@ -125,7 +126,21 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
               </Link>
             )
           })}
-        </nav>
+        
+          {role === "admin" && (
+            <Link
+              href="/admin"
+              aria-current={isActive("/admin") ? "page" : undefined}
+              className={`${controlClass} ${
+                isActive("/admin")
+                  ? "bg-surface-2 font-semibold text-content"
+                  : "text-content-secondary hover:bg-surface-2 hover:text-content"
+              }`}
+            >
+              관리자
+            </Link>
+          )}
+</nav>
 
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle className="rounded-[9px] bg-surface-2" />
@@ -134,7 +149,7 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
               type="button"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label={`${name} 프로필 메뉴`}
+              aria-label={`${displayName} 프로필 메뉴`}
               onClick={() => setMenuOpen((open) => !open)}
               className={`${controlClass} bg-surface-2 text-content-secondary hover:text-content`}
             >
@@ -152,10 +167,10 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
                   aria-hidden="true"
                   className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground"
                 >
-                  {name.slice(0, 1).toUpperCase()}
+                  {displayName.slice(0, 1).toUpperCase()}
                 </span>
               )}
-              <span className="max-w-[8rem] truncate">{name}</span> <span aria-hidden="true">▾</span>
+              <span className="max-w-[8rem] truncate">{displayName}</span> <span aria-hidden="true">▾</span>
             </button>
             {menuOpen && (
               <div

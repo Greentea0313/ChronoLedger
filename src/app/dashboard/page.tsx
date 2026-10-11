@@ -58,6 +58,12 @@ interface UserGameRow {
   }
 }
 
+interface AllGameRow {
+  id: string
+  name: string
+  default_icon_url: string | null
+}
+
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -70,6 +76,7 @@ export default function DashboardPage() {
   const [memos, setMemos] = useState<MemoRow[]>([])
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [userGames, setUserGames] = useState<UserGameRow[]>([])
+  const [allGames, setAllGames] = useState<AllGameRow[]>([])
 
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
   const [detailExpenseId, setDetailExpenseId] = useState<string | null>(null)
@@ -112,6 +119,7 @@ export default function DashboardPage() {
         endDateResult,
         userGameResult,
         overdueResult,
+        allGamesResult,
       ] = await Promise.all([
         supabase.from("user_finances").select("total_asset, default_budget").eq("user_id", user.id).maybeSingle(),
         supabase.from("monthly_budgets").select("budget_amount").eq("user_id", user.id).eq("year", year).eq("month", month).maybeSingle(),
@@ -122,7 +130,18 @@ export default function DashboardPage() {
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).eq("status", "PLANNED").gte("end_date", startDate).lt("end_date", endDateExclusive),
         supabase.from("user_games").select("game_id, games(name, default_icon_url)").eq("user_id", user.id),
         supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price").eq("user_id", user.id).eq("status", "PLANNED").or(`end_date.lt.${today},and(end_date.is.null,target_date.lt.${today})`),
+        supabase.from("games").select("id, name, default_icon_url"),
       ])
+
+      if (financeResult.error) console.error("financeResult", financeResult.error)
+      if (budgetResult.error) console.error("budgetResult", budgetResult.error)
+      if (walletResult.error) console.error("walletResult", walletResult.error)
+      if (scheduleResult.error) console.error("scheduleResult", scheduleResult.error)
+      if (memoResult.error) console.error("memoResult", memoResult.error)
+      if (expenseResult.error) console.error("expenseResult", expenseResult.error)
+      if (endDateResult.error) console.error("endDateResult", endDateResult.error)
+      if (userGameResult.error) console.error("userGameResult", userGameResult.error)
+      if (overdueResult.error) console.error("overdueResult", overdueResult.error)
 
       if (financeResult.error || budgetResult.error || walletResult.error || scheduleResult.error || memoResult.error || expenseResult.error || endDateResult.error || userGameResult.error || overdueResult.error) {
         throw new Error("DASHBOARD_FETCH_FAILED")
@@ -140,6 +159,7 @@ export default function DashboardPage() {
       }
       setExpenses(Array.from(mergedExpenses.values()))
       setUserGames((userGameResult.data ?? []) as unknown as UserGameRow[])
+      setAllGames((allGamesResult.data ?? []) as AllGameRow[])
       setOverdueExpenses(
         findOverduePlannedExpenses(
           ((overdueResult.data ?? []) as unknown as (OverduePlannedExpense & { status: "PLANNED" | "CONFIRMED" | "CANCELLED" })[]),
@@ -159,6 +179,24 @@ export default function DashboardPage() {
     }
   }, [authLoading, load, ready, user])
 
+  const userGamesMap = useMemo(() => {
+    const map = new Map<string, { name: string, iconUrl: string }>()
+    userGames.forEach(g => {
+      if (g.games) {
+        map.set(g.game_id, { name: g.games.name, iconUrl: g.games.default_icon_url })
+      }
+    })
+    return map
+  }, [userGames])
+
+  const allGamesMap = useMemo(() => {
+    const map = new Map<string, { name: string; iconUrl?: string }>()
+    allGames.forEach((g) => {
+      map.set(g.id, { name: g.name, iconUrl: g.default_icon_url || undefined })
+    })
+    return map
+  }, [allGames])
+
   const dayMemos = useMemo(
     () => memos.filter((memo) => memo.memo_date === baseDate).map((memo) => memo.content),
     [baseDate, memos],
@@ -166,12 +204,27 @@ export default function DashboardPage() {
   const dayExpenses = useMemo<HeroExpenseItem[]>(
     () =>
       expenses
-        .filter((expense) => expense.target_date === baseDate)
-        .map((expense) => ({
-          ...expense,
-          gameName: expense.game_id ? `게임 ${expense.game_id.slice(0, 4)}` : null,
-        })),
-    [baseDate, expenses],
+        .filter((expense) => expense.target_date === baseDate && expense.status !== "CANCELLED")
+        .map((expense) => {
+          const gameInfo = expense.game_id ? userGamesMap.get(expense.game_id) : null
+          return {
+            ...expense,
+            gameName: gameInfo ? gameInfo.name : (expense.game_id ? `게임 ${expense.game_id.slice(0, 4)}` : null),
+            iconUrl: gameInfo?.iconUrl,
+            payment_method: expense.payment_method
+          }
+        }),
+    [baseDate, expenses, userGamesMap],
+  )
+  const daySchedules = useMemo(
+    () => {
+      const currentDaySchedules = schedules.filter(s => baseDate >= s.start_date && baseDate <= s.end_date)
+      return currentDaySchedules.map(s => {
+        const gameInfo = s.game_id ? allGamesMap.get(s.game_id) : null
+        return { ...s, gameName: gameInfo ? gameInfo.name : null, iconUrl: gameInfo?.iconUrl }
+      })
+    },
+    [baseDate, schedules, allGamesMap],
   )
   const detailExpense = useMemo(() => {
     const expense = expenses.find((item) => item.id === detailExpenseId)
@@ -195,15 +248,6 @@ export default function DashboardPage() {
   }, [schedules])
 
   const memoDates = useMemo(() => new Set(memos.map((memo) => memo.memo_date)), [memos])
-  const userGamesMap = useMemo(() => {
-    const map = new Map<string, { name: string, iconUrl: string }>()
-    userGames.forEach(g => {
-      if (g.games) {
-        map.set(g.game_id, { name: g.games.name, iconUrl: g.games.default_icon_url })
-      }
-    })
-    return map
-  }, [userGames])
 
   const days = useMemo<DesktopCalendarDay[]>(
     () =>
@@ -214,19 +258,21 @@ export default function DashboardPage() {
           schedules: daySchedules.map((schedule) => ({
             id: schedule.id,
             schedule_type: schedule.schedule_type,
+            is_start_date: schedule.start_date === cell.date,
+            game_id: schedule.game_id
           })),
           icons: daySchedules
             .map((schedule) => schedule.game_id)
             .filter((gameId, index, self) => self.indexOf(gameId) === index)
-            .filter((gameId) => userGamesMap.has(gameId))
+            .filter((gameId) => allGamesMap.has(gameId))
             .map((gameId) => {
-              const gameInfo = userGamesMap.get(gameId)!
+              const gameInfo = allGamesMap.get(gameId)!
               return { gameId, label: gameInfo.name, iconUrl: gameInfo.iconUrl }
             }),
           hasMemo: memoDates.has(cell.date),
         }
       }),
-    [userGamesMap, memoDates, month, ready, scheduleDates, year],
+    [allGamesMap, memoDates, month, ready, scheduleDates, year],
   )
 
   if (authLoading || isLoading || !ready) {
@@ -244,7 +290,7 @@ export default function DashboardPage() {
           <span className="text-sm text-warning">{`기한 지난 예정 ${overdueExpenses.length}건을 정리해야 합니다.`}</span>
         </div>
       )}
-      <ExpenseModal open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen} onCompleted={() => void load()} />
+      <ExpenseModal open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen} initialDate={baseDate} onCompleted={() => void load()} />
       <ExpenseModal
         open={payingExpense !== null}
         onOpenChange={(open) => { if (!open) setPayingExpense(null) }}
@@ -270,6 +316,8 @@ export default function DashboardPage() {
             days={days}
             selectedDate={baseDate}
             onSelectDate={setSelectedDate}
+            onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
+            onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}
           />
           <MobileDrawer
             selectedDateLabel={baseDate}
@@ -277,6 +325,7 @@ export default function DashboardPage() {
             budgetAmount={budgetAmount}
             expectedExpense={expectedExpense}
             wallets={wallets}
+            schedules={daySchedules}
             expenses={dayExpenses}
             memos={dayMemos}
             onSelectExpense={setDetailExpenseId}
@@ -290,6 +339,7 @@ export default function DashboardPage() {
           budgetAmount={budgetAmount}
           expectedExpense={expectedExpense}
           wallets={wallets}
+          schedules={daySchedules}
           expenses={dayExpenses}
           memos={dayMemos}
           onSelectExpense={setDetailExpenseId}

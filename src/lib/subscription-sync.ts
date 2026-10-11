@@ -1,29 +1,47 @@
 import { supabase } from "@/lib/supabase/client"
 import { getAdjustedBillingDate } from "@/lib/calendar-utils"
+import { getKstToday } from "@/lib/dashboard-date"
 
-interface SubscriptionTemplate {
+export type SubscriptionCycleType = "MONTHLY_DAY" | "INTERVAL_30" | "VERSION_PASS"
+
+export interface SubscriptionTemplate {
   id: string
   title: string
   category: string
+  cycle_type?: SubscriptionCycleType
   billing_day: number
   default_price: number
   payment_method: "WALLET" | "GOOGLE_PLAY" | "GALAXY_STORE"
   game_id: string | null
+  is_active?: boolean
 }
 
-function toBillingCycle(year: number, month: number): string {
+export function toBillingCycle(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`
+}
+
+export function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d))
+  date.setUTCDate(date.getUTCDate() + days)
+  const nextYear = date.getUTCFullYear()
+  const nextMonth = String(date.getUTCMonth() + 1).padStart(2, "0")
+  const nextDay = String(date.getUTCDate()).padStart(2, "0")
+  return `${nextYear}-${nextMonth}-${nextDay}`
 }
 
 export async function ensureMonthlySubscriptionExpenses(
   userId: string,
   year: number,
   month: number,
+  todayStr?: string,
 ): Promise<number> {
   const billingCycle = toBillingCycle(year, month)
+  const today = todayStr || getKstToday()
+
   const { data: templates, error: templateError } = await supabase
     .from("subscription_templates")
-    .select("id, title, category, billing_day, default_price, payment_method, game_id")
+    .select("id, title, category, cycle_type, billing_day, default_price, payment_method, game_id, is_active")
     .eq("user_id", userId)
     .eq("is_active", true)
 
@@ -34,13 +52,75 @@ export async function ensureMonthlySubscriptionExpenses(
     return 0
   }
 
-  const rows = (templates as SubscriptionTemplate[]).map((template) => {
-    const targetDate = getAdjustedBillingDate(year, month, template.billing_day)
-    return {
+  let createdCount = 0
+
+  // 1. MONTHLY_DAY 템플릿 처리 (매월 지정일형)
+  const monthlyTemplates = (templates as SubscriptionTemplate[]).filter(
+    (t) => !t.cycle_type || t.cycle_type === "MONTHLY_DAY",
+  )
+  if (monthlyTemplates.length > 0) {
+    const rows = monthlyTemplates.map((template) => {
+      const targetDate = getAdjustedBillingDate(year, month, template.billing_day || 1)
+      return {
+        user_id: userId,
+        template_id: template.id,
+        game_id: template.game_id,
+        billing_cycle: billingCycle,
+        title: template.title,
+        category: template.category,
+        status: "PLANNED" as const,
+        target_date: targetDate,
+        original_price: template.default_price,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: template.default_price,
+        payment_method: template.payment_method,
+        point_platform: template.payment_method === "WALLET" ? null : template.payment_method,
+        deduct_from_asset: true,
+      }
+    })
+
+    const { error: insertError } = await supabase
+      .from("expenses")
+      .upsert(rows, { onConflict: "template_id,billing_cycle", ignoreDuplicates: true })
+
+    if (insertError) {
+      throw new Error("SUBSCRIPTION_LAZY_GENERATION_FAILED")
+    }
+    createdCount += rows.length
+  }
+
+  // 2. INTERVAL_30 템플릿 처리 (30일 누적 충전형)
+  const intervalTemplates = (templates as SubscriptionTemplate[]).filter(
+    (t) => t.cycle_type === "INTERVAL_30",
+  )
+  for (const template of intervalTemplates) {
+    const { data: existingExpenses } = await supabase
+      .from("expenses")
+      .select("id, status, target_date")
+      .eq("user_id", userId)
+      .eq("template_id", template.id)
+      .order("target_date", { ascending: false })
+
+    const hasPlanned = ((existingExpenses || []) as { status: string }[]).some(
+      (e) => e.status === "PLANNED",
+    )
+    if (hasPlanned) {
+      // 이미 미결제 예정 회차가 있으면 중복 생성하지 않음
+      continue
+    }
+
+    const latestConfirmed = ((existingExpenses || []) as { status: string; target_date: string }[]).find(
+      (e) => e.status === "CONFIRMED",
+    )
+    const targetDate = latestConfirmed ? addDays(latestConfirmed.target_date, 30) : today
+
+    const row = {
       user_id: userId,
       template_id: template.id,
       game_id: template.game_id,
-      billing_cycle: billingCycle,
       title: template.title,
       category: template.category,
       status: "PLANNED" as const,
@@ -55,15 +135,69 @@ export async function ensureMonthlySubscriptionExpenses(
       point_platform: template.payment_method === "WALLET" ? null : template.payment_method,
       deduct_from_asset: true,
     }
-  })
 
-  const { error: insertError } = await supabase
-    .from("expenses")
-    .upsert(rows, { onConflict: "template_id,billing_cycle", ignoreDuplicates: true })
-
-  if (insertError) {
-    throw new Error("SUBSCRIPTION_LAZY_GENERATION_FAILED")
+    const { error: insertError } = await supabase.from("expenses").insert(row)
+    if (!insertError) {
+      createdCount += 1
+    }
   }
 
-  return rows.length
+  // 3. VERSION_PASS 템플릿 처리 (게임 버전 패스형)
+  const versionPassTemplates = (templates as SubscriptionTemplate[]).filter(
+    (t) => t.cycle_type === "VERSION_PASS" && t.category === "게임" && t.game_id,
+  )
+  for (const template of versionPassTemplates) {
+    const { data: schedules } = await supabase
+      .from("game_schedules")
+      .select("id, title, start_date, end_date")
+      .eq("game_id", template.game_id)
+      .eq("schedule_type", "VERSION")
+
+    if (!schedules || schedules.length === 0) continue
+
+    const { data: existingExpenses } = await supabase
+      .from("expenses")
+      .select("schedule_id")
+      .eq("user_id", userId)
+      .eq("template_id", template.id)
+
+    const existingScheduleIds = new Set(
+      ((existingExpenses || []) as { schedule_id: string }[]).map((e) => e.schedule_id),
+    )
+
+    const newRows = (schedules as { id: string; title: string; start_date: string; end_date: string }[])
+      .filter((s) => !existingScheduleIds.has(s.id))
+      .map((s) => ({
+        user_id: userId,
+        template_id: template.id,
+        game_id: template.game_id,
+        schedule_id: s.id,
+        title: `${template.title} (${s.title})`,
+        category: template.category,
+        status: "PLANNED" as const,
+        start_date: s.start_date,
+        end_date: s.end_date,
+        target_date: s.end_date,
+        original_price: template.default_price,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: template.default_price,
+        payment_method: template.payment_method,
+        point_platform: template.payment_method === "WALLET" ? null : template.payment_method,
+        deduct_from_asset: true,
+      }))
+
+    if (newRows.length > 0) {
+      const { error: insertError } = await supabase
+        .from("expenses")
+        .upsert(newRows, { onConflict: "template_id,schedule_id", ignoreDuplicates: true })
+      if (!insertError) {
+        createdCount += newRows.length
+      }
+    }
+  }
+
+  return createdCount
 }

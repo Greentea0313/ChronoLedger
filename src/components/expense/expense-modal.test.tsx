@@ -24,9 +24,14 @@ function query(result: unknown) {
 function setup() {
   from.mockImplementation((table: string) => {
     if (table === "games") return query({ data: [{ id: "g1", name: "Sample RPG" }], error: null })
+    if (table === "user_games") {
+      const ug = query(null)
+      ug.eq.mockResolvedValue({ data: [{ game_id: "g1" }], error: null })
+      return ug
+    }
     if (table === "game_schedules") {
       return query({
-        data: [{ id: "s1", game_id: "g1", title: "픽업 A", schedule_type: "PICKUP", start_date: "2026-10-25", end_date: "2026-11-12" }],
+        data: [{ id: "s1", game_id: "g1", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-10-25", end_date: "2026-11-12" }],
         error: null,
       })
     }
@@ -54,9 +59,8 @@ describe("ExpenseModal", () => {
 
     await screen.findByRole("option", { name: "Sample RPG" })
     fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
-    fireEvent.click(await screen.findByRole("button", { name: "픽업" }))
-    await screen.findByRole("option", { name: /픽업 A/ })
-    fireEvent.change(screen.getByLabelText("연결할 일정"), { target: { value: "s1" } })
+    await screen.findByRole("option", { name: /버전 1.0/ })
+    fireEvent.change(screen.getByLabelText("연결할 버전 일정"), { target: { value: "s1" } })
     fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "119000" } })
     fireEvent.change(screen.getByLabelText("포인트 할인 (원)"), { target: { value: "5000" } })
     fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "250" } })
@@ -109,7 +113,7 @@ describe("ExpenseModal", () => {
     render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} />)
     await screen.findByRole("option", { name: "Sample RPG" })
     fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "커피" } })
-    fireEvent.change(screen.getByLabelText("카테고리"), { target: { value: "식비/카페" } })
+    fireEvent.change(screen.getByLabelText("카테고리"), { target: { value: "식비" } })
     fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "4500" } })
 
     fireEvent.click(screen.getByRole("button", { name: "결제 확정" }))
@@ -119,5 +123,14 @@ describe("ExpenseModal", () => {
     await waitFor(() => expect(onCompleted).toHaveBeenCalled())
     expect(insert).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledTimes(2)
+  })
+
+  it("hides game selection when category is changed from 게임 to another category", async () => {
+    render(<ExpenseModal open onOpenChange={vi.fn()} />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+    expect(screen.getByLabelText("게임")).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText("카테고리"), { target: { value: "식비" } })
+    expect(screen.queryByLabelText("게임")).toBeNull()
   })
 })

@@ -11,6 +11,22 @@ export const GOOGLE_TIER_RATES = {
 
 export type GoogleTier = keyof typeof GOOGLE_TIER_RATES
 
+export const GALAXY_TIER_RATES = {
+  GENERAL: 0.1,
+  STAR: 0.1,
+  PRESTIGE: 1.1,
+  ROYAL_BLUE: 2.1,
+} as const
+
+export type GalaxyTier = keyof typeof GALAXY_TIER_RATES
+
+export const GALAXY_TIER_LABELS: Record<GalaxyTier, string> = {
+  GENERAL: "일반",
+  STAR: "스타",
+  PRESTIGE: "프레스티지",
+  ROYAL_BLUE: "로열블루",
+}
+
 export interface PaymentInput {
   originalPrice: number
   discountAmount: number

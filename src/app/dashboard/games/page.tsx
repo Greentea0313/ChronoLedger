@@ -1,74 +1,132 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { GameSelectModal } from "@/components/game/game-select-modal"
+import { RequestSubmissionModal } from "@/components/game/request-submission-modal"
+import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-upload"
+import { resizeImageToWebP } from "@/lib/image-resizer"
+import { Calendar, Gamepad2, ImagePlus, Loader2, Trash2 } from "lucide-react"
 
 interface UserGameRow {
   id: string
   game_id: string
+  custom_icon_path: string | null
   games: {
     id: string
     name: string
-  }
+    default_icon_url?: string | null
+  } | null
 }
 
-interface SubscriptionTemplateRow {
+interface GameScheduleRow {
   id: string
   game_id: string
   title: string
-  billing_day: number
-  default_price: number
-  payment_method: string
-  is_active: boolean
+  schedule_type: "VERSION" | "PICKUP"
+  start_date: string
+  end_date: string
+  memo: string | null
 }
 
 export default function GamesPage() {
   const { user } = useAuth()
-  const [suggestionOpen, setSuggestionOpen] = useState(false)
-  const [requestName, setRequestName] = useState("")
-  const [requestMemo, setRequestMemo] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  
   const [userGames, setUserGames] = useState<UserGameRow[]>([])
-  const [templates, setTemplates] = useState<SubscriptionTemplateRow[]>([])
+  const [gameIcons, setGameIcons] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(true)
+  const [uploadingGameId, setUploadingGameId] = useState<string | null>(null)
 
-  useEffect(() => {
+  const [selectedGame, setSelectedGame] = useState<{ id: string; name: string } | null>(null)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [schedules, setSchedules] = useState<GameScheduleRow[]>([])
+  const [isSchedulesLoading, setIsSchedulesLoading] = useState(false)
+
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+  const loadGames = useCallback(async () => {
     if (!user) return
-    const load = async () => {
-      setIsLoading(true)
-      const [gamesRes, templatesRes] = await Promise.all([
-        supabase.from("user_games").select(`id, game_id, games(id, name)`).eq("user_id", user.id),
-        supabase.from("subscription_templates").select("*").eq("user_id", user.id).order("billing_day", { ascending: true })
-      ])
+    setIsLoading(true)
+    const { data } = await supabase
+      .from("user_games")
+      .select("id, game_id, custom_icon_path, games(id, name, default_icon_url)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
 
-      if (gamesRes.data) setUserGames(gamesRes.data as unknown as UserGameRow[])
-      if (templatesRes.data) setTemplates(templatesRes.data as SubscriptionTemplateRow[])
-      setIsLoading(false)
-    }
-    void load()
+    const rows = (data as unknown as UserGameRow[]) || []
+    setUserGames(rows)
+    setIsLoading(false)
+
+    // 비동기로 유저 커스텀 아이콘 다운로드
+    const iconMap: Record<string, string> = {}
+    await Promise.all(
+      rows.map(async (ug) => {
+        try {
+          const url = await downloadUserIcon(user.id, ug.game_id)
+          if (url) iconMap[ug.game_id] = url
+        } catch {
+          // 커스텀 아이콘 없으면 기본 아이콘 유지
+        }
+      })
+    )
+    setGameIcons(iconMap)
   }, [user])
 
-  const handleGameRequest = async () => {
-    if (!user || !requestName.trim()) return
-    setIsSubmitting(true)
-    const { error } = await supabase.from("game_requests").insert({
-      user_id: user.id,
-      name: requestName.trim(),
-      memo: requestMemo.trim() || null
-    })
-    setIsSubmitting(false)
-    if (!error) {
-      alert("게임 추가 건의가 접수되었습니다.")
-      setSuggestionOpen(false)
-      setRequestName("")
-      setRequestMemo("")
-    } else {
-      alert("건의 접수 중 오류가 발생했습니다.")
+  useEffect(() => {
+    void loadGames()
+  }, [loadGames])
+
+  useEffect(() => {
+    if (!selectedGame || !isSheetOpen) return
+    const fetchSchedules = async () => {
+      setIsSchedulesLoading(true)
+      const { data } = await supabase
+        .from("game_schedules")
+        .select("*")
+        .eq("game_id", selectedGame.id)
+        .order("start_date", { ascending: false })
+      if (data) setSchedules(data as GameScheduleRow[])
+      setIsSchedulesLoading(false)
+    }
+    void fetchSchedules()
+  }, [selectedGame, isSheetOpen])
+
+  const handleIconUpload = async (gameId: string, file: File) => {
+    if (!user) return
+    setUploadingGameId(gameId)
+    try {
+      const webpBlob = await resizeImageToWebP(file)
+      await uploadUserIcon(user.id, gameId, webpBlob)
+      const newUrl = URL.createObjectURL(webpBlob)
+      setGameIcons((prev) => ({ ...prev, [gameId]: newUrl }))
+      alert("게임 아이콘이 성공적으로 변경되었습니다.")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "알 수 없는 오류"
+      alert(`아이콘 업로드에 실패했습니다: ${message}`)
+    } finally {
+      setUploadingGameId(null)
+    }
+  }
+
+  const handleUnsubscribe = async (userGameId: string, gameId: string, gameName: string) => {
+    if (!confirm(`'${gameName}' 게임 구독을 해제하시겠습니까?\n\n(안내: 기존 지출 및 정기 구독 내역은 삭제되지 않고 안전하게 보존됩니다)`)) {
+      return
+    }
+    try {
+      const { error } = await supabase.from("user_games").delete().eq("id", userGameId)
+      if (error) throw error
+      try {
+        if (user) await deleteUserIcon(user.id, gameId)
+      } catch {
+        // 아이콘 삭제 실패는 무시
+      }
+      await loadGames()
+    } catch {
+      alert("게임 구독 해제 중 오류가 발생했습니다.")
     }
   }
 
@@ -77,104 +135,198 @@ export default function GamesPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between">
+      {/* 상단 헤더 */}
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-primary">게임</h1>
-          <p className="mt-2 text-sm text-content-secondary">게임별 구독 및 패스 관리</p>
+          <p className="mt-1 text-sm text-content-secondary">
+            내가 구독 중인 게임을 관리하고, 새로운 게임 및 일정을 요청합니다.
+          </p>
         </div>
-        
-        <div className="relative">
-          <Button variant="outline" onClick={() => setSuggestionOpen(!suggestionOpen)}>
-            게임 추가 건의 ▾
-          </Button>
-          {suggestionOpen && (
-            <div className="absolute right-0 top-full mt-2 w-72 rounded-md border border-line bg-surface p-4 shadow-modal z-10">
-              <h4 className="text-sm font-semibold mb-2">관리자에게 게임 추가 건의</h4>
-              <p className="text-xs text-content-secondary mb-4">
-                목록에 없는 게임을 추가해달라고 요청할 수 있습니다.
-              </p>
-              <input
-                type="text"
-                className="w-full rounded-md border border-line-control bg-surface-2 p-2 text-sm mb-2 text-content"
-                placeholder="게임 이름..."
-                value={requestName}
-                onChange={e => setRequestName(e.target.value)}
-                disabled={isSubmitting}
-              />
-              <textarea 
-                className="w-full rounded-md border border-line-control bg-surface-2 p-2 text-sm mb-2 text-content"
-                placeholder="추가 설명 (선택)..."
-                rows={3}
-                value={requestMemo}
-                onChange={e => setRequestMemo(e.target.value)}
-                disabled={isSubmitting}
-              />
-              <div className="flex gap-2 justify-end">
-                <Button size="sm" variant="outline" onClick={() => setSuggestionOpen(false)} disabled={isSubmitting}>
-                  취소
-                </Button>
-                <Button size="sm" onClick={() => void handleGameRequest()} disabled={isSubmitting || !requestName.trim()}>
-                  건의하기
-                </Button>
-              </div>
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <GameSelectModal onGameAdded={() => void loadGames()} triggerText="+ 구독 추가" />
+          <RequestSubmissionModal triggerText="+ 추가 요청" />
         </div>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>내 게임 목록</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 max-h-[500px] overflow-auto">
-            {userGames.length === 0 ? (
-              <EmptyState message="등록된 게임이 없습니다." hint="일정에서 픽업/일정을 추가하거나 건의해주세요." />
-            ) : (
-              <div className="space-y-2">
-                {userGames.map((ug) => (
-                  <div key={ug.id} className="p-3 rounded-md border border-line bg-surface-2">
-                    <p className="font-semibold">{ug.games?.name || "알 수 없는 게임"}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* 내 구독 게임 그리드 섹션 */}
+      <Card className="border-line bg-surface">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div>
+            <CardTitle className="text-lg font-bold text-content">내 구독 게임</CardTitle>
+            <p className="text-xs text-content-secondary mt-1">
+              구독 중인 게임의 일정을 확인하거나 커스텀 아이콘을 등록할 수 있습니다.
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+            {userGames.length}개 구독 중
+          </span>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {userGames.length === 0 ? (
+            <EmptyState
+              message="구독 중인 게임이 없습니다."
+              hint="하단의 '+ 구독 추가' 버튼으로 카탈로그에서 게임을 구독해보세요."
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {userGames.map((ug) => {
+                const gameName = ug.games?.name || "알 수 없는 게임"
+                const iconSrc = gameIcons[ug.game_id] || ug.games?.default_icon_url || null
+                const isUploading = uploadingGameId === ug.game_id
 
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>구독형 상품 관리 (월정액/패스)</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 max-h-[500px] overflow-auto">
-            {templates.length === 0 ? (
-              <EmptyState message="등록된 구독 상품이 없습니다." hint="정기적으로 결제되는 월정액/패스를 추가해보세요." />
-            ) : (
-              <div className="space-y-2">
-                {templates.map((tpl) => {
-                  const gameName = userGames.find(g => g.game_id === tpl.game_id)?.games?.name || "미지정 게임"
-                  return (
-                    <div key={tpl.id} className={`p-3 rounded-md border ${tpl.is_active ? 'border-line bg-surface-2' : 'border-line/50 bg-surface-2/50 opacity-70'} flex justify-between items-center`}>
-                      <div>
-                        <p className="font-medium text-content text-sm">{tpl.title}</p>
-                        <p className="text-xs text-content-secondary mt-1">
-                          {gameName} · 매월 {tpl.billing_day}일 · {tpl.payment_method}
-                        </p>
+                return (
+                  <div
+                    key={ug.id}
+                    className="flex flex-col justify-between p-4 rounded-lg border border-line bg-surface-2 hover:border-line-control transition-all"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* 게임 아이콘 */}
+                      <div className="relative w-14 h-14 rounded-lg border border-line bg-surface-3 flex items-center justify-center overflow-hidden shrink-0">
+                        {iconSrc ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={iconSrc}
+                            alt={gameName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Gamepad2 className="w-7 h-7 text-content-secondary" />
+                        )}
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 text-white animate-spin" />
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-info text-sm">{tpl.default_price.toLocaleString()} 원</p>
-                        <p className="text-xs mt-1 font-medium" style={{ color: tpl.is_active ? '#4CD6A5' : '#9BA3B2' }}>
-                          {tpl.is_active ? "활성" : "비활성"}
-                        </p>
+
+                      {/* 게임 명칭 및 구독 정보 */}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-content text-base truncate">{gameName}</h3>
+                        <p className="text-xs text-content-secondary mt-0.5">공용 일정 연동 중</p>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
+
+                    {/* 액션 버튼 그룹 */}
+                    <div className="mt-4 pt-3 border-t border-line flex items-center justify-between gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs border-line-control hover:bg-surface-3 text-content"
+                        onClick={() => {
+                          setSelectedGame({ id: ug.game_id, name: gameName })
+                          setIsSheetOpen(true)
+                        }}
+                      >
+                        <Calendar className="w-3.5 h-3.5 mr-1 text-primary" />
+                        일정 보기
+                      </Button>
+
+                      {/* 커스텀 아이콘 등록/변경 */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs border-line-control hover:bg-surface-3 text-content px-2.5"
+                        disabled={isUploading}
+                        onClick={() => fileInputRefs.current[ug.game_id]?.click()}
+                        title="아이콘 등록/변경"
+                      >
+                        <ImagePlus className="w-3.5 h-3.5" />
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/jpg, image/webp"
+                        className="hidden"
+                        ref={(el) => {
+                          fileInputRefs.current[ug.game_id] = el
+                        }}
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            void handleIconUpload(ug.game_id, e.target.files[0])
+                          }
+                        }}
+                      />
+
+                      {/* 구독 해제 버튼 */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs border-danger/40 text-danger hover:bg-danger/10 px-2.5"
+                        onClick={() => void handleUnsubscribe(ug.id, ug.game_id, gameName)}
+                        title="구독 해제"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 하단: 공용 게임 카탈로그 검색 및 [구독 추가], [+ 추가 요청] */}
+      <Card className="border-line bg-surface">
+        <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="font-bold text-base text-content">원하는 게임이나 일정이 없으신가요?</h3>
+            <p className="text-sm text-content-secondary mt-1">
+              카탈로그에서 게임을 찾아 구독하거나, 관리자에게 새로운 게임 또는 픽업/버전 일정을 직접 요청해 보세요.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <GameSelectModal onGameAdded={() => void loadGames()} triggerText="+ 구독 추가" />
+            <RequestSubmissionModal triggerText="+ 추가 요청" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 공식 일정 사이드 시트 */}
+      <Sheet
+        open={isSheetOpen}
+        onOpenChange={(open) => {
+          setIsSheetOpen(open)
+          if (!open) setSelectedGame(null)
+        }}
+      >
+        <SheetContent className="overflow-y-auto w-full sm:max-w-md bg-surface text-content border-line">
+          <SheetHeader>
+            <SheetTitle className="text-content">{selectedGame?.name || "게임"} 공식 일정</SheetTitle>
+            <SheetDescription className="text-content-secondary">
+              관리자가 등록한 공식 픽업 및 버전 업데이트 일정입니다.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-3">
+            {isSchedulesLoading ? (
+              <p className="text-sm text-content-secondary">불러오는 중...</p>
+            ) : schedules.length === 0 ? (
+              <p className="text-sm text-content-secondary py-8 text-center">등록된 공식 일정이 없습니다.</p>
+            ) : (
+              schedules.map((sch) => (
+                <div key={sch.id} className="p-3 border border-line rounded-lg bg-surface-2 space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-sm text-content">{sch.title}</span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded font-medium ${
+                        sch.schedule_type === "VERSION"
+                          ? "bg-primary/15 text-primary"
+                          : "bg-info/15 text-info"
+                      }`}
+                    >
+                      {sch.schedule_type === "VERSION" ? "버전" : "픽업"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-content-secondary">
+                    {sch.start_date} ~ {sch.end_date}
+                  </p>
+                  {sch.memo && <p className="text-xs text-content-muted mt-1">{sch.memo}</p>}
+                </div>
+              ))
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

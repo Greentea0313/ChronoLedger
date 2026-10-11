@@ -13,29 +13,52 @@ import {
 interface AuthContextType {
   user: User | null
   session: Session | null
+  role: string | null
+  nickname: string | null
   isLoading: boolean
   isAccountDeletionStatusLoading: boolean
   accountDeletionStatus: AccountDeletionStatus | null
   refreshAccountDeletionStatus: () => Promise<void>
   beginAccountDeletionTracking: (statusToken: string) => void
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
+  role: null,
+  nickname: null,
   isLoading: true,
   isAccountDeletionStatusLoading: true,
   accountDeletionStatus: null,
   refreshAccountDeletionStatus: async () => {},
   beginAccountDeletionTracking: () => {},
+  refreshProfile: async () => {},
 })
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
+  const [role, setRole] = useState<string | null>(null)
+  const [nickname, setNickname] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isAccountDeletionStatusLoading, setIsAccountDeletionStatusLoading] = useState(true)
   const [accountDeletionStatus, setAccountDeletionStatus] = useState<AccountDeletionStatus | null>(null)
+
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data } = await supabase.from('users').select('role, nickname').eq('id', userId).maybeSingle()
+    if (data) {
+      setRole(data.role)
+      setNickname(data.nickname)
+    } else {
+      setRole(null)
+      setNickname(null)
+    }
+  }, [])
+
+  const refreshProfile = useCallback(async () => {
+    if (user) await fetchProfile(user.id)
+  }, [user, fetchProfile])
 
   useEffect(() => {
     void setupDeepLink().catch((error: unknown) => console.error("딥링크 초기화 실패:", error))
@@ -45,6 +68,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       authEventReceived = true
       setSession(nextSession)
       setUser(nextSession?.user ?? null)
+      if (nextSession?.user) fetchProfile(nextSession.user.id)
+      else { setRole(null); setNickname(null) }
       setIsAccountDeletionStatusLoading(true)
       setIsLoading(false)
     })
@@ -57,6 +82,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!authEventReceived) {
         setSession(session)
         setUser(session?.user ?? null)
+        if (session?.user) fetchProfile(session.user.id)
       }
     }).catch((err) => {
       console.error("Supabase 에러:", err)
@@ -65,7 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [fetchProfile])
 
   const refreshAccountDeletionStatus = useCallback(async () => {
     try {
@@ -141,11 +167,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider value={{
       user,
       session,
+      role,
+      nickname,
       isLoading,
       isAccountDeletionStatusLoading,
       accountDeletionStatus,
       refreshAccountDeletionStatus,
       beginAccountDeletionTracking,
+      refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

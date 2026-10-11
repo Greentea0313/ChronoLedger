@@ -54,7 +54,7 @@ describe("RequestSubmissionModal", () => {
 
   async function openModal() {
     await act(async () => root.render(<RequestSubmissionModal />))
-    const trigger = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "게임·일정 요청")
+    const trigger = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "+ 추가 요청" || button.textContent === "게임·일정 요청")
     expect(trigger).toBeDefined()
     await act(async () => {
       Simulate.click(trigger!)
@@ -88,13 +88,12 @@ describe("RequestSubmissionModal", () => {
   it("submits a game request using the authenticated user and schema fields only", async () => {
     await openModal()
     await change("#game-name", " New Game ")
-    await change("#game-memo", "  Please add it  ")
     await submit()
 
     expect(insertGame).toHaveBeenCalledWith({
       user_id: "authenticated-user",
       name: "New Game",
-      memo: "Please add it",
+      memo: null,
     })
     expect(document.body.textContent).toContain("요청을 제출했습니다.")
   })

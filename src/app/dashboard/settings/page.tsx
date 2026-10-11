@@ -6,7 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StoreWalletWidget } from "@/components/wallet/store-wallet-widget"
+import { FinanceSettingsCard } from "@/components/finance/finance-settings-card"
+import { UserRequestsCard } from "@/components/game/user-requests-card"
 import { ProfileAvatarCard } from "@/components/profile/profile-avatar-card"
+import { ProfileNicknameCard } from "@/components/profile/profile-nickname-card"
 import { useAuth } from "@/lib/auth-context"
 import { requestAccountDeletion } from "@/lib/account-deletion"
 
@@ -38,13 +41,18 @@ export default function SettingsPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-blue-400">설정</h1>
-        <p className="mt-2 text-sm text-gray-300">계정과 개인정보 관리</p>
+        <h1 className="text-2xl font-bold text-primary">설정</h1>
+        <p className="mt-1 text-sm text-content-secondary">계정, 재무, 스토어 지갑 및 요청 내역을 관리합니다.</p>
       </header>
 
       <ProfileAvatarCard />
+      <ProfileNicknameCard />
+
+      <FinanceSettingsCard />
 
       <StoreWalletWidget />
+
+      <UserRequestsCard />
 
       <Card className="border-danger/50 text-content">
         <CardHeader>

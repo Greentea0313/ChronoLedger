@@ -11,6 +11,7 @@ import {
   HeroSidebarContent,
   type HeroExpenseItem,
   type HeroWalletItem,
+  type HeroScheduleItem,
 } from "@/components/calendar/hero-sidebar"
 
 interface MobileDrawerProps {
@@ -19,6 +20,7 @@ interface MobileDrawerProps {
   budgetAmount: number
   expectedExpense: number
   wallets: HeroWalletItem[]
+  schedules?: HeroScheduleItem[]
   expenses: HeroExpenseItem[]
   memos: string[]
   onSelectExpense?: (expenseId: string) => void
@@ -32,6 +34,7 @@ export function MobileDrawer({
   budgetAmount,
   expectedExpense,
   wallets,
+  schedules,
   expenses,
   memos,
   onSelectExpense,
@@ -58,6 +61,7 @@ export function MobileDrawer({
               budgetAmount={budgetAmount}
               expectedExpense={expectedExpense}
               wallets={wallets}
+              schedules={schedules}
               expenses={expenses}
               memos={memos}
               onSelectExpense={onSelectExpense}

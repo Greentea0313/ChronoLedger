@@ -1,6 +1,34 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
-## Phase 9 Iteration 01 (2026-10-09)
+## Phase 10 재정리 기획(v2) UI/UX 및 구독·게임·설정 개편 완료 (2026-10-12)
+
+- **대시보드 캘린더 및 지출 바인딩 (10.1)**:
+  - 버튼명을 `[+ 지출 추가]`로 통일.
+  - 카테고리 우선 선택: '게임' 카테고리일 때만 게임 선택 입력란이 표시됨.
+  - 게임 선택 시 해당 결제일에 속한 `VERSION` 일정에만 자동 단일 바인딩 (`PICKUP` 일정 바인딩 제외 및 기간 내 버전 자동 매칭).
+- **소비(`/dashboard/expenses`) 화면 개편 (10.2)**:
+  - 통계 영역: 카테고리 비중을 Recharts 원그래프(Pie Chart)로 전면 교체.
+  - 집계 기준 엄격화: 취소(`CANCELLED`) 및 예정(`PLANNED`)을 제외한 오직 확정(`CONFIRMED`) 지출만 통계에 산정.
+  - 목록 액션 버튼 통일: `[확정]`, `[취소]`, `[환불]`, `[되돌리기]`로 직관화 및 전용 RPC 연동.
+- **정기 구독 3종 주기 모델 A안 (10.3)**:
+  - 소비 화면 내 `[지출 내역 및 통계 | 정기 구독]` 서브 탭 분리.
+  - 3종 주기 모델(`cycle_type`):
+    - `MONTHLY_DAY`: 매월 지정일 결제 (월말 일자 자동 보정).
+    - `INTERVAL_30`: 30일 누적 충전식 결제.
+    - `VERSION_PASS`: 게임 새 버전 시작일 연동 결제.
+  - 템플릿 생성 시 `ensureMonthlySubscriptionExpenses` 엔진을 통한 당월 회차 멱등 지연 생성.
+- **게임 관리(`/dashboard/games`) 및 추가 요청 개편 (10.4)**:
+  - 버튼명 `[+ 추가 요청]` 통일.
+  - 요청 모달: 게임 요청(게임 제목만 간결 입력, `memo: null`), 일정 요청(게임 + 기간 + 유형 + 내용 템플릿).
+  - 내 구독 게임 카드: 256×256 WebP 아이콘 업로드/삭제, 공식 일정 보기 시트, 지출 보존 구독 해제.
+- **설정(`/dashboard/settings`) 개편 (10.5)**:
+  - Galaxy Store 4대 공식 등급 반영: 일반(0.1%), 스타(0.1%), 프레스티지(1.1%), 로열블루(2.1%) 드롭다운 선택.
+  - 개인 재무 설정 카드: 총 자산(`total_asset`), 기본 월 예산(`default_budget`) 조회/수정 연동.
+  - 내 요청 내역 카드: 제출한 게임/일정 요청 상태(`PENDING`, `APPROVED`, `REJECTED`) 및 관리자 메모(`admin_memo`) 조회.
+- **종합 검증 (10.6)**:
+  - `npx tsc --noEmit` 무결점 (0 errors).
+  - Vitest 30개 파일 / 106개 테스트 전체 통과 (100% PASS).
+  - Next.js 정적 export (`npm run build`) 13개 페이지 빌드 성공.
 
 - 상단바는 `src/components/layout/topbar.tsx`. 탭 이름은 홈/소비/게임이다. 내비 링크 `/dashboard/expenses`, `/dashboard/calendar` 페이지는 아직 없어 이동 시 404이며 후속 구현이 필요하다. 설정 링크는 프로필 드롭다운의 "계정" 항목(`/dashboard/settings`)으로 이동했다.
 - 프로필 버튼은 사용자 이름(`full_name` > `name` > 이메일 앞부분)과 사진(직접 업로드 > Google `avatar_url`/`picture`)을 표시하고, 사진이 없거나 로드 실패 시 이름 첫 글자 원형 아바타를 쓴다. 직접 업로드는 계정 설정(`/dashboard/settings`)의 `ProfileAvatarCard`에서 하며 비공개 `user-icons/{uid}/profile.webp`(256x256 WebP)에 저장된다. 계정 삭제 워커가 `{uid}` 폴더를 통째로 지우므로 별도 정리가 필요 없다. 표시 이름 편집은 미구현(결정 필요).

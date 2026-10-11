@@ -13,7 +13,7 @@ const { getSession, onAuthStateChange, maybeSingle, unsubscribe, setupDeepLink }
 vi.mock("@/lib/supabase/client", () => ({
   supabase: {
     auth: { getSession, onAuthStateChange },
-    from: () => ({ select: () => ({ maybeSingle }) }),
+    from: () => ({ select: () => ({ maybeSingle, eq: () => ({ maybeSingle }) }) }),
   },
 }))
 

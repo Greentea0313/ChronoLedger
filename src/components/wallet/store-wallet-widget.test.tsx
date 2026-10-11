@@ -26,32 +26,28 @@ describe("StoreWalletWidget", () => {
   it("shows balances and saves Google tier with its official rate", async () => {
     const onChanged = vi.fn()
     render(<StoreWalletWidget onChanged={onChanged} />)
-    expect(await screen.findByText("Google: 1,200 P")).toBeTruthy()
+    expect(await screen.findByText("1,200 P")).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText("Google Play 등급"), { target: { value: "GOLD" } })
-    fireEvent.click(screen.getByRole("button", { name: "등급 저장" }))
+    fireEvent.click(screen.getByRole("button", { name: "Google 등급 저장" }))
 
     await waitFor(() => expect(onChanged).toHaveBeenCalled())
     expect(rpc).toHaveBeenCalledWith("update_store_wallet_settings", { p_platform: "GOOGLE_PLAY", p_tier: "GOLD", p_earn_rate: 0.13 })
   })
 
-  it("saves Galaxy rate with a null tier and rejects out-of-range rates", async () => {
+  it("saves Galaxy Store tier with its official rate", async () => {
     render(<StoreWalletWidget />)
-    await screen.findByText("Galaxy: 300 P")
+    await screen.findByText("Galaxy Store 포인트 잔액")
 
-    fireEvent.change(screen.getByLabelText("Galaxy Store 적립률 (%)"), { target: { value: "101" } })
-    fireEvent.click(screen.getByRole("button", { name: "적립률 저장" }))
-    expect((await screen.findByRole("alert")).textContent).toContain("0~100")
-    expect(rpc).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText("Galaxy Store 등급"), { target: { value: "PRESTIGE" } })
+    fireEvent.click(screen.getByRole("button", { name: "Galaxy 등급 저장" }))
 
-    fireEvent.change(screen.getByLabelText("Galaxy Store 적립률 (%)"), { target: { value: "2.5" } })
-    fireEvent.click(screen.getByRole("button", { name: "적립률 저장" }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith("update_store_wallet_settings", { p_platform: "GALAXY_STORE", p_tier: null, p_earn_rate: 2.5 }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("update_store_wallet_settings", { p_platform: "GALAXY_STORE", p_tier: "PRESTIGE", p_earn_rate: 1.1 }))
   })
 
   it("adjusts the wallet to a target balance with a memo", async () => {
     render(<StoreWalletWidget />)
-    await screen.findByText("Galaxy: 300 P")
+    await screen.findByText("300 P")
 
     fireEvent.change(screen.getByLabelText("지갑"), { target: { value: "GALAXY_STORE" } })
     fireEvent.change(screen.getByLabelText("목표 잔액 (P)"), { target: { value: "500" } })

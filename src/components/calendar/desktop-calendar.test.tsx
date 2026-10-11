@@ -11,13 +11,15 @@ describe("DesktopCalendar", () => {
         month={10}
         selectedDate="2026-10-06"
         onSelectDate={onSelectDate}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
         days={[
           {
             date: "2026-10-06",
             day: 6,
             inCurrentMonth: true,
-            schedules: [{ id: "s1", schedule_type: "PICKUP" }],
-            icons: [{ gameId: "g1", label: "게임 A", icon: "🎮" }],
+            schedules: [{ id: "s1", schedule_type: "PICKUP", is_start_date: true, game_id: "g1" }],
+            icons: [{ gameId: "g1", label: "게임 A", iconUrl: "/icon.png" }],
             hasMemo: true,
           },
         ]}

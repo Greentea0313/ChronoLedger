@@ -14,11 +14,22 @@ export interface HeroExpenseItem {
   final_amount: number
   status: "PLANNED" | "CONFIRMED" | "CANCELLED"
   gameName: string | null
+  iconUrl?: string
+  payment_method?: string
 }
 
 export interface HeroWalletItem {
   platform: string
   current_balance: number
+}
+
+export interface HeroScheduleItem {
+  id: string
+  schedule_type: "VERSION" | "PICKUP"
+  start_date: string
+  end_date: string
+  gameName?: string | null
+  iconUrl?: string
 }
 
 interface HeroSidebarProps {
@@ -27,6 +38,7 @@ interface HeroSidebarProps {
   budgetAmount: number
   expectedExpense: number
   wallets: HeroWalletItem[]
+  schedules?: HeroScheduleItem[]
   expenses: HeroExpenseItem[]
   memos: string[]
   onSelectExpense?: (expenseId: string) => void
@@ -40,6 +52,7 @@ export function HeroSidebarContent({
   budgetAmount,
   expectedExpense,
   wallets,
+  schedules = [],
   expenses,
   memos,
   onSelectExpense,
@@ -59,10 +72,12 @@ export function HeroSidebarContent({
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p>{`총 자산: ${totalAsset?.toLocaleString() ?? "-"} 원`}</p>
-          <p>{`월 예산: ${budgetAmount.toLocaleString()} 원`}</p>
-          <p>{`월 예상 지출: ${expectedExpense.toLocaleString()} 원`}</p>
+          <p>{`예상 지출: ${expectedExpense.toLocaleString()} 원`}</p>
           <Progress value={budgetProgress} indicatorClassName={budgetTone} />
-          <p className="text-xs text-content-muted">{`예산 진행률 ${budgetProgress}%`}</p>
+          <div className="flex justify-between text-xs text-content-muted">
+            <span>{`예산 진행률 ${budgetProgress}%`}</span>
+            <span>{`${expectedExpense.toLocaleString()} 원`}</span>
+          </div>
         </CardContent>
       </Card>
 
@@ -88,11 +103,45 @@ export function HeroSidebarContent({
           <CardTitle>{selectedDateLabel}</CardTitle>
           {onRegisterExpense && (
             <Button type="button" size="sm" disabled={registerDisabled} onClick={onRegisterExpense}>
-              등록
+              + 지출 추가
             </Button>
           )}
         </CardHeader>
         <CardContent className="space-y-3">
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">게임 일정</h3>
+            {(!schedules || schedules.length === 0) ? (
+              <EmptyState message="해당 일자의 일정이 없습니다." />
+            ) : (
+              schedules.map((schedule) => (
+                <div key={schedule.id} className="relative overflow-hidden flex justify-between items-center min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm">
+                  {schedule.iconUrl && (
+                    <div
+                      className="absolute right-0 top-0 bottom-0 w-32 bg-no-repeat bg-right bg-cover z-0"
+                      style={{
+                        backgroundImage: `url(${schedule.iconUrl})`,
+                        maskImage: "linear-gradient(to right, transparent, black)",
+                        WebkitMaskImage: "linear-gradient(to right, transparent, black)",
+                        opacity: 0.3
+                      }}
+                    />
+                  )}
+                  <div className="relative z-10 flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${schedule.schedule_type === 'VERSION' ? 'bg-primary/20 text-primary' : 'bg-info/20 text-info'}`}>
+                        {schedule.schedule_type}
+                      </span>
+                      <span className="font-medium">{schedule.gameName ?? "게임 미연결"}</span>
+                    </div>
+                  </div>
+                  <div className="text-right relative z-10 text-xs text-content-muted">
+                    {schedule.start_date} ~ {schedule.end_date}
+                  </div>
+                </div>
+              ))
+            )}
+          </section>
+
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">지출 내역</h3>
             {expenses.length === 0 ? (
@@ -101,17 +150,32 @@ export function HeroSidebarContent({
               expenses.map((expense) => (
                 <div
                   key={expense.id}
-                  className={`min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm transition-colors duration-fast${onSelectExpense ? " cursor-pointer hover:border-line-control" : ""}`}
+                  className={`relative overflow-hidden flex justify-between items-center min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm transition-colors duration-fast${onSelectExpense ? " cursor-pointer hover:border-line-control" : ""}`}
                   role={onSelectExpense ? "button" : undefined}
                   tabIndex={onSelectExpense ? 0 : undefined}
                   aria-label={onSelectExpense ? `${expense.title} 상세` : undefined}
                   onClick={onSelectExpense ? () => onSelectExpense(expense.id) : undefined}
                   onKeyDown={onSelectExpense ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectExpense(expense.id) } } : undefined}
                 >
-                  <p className="font-medium">{expense.title}</p>
-                  <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"}</p>
-                  <p className="mt-1 font-semibold text-info">{expense.final_amount.toLocaleString()} 원</p>
-                  <p className="text-xs text-content-muted">{expense.status}</p>
+                  {expense.iconUrl && (
+                    <div
+                      className="absolute right-0 top-0 bottom-0 w-32 bg-no-repeat bg-right bg-cover z-0"
+                      style={{
+                        backgroundImage: `url(${expense.iconUrl})`,
+                        maskImage: "linear-gradient(to right, transparent, black)",
+                        WebkitMaskImage: "linear-gradient(to right, transparent, black)",
+                        opacity: 0.3
+                      }}
+                    />
+                  )}
+                  <div className="relative z-10">
+                    <p className="font-medium">{expense.title}</p>
+                    <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"} · {expense.payment_method === 'WALLET' ? '내 지갑' : (expense.payment_method ?? '')}</p>
+                  </div>
+                  <div className="text-right relative z-10">
+                    <p className="font-semibold text-info">{expense.final_amount.toLocaleString()} 원</p>
+                    <p className="text-xs text-content-muted mt-1">{expense.status}</p>
+                  </div>
                 </div>
               ))
             )}

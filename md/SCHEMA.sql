@@ -124,11 +124,15 @@ CREATE TABLE public.subscription_templates (
     game_id UUID REFERENCES public.games(id) ON DELETE SET NULL,
     title VARCHAR(150) NOT NULL,
     category VARCHAR(50) NOT NULL DEFAULT '정기 구독',
-    billing_day SMALLINT NOT NULL CHECK (billing_day BETWEEN 1 AND 31),
+    cycle_type VARCHAR(20) NOT NULL DEFAULT 'MONTHLY_DAY' CHECK (cycle_type IN ('MONTHLY_DAY', 'INTERVAL_30', 'VERSION_PASS')),
+    billing_day SMALLINT DEFAULT 1 CHECK (billing_day BETWEEN 1 AND 31),
     default_price BIGINT NOT NULL DEFAULT 0 CHECK (default_price >= 0),
     payment_method VARCHAR(30) NOT NULL DEFAULT 'WALLET' CHECK (payment_method IN ('WALLET', 'GOOGLE_PLAY', 'GALAXY_STORE')),
     is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT chk_subscription_template_version_pass CHECK (
+        cycle_type <> 'VERSION_PASS' OR (category = '게임' AND game_id IS NOT NULL)
+    )
 );
 
 -- 9. 스토어 포인트 지갑
@@ -147,7 +151,13 @@ CREATE TABLE public.store_wallets (
             AND earn_rate = CASE user_tier
                 WHEN 'BRONZE' THEN 0.10 WHEN 'SILVER' THEN 0.11 WHEN 'GOLD' THEN 0.13
                 WHEN 'PLATINUM' THEN 0.16 WHEN 'DIAMOND' THEN 0.20 END)
-        OR (platform = 'GALAXY_STORE' AND user_tier IS NULL)
+        OR (platform = 'GALAXY_STORE' AND (
+            (user_tier IS NULL AND earn_rate BETWEEN 0 AND 100)
+            OR (user_tier IN ('GENERAL', 'STAR', 'PRESTIGE', 'ROYAL_BLUE')
+                AND earn_rate = CASE user_tier
+                    WHEN 'GENERAL' THEN 0.10 WHEN 'STAR' THEN 0.10
+                    WHEN 'PRESTIGE' THEN 1.10 WHEN 'ROYAL_BLUE' THEN 2.10 END)
+        ))
     )
 );
 
@@ -161,7 +171,7 @@ CREATE TABLE public.expenses (
     billing_cycle VARCHAR(7), -- YYYY-MM 형식 정기 구독 식별자
     cancellation_kind VARCHAR(30) CHECK (cancellation_kind IN ('PLANNED_CANCEL', 'TEMPLATE_DEACTIVATION', 'PAYMENT_REFUND')),
     title VARCHAR(150) NOT NULL,
-    category VARCHAR(50) NOT NULL CHECK (category IN ('게임', '정기 구독', '식비/카페', '교통/이동', '생활/쇼핑', '기타')),
+    category VARCHAR(50) NOT NULL CHECK (category IN ('게임', '정기 구독', '식비', '교통', '생활', '기타')),
     status VARCHAR(20) NOT NULL DEFAULT 'PLANNED' CHECK (status IN ('CONFIRMED', 'PLANNED', 'CANCELLED')),
     target_date DATE NOT NULL,
     start_date DATE,
@@ -214,6 +224,11 @@ FOR EACH ROW EXECUTE FUNCTION public.cancel_planned_expenses_on_template_deactiv
 CREATE UNIQUE INDEX idx_expenses_template_billing_cycle 
     ON public.expenses(template_id, billing_cycle) 
     WHERE template_id IS NOT NULL AND billing_cycle IS NOT NULL;
+
+-- 버전 패스 멱등성 인덱스: 동일 템플릿-버전 중복 회차 생성 방지
+CREATE UNIQUE INDEX idx_expenses_template_schedule_id 
+    ON public.expenses(template_id, schedule_id) 
+    WHERE template_id IS NOT NULL AND schedule_id IS NOT NULL;
 
 ALTER TABLE public.expenses ADD CONSTRAINT chk_expenses_billing_cycle
     CHECK (billing_cycle IS NULL OR billing_cycle ~ '^[0-9]{4}-(0[1-9]|1[0-2])$');
@@ -671,7 +686,14 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'Google Play 등급 또는 공식 적립률이 올바르지 않습니다.';
     END IF;
-    IF p_platform = 'GALAXY_STORE' AND (p_tier IS NOT NULL OR p_earn_rate > 100) THEN
+    IF p_platform = 'GALAXY_STORE' AND (
+        (p_tier IS NOT NULL AND (
+            p_tier NOT IN ('GENERAL', 'STAR', 'PRESTIGE', 'ROYAL_BLUE') OR
+            p_earn_rate IS DISTINCT FROM CASE p_tier
+                WHEN 'GENERAL' THEN 0.10 WHEN 'STAR' THEN 0.10
+                WHEN 'PRESTIGE' THEN 1.10 WHEN 'ROYAL_BLUE' THEN 2.10 END
+        )) OR (p_tier IS NULL AND p_earn_rate > 100)
+    ) THEN
         RAISE EXCEPTION 'Galaxy Store 등급 또는 적립률이 올바르지 않습니다.';
     END IF;
 

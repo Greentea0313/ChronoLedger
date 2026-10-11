@@ -238,11 +238,43 @@
 
 ---
 
-### Phase 8. UI/UX 폴리싱 (Iteration 01 구현, 리뷰 대기)
+### Phase 8 & 9. UI/UX 폴리싱 및 추가 피드백 구현
 
 - [x] A2Z 전역 폰트(자체 호스팅 9 weight, OFL), dark/Cool Neutral Light 토큰, 테마 토글, 컴포넌트·빈 상태·반응형(900/1280) 다듬기
 - [ ] 실브라우저 390/900/1280 시각·대비·라이트 테마 검증
 - [ ] 내비게이션 셸 재구성([PROPOSED]) 및 정확한 상태 배경 토큰 여부 결정
+- [x] 캘린더 타일 레이아웃: 일정 시작일에만 버전 태그 표시(PICKUP과 겹칠 경우 VERSION 위, PICKUP 아래). 게임 아이콘과 메모 도트는 우측 정렬.
+- [x] 캘린더 월 전환 애니메이션 추가
+- [x] 닉네임 변경 후 새로고침(F5) 없이 즉각 반영
+- [x] 대시보드 예상 지출 UI 개선: 막대 우측 하단에 남은 금액 대신 실제 예상 지출액을 표시
+- [x] 지출 내역 되돌리기(CANCELLED -> PLANNED) 기능 및 취소된 지출 홈 화면 숨김 처리
+- [x] 예정 지출 모달: 결제 확정 외에 "예정 지출로 등록" 버튼 추가하여 총 자산 즉시 차감 방지
+- [x] 카테고리 축약(식비, 교통, 생활) 및 소비 페이지 그래프 퍼센트(%) 표시
+
+### Phase 10. 재정리된 기획(v2) 기반 UI/UX 및 정기 구독·지갑 개편
+- [x] 10.1 대시보드 캘린더 및 지출 바인딩 로직 개선
+  - 대상 파일: `src/components/calendar/hero-sidebar.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/calendar/mobile-drawer.tsx`
+  - 작업: `[+ 지출 추가]` 버튼명 변경, 지출 모달 내 카테고리 우선 선택(게임 시에만 게임 선택 노출), 해당 날짜의 `VERSION` 일정에만 바인딩 (`PICKUP` 일정 바인딩 제외)
+  - verify: 지출 추가 시 카테고리='게임'일 때만 게임 선택란이 보이고, 해당 날짜의 `VERSION` 일정이 자동 바인딩되는지 확인
+- [x] 10.2 소비(`/dashboard/expenses`) 화면 UI 개편
+  - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`
+  - 작업: 헤더 버튼명 `[+ 지출 추가]`로 변경 및 모달 연동, 목록 액션 버튼 `[확정]`, `[취소]`, `[환불]`, `[되돌리기]`로 통일, 카테고리별 비중을 **원그래프(Pie Chart)**로 교체, 집계 기준을 `CONFIRMED` 지출만으로 한정
+  - verify: 취소/예정 지출을 제외한 확정 지출만 원그래프로 비율 계산되는지 확인, 버튼 레이블 통일 및 RPC 연동 확인, 단위 테스트 4개 통과 및 정적 export 빌드 성공
+- [x] 10.3 정기 구독 탭 및 3종 주기 모델(A안) 구현
+  - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/lib/subscription-sync.ts`, `src/components/subscription/subscription-modal.tsx`, `md/SCHEMA.sql`
+  - 작업: 소비 화면 내 서브 탭(`[지출 내역 및 통계 | 정기 구독]`), `[+ 구독 추가]` 버튼 및 모달(카테고리='게임'일 때만 게임 노출), `cycle_type` 3종(`MONTHLY_DAY`, `INTERVAL_30`, `VERSION_PASS`) 모델 적용 및 회차 생성 로직 확장, `is_active` 활성화/비활성화 토글
+  - verify: 매월 지정일, 30일 누적 충전, 새 버전 시작일 연동에 따른 회차 생성 테스트 통과, Vitest 28개 파일/99개 테스트 통과, 정적 export 빌드 성공
+- [x] 10.4 게임 관리(`/dashboard/games`) 추가 요청 모달 개선
+  - 대상 파일: `src/app/dashboard/games/page.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/game-select-modal.tsx`, `src/app/dashboard/games/page.test.tsx`
+  - 작업: `[+ 추가 요청]` 버튼으로 변경 및 모달 연동, 모달에서 [게임 요청 | 일정 요청] 선택 분기(게임은 제목만, 일정은 게임+기간+종류+내용 템플릿 제공), 내 구독 게임 그리드 카드(커스텀 아이콘 등록/변경, 구독 해제, 일정 보기), 하단 카탈로그 검색 및 `[+ 구독 추가]`, `[+ 추가 요청]` 배너 연동
+  - verify: 각각의 요청이 `game_requests` 및 `schedule_requests`로 정상 분기 인입 확인, 단위 테스트 9개 통과(modal 5개 + page 4개), Vitest 29개 파일/103개 테스트 전체 통과, `npm run build` 정적 export 빌드 성공
+- [x] 10.5 설정(`/dashboard/settings`) Galaxy Store 등급 개편 및 내 요청 내역
+  - 대상 파일: `src/components/wallet/store-wallet-widget.tsx`, `src/app/dashboard/settings/page.tsx`, `src/components/finance/finance-settings-card.tsx`, `src/components/game/user-requests-card.tsx`, `md/SCHEMA.sql`
+  - 작업: Galaxy Store 적립률 입력을 4대 공식 등급(일반 0.1%, 스타 0.1%, 프레스티지 1.1%, 로열블루 2.1%) 선택 드롭다운으로 개편하고 DB 제약 동기화, 개인 재무 설정(`total_asset`, `default_budget`) 카드 연동, 사용자 본인의 게임/일정 요청 상태(`PENDING`, `APPROVED`, `REJECTED`) 및 관리자 메모 조회 UI 추가
+  - verify: Galaxy Store 등급 선택 시 올바른 적립률 저장 및 원장/지갑 갱신 확인, 내 요청 내역 정상 조회 확인, `settings/page.test.tsx` 3개 테스트 및 `store-wallet-widget.test.tsx` 3개 테스트 통과
+- [x] 10.6 종합 검증 및 회귀 테스트
+  - 작업: `npx tsc --noEmit`, Vitest 테스트 실행, `npm run build` 정적 export 빌드 검증
+  - verify: TypeScript 타입 에러 0건, Vitest 30개 파일 / 106개 테스트 전체 통과 (100% PASS), `npm run build` 정적 13개 페이지 export 생성 성공
 
 ### Phase 7. Web/PWA 통합, 안정화 및 릴리스 검증
 - [ ] 7.1 (시나리오 작성 완료, DB 실행 검증 대기) 게임 버전/픽업 패스 일정 안전 동기화 검증

@@ -17,7 +17,15 @@ interface Game {
   name: string
 }
 
-export function GameSelectModal({ onGameAdded }: { onGameAdded: () => void }) {
+export function GameSelectModal({
+  onGameAdded,
+  triggerText = "+ 구독 추가",
+  className,
+}: {
+  onGameAdded: () => void
+  triggerText?: string
+  className?: string
+}) {
   const isOnline = useOnlineStatus()
   const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
@@ -107,11 +115,11 @@ export function GameSelectModal({ onGameAdded }: { onGameAdded: () => void }) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" /> 새 게임 추가
+        <Button className={className ?? "bg-primary hover:bg-primary-hover text-white font-medium"}>
+          <Plus className="w-4 h-4 mr-2" /> {triggerText}
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-gray-900 border-gray-700 text-white sm:max-w-[425px]">
+      <DialogContent className="border-line bg-surface text-content sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>내 게임 등록</DialogTitle>
         </DialogHeader>
@@ -119,39 +127,39 @@ export function GameSelectModal({ onGameAdded }: { onGameAdded: () => void }) {
         <div className="space-y-4 py-4">
           {!selectedGame ? (
             <div className="space-y-2">
-              <p className="text-sm text-gray-400">카탈로그에서 플레이 중인 게임을 선택하세요.</p>
+              <p className="text-sm text-content-secondary">카탈로그에서 플레이 중인 게임을 선택하세요.</p>
               <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
                 {games.map(game => (
                   <Button
                     key={game.id}
                     variant="outline"
-                    className="w-full justify-start border-gray-700 text-gray-300 hover:bg-gray-800"
+                    className="w-full justify-start border-line-control bg-surface-2 text-content hover:bg-surface-3"
                     onClick={() => setSelectedGame(game)}
                   >
                     {game.name}
                   </Button>
                 ))}
-                {games.length === 0 && <p className="text-sm text-gray-500">등록 가능한 공용 게임이 없습니다.</p>}
+                {games.length === 0 && <p className="text-sm text-content-muted">등록 가능한 공용 게임이 없습니다.</p>}
               </div>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between bg-gray-800 p-3 rounded-md border border-gray-700">
-                <span className="font-medium text-blue-100">{selectedGame.name}</span>
-                <Button variant="ghost" size="sm" onClick={resetState} className="text-gray-400 hover:text-white">
+              <div className="flex items-center justify-between bg-surface-2 p-3 rounded-md border border-line">
+                <span className="font-medium text-content">{selectedGame.name}</span>
+                <Button variant="ghost" size="sm" onClick={resetState} className="text-content-secondary hover:text-content">
                   변경
                 </Button>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">커스텀 아이콘 (선택사항)</label>
+                <label className="text-sm font-medium text-content">커스텀 아이콘 (선택사항)</label>
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
-                    className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 justify-start"
+                    className="w-full border-line-control bg-surface-2 text-content hover:bg-surface-3 justify-start"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <ImagePlus className="w-4 h-4 mr-2 text-gray-400" />
+                    <ImagePlus className="w-4 h-4 mr-2 text-content-secondary" />
                     <span className="truncate w-48 text-left">
                       {iconFile ? iconFile.name : "이미지 파일 선택 (최대 5MB)"}
                     </span>
@@ -164,13 +172,13 @@ export function GameSelectModal({ onGameAdded }: { onGameAdded: () => void }) {
                     onChange={handleFileChange}
                   />
                 </div>
-                <p className="text-xs text-gray-500">설정하지 않으면 시스템 기본 아이콘이 적용됩니다.</p>
+                <p className="text-xs text-content-secondary">설정하지 않으면 시스템 기본 아이콘이 적용됩니다.</p>
               </div>
 
-              {error && <p className="text-sm text-red-400">{error}</p>}
+              {error && <p className="text-sm text-danger">{error}</p>}
 
               <Button
-                className="w-full"
+                className="w-full bg-primary hover:bg-primary-hover text-white font-medium"
                 onClick={handleSubmit}
                 disabled={isLoading || !isOnline}
               >

@@ -30,6 +30,7 @@ interface ExpenseModalProps {
   onOpenChange: (open: boolean) => void
   onCompleted?: () => void
   plannedExpense?: PlannedExpenseInput | null
+  initialDate?: string
 }
 
 interface GameOption {
@@ -52,9 +53,9 @@ interface WalletInfo {
   earn_rate: number
 }
 
-const CATEGORIES = ["게임", "정기 구독", "식비/카페", "교통/이동", "생활/쇼핑", "기타"] as const
+const CATEGORIES = ["게임", "정기 구독", "식비", "교통", "생활", "기타"] as const
 const METHOD_LABELS: Record<PaymentMethod, string> = {
-  WALLET: "일반(지갑 외 결제)",
+  WALLET: "내 지갑",
   GOOGLE_PLAY: "Google Play",
   GALAXY_STORE: "Galaxy Store",
 }
@@ -66,14 +67,13 @@ function toAmount(value: string): number {
   return value.trim() === "" ? 0 : Number(value)
 }
 
-export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense = null }: ExpenseModalProps) {
+export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense = null, initialDate }: ExpenseModalProps) {
   const isOnline = useOnlineStatus()
   const { user } = useAuth()
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("게임")
   const [games, setGames] = useState<GameOption[]>([])
   const [gameId, setGameId] = useState("")
   const [schedules, setSchedules] = useState<ScheduleOption[]>([])
-  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP">("VERSION")
   const [scheduleId, setScheduleId] = useState("")
   const [wallets, setWallets] = useState<WalletInfo[]>([])
   const [title, setTitle] = useState("")
@@ -93,7 +93,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     if (!open) return
     pendingExpenseId.current = null
     setError(null)
-    setPaymentDate(getKstToday())
+    setPaymentDate(initialDate || getKstToday())
     setTitle(plannedExpense?.title ?? "")
     setOriginalPrice(plannedExpense ? String(plannedExpense.original_price) : "")
     setDiscountAmount("")
@@ -101,21 +101,26 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     setUsedPoints("")
     setPaymentMethod("WALLET")
     setDeductAsset(true)
+    setCategory("게임")
     setGameId("")
     setScheduleId("")
     setSchedules([])
-  }, [open, plannedExpense])
+  }, [open, plannedExpense, initialDate])
 
   useEffect(() => {
     if (!open || !user) return
     let cancelled = false
     void (async () => {
-      const [gameResult, walletResult] = await Promise.all([
+      const [gameResult, walletResult, userGamesResult] = await Promise.all([
         supabase.from("games").select("id, name").order("name"),
         supabase.from("store_wallets").select("platform, current_balance, earn_rate").eq("user_id", user.id),
+        supabase.from("user_games").select("game_id").eq("user_id", user.id),
       ])
       if (cancelled) return
-      setGames((gameResult.data ?? []) as GameOption[])
+      const userGameIds = new Set((userGamesResult.data ?? []).map((ug: { game_id: string }) => ug.game_id))
+      const filteredGames = (gameResult.data ?? []).filter((g: { id: string }) => userGameIds.has(g.id))
+
+      setGames(filteredGames as GameOption[])
       setWallets((walletResult.data ?? []) as WalletInfo[])
     })()
     return () => {
@@ -126,6 +131,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   useEffect(() => {
     if (!gameId) {
       setSchedules([])
+      setScheduleId("")
       return
     }
     let cancelled = false
@@ -134,13 +140,27 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
         .from("game_schedules")
         .select("id, game_id, title, schedule_type, start_date, end_date")
         .eq("game_id", gameId)
+        .eq("schedule_type", "VERSION")
         .order("start_date")
-      if (!cancelled) setSchedules((data ?? []) as ScheduleOption[])
+      if (!cancelled) {
+        const versionSchedules = (data ?? []) as ScheduleOption[]
+        setSchedules(versionSchedules)
+        if (paymentDate) {
+          const matched = versionSchedules.find(
+            (s) => s.start_date <= paymentDate && paymentDate <= s.end_date
+          )
+          if (matched) {
+            setScheduleId(matched.id)
+            const game = games.find((item) => item.id === gameId)
+            if (game && !title.trim()) setTitle(`${game.name} ${matched.title}`)
+          }
+        }
+      }
     })()
     return () => {
       cancelled = true
     }
-  }, [gameId])
+  }, [gameId, paymentDate, games, title])
 
   const input = useMemo(
     () => ({
@@ -158,7 +178,6 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   const pointWallet = wallets.find((wallet) => wallet.platform === input.pointPlatform)
   const earnWallet = wallets.find((wallet) => wallet.platform === paymentMethod)
   const estimatedEarn = estimateEarnedPoints(finalAmount, earnWallet?.earn_rate ?? 0, paymentMethod)
-  const visibleSchedules = schedules.filter((schedule) => schedule.schedule_type === scheduleType)
   const isGameCategory = category === "게임"
 
   const selectSchedule = (id: string) => {
@@ -168,14 +187,16 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     if (schedule && game && !title.trim()) setTitle(`${game.name} ${schedule.title}`)
   }
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent | React.MouseEvent, actionType: "PLAN" | "PAY" = "PAY") => {
     event.preventDefault()
     if (!user) return
     if (isOffline()) return setError(OFFLINE_WRITE_MESSAGE)
     setError(null)
 
-    const validation = validatePayment(input, getKstToday(), input.usedPoints > 0 ? (pointWallet?.current_balance ?? 0) : null)
-    if (validation) return setError(validation)
+    if (actionType === "PAY") {
+      const validation = validatePayment(input, getKstToday(), input.usedPoints > 0 ? (pointWallet?.current_balance ?? 0) : null)
+      if (validation) return setError(validation)
+    }
     if (!plannedExpense && !title.trim()) return setError("항목명을 입력해 주세요.")
 
     setIsSubmitting(true)
@@ -207,20 +228,22 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
         pendingExpenseId.current = expenseId
       }
 
-      const { error: rpcError } = await supabase.rpc("process_expense_payment", {
-        p_expense_id: expenseId,
-        p_original_price: input.originalPrice,
-        p_discount_amount: input.discountAmount,
-        p_point_discount_amount: input.pointDiscountAmount,
-        p_used_points: input.usedPoints,
-        p_point_platform: input.pointPlatform,
-        p_payment_method: paymentMethod,
-        p_deduct_asset: deductAsset,
-        p_payment_date: input.paymentDate,
-      })
-      if (rpcError) {
-        setError(`${mapPaymentError(rpcError.message, "결제를 처리하지 못했습니다.")} 입력한 내용은 예정 지출로 저장되어 다시 시도할 수 있습니다.`)
-        return
+      if (actionType === "PAY") {
+        const { error: rpcError } = await supabase.rpc("process_expense_payment", {
+          p_expense_id: expenseId,
+          p_original_price: input.originalPrice,
+          p_discount_amount: input.discountAmount,
+          p_point_discount_amount: input.pointDiscountAmount,
+          p_used_points: input.usedPoints,
+          p_point_platform: input.pointPlatform,
+          p_payment_method: paymentMethod,
+          p_deduct_asset: deductAsset,
+          p_payment_date: input.paymentDate,
+        })
+        if (rpcError) {
+          setError(`${mapPaymentError(rpcError.message, "결제를 처리하지 못했습니다.")} 입력한 내용은 예정 지출로 저장되어 다시 시도할 수 있습니다.`)
+          return
+        }
       }
       pendingExpenseId.current = null
       onCompleted?.()
@@ -245,7 +268,20 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             <>
               <div>
                 <label htmlFor="expense-category" className={labelClassName}>카테고리</label>
-                <select id="expense-category" className={selectClassName} value={category} onChange={(event) => setCategory(event.target.value as (typeof CATEGORIES)[number])}>
+                <select
+                  id="expense-category"
+                  className={selectClassName}
+                  value={category}
+                  onChange={(event) => {
+                    const newCat = event.target.value as (typeof CATEGORIES)[number]
+                    setCategory(newCat)
+                    if (newCat !== "게임") {
+                      setGameId("")
+                      setScheduleId("")
+                      setSchedules([])
+                    }
+                  }}
+                >
                   {CATEGORIES.map((item) => (
                     <option key={item} value={item}>{item}</option>
                   ))}
@@ -264,18 +300,11 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                     </select>
                   </div>
                   {gameId && (
-                    <div className="space-y-2">
-                      <div className="flex gap-2" role="group" aria-label="일정 종류">
-                        {(["VERSION", "PICKUP"] as const).map((type) => (
-                          <Button key={type} type="button" size="sm" variant={scheduleType === type ? "default" : "outline"} aria-pressed={scheduleType === type} onClick={() => { setScheduleType(type); setScheduleId("") }}>
-                            {type === "VERSION" ? "버전" : "픽업"}
-                          </Button>
-                        ))}
-                      </div>
-                      <label htmlFor="expense-schedule" className={labelClassName}>연결할 일정</label>
+                    <div>
+                      <label htmlFor="expense-schedule" className={labelClassName}>연결할 버전 일정</label>
                       <select id="expense-schedule" className={selectClassName} value={scheduleId} onChange={(event) => selectSchedule(event.target.value)}>
                         <option value="">일정 연결 안 함</option>
-                        {visibleSchedules.map((schedule) => (
+                        {schedules.map((schedule) => (
                           <option key={schedule.id} value={schedule.id}>{`${schedule.title} (${schedule.start_date} ~ ${schedule.end_date})`}</option>
                         ))}
                       </select>
@@ -323,7 +352,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             </div>
             <div>
               <label htmlFor="expense-date" className={labelClassName}>결제일</label>
-              <Input id="expense-date" type="date" value={paymentDate} max={getKstToday()} onChange={(event) => setPaymentDate(event.target.value)} className={inputClassName} />
+              <Input id="expense-date" type="date" value={paymentDate} min={plannedExpense ? getKstToday() : undefined} onChange={(event) => setPaymentDate(event.target.value)} className={inputClassName} />
             </div>
           </div>
 
@@ -350,9 +379,20 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
 
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
 
-          <Button type="submit" disabled={isSubmitting || !isOnline} className="w-full">
-            {isSubmitting ? "처리 중..." : "결제 확정"}
-          </Button>
+          {plannedExpense ? (
+            <Button type="button" disabled={isSubmitting || !isOnline} className="w-full" onClick={(e) => void handleSubmit(e, "PAY")}>
+              {isSubmitting ? "처리 중..." : "결제 확정"}
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" disabled={isSubmitting || !isOnline} className="flex-1 bg-gray-700 text-white hover:bg-gray-600 border-gray-600" onClick={(e) => void handleSubmit(e, "PLAN")}>
+                예정 지출로 등록
+              </Button>
+              <Button type="button" disabled={isSubmitting || !isOnline} className="flex-1" onClick={(e) => void handleSubmit(e, "PAY")}>
+                {isSubmitting ? "처리 중..." : "결제 확정"}
+              </Button>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

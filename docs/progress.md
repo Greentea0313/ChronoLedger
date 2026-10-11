@@ -1,5 +1,62 @@
 # 프로젝트 진행 현황
 
+## Phase 10 재정리 기획(v2) 구현 진행 현황 (2026-10-12)
+
+- **10.1 대시보드 캘린더 및 지출 바인딩 로직 개선 완료**:
+  - `HeroSidebarContent`, `MobileDrawer`: 버튼명 `+ 지출 추가`로 변경, 누락된 `schedules` prop 기본값 디스트럭처링 버그 수정.
+  - `ExpenseModal`: 카테고리 우선 선택(게임일 때만 게임 선택 노출), 해당 결제일의 `VERSION` 일정에만 단일 바인딩 (`PICKUP` 일정 바인딩 제외 및 기간 내 버전 자동 매칭), 결제일 `initialDate` 연동.
+  - `dashboard/page.tsx`: TDZ `allGamesMap` 버그 수정, `budget-calculations.ts`의 `isBudgetCounted`에서 `CONFIRMED` 복원.
+  - 검증: Vitest 26개 파일/86개 테스트 전체 통과.
+
+- [x] 10.2 소비(`/dashboard/expenses`) 화면 UI 개편 완료:
+  - 상단 헤더: `+ 지출 추가` 버튼 추가 및 `ExpenseModal` 연동.
+  - 뷰 전환 탭: `[지출 내역 및 통계 | 정기 구독]` 서브 탭 분리 구성.
+  - 통계 영역: 카테고리별 비중을 Recharts **원그래프(Pie Chart)**로 교체, 월별 소비 추이 **세로 막대그래프(Bar Chart)** 제공.
+  - 집계 기준 엄격 적용: **오직 `CONFIRMED` 지출만 집계** (`PLANNED`, `CANCELLED` 제외).
+  - 목록 영역: 데스크톱 반응형 테이블 및 모바일 카드 뷰 구현, 액션 버튼 통일(`PLANNED` -> `[확정]`, `[취소]`, `CONFIRMED` -> `[환불]`, `CANCELLED` -> `[되돌리기]`), 전용 RPC(`cancel_planned_expense`, `restore_cancelled_expense`, `refund_expense_payment`) 연동.
+  - 검증: `src/app/dashboard/expenses/page.test.tsx` 4개 테스트 추가, Vitest 27개 파일/90개 테스트 전체 통과, `npx tsc --noEmit` 통과, Next.js 정적 export (`npm run build`) 13개 페이지 빌드 성공.
+
+- **10.3 정기 구독 탭 및 3종 주기 모델(A안) 구현 완료**:
+  - DB 스키마: `md/SCHEMA.sql`에 `subscription_templates`의 `cycle_type` 컬럼 및 체크 제약(`chk_subscription_template_version_pass`) 추가, `idx_expenses_template_schedule_id` 유니크 인덱스 추가.
+  - 동기화 엔진: `src/lib/subscription-sync.ts`의 `ensureMonthlySubscriptionExpenses`에 3종 주기 모델 회차 생성 확장 (`MONTHLY_DAY` 매월 지정일 보정 생성, `INTERVAL_30` 30일 누적 충전식 회차 생성, `VERSION_PASS` 게임 새 버전 시작일 연동 생성).
+  - 구독 모달: `src/components/subscription/subscription-modal.tsx` 구현. 카테고리 우선 선택(게임일 때만 게임 선택 노출), 3종 주기 모델 선택, 생성 시 `ensureMonthlySubscriptionExpenses` 즉시 실행.
+  - 화면 UI: `src/app/dashboard/expenses/page.tsx` 내 `정기 구독` 서브 탭에 카드 그리드 렌더링, `[+ 구독 추가]` 버튼 및 모달 연동, `is_active` 활성화 토글 스위치 제공.
+  - 검증: Vitest 28개 파일/99개 테스트 통과, `npx tsc --noEmit` 통과, 정적 export 빌드 성공.
+
+- **10.4 게임 관리(`/dashboard/games`) 추가 요청 모달 개선 완료**:
+  - 모달 템플릿 개편 (`src/components/game/request-submission-modal.tsx`):
+    - 버튼명 `[+ 추가 요청]`으로 통일 및 프로젝트 디자인 시스템 토큰 적용.
+    - [게임 요청 | 일정 요청] 선택 분기:
+      - 게임 요청: '게임 제목'(`name`)만 입력하는 간결한 템플릿 제공 (`memo: null` 인입).
+      - 일정 요청: '게임 선택'(`gameId`) $\to$ 기간 설정(`startDate` ~ `endDate`) $\to$ 일정 종류(`VERSION` / `PICKUP`) $\to$ 일정 제목(`title`) 및 내용/메모(`scheduleMemo`) 입력 템플릿 제공.
+  - 카탈로그 등록 모달 (`src/components/game/game-select-modal.tsx`):
+    - `[+ 구독 추가]` 트리거 버튼 연동 및 디자인 토큰 적용.
+  - 화면 UI 전면 개편 (`src/app/dashboard/games/page.tsx`):
+    - 상단 헤더: `+ 구독 추가`, `+ 추가 요청` 액션 버튼 배치.
+    - 내 구독 게임 섹션: 반응형 그리드 카드, 게임 커스텀 아이콘 표시, `[일정 보기]`(공식 일정 시트), `[아이콘 변경]`(256×256 WebP Canvas 자동 변환 및 Storage 업로드), `[구독 해제]`(지출 내역 보존 안내 및 `user_games` 삭제) 제공.
+    - 하단 액션 카드: "원하는 게임이나 일정이 없으신가요?" 안내와 함께 `[+ 구독 추가]`, `[+ 추가 요청]` 버튼 제공.
+  - 검증: `src/app/dashboard/games/page.test.tsx` 4개 테스트 추가, `src/components/game/request-submission-modal.test.tsx` 5개 테스트 통과, Vitest 29개 파일/103개 테스트 전체 통과, `npx tsc --noEmit` 통과, Next.js 정적 export (`npm run build`) 13개 페이지 빌드 성공.
+
+- **10.5 설정(`/dashboard/settings`) Galaxy Store 등급 개편, 재무 설정 및 내 요청 내역 조회 완료**:
+  - Galaxy Store 4대 공식 등급 반영:
+    - 계산 모듈: `src/lib/payment-calculations.ts`에 `GALAXY_TIER_RATES`, `GalaxyTier`, `GALAXY_TIER_LABELS` (일반 0.1%, 스타 0.1%, 프레스티지 1.1%, 로열블루 2.1%) 추가.
+    - DB 스키마: `md/SCHEMA.sql`의 `chk_wallet_platform_settings` 및 `update_store_wallet_settings` RPC에 4대 등급 동기화 (기존 레코드 `user_tier IS NULL` 마이그레이션 호환 보장).
+    - UI: `src/components/wallet/store-wallet-widget.tsx` Galaxy Store 적립률 수동 입력을 공식 등급 선택 드롭다운으로 개편 및 디자인 시스템 토큰 적용.
+  - 개인 재무 설정 카드 신규 구현 (`src/components/finance/finance-settings-card.tsx`):
+    - 총 자산(`total_asset`) 및 기본 월 예산(`default_budget`) 조회/수정 기능 제공.
+    - `set_user_finance_settings` RPC 및 오프라인 방어 가드 연동.
+  - 내 요청 내역 조회 카드 신규 구현 (`src/components/game/user-requests-card.tsx`):
+    - 사용자가 제출한 게임 요청(`game_requests`) 및 일정 요청(`schedule_requests`) 상태(`PENDING`, `APPROVED`, `REJECTED`) 조회.
+    - 전체 / 게임 / 일정 필터 탭 제공 및 관리자 피드백 메모(`admin_memo`) 표시.
+  - 설정 페이지 레이아웃 통합 (`src/app/dashboard/settings/page.tsx`):
+    - 프로필 사진/닉네임 $\to$ 개인 재무 설정 $\to$ 스토어 지갑 관리 $\to$ 내 요청 내역 $\to$ 계정 삭제 순서로 깔끔하게 배치.
+  - 검증: `src/app/dashboard/settings/page.test.tsx` 3개 테스트 추가, `src/components/wallet/store-wallet-widget.test.tsx` 3개 테스트 통과.
+
+- **10.6 종합 검증 및 회귀 테스트 완료**:
+  - TypeScript 전체 검사: `npx tsc --noEmit` 무결점 통과 (오류 0건).
+  - 단위 및 통합 테스트: `npm run test -- --run` Vitest 30개 파일 / 106개 테스트 100% 통과 (PASS).
+  - Next.js 프로덕션 빌드: `npm run build` 정적 export 13개 페이지(루트, 인증, 대시보드, 지출, 게임, 설정, 관리자 등) 최적화 산출물 성공 생성.
+
 ## Phase 9 Iteration 01 (2026-10-09)
 
 - 상단바 재구성 및 UI 미세 조정 구현(UI만, 가계부·일정 탭 페이지 로직은 미구현). 검증: tsc, Vitest 24 파일/79 테스트, lint, dummy env build 통과. 실브라우저 시각 확인은 미검증.
