@@ -95,7 +95,7 @@ export default function AdminPage() {
 
   const openAddModal = () => {
     setEditingScheduleId(null)
-    setGameId(games.length > 0 ? games[0].id : "")
+    setGameId(selectedGameFilter || "")
     setScheduleType("VERSION")
     setIsSingleDate(false)
     setTitle("")

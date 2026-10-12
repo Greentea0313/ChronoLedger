@@ -120,6 +120,9 @@ describe("AdminPage - 일정 관리", () => {
     expect(screen.getByRole("heading", { name: "새 일정 등록" })).toBeTruthy()
 
     // 폼 입력
+    fireEvent.change(screen.getByLabelText(/게임 선택/), {
+      target: { value: "game-1" },
+    })
     fireEvent.change(screen.getByPlaceholderText("일정 제목을 입력하세요"), {
       target: { value: "5.1 신규 버전" },
     })
