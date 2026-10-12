@@ -73,4 +73,45 @@ describe("HeroSidebarContent", () => {
     expect(screen.getByText("2026-10-15 ~ 2026-11-04")).toBeTruthy()
     expect(screen.getByText("사")).toBeTruthy()
   })
+
+  const renderWith = (schedules: HeroScheduleItem[]) =>
+    render(
+      <HeroSidebarContent
+        selectedDateLabel="2026-10-14"
+        totalAsset={0}
+        budgetAmount={0}
+        expectedExpense={0}
+        wallets={[]}
+        schedules={schedules}
+        expenses={[]}
+        memos={[]}
+      />,
+    )
+
+  it("groups schedules with the same game, type and period into one card", () => {
+    renderWith([
+      { id: "a", title: "켈시", schedule_type: "PICKUP", start_date: "2026-10-14", end_date: "2026-10-28", gameId: "g1", gameName: "명일방주", memo: "한정" },
+      { id: "b", title: "클로저", schedule_type: "PICKUP", start_date: "2026-10-14", end_date: "2026-10-28", gameId: "g1", gameName: "명일방주" },
+    ])
+
+    expect(screen.getAllByText("명일방주")).toHaveLength(1)
+    expect(screen.getAllByText("2026-10-14 ~ 2026-10-28")).toHaveLength(1)
+    expect(screen.getByText("• 켈시")).toBeTruthy()
+    expect(screen.getByText("• 클로저")).toBeTruthy()
+    expect(screen.getByText("한정")).toBeTruthy()
+  })
+
+  it("keeps separate cards when the period, type or game differs", () => {
+    renderWith([
+      { id: "a", title: "켈시", schedule_type: "PICKUP", start_date: "2026-10-14", end_date: "2026-10-28", gameId: "g1", gameName: "명일방주" },
+      { id: "b", title: "클로저", schedule_type: "PICKUP", start_date: "2026-10-14", end_date: "2026-11-04", gameId: "g1", gameName: "명일방주" },
+      { id: "c", title: "이벤트", schedule_type: "CONTENTS", start_date: "2026-10-14", end_date: "2026-10-28", gameId: "g1", gameName: "명일방주" },
+      { id: "d", title: "싱클레어", schedule_type: "PICKUP", start_date: "2026-10-14", end_date: "2026-10-28", gameId: "g2", gameName: "림버스 컴퍼니" },
+    ])
+
+    expect(screen.getAllByText("명일방주")).toHaveLength(3)
+    expect(screen.getByText("켈시")).toBeTruthy()
+    expect(screen.getByText("클로저")).toBeTruthy()
+    expect(screen.queryByText(/^• /)).toBeNull()
+  })
 })

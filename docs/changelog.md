@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-12 (Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계 파이프라인 등록)
+
+- **파이프라인 등록**: 픽업별 지출 추적 및 소비 통계 분석 요구사항을 Phase 11.4로 신규 등록(`docs/to-do.md`, `docs/progress.md`, `docs/handoff.md`).
+- **테스트 및 빌드 무결성 보완**: `src/app/dashboard/games/page.test.tsx` MockQuery 타입 선언을 개선하여 `tsc --noEmit` 에러(TS18046) 및 Next.js ESLint 빌드 에러를 해결. (123개 테스트 100% 통과, 정적 export 13개 페이지 빌드 성공).
+
+## 2026-10-12 (Phase 11.2 사이드바 동일 게임·기간 일정 그룹핑)
+
+- **일정 등록 원칙 변경**: 같은 날 같은 게임의 픽업이 여러 개면 `'/'`로 합치지 않고 캐릭터(배너)별로 개별 등록. 지출(`expenses.schedule_id`)과 1:1 연결 가능.
+- **`src/components/calendar/hero-sidebar.tsx`**: 같은 `gameId`(없으면 게임명) + `schedule_type` + `start_date` + `end_date` 일정을 하나의 카드로 묶고, 제목(+개별 메모)을 `• 제목` 목록으로 표시. 기간·유형·게임이 다르면 카드 분리 유지.
+- **`src/app/dashboard/page.tsx`**: `HeroScheduleItem`에 `gameId` 전달.
+- **테스트**: `hero-sidebar.test.tsx`에 그룹핑/분리 케이스 2건 추가.
+- **관리자 일정 복사 (`src/app/admin/page.tsx`)**: 공식 일정 항목 버튼을 `[복사] [수정] [삭제]` 순서로 배치. `[복사]`는 원본 값(게임·유형·기간·제목·메모)이 채워진 "일정 복사" 모달을 열고 저장 시 새 일정으로 insert. `page.test.tsx`에 버튼 순서/복사 저장 테스트 2건 추가.
+
 ## 2026-10-12 (Phase 10.7 페이지별 UI 및 인터랙션 긴급 개선)
 
 - **Alt+Tab / 창 포커스 전환 시 화면 리셋 및 모달 닫힘 현상 해결**:

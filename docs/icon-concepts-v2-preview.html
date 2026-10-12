@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChronoLedger 아이콘 신규 시안 3종 (v2)</title>
+<style>
+*{box-sizing:border-box}body{font-family:'Malgun Gothic',system-ui,sans-serif;background:#0F1115;color:#F5F7FA;margin:0;padding:32px}
+h1{font-size:22px;margin:0 0 8px}p.sub{color:#B3BBC8;font-size:14px;margin:0 0 8px;max-width:1100px;line-height:1.7}
+p.sub code{color:#7C8CFF;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;margin-top:20px}
+.card{background:#171A21;border:1px solid #2A2F3A;border-radius:16px;padding:24px;text-align:center}
+.card h2{font-size:17px;margin:0 0 4px}.card .desc{font-size:13px;color:#B3BBC8;margin:0 0 16px;min-height:44px;line-height:1.6}
+.big{width:180px;height:180px;margin:0 auto 16px;display:block;border-radius:40px;box-shadow:0 8px 28px rgba(0,0,0,.4)}
+.sizes{display:flex;align-items:flex-end;justify-content:center;gap:14px;margin:12px 0;padding:12px;background:#0F1115;border-radius:12px}
+.sizes div{text-align:center;font-size:11px;color:#A0A9B8}.sizes svg{display:block;margin:0 auto 4px;border-radius:6px}
+.row-light{background:#F5F7FA;border-radius:12px;padding:12px;margin-top:12px}
+.row-light svg{border-radius:12px}
+code{font-size:11px;color:#7C8CFF;word-break:break-all}
+.token{font-size:12px;color:#A0A9B8;margin-top:12px;text-align:left;background:#0F1115;padding:10px 12px;border-radius:10px;line-height:1.8}
+.token b{color:#F5F7FA}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;margin-bottom:8px}
+.b-rec{background:#4CD6A5;color:#101426}.b-sub{background:#2A2F3A;color:#B3BBC8}
+.foot{margin-top:24px;color:#B3BBC8;font-size:13px;line-height:1.8;max-width:1100px}
+</style>
+</head>
+<body>
+<h1>ChronoLedger 아이콘 신규 시안 3종 (v2)</h1>
+<p class="sub">파일: <code>docs/icon-concepts-v2-preview.html</code> — 브라우저로 직접 연 파일입니다.<br>
+기준 문서: <code>md/SRS.md</code>(FR-020 타일 정보 제한, FR-022 예산 80%/100% 경고, FR-071 메모 1도트),
+<code>md/revisions_and_decisions.md</code>(통합 관리·Simplicity First),
+<code>md/ChronoLedger_UI_Design_Sheet.md</code> §3 디자인 토큰(다크 <code>#0F1115/#171A21</code>, primary <code>#7C8CFF/#5365D4</code>,
+info <code>#65A9FF</code> · success <code>#4CD6A5</code> · warning <code>#F5B942</code> · danger <code>#FF7478</code>).
+현행 임시 아이콘(<code>public/icons/</code>, C-Clock)은 small-size 가독성은 좋으나 가계부 속성이 약하고 토큰과 어긋나 있어(#FACC15/#60A5FA),
+<strong>수정 방향(시안 1) + 신규 2종(시안 2·3)</strong>으로 뽑았습니다. 전 시안 마스커블 80% 안전영역 준수, 축소 테스트(48/32/16px) 및 라이트 배경 테스트 포함.
+&lt;svg <code>&lt;text&gt;</code> 미사용(폰트 의존 제거) · 최소 굵기 512기준 16px 이상.</p>
+
+<div class="grid">
+
+<!-- ============ 시안 1 ============ -->
+<div class="card">
+<div class="badge b-rec">추천 · 계승 정제형</div>
+<h2>시안 1 — C-Chrono + 메모 도트</h2>
+<p class="desc">임시 아이콘 수정 방향. Chrono의 C + 시곗바늘은 유지하고, C가 열린 틈에 <b>메모 1도트</b>를 배치해 캘린더 타일 언어(아이콘+도트)를 담았습니다.</p>
+<svg class="big" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#2A2F3A" stroke-width="8"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="414" cy="256" r="20" fill="#4CD6A5"/></svg>
+<div class="sizes">
+<div><svg width="48" height="48" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="414" cy="256" r="20" fill="#4CD6A5"/></svg>48px</div>
+<div><svg width="32" height="32" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="414" cy="256" r="20" fill="#4CD6A5"/></svg>32px</div>
+<div><svg width="16" height="16" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="414" cy="256" r="20" fill="#4CD6A5"/></svg>16px</div>
+</div>
+<div class="row-light"><svg width="96" height="96" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="414" cy="256" r="20" fill="#4CD6A5"/></svg></div>
+<div class="token"><b>기획 연결:</b> 시간(Chrono) 정체성 유지 + FR-071 메모 도트 인용. 요소 4개로 Simplicity First 준수.<br><b>토큰:</b> 바탕 <code>#0F1115</code> / C <code>#F5B942</code>(warning) / 바늘 <code>#7C8CFF</code>(primary dark) / 도트 <code>#4CD6A5</code>(success)<br><b>장점:</b> 기존 연속성 · 16px·파비콘·작업표시줄 가독성 최상 · 다크/라이트 배경 모두 안정<br><b>단점:</b> 가계부·예산 속성은 여전히 은유적</div>
+</div>
+
+<!-- ============ 시안 2 ============ -->
+<div class="card">
+<div class="badge b-sub">본질 직관형</div>
+<h2>시안 2 — 캘린더 + ₩ 코인</h2>
+<p class="desc">완전 신규. 월간 캘린더(VERSION/PICKUP 배너바 2개)에 골드 ₩ 코인을 겹쳐 <b>일정-지출 연결</b>이라는 제품 본질(SRS §1)을 직접 표현. ₩는 폰트가 아닌 벡터 스트로크로 그려 축소·기종 의존성 제거.</p>
+<svg class="big" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#2A2F3A" stroke-width="8"/><rect x="92" y="116" width="276" height="240" rx="28" fill="#FFFFFF"/><rect x="92" y="116" width="276" height="72" rx="28" fill="#5365D4"/><rect x="92" y="156" width="276" height="32" fill="#5365D4"/><circle cx="150" cy="152" r="11" fill="#FFFFFF"/><circle cx="196" cy="152" r="11" fill="#FFFFFF"/><rect x="118" y="210" width="140" height="34" rx="17" fill="#65A9FF"/><rect x="118" y="256" width="100" height="34" rx="17" fill="#4CD6A5"/><circle cx="348" cy="344" r="96" fill="#F5B942" stroke="#171A21" stroke-width="20"/><line x1="306" y1="310" x2="390" y2="310" stroke="#171A21" stroke-width="16" stroke-linecap="round"/><polyline points="310,310 329,372 348,326 367,372 386,310" fill="none" stroke="#171A21" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<div class="sizes">
+<div><svg width="48" height="48" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="92" y="116" width="276" height="240" rx="28" fill="#FFFFFF"/><rect x="92" y="116" width="276" height="72" rx="28" fill="#5365D4"/><rect x="92" y="156" width="276" height="32" fill="#5365D4"/><rect x="118" y="210" width="140" height="34" rx="17" fill="#65A9FF"/><rect x="118" y="256" width="100" height="34" rx="17" fill="#4CD6A5"/><circle cx="348" cy="344" r="96" fill="#F5B942" stroke="#171A21" stroke-width="20"/><line x1="306" y1="310" x2="390" y2="310" stroke="#171A21" stroke-width="16" stroke-linecap="round"/><polyline points="310,310 329,372 348,326 367,372 386,310" fill="none" stroke="#171A21" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>48px</div>
+<div><svg width="32" height="32" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="92" y="116" width="276" height="240" rx="28" fill="#FFFFFF"/><rect x="92" y="116" width="276" height="72" rx="28" fill="#5365D4"/><rect x="92" y="156" width="276" height="32" fill="#5365D4"/><rect x="118" y="210" width="140" height="34" rx="17" fill="#65A9FF"/><rect x="118" y="256" width="100" height="34" rx="17" fill="#4CD6A5"/><circle cx="348" cy="344" r="96" fill="#F5B942" stroke="#171A21" stroke-width="20"/><line x1="306" y1="310" x2="390" y2="310" stroke="#171A21" stroke-width="16" stroke-linecap="round"/><polyline points="310,310 329,372 348,326 367,372 386,310" fill="none" stroke="#171A21" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>32px</div>
+<div><svg width="16" height="16" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="92" y="116" width="276" height="240" rx="28" fill="#FFFFFF"/><rect x="92" y="116" width="276" height="72" rx="28" fill="#5365D4"/><rect x="92" y="156" width="276" height="32" fill="#5365D4"/><circle cx="348" cy="344" r="96" fill="#F5B942" stroke="#171A21" stroke-width="20"/></svg>16px</div>
+</div>
+<div class="row-light"><svg width="96" height="96" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="92" y="116" width="276" height="240" rx="28" fill="#FFFFFF"/><rect x="92" y="116" width="276" height="72" rx="28" fill="#5365D4"/><rect x="92" y="156" width="276" height="32" fill="#5365D4"/><rect x="118" y="210" width="140" height="34" rx="17" fill="#65A9FF"/><rect x="118" y="256" width="100" height="34" rx="17" fill="#4CD6A5"/><circle cx="348" cy="344" r="96" fill="#F5B942" stroke="#171A21" stroke-width="20"/><line x1="306" y1="310" x2="390" y2="310" stroke="#171A21" stroke-width="16" stroke-linecap="round"/><polyline points="310,310 329,372 348,326 367,372 386,310" fill="none" stroke="#171A21" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<div class="token"><b>기획 연결:</b> Calendar-first(시트 §1.1) + FR-010 VERSION/PICKUP 2종(배너 2색) + 정수 KRW(SRS §3).<br><b>토큰:</b> 바탕 <code>#171A21</code> / 헤더 <code>#5365D4</code>(primary light) / 배너 <code>#65A9FF</code>·<code>#4CD6A5</code> / 코인 <code>#F5B942</code><br><b>장점:</b> 첫인상에서 하는 일이 보임 · 스토어·공유 썸네일용 존재감<br><b>단점:</b> 16px에서 ₩ 획 뭉개짐(코인 실루엣으로 커버) · 요소 수 최다</div>
+</div>
+
+<!-- ============ 시안 3 ============ -->
+<div class="card">
+<div class="badge b-sub">차별화형</div>
+<h2>시안 3 — 원장 + 예산 게이지</h2>
+<p class="desc">완전 신규. 펼친 원장 위에 일정 배너 2개와 <b>예산 게이지(82% 주의·100% 초과 위험)</b>를 배치해 히어로 사이드바의 예산 게이지(FR-022)를 아이콘에 새겼습니다. 앱 서랍에서 가장 눈에 띕니다.</p>
+<svg class="big" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#4052C0" stroke-width="8"/><rect x="124" y="100" width="264" height="312" rx="26" fill="#FFFFFF"/><line x1="256" y1="100" x2="256" y2="412" stroke="#D8DDE7" stroke-width="8"/><rect x="148" y="136" width="150" height="36" rx="18" fill="#5365D4"/><rect x="148" y="184" width="110" height="36" rx="18" fill="#4CD6A5"/><rect x="148" y="244" width="216" height="26" rx="13" fill="#F0F2F6"/><rect x="148" y="244" width="178" height="26" rx="13" fill="#F5B942"/><rect x="148" y="282" width="216" height="26" rx="13" fill="#F0F2F6"/><rect x="148" y="282" width="216" height="26" rx="13" fill="#FF7478"/><rect x="148" y="330" width="120" height="16" rx="8" fill="#D8DDE7"/></svg>
+<div class="sizes">
+<div><svg width="48" height="48" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="124" y="100" width="264" height="312" rx="26" fill="#FFFFFF"/><rect x="148" y="136" width="150" height="36" rx="18" fill="#5365D4"/><rect x="148" y="184" width="110" height="36" rx="18" fill="#4CD6A5"/><rect x="148" y="244" width="216" height="26" rx="13" fill="#F0F2F6"/><rect x="148" y="244" width="178" height="26" rx="13" fill="#F5B942"/><rect x="148" y="282" width="216" height="26" rx="13" fill="#FF7478"/></svg>48px</div>
+<div><svg width="32" height="32" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="124" y="100" width="264" height="312" rx="26" fill="#FFFFFF"/><rect x="148" y="136" width="150" height="36" rx="18" fill="#5365D4"/><rect x="148" y="184" width="110" height="36" rx="18" fill="#4CD6A5"/><rect x="148" y="244" width="216" height="26" rx="13" fill="#F0F2F6"/><rect x="148" y="244" width="178" height="26" rx="13" fill="#F5B942"/><rect x="148" y="282" width="216" height="26" rx="13" fill="#FF7478"/></svg>32px</div>
+<div><svg width="16" height="16" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="124" y="100" width="264" height="312" rx="26" fill="#FFFFFF"/><rect x="148" y="136" width="150" height="36" rx="18" fill="#5365D4"/><rect x="148" y="244" width="216" height="26" rx="13" fill="#F0F2F6"/><rect x="148" y="244" width="178" height="26" rx="13" fill="#F5B942"/></svg>16px</div>
+</div>
+<div class="row-light"><svg width="96" height="96" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="124" y="100" width="264" height="312" rx="26" fill="#FFFFFF"/><rect x="148" y="136" width="150" height="36" rx="18" fill="#5365D4"/><rect x="148" y="184" width="110" height="36" rx="18" fill="#4CD6A5"/><rect x="148" y="244" width="216" height="26" rx="13" fill="#F0F2F6"/><rect x="148" y="244" width="178" height="26" rx="13" fill="#F5B942"/><rect x="148" y="282" width="216" height="26" rx="13" fill="#FF7478"/></svg></div>
+<div class="token"><b>기획 연결:</b> Ledger(원장) 정체성 + FR-022 주의 82%·위험 100% 게이지 + 상태색만으로 전달 금지(시트 §6 → 바+페이지 구조로 보조).<br><b>토큰:</b> 바탕 <code>#5365D4</code>(primary light) / 페이지 <code>#FFFFFF</code> / 게이지 <code>#F5B942</code>·<code>#FF7478</code> / 트랙 <code>#F0F2F6</code><br><b>장점:</b> 가계부·예산 앱으로 즉시 읽힘 · 컬러 배경이라 런처에서 식별성 최고<br><b>단점:</b> 게임·시간 속성이 약함 · 다크 테마 앱 목록에서 상대적으로 튐</div>
+</div>
+
+</div>
+<div class="foot">
+<b>총평:</b> 파비콘·작업표시줄·마스크블 대응과 기존 연속성을 중시하면 <b>시안 1</b>이 무난합니다.
+제품의 "일정+지출" 본질을 아이콘에서 말하게 하려면 <b>시안 2</b>, 예산·원장 이미지를 앞세워 스토어/PWA 설치 화면에서 눈에 띄게 하려면 <b>시안 3</b>입니다.
+어느 안을 고르든 다음 단계는 동일합니다: 선택안으로 <code>scripts/generate_icons.py</code>를 확장해
+<code>public/icons/icon-{512,192,180,maskable-512}.png</code> 4종을 재생성하고 <code>public/manifest.json</code>·애플터치 연결을 검증합니다.
+(참고: <code>docs/icon-drafts-preview.html</code>은 Phase 10 당시 구 시안 보관용으로 유지했습니다.)
+</div>
+</body>
+</html>

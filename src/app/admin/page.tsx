@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Plus, Pencil, Trash2, Calendar, Filter, Loader2, AlertCircle } from "lucide-react"
+import { Plus, Pencil, Trash2, Copy, Calendar, Filter, Loader2, AlertCircle } from "lucide-react"
 
 interface GameOption {
   id: string
@@ -40,6 +40,7 @@ export default function AdminPage() {
   // 모달 상태 (추가 및 수정 공용)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null)
+  const [isDuplicating, setIsDuplicating] = useState(false)
   const [gameId, setGameId] = useState("")
   const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS">("VERSION")
   const [isSingleDate, setIsSingleDate] = useState(false)
@@ -95,6 +96,7 @@ export default function AdminPage() {
 
   const openAddModal = () => {
     setEditingScheduleId(null)
+    setIsDuplicating(false)
     setGameId(selectedGameFilter || "")
     setScheduleType("VERSION")
     setIsSingleDate(false)
@@ -106,8 +108,24 @@ export default function AdminPage() {
     setIsModalOpen(true)
   }
 
+  // 기존 일정 값을 그대로 채운 상태로 '새 일정' 모달을 연다 (저장 시 insert)
+  const openDuplicateModal = (schedule: ScheduleItem) => {
+    setEditingScheduleId(null)
+    setIsDuplicating(true)
+    setGameId(schedule.game_id)
+    setScheduleType(schedule.schedule_type)
+    setIsSingleDate(schedule.start_date === schedule.end_date)
+    setTitle(schedule.title)
+    setStartDate(schedule.start_date)
+    setEndDate(schedule.end_date)
+    setMemo(schedule.memo || "")
+    setFormError(null)
+    setIsModalOpen(true)
+  }
+
   const openEditModal = (schedule: ScheduleItem) => {
     setEditingScheduleId(schedule.id)
+    setIsDuplicating(false)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
     setIsSingleDate(schedule.start_date === schedule.end_date)
@@ -321,6 +339,16 @@ export default function AdminPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => openDuplicateModal(schedule)}
+                        className="h-8 px-2.5 text-xs flex items-center gap-1"
+                        aria-label={`일정 복사: ${schedule.title}`}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        복사
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => openEditModal(schedule)}
                         className="h-8 px-2.5 text-xs flex items-center gap-1"
                         aria-label={`일정 수정: ${schedule.title}`}
@@ -352,7 +380,7 @@ export default function AdminPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingScheduleId ? "일정 수정" : "새 일정 등록"}
+              {editingScheduleId ? "일정 수정" : isDuplicating ? "일정 복사" : "새 일정 등록"}
             </DialogTitle>
           </DialogHeader>
 

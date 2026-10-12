@@ -1,5 +1,32 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계 파이프라인 등록 (2026-10-12)
+
+- **결정 및 배경**:
+  - 지출 항목이 `VERSION` 일정에만 바인딩되어 특정 픽업/가챠별 지출 추적이 불가능했던 한계를 극복하기 위해 사용자 요구사항을 반영.
+  - `expenses.pickup_schedule_id UUID NULL REFERENCES public.game_schedules(id)` 컬럼을 신설하여 버전(거시적 일정)과 픽업(미시적 가챠 대상)을 동시에 바인딩하는 구조 확정.
+  - 소비 화면(`/dashboard/expenses`)에 픽업별 누적 과금 막대 차트 및 버전 내 픽업 과금 비중(%)을 제공하는 Phase 11.4 파이프라인을 정식 등록함.
+- **수행 내역**:
+  - `docs/to-do.md`, `docs/progress.md`, `docs/handoff.md`, `docs/changelog.md`에 Phase 11.4 파이프라인 및 세부 구현 명세 등록.
+  - `src/app/dashboard/games/page.test.tsx` 내 `createQuery`의 MockQuery 타이핑을 구체화하여 `tsc --noEmit` 에러(0건) 및 Next.js ESLint 빌드 에러 완전 해결.
+- **검증 증거**:
+  - `npx tsc --noEmit`: 오류 0건 (Clean).
+  - `npx vitest run`: 32개 테스트 파일 / 123개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 13개 페이지 export 빌드 성공.
+- **다음 구현 순서**:
+  1. Phase 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현
+  2. Phase 11.3 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동
+  3. Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계 구현 (DB 컬럼 신설, 모달 드롭다운, 소비 차트)
+  4. Phase 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트
+
+## Phase 11.2 사이드바 동일 게임·기간 일정 그룹핑 (2026-10-12)
+
+- **결정/이유**: 동시 픽업을 `'/'`로 한 일정에 합치면 특정 캐릭터 지출 연결·종료일 차이 표현이 불가. → DB는 캐릭터별 개별 등록, 사이드바 카드 비대화는 UI 그룹핑으로 해결.
+- **구현**: `hero-sidebar.tsx`에서 정렬 후 `gameId|schedule_type|start_date|end_date` 키로 그룹핑(첫 등장 순서 유지). 2개 이상이면 `• 제목` 목록 + 제목별 메모, 1개면 기존 3단 카드 그대로. 캘린더 타일은 원래 게임/유형별 1개만 표시하므로 변경 없음.
+- **검증**: `npx vitest run src/components/calendar src/app/dashboard/page.test.tsx` 10/10 통과. `games/page.test.tsx` 타입 수정으로 `tsc --noEmit` 0 에러 달성.
+- **관리자 일정 복사**: `admin/page.tsx`에 `[복사] [수정] [삭제]` 버튼 배치. 복사는 `openDuplicateModal`이 원본 값을 채우고 `editingScheduleId=null`로 두어 기존 insert 경로를 재사용(`isDuplicating`은 모달 제목 표시용). `vitest run src/app/admin` 10/10 통과.
+- **남은 작업**: 기존 `'/'` 형식 공용 일정 데이터는 관리자 화면에서 `[복사]`를 이용해 개별 일정으로 분리 필요(수동).
+
 ## Phase 11.1 게임 일정 다변화, 일정 모달 전환 및 대시보드/사이드바 3단 UI·정렬 일원화 완료 (2026-10-12)
 
 - **작업 개요**:

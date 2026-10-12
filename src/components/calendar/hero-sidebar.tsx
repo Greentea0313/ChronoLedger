@@ -32,9 +32,20 @@ export interface HeroScheduleItem {
   schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
   start_date: string
   end_date: string
+  gameId?: string | null
   gameName?: string | null
   iconUrl?: string
   memo?: string | null
+}
+
+interface HeroScheduleGroup {
+  key: string
+  schedule_type: HeroScheduleItem["schedule_type"]
+  start_date: string
+  end_date: string
+  gameName?: string | null
+  iconUrl?: string
+  items: HeroScheduleItem[]
 }
 
 export interface HeroSidebarProps {
@@ -99,6 +110,27 @@ export function HeroSidebarContent({
       return a.end_date.localeCompare(b.end_date)
     })
 
+  // 같은 게임 + 같은 유형 + 같은 기간의 일정은 하나의 카드로 묶어서 표시 (정렬 순서 유지)
+  const scheduleGroups = filteredSchedules.reduce<HeroScheduleGroup[]>((groups, s) => {
+    const gameKey = s.gameId ?? s.gameName ?? ""
+    const key = `${gameKey}|${s.schedule_type}|${s.start_date}|${s.end_date}`
+    const existing = groups.find((g) => g.key === key)
+    if (existing) {
+      existing.items.push(s)
+    } else {
+      groups.push({
+        key,
+        schedule_type: s.schedule_type,
+        start_date: s.start_date,
+        end_date: s.end_date,
+        gameName: s.gameName,
+        iconUrl: s.iconUrl,
+        items: [s],
+      })
+    }
+    return groups
+  }, [])
+
   const handleSave = async () => {
     if (!onSaveMemo) return
     setIsSavingMemo(true)
@@ -159,20 +191,21 @@ export function HeroSidebarContent({
             {filteredSchedules.length === 0 ? (
               <EmptyState message="해당 일자의 일정이 없습니다." />
             ) : (
-              filteredSchedules.map((schedule) => {
-                const isVersion = schedule.schedule_type === "VERSION"
-                const isPickup = schedule.schedule_type === "PICKUP"
-                const isSingle = schedule.start_date === schedule.end_date
+              scheduleGroups.map((group) => {
+                const isVersion = group.schedule_type === "VERSION"
+                const isPickup = group.schedule_type === "PICKUP"
+                const isSingle = group.start_date === group.end_date
+                const isGrouped = group.items.length > 1
                 return (
                   <div
-                    key={schedule.id}
+                    key={group.key}
                     className="relative overflow-hidden rounded-md border border-line bg-surface-2 p-3 text-sm flex flex-col gap-1 transition-colors hover:border-line-control"
                   >
-                    {schedule.iconUrl && (
+                    {group.iconUrl && (
                       <div
                         className="absolute right-0 top-0 bottom-0 w-28 bg-no-repeat bg-right bg-cover z-0 pointer-events-none"
                         style={{
-                          backgroundImage: `url(${schedule.iconUrl})`,
+                          backgroundImage: `url(${group.iconUrl})`,
                           maskImage: "linear-gradient(to right, transparent, black)",
                           WebkitMaskImage: "linear-gradient(to right, transparent, black)",
                           opacity: 0.25,
@@ -193,25 +226,42 @@ export function HeroSidebarContent({
                         {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
                       </span>
                       <span className="text-xs font-semibold text-content">
-                        {schedule.gameName ?? "게임"}
+                        {group.gameName ?? "게임"}
                       </span>
                     </div>
 
                     {/* Line 2: 2026-10-14 ~ 2026-10-28 */}
                     <div className="relative z-10 text-xs text-content-muted">
-                      {isSingle ? `${schedule.start_date} (단일)` : `${schedule.start_date} ~ ${schedule.end_date}`}
+                      {isSingle ? `${group.start_date} (단일)` : `${group.start_date} ~ ${group.end_date}`}
                     </div>
 
-                    {/* Line 3: 켈시 에스페란타/클로저 (Title) */}
-                    <div className="relative z-10 font-bold text-sm text-content leading-snug">
-                      {schedule.title}
-                    </div>
+                    {/* Line 3: 켈시 에스페란타/클로저 (Title) — 묶인 일정은 목록으로 표시 */}
+                    {isGrouped ? (
+                      <ul className="relative z-10 flex flex-col gap-0.5">
+                        {group.items.map((item) => (
+                          <li key={item.id} className="leading-snug">
+                            <div className="font-bold text-sm text-content">{`• ${item.title}`}</div>
+                            {item.memo && (
+                              <p className="pl-3 text-[11px] text-content-secondary whitespace-pre-wrap">
+                                {item.memo}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <>
+                        <div className="relative z-10 font-bold text-sm text-content leading-snug">
+                          {group.items[0].title}
+                        </div>
 
-                    {/* Line 4: 메모 (있는 경우) */}
-                    {schedule.memo && (
-                      <p className="relative z-10 text-[11px] text-content-secondary mt-0.5 whitespace-pre-wrap">
-                        {schedule.memo}
-                      </p>
+                        {/* Line 4: 메모 (있는 경우) */}
+                        {group.items[0].memo && (
+                          <p className="relative z-10 text-[11px] text-content-secondary mt-0.5 whitespace-pre-wrap">
+                            {group.items[0].memo}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 )

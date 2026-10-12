@@ -148,6 +148,43 @@ describe("AdminPage - 일정 관리", () => {
     })
   })
 
+  it("일정 항목의 버튼이 [복사] [수정] [삭제] 순서로 배치된다", async () => {
+    render(<AdminPage />)
+    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+
+    const copyBtn = screen.getByRole("button", { name: "일정 복사: 5.0 버전 업데이트" })
+    const actionLabels = Array.from(copyBtn.parentElement!.querySelectorAll("button")).map((b) => b.textContent?.trim())
+    expect(actionLabels).toEqual(["복사", "수정", "삭제"])
+  })
+
+  it("복사 버튼은 기존 값이 채워진 모달을 열고 새 일정으로 저장한다", async () => {
+    schedulesBuilder.insert.mockResolvedValue({ error: null })
+
+    render(<AdminPage />)
+    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("button", { name: "일정 복사: 아케론 복각" }))
+    expect(screen.getByRole("heading", { name: "일정 복사" })).toBeTruthy()
+
+    const titleInput = screen.getByPlaceholderText("일정 제목을 입력하세요") as HTMLInputElement
+    expect(titleInput.value).toBe("아케론 복각")
+    fireEvent.change(titleInput, { target: { value: "블랙스완 복각" } })
+
+    fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+    await waitFor(() => {
+      expect(schedulesBuilder.insert).toHaveBeenCalledWith({
+        game_id: "game-2",
+        schedule_type: "PICKUP",
+        title: "블랙스완 복각",
+        start_date: "2026-09-01",
+        end_date: "2026-09-21",
+        memo: null,
+      })
+    })
+    expect(schedulesBuilder.update).not.toHaveBeenCalled()
+  })
+
   it("기존 일정의 수정 모달을 열고 데이터를 갱신할 수 있다", async () => {
     schedulesBuilder.update.mockReturnValue(schedulesBuilder)
     schedulesBuilder.eq.mockResolvedValue({ error: null })

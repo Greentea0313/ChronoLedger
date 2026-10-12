@@ -54,7 +54,16 @@ function createQuery(table: string) {
     return { data: [], error: null }
   }
 
-  const query: Record<string, unknown> = {}
+  type MockQuery = {
+    select: ReturnType<typeof vi.fn>
+    eq: ReturnType<typeof vi.fn>
+    gte: ReturnType<typeof vi.fn>
+    order: ReturnType<typeof vi.fn>
+    delete: ReturnType<typeof vi.fn>
+    insert: ReturnType<typeof vi.fn>
+    then: ReturnType<typeof vi.fn>
+  }
+  const query: Partial<MockQuery> = {}
   const select = vi.fn().mockReturnValue(query)
   const eq = vi.fn().mockReturnValue(query)
   const gte = vi.fn().mockReturnValue(query)
@@ -63,7 +72,7 @@ function createQuery(table: string) {
   const insert = vi.fn()
   const then = vi.fn((resolve: (val: unknown) => unknown) => Promise.resolve(getResult()).then(resolve))
   Object.assign(query, { select, eq, gte, order, delete: del, insert, then })
-  return query
+  return query as MockQuery
 }
 
 describe("GamesPage", () => {

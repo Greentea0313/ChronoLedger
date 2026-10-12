@@ -261,6 +261,7 @@ export default function DashboardPage() {
           schedule_type: s.schedule_type,
           start_date: s.start_date,
           end_date: s.end_date,
+          gameId: s.game_id,
           gameName: gameInfo ? gameInfo.name : null,
           iconUrl: gameInfo?.iconUrl,
           memo: s.memo,

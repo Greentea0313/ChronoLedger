@@ -304,7 +304,14 @@
     3. 잔액 부족 시 `[충전 후 결제]` 원클릭 승인 플로우 제공.
     4. 자동 계산값 기본 채움 및 최종 실결제액 수동 오버라이드 지원.
   - verify: 결제 수단별 잔액 차감 및 충전 게이트웨이 모달 동작 확인, 수동 수정값 유지 검증
-- [ ] 11.4 반응형 모바일 튜닝 및 종합 회귀 테스트
+- [ ] 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석 구현
+  - 대상 파일: `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/app/dashboard/expenses/page.tsx`
+  - 작업:
+    1. DB 스키마: `expenses.pickup_schedule_id UUID NULL REFERENCES public.game_schedules(id) ON DELETE SET NULL` 컬럼 및 외래키/인덱스 추가, `md/MIGRATION_PHASE11.sql` 마이그레이션 DDL 반영 (기존 `schedule_id` 버전 일정과 독립 공존).
+    2. 지출 등록/수정 모달(`ExpenseModal`, `ExpenseDetailModal`): 카테고리가 '게임'일 때 결제일(`target_date`) 기준 해당 게임의 진행 중인 픽업 일정(`schedule_type = 'PICKUP'`) 목록을 `[픽업 선택 (선택 사항)]` 드롭다운으로 조회 및 바인딩 지원 (이중 픽업 등 특정 캐릭터 가챠 선택 가능).
+    3. 소비 화면(`/dashboard/expenses`) 통계 UI: 게임별 픽업 과금 통계 섹션 추가 (확정 `CONFIRMED` 지출 기준 픽업별 총 과금액 가로 막대 차트/랭킹 카드, 버전 내 픽업 과금 비중(%) 표시, 미지정 지출 '버전 일반' 분리 표기로 정합성 100% 보장).
+  - verify: 지출 추가/수정 시 픽업 바인딩 저장 확인, 복수 픽업별 분리 집계 및 버전 대비 비중 계산 단위 테스트, Vitest 및 정적 빌드 검증
+- [ ] 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트
   - 대상 파일: 전체 변경 화면 및 테스트 스위트
   - 작업: 모바일 뷰포트 패딩, 중앙 모달 크기 반응형 세부 조정, `npx tsc --noEmit`, Vitest 전체 테스트 실행, `npm run build` 정적 export 검증.
 
