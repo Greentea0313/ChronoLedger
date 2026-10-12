@@ -71,6 +71,7 @@ export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [hasLoadedInitial, setHasLoadedInitial] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [totalAsset, setTotalAsset] = useState<number | null>(null)
   const [budgetAmount, setBudgetAmount] = useState(0)
@@ -102,7 +103,9 @@ export default function DashboardPage() {
 
   const load = useCallback(async () => {
     if (!user || !ready) return
-    setIsLoading(true)
+    if (!hasLoadedInitial) {
+      setIsLoading(true)
+    }
     setError(null)
 
     try {
@@ -177,8 +180,9 @@ export default function DashboardPage() {
       setError("대시보드 데이터를 불러오지 못했습니다.")
     } finally {
       setIsLoading(false)
+      setHasLoadedInitial(true)
     }
-  }, [month, ready, user, year])
+  }, [hasLoadedInitial, month, ready, user, year])
 
   useEffect(() => {
     if (!authLoading && user && ready) {
@@ -361,7 +365,7 @@ export default function DashboardPage() {
     [allGamesMap, dateGameIcons, memoDates, month, ready, scheduleDates, year],
   )
 
-  if (authLoading || isLoading || !ready) {
+  if (authLoading || (!hasLoadedInitial && isLoading) || !ready) {
     return <div className="p-6 text-white">불러오는 중...</div>
   }
   if (!user) {

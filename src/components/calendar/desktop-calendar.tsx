@@ -51,7 +51,7 @@ export function DesktopCalendar({
           <button
             type="button"
             onClick={onPrevMonth}
-            className="h-8 w-8 p-0 rounded-[10px] flex items-center justify-center transition-opacity hover:opacity-80"
+            className="h-8 w-8 p-0 rounded-[10px] flex items-center justify-center transition-all duration-fast active:scale-95 hover:opacity-80"
             aria-label="이전 달"
           >
             <img src="/assets/nav/v1-prev-dark.svg" alt="" className="nav-asset-dark h-8 w-8" />
@@ -60,7 +60,7 @@ export function DesktopCalendar({
           <button
             type="button"
             onClick={onNextMonth}
-            className="h-8 w-8 p-0 rounded-[10px] flex items-center justify-center transition-opacity hover:opacity-80"
+            className="h-8 w-8 p-0 rounded-[10px] flex items-center justify-center transition-all duration-fast active:scale-95 hover:opacity-80"
             aria-label="다음 달"
           >
             <img src="/assets/nav/v1-next-dark.svg" alt="" className="nav-asset-dark h-8 w-8" />
