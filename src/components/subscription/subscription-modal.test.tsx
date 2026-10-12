@@ -2,10 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SubscriptionModal } from "./subscription-modal"
 
-const { from, useAuth, insert } = vi.hoisted(() => ({
+const { from, useAuth, insert, update } = vi.hoisted(() => ({
   from: vi.fn(),
   useAuth: vi.fn(),
   insert: vi.fn(),
+  update: vi.fn(),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
@@ -36,6 +37,9 @@ describe("SubscriptionModal", () => {
     vi.clearAllMocks()
     useAuth.mockReturnValue({ user: { id: "user-123" } })
     insert.mockResolvedValue({ data: { id: "sub-1" }, error: null })
+    update.mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    })
     from.mockImplementation((table: string) => {
       if (table === "games") {
         return query({ data: [{ id: "g1", name: "원신" }], error: null })
@@ -48,7 +52,25 @@ describe("SubscriptionModal", () => {
         }
       }
       if (table === "subscription_templates") {
-        return { insert }
+        return {
+          insert,
+          update: vi.fn().mockImplementation((payload) => {
+            update(payload)
+            return {
+              eq: vi.fn().mockResolvedValue({ error: null }),
+            }
+          }),
+        }
+      }
+      if (table === "expenses") {
+        const expenseUpdateChain = {
+          eq: vi.fn().mockImplementation(() => expenseUpdateChain),
+          then: vi.fn().mockImplementation((cb: (arg: unknown) => unknown) => Promise.resolve(cb({ error: null }))),
+          catch: vi.fn().mockImplementation(() => Promise.resolve()),
+        }
+        return {
+          update: vi.fn().mockReturnValue(expenseUpdateChain),
+        }
       }
       return query({ data: [], error: null })
     })
@@ -201,6 +223,51 @@ describe("SubscriptionModal", () => {
     expect((screen.getByLabelText(/연관 게임/) as HTMLSelectElement).value).toBe("g1")
     expect((screen.getByLabelText("결제 주기 유형 *") as HTMLSelectElement).value).toBe("VERSION_PASS")
     expect((screen.getByLabelText("카테고리") as HTMLInputElement).value).toBe("게임")
+  })
+
+  it("editingTemplate가 제공되면 '정기 구독 수정' 타이틀과 기존 데이터를 로드하고 수정 완료 시 update를 호출한다", async () => {
+    const onCreated = vi.fn()
+    const onOpenChange = vi.fn()
+    const editingTemplate = {
+      id: "tpl-1",
+      title: "기존 넷플릭스",
+      category: "정기 구독",
+      game_id: null,
+      cycle_type: "MONTHLY_DAY" as const,
+      billing_day: 15,
+      interval_days: 30,
+      default_price: 17000,
+      payment_method: "WALLET" as const,
+      is_active: true,
+    }
+
+    render(
+      <SubscriptionModal
+        open
+        onOpenChange={onOpenChange}
+        onCreated={onCreated}
+        editingTemplate={editingTemplate}
+      />,
+    )
+
+    expect(screen.getByText("정기 구독 수정")).toBeTruthy()
+    expect((screen.getByLabelText("구독 제목 *") as HTMLInputElement).value).toBe("기존 넷플릭스")
+    expect((screen.getByLabelText("기본 금액 (원) *") as HTMLInputElement).value).toBe("17000")
+    expect((screen.getByLabelText("매월 결제일 (1~31일) *") as HTMLInputElement).value).toBe("15")
+
+    fireEvent.change(screen.getByLabelText("구독 제목 *"), { target: { value: "수정된 넷플릭스" } })
+    fireEvent.change(screen.getByLabelText("기본 금액 (원) *"), { target: { value: "19000" } })
+
+    fireEvent.click(screen.getByRole("button", { name: "수정 완료" }))
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalled())
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "수정된 넷플릭스",
+        default_price: 19000,
+      }),
+    )
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 })
 

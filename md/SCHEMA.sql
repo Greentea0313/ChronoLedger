@@ -960,6 +960,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+CREATE OR REPLACE FUNCTION public.delete_subscription_template(p_template_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION '인증되지 않은 사용자입니다.';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM public.subscription_templates
+        WHERE id = p_template_id AND user_id = v_user_id
+    ) THEN
+        RAISE EXCEPTION '삭제할 수 있는 본인 소유의 구독 템플릿이 아닙니다.';
+    END IF;
+
+    DELETE FROM public.expenses
+    WHERE template_id = p_template_id
+      AND user_id = v_user_id
+      AND status = 'PLANNED';
+
+    DELETE FROM public.subscription_templates
+    WHERE id = p_template_id AND user_id = v_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- ============================================================================== 
 -- RLS 격리 및 보안 정책
 -- ==============================================================================
@@ -1030,7 +1056,9 @@ CREATE POLICY "Insert own templates" ON public.subscription_templates FOR INSERT
 CREATE POLICY "Update own templates" ON public.subscription_templates FOR UPDATE TO authenticated
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
--- 물리 삭제는 정책으로 금지한다. 구독 종료는 is_active=false로 처리한다.
+CREATE POLICY "Delete own templates" ON public.subscription_templates FOR DELETE TO authenticated
+    USING (auth.uid() = user_id);
+-- 구독 종료는 비활성화(is_active=false) 또는 템플릿 삭제로 처리한다.
 CREATE POLICY "Read own expenses" ON public.expenses FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Insert own planned expenses" ON public.expenses FOR INSERT TO authenticated
     WITH CHECK (auth.uid() = user_id AND status = 'PLANNED' AND earned_points = 0 AND used_points = 0);
@@ -1055,6 +1083,7 @@ REVOKE ALL ON FUNCTION public.approve_schedule_request(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.reject_schedule_request(UUID, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.approve_game_request(UUID, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.reject_game_request(UUID, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.delete_subscription_template(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.process_expense_payment(UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.refund_expense_payment(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_planned_expense(UUID) TO authenticated;
@@ -1066,3 +1095,4 @@ GRANT EXECUTE ON FUNCTION public.approve_schedule_request(UUID) TO authenticated
 GRANT EXECUTE ON FUNCTION public.reject_schedule_request(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.approve_game_request(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reject_game_request(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_subscription_template(UUID) TO authenticated;

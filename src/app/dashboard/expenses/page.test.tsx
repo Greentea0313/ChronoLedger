@@ -206,7 +206,52 @@ describe("ExpensesPage", () => {
     expect(screen.getAllByRole("button", { name: "+ 구독 추가" }).length).toBe(1)
     expect(screen.getByText("넷플릭스")).toBeTruthy()
     expect(screen.getByText("매월 15일")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "수정" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "구독 중지" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "넷플릭스 구독 삭제" })).toBeTruthy()
+  })
+
+  it("정기 구독 템플릿 [삭제] 클릭 시 삭제 확인 모달이 열리고 [삭제] 클릭 시 delete_subscription_template RPC를 호출한다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const expenseBuilder = createExpenseQueryBuilder(sampleExpenses)
+    const subscriptionBuilder = createExpenseQueryBuilder([
+      {
+        id: "tpl-1",
+        title: "넷플릭스",
+        category: "정기 구독",
+        cycle_type: "MONTHLY_DAY",
+        billing_day: 15,
+        default_price: 17000,
+        payment_method: "WALLET",
+        is_active: true,
+        game_id: null,
+        games: null,
+      },
+    ])
+
+    from.mockImplementation((table: string) => {
+      if (table === "subscription_templates") return subscriptionBuilder
+      return expenseBuilder
+    })
+    rpc.mockResolvedValue({ error: null })
+
+    render(<ExpensesPage />)
+
+    const subTab = await screen.findByRole("tab", { name: "정기 구독" })
+    fireEvent.click(subTab)
+
+    const deleteBtn = screen.getByRole("button", { name: "넷플릭스 구독 삭제" })
+    fireEvent.click(deleteBtn)
+
+    expect(screen.getByText("정기 구독 삭제")).toBeTruthy()
+    expect(screen.getByText(/"넷플릭스"/)).toBeTruthy()
+
+    const confirmDeleteBtn = screen.getByRole("button", { name: "삭제" })
+    fireEvent.click(confirmDeleteBtn)
+
+    expect(rpc).toHaveBeenCalledWith("delete_subscription_template", {
+      p_template_id: "tpl-1",
+    })
   })
 
   it("게임 픽업별 과금 분석 섹션과 픽업 배지가 정상 렌더링된다", async () => {

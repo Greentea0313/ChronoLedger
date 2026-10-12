@@ -1,5 +1,21 @@
 # 변경 이력
 
+## 2026-10-13 (정기 구독 템플릿 수정/삭제 기능 구현 및 카드 액션 버튼 레이아웃 개편)
+
+- **정기 구독 템플릿 수정 기능 (`src/components/subscription/subscription-modal.tsx`)**:
+  - `SubscriptionModal`에 `editingTemplate` prop 지원 추가.
+  - 수정 시 제목, 카테고리, 연관 게임, 결제 주기 유형, 결제일/누적일수, 금액 등 기존 설정을 폼에 자동 바인딩.
+  - 수정 완료 시 `subscription_templates.update()` 호출 및 미결제(`PLANNED`) 예정 회차의 기본 정보 자동 동기화.
+- **정기 구독 템플릿 삭제 및 안전 정리 RPC 구현 (`src/app/dashboard/expenses/page.tsx`, `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`)**:
+  - 보안 정의자 RPC `delete_subscription_template(p_template_id UUID)` 및 RLS `Delete own templates` 정책 생성.
+  - 템플릿 삭제 시 미래 미결제(`PLANNED`) 회차만 정리하고, 이미 결제된(`CONFIRMED`) 과거 지출 내역은 `template_id ON DELETE SET NULL`을 통해 안전하게 보존.
+  - 삭제 전 확인 다이얼로그(`<Dialog>`)를 통해 안전한 삭제 절차 안내.
+- **구독 카드 액션 버튼 레이아웃 개편 (`src/app/dashboard/expenses/page.tsx`)**:
+  - 좌측 정렬: `[수정]`, `[남은 날짜 수정]` (누적 충전형일 때만 노출).
+  - 우측 정렬: `[구독 중지/재개]`, `[휴지통 모양 아이콘]`(삭제).
+- **단위 테스트 및 빌드 검증 (`src/components/subscription/subscription-modal.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`)**:
+  - 템플릿 수정 모달 데이터 로드/업데이트 및 삭제 다이얼로그/RPC 호출 검증 테스트 추가 (Vitest 162개 테스트 전체 PASS, Next.js 14 정적 빌드 통과).
+
 ## 2026-10-13 (소비 페이지 전체 지출 내역 10개 단위 페이지네이션 및 누적 충전형 주기 커스텀 지원)
 
 - **전체 지출 내역 10개 단위 페이지네이션 구현 (`src/app/dashboard/expenses/page.tsx`)**:

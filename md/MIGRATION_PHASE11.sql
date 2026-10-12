@@ -445,5 +445,47 @@ FOR EACH ROW EXECUTE FUNCTION public.validate_expense_references();
 ALTER TABLE public.subscription_templates
     ADD COLUMN IF NOT EXISTS interval_days INTEGER DEFAULT 30 CHECK (interval_days > 0);
 
+-- ==============================================================================
+-- 12. 정기 구독 템플릿 삭제 RPC 및 RLS DELETE 정책 추가
+-- ==============================================================================
+
+-- 12-1. subscription_templates DELETE 정책 허용
+DROP POLICY IF EXISTS "Delete own templates" ON public.subscription_templates;
+CREATE POLICY "Delete own templates" ON public.subscription_templates FOR DELETE TO authenticated
+    USING (auth.uid() = user_id);
+
+-- 12-2. 정기 구독 템플릿 삭제 및 미결제(PLANNED) 회차 안전 정리 RPC
+CREATE OR REPLACE FUNCTION public.delete_subscription_template(p_template_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION '인증되지 않은 사용자입니다.';
+    END IF;
+
+    -- 본인 소유의 템플릿인지 검증
+    IF NOT EXISTS (
+        SELECT 1 FROM public.subscription_templates
+        WHERE id = p_template_id AND user_id = v_user_id
+    ) THEN
+        RAISE EXCEPTION '삭제할 수 있는 본인 소유의 구독 템플릿이 아닙니다.';
+    END IF;
+
+    -- 해당 템플릿으로 생성된 미결제(PLANNED) 예정 지출 회차 정리
+    DELETE FROM public.expenses
+    WHERE template_id = p_template_id
+      AND user_id = v_user_id
+      AND status = 'PLANNED';
+
+    -- 템플릿 삭제 (결제 완료된 CONFIRMED 지출은 template_id 외래키의 ON DELETE SET NULL에 의해 안전하게 보존됨)
+    DELETE FROM public.subscription_templates
+    WHERE id = p_template_id AND user_id = v_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.delete_subscription_template(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.delete_subscription_template(UUID) TO authenticated;
+
 
 

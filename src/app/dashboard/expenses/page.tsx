@@ -17,7 +17,7 @@ import { getKstToday } from "@/lib/dashboard-date"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ExpensesPageSkeleton } from "@/components/ui/page-skeletons"
 import { isOffline } from "@/lib/offline-guard"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
 
 import { preloadImages } from "@/lib/icon-preload"
 
@@ -130,6 +130,9 @@ export default function ExpensesPage() {
   // 모달 제어 상태
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<SubscriptionTemplateRow | null>(null)
+  const [deletingTemplate, setDeletingTemplate] = useState<SubscriptionTemplateRow | null>(null)
+  const [isDeletingTemplate, setIsDeletingTemplate] = useState(false)
   const [payingExpense, setPayingExpense] = useState<PlannedExpenseInput | null>(null)
   const [detailExpense, setDetailExpense] = useState<ExpenseDetail | null>(null)
   const [editingIntervalTemplate, setEditingIntervalTemplate] = useState<SubscriptionTemplateRow | null>(null)
@@ -424,6 +427,64 @@ export default function ExpensesPage() {
     void loadExpenses()
   }
 
+  const handleAddSubscription = () => {
+    setEditingTemplate(null)
+    setIsSubscriptionModalOpen(true)
+  }
+
+  const handleOpenEditTemplate = (template: SubscriptionTemplateRow) => {
+    setEditingTemplate(template)
+    setIsSubscriptionModalOpen(true)
+  }
+
+  const handleOpenDeleteTemplate = (template: SubscriptionTemplateRow) => {
+    setDeletingTemplate(template)
+  }
+
+  const handleConfirmDeleteTemplate = async () => {
+    if (!user || !deletingTemplate) return
+    setIsDeletingTemplate(true)
+    try {
+      const { error: rpcError } = await supabase.rpc("delete_subscription_template", {
+        p_template_id: deletingTemplate.id,
+      })
+
+      if (rpcError) {
+        try {
+          await supabase
+            .from("expenses")
+            .delete()
+            .eq("template_id", deletingTemplate.id)
+            .eq("status", "PLANNED")
+        } catch {
+          // ignore fallback
+        }
+
+        const { error: deleteError } = await supabase
+          .from("subscription_templates")
+          .delete()
+          .eq("id", deletingTemplate.id)
+
+        if (deleteError) {
+          await supabase
+            .from("subscription_templates")
+            .update({ is_active: false })
+            .eq("id", deletingTemplate.id)
+          throw new Error("구독 삭제 권한이 없어 구독이 중지 처리되었습니다. Supabase SQL Editor에서 삭제 정책을 실행해 주세요.")
+        }
+      }
+
+      setTemplates((prev) => prev.filter((t) => t.id !== deletingTemplate.id))
+      setDeletingTemplate(null)
+      void loadExpenses()
+    } catch (err: unknown) {
+      console.error("구독 템플릿 삭제 오류:", err)
+      alert(err instanceof Error ? err.message : "구독 템플릿을 삭제하지 못했습니다.")
+    } finally {
+      setIsDeletingTemplate(false)
+    }
+  }
+
   const handleCancelPlanned = async (expenseId: string) => {
     const { error } = await supabase.rpc("cancel_planned_expense", { p_expense_id: expenseId })
     if (error) {
@@ -529,7 +590,7 @@ export default function ExpensesPage() {
             </Button>
           ) : (
             <Button
-              onClick={() => setIsSubscriptionModalOpen(true)}
+              onClick={handleAddSubscription}
               className="h-10 bg-primary hover:bg-primary-hover text-white font-medium"
             >
               + 구독 추가
@@ -1173,29 +1234,51 @@ export default function ExpensesPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-end gap-2">
-                      {tpl.cycle_type === "INTERVAL_30" && (
+                    <div className="mt-4 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleOpenIntervalEdit(tpl)}
+                          onClick={() => handleOpenEditTemplate(tpl)}
                           className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
                         >
-                          남은 날짜 수정
+                          수정
                         </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void handleToggleTemplateActive(tpl)}
-                        className={`h-7 px-3 text-xs border-line-control ${
-                          tpl.is_active
-                            ? "text-content-secondary hover:text-danger hover:border-danger/50"
-                            : "text-primary hover:bg-primary/10"
-                        }`}
-                      >
-                        {tpl.is_active ? "구독 중지" : "구독 재개"}
-                      </Button>
+                        {tpl.cycle_type === "INTERVAL_30" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenIntervalEdit(tpl)}
+                            className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
+                          >
+                            남은 날짜 수정
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void handleToggleTemplateActive(tpl)}
+                          className={`h-7 px-2.5 text-xs border-line-control ${
+                            tpl.is_active
+                              ? "text-content-secondary hover:text-danger hover:border-danger/50"
+                              : "text-primary hover:bg-primary/10"
+                          }`}
+                        >
+                          {tpl.is_active ? "구독 중지" : "구독 재개"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenDeleteTemplate(tpl)}
+                          aria-label={`${tpl.title} 구독 삭제`}
+                          title="구독 삭제"
+                          className="h-7 w-7 p-0 text-content-secondary hover:text-danger hover:bg-danger/10 hover:border-danger/50 border-line-control"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-danger" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1222,10 +1305,14 @@ export default function ExpensesPage() {
         onRefunded={handleRefundCompleted}
       />
 
-      {/* 새 구독 추가 모달 */}
+      {/* 정기 구독 추가/수정 모달 */}
       <SubscriptionModal
         open={isSubscriptionModalOpen}
-        onOpenChange={setIsSubscriptionModalOpen}
+        onOpenChange={(open) => {
+          setIsSubscriptionModalOpen(open)
+          if (!open) setEditingTemplate(null)
+        }}
+        editingTemplate={editingTemplate}
         onCreated={() => {
           void loadSubscriptions()
           void loadExpenses()
@@ -1297,6 +1384,54 @@ export default function ExpensesPage() {
               className="bg-primary hover:bg-primary-hover text-white"
             >
               {isSavingIntervalDays ? "저장 중..." : "저장"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 정기 구독 삭제 확인 다이얼로그 */}
+      <Dialog
+        open={Boolean(deletingTemplate)}
+        onOpenChange={(open) => {
+          if (!open) setDeletingTemplate(null)
+        }}
+      >
+        <DialogContent className="max-w-md border-line bg-surface text-content">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-danger">
+              정기 구독 삭제
+            </DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              정말로 <span className="font-semibold text-content">&quot;{deletingTemplate?.title}&quot;</span> 구독을 삭제하시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 text-xs text-content-secondary space-y-2">
+            <p>
+              • 삭제 시 아직 결제되지 않은 <span className="text-warning font-medium">예정(PLANNED)</span> 상태의 회차가 함께 정리됩니다.
+            </p>
+            <p>
+              • 이미 결제가 완료된 과거 지출 내역은 삭제되지 않고 안전하게 보존됩니다.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeletingTemplate(null)}
+              disabled={isDeletingTemplate}
+              className="border-line-control text-content-secondary hover:text-content"
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleConfirmDeleteTemplate()}
+              disabled={isDeletingTemplate}
+              className="bg-danger hover:bg-danger/90 text-white"
+            >
+              {isDeletingTemplate ? "삭제 중..." : "삭제"}
             </Button>
           </DialogFooter>
         </DialogContent>

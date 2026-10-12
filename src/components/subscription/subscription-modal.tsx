@@ -10,10 +10,23 @@ import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { ensureMonthlySubscriptionExpenses, type SubscriptionCycleType } from "@/lib/subscription-sync"
 
+export interface SubscriptionTemplateInput {
+  id: string
+  title: string
+  category: string
+  cycle_type?: SubscriptionCycleType
+  billing_day: number
+  interval_days?: number
+  default_price: number
+  payment_method?: string
+  game_id: string | null
+}
+
 interface SubscriptionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated?: () => void
+  editingTemplate?: SubscriptionTemplateInput | null
 }
 
 interface GameOption {
@@ -49,7 +62,7 @@ function toAmount(value: string): number {
   return value.trim() === "" ? 0 : Number(value)
 }
 
-export function SubscriptionModal({ open, onOpenChange, onCreated }: SubscriptionModalProps) {
+export function SubscriptionModal({ open, onOpenChange, onCreated, editingTemplate }: SubscriptionModalProps) {
   const isOnline = useOnlineStatus()
   const { user } = useAuth()
 
@@ -71,16 +84,26 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
   useEffect(() => {
     if (open && !prevOpenRef.current) {
       setError(null)
-      setTitle("")
-      setCategory("정기 구독")
-      setGameId("")
-      setCycleType("MONTHLY_DAY")
-      setBillingDay("1")
-      setIntervalDays("30")
-      setDefaultPrice("")
+      if (editingTemplate) {
+        setTitle(editingTemplate.title)
+        setCategory(editingTemplate.category || (editingTemplate.game_id ? "게임" : "정기 구독"))
+        setGameId(editingTemplate.game_id || "")
+        setCycleType(editingTemplate.cycle_type || "MONTHLY_DAY")
+        setBillingDay(String(editingTemplate.billing_day || 1))
+        setIntervalDays(String(editingTemplate.interval_days || 30))
+        setDefaultPrice(String(editingTemplate.default_price ?? 0))
+      } else {
+        setTitle("")
+        setCategory("정기 구독")
+        setGameId("")
+        setCycleType("MONTHLY_DAY")
+        setBillingDay("1")
+        setIntervalDays("30")
+        setDefaultPrice("")
+      }
     }
     prevOpenRef.current = open
-  }, [open])
+  }, [open, editingTemplate])
 
 
   const userId = user?.id
@@ -145,36 +168,86 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
     setIsSubmitting(true)
     try {
       const targetCategory = gameId ? "게임" : "정기 구독"
-      const insertPayload: Record<string, unknown> = {
-        user_id: user.id,
-        title: title.trim(),
-        category: targetCategory,
-        game_id: gameId || null,
-        cycle_type: cycleType,
-        billing_day: cycleType === "MONTHLY_DAY" ? Number(billingDay) : 1,
-        interval_days: cycleType === "INTERVAL_30" ? Number(intervalDays) : 30,
-        default_price: priceNum,
-        payment_method: paymentMethod,
-        is_active: true,
+      if (editingTemplate) {
+        const updatePayload: Record<string, unknown> = {
+          title: title.trim(),
+          category: targetCategory,
+          game_id: gameId || null,
+          cycle_type: cycleType,
+          billing_day: cycleType === "MONTHLY_DAY" ? Number(billingDay) : 1,
+          interval_days: cycleType === "INTERVAL_30" ? Number(intervalDays) : 30,
+          default_price: priceNum,
+        }
+
+        let { error: updateError } = await supabase
+          .from("subscription_templates")
+          .update(updatePayload)
+          .eq("id", editingTemplate.id)
+
+        if (updateError && (updateError.code === "42703" || updateError.message?.includes("interval_days"))) {
+          delete updatePayload.interval_days
+          const fallbackRes = await supabase
+            .from("subscription_templates")
+            .update(updatePayload)
+            .eq("id", editingTemplate.id)
+          updateError = fallbackRes.error
+        }
+
+        if (updateError) {
+          throw new Error(updateError.message)
+        }
+
+        // 해당 템플릿의 아직 결제되지 않은 PLANNED 상태 지출 기본 정보 동기화
+        try {
+          await supabase
+            .from("expenses")
+            .update({
+              title: title.trim(),
+              category: targetCategory,
+              game_id: gameId || null,
+              original_price: priceNum,
+              final_amount: priceNum,
+            })
+            .eq("template_id", editingTemplate.id)
+            .eq("status", "PLANNED")
+        } catch {
+          // ignore sync failure
+        }
+
+        const now = new Date()
+        await ensureMonthlySubscriptionExpenses(user.id, now.getFullYear(), now.getMonth() + 1).catch(() => {})
+      } else {
+        const insertPayload: Record<string, unknown> = {
+          user_id: user.id,
+          title: title.trim(),
+          category: targetCategory,
+          game_id: gameId || null,
+          cycle_type: cycleType,
+          billing_day: cycleType === "MONTHLY_DAY" ? Number(billingDay) : 1,
+          interval_days: cycleType === "INTERVAL_30" ? Number(intervalDays) : 30,
+          default_price: priceNum,
+          payment_method: paymentMethod,
+          is_active: true,
+        }
+
+        let { error: insertError } = await supabase
+          .from("subscription_templates")
+          .insert(insertPayload)
+
+        if (insertError && (insertError.code === "42703" || insertError.message?.includes("interval_days"))) {
+          delete insertPayload.interval_days
+          const fallbackRes = await supabase.from("subscription_templates").insert(insertPayload)
+          insertError = fallbackRes.error
+        }
+
+        if (insertError) {
+          throw new Error(insertError.message)
+        }
+
+        // 템플릿 생성 즉시 첫 회차 동기화 생성
+        const now = new Date()
+        await ensureMonthlySubscriptionExpenses(user.id, now.getFullYear(), now.getMonth() + 1).catch(() => {})
       }
-
-      let { error: insertError } = await supabase
-        .from("subscription_templates")
-        .insert(insertPayload)
-
-      if (insertError && (insertError.code === "42703" || insertError.message?.includes("interval_days"))) {
-        delete insertPayload.interval_days
-        const fallbackRes = await supabase.from("subscription_templates").insert(insertPayload)
-        insertError = fallbackRes.error
-      }
-
-      if (insertError) {
-        throw new Error(insertError.message)
-      }
-
-      // 템플릿 생성 즉시 첫 회차 동기화 생성
-      const now = new Date()
-      await ensureMonthlySubscriptionExpenses(user.id, now.getFullYear(), now.getMonth() + 1).catch(() => {})
 
       onCreated?.()
       onOpenChange(false)
@@ -189,9 +262,11 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="border-line bg-surface text-content sm:max-w-[480px] p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>새 정기 구독 추가</DialogTitle>
+          <DialogTitle>{editingTemplate ? "정기 구독 수정" : "새 정기 구독 추가"}</DialogTitle>
           <DialogDescription>
-            반복 결제되는 정기 구독 또는 게임 버전 패스 템플릿을 등록합니다.
+            {editingTemplate
+              ? "등록된 정기 구독 정보를 수정합니다."
+              : "반복 결제되는 정기 구독 또는 게임 버전 패스 템플릿을 등록합니다."}
           </DialogDescription>
         </DialogHeader>
 
@@ -370,7 +445,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
               disabled={isSubmitting || !isOnline}
               className="bg-primary hover:bg-primary-hover text-white"
             >
-              {isSubmitting ? "저장 중..." : "구독 추가"}
+              {isSubmitting ? "저장 중..." : editingTemplate ? "수정 완료" : "구독 추가"}
             </Button>
           </div>
         </form>
