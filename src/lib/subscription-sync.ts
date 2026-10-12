@@ -76,37 +76,52 @@ export async function ensureMonthlySubscriptionExpenses(
     (t) => !t.cycle_type || t.cycle_type === "MONTHLY_DAY",
   )
   if (monthlyTemplates.length > 0) {
-    const rows = monthlyTemplates.map((template) => {
-      const targetDate = getAdjustedBillingDate(year, month, template.billing_day || 1)
-      return {
-        user_id: userId,
-        template_id: template.id,
-        game_id: template.game_id,
-        billing_cycle: billingCycle,
-        title: template.title,
-        category: template.category,
-        status: "PLANNED" as const,
-        target_date: targetDate,
-        original_price: template.default_price,
-        discount_amount: 0,
-        point_discount_amount: 0,
-        used_points: 0,
-        earned_points: 0,
-        final_amount: template.default_price,
-        payment_method: template.payment_method,
-        point_platform: template.payment_method === "WALLET" ? null : template.payment_method,
-        deduct_from_asset: true,
-      }
-    })
-
-    const { error: insertError } = await supabase
+    const { data: existingExpenses } = await supabase
       .from("expenses")
-      .upsert(rows, { onConflict: "template_id,billing_cycle", ignoreDuplicates: true })
+      .select("template_id")
+      .eq("user_id", userId)
+      .eq("billing_cycle", billingCycle)
 
-    if (insertError) {
-      throw new Error("SUBSCRIPTION_LAZY_GENERATION_FAILED")
+
+    const existingTemplateIds = new Set(
+      ((existingExpenses || []) as { template_id: string }[]).map((e) => e.template_id),
+    )
+
+    const rows = monthlyTemplates
+      .filter((template) => !existingTemplateIds.has(template.id))
+      .map((template) => {
+        const targetDate = getAdjustedBillingDate(year, month, template.billing_day || 1)
+        return {
+          user_id: userId,
+          template_id: template.id,
+          game_id: template.game_id,
+          billing_cycle: billingCycle,
+          title: template.title,
+          category: template.category,
+          status: "PLANNED" as const,
+          target_date: targetDate,
+          original_price: template.default_price,
+          discount_amount: 0,
+          point_discount_amount: 0,
+          used_points: 0,
+          earned_points: 0,
+          final_amount: template.default_price,
+          payment_method: template.payment_method,
+          point_platform: template.payment_method === "WALLET" ? null : template.payment_method,
+          deduct_from_asset: true,
+        }
+      })
+
+    if (rows.length > 0) {
+      const { error: insertError } = await supabase.from("expenses").insert(rows)
+      if (insertError && insertError.code !== "23505") {
+        console.error("MONTHLY_DAY 구독 회차 생성 실패:", insertError)
+        throw new Error("SUBSCRIPTION_LAZY_GENERATION_FAILED")
+      }
+      if (!insertError) {
+        createdCount += rows.length
+      }
     }
-    createdCount += rows.length
   }
 
   // 2. INTERVAL_30 템플릿 처리 (30일 누적 충전형)
@@ -164,11 +179,16 @@ export async function ensureMonthlySubscriptionExpenses(
     (t) => t.cycle_type === "VERSION_PASS" && Boolean(t.game_id),
   )
   for (const template of versionPassTemplates) {
-    const { data: schedules } = await supabase
+    const { data: schedules, error: scheduleError } = await supabase
       .from("game_schedules")
       .select("id, title, start_date, end_date")
       .eq("game_id", template.game_id)
       .eq("schedule_type", "VERSION")
+
+    if (scheduleError) {
+      console.warn("VERSION_PASS 일정 조회 실패:", scheduleError)
+      continue
+    }
 
     if (!schedules || schedules.length === 0) continue
 
@@ -194,7 +214,7 @@ export async function ensureMonthlySubscriptionExpenses(
         status: "PLANNED" as const,
         start_date: s.start_date,
         end_date: s.end_date,
-        target_date: s.end_date,
+        target_date: s.start_date,
         original_price: template.default_price,
         discount_amount: 0,
         point_discount_amount: 0,
@@ -207,14 +227,17 @@ export async function ensureMonthlySubscriptionExpenses(
       }))
 
     if (newRows.length > 0) {
-      const { error: insertError } = await supabase
-        .from("expenses")
-        .upsert(newRows, { onConflict: "template_id,schedule_id", ignoreDuplicates: true })
-      if (!insertError) {
+      const { error: insertError } = await supabase.from("expenses").insert(newRows)
+      if (insertError) {
+        if (insertError.code !== "23505") {
+          console.error("VERSION_PASS 회차 생성 실패:", insertError)
+        }
+      } else {
         createdCount += newRows.length
       }
     }
   }
+
 
   return createdCount
 }

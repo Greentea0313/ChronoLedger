@@ -867,10 +867,14 @@ BEGIN
         UPDATE public.expenses
         SET start_date = NEW.start_date,
             end_date = NEW.end_date,
-            target_date = NEW.end_date
+            target_date = CASE 
+                WHEN NEW.schedule_type = 'VERSION' THEN NEW.start_date 
+                ELSE NEW.end_date 
+            END
         WHERE schedule_id = NEW.id AND status = 'PLANNED';
     END IF;
     RETURN NEW;
+
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 

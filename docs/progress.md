@@ -1,6 +1,25 @@
 # 프로젝트 진행 현황
 
+## 게임 버전 패스형/정기 구독 예정 지출 생성 실패 수정 및 버전 시작일 바인딩 개선 완료 (2026-10-13)
+
+- **배경 및 원인 분석**:
+  - **PostgREST 부분 유니크 인덱스 충돌 에러(42P10)**: `expenses` 테이블에는 `idx_expenses_template_schedule_id` 및 `idx_expenses_template_billing_cycle`가 부분 유니크 인덱스(`WHERE ... IS NOT NULL`)로 설정되어 있었음. PostgREST의 `.upsert(rows, { onConflict: "template_id,schedule_id" })`는 SQL 변환 시 `WHERE` 절을 포함하지 못하여 PostgreSQL 엔진에서 `42P10 (there is no unique or exclusion constraint matching the ON CONFLICT specification)` 오류가 발생해 모든 예정 지출 저장이 원천 차단되고 있었음.
+  - **버전 패스 결제 목표일(`target_date`) 오지정**: 버전 패스 회차 생성 시 `target_date`가 버전 종료일(`s.end_date`, 2026-11-25)로 바인딩되어 있어, 실제 버전 오픈일(2026-10-15) 홈 대시보드 캘린더에서 해당 지출이 전혀 노출되지 않았음. (게임 버전 패스는 버전 시작일에 구매함).
+  - **소비 페이지 지연 동기화 미연동**: `/dashboard/expenses` 초기 진입 시 `ensureMonthlySubscriptionExpenses`가 호출되지 않아, 이미 생성된 정기 구독의 미반영 회차가 자동으로 갱신되지 못했음.
+- **수행 내역**:
+  1. **인메모리 중복 방어 및 안전한 `.insert()` 전환 (`src/lib/subscription-sync.ts`)**:
+     - `MONTHLY_DAY`와 `VERSION_PASS` 모두 기존 등록된 `template_id` 및 `schedule_id`를 선조회하여 아직 생성되지 않은 회차만 필터링한 후 `supabase.from("expenses").insert()`로 저장.
+     - 다른 세션과의 동시성 충돌(`23505` 고유 키 위반)은 무해하게 예외 처리하여 42P10 오류 원천 제거.
+  2. **버전 패스 결제 목표일(`target_date`) 시작일 바인딩 (`src/lib/subscription-sync.ts`, `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`)**:
+     - 버전 패스 예정 회차의 `target_date`를 버전 시작일(`s.start_date`)로 지정하여, 홈 대시보드에서 버전 시작일(예: 10월 15일) 클릭 시 사이드바 지출 내역에 즉시 노출.
+     - `sync_version_expenses_trigger()` SQL 트리거에서도 `VERSION` 일정 변경 시 `target_date = NEW.start_date`로 자동 동기화되도록 수정.
+  3. **소비 페이지 진입 시 자동 지연 동기화 (`src/app/dashboard/expenses/page.tsx`)**:
+     - `loadExpenses()` 실행 시 온라인 상태이면 `ensureMonthlySubscriptionExpenses`를 선행 호출하여, 기존에 추가되었던 버전 패스 및 정기 구독 회차가 소비 페이지 진입 즉시 자동 생성/보정되도록 개선.
+  4. **단위 테스트 무결성 보강 (`src/lib/subscription-sync.test.ts`, `src/app/dashboard/expenses/page.test.tsx`)**:
+     - `insert` 호출 및 버전 시작일(`target_date: "2026-10-09"`) 검증 테스트 갱신 (총 158개 테스트 100% PASS, Next.js 15개 정적 페이지 빌드 통과).
+
 ## Alt+Tab/창 전환 시 모달 입력값 초기화 방지 및 백그라운드 재조회 스켈레톤 언마운트 차단 완료 (2026-10-13)
+
 
 - **배경 및 원인 분석**:
   - **스켈레톤 컴포넌트의 화면 언마운트**: `ExpensesPage` 및 `GamesPage`에서 `if (isLoading) return <Skeleton />` 패턴을 사용하고 있었는데, 사용자가 창 전환(Alt+Tab) 후 브라우저로 돌아올 때 창 포커스 이벤트 및 Supabase 세션 갱신으로 백그라운드 데이터 재조회(`loadExpenses()`)가 트리거됨.

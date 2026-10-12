@@ -48,16 +48,29 @@ describe("subscription-sync", () => {
           game_id: null,
         },
       ])
-      const upsert = vi.fn().mockResolvedValue({ error: null })
+      const expenseQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnValueOnce({
+          eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }),
+      }
+
+      const insert = vi.fn().mockResolvedValue({ error: null })
       from.mockImplementation((table: string) => {
         if (table === "subscription_templates") return templateQuery
-        return { upsert }
+        if (table === "expenses") {
+          return {
+            ...expenseQuery,
+            insert,
+          }
+        }
+        return {}
       })
 
       const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 2)
 
       expect(createdCount).toBe(1)
-      expect(upsert).toHaveBeenCalledWith(
+      expect(insert).toHaveBeenCalledWith(
         [
           expect.objectContaining({
             template_id: "template-1",
@@ -67,9 +80,9 @@ describe("subscription-sync", () => {
             final_amount: 17000,
           }),
         ],
-        { onConflict: "template_id,billing_cycle", ignoreDuplicates: true },
       )
     })
+
 
     it("INTERVAL_30: 이전 CONFIRMED 지출이 있으면 +30일 뒤 날짜로 다음 회차를 생성한다", async () => {
       const templateQuery = createTemplateQuery([
@@ -208,7 +221,7 @@ describe("subscription-sync", () => {
         return expenseQuery
       })
 
-      const upsert = vi.fn().mockResolvedValue({ error: null })
+      const insert = vi.fn().mockResolvedValue({ error: null })
 
       from.mockImplementation((table: string) => {
         if (table === "subscription_templates") return templateQuery
@@ -216,7 +229,7 @@ describe("subscription-sync", () => {
         if (table === "expenses") {
           return {
             ...expenseQuery,
-            upsert,
+            insert,
           }
         }
         return {}
@@ -225,7 +238,7 @@ describe("subscription-sync", () => {
       const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 10)
 
       expect(createdCount).toBe(1)
-      expect(upsert).toHaveBeenCalledWith(
+      expect(insert).toHaveBeenCalledWith(
         [
           expect.objectContaining({
             template_id: "template-pass",
@@ -233,12 +246,11 @@ describe("subscription-sync", () => {
             title: "진주 기행 (5.1 버전)",
             start_date: "2026-10-09",
             end_date: "2026-11-19",
-            target_date: "2026-11-19",
+            target_date: "2026-10-09",
             status: "PLANNED",
             final_amount: 12000,
           }),
         ],
-        { onConflict: "template_id,schedule_id", ignoreDuplicates: true },
       )
     })
 
@@ -246,11 +258,12 @@ describe("subscription-sync", () => {
       const templateQuery = createTemplateQuery([])
       from.mockImplementation((table: string) => {
         if (table === "subscription_templates") return templateQuery
-        return { upsert: vi.fn() }
+        return { insert: vi.fn() }
       })
 
       const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 10)
       expect(createdCount).toBe(0)
     })
+
   })
 })

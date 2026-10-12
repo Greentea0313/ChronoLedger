@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-10-13 (게임 버전 패스형/정기 구독 예정 지출 생성 실패 수정 및 버전 시작일 바인딩 개선)
+
+- **PostgREST 부분 유니크 인덱스 충돌 에러(42P10) 해결 및 `insert` 전환 (`src/lib/subscription-sync.ts`)**:
+  - `expenses` 테이블의 부분 유니크 인덱스(`idx_expenses_template_schedule_id`, `idx_expenses_template_billing_cycle`) 환경에서 PostgREST `.upsert(..., { onConflict })` 호출 시 `42P10 (there is no unique or exclusion constraint matching the ON CONFLICT specification)` 오류로 저장이 차단되던 문제를 해결.
+  - 클라이언트 인메모리 사전 중복 필터링 후 안전한 `.insert()` 호출 방식으로 전환하고 중복 키(`23505`) 예외를 무해하게 방어.
+- **버전 패스형 결제 목표일(`target_date`) 시작일 바인딩 (`src/lib/subscription-sync.ts`, `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`)**:
+  - 기존에 버전 종료일(`s.end_date`)로 지정되던 `target_date`를 실제 패스 오픈 및 결제 시점인 버전 시작일(`s.start_date`)로 수정하여, 홈 대시보드 버전 시작일(예: 10월 15일) 클릭 시 지출 내역에 즉시 노출되도록 개선.
+  - 관리자 일정 변경 트리거(`sync_version_expenses_trigger`)에서도 `VERSION` 일정 변경 시 `target_date = NEW.start_date`로 자동 동기화되도록 SQL 갱신.
+- **소비 페이지 방문 시 지연 구독 자동 생성 연동 (`src/app/dashboard/expenses/page.tsx`)**:
+  - `loadExpenses()` 실행 시 온라인 상태일 경우 `ensureMonthlySubscriptionExpenses`를 선행 호출하여, 기존에 생성되었으나 회차가 누락되었던 정기 구독 템플릿의 예정 지출이 페이지 진입 즉시 자동 보정 생성되도록 개선.
+- **단위 테스트 무결성 갱신 (`src/lib/subscription-sync.test.ts`, `src/app/dashboard/expenses/page.test.tsx`)**:
+  - `MONTHLY_DAY` 및 `VERSION_PASS` 테스트 mock을 `insert` 및 버전 시작일(`target_date: "2026-10-09"`) 기준으로 갱신 (Vitest 37개 파일 / 158개 테스트 100% PASS, Next.js 빌드 성공).
+
+
 ## 2026-10-13 (Alt+Tab/창 전환 시 모달 입력값 초기화 방지 및 백그라운드 재조회 스켈레톤 언마운트 차단)
 
 - **소비 및 게임 페이지 백그라운드 재조회 시 스켈레톤 언마운트 차단 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/games/page.tsx`)**:

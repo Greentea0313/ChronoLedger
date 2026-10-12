@@ -33,6 +33,7 @@ function createExpenseQueryBuilder(data: unknown[]) {
     eq: vi.fn(),
     order: vi.fn(),
     update: vi.fn(),
+    insert: vi.fn().mockResolvedValue({ data: null, error: null }),
     then: promise.then.bind(promise),
     catch: promise.catch.bind(promise),
   }
@@ -42,6 +43,7 @@ function createExpenseQueryBuilder(data: unknown[]) {
   query.update.mockReturnValue(query)
   return query
 }
+
 
 describe("ExpensesPage", () => {
   const sampleExpenses = [

@@ -16,6 +16,8 @@ import { addDays, ensureMonthlySubscriptionExpenses, type SubscriptionCycleType 
 import { getKstToday } from "@/lib/dashboard-date"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ExpensesPageSkeleton } from "@/components/ui/page-skeletons"
+import { isOffline } from "@/lib/offline-guard"
+
 import { preloadImages } from "@/lib/icon-preload"
 import {
   Bar,
@@ -127,11 +129,22 @@ export default function ExpensesPage() {
     if (!hasLoadedInitialRef.current) {
       setIsLoading(true)
     }
+
+    if (!isOffline()) {
+      const now = new Date()
+      try {
+        await ensureMonthlySubscriptionExpenses(userId, now.getFullYear(), now.getMonth() + 1)
+      } catch (subErr) {
+        console.warn("구독 자동 생성 건너뜀 (비차단):", subErr)
+      }
+    }
+
     const { data, error } = await supabase
       .from("expenses")
       .select(EXPENSE_COLUMNS)
       .eq("user_id", userId)
       .order("target_date", { ascending: false })
+
 
     if (!error && data) {
       const rows = data as unknown as ExpenseRow[]
