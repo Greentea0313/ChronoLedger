@@ -23,15 +23,32 @@ vi.mock("@/lib/supabase/client", () => ({
   supabase: { from, rpc },
 }))
 
-function createQueryBuilder(result: { data: unknown[]; error: null }) {
-  const query = {
+interface MockQueryBuilder {
+  select: ReturnType<typeof vi.fn>
+  eq: ReturnType<typeof vi.fn>
+  order: ReturnType<typeof vi.fn>
+  update: ReturnType<typeof vi.fn>
+  insert: ReturnType<typeof vi.fn>
+  single: ReturnType<typeof vi.fn>
+  then: (resolve: (val: { data: unknown[]; error: null }) => unknown) => unknown
+}
+
+function createQueryBuilder(result: { data: unknown[]; error: null }): MockQueryBuilder {
+  const query: MockQueryBuilder = {
     select: vi.fn(),
     eq: vi.fn(),
     order: vi.fn(),
+    update: vi.fn(),
+    insert: vi.fn(),
+    single: vi.fn(),
+    then: (resolve) => resolve({ data: result.data, error: null }),
   }
   query.select.mockReturnValue(query)
   query.eq.mockReturnValue(query)
   query.order.mockResolvedValue(result)
+  query.update.mockReturnValue(query)
+  query.insert.mockReturnValue(query)
+  query.single.mockResolvedValue({ data: { id: "test-game-id" }, error: null })
   return query
 }
 
@@ -187,5 +204,55 @@ describe("AdminRequestsPage", () => {
 
     expect(container.textContent).toContain("Sample RPG")
     expect(gameQuery.eq).toHaveBeenCalledWith("request_status", "PENDING")
+  })
+
+  it("rejects a game request via RPC and removes it from the list", async () => {
+    await renderPage()
+
+    expect(container.textContent).toContain("Sample RPG")
+
+    const rejectButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("반려"),
+    )
+    expect(rejectButton).toBeDefined()
+
+    await act(async () => {
+      rejectButton!.click()
+      await Promise.resolve()
+    })
+
+    expect(rpc).toHaveBeenCalledWith("reject_game_request", {
+      p_request_id: "game-request-1",
+      p_admin_memo: null,
+    })
+    expect(container.textContent).toContain("게임 추가 요청을 반려했습니다.")
+    expect(container.textContent).not.toContain("Sample RPG")
+  })
+
+  it("falls back to direct table update when game rejection RPC fails", async () => {
+    rpc.mockResolvedValueOnce({ error: new Error("RPC rejection failed") })
+
+    await renderPage()
+
+    const rejectButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("반려"),
+    )
+    expect(rejectButton).toBeDefined()
+
+    await act(async () => {
+      rejectButton!.click()
+      await Promise.resolve()
+    })
+
+    expect(rpc).toHaveBeenCalledWith("reject_game_request", {
+      p_request_id: "game-request-1",
+      p_admin_memo: null,
+    })
+    expect(gameQuery.update).toHaveBeenCalledWith({
+      request_status: "REJECTED",
+      admin_memo: null,
+    })
+    expect(gameQuery.eq).toHaveBeenCalledWith("id", "game-request-1")
+    expect(container.textContent).toContain("게임 추가 요청을 반려했습니다.")
   })
 })

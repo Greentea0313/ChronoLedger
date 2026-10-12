@@ -529,5 +529,165 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 REVOKE ALL ON FUNCTION public.admin_create_game(TEXT, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_create_game(TEXT, TEXT) TO authenticated;
 
+-- ==============================================================================
+-- 14. 관리자 승인/반려 RPC 및 RLS 권한 강화 (public.users.role 및 app_metadata 이중 지원)
+-- ==============================================================================
+
+-- 14-1. game_schedules 및 games 관리자 RLS 정책 갱신
+DROP POLICY IF EXISTS "Allow admin manage games" ON public.games;
+CREATE POLICY "Allow admin manage games" ON public.games FOR ALL TO authenticated
+    USING (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    )
+    WITH CHECK (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
+
+DROP POLICY IF EXISTS "Allow admin manage schedules" ON public.game_schedules;
+DROP POLICY IF EXISTS "Only admins can manage game schedules" ON public.game_schedules;
+CREATE POLICY "Allow admin manage schedules" ON public.game_schedules FOR ALL TO authenticated
+    USING (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    )
+    WITH CHECK (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
+
+-- 14-2. game_requests 및 schedule_requests 관리자 RLS 정책 갱신
+DROP POLICY IF EXISTS "Admin manage game requests" ON public.game_requests;
+CREATE POLICY "Admin manage game requests" ON public.game_requests FOR ALL TO authenticated
+    USING (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    )
+    WITH CHECK (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
+
+DROP POLICY IF EXISTS "Admin manage requests" ON public.schedule_requests;
+CREATE POLICY "Admin manage requests" ON public.schedule_requests FOR ALL TO authenticated
+    USING (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    )
+    WITH CHECK (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
+
+-- 14-3. 일정 요청 승인 RPC (approve_schedule_request)
+CREATE OR REPLACE FUNCTION public.approve_schedule_request(p_request_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    v_request public.schedule_requests%ROWTYPE;
+    v_is_admin BOOLEAN;
+BEGIN
+    v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
+    IF NOT coalesce(v_is_admin, false) THEN
+        RAISE EXCEPTION '관리자 권한이 필요합니다.';
+    END IF;
+
+    SELECT * INTO v_request FROM public.schedule_requests WHERE id = p_request_id FOR UPDATE;
+    IF NOT FOUND OR v_request.request_status <> 'PENDING' THEN
+        RAISE EXCEPTION '승인 대기 중인 일정 요청이 아닙니다.';
+    END IF;
+    IF v_request.target_schedule_id IS NULL THEN
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo)
+        VALUES (v_request.game_id, v_request.title, v_request.schedule_type, v_request.start_date, v_request.end_date, v_request.memo);
+    ELSE
+        UPDATE public.game_schedules
+        SET title = v_request.title, schedule_type = v_request.schedule_type,
+            start_date = v_request.start_date, end_date = v_request.end_date, memo = v_request.memo,
+            updated_at = NOW()
+        WHERE id = v_request.target_schedule_id AND game_id = v_request.game_id;
+        IF NOT FOUND THEN RAISE EXCEPTION '요청 대상 일정이 없거나 게임이 일치하지 않습니다.'; END IF;
+    END IF;
+    UPDATE public.schedule_requests SET request_status = 'APPROVED' WHERE id = p_request_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- 14-4. 일정 요청 반려 RPC (reject_schedule_request)
+CREATE OR REPLACE FUNCTION public.reject_schedule_request(p_request_id UUID, p_admin_memo TEXT DEFAULT NULL)
+RETURNS VOID AS $$
+DECLARE
+    v_is_admin BOOLEAN;
+BEGIN
+    v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
+    IF NOT coalesce(v_is_admin, false) THEN
+        RAISE EXCEPTION '관리자 권한이 필요합니다.';
+    END IF;
+
+    UPDATE public.schedule_requests SET request_status = 'REJECTED', admin_memo = p_admin_memo
+    WHERE id = p_request_id AND request_status = 'PENDING';
+    IF NOT FOUND THEN RAISE EXCEPTION '반려할 일정 요청이 아닙니다.'; END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- 14-5. 게임 요청 승인 RPC (approve_game_request)
+CREATE OR REPLACE FUNCTION public.approve_game_request(p_request_id UUID, p_default_icon_url TEXT)
+RETURNS UUID AS $$
+DECLARE
+    v_request public.game_requests%ROWTYPE;
+    v_game_id UUID;
+    v_is_admin BOOLEAN;
+BEGIN
+    v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
+    IF NOT coalesce(v_is_admin, false) THEN
+        RAISE EXCEPTION '관리자 권한이 필요합니다.';
+    END IF;
+
+    SELECT * INTO v_request FROM public.game_requests WHERE id = p_request_id FOR UPDATE;
+    IF NOT FOUND OR v_request.request_status <> 'PENDING' THEN
+        RAISE EXCEPTION '승인 대기 중인 게임 요청이 아닙니다.';
+    END IF;
+    IF p_default_icon_url IS NULL OR btrim(p_default_icon_url) = '' THEN
+        RAISE EXCEPTION '게임 기본 아이콘이 필요합니다.';
+    END IF;
+    INSERT INTO public.games(name, default_icon_url, created_by)
+    VALUES (v_request.name, p_default_icon_url, auth.uid())
+    RETURNING id INTO v_game_id;
+    UPDATE public.game_requests SET request_status = 'APPROVED', approved_game_id = v_game_id
+    WHERE id = p_request_id;
+    RETURN v_game_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- 14-6. 게임 요청 반려 RPC (reject_game_request)
+CREATE OR REPLACE FUNCTION public.reject_game_request(p_request_id UUID, p_admin_memo TEXT DEFAULT NULL)
+RETURNS VOID AS $$
+DECLARE
+    v_is_admin BOOLEAN;
+BEGIN
+    v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
+    IF NOT coalesce(v_is_admin, false) THEN
+        RAISE EXCEPTION '관리자 권한이 필요합니다.';
+    END IF;
+
+    UPDATE public.game_requests SET request_status = 'REJECTED', admin_memo = p_admin_memo
+    WHERE id = p_request_id AND request_status = 'PENDING';
+    IF NOT FOUND THEN RAISE EXCEPTION '반려할 게임 요청이 아닙니다.'; END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.approve_schedule_request(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.reject_schedule_request(UUID, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.approve_game_request(UUID, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.reject_game_request(UUID, TEXT) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.approve_schedule_request(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.reject_schedule_request(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.approve_game_request(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.reject_game_request(UUID, TEXT) TO authenticated;
+
+
 
 

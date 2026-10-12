@@ -888,10 +888,14 @@ CREATE OR REPLACE FUNCTION public.approve_schedule_request(p_request_id UUID)
 RETURNS VOID AS $$
 DECLARE
     v_request public.schedule_requests%ROWTYPE;
+    v_is_admin BOOLEAN;
 BEGIN
-    IF (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'admin' THEN
+    v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
+    IF NOT coalesce(v_is_admin, false) THEN
         RAISE EXCEPTION '관리자 권한이 필요합니다.';
     END IF;
+
     SELECT * INTO v_request FROM public.schedule_requests WHERE id = p_request_id FOR UPDATE;
     IF NOT FOUND OR v_request.request_status <> 'PENDING' THEN
         RAISE EXCEPTION '승인 대기 중인 일정 요청이 아닙니다.';
@@ -913,10 +917,15 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION public.reject_schedule_request(p_request_id UUID, p_admin_memo TEXT DEFAULT NULL)
 RETURNS VOID AS $$
+DECLARE
+    v_is_admin BOOLEAN;
 BEGIN
-    IF (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'admin' THEN
+    v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
+    IF NOT coalesce(v_is_admin, false) THEN
         RAISE EXCEPTION '관리자 권한이 필요합니다.';
     END IF;
+
     UPDATE public.schedule_requests SET request_status = 'REJECTED', admin_memo = p_admin_memo
     WHERE id = p_request_id AND request_status = 'PENDING';
     IF NOT FOUND THEN RAISE EXCEPTION '반려할 일정 요청이 아닙니다.'; END IF;
@@ -928,10 +937,14 @@ RETURNS UUID AS $$
 DECLARE
     v_request public.game_requests%ROWTYPE;
     v_game_id UUID;
+    v_is_admin BOOLEAN;
 BEGIN
-    IF (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'admin' THEN
+    v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
+    IF NOT coalesce(v_is_admin, false) THEN
         RAISE EXCEPTION '관리자 권한이 필요합니다.';
     END IF;
+
     SELECT * INTO v_request FROM public.game_requests WHERE id = p_request_id FOR UPDATE;
     IF NOT FOUND OR v_request.request_status <> 'PENDING' THEN
         RAISE EXCEPTION '승인 대기 중인 게임 요청이 아닙니다.';
@@ -950,10 +963,15 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION public.reject_game_request(p_request_id UUID, p_admin_memo TEXT DEFAULT NULL)
 RETURNS VOID AS $$
+DECLARE
+    v_is_admin BOOLEAN;
 BEGIN
-    IF (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'admin' THEN
+    v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
+    IF NOT coalesce(v_is_admin, false) THEN
         RAISE EXCEPTION '관리자 권한이 필요합니다.';
     END IF;
+
     UPDATE public.game_requests SET request_status = 'REJECTED', admin_memo = p_admin_memo
     WHERE id = p_request_id AND request_status = 'PENDING';
     IF NOT FOUND THEN RAISE EXCEPTION '반려할 게임 요청이 아닙니다.'; END IF;
@@ -1041,8 +1059,14 @@ ALTER TABLE public.store_point_transactions ENABLE ROW LEVEL SECURITY;
 -- games 정책
 CREATE POLICY "Allow public read approved games" ON public.games FOR SELECT USING (status = 'APPROVED');
 CREATE POLICY "Allow admin manage games" ON public.games FOR ALL TO authenticated
-    USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
-    WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+    USING (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    )
+    WITH CHECK (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
 
 -- Storage 버킷은 비공개로 생성한다. 설정: 최대 102,400 bytes, 허용 MIME `image/webp`.
 -- 클라이언트는 PNG/JPG/JPEG/WebP 원본(최대 5 MiB)을 256x256 WebP(최대 100 KiB)로 변환해 업로드한다.
@@ -1062,22 +1086,40 @@ CREATE POLICY "Users insert own game requests" ON public.game_requests FOR INSER
 CREATE POLICY "Users read own game requests" ON public.game_requests FOR SELECT TO authenticated
     USING (auth.uid() = user_id);
 CREATE POLICY "Admin manage game requests" ON public.game_requests FOR ALL TO authenticated
-    USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
-    WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+    USING (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    )
+    WITH CHECK (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
 
 -- game_schedules 정책 (공용 읽기, 관리자만 쓰기)
 CREATE POLICY "Allow public read schedules" ON public.game_schedules FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Allow admin manage schedules" ON public.game_schedules FOR ALL TO authenticated
-    USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
-    WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+    USING (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    )
+    WITH CHECK (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
 
 -- schedule_requests 정책 (유저는 본인 등록/조회만, 관리자는 전체 검토)
 CREATE POLICY "Users insert own requests" ON public.schedule_requests FOR INSERT TO authenticated
     WITH CHECK (auth.uid() = user_id AND request_status = 'PENDING' AND admin_memo IS NULL);
 CREATE POLICY "Users read own requests" ON public.schedule_requests FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Admin manage requests" ON public.schedule_requests FOR ALL TO authenticated
-    USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
-    WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+    USING (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    )
+    WITH CHECK (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
 
 -- 개인 데이터 기본 격리 (auth.uid() = user_id)
 CREATE POLICY "Read own finances" ON public.user_finances FOR SELECT TO authenticated USING (auth.uid() = user_id);

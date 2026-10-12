@@ -23,11 +23,13 @@ type GameRequest = {
 type ScheduleRequest = {
   id: string
   game_id: string
+  target_schedule_id?: string | null
   title: string
-  schedule_type: "VERSION" | "PICKUP"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
   start_date: string
   end_date: string
   memo: string | null
+  admin_memo?: string | null
   request_status: string
   created_at: string
   games?: { name: string } | null
@@ -41,6 +43,7 @@ export default function AdminRequestsPage() {
   const [scheduleRequests, setScheduleRequests] = useState<ScheduleRequest[]>([])
   const [isDataLoading, setIsDataLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const isOnline = useOnlineStatus()
   const [defaultIconUrls, setDefaultIconUrls] = useState<Record<string, string>>({})
@@ -57,6 +60,7 @@ export default function AdminRequestsPage() {
   const fetchRequests = useCallback(async () => {
     setIsDataLoading(true)
     setError(null)
+    setSuccessMessage(null)
 
     try {
       // 1. 대기(PENDING) 상태인 게임 추가 요청 가져오기
@@ -111,6 +115,7 @@ export default function AdminRequestsPage() {
     }
     setProcessingId(id)
     setError(null)
+    setSuccessMessage(null)
     try {
       let iconUrl: string | undefined
       if (type === "game" && isApprove) {
@@ -130,16 +135,130 @@ export default function AdminRequestsPage() {
         }
       }
 
-      const rpcName = type === "game"
-        ? (isApprove ? "approve_game_request" : "reject_game_request")
-        : (isApprove ? "approve_schedule_request" : "reject_schedule_request")
+      if (type === "game") {
+        if (isApprove) {
+          const { error: rpcError } = await supabase.rpc("approve_game_request", {
+            p_request_id: id,
+            p_default_icon_url: iconUrl!,
+          })
 
-      const rpcArgs = {
-        p_request_id: id,
-        ...(iconUrl ? { p_default_icon_url: iconUrl } : {}),
+          if (rpcError) {
+            // 폴백: games 테이블 직접 삽입 및 game_requests 상태 갱신
+            const targetReq = gameRequests.find((r) => r.id === id)
+            const gameName = targetReq?.name?.trim()
+            if (!gameName) throw rpcError
+
+            const { data: newGame, error: insertError } = await supabase
+              .from("games")
+              .insert({
+                name: gameName,
+                default_icon_url: iconUrl!,
+                status: "APPROVED",
+                created_by: user?.id ?? null,
+              })
+              .select("id")
+              .single()
+
+            if (insertError) throw rpcError
+
+            const { error: updateError } = await supabase
+              .from("game_requests")
+              .update({
+                request_status: "APPROVED",
+                approved_game_id: newGame?.id ?? null,
+              })
+              .eq("id", id)
+
+            if (updateError) throw rpcError
+          }
+        } else {
+          const { error: rpcError } = await supabase.rpc("reject_game_request", {
+            p_request_id: id,
+            p_admin_memo: null,
+          })
+
+          if (rpcError) {
+            // 폴백: game_requests 테이블 직접 반려 갱신
+            const { error: tableError } = await supabase
+              .from("game_requests")
+              .update({
+                request_status: "REJECTED",
+                admin_memo: null,
+              })
+              .eq("id", id)
+
+            if (tableError) throw rpcError
+          }
+        }
+      } else {
+        // type === "schedule"
+        if (isApprove) {
+          const { error: rpcError } = await supabase.rpc("approve_schedule_request", {
+            p_request_id: id,
+          })
+
+          if (rpcError) {
+            // 폴백: game_schedules 테이블 직접 삽입/수정 및 schedule_requests 상태 갱신
+            const targetReq = scheduleRequests.find((r) => r.id === id)
+            if (!targetReq) throw rpcError
+
+            if (targetReq.target_schedule_id) {
+              const { error: updateSchedErr } = await supabase
+                .from("game_schedules")
+                .update({
+                  title: targetReq.title,
+                  schedule_type: targetReq.schedule_type,
+                  start_date: targetReq.start_date,
+                  end_date: targetReq.end_date,
+                  memo: targetReq.memo,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", targetReq.target_schedule_id)
+                .eq("game_id", targetReq.game_id)
+
+              if (updateSchedErr) throw rpcError
+            } else {
+              const { error: insertSchedErr } = await supabase
+                .from("game_schedules")
+                .insert({
+                  game_id: targetReq.game_id,
+                  title: targetReq.title,
+                  schedule_type: targetReq.schedule_type,
+                  start_date: targetReq.start_date,
+                  end_date: targetReq.end_date,
+                  memo: targetReq.memo,
+                })
+
+              if (insertSchedErr) throw rpcError
+            }
+
+            const { error: updateReqErr } = await supabase
+              .from("schedule_requests")
+              .update({ request_status: "APPROVED" })
+              .eq("id", id)
+
+            if (updateReqErr) throw rpcError
+          }
+        } else {
+          const { error: rpcError } = await supabase.rpc("reject_schedule_request", {
+            p_request_id: id,
+            p_admin_memo: null,
+          })
+
+          if (rpcError) {
+            // 폴백: schedule_requests 테이블 직접 반려 갱신
+            const { error: tableError } = await supabase
+              .from("schedule_requests")
+              .update({
+                request_status: "REJECTED",
+                admin_memo: null,
+              })
+              .eq("id", id)
+
+            if (tableError) throw rpcError
+          }
+        }
       }
-      const { error: rpcError } = await supabase.rpc(rpcName, rpcArgs)
-      if (rpcError) throw rpcError
 
       // 처리 완료된 항목을 화면 목록에서 즉시 제거
       if (type === "game") {
@@ -148,6 +267,11 @@ export default function AdminRequestsPage() {
         setScheduleRequests(prev => prev.filter(req => req.id !== id))
       }
 
+      setSuccessMessage(
+        type === "game"
+          ? (isApprove ? "게임 추가 요청을 승인했습니다." : "게임 추가 요청을 반려했습니다.")
+          : (isApprove ? "일정 추가 요청을 승인했습니다." : "일정 추가 요청을 반려했습니다.")
+      )
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "알 수 없는 오류"
       setError(`처리 중 오류가 발생했습니다: ${message}`)
@@ -249,6 +373,12 @@ export default function AdminRequestsPage() {
       {error && (
         <div className="p-4 bg-danger/15 text-danger rounded-md flex items-center">
           <AlertCircle className="w-5 h-5 mr-2" /> {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="p-4 bg-success/15 text-success rounded-md flex items-center">
+          <CheckCircle className="w-5 h-5 mr-2" /> {successMessage}
         </div>
       )}
 
@@ -417,7 +547,7 @@ export default function AdminRequestsPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="bg-primary/15 text-primary text-xs px-2 py-1 rounded">
-                        {req.schedule_type === "VERSION" ? "버전" : "픽업"}
+                        {req.schedule_type === "VERSION" ? "버전" : req.schedule_type === "CONTENTS" ? "콘텐츠" : "픽업"}
                       </span>
                       <h3 className="font-bold text-lg text-content">{req.title}</h3>
                     </div>
