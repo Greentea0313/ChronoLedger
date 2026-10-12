@@ -23,7 +23,7 @@ BEGIN
     INSERT INTO public.store_wallets(user_id, platform, current_balance, earn_rate, user_tier)
     VALUES
         (NEW.id, 'GOOGLE_PLAY', 0, 0.10, 'BRONZE'),
-        (NEW.id, 'GALAXY_STORE', 0, 0.10, NULL)
+        (NEW.id, 'GALAXY_STORE', 0, 0.10, 'GENERAL')
     ON CONFLICT (user_id, platform) DO NOTHING;
     RETURN NEW;
 END;
@@ -725,7 +725,7 @@ BEGIN
 
     INSERT INTO public.store_wallets(user_id, platform, user_tier, earn_rate)
     VALUES (v_user_id, p_platform,
-        CASE WHEN p_platform = 'GOOGLE_PLAY' THEN 'BRONZE' ELSE NULL END,
+        CASE WHEN p_platform = 'GOOGLE_PLAY' THEN 'BRONZE' ELSE 'GENERAL' END,
         0.10)
     ON CONFLICT (user_id, platform) DO NOTHING;
     SELECT current_balance INTO v_current
@@ -736,7 +736,7 @@ BEGIN
 
     INSERT INTO public.store_wallets(user_id, platform, current_balance, user_tier, earn_rate, updated_at)
     VALUES (v_user_id, p_platform, p_target_balance,
-        CASE WHEN p_platform = 'GOOGLE_PLAY' THEN 'BRONZE' ELSE NULL END,
+        CASE WHEN p_platform = 'GOOGLE_PLAY' THEN 'BRONZE' ELSE 'GENERAL' END,
         0.10, NOW())
     ON CONFLICT (user_id, platform) 
     DO UPDATE SET current_balance = p_target_balance, updated_at = NOW();

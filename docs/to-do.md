@@ -156,18 +156,18 @@
   - 대상 파일: `md/SCHEMA.sql`
   - 작업: `process_expense_payment`, `refund_expense_payment`, 지갑 설정/보정 RPC, 게임·일정 승인/반려 RPC, 트리거 등록
   - verify: 결제/환불 RPC의 금액·잔액·상태 검증과 게임/일정 승인 원자성 확인
-- [ ] 2.3 RLS 보안 격리 및 원장 쓰기 봉쇄 검증
+- [x] 2.3 RLS 보안 격리 및 원장 쓰기 봉쇄 검증
   - 대상 파일: `md/SCHEMA.sql`
   - 작업: 일반 사용자 역할/JWT로 자산, 확정 지출, 지갑, 원장 및 요청 승인 상태에 직접 쓰기를 시도
-  - verify: RPC만 허용된 변경은 직접 쓰기에서 RLS/권한 오류로 차단되는지 확인. 구독 템플릿 DELETE와 expenses DELETE도 거부되는지 확인
-- [x] 2.4 재현 가능한 DB/RPC/RLS 검증 케이스 준비
+  - verify: 2026-10-12 `md/TESTS.sql` psql 실행에서 RLS 격리, 교차 사용자 쓰기 차단, wallets 직접 수정 거부, expenses/구독 템플릿 물리 삭제 거부, 요청 임의 승인 차단이 모두 검증되고 전 테스트 PASS 및 롤백 완료됨을 확인했다.
+- [x] 2.4 재현 가능한 DB/RPC/RLS 검증 케이스 준비 및 실행 검증
   - 대상 파일: `md/TESTS.sql`, `md/SCHEMA.sql`
-  - 작업: 테스트 역할/JWT, 초기 데이터, 실행 순서, 각 케이스의 기대 성공/실패 결과를 문서화했다. 결제/환불·지갑, 구독/일정 트리거, 사용자 요청, 관리자 RPC, RLS/grants 케이스를 rollback-only SQL로 준비했다.
-  - verify: 현재 확장된 `md/TESTS.sql`은 SQL/DB 미실행이며 정적 검토만 했다. 과거 Phase 0의 선행 스모크 실행 결과는 현재 파일 버전에 대한 검증이 아니다. 실제 DB 결과는 격리된 테스트 프로젝트에서 실행한 후 별도 기록한다.
-- [ ] 2.5 TypeScript Database 타입 자동 생성
+  - 작업: 테스트 역할/JWT, 초기 데이터, 실행 순서, 각 케이스의 기대 성공/실패 결과를 문서화했다. 결제/환불·지갑, 구독/일정 트리거, 사용자 요청, 관리자 RPC, RLS/grants 케이스를 rollback-only SQL로 준비하고 실행했다.
+  - verify: 2026-10-12 격리된 Supabase 테스트 프로젝트에서 `md/TESTS.sql`을 `ON_ERROR_STOP=1`로 psql 실행하여 결제/환불, 지갑, 트리거, RLS, 관리자 권한 등 전체 시나리오가 통과하고 `PASS: all smoke-test fixtures and mutations rolled back` 출력을 확인했다.
+- [x] 2.5 TypeScript Database 타입 자동 생성
   - 대상 파일: `src/types/database.types.ts`
-  - 작업: `npx supabase gen types typescript` 실행
-  - verify: `Database['public']['Tables']['personal_memos']['Row']` 타입이 정상 임포트되는지 확인
+  - 작업: `npx.cmd supabase gen types typescript --db-url ...` 실행하여 원격 DB 기반 타입 갱신
+  - verify: 2026-10-12 `src/types/database.types.ts` 생성 완료. `Database['public']['Tables']['personal_memos']['Row']` 타입 포함 12개 테이블/뷰/함수 타입 갱신 확인, `npx.cmd tsc --noEmit` 에러 0건 통과, Vitest 30개 파일 / 106개 테스트 100% 통과 확인.
 
 ---
 
@@ -277,10 +277,10 @@
   - verify: TypeScript 타입 에러 0건, Vitest 30개 파일 / 106개 테스트 전체 통과 (100% PASS), `npm run build` 정적 13개 페이지 export 생성 성공
 
 ### Phase 7. Web/PWA 통합, 안정화 및 릴리스 검증
-- [ ] 7.1 (시나리오 작성 완료, DB 실행 검증 대기) 게임 버전/픽업 패스 일정 안전 동기화 검증
+- [x] 7.1 게임 버전/픽업 패스 일정 안전 동기화 검증
   - 대상 파일: `md/SCHEMA.sql` (트리거 검증)
   - 작업: 관리자가 버전 또는 픽업 일정의 시작일·종료일을 변경했을 때 DB 트리거 동작 확인
-  - verify: 연결된 `PLANNED` 지출의 시작일·종료일·예정일만 동기화되고 `CONFIRMED` 지출은 보존되는지 확인
+  - verify: 2026-10-12 `md/TESTS.sql`의 SCH-01 및 SCH-02 시나리오 psql 실행에서 관리자의 일정 날짜 변경 시 연결된 `PLANNED` 지출의 시작일·종료일·예정일만 동기화되고 `CONFIRMED`/`CANCELLED` 지출 및 날짜 외 컬럼은 완벽히 보존됨을 검증했다.
 - [x] 7.2 두 달에 걸치는 픽업 일정의 예산 이월/차감 연동 및 만료 모달
   - 대상 파일: `src/components/expense/overdue-planned-modal.tsx`, `src/lib/budget-calculations.ts`
   - 작업: 미결제 항목은 종료일 속한 달의 예산으로 배정, 이전 달 결제 시 익월 예정액에서 자동 차감 및 만료 처리 구현

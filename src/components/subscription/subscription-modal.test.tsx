@@ -54,26 +54,26 @@ describe("SubscriptionModal", () => {
     })
   })
 
-  it("기본 폼 필드를 렌더링하고 비게임 카테고리에서는 게임 선택란을 숨긴다", () => {
+  it("기본 폼 필드를 렌더링하고 카테고리는 '정기 구독'으로 고정된다", () => {
     render(<SubscriptionModal open onOpenChange={vi.fn()} />)
 
-    expect(screen.getByLabelText("카테고리 *")).toBeTruthy()
+    expect(screen.getByLabelText("카테고리")).toBeTruthy()
     expect(screen.getByLabelText("구독 제목 *")).toBeTruthy()
     expect(screen.getByLabelText("결제 주기 유형 *")).toBeTruthy()
     expect(screen.getByLabelText("매월 결제일 (1~31일) *")).toBeTruthy()
     expect(screen.getByLabelText("기본 금액 (원) *")).toBeTruthy()
     expect(screen.getByLabelText("결제수단 *")).toBeTruthy()
-
-    // 기본 '정기 구독' 카테고리에서는 연관 게임 선택란이 보이지 않음
-    expect(screen.queryByLabelText(/연관 게임/)).toBeNull()
+    expect(screen.getByLabelText(/연관 게임/)).toBeTruthy()
   })
 
-  it("카테고리를 '게임'으로 변경하면 연관 게임 선택란이 나타난다", async () => {
+  it("연관 게임을 선택하고 버전 패스형을 설정할 수 있다", async () => {
     render(<SubscriptionModal open onOpenChange={vi.fn()} />)
 
-    fireEvent.change(screen.getByLabelText("카테고리 *"), { target: { value: "게임" } })
+    await screen.findByRole("option", { name: "원신" })
+    fireEvent.change(screen.getByLabelText(/연관 게임/), { target: { value: "g1" } })
+    fireEvent.change(screen.getByLabelText("결제 주기 유형 *"), { target: { value: "VERSION_PASS" } })
 
-    expect(await screen.findByLabelText(/연관 게임/)).toBeTruthy()
+    expect((screen.getByLabelText("결제 주기 유형 *") as HTMLSelectElement).value).toBe("VERSION_PASS")
   })
 
   it("매월 지정일형(MONTHLY_DAY) 템플릿을 정상적으로 등록한다", async () => {

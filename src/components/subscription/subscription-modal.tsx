@@ -21,7 +21,7 @@ interface GameOption {
   name: string
 }
 
-const CATEGORIES = ["정기 구독", "게임", "식비", "교통", "생활", "기타"] as const
+
 const PAYMENT_METHODS = [
   { value: "WALLET", label: "내 지갑" },
   { value: "GOOGLE_PLAY", label: "Google Play" },
@@ -37,12 +37,12 @@ const CYCLE_TYPE_OPTIONS: { value: SubscriptionCycleType; label: string; desc: s
   {
     value: "INTERVAL_30",
     label: "30일 누적 충전형",
-    desc: "공월 축복 등 결제 시마다 +30일 연장 누적",
+    desc: "월정액 결제 시마다 +30일 연장 누적",
   },
   {
     value: "VERSION_PASS",
     label: "게임 버전 패스형",
-    desc: "게임 새 버전 시작 시 자동 회차 연동 (게임 전용)",
+    desc: "게임 새 버전 시작 시 자동 회차 연동 (게임 연관 필수)",
   },
 ]
 
@@ -60,7 +60,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
   const { user } = useAuth()
 
   const [title, setTitle] = useState("")
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("정기 구독")
+  const [category, setCategory] = useState("정기 구독")
   const [gameId, setGameId] = useState("")
   const [games, setGames] = useState<GameOption[]>([])
   const [cycleType, setCycleType] = useState<SubscriptionCycleType>("MONTHLY_DAY")
@@ -101,15 +101,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
     }
   }, [open, user])
 
-  const handleCategoryChange = (newCat: (typeof CATEGORIES)[number]) => {
-    setCategory(newCat)
-    if (newCat !== "게임") {
-      setGameId("")
-      if (cycleType === "VERSION_PASS") {
-        setCycleType("MONTHLY_DAY")
-      }
-    }
-  }
+
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -118,7 +110,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
     setError(null)
 
     if (!title.trim()) return setError("구독 제목을 입력해 주세요.")
-    if (category === "게임" && cycleType === "VERSION_PASS" && !gameId) {
+    if (cycleType === "VERSION_PASS" && !gameId) {
       return setError("버전 패스형은 연관 게임을 선택해야 합니다.")
     }
     if (cycleType === "MONTHLY_DAY") {
@@ -137,8 +129,8 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
         .insert({
           user_id: user.id,
           title: title.trim(),
-          category,
-          game_id: category === "게임" && gameId ? gameId : null,
+          category: "정기 구독",
+          game_id: gameId || null,
           cycle_type: cycleType,
           billing_day: cycleType === "MONTHLY_DAY" ? Number(billingDay) : 1,
           default_price: priceNum,
@@ -174,51 +166,39 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-sm mt-2">
-          {/* 1. 카테고리 선택 (우선 배치) */}
+          {/* 1. 카테고리 (고정) */}
           <div>
             <label htmlFor="sub-category" className={labelClassName}>
-              카테고리 *
+              카테고리
+            </label>
+            <Input
+              id="sub-category"
+              className={inputClassName}
+              value="정기 구독"
+              disabled
+              readOnly
+            />
+          </div>
+
+          {/* 2. 연관 게임 (선택 사항, 버전 패스형 시 필수) */}
+          <div>
+            <label htmlFor="sub-game" className={labelClassName}>
+              연관 게임 {cycleType === "VERSION_PASS" ? "*" : "(선택 사항)"}
             </label>
             <select
-              id="sub-category"
+              id="sub-game"
               className={selectClassName}
-              value={category}
-              onChange={(e) => handleCategoryChange(e.target.value as (typeof CATEGORIES)[number])}
+              value={gameId}
+              onChange={(e) => setGameId(e.target.value)}
             >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+              <option value="">게임 선택 안 함</option>
+              {games.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
                 </option>
               ))}
             </select>
           </div>
-
-          {/* 2. 연관 게임 (카테고리가 '게임'일 때만 노출) */}
-          {category === "게임" && (
-            <div>
-              <label htmlFor="sub-game" className={labelClassName}>
-                연관 게임 {cycleType === "VERSION_PASS" && "*"}
-              </label>
-              <select
-                id="sub-game"
-                className={selectClassName}
-                value={gameId}
-                onChange={(e) => setGameId(e.target.value)}
-              >
-                <option value="">게임 선택...</option>
-                {games.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-              {games.length === 0 && (
-                <p className="text-[11px] text-content-muted mt-1">
-                  내 게임 목록에 등록된 게임이 없습니다. [게임] 화면에서 구독을 추가해 주세요.
-                </p>
-              )}
-            </div>
-          )}
 
           {/* 3. 구독 제목 */}
           <div>
@@ -228,7 +208,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
             <Input
               id="sub-title"
               className={inputClassName}
-              placeholder="예: 넷플릭스 프리미엄, 공월 축복, 진주 기행"
+              placeholder="구독 제목을 입력하세요"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={150}

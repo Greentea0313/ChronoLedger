@@ -34,7 +34,7 @@ type ScheduleRequest = {
 }
 
 export default function AdminRequestsPage() {
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, role, isLoading: authLoading } = useAuth()
   const { replace } = useRouter()
 
   const [gameRequests, setGameRequests] = useState<GameRequest[]>([])
@@ -44,6 +44,8 @@ export default function AdminRequestsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null)
   const isOnline = useOnlineStatus()
   const [defaultIconUrls, setDefaultIconUrls] = useState<Record<string, string>>({})
+
+  const isAdmin = role === "admin" || user?.app_metadata?.role === "admin"
 
   const fetchRequests = useCallback(async () => {
     setIsDataLoading(true)
@@ -84,10 +86,10 @@ export default function AdminRequestsPage() {
       replace("/auth")
       return
     }
-    if (user.app_metadata.role === "admin") {
+    if (isAdmin) {
       void fetchRequests()
     }
-  }, [authLoading, fetchRequests, replace, user])
+  }, [authLoading, fetchRequests, isAdmin, replace, user])
 
   // 승인/반려 공통 처리 함수
   const processRequest = async (
@@ -148,141 +150,139 @@ export default function AdminRequestsPage() {
   }
 
   if (authLoading) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">데이터 불러오는 중...</div>
+    return <div className="p-6 text-content">데이터 불러오는 중...</div>
   }
   if (!user) return null
-  if (user.app_metadata.role !== "admin") {
-    return <div role="alert" className="flex min-h-screen items-center justify-center bg-gray-900 text-red-400">관리자 권한이 필요합니다.</div>
+  if (!isAdmin) {
+    return <div role="alert" className="p-6 text-danger">관리자 권한이 필요합니다.</div>
   }
   if (isDataLoading) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">데이터 불러오는 중...</div>
+    return <div className="p-6 text-content">데이터 불러오는 중...</div>
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <header className="pb-4 border-b border-line">
-          <h1 className="text-[22px] font-bold text-content">관리자 - 데이터 제안 대기열</h1>
-          <p className="text-sm text-gray-400 mt-1">유저들이 건의한 게임 및 일정 추가 요청을 검토하고 승인합니다.</p>
-        </header>
-
-        {error && (
-          <div className="p-4 bg-danger/15 text-danger rounded-md flex items-center">
-            <AlertCircle className="w-5 h-5 mr-2" /> {error}
-          </div>
-        )}
-
-        <Tabs defaultValue="games" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800 mb-6">
-            <TabsTrigger value="games" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
-              게임 요청 ({gameRequests.length})
-            </TabsTrigger>
-            <TabsTrigger value="schedules" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
-              일정 요청 ({scheduleRequests.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="games" className="space-y-4">
-            {gameRequests.length === 0 ? (
-              <p className="text-gray-500 text-center py-8 bg-gray-800/50 rounded-lg">대기 중인 게임 요청이 없습니다.</p>
-            ) : (
-              gameRequests.map(req => (
-                <Card key={req.id} className="bg-gray-800 border-gray-700">
-                  <CardContent className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-lg">{req.name}</h3>
-                      </div>
-                      {req.memo && <p className="text-sm text-gray-400 mt-2">메모: {req.memo}</p>}
-                      <p className="text-xs text-gray-500 mt-1">요청일: {new Date(req.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <div className="flex flex-col gap-2 w-full md:w-auto mt-2 md:mt-0">
-                      <Input
-                        type="url"
-                        aria-label={`${req.name} 기본 아이콘 URL`}
-                        placeholder="기본 아이콘 URL (https://...)"
-                        value={defaultIconUrls[req.id] ?? ""}
-                        onChange={(event) =>
-                          setDefaultIconUrls((current) => ({
-                            ...current,
-                            [req.id]: event.target.value,
-                          }))
-                        }
-                        disabled={processingId === req.id || !isOnline}
-                        className="border-gray-700 bg-gray-900 text-white"
-                      />
-                      <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 md:flex-none border-success/60 text-success hover:bg-success/15"
-                        onClick={() => processRequest("game", req.id, true, defaultIconUrls[req.id])}
-                        disabled={processingId === req.id || !isOnline}
-                      >
-                        {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
-                        승인
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1 md:flex-none border-danger/60 text-danger hover:bg-danger/15"
-                        onClick={() => processRequest("game", req.id, false)}
-                        disabled={processingId === req.id || !isOnline}
-                      >
-                        {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
-                        반려
-                      </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="schedules" className="space-y-4">
-            {scheduleRequests.length === 0 ? (
-              <p className="text-gray-500 text-center py-8 bg-gray-800/50 rounded-lg">대기 중인 일정 요청이 없습니다.</p>
-            ) : (
-              scheduleRequests.map(req => (
-                <Card key={req.id} className="bg-gray-800 border-gray-700">
-                  <CardContent className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="bg-primary/15 text-primary text-xs px-2 py-1 rounded">
-                          {req.schedule_type === "VERSION" ? "버전" : "픽업"}
-                        </span>
-                        <h3 className="font-bold text-lg">{req.title}</h3>
-                      </div>
-                      <p className="text-sm text-gray-300">대상 게임: <span className="font-semibold text-white">{req.games?.name || '알 수 없음'}</span></p>
-                      <p className="text-sm text-gray-400 mt-1">기간: {req.start_date || '미정'} ~ {req.end_date || '미정'}</p>
-                      {req.memo && <p className="text-sm text-gray-400 mt-2">메모: {req.memo}</p>}
-                    </div>
-                    <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
-                      <Button
-                        variant="outline"
-                        className="flex-1 md:flex-none border-success/60 text-success hover:bg-success/15"
-                        onClick={() => processRequest("schedule", req.id, true)}
-                        disabled={processingId === req.id || !isOnline}
-                      >
-                        {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
-                        승인
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1 md:flex-none border-danger/60 text-danger hover:bg-danger/15"
-                        onClick={() => processRequest("schedule", req.id, false)}
-                        disabled={processingId === req.id || !isOnline}
-                      >
-                        {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
-                        반려
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
+    <div className="space-y-6">
+      <div className="bg-surface p-4 rounded-xl border border-line">
+        <h2 className="text-lg font-semibold text-content">데이터 제안 대기열</h2>
+        <p className="text-sm text-content-secondary mt-1">유저들이 건의한 게임 및 일정 추가 요청을 검토하고 승인합니다.</p>
       </div>
+
+      {error && (
+        <div className="p-4 bg-danger/15 text-danger rounded-md flex items-center">
+          <AlertCircle className="w-5 h-5 mr-2" /> {error}
+        </div>
+      )}
+
+      <Tabs defaultValue="games" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-surface-2 mb-6">
+          <TabsTrigger value="games" className="data-[state=active]:bg-surface-3 data-[state=active]:text-content">
+            게임 요청 ({gameRequests.length})
+          </TabsTrigger>
+          <TabsTrigger value="schedules" className="data-[state=active]:bg-surface-3 data-[state=active]:text-content">
+            일정 요청 ({scheduleRequests.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="games" className="space-y-4">
+          {gameRequests.length === 0 ? (
+            <p className="text-content-secondary text-center py-8 bg-surface-2/50 rounded-lg">대기 중인 게임 요청이 없습니다.</p>
+          ) : (
+            gameRequests.map(req => (
+              <Card key={req.id} className="bg-surface border-line">
+                <CardContent className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-lg text-content">{req.name}</h3>
+                    </div>
+                    {req.memo && <p className="text-sm text-content-secondary mt-2">메모: {req.memo}</p>}
+                    <p className="text-xs text-content-secondary/70 mt-1">요청일: {new Date(req.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex flex-col gap-2 w-full md:w-auto mt-2 md:mt-0">
+                    <Input
+                      type="url"
+                      aria-label={`${req.name} 기본 아이콘 URL`}
+                      placeholder="기본 아이콘 URL (https://...)"
+                      value={defaultIconUrls[req.id] ?? ""}
+                      onChange={(event) =>
+                        setDefaultIconUrls((current) => ({
+                          ...current,
+                          [req.id]: event.target.value,
+                        }))
+                      }
+                      disabled={processingId === req.id || !isOnline}
+                      className="border-line bg-surface-2 text-content"
+                    />
+                    <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 md:flex-none border-success/60 text-success hover:bg-success/15"
+                      onClick={() => processRequest("game", req.id, true, defaultIconUrls[req.id])}
+                      disabled={processingId === req.id || !isOnline}
+                    >
+                      {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+                      승인
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 md:flex-none border-danger/60 text-danger hover:bg-danger/15"
+                      onClick={() => processRequest("game", req.id, false)}
+                      disabled={processingId === req.id || !isOnline}
+                    >
+                      {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
+                      반려
+                    </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="schedules" className="space-y-4">
+          {scheduleRequests.length === 0 ? (
+            <p className="text-content-secondary text-center py-8 bg-surface-2/50 rounded-lg">대기 중인 일정 요청이 없습니다.</p>
+          ) : (
+            scheduleRequests.map(req => (
+              <Card key={req.id} className="bg-surface border-line">
+                <CardContent className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="bg-primary/15 text-primary text-xs px-2 py-1 rounded">
+                        {req.schedule_type === "VERSION" ? "버전" : "픽업"}
+                      </span>
+                      <h3 className="font-bold text-lg text-content">{req.title}</h3>
+                    </div>
+                    <p className="text-sm text-content-secondary">대상 게임: <span className="font-semibold text-content">{req.games?.name || '알 수 없음'}</span></p>
+                    <p className="text-sm text-content-secondary mt-1">기간: {req.start_date || '미정'} ~ {req.end_date || '미정'}</p>
+                    {req.memo && <p className="text-sm text-content-secondary mt-2">메모: {req.memo}</p>}
+                  </div>
+                  <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
+                    <Button
+                      variant="outline"
+                      className="flex-1 md:flex-none border-success/60 text-success hover:bg-success/15"
+                      onClick={() => processRequest("schedule", req.id, true)}
+                      disabled={processingId === req.id || !isOnline}
+                    >
+                      {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+                      승인
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 md:flex-none border-danger/60 text-danger hover:bg-danger/15"
+                      onClick={() => processRequest("schedule", req.id, false)}
+                      disabled={processingId === req.id || !isOnline}
+                    >
+                      {processingId === req.id ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
+                      반려
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

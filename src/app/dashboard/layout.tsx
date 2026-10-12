@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase/client'
@@ -43,16 +43,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }
 
+  const hasMountedChildren = useRef(false)
+
   if (accountDeletionStatus) {
     return <AccountDeletionStatusScreen />
   }
 
-  if (isLoading || isAccountDeletionStatusLoading || !user) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-app text-content">
-        <p role="status">인증 확인 중...</p>
-      </main>
-    )
+  if (!hasMountedChildren.current) {
+    if (isLoading || isAccountDeletionStatusLoading || !user) {
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-app text-content">
+          <p role="status">인증 확인 중...</p>
+        </main>
+      )
+    }
+    hasMountedChildren.current = true
   }
 
   return (

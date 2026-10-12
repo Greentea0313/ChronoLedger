@@ -1,5 +1,84 @@
 # 프로젝트 진행 현황
 
+## Phase 10.7 페이지별 UI 및 인터랙션 긴급 개선 완료 (2026-10-12)
+
+- **수행 내역**:
+  1. **화면 깜빡임 / 창 가려짐 리셋 / 모달 닫힘 근본 해결**:
+     - `src/app/dashboard/layout.tsx`: `hasMountedChildren` ref를 도입하여 대시보드 마운트 이후 백그라운드 토큰 갱신이나 윈도우 포커스 전환(Alt+Tab) 시 `{children}` 컴포넌트 트리가 unmount되지 않도록 가드.
+     - `src/lib/auth-context.tsx`: `onAuthStateChange`에서 `TOKEN_REFRESHED` 등 포커스 전환 이벤트 발생 시 불필요하게 `isAccountDeletionStatusLoading(true)`를 트리거하여 레이아웃을 리셋시키던 결함 원천 차단.
+  2. **대시보드 에러 방어 및 쿼리 하위 호환**:
+     - `src/lib/subscription-sync.ts`: 원격 Supabase DB에 `cycle_type` 컬럼이 아직 없더라도 42703 오류로 대시보드가 죽지 않고 안전하게 `MONTHLY_DAY`로 폴백 조회하도록 개선.
+     - `src/app/dashboard/page.tsx`: 구독 생성 호출을 비차단 `try...catch`로 감싸고 `overdueResult` 쿼리를 안전한 표준 필터로 단순화.
+  3. **소비 페이지(`/dashboard/expenses`) 버튼 분기 및 문구 수정**:
+     - 상단 헤더 액션 버튼: `activeTab === "expenses"`일 때는 `+ 지출 추가`, `activeTab === "subscriptions"`일 때는 `+ 구독 추가`로 자동 분기하여 정기 구독 탭에서 불필요한 `+ 지출 추가` 버튼 제거.
+     - 정기 구독 탭 타이틀/설명: `정기 구독 템플릿` $\to$ `정기 구독`, `매월 고정 결제, 30일 누적 충전형, 게임 버전 패스 템플릿을 관리합니다.` $\to$ `매월 고정 결제, 30일 누적 충전형, 게임 버전 패스를 관리합니다.`.
+     - 30일 누적 충전형(`INTERVAL_30`) 구독 카드: 잔여일수 배지(`남은 N일`) 표시 및 `[남은 날짜 수정]` 버튼/다이얼로그 추가. 사용자가 현재 남은 충전일수를 입력하면 다음 결제 예정일(D-day)이 자동 계산되어 예정 지출에 즉시 동기화.
+     - 예정 지출 결제 확정 시 결제 수단(`payment_method`), 할인, 쿠폰, 사용 포인트 자유 수정 지원.
+  4. **지출 모달(`ExpenseModal`) 및 상세 모달(`ExpenseDetailModal`) 할인/포인트 모델 일원화**:
+     - 카테고리 목록에서 `정기 구독` 삭제 (`["게임", "식비", "교통", "생활", "기타"]`).
+     - 혼란을 주는 "포인트 할인 (원)" 입력 필드 삭제 $\to$ `정가 (원)`, `쿠폰 (%)`, `할인 (원)`, `사용 포인트 (P)`의 직관적 4대 필드로 일원화 (1P = 1원 자동 연동).
+  5. **구독 모달(`SubscriptionModal`) 개편**:
+     - 카테고리: `정기 구독`으로 고정(read-only).
+     - 제목 placeholder `예: ~` 문구 제거.
+     - 30일 누적 충전형 설명: `월정액 결제 시마다 +30일 연장 누적`으로 변경.
+  6. **게임 관리(`/dashboard/games`) 및 관리자(`/admin`) UI 정리**:
+     - `GameSelectModal`: 트리거 버튼 문구를 `+ 구독 추가`에서 `구독 추가`로 수정하여 `+ + 구독 추가` 중복 표시 해결.
+     - `AdminPage`: 일정 타이틀 placeholder `예: 1.2 버전 업데이트` 제거 및 명확한 안내로 교체.
+  7. **원격 DB 마이그레이션 스크립트 작성**:
+     - `md/MIGRATION_PHASE10.sql`: 사용자가 Supabase SQL Editor에서 실행할 수 있는 `cycle_type` 컬럼 추가, `billing_day` NOT NULL 해제, 멱등성 인덱스 DDL 스크립트 생성.
+  8. **캘린더 타일 아이콘 표시 방식 개선**:
+     - `src/app/dashboard/page.tsx`: `start_date`와 `end_date`를 가지는 복수일 기간 일정(버전, 픽업 등) 및 기간형 지출의 경우, 캘린더 타일 우측 상단 게임 아이콘을 전체 기간 동안 반복 표기하지 않고 **오직 `start_date` 타일에만 단일 표기**하도록 `dateGameIcons` 맵 분리 구현.
+     - 날짜 클릭 시 사이드바 및 모바일 드로어 상세 목록(`daySchedules`)에서는 기간 내 전체 일정이 정상 표시되도록 보존.
+  9. **Galaxy Store 등급 설정 저장 호환성 강화**:
+     - `src/components/wallet/store-wallet-widget.tsx`: 구버전 원격 DB RPC 호환을 위해 `p_tier: galaxyTier` 호출 실패 시 `p_tier: null`로 안전하게 폴백 재시도하여 등급/적립률이 정상 저장되도록 보완.
+     - `md/MIGRATION_PHASE10.sql`: 최신 `update_store_wallet_settings` RPC DDL을 마이그레이션 스크립트에 포함하여 사용자 SQL Editor 적용 지원.
+  10. **미구독 게임의 캘린더 일정 노출 차단**:
+     - `src/app/dashboard/page.tsx`: `user_games` 구독 게임 목록을 기준으로 캘린더 일정을 필터링(`subscribedSchedules`)하여, 구독하지 않은 게임(예: 명일방주: 엔드필드)의 공용 버전/픽업 일정이 캘린더에 노출되지 않도록 해결.
+  11. **관리자 센터 상단 서브 탭 내비게이션 구축**:
+     - `src/app/admin/layout.tsx`: 관리자 페이지(`/admin`)와 유저 요청 관리(`/admin/requests`) 간을 자유롭게 오갈 수 있는 상단 탭 내비게이션 바(`[일정 관리]`, `[요청 관리]`) 추가.
+  12. **관리자 공식 일정 목록 조회 / 수정 / 삭제 기능 전면 구현**:
+     - `src/app/admin/page.tsx`: 등록된 게임 일정 전체 목록 카드 및 게임별 필터링 기능 추가. 각 일정별 `[수정]` 모달(타이틀, 유형, 기간, 메모 수정 및 연결 지출 자동 동기화) 및 `[삭제]` 확인 다이얼로그 추가.
+     13. **요청 관리(`/admin/requests`) 관리자 권한 판정 일원화 및 레이아웃 정리**:
+      - `src/app/admin/requests/page.tsx`: 기존 `user.app_metadata.role === 'admin'` 단독 검사로 인해 DB 프로필(`public.users.role`)로 관리자 권한을 부여받은 계정에서 "관리자 권한이 필요합니다." 에러가 발생하던 결함 해결. `const isAdmin = role === "admin" || user?.app_metadata?.role === "admin"`으로 판정 기준을 통일하여 `AdminLayout`, `AdminPage`, `Topbar`와 일관성 확보.
+      - `AdminLayout`과 중복되던 불필요한 `min-h-screen bg-gray-900` 래퍼 및 중복 헤더를 정리하고 테마 시스템(`bg-surface`, `border-line`, `text-content`)으로 통일.
+      - `src/app/admin/requests/page.test.tsx`: auth context의 `role === 'admin'` 기반 조회 지원 테스트 추가.
+   14. **소비/게임/관리자 헤더 높이 통일, 중복 버튼 정리 및 관리자 화면 요청 기능 은닉**:
+      - `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/admin/layout.tsx`: 좌상단 타이틀(소비, 게임, 관리자 센터)의 Y축 높이와 `border-b border-line pb-4` 스타일을 일치시키고, 우측 액션 버튼(`[+ 지출 추가]`, `[+ 구독 추가]`, `[+ 추가 요청]`) 및 관리자 탭 링크의 높이를 `h-10`(40px)으로 완전 통일.
+      - 소비 화면: 정기 구독 탭 본문 영역에 존재하던 중복 `+ 구독 추가` 버튼 제거 (상단 헤더에 1개만 단일 배치).
+      - 게임 화면: 하단 카드에 중복 노출되던 버튼 제거 (헤더에 1개씩만 단일 배치).
+      - 관리자 계정 격리: `role === 'admin'` 계정의 경우 `/dashboard/games`에서 게임 추가 요청 버튼(`[+ 추가 요청]`) 및 요청 안내 카드를 숨기고, `/dashboard/settings`에서 `UserRequestsCard`(내 요청 내역)를 숨김 처리.
+- **검증 결과 (100% PASS)**:
+  - `npx.cmd tsc --noEmit`: 0 오류.
+  - Vitest: 31개 테스트 파일 / 115개 테스트 전체 통과 (100% PASS).
+  - Next.js 정적 export (`npm run build`): 13개 페이지 빌드 성공.
+
+## Phase 2.5 TypeScript Database 타입 자동 생성 완료 (2026-10-12)
+
+- **생성 명령**: `npx.cmd supabase gen types typescript --db-url "postgresql://postgres.[REF]:[PW]@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres"`
+- **수행 내역**:
+  - 원격 Supabase DB의 12개 테이블, RPC 함수, 뷰, 제약조건을 기반으로 `src/types/database.types.ts` 자동 갱신.
+  - `Database['public']['Tables']['personal_memos']['Row']`, `account_deletion_requests`, `expenses`, `game_requests`, `game_schedules`, `games`, `monthly_budgets`, `schedule_requests`, `store_point_transactions`, `store_wallets`, `subscription_templates`, `user_games` 등 12개 핵심 테이블 타입 정의 확인.
+- **검증 결과 (100% PASS)**:
+  - `npx.cmd tsc --noEmit`: TypeScript 컴파일 에러 0건.
+  - Vitest: 30개 테스트 파일 / 106개 테스트 전체 통과 (100% PASS).
+
+## Phase 2.3 & 7.1 DB RLS 및 스케줄 동기화 실행 검증 완료 (2026-10-12)
+
+- **검증 환경**: Supabase 전용 테스트 프로젝트 (`aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres`) 대상 `psql` 17.11 실행.
+- **수행 작업**:
+  - `md/TESTS.sql` 내 누락되어 있던 `test_game_id` 세션 설정(`set_config('chronoledger.test_game_id', :'test_game_id', true)`) 스크립트 결함 수정.
+  - `psql`로 `md/TESTS.sql` 전체 스위트(`ON_ERROR_STOP=1`) 실행.
+- **검증 결과 (100% PASS 및 ROLLBACK 완료)**:
+  - **Phase 2.3 RLS 보안 격리 및 원장 쓰기 봉쇄 검증 완료 (`REQ-02`)**:
+    - 일반 사용자 JWT로 타 사용자 행 접근 및 수정 시도 시 완전 격리/차단 확인.
+    - `store_wallets` 잔액 직접 수정 차단, `store_point_transactions` 원장 직접 쓰기 차단 확인.
+    - `expenses` 물리 삭제 차단 (`DELETE` 정책 부재로 차단), `subscription_templates` 물리 삭제 차단 확인.
+    - 일반 사용자 권한으로 게임/일정 요청 상태를 임의로 `APPROVED`로 변경하는 쓰기 시도 차단 확인.
+  - **Phase 7.1 게임 버전/픽업 패스 일정 안전 동기화 검증 완료 (`SCH-01`, `SCH-02`)**:
+    - 관리자가 버전/픽업 일정 날짜 변경 시 연결된 `PLANNED` 지출의 시작일·종료일·예정일만 자동 동기화됨을 확인.
+    - 이미 결제된 `CONFIRMED` 지출 및 `CANCELLED` 지출은 보존되며, 날짜 외 컬럼 변경 시 무동기화 원칙 검증 완료.
+  - **전체 트랜잭션 롤백 확인**: `PASS: all smoke-test fixtures and mutations rolled back` 출력 및 단일 트랜잭션 원자적 `ROLLBACK` 완료 (DB 내 더미 데이터 잔여 없음).
+
 ## Phase 10 재정리 기획(v2) 구현 진행 현황 (2026-10-12)
 
 - **10.1 대시보드 캘린더 및 지출 바인딩 로직 개선 완료**:

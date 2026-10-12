@@ -197,8 +197,8 @@ describe("ExpensesPage", () => {
     const subTab = await screen.findByRole("tab", { name: "정기 구독" })
     fireEvent.click(subTab)
 
-    expect(await screen.findByText("정기 구독 템플릿")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "+ 구독 추가" })).toBeTruthy()
+    expect(await screen.findByRole("heading", { name: "정기 구독", level: 2 })).toBeTruthy()
+    expect(screen.getAllByRole("button", { name: "+ 구독 추가" }).length).toBe(1)
     expect(screen.getByText("넷플릭스")).toBeTruthy()
     expect(screen.getByText("매월 15일")).toBeTruthy()
     expect(screen.getByRole("button", { name: "구독 중지" })).toBeTruthy()

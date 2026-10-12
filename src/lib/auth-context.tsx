@@ -64,13 +64,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     void setupDeepLink().catch((error: unknown) => console.error("딥링크 초기화 실패:", error))
 
     let authEventReceived = false
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, nextSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       authEventReceived = true
       setSession(nextSession)
       setUser(nextSession?.user ?? null)
       if (nextSession?.user) fetchProfile(nextSession.user.id)
       else { setRole(null); setNickname(null) }
-      setIsAccountDeletionStatusLoading(true)
+      if (event === "SIGNED_OUT" || !nextSession?.user) {
+        setIsAccountDeletionStatusLoading(false)
+      }
       setIsLoading(false)
     })
 

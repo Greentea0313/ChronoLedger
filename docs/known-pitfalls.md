@@ -61,3 +61,16 @@
 
 20. **Null-byte placeholder 파일 주의**
    - 일부 run/worktree에서 새 파일이 NUL(`0x00`) 바이트로만 채워진 placeholder 상태로 생성될 수 있다. 이 상태를 그대로 두면 TypeScript/테스트가 예측 불가능하게 실패한다. 파일을 읽었을 때 내용이 NUL로만 보이면 해당 파일을 삭제 후 정상 텍스트로 재생성한다.
+
+21. **Supabase Connection Pooler 유저명 포맷 (`postgres.<project-ref>`)**
+   - 포트 6543의 Supabase Connection Pooler 연결 시 유저명은 단순 `postgres`가 아니라 반드시 `postgres.[project-ref]` 형태여야 한다. `postgres` 단독 지정 시 풀러에서 테넌트를 식별하지 못해 비밀번호 인증 실패(`FATAL: password authentication failed for user "postgres"`)가 발생한다.
+
+22. **SQL 테스트 스크립트의 psql 변수와 PL/pgSQL 세션 설정 (`set_config`)**
+   - `\gset`으로 바인딩한 psql 변수를 인라인 PL/pgSQL 블록(`DO $$ ... $$`) 내부에서 `current_setting('chronoledger....')`로 참조하려면, 블록 진입 전 반드시 `SELECT set_config('chronoledger....', :'var', true);`를 호출해야 `unrecognized configuration parameter` 런타임 오류를 방지할 수 있다.
+
+23. **Next.js 개발 서버(`next dev`) 실행 중 `next build` 실행 시 청크 누락 (`Cannot find module './xxx.js'`)**
+   - `npm run dev` 개발 서버가 실행 중인 상태에서 `npm run build`가 실행되면 `.next` 디렉터리가 프로덕션 빌드 청크로 덮어쓰여져 개발 서버의 인메모리 Webpack Hot-Reloader가 참조하던 기존 청크(`webpack-runtime.js` 요구 모듈)가 유실된다. 이 경우 개발 서버를 `Ctrl + C`로 중지하고 `.next` 디렉터리를 삭제(`Remove-Item -Recurse -Force .next`)한 후 `npm run dev`를 재시작해야 정상 복구된다.
+
+24. **DB 테이블의 체크 제약조건(`CHECK constraint`) 미갱신 상태에서 신규 등급 데이터 수정 시 `violates check constraint` 실패**
+   - `store_wallets` 테이블의 구버전 제약조건 `chk_wallet_platform_settings`는 `platform = 'GALAXY_STORE' AND user_tier IS NULL`을 강제한다. 따라서 `UPDATE store_wallets SET user_tier = 'GENERAL'`을 실행하기 전에 반드시 `ALTER TABLE store_wallets DROP CONSTRAINT chk_wallet_platform_settings;` 및 신규 4대 등급을 허용하는 새 제약조건을 먼저 추가해야 마이그레이션이 성공한다.
+

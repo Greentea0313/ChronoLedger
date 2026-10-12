@@ -94,14 +94,30 @@ describe("GamesPage", () => {
     expect(container.textContent).toContain("내가 구독 중인 게임을 관리하고")
 
     const subscribeButtons = Array.from(container.querySelectorAll("button")).filter(
-      (b) => b.textContent?.includes("+ 구독 추가")
+      (b) => b.textContent?.includes("구독 추가")
     )
-    expect(subscribeButtons.length).toBeGreaterThanOrEqual(1)
+    expect(subscribeButtons.length).toBe(1)
 
     const requestButtons = Array.from(container.querySelectorAll("button")).filter(
       (b) => b.textContent?.includes("+ 추가 요청")
     )
-    expect(requestButtons.length).toBeGreaterThanOrEqual(1)
+    expect(requestButtons.length).toBe(1)
+  })
+
+  it("hides game request button for admin users", async () => {
+    useAuth.mockReturnValue({ user: { id: "admin-id" }, role: "admin" })
+    await act(async () => root.render(<GamesPage />))
+
+    expect(container.textContent).toContain("내가 구독 중인 게임을 관리합니다.")
+    const requestButtons = Array.from(container.querySelectorAll("button")).filter(
+      (b) => b.textContent?.includes("+ 추가 요청")
+    )
+    expect(requestButtons.length).toBe(0)
+
+    const subscribeButtons = Array.from(container.querySelectorAll("button")).filter(
+      (b) => b.textContent?.includes("구독 추가")
+    )
+    expect(subscribeButtons.length).toBe(1)
   })
 
   it("renders subscribed games list and cards", async () => {

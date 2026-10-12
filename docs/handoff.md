@@ -1,5 +1,46 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 10.7 긴급 UI/UX 개선 및 인터랙션 안정화 완료 (2026-10-12)
+
+- **작업 개요**:
+  - Alt+Tab / 화면 가려짐 시 탭 리셋 및 팝업 닫힘 버그 해결 (`DashboardLayout`의 `hasMountedChildren` ref 가드 및 `auth-context` 불필요 로딩 상태 차단).
+  - 대시보드 로드 에러 방어 및 `cycle_type` 부재 시 자동 하위 호환 폴백 처리.
+  - 소비 탭 헤더 액션 버튼 분기 (`+ 지출 추가` vs `+ 구독 추가`).
+  - 정기 구독 탭 문구 수정 (`정기 구독`, `매월 고정 결제, 30일 누적 충전형, 게임 버전 패스를 관리합니다.`).
+  - 30일 충전형(`INTERVAL_30`) 구독에 대한 `[남은 날짜 수정]` 버튼 및 D-day 동기화 기능 추가.
+  - 지출/상세 모달에서 "포인트 할인 (원)" 삭제 및 `할인 (원) / 쿠폰 (%) / 사용 포인트 (P)` 일원화 (1P = 1원 자동 계산).
+  - 지출 모달에서 `정기 구독` 카테고리 제거, 구독 모달에서 카테고리 `정기 구독` 고정.
+  - `/dashboard/games`에서 `+ + 구독 추가` 중복 해소 (`구독 추가`로 변경).
+  - `/admin` 일정 타이틀 placeholder `예: ~` 문구 제거.
+  - Supabase SQL Editor용 Phase 10 DB 마이그레이션 스크립트 작성 (`md/MIGRATION_PHASE10.sql`): `update_store_wallet_settings` 포함.
+  - 캘린더 타일 아이콘 표시 방식 개선: `start_date`와 `end_date`를 가지는 복수일 기간 일정 및 기간형 지출의 경우, 전체 기간 타일 아이콘 도배를 방지하고 오직 `start_date` 타일에만 아이콘을 단일 표기하도록 분리 (`daySchedules` 상세 조회는 유지).
+  - Galaxy Store 등급 설정 저장 호환성 강화: 구버전 원격 RPC 호환용 `p_tier: null` 자동 폴백 추가.
+  - 미구독 게임 캘린더 일정 노출 방지: `user_games` 기반 일정 필터링으로 미구독 게임 공용 일정 분리.
+  - 관리자 탭 내비게이션 및 일정 관리(CRUD) 전면 개편: `/admin` $\leftrightarrow$ `/admin/requests` 서브 탭 내비게이션, 등록된 일정 목록 조회/필터, 수정 모달, 삭제 확인 다이얼로그 구현.
+  - 요청 관리(`/admin/requests`) 관리자 권한 검사 일원화: `AuthContext`의 `role === 'admin'`과 `user.app_metadata.role === 'admin'`을 포괄하는 `isAdmin` 판정으로 통합하여 DB 프로필 관리자 계정의 정상 접근 보장 및 테마 디자인 토큰 일원화.
+  - 소비/게임/관리자 헤더 높이 통일, 중복 버튼 단일화 및 관리자 화면 요청 기능 은닉: 좌상단 타이틀(소비, 게임, 관리자 센터) 높이와 `border-b border-line pb-4` 규격 통일, 우측 버튼(`[+ 지출 추가]`, `[+ 구독 추가]`, `[+ 추가 요청]`) 및 링크 높이를 `h-10`(40px)으로 일치. 소비 정기 구독 탭 본문과 게임 하단 카드의 중복 버튼 제거(헤더에 단일 배치). 관리자 로그인 시 `/dashboard/games` 및 `/dashboard/settings`의 게임 요청 기능 은닉.
+- **검증 증거**:
+  - `npx.cmd tsc --noEmit`: 0 오류.
+  - Vitest: 31개 테스트 파일 / 115개 테스트 전체 통과 (100% PASS).
+  - Next.js 정적 export (`npm run build`): 13개 페이지 정상 빌드 완료.
+
+## Phase 2 (2.1~2.5) DB 스키마, RPC, RLS 및 TypeScript 타입 생성 100% 완료 (2026-10-12)
+
+- **작업 내용**:
+  - `md/TESTS.sql` 내 누락되어 있던 `test_game_id`의 세션 구성 변수 등록 코드(`SELECT set_config('chronoledger.test_game_id', :'test_game_id', true);`)를 보완.
+  - Supabase 테스트 프로젝트를 대상으로 `psql` 17.11 (`aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres`)을 통해 `md/TESTS.sql` 실행 완료.
+  - `npx.cmd supabase gen types typescript --db-url ...`를 실행하여 원격 DB 최신 스키마 기반 `src/types/database.types.ts` 자동 생성 완료.
+- **검증 증거**:
+  - `REQ-02`: 일반 사용자 JWT에서 타 사용자 행 차단, 지갑/원장 직접 수정 차단, 지출/구독 템플릿 물리 삭제 차단, 요청 상태 임의 승인 차단 검증 통과 (`PASS: RLS isolates users and blocks cross-user RPC/direct wallet/expense/template/request writes`).
+  - `SCH-01`, `SCH-02`: 일정 날짜 변경 시 `PLANNED` 지출만 자동 동기화되고 `CONFIRMED`/`CANCELLED` 지출 및 날짜 외 컬럼 보존 검증 통과.
+  - 최종 `PASS: all smoke-test fixtures and mutations rolled back` 및 트랜잭션 정상 `ROLLBACK` 확인.
+  - `src/types/database.types.ts`: `Database['public']['Tables']['personal_memos']['Row']` 등 12개 테이블 타입 생성 확인.
+  - `npx.cmd tsc --noEmit` 무결점 통과 (에러 0건).
+  - Vitest 30개 테스트 파일 / 106개 테스트 전체 100% 통과.
+- **현재 상태 및 남은 작업**:
+  - **Phase 2 (2.1 ~ 2.5) 전체 완료.**
+  - **Phase 7 (7.1 ~ 7.3) 완료**, 남은 작업: `7.4 Web/PWA MVP 회귀 및 배포 빌드 검증`.
+
 ## Phase 10 재정리 기획(v2) UI/UX 및 구독·게임·설정 개편 완료 (2026-10-12)
 
 - **대시보드 캘린더 및 지출 바인딩 (10.1)**:

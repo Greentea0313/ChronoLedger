@@ -19,7 +19,7 @@ interface Game {
 
 export function GameSelectModal({
   onGameAdded,
-  triggerText = "+ 구독 추가",
+  triggerText = "구독 추가",
   className,
 }: {
   onGameAdded: () => void

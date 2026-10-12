@@ -35,7 +35,8 @@ interface GameScheduleRow {
 }
 
 export default function GamesPage() {
-  const { user } = useAuth()
+  const { user, role } = useAuth()
+  const isAdmin = role === "admin" || user?.app_metadata?.role === "admin"
   const [userGames, setUserGames] = useState<UserGameRow[]>([])
   const [gameIcons, setGameIcons] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(true)
@@ -136,16 +137,18 @@ export default function GamesPage() {
   return (
     <div className="space-y-6">
       {/* 상단 헤더 */}
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>
           <h1 className="text-2xl font-bold text-primary">게임</h1>
           <p className="mt-1 text-sm text-content-secondary">
-            내가 구독 중인 게임을 관리하고, 새로운 게임 및 일정을 요청합니다.
+            {isAdmin
+              ? "내가 구독 중인 게임을 관리합니다."
+              : "내가 구독 중인 게임을 관리하고, 새로운 게임 및 일정을 요청합니다."}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <GameSelectModal onGameAdded={() => void loadGames()} triggerText="+ 구독 추가" />
-          <RequestSubmissionModal triggerText="+ 추가 요청" />
+          <GameSelectModal onGameAdded={() => void loadGames()} triggerText="구독 추가" className="h-10 bg-primary hover:bg-primary-hover text-white font-medium" />
+          {!isAdmin && <RequestSubmissionModal triggerText="+ 추가 요청" className="h-10 border-line text-content hover:bg-surface-2 font-medium" />}
         </div>
       </header>
 
@@ -166,7 +169,7 @@ export default function GamesPage() {
           {userGames.length === 0 ? (
             <EmptyState
               message="구독 중인 게임이 없습니다."
-              hint="하단의 '+ 구독 추가' 버튼으로 카탈로그에서 게임을 구독해보세요."
+              hint="상단의 '+ 구독 추가' 버튼으로 카탈로그에서 게임을 구독해보세요."
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -266,21 +269,7 @@ export default function GamesPage() {
         </CardContent>
       </Card>
 
-      {/* 하단: 공용 게임 카탈로그 검색 및 [구독 추가], [+ 추가 요청] */}
-      <Card className="border-line bg-surface">
-        <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <h3 className="font-bold text-base text-content">원하는 게임이나 일정이 없으신가요?</h3>
-            <p className="text-sm text-content-secondary mt-1">
-              카탈로그에서 게임을 찾아 구독하거나, 관리자에게 새로운 게임 또는 픽업/버전 일정을 직접 요청해 보세요.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <GameSelectModal onGameAdded={() => void loadGames()} triggerText="+ 구독 추가" />
-            <RequestSubmissionModal triggerText="+ 추가 요청" />
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* 공식 일정 사이드 시트 */}
       <Sheet

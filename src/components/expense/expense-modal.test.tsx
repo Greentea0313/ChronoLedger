@@ -36,7 +36,7 @@ function setup() {
       })
     }
     const wallets = query(null)
-    wallets.eq.mockResolvedValue({ data: [{ platform: "GOOGLE_PLAY", current_balance: 1000, earn_rate: 0.2 }], error: null })
+    wallets.eq.mockResolvedValue({ data: [{ platform: "GOOGLE_PLAY", current_balance: 10000, earn_rate: 0.2 }], error: null })
     return wallets
   })
   const inserted = { select: vi.fn(), single: vi.fn() }
@@ -62,8 +62,7 @@ describe("ExpenseModal", () => {
     await screen.findByRole("option", { name: /버전 1.0/ })
     fireEvent.change(screen.getByLabelText("연결할 버전 일정"), { target: { value: "s1" } })
     fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "119000" } })
-    fireEvent.change(screen.getByLabelText("포인트 할인 (원)"), { target: { value: "5000" } })
-    fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "250" } })
+    fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "5000" } })
     fireEvent.change(screen.getByLabelText("포인트 사용 지갑"), { target: { value: "GOOGLE_PLAY" } })
 
     expect(screen.getByText("실결제액: 114,000 원")).toBeTruthy()
@@ -86,7 +85,7 @@ describe("ExpenseModal", () => {
       p_original_price: 119000,
       p_discount_amount: 0,
       p_point_discount_amount: 5000,
-      p_used_points: 250,
+      p_used_points: 5000,
       p_point_platform: "GOOGLE_PLAY",
       p_payment_method: "WALLET",
       p_deduct_asset: true,
@@ -97,9 +96,8 @@ describe("ExpenseModal", () => {
     render(<ExpenseModal open onOpenChange={vi.fn()} />)
     await screen.findByRole("option", { name: "Sample RPG" })
     fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "테스트" } })
-    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "10000" } })
-    fireEvent.change(screen.getByLabelText("포인트 할인 (원)"), { target: { value: "5000" } })
-    fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "5000" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "20000" } })
+    fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "15000" } })
     fireEvent.click(screen.getByRole("button", { name: "결제 확정" }))
 
     expect((await screen.findByRole("alert")).textContent).toContain("포인트 잔액이 부족")

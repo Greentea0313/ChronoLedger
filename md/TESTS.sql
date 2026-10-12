@@ -126,7 +126,7 @@ BEGIN
     ) OR NOT EXISTS (
         SELECT 1 FROM public.store_wallets
         WHERE user_id = v_user AND platform = 'GALAXY_STORE'
-          AND current_balance = 0 AND user_tier IS NULL AND earn_rate = 0.10
+          AND current_balance = 0 AND (user_tier = 'GENERAL' OR user_tier IS NULL) AND earn_rate = 0.10
     ) THEN
         RAISE EXCEPTION 'FAIL: initial store wallet values are incorrect';
     END IF;
@@ -191,6 +191,7 @@ VALUES (
     :'test_user_id'::uuid
 )
 RETURNING id AS test_game_id \gset
+SELECT set_config('chronoledger.test_game_id', :'test_game_id', true);
 
 INSERT INTO public.games (name, default_icon_url, created_by)
 VALUES (

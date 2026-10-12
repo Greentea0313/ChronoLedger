@@ -6,11 +6,14 @@ import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { ExpenseModal, type PlannedExpenseInput } from "@/components/expense/expense-modal"
 import { ExpenseDetailModal, type ExpenseDetail } from "@/components/expense/expense-detail-modal"
 import { SubscriptionModal } from "@/components/subscription/subscription-modal"
-import { ensureMonthlySubscriptionExpenses, type SubscriptionCycleType } from "@/lib/subscription-sync"
+import { addDays, ensureMonthlySubscriptionExpenses, type SubscriptionCycleType } from "@/lib/subscription-sync"
+import { getKstToday } from "@/lib/dashboard-date"
 import {
   Bar,
   BarChart,
@@ -24,7 +27,7 @@ import {
 } from "recharts"
 
 const EXPENSE_COLUMNS =
-  "id, title, final_amount, status, cancellation_kind, target_date, end_date, game_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, point_platform, deduct_from_asset, memo, games(name, default_icon_url)"
+  "id, title, final_amount, status, cancellation_kind, target_date, end_date, game_id, template_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, point_platform, deduct_from_asset, memo, games(name, default_icon_url)"
 
 interface ExpenseRow {
   id: string
@@ -35,6 +38,7 @@ interface ExpenseRow {
   target_date: string
   end_date: string | null
   game_id: string | null
+  template_id?: string | null
   category: string
   original_price: number
   discount_amount?: number
@@ -94,6 +98,9 @@ export default function ExpensesPage() {
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false)
   const [payingExpense, setPayingExpense] = useState<PlannedExpenseInput | null>(null)
   const [detailExpense, setDetailExpense] = useState<ExpenseDetail | null>(null)
+  const [editingIntervalTemplate, setEditingIntervalTemplate] = useState<SubscriptionTemplateRow | null>(null)
+  const [intervalRemainingDays, setIntervalRemainingDays] = useState("30")
+  const [isSavingIntervalDays, setIsSavingIntervalDays] = useState(false)
 
   const loadExpenses = useCallback(async () => {
     if (!user) return
@@ -182,8 +189,70 @@ export default function ExpensesPage() {
       id: expense.id,
       title: expense.title,
       original_price: expense.original_price,
+      payment_method: expense.payment_method,
     })
     setIsExpenseModalOpen(true)
+  }
+
+  const handleOpenIntervalEdit = (template: SubscriptionTemplateRow) => {
+    setEditingIntervalTemplate(template)
+    const today = getKstToday()
+    const plannedExp = expenses.find((e) => e.template_id === template.id && e.status === "PLANNED")
+    if (plannedExp) {
+      const todayMs = new Date(today + "T00:00:00+09:00").getTime()
+      const targetMs = new Date(plannedExp.target_date + "T00:00:00+09:00").getTime()
+      const diffDays = Math.max(0, Math.round((targetMs - todayMs) / (1000 * 60 * 60 * 24)))
+      setIntervalRemainingDays(String(diffDays))
+    } else {
+      setIntervalRemainingDays("30")
+    }
+  }
+
+  const handleSaveIntervalDays = async () => {
+    if (!user || !editingIntervalTemplate) return
+    const days = parseInt(intervalRemainingDays, 10)
+    if (isNaN(days) || days < 0) return
+
+    setIsSavingIntervalDays(true)
+    const today = getKstToday()
+    const newTargetDate = addDays(today, days)
+
+    const plannedExp = expenses.find(
+      (e) => e.template_id === editingIntervalTemplate.id && e.status === "PLANNED",
+    )
+
+    if (plannedExp) {
+      await supabase
+        .from("expenses")
+        .update({ target_date: newTargetDate })
+        .eq("id", plannedExp.id)
+    } else {
+      await supabase.from("expenses").insert({
+        user_id: user.id,
+        template_id: editingIntervalTemplate.id,
+        game_id: editingIntervalTemplate.game_id,
+        title: editingIntervalTemplate.title,
+        category: editingIntervalTemplate.category,
+        status: "PLANNED" as const,
+        target_date: newTargetDate,
+        original_price: editingIntervalTemplate.default_price,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: editingIntervalTemplate.default_price,
+        payment_method: editingIntervalTemplate.payment_method,
+        point_platform:
+          editingIntervalTemplate.payment_method === "WALLET"
+            ? null
+            : editingIntervalTemplate.payment_method,
+        deduct_from_asset: true,
+      })
+    }
+
+    setIsSavingIntervalDays(false)
+    setEditingIntervalTemplate(null)
+    void loadExpenses()
   }
 
   const handleCancelPlanned = async (expenseId: string) => {
@@ -275,18 +344,27 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>
           <h1 className="text-2xl font-bold text-primary">소비</h1>
           <p className="mt-1 text-sm text-content-secondary">카테고리별 지출 통계 및 전체 내역</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            onClick={handleAddExpense}
-            className="bg-primary hover:bg-primary-hover text-white"
-          >
-            + 지출 추가
-          </Button>
+          {activeTab === "expenses" ? (
+            <Button
+              onClick={handleAddExpense}
+              className="h-10 bg-primary hover:bg-primary-hover text-white font-medium"
+            >
+              + 지출 추가
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setIsSubscriptionModalOpen(true)}
+              className="h-10 bg-primary hover:bg-primary-hover text-white font-medium"
+            >
+              + 구독 추가
+            </Button>
+          )}
         </div>
       </header>
 
@@ -618,19 +696,11 @@ export default function ExpensesPage() {
 
         {/* 탭 2: 정기 구독 탭 */}
         <TabsContent value="subscriptions" className="space-y-4 mt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-content">정기 구독 템플릿</h2>
-              <p className="text-xs text-content-secondary mt-0.5">
-                매월 고정 결제, 30일 누적 충전형, 게임 버전 패스 템플릿을 관리합니다.
-              </p>
-            </div>
-            <Button
-              onClick={() => setIsSubscriptionModalOpen(true)}
-              className="bg-primary hover:bg-primary-hover text-white text-sm"
-            >
-              + 구독 추가
-            </Button>
+          <div>
+            <h2 className="text-lg font-bold text-content">정기 구독</h2>
+            <p className="text-xs text-content-secondary mt-0.5">
+              매월 고정 결제, 30일 누적 충전형, 게임 버전 패스를 관리합니다.
+            </p>
           </div>
 
           {templates.length === 0 ? (
@@ -664,6 +734,19 @@ export default function ExpensesPage() {
                             ? "버전 패스형"
                             : `매월 ${tpl.billing_day}일`}
                         </span>
+                        {tpl.cycle_type === "INTERVAL_30" && (() => {
+                          const plannedExp = expenses.find((e) => e.template_id === tpl.id && e.status === "PLANNED")
+                          if (!plannedExp) return null
+                          const today = getKstToday()
+                          const todayMs = new Date(today + "T00:00:00+09:00").getTime()
+                          const targetMs = new Date(plannedExp.target_date + "T00:00:00+09:00").getTime()
+                          const diffDays = Math.max(0, Math.round((targetMs - todayMs) / (1000 * 60 * 60 * 24)))
+                          return (
+                            <span className="text-[11px] px-2 py-0.5 rounded bg-info/10 text-info font-medium border border-info/30">
+                              남은 {diffDays}일
+                            </span>
+                          )
+                        })()}
                       </div>
                       <span
                         className={`text-[11px] font-medium px-2 py-0.5 rounded shrink-0 ${
@@ -705,7 +788,17 @@ export default function ExpensesPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex justify-end">
+                    <div className="mt-4 flex items-center justify-end gap-2">
+                      {tpl.cycle_type === "INTERVAL_30" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenIntervalEdit(tpl)}
+                          className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
+                        >
+                          남은 날짜 수정
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -753,6 +846,76 @@ export default function ExpensesPage() {
           void loadExpenses()
         }}
       />
+
+      {/* 30일 누적 충전형 남은 날짜 수정 다이얼로그 */}
+      <Dialog
+        open={Boolean(editingIntervalTemplate)}
+        onOpenChange={(open) => {
+          if (!open) setEditingIntervalTemplate(null)
+        }}
+      >
+        <DialogContent className="max-w-md border-line bg-surface text-content">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-content">
+              {editingIntervalTemplate?.title} - 남은 날짜 수정
+            </DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              현재 남은 충전일수를 입력하면 다음 결제 예정일(D-day)이 자동으로 계산되어 반영됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <label htmlFor="interval-remaining-days" className="block text-xs font-medium text-content-secondary mb-1.5">
+                현재 남은 일수 (일)
+              </label>
+              <Input
+                id="interval-remaining-days"
+                type="number"
+                min="0"
+                max="365"
+                value={intervalRemainingDays}
+                onChange={(e) => setIntervalRemainingDays(e.target.value)}
+                placeholder="예: 25"
+                className="bg-surface-2 border-line text-content"
+              />
+            </div>
+            {(() => {
+              const days = parseInt(intervalRemainingDays, 10)
+              if (isNaN(days) || days < 0) return null
+              const nextDate = addDays(getKstToday(), days)
+              return (
+                <p className="text-xs text-primary font-medium">
+                  오늘({getKstToday()}) 기준 {days}일 후인 <span className="font-bold underline">{nextDate}</span>에 다음 결제가 예정됩니다.
+                </p>
+              )
+            })()}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditingIntervalTemplate(null)}
+              className="border-line-control text-content-secondary hover:text-content"
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleSaveIntervalDays()}
+              disabled={
+                isSavingIntervalDays ||
+                isNaN(parseInt(intervalRemainingDays, 10)) ||
+                parseInt(intervalRemainingDays, 10) < 0
+              }
+              className="bg-primary hover:bg-primary-hover text-white"
+            >
+              {isSavingIntervalDays ? "저장 중..." : "저장"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

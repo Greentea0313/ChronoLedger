@@ -130,6 +130,7 @@ describe("AdminRequestsPage", () => {
   it("does not fetch requests for a non-admin user", async () => {
     useAuth.mockReturnValue({
       user: { id: "user-1", app_metadata: { role: "user" } },
+      role: "user",
       isLoading: false,
     })
 
@@ -137,5 +138,18 @@ describe("AdminRequestsPage", () => {
 
     expect(container.textContent).toContain("관리자 권한이 필요합니다.")
     expect(from).not.toHaveBeenCalled()
+  })
+
+  it("loads requests when role='admin' from auth context even without app_metadata.role", async () => {
+    useAuth.mockReturnValue({
+      user: { id: "admin-1", app_metadata: {} },
+      role: "admin",
+      isLoading: false,
+    })
+
+    await renderPage()
+
+    expect(container.textContent).toContain("Sample RPG")
+    expect(gameQuery.eq).toHaveBeenCalledWith("request_status", "PENDING")
   })
 })

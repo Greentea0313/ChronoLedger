@@ -23,6 +23,7 @@ export interface PlannedExpenseInput {
   id: string
   title: string
   original_price: number
+  payment_method?: string
 }
 
 interface ExpenseModalProps {
@@ -53,7 +54,7 @@ interface WalletInfo {
   earn_rate: number
 }
 
-const CATEGORIES = ["게임", "정기 구독", "식비", "교통", "생활", "기타"] as const
+const CATEGORIES = ["게임", "식비", "교통", "생활", "기타"] as const
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   WALLET: "내 지갑",
   GOOGLE_PLAY: "Google Play",
@@ -79,7 +80,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   const [title, setTitle] = useState("")
   const [originalPrice, setOriginalPrice] = useState("")
   const [discountAmount, setDiscountAmount] = useState("")
-  const [pointDiscountAmount, setPointDiscountAmount] = useState("")
+  const [couponPercent, setCouponPercent] = useState("")
   const [usedPoints, setUsedPoints] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("WALLET")
   const [selectedPointPlatform, setSelectedPointPlatform] = useState<PointPlatform>("GOOGLE_PLAY")
@@ -97,9 +98,16 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     setTitle(plannedExpense?.title ?? "")
     setOriginalPrice(plannedExpense ? String(plannedExpense.original_price) : "")
     setDiscountAmount("")
-    setPointDiscountAmount("")
+    setCouponPercent("")
     setUsedPoints("")
-    setPaymentMethod("WALLET")
+    setPaymentMethod(
+      plannedExpense?.payment_method &&
+        (plannedExpense.payment_method === "WALLET" ||
+          plannedExpense.payment_method === "GOOGLE_PLAY" ||
+          plannedExpense.payment_method === "GALAXY_STORE")
+        ? (plannedExpense.payment_method as PaymentMethod)
+        : "WALLET",
+    )
     setDeductAsset(true)
     setCategory("게임")
     setGameId("")
@@ -162,17 +170,40 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     }
   }, [gameId, paymentDate, games, title])
 
+  const handlePriceChange = (val: string) => {
+    setOriginalPrice(val)
+    const pct = Number(couponPercent)
+    const priceNum = toAmount(val)
+    if (!isNaN(pct) && pct > 0 && priceNum > 0) {
+      setDiscountAmount(String(Math.floor((priceNum * pct) / 100)))
+    }
+  }
+
+  const handleCouponChange = (val: string) => {
+    setCouponPercent(val)
+    const pct = Number(val)
+    const priceNum = toAmount(originalPrice)
+    if (!isNaN(pct) && pct > 0 && priceNum > 0) {
+      setDiscountAmount(String(Math.floor((priceNum * pct) / 100)))
+    } else if (val === "") {
+      setDiscountAmount("")
+    }
+  }
+
   const input = useMemo(
-    () => ({
-      originalPrice: toAmount(originalPrice),
-      discountAmount: toAmount(discountAmount),
-      pointDiscountAmount: toAmount(pointDiscountAmount),
-      usedPoints: toAmount(usedPoints),
-      paymentMethod,
-      pointPlatform: resolvePointPlatform(paymentMethod, selectedPointPlatform, toAmount(usedPoints)),
-      paymentDate,
-    }),
-    [discountAmount, originalPrice, paymentDate, paymentMethod, pointDiscountAmount, selectedPointPlatform, usedPoints],
+    () => {
+      const uPoints = toAmount(usedPoints)
+      return {
+        originalPrice: toAmount(originalPrice),
+        discountAmount: toAmount(discountAmount),
+        pointDiscountAmount: uPoints,
+        usedPoints: uPoints,
+        paymentMethod,
+        pointPlatform: resolvePointPlatform(paymentMethod, selectedPointPlatform, uPoints),
+        paymentDate,
+      }
+    },
+    [discountAmount, originalPrice, paymentDate, paymentMethod, selectedPointPlatform, usedPoints],
   )
   const finalAmount = calculateFinalAmount(input)
   const pointWallet = wallets.find((wallet) => wallet.platform === input.pointPlatform)
@@ -325,15 +356,15 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label htmlFor="expense-price" className={labelClassName}>정가 (원)</label>
-              <Input id="expense-price" type="number" inputMode="numeric" min={0} step={1} value={originalPrice} onChange={(event) => setOriginalPrice(event.target.value)} className={inputClassName} />
+              <Input id="expense-price" type="number" inputMode="numeric" min={0} step={1} value={originalPrice} onChange={(event) => handlePriceChange(event.target.value)} className={inputClassName} />
             </div>
             <div>
-              <label htmlFor="expense-discount" className={labelClassName}>할인/쿠폰 (원)</label>
-              <Input id="expense-discount" type="number" inputMode="numeric" min={0} step={1} value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} className={inputClassName} />
+              <label htmlFor="expense-coupon" className={labelClassName}>쿠폰 (%)</label>
+              <Input id="expense-coupon" type="number" inputMode="numeric" min={0} max={100} step={1} placeholder="선택 사항" value={couponPercent} onChange={(event) => handleCouponChange(event.target.value)} className={inputClassName} />
             </div>
             <div>
-              <label htmlFor="expense-point-discount" className={labelClassName}>포인트 할인 (원)</label>
-              <Input id="expense-point-discount" type="number" inputMode="numeric" min={0} step={1} value={pointDiscountAmount} onChange={(event) => setPointDiscountAmount(event.target.value)} className={inputClassName} />
+              <label htmlFor="expense-discount" className={labelClassName}>할인 (원)</label>
+              <Input id="expense-discount" type="number" inputMode="numeric" min={0} step={1} value={discountAmount} onChange={(event) => { setDiscountAmount(event.target.value); setCouponPercent("") }} className={inputClassName} />
             </div>
             <div>
               <label htmlFor="expense-used-points" className={labelClassName}>사용 포인트 (P)</label>

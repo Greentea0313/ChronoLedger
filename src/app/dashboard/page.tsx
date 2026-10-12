@@ -16,7 +16,7 @@ import { useOnlineStatus } from "@/lib/use-online-status"
 import { isOffline } from "@/lib/offline-guard"
 import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
 
-const EXPENSE_COLUMNS = "id, title, final_amount, status, target_date, end_date, game_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, deduct_from_asset, point_platform"
+const EXPENSE_COLUMNS = "id, title, final_amount, status, target_date, start_date, end_date, game_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, deduct_from_asset, point_platform"
 
 interface ScheduleRow {
   id: string
@@ -37,6 +37,7 @@ interface ExpenseRow {
   final_amount: number
   status: "PLANNED" | "CONFIRMED" | "CANCELLED"
   target_date: string
+  start_date?: string | null
   end_date: string | null
   game_id: string | null
   category: string
@@ -105,7 +106,11 @@ export default function DashboardPage() {
     try {
       const today = getKstToday()
       if (!isOffline()) {
-        await ensureMonthlySubscriptionExpenses(user.id, year, month)
+        try {
+          await ensureMonthlySubscriptionExpenses(user.id, year, month)
+        } catch (subErr) {
+          console.warn("구독 자동 생성 건너뜀 (비차단):", subErr)
+        }
       }
       const { startDate, endDateExclusive } = getGridRange(year, month)
 
@@ -129,7 +134,7 @@ export default function DashboardPage() {
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).eq("status", "PLANNED").gte("end_date", startDate).lt("end_date", endDateExclusive),
         supabase.from("user_games").select("game_id, games(name, default_icon_url)").eq("user_id", user.id),
-        supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price").eq("user_id", user.id).eq("status", "PLANNED").or(`end_date.lt.${today},and(end_date.is.null,target_date.lt.${today})`),
+        supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price").eq("user_id", user.id).eq("status", "PLANNED"),
         supabase.from("games").select("id, name, default_icon_url"),
       ])
 
@@ -216,15 +221,23 @@ export default function DashboardPage() {
         }),
     [baseDate, expenses, userGamesMap],
   )
+  const userGameIdSet = useMemo(() => new Set(userGames.map((g) => g.game_id)), [userGames])
+
+  // 사용자가 구독한 게임의 일정만 캘린더에 표시 (구독하지 않은 게임의 공용 일정은 표시 제외)
+  const subscribedSchedules = useMemo(
+    () => schedules.filter((s) => !s.game_id || userGameIdSet.has(s.game_id)),
+    [schedules, userGameIdSet],
+  )
+
   const daySchedules = useMemo(
     () => {
-      const currentDaySchedules = schedules.filter(s => baseDate >= s.start_date && baseDate <= s.end_date)
+      const currentDaySchedules = subscribedSchedules.filter(s => baseDate >= s.start_date && baseDate <= s.end_date)
       return currentDaySchedules.map(s => {
         const gameInfo = s.game_id ? allGamesMap.get(s.game_id) : null
         return { ...s, gameName: gameInfo ? gameInfo.name : null, iconUrl: gameInfo?.iconUrl }
       })
     },
-    [baseDate, schedules, allGamesMap],
+    [baseDate, subscribedSchedules, allGamesMap],
   )
   const detailExpense = useMemo(() => {
     const expense = expenses.find((item) => item.id === detailExpenseId)
@@ -239,13 +252,44 @@ export default function DashboardPage() {
 
   const scheduleDates = useMemo(() => {
     const map = new Map<string, ScheduleRow[]>()
-    for (const schedule of schedules) {
+    for (const schedule of subscribedSchedules) {
       for (const key of enumerateDates(schedule.start_date, schedule.end_date)) {
         map.set(key, [...(map.get(key) ?? []), schedule])
       }
     }
     return map
-  }, [schedules])
+  }, [subscribedSchedules])
+
+  // 캘린더 타일 아이콘 매핑:
+  // 1) start_date와 end_date를 가지는 일정: 전체 기간이 아닌 start_date에만 아이콘 표기
+  // 2) start_date와 end_date를 가지는 지출: start_date에만 아이콘 표기
+  // 3) target_date만 존재하는 지출: target_date에 아이콘 표기
+  const dateGameIcons = useMemo(() => {
+    const map = new Map<string, Set<string>>()
+    const addGame = (date: string, gameId: string) => {
+      if (!map.has(date)) map.set(date, new Set())
+      map.get(date)!.add(gameId)
+    }
+
+    // 일정: 사용자가 구독한 게임의 start_date에만 아이콘 등록
+    for (const schedule of subscribedSchedules) {
+      if (schedule.game_id && schedule.start_date) {
+        addGame(schedule.start_date, schedule.game_id)
+      }
+    }
+
+    // 지출: start_date/end_date가 있으면 start_date에, 없으면(target_date만 존재) target_date에 등록
+    for (const expense of expenses) {
+      if (expense.status === "CANCELLED" || !expense.game_id) continue
+      if (expense.start_date && expense.end_date) {
+        addGame(expense.start_date, expense.game_id)
+      } else if (expense.target_date) {
+        addGame(expense.target_date, expense.game_id)
+      }
+    }
+
+    return map
+  }, [expenses, subscribedSchedules])
 
   const memoDates = useMemo(() => new Set(memos.map((memo) => memo.memo_date)), [memos])
 
@@ -253,26 +297,27 @@ export default function DashboardPage() {
     () =>
       (ready ? buildCalendarGrid(year, month) : []).map((cell) => {
         const daySchedules = scheduleDates.get(cell.date) ?? []
+        const gameIdSet = dateGameIcons.get(cell.date) ?? new Set()
+        const dayIcons = Array.from(gameIdSet)
+          .filter((gameId) => allGamesMap.has(gameId))
+          .map((gameId) => {
+            const gameInfo = allGamesMap.get(gameId)!
+            return { gameId, label: gameInfo.name, iconUrl: gameInfo.iconUrl }
+          })
+
         return {
           ...cell,
           schedules: daySchedules.map((schedule) => ({
             id: schedule.id,
             schedule_type: schedule.schedule_type,
             is_start_date: schedule.start_date === cell.date,
-            game_id: schedule.game_id
+            game_id: schedule.game_id,
           })),
-          icons: daySchedules
-            .map((schedule) => schedule.game_id)
-            .filter((gameId, index, self) => self.indexOf(gameId) === index)
-            .filter((gameId) => allGamesMap.has(gameId))
-            .map((gameId) => {
-              const gameInfo = allGamesMap.get(gameId)!
-              return { gameId, label: gameInfo.name, iconUrl: gameInfo.iconUrl }
-            }),
+          icons: dayIcons,
           hasMemo: memoDates.has(cell.date),
         }
       }),
-    [allGamesMap, memoDates, month, ready, scheduleDates, year],
+    [allGamesMap, dateGameIcons, memoDates, month, ready, scheduleDates, year],
   )
 
   if (authLoading || isLoading || !ready) {

@@ -14,7 +14,8 @@ import { useAuth } from "@/lib/auth-context"
 import { requestAccountDeletion } from "@/lib/account-deletion"
 
 export default function SettingsPage() {
-  const { user, beginAccountDeletionTracking } = useAuth()
+  const { user, role, beginAccountDeletionTracking } = useAuth()
+  const isAdmin = role === "admin" || user?.app_metadata?.role === "admin"
   const [confirmationEmail, setConfirmationEmail] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +43,11 @@ export default function SettingsPage() {
     <main className="mx-auto max-w-3xl space-y-6">
       <header>
         <h1 className="text-2xl font-bold text-primary">설정</h1>
-        <p className="mt-1 text-sm text-content-secondary">계정, 재무, 스토어 지갑 및 요청 내역을 관리합니다.</p>
+        <p className="mt-1 text-sm text-content-secondary">
+          {isAdmin
+            ? "계정, 재무 및 스토어 지갑을 관리합니다."
+            : "계정, 재무, 스토어 지갑 및 요청 내역을 관리합니다."}
+        </p>
       </header>
 
       <ProfileAvatarCard />
@@ -52,7 +57,7 @@ export default function SettingsPage() {
 
       <StoreWalletWidget />
 
-      <UserRequestsCard />
+      {!isAdmin && <UserRequestsCard />}
 
       <Card className="border-danger/50 text-content">
         <CardHeader>

@@ -86,7 +86,6 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: Expens
               {expense.category && (<><dt className="text-gray-400">카테고리</dt><dd>{expense.category}</dd></>)}
               {expense.original_price !== undefined && (<><dt className="text-gray-400">정가</dt><dd>{won(expense.original_price)}</dd></>)}
               {expense.discount_amount !== undefined && (<><dt className="text-gray-400">할인</dt><dd>{won(expense.discount_amount)}</dd></>)}
-              {expense.point_discount_amount !== undefined && (<><dt className="text-gray-400">포인트 할인</dt><dd>{won(expense.point_discount_amount)}</dd></>)}
               {expense.used_points !== undefined && (<><dt className="text-gray-400">사용 포인트</dt><dd>{`${expense.used_points.toLocaleString()} P`}</dd></>)}
               {expense.earned_points !== undefined && (<><dt className="text-gray-400">적립 포인트</dt><dd>{`${expense.earned_points.toLocaleString()} P`}</dd></>)}
               {expense.payment_method && (<><dt className="text-gray-400">결제수단</dt><dd>{expense.payment_method}</dd></>)}

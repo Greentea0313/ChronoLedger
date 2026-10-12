@@ -39,16 +39,33 @@ export async function ensureMonthlySubscriptionExpenses(
   const billingCycle = toBillingCycle(year, month)
   const today = todayStr || getKstToday()
 
-  const { data: templates, error: templateError } = await supabase
+  let templates: SubscriptionTemplate[] = []
+  const { data: rawTemplates, error: templateError } = await supabase
     .from("subscription_templates")
     .select("id, title, category, cycle_type, billing_day, default_price, payment_method, game_id, is_active")
     .eq("user_id", userId)
     .eq("is_active", true)
 
   if (templateError) {
-    throw new Error("SUBSCRIPTION_TEMPLATE_FETCH_FAILED")
+    // DB에 cycle_type 컬럼이 아직 없는 경우를 위한 하위 호환 폴백
+    const fallback = await supabase
+      .from("subscription_templates")
+      .select("id, title, category, billing_day, default_price, payment_method, game_id, is_active")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+    if (fallback.error || !fallback.data) {
+      console.warn("구독 템플릿 조회 건너뜀:", fallback.error || templateError)
+      return 0
+    }
+    templates = (fallback.data as unknown as SubscriptionTemplate[]).map((t) => ({
+      ...t,
+      cycle_type: "MONTHLY_DAY",
+    }))
+  } else {
+    templates = (rawTemplates || []) as SubscriptionTemplate[]
   }
-  if (!templates || templates.length === 0) {
+
+  if (templates.length === 0) {
     return 0
   }
 

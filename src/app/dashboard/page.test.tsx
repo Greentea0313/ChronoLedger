@@ -85,7 +85,7 @@ describe("DashboardPage", () => {
     expect(endDateBuilder.eq).toHaveBeenCalledWith("status", "PLANNED")
     expect(endDateBuilder.gte).toHaveBeenCalledWith("end_date", range.startDate)
     expect(endDateBuilder.lt).toHaveBeenCalledWith("end_date", range.endDateExclusive)
-    expect(overdueBuilder.or).toHaveBeenCalledWith(expect.stringContaining("end_date.is.null"))
+    expect(overdueBuilder.eq).toHaveBeenCalledWith("status", "PLANNED")
   })
 
   it("renders minimalist calendar and selected-day sidebar details", async () => {
@@ -145,5 +145,120 @@ describe("DashboardPage", () => {
     expect(expenses.gte).toHaveBeenCalledWith("target_date", getGridRange(now.getFullYear(), now.getMonth() + 1).startDate)
     expect(expenses.lt).toHaveBeenCalledWith("target_date", getGridRange(now.getFullYear(), now.getMonth() + 1).endDateExclusive)
     expect(screen.getAllByText(/30,000/).length).toBeGreaterThan(0)
+  })
+
+  it("복수일 기간 일정의 아이콘은 전체 기간이 아닌 start_date 타일에만 표시된다", async () => {
+    const now = new Date()
+    const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-10`
+    const endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-20`
+
+    useAuth.mockReturnValue({ user: { id: "user-1" }, isLoading: false })
+    ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+
+    const single = (data: unknown) => {
+      const query = createQueryBuilder()
+      query.maybeSingle.mockResolvedValue({ data, error: null })
+      return query
+    }
+    const list = (data: unknown[]) => {
+      const query = createThenableBuilder(data)
+      return query
+    }
+
+    from.mockImplementation((table: string) => {
+      switch (table) {
+        case "user_finances": return single({ total_asset: 1, default_budget: 1 })
+        case "monthly_budgets": return single(null)
+        case "game_schedules": {
+          const q = createQueryBuilder()
+          q.gte.mockResolvedValue({
+            data: [{ id: "s-multi", schedule_type: "VERSION", start_date: startDate, end_date: endDate, game_id: "game-multi" }],
+            error: null,
+          })
+          return q
+        }
+        case "games": {
+          const q = createQueryBuilder()
+          q.select.mockResolvedValue({
+            data: [{ id: "game-multi", name: "원신", default_icon_url: "/genshin.webp" }],
+            error: null,
+          })
+          return q
+        }
+        case "user_games": {
+          const q = createQueryBuilder()
+          q.eq.mockResolvedValue({
+            data: [{ game_id: "game-multi", games: { name: "원신", default_icon_url: "/genshin.webp" } }],
+            error: null,
+          })
+          return q
+        }
+        default: return list([])
+      }
+    })
+
+    render(<DashboardPage />)
+
+    expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+    // start_date인 10일 타일에만 게임 아이콘이 렌더링되므로 총 1개 (또는 VERSION 태그 옆 1개 포함 소수)만 존재해야 함
+    // 전체 기간(11일간) 모두 표시되었다면 11개 이상이었을 것
+    const icons = screen.getAllByLabelText("원신")
+    expect(icons.length).toBe(1)
+  })
+
+  it("구독하지 않은 게임의 일정은 캘린더에 표시되지 않는다", async () => {
+    const now = new Date()
+    const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-15`
+    const endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-25`
+
+    useAuth.mockReturnValue({ user: { id: "user-1" }, isLoading: false })
+    ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+
+    const single = (data: unknown) => {
+      const query = createQueryBuilder()
+      query.maybeSingle.mockResolvedValue({ data, error: null })
+      return query
+    }
+    const list = (data: unknown[]) => {
+      const query = createThenableBuilder(data)
+      return query
+    }
+
+    from.mockImplementation((table: string) => {
+      switch (table) {
+        case "user_finances": return single({ total_asset: 1, default_budget: 1 })
+        case "monthly_budgets": return single(null)
+        case "game_schedules": {
+          const q = createQueryBuilder()
+          q.gte.mockResolvedValue({
+            data: [{ id: "s-unsubscribed", schedule_type: "VERSION", start_date: startDate, end_date: endDate, game_id: "game-endfield" }],
+            error: null,
+          })
+          return q
+        }
+        case "games": {
+          const q = createQueryBuilder()
+          q.select.mockResolvedValue({
+            data: [{ id: "game-endfield", name: "명일방주: 엔드필드", default_icon_url: "/endfield.webp" }],
+            error: null,
+          })
+          return q
+        }
+        case "user_games": {
+          const q = createQueryBuilder()
+          // 사용자가 어떤 게임도 구독하지 않은 상태
+          q.eq.mockResolvedValue({ data: [], error: null })
+          return q
+        }
+        default: return list([])
+      }
+    })
+
+    render(<DashboardPage />)
+
+    expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+    // 구독하지 않은 명일방주: 엔드필드 아이콘 및 일정은 렌더링되지 않아야 함
+    expect(screen.queryByLabelText("명일방주: 엔드필드")).toBeNull()
+    expect(screen.queryByText("명일방주: 엔드필드")).toBeNull()
   })
 })

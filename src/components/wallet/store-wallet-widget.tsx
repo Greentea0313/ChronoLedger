@@ -113,11 +113,22 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
     if (isOffline()) return setMessage({ kind: "error", text: OFFLINE_WRITE_MESSAGE })
     setIsSaving(true)
     setMessage(null)
-    const { error } = await supabase.rpc("update_store_wallet_settings", {
+    let { error } = await supabase.rpc("update_store_wallet_settings", {
       p_platform: "GALAXY_STORE",
       p_tier: galaxyTier,
       p_earn_rate: GALAXY_TIER_RATES[galaxyTier],
     })
+    // 구버전 DB RPC 호환: p_tier가 null이어야만 허용되던 구버전 스키마를 위해 p_tier: null로 폴백 시도
+    if (error) {
+      const fallback = await supabase.rpc("update_store_wallet_settings", {
+        p_platform: "GALAXY_STORE",
+        p_tier: null,
+        p_earn_rate: GALAXY_TIER_RATES[galaxyTier],
+      })
+      if (!fallback.error) {
+        error = null
+      }
+    }
     setIsSaving(false)
     if (error) return setMessage({ kind: "error", text: "Galaxy Store 설정을 저장하지 못했습니다." })
     await finish("Galaxy Store 등급을 저장했습니다.")

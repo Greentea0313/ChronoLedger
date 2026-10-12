@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChronoLedger 아이콘 시안 3종 미리보기</title>
+<style>
+*{box-sizing:border-box}body{font-family:'Malgun Gothic',system-ui,sans-serif;background:#0F1115;color:#F5F7FA;margin:0;padding:32px}
+h1{font-size:22px;margin:0 0 8px}p.sub{color:#B3BBC8;font-size:14px;margin:0 0 24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+.card{background:#171A21;border:1px solid #2A2F3A;border-radius:16px;padding:24px;text-align:center}
+.card h2{font-size:17px;margin:0 0 4px}.card .desc{font-size:13px;color:#B3BBC8;margin:0 0 16px;min-height:60px}
+.big{width:180px;height:180px;margin:0 auto 16px;display:block;border-radius:40px;box-shadow:0 8px 28px rgba(0,0,0,.4)}
+.sizes{display:flex;align-items:flex-end;justify-content:center;gap:14px;margin:12px 0;padding:12px;background:#0F1115;border-radius:12px}
+.sizes div{text-align:center;font-size:11px;color:#A0A9B8}.sizes svg{display:block;margin:0 auto 4px;border-radius:6px}
+.row-light{background:#F5F7FA;border-radius:12px;padding:12px;margin-top:12px}
+.row-light svg{border-radius:12px}
+code{font-size:11px;color:#7C8CFF;word-break:break-all}
+.token{font-size:12px;color:#A0A9B8;margin-top:12px;text-align:left;background:#0F1115;padding:10px 12px;border-radius:10px;line-height:1.7}
+</style>
+</head>
+<body>
+<h1>ChronoLedger 아이콘 시안 3종</h1>
+<p class="sub">파일: <code>docs/icon-drafts-preview.html</code> — 브라우저로 직접 연 파일입니다. 각 시안은 180px + 실제 파비콘 크기(48/32/16px) 축소 테스트 + 라이트 배경 테스트를 포함합니다.</p>
+<div class="grid">
+
+<div class="card">
+<h2>시안 A — C-Clock 계승형 ✅ 채택</h2>
+<p class="desc">기존 임시 아이콘 계승. Chrono의 C + 시곗바늘. 소형 작업표시줄·파비콘 가독성 최상.</p>
+<svg class="big" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#111827"/><rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#2A2F3A" stroke-width="8"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#FACC15" stroke-width="58" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#60A5FA"/></svg>
+<div class="sizes">
+<div><svg width="48" height="48" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#111827"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#FACC15" stroke-width="58" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#60A5FA"/></svg>48px</div>
+<div><svg width="32" height="32" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#111827"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#FACC15" stroke-width="58" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#60A5FA"/></svg>32px</div>
+<div><svg width="16" height="16" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#111827"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#FACC15" stroke-width="58" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#60A5FA"/></svg>16px</div>
+</div>
+<div class="row-light"><svg width="96" height="96" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#111827"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#FACC15" stroke-width="58" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#60A5FA" stroke-width="34" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#60A5FA"/></svg></div>
+<div class="token">바탕 #111827 / C #FACC15 / 바늘 #60A5FA (최종 PNG는 원본 실측으로 정밀화, <code>public/icons/</code> + <code>scripts/generate_icons.py</code> 참조)<br>장점: 연속성·소형 가독성 / 단점: 가계부 속성 약함</div>
+</div>
+
+<div class="card">
+<h2>시안 B — 캘린더 + ₩ 코인</h2>
+<p class="desc">월간 캘린더 + 골드 ₩ 코인 겹침. 일정-지출 연결이라는 제품 본질 직접 표현.</p>
+<svg class="big" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#2A2F3A" stroke-width="8"/><rect x="96" y="112" width="290" height="252" rx="28" fill="#FFFFFF"/><rect x="96" y="112" width="290" height="66" rx="28" fill="#5365D4"/><rect x="96" y="150" width="290" height="28" fill="#5365D4"/><circle cx="150" cy="145" r="10" fill="#fff"/><circle cx="182" cy="145" r="10" fill="#fff"/><rect x="122" y="202" width="130" height="26" rx="13" fill="#65A9FF"/><rect x="122" y="240" width="88" height="26" rx="13" fill="#4CD6A5"/><rect x="122" y="278" width="150" height="14" rx="7" fill="#D8DDE7"/><rect x="122" y="302" width="100" height="14" rx="7" fill="#D8DDE7"/><circle cx="352" cy="348" r="94" fill="#F5B942" stroke="#171A21" stroke-width="18"/><text x="352" y="380" font-size="96" text-anchor="middle" fill="#171A21" font-weight="800" font-family="Arial,sans-serif">₩</text></svg>
+<div class="sizes">
+<div><svg width="48" height="48" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="96" y="112" width="290" height="252" rx="28" fill="#FFFFFF"/><rect x="96" y="112" width="290" height="66" rx="28" fill="#5365D4"/><rect x="96" y="150" width="290" height="28" fill="#5365D4"/><rect x="122" y="202" width="130" height="26" rx="13" fill="#65A9FF"/><rect x="122" y="240" width="88" height="26" rx="13" fill="#4CD6A5"/><circle cx="352" cy="348" r="94" fill="#F5B942" stroke="#171A21" stroke-width="18"/><text x="352" y="380" font-size="96" text-anchor="middle" fill="#171A21" font-weight="800" font-family="Arial,sans-serif">₩</text></svg>48px</div>
+<div><svg width="32" height="32" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="96" y="112" width="290" height="252" rx="28" fill="#FFFFFF"/><rect x="96" y="112" width="290" height="66" rx="28" fill="#5365D4"/><rect x="122" y="202" width="130" height="26" rx="13" fill="#65A9FF"/><rect x="122" y="240" width="88" height="26" rx="13" fill="#4CD6A5"/><circle cx="352" cy="348" r="94" fill="#F5B942" stroke="#171A21" stroke-width="18"/><text x="352" y="380" font-size="96" text-anchor="middle" fill="#171A21" font-weight="800" font-family="Arial,sans-serif">₩</text></svg>32px</div>
+<div><svg width="16" height="16" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="96" y="112" width="290" height="252" rx="28" fill="#FFFFFF"/><rect x="96" y="112" width="290" height="66" rx="28" fill="#5365D4"/><circle cx="352" cy="348" r="94" fill="#F5B942" stroke="#171A21" stroke-width="18"/></svg>16px</div>
+</div>
+<div class="row-light"><svg width="96" height="96" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#171A21"/><rect x="96" y="112" width="290" height="252" rx="28" fill="#FFFFFF"/><rect x="96" y="112" width="290" height="66" rx="28" fill="#5365D4"/><rect x="96" y="150" width="290" height="28" fill="#5365D4"/><rect x="122" y="202" width="130" height="26" rx="13" fill="#65A9FF"/><rect x="122" y="240" width="88" height="26" rx="13" fill="#4CD6A5"/><circle cx="352" cy="348" r="94" fill="#F5B942" stroke="#171A21" stroke-width="18"/><text x="352" y="380" font-size="96" text-anchor="middle" fill="#171A21" font-weight="800" font-family="Arial,sans-serif">₩</text></svg></div>
+<div class="token">바탕 #171A21 / 헤더 #5365D4 / 코인 #F5B942<br>장점: 기능 직관성 / 단점: 16px에서 디테일 뭉개짐</div>
+</div>
+
+<div class="card">
+<h2>시안 C — 타임라인 원장</h2>
+<p class="desc">펼친 장부 + VERSION/PICKUP 배너바 + 예산 게이지. 예산·통계 관리 강조, 차별화형.</p>
+<svg class="big" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#4052C0" stroke-width="8"/><rect x="124" y="104" width="264" height="304" rx="26" fill="#fff"/><line x1="256" y1="104" x2="256" y2="408" stroke="#D8DDE7" stroke-width="6"/><rect x="148" y="140" width="150" height="30" rx="15" fill="#5365D4"/><rect x="148" y="182" width="106" height="30" rx="15" fill="#4CD6A5"/><rect x="148" y="248" width="216" height="18" rx="9" fill="#E8ECF3"/><rect x="148" y="248" width="172" height="18" rx="9" fill="#F5B942"/><rect x="148" y="278" width="216" height="18" rx="9" fill="#E8ECF3"/><rect x="148" y="278" width="216" height="18" rx="9" fill="#FF7478"/><rect x="148" y="322" width="140" height="14" rx="7" fill="#D8DDE7"/><rect x="148" y="344" width="100" height="14" rx="7" fill="#D8DDE7"/></svg>
+<div class="sizes">
+<div><svg width="48" height="48" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="124" y="104" width="264" height="304" rx="26" fill="#fff"/><rect x="148" y="140" width="150" height="30" rx="15" fill="#5365D4"/><rect x="148" y="182" width="106" height="30" rx="15" fill="#4CD6A5"/><rect x="148" y="248" width="216" height="18" rx="9" fill="#E8ECF3"/><rect x="148" y="248" width="172" height="18" rx="9" fill="#F5B942"/><rect x="148" y="278" width="216" height="18" rx="9" fill="#FF7478"/></svg>48px</div>
+<div><svg width="32" height="32" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="124" y="104" width="264" height="304" rx="26" fill="#fff"/><rect x="148" y="140" width="150" height="30" rx="15" fill="#5365D4"/><rect x="148" y="182" width="106" height="30" rx="15" fill="#4CD6A5"/><rect x="148" y="248" width="216" height="18" rx="9" fill="#F5B942"/><rect x="148" y="278" width="216" height="18" rx="9" fill="#FF7478"/></svg>32px</div>
+<div><svg width="16" height="16" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="124" y="104" width="264" height="304" rx="26" fill="#fff"/><rect x="148" y="140" width="150" height="30" rx="15" fill="#5365D4"/><rect x="148" y="248" width="216" height="18" rx="9" fill="#F5B942"/></svg>16px</div>
+</div>
+<div class="row-light"><svg width="96" height="96" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5365D4"/><rect x="124" y="104" width="264" height="304" rx="26" fill="#fff"/><rect x="148" y="140" width="150" height="30" rx="15" fill="#5365D4"/><rect x="148" y="182" width="106" height="30" rx="15" fill="#4CD6A5"/><rect x="148" y="248" width="216" height="18" rx="9" fill="#E8ECF3"/><rect x="148" y="248" width="172" height="18" rx="9" fill="#F5B942"/><rect x="148" y="278" width="216" height="18" rx="9" fill="#FF7478"/></svg></div>
+<div class="token">바탕 #5365D4 / 배너 #5365D4·#4CD6A5 / 경고 #F5B942·#FF7478<br>장점: 차별화 / 단점: 게임성 약함</div>
+</div>
+
+</div>
+<p class="sub" style="margin-top:24px">maskable 대응: 전 시안 80% 안전영역 안에 핵심 요소 배치. 마음에 드는 안을 알려주시면 해당 안으로 512 / maskable-512 / 192 / 180 PNG 규격으로 뽑아 <code>public/icons/</code>에 적용해드리겠습니다.</p>
+</body>
+</html>
