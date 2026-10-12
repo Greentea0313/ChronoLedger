@@ -96,6 +96,18 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
 
 
 
+  const handleGameChange = (selectedGameId: string) => {
+    setGameId(selectedGameId)
+    if (selectedGameId) {
+      setCategory("게임")
+    } else {
+      setCategory("정기 구독")
+      if (cycleType === "VERSION_PASS") {
+        setCycleType("MONTHLY_DAY")
+      }
+    }
+  }
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!user) return
@@ -117,12 +129,13 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
 
     setIsSubmitting(true)
     try {
+      const targetCategory = gameId ? "게임" : "정기 구독"
       const { error: insertError } = await supabase
         .from("subscription_templates")
         .insert({
           user_id: user.id,
           title: title.trim(),
-          category: "정기 구독",
+          category: targetCategory,
           game_id: gameId || null,
           cycle_type: cycleType,
           billing_day: cycleType === "MONTHLY_DAY" ? Number(billingDay) : 1,
@@ -159,7 +172,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-sm mt-2">
-          {/* 1. 카테고리 (고정) */}
+          {/* 1. 카테고리 (연관 게임 선택 시 게임으로 자동 반영) */}
           <div>
             <label htmlFor="sub-category" className={labelClassName}>
               카테고리
@@ -167,7 +180,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
             <Input
               id="sub-category"
               className={inputClassName}
-              value="정기 구독"
+              value={category}
               disabled
               readOnly
             />
@@ -182,7 +195,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
               id="sub-game"
               className={selectClassName}
               value={gameId}
-              onChange={(e) => setGameId(e.target.value)}
+              onChange={(e) => handleGameChange(e.target.value)}
             >
               <option value="">게임 선택 안 함</option>
               {games.map((g) => (
@@ -221,10 +234,10 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
               onChange={(e) => setCycleType(e.target.value as SubscriptionCycleType)}
             >
               {CYCLE_TYPE_OPTIONS.map((opt) => {
-                const disabled = opt.value === "VERSION_PASS" && category !== "게임"
+                const disabled = opt.value === "VERSION_PASS" && !gameId
                 return (
                   <option key={opt.value} value={opt.value} disabled={disabled}>
-                    {opt.label} {disabled ? "(게임 카테고리 전용)" : ""}
+                    {opt.label} {disabled ? "(연관 게임 필수)" : ""}
                   </option>
                 )
               })}

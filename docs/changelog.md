@@ -1,5 +1,15 @@
 # 변경 이력
 
+## 2026-10-13 (정기 구독 모달 연관 게임 선택 및 버전 패스형 활성화 버그 수정)
+
+- **정기 구독 모달(`SubscriptionModal`) 버전 패스형 활성화 및 카테고리 자동 동기화 (`src/components/subscription/subscription-modal.tsx`)**:
+  - `CYCLE_TYPE_OPTIONS`의 `VERSION_PASS` 비활성화 조건(`disabled`)을 기존 고정 카테고리 검사(`category !== "게임"`)에서 연관 게임 미선택 검사(`!gameId`)로 교체하여, 연관 게임 선택 시 즉시 '게임 버전 패스형' 항목이 정상 활성화되도록 수정.
+  - 연관 게임 선택(`handleGameChange`) 시 `category` 상태를 `'게임'`으로 자동 전환(해제 시 `'정기 구독'` 및 `cycleType` 자동 복구)하고, DB 저장(`subscription_templates.insert`) 시 `category`가 올바르게 반영되도록 보장.
+- **버전 패스 지연 회차 생성 엔진 동기화 완화 (`src/lib/subscription-sync.ts`)**:
+  - `ensureMonthlySubscriptionExpenses`에서 `VERSION_PASS` 템플릿 필터링 조건을 `t.cycle_type === "VERSION_PASS" && Boolean(t.game_id)`로 완화하여 `category` 값에 구애받지 않고 버전 연동 회차가 확실하게 생성되도록 방어 로직 강화.
+- **단위 테스트 보강 (`src/components/subscription/subscription-modal.test.tsx`)**:
+  - 연관 게임 미선택 시 버전 패스형 비활성화 확인, 게임 선택 후 즉각 활성화 및 카테고리 전환 확인, 버전 패스형 템플릿 저장 검증, 게임 선택 해제 시 `MONTHLY_DAY` 자동 복구 검증 등 단위 테스트 추가 (총 148개 테스트 100% 통과).
+
 ## 2026-10-13 (Phase 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트)
 
 - **모달 컴포넌트 모바일 패딩 최적화**:

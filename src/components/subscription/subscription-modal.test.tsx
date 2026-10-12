@@ -66,14 +66,63 @@ describe("SubscriptionModal", () => {
     expect(screen.getByLabelText(/연관 게임/)).toBeTruthy()
   })
 
-  it("연관 게임을 선택하고 버전 패스형을 설정할 수 있다", async () => {
+  it("게임 선택 전에는 버전 패스형이 비활성화되고, 연관 게임 선택 시 활성화되며 카테고리가 '게임'으로 자동 반영된다", async () => {
+    render(<SubscriptionModal open onOpenChange={vi.fn()} />)
+
+    await screen.findByRole("option", { name: "원신" })
+
+    // 게임 선택 전: 버전 패스형은 비활성화 상태
+    const versionPassOption = screen.getByRole("option", { name: /게임 버전 패스형/ }) as HTMLOptionElement
+    expect(versionPassOption.disabled).toBe(true)
+    expect((screen.getByLabelText("카테고리") as HTMLInputElement).value).toBe("정기 구독")
+
+    // 연관 게임 선택: 원신(g1)
+    fireEvent.change(screen.getByLabelText(/연관 게임/), { target: { value: "g1" } })
+
+    // 게임 선택 후: 버전 패스형 활성화 및 카테고리가 '게임'으로 변경
+    expect(versionPassOption.disabled).toBe(false)
+    expect((screen.getByLabelText("카테고리") as HTMLInputElement).value).toBe("게임")
+
+    fireEvent.change(screen.getByLabelText("결제 주기 유형 *"), { target: { value: "VERSION_PASS" } })
+    expect((screen.getByLabelText("결제 주기 유형 *") as HTMLSelectElement).value).toBe("VERSION_PASS")
+  })
+
+  it("버전 패스형(VERSION_PASS) 선택 후 정상 저장되며 category='게임'으로 등록된다", async () => {
+    const onCreated = vi.fn()
+    render(<SubscriptionModal open onOpenChange={vi.fn()} onCreated={onCreated} />)
+
+    await screen.findByRole("option", { name: "원신" })
+    fireEvent.change(screen.getByLabelText(/연관 게임/), { target: { value: "g1" } })
+    fireEvent.change(screen.getByLabelText("결제 주기 유형 *"), { target: { value: "VERSION_PASS" } })
+    fireEvent.change(screen.getByLabelText("구독 제목 *"), { target: { value: "진주 기행" } })
+    fireEvent.change(screen.getByLabelText("기본 금액 (원) *"), { target: { value: "12000" } })
+
+    fireEvent.click(screen.getByRole("button", { name: "구독 추가" }))
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalled())
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "진주 기행",
+        category: "게임",
+        game_id: "g1",
+        cycle_type: "VERSION_PASS",
+        default_price: 12000,
+      }),
+    )
+  })
+
+  it("버전 패스형 선택 상태에서 게임 선택을 해제하면 cycleType이 MONTHLY_DAY로 자동 복구된다", async () => {
     render(<SubscriptionModal open onOpenChange={vi.fn()} />)
 
     await screen.findByRole("option", { name: "원신" })
     fireEvent.change(screen.getByLabelText(/연관 게임/), { target: { value: "g1" } })
     fireEvent.change(screen.getByLabelText("결제 주기 유형 *"), { target: { value: "VERSION_PASS" } })
-
     expect((screen.getByLabelText("결제 주기 유형 *") as HTMLSelectElement).value).toBe("VERSION_PASS")
+
+    // 게임 선택 해제
+    fireEvent.change(screen.getByLabelText(/연관 게임/), { target: { value: "" } })
+    expect((screen.getByLabelText("결제 주기 유형 *") as HTMLSelectElement).value).toBe("MONTHLY_DAY")
+    expect((screen.getByLabelText("카테고리") as HTMLInputElement).value).toBe("정기 구독")
   })
 
   it("매월 지정일형(MONTHLY_DAY) 템플릿을 정상적으로 등록한다", async () => {

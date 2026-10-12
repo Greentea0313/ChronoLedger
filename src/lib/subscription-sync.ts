@@ -161,7 +161,7 @@ export async function ensureMonthlySubscriptionExpenses(
 
   // 3. VERSION_PASS 템플릿 처리 (게임 버전 패스형)
   const versionPassTemplates = (templates as SubscriptionTemplate[]).filter(
-    (t) => t.cycle_type === "VERSION_PASS" && t.category === "게임" && t.game_id,
+    (t) => t.cycle_type === "VERSION_PASS" && Boolean(t.game_id),
   )
   for (const template of versionPassTemplates) {
     const { data: schedules } = await supabase

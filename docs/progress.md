@@ -1,5 +1,24 @@
 # 프로젝트 진행 현황
 
+## 정기 구독 모달 연관 게임 선택 및 버전 패스형 활성화 버그 수정 완료 (2026-10-13)
+
+- **배경 및 원인 분석**:
+  - `SubscriptionModal`에서 카테고리 필드가 `'정기 구독'`으로 고정된 상태에서, 결제 주기 옵션(`CYCLE_TYPE_OPTIONS`)의 `VERSION_PASS` 비활성화 조건이 `category !== "게임"`으로 하드코딩되어 있어, 사용자가 연관 게임을 선택해도 '게임 버전 패스형' 옵션이 영구적으로 비활성화(`disabled`)되는 버그 발생.
+  - 또한 `insert` 시 카테고리가 항상 `'정기 구독'`으로 저장되어 DB 제약조건(`chk_subscription_template_version_pass`) 및 `subscription-sync.ts`의 버전 패스 회차 생성 엔진 필터링 조건과 불일치할 위험이 있었음.
+- **수행 내역**:
+  1. `src/components/subscription/subscription-modal.tsx`:
+     - `CYCLE_TYPE_OPTIONS` 비활성화 조건을 `opt.value === "VERSION_PASS" && !gameId`로 변경하여 연관 게임 선택 시 즉각 활성화.
+     - `handleGameChange` 핸들러를 추가하여 연관 게임 선택 시 `category` 상태를 `'게임'`으로 자동 전환(미선택 시 `'정기 구독'`, `VERSION_PASS` 선택 상태에서 해제 시 `MONTHLY_DAY`로 자동 안전 복구).
+     - 카테고리 인라인 입력란 `value={category}` 바인딩 및 `insert` 시 올바른 `category` 전달.
+  2. `src/lib/subscription-sync.ts`:
+     - `ensureMonthlySubscriptionExpenses`에서 `VERSION_PASS` 필터링 조건을 `t.cycle_type === "VERSION_PASS" && Boolean(t.game_id)`로 완화하여 방어적 동기화 보장.
+  3. `src/components/subscription/subscription-modal.test.tsx`:
+     - 연관 게임 선택 전 비활성화, 선택 후 활성화 및 카테고리 전환, 버전 패스형 저장, 게임 해제 시 `MONTHLY_DAY` 자동 복원 등 단위 테스트 보강.
+- **검증 무결성**:
+  - Vitest: 34개 테스트 파일 / 148개 테스트 전체 통과 (100% PASS).
+  - `tsc --noEmit`: 0 errors.
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## Phase 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트 완료 (2026-10-13)
 
 - **배경 및 요구사항**:
