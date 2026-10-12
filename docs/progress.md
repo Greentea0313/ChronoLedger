@@ -13,7 +13,8 @@
      - 타일 좌측 배지가 겹칠 경우 엄격하게 `[VERSION]` $\to$ `[PICKUP]` $\to$ `[CONTENTS]` 순서로 정렬 노출.
      - 3개 배지가 모두 겹치더라도 날짜 번호(`day.day`)를 가리지 않도록 상단(날짜 숫자 + 게임 아이콘)과 하단(`mt-auto` 배지 스택)을 수직 분리하는 `flex-col justify-between min-h-[72px] md:min-h-[96px]` 레이아웃 적용.
      - `VERSION` 배지 바로 우측의 중복 게임 아이콘 완전 제거, `PICKUP` 및 `CONTENTS` 배지 또한 `start_date`에만 단일 표기.
-     - 헤더 월 이동 버튼(`<`, `>`)을 `public/assets/nav/`의 신규 SVG 에셋으로 교체.
+     - 동일 날짜에 둘 이상의 게임 일정이 시작될 경우 타일 우측 게임 아이콘을 **게임명 가나다순(`a.label.localeCompare(b.label, "ko")`)**으로 상 $\to$ 하 정렬.
+     - 헤더 월 이동 버튼(`<`, `>`)을 `public/assets/nav/`의 신규 SVG 에셋으로 교체하고, 라이트/다크 테마 전환 시 화살표 색상이 즉각 동기화되도록 전용 CSS 클래스 및 Tailwind selector darkMode 적용.
   3. **선택일 일정(`HeroSidebar`) 3단 수직 구조 개편**:
      - 기존 가로형 레이아웃에서 발생하던 긴 게임명/제목 말줄임 깨짐을 해결하기 위해 직관적인 3단 카드 구조로 전면 개편:
        - 1행: `[배지] 게임명`
@@ -32,7 +33,7 @@
      - `ExpenseModal`: `[연결된 버전 일정]` 레이블 변경, 비활성화 안내 문구 제거, 상시 disabled 상태로 매칭 버전 명칭만 노출(기간 텍스트 제외).
      - `SubscriptionModal`: 결제수단 필드를 '내 지갑'(`WALLET`, disabled)으로 고정.
 - **검증 결과 (100% PASS)**:
-  - `npx vitest run`: 32개 테스트 파일 / 118개 테스트 전체 통과 (100% PASS).
+  - `npx vitest run`: 32개 테스트 파일 / 119개 테스트 전체 통과 (100% PASS).
   - `npm run build`: Next.js 14 정적 export 13개 페이지 생성 성공 (Linting 및 정적 HTML 생성 완료).
 
 ## Phase 10.7 페이지별 UI 및 인터랙션 긴급 개선 완료 (2026-10-12)

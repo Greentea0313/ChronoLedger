@@ -266,4 +266,80 @@ describe("DashboardPage", () => {
     expect(screen.queryByLabelText("명일방주: 엔드필드")).toBeNull()
     expect(screen.queryByText("명일방주: 엔드필드")).toBeNull()
   })
+
+  it("같은 날짜에 여러 게임 일정이 겹치면 타일 우측 아이콘이 게임명 가나다순으로 정렬된다", async () => {
+    const now = new Date()
+    const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-15`
+    const endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-25`
+
+    useAuth.mockReturnValue({ user: { id: "user-1" }, isLoading: false })
+    ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+
+    const single = (data: unknown) => {
+      const query = createQueryBuilder()
+      query.maybeSingle.mockResolvedValue({ data, error: null })
+      return query
+    }
+    const list = (data: unknown[]) => {
+      const query = createThenableBuilder(data)
+      return query
+    }
+
+    from.mockImplementation((table: string) => {
+      switch (table) {
+        case "user_finances": return single({ total_asset: 1, default_budget: 1 })
+        case "monthly_budgets": return single(null)
+        case "game_schedules": {
+          const q = createQueryBuilder()
+          // DB에서 원신 -> 림버스 컴퍼니 -> 명일방주 순서로 인입된다고 가정
+          q.gte.mockResolvedValue({
+            data: [
+              { id: "s1", schedule_type: "VERSION", start_date: startDate, end_date: endDate, game_id: "game-genshin" },
+              { id: "s2", schedule_type: "PICKUP", start_date: startDate, end_date: endDate, game_id: "game-limbus" },
+              { id: "s3", schedule_type: "PICKUP", start_date: startDate, end_date: endDate, game_id: "game-arknights" },
+            ],
+            error: null,
+          })
+          return q
+        }
+        case "games": {
+          const q = createQueryBuilder()
+          q.select.mockResolvedValue({
+            data: [
+              { id: "game-genshin", name: "원신", default_icon_url: "/genshin.webp" },
+              { id: "game-limbus", name: "림버스 컴퍼니", default_icon_url: "/limbus.webp" },
+              { id: "game-arknights", name: "명일방주", default_icon_url: "/arknights.webp" },
+            ],
+            error: null,
+          })
+          return q
+        }
+        case "user_games": {
+          const q = createQueryBuilder()
+          q.eq.mockResolvedValue({
+            data: [
+              { game_id: "game-genshin", games: { name: "원신", default_icon_url: "/genshin.webp" } },
+              { game_id: "game-limbus", games: { name: "림버스 컴퍼니", default_icon_url: "/limbus.webp" } },
+              { game_id: "game-arknights", games: { name: "명일방주", default_icon_url: "/arknights.webp" } },
+            ],
+            error: null,
+          })
+          return q
+        }
+        default: return list([])
+      }
+    })
+
+    render(<DashboardPage />)
+
+    expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+
+    // 15일 타일 버튼 찾기
+    const tileButton = screen.getByRole("button", { name: startDate })
+    const iconSpans = tileButton.querySelectorAll("span[aria-label]")
+    const iconLabels = Array.from(iconSpans).map((span) => span.getAttribute("aria-label"))
+
+    // 가나다순: 림버스 컴퍼니 -> 명일방주 -> 원신
+    expect(iconLabels).toEqual(["림버스 컴퍼니", "명일방주", "원신"])
+  })
 })

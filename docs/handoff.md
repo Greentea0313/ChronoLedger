@@ -6,8 +6,8 @@
   - **캘린더 타일 배지 우선순위 및 배치 개선 (`desktop-calendar.tsx`)**:
     - 배지 겹침 시 `[VERSION]` $\to$ `[PICKUP]` $\to$ `[CONTENTS]` 고정 우선순위 순차 렌더링.
     - 배지가 3개 모두 겹쳐도 날짜 숫자를 가리지 않도록 상단(날짜+아이콘)과 하단(배지)을 분리하는 `flex-col justify-between` 구조 및 배지 패딩/폰트 최적화.
-    - 타일 내 중복 아이콘 제거 및 시작일(`start_date`) 기준 단일 표기.
-    - 월 내비게이션 버튼을 `public/assets/nav/` 신규 SVG 에셋으로 교체.
+    - 타일 내 중복 아이콘 제거 및 시작일(`start_date`) 기준 단일 표기, 동일 날짜 다중 게임 일정 시작 시 타일 우측 아이콘 **게임명 가나다순(`localeCompare`)** 정렬.
+    - 월 내비게이션 버튼을 `public/assets/nav/` 신규 SVG 에셋으로 교체 및 라이트/다크 테마 전환 시 화살표 즉각 동기화(전용 CSS 클래스 및 Tailwind selector darkMode 적용).
   - **선택일 일정(`HeroSidebar`) 3단 카드 UI 개편**:
     - 긴 게임명과 일정 제목의 가독성을 위해 `[배지] 게임명` / 기간 / `일정 제목` (굵게) / 메모 3단 수직 구조 적용.
   - **전체 화면 일정 정렬 로직 일원화**:
@@ -18,7 +18,7 @@
     - `ExpenseModal`: `[연결된 버전 일정]` disabled 표기 (기간 문구 제외).
     - `SubscriptionModal`: 결제수단 필드를 `내 지갑`(`WALLET`, disabled)으로 고정.
 - **검증 증거**:
-  - `npx vitest run`: 32개 테스트 파일 / 118개 테스트 전체 통과 (100% PASS).
+  - `npx vitest run`: 32개 테스트 파일 / 119개 테스트 전체 통과 (100% PASS).
   - `npm run build`: Next.js 14 정적 export 13개 페이지 빌드 성공.
 
 ## Phase 10.7 긴급 UI/UX 개선 및 인터랙션 안정화 완료 (2026-10-12)

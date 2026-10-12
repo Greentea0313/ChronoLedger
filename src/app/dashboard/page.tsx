@@ -344,6 +344,7 @@ export default function DashboardPage() {
             const gameInfo = allGamesMap.get(gameId)!
             return { gameId, label: gameInfo.name, iconUrl: gameInfo.iconUrl }
           })
+          .sort((a, b) => a.label.localeCompare(b.label, "ko"))
 
         return {
           ...cell,
