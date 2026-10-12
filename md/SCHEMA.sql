@@ -82,7 +82,7 @@ CREATE TABLE public.game_schedules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     title VARCHAR(150) NOT NULL,
-    schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP')),
+    schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS')),
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     memo TEXT,
@@ -98,7 +98,7 @@ CREATE TABLE public.schedule_requests (
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     target_schedule_id UUID REFERENCES public.game_schedules(id) ON DELETE SET NULL, -- 수정 요청 시 대상 일정
     title VARCHAR(150) NOT NULL,
-    schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP')),
+    schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS')),
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     request_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (request_status IN ('PENDING', 'APPROVED', 'REJECTED')),
@@ -771,7 +771,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 CREATE OR REPLACE FUNCTION public.sync_version_expenses_trigger() 
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.schedule_type IN ('VERSION', 'PICKUP')
+    IF NEW.schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS')
        AND (NEW.start_date IS DISTINCT FROM OLD.start_date OR NEW.end_date IS DISTINCT FROM OLD.end_date) THEN
         UPDATE public.expenses
         SET start_date = NEW.start_date,

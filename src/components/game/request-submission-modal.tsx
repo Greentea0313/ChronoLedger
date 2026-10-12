@@ -17,7 +17,7 @@ type Schedule = {
   id: string
   game_id: string
   title: string
-  schedule_type: "VERSION" | "PICKUP"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
   start_date: string
   end_date: string
   memo: string | null
@@ -34,7 +34,7 @@ type ScheduleRequest = {
   game_id: string
   target_schedule_id: string | null
   title: string
-  schedule_type: "VERSION" | "PICKUP"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
   start_date: string
   end_date: string
   memo: string | null
@@ -72,7 +72,7 @@ export function RequestSubmissionModal({
   const [gameId, setGameId] = useState("")
   const [targetScheduleId, setTargetScheduleId] = useState("")
   const [title, setTitle] = useState("")
-  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP">("VERSION")
+  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS">("VERSION")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [scheduleMemo, setScheduleMemo] = useState("")
@@ -317,9 +317,10 @@ export function RequestSubmissionModal({
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="schedule-type" className="text-sm font-medium text-content">일정 종류</label>
-                    <select id="schedule-type" className={selectClassName} value={scheduleType} onChange={(event) => setScheduleType(event.target.value as "VERSION" | "PICKUP")}>
+                    <select id="schedule-type" className={selectClassName} value={scheduleType} onChange={(event) => setScheduleType(event.target.value as "VERSION" | "PICKUP" | "CONTENTS")}>
                       <option value="VERSION">VERSION (버전)</option>
                       <option value="PICKUP">PICKUP (픽업)</option>
+                      <option value="CONTENTS">CONTENTS (콘텐츠)</option>
                     </select>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -1,5 +1,34 @@
 # 프로젝트 진행 현황
 
+## Phase 11.1 게임 일정 다변화, 게임 관리 일정 모달 전환 및 홈 대시보드/지출 정돈 완료 (2026-10-12)
+
+- **수행 내역**:
+  1. **게임 일정 스키마 확장 (`CONTENTS`, 단일 목표 일정)**:
+     - `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`: `chk_schedule_type` 제약조건에 `'CONTENTS'` 추가 및 트리거 함수 갱신.
+     - 단일 목표 일정(`start_date = end_date = target_date`) 구조를 채택하여 기존 날짜 범위 쿼리와 100% 하위 호환 유지.
+     - `src/components/calendar/schedule-banner.tsx`: 콘텐츠(`CONTENTS`) 보라색 배지 스타일 추가.
+     - `src/app/admin/page.tsx`: 일정 타입 선택에 `CONTENTS` 추가, "단일 목표 일정 (하루만 진행)" 체크박스 토글 UI 지원 및 목록 배지/단일 일정 표기 개선.
+     - `src/components/game/request-submission-modal.tsx`, `request-validation.ts`: 유저 요청 모달 및 유효성 검증기에 `CONTENTS` 지원 추가.
+  2. **게임 관리(`/dashboard/games`) 내 구독 게임 일정 보기 중앙 모달 전환**:
+     - `src/app/dashboard/games/page.tsx`: 기존 우측 슬라이드인 Sheet를 화면 중앙 팝업 다이얼로그(`<Dialog>`)로 전환하여 구독 게임의 상세 일정을 집중해서 조회할 수 있도록 개선.
+  3. **홈 대시보드(`/dashboard`) 사이드바 레이아웃 복구 및 타일 아이콘/메모 개선**:
+     - `src/app/dashboard/page.tsx`: 2열 그리드(`DesktopCalendar` + `HeroSidebar`)로 원상 복구하고 스토어 포인트 카드 및 기존 요약 UI 유지.
+     - 캘린더 타일 아이콘 증식 제거: 공식 일정이 아닌 지출(`expenses`) 항목은 타일 아이콘에서 제외하여 순수 구독 게임의 공식 일정 시작일(`start_date`)에만 아이콘 등록.
+     - 개인 메모 인라인 편집/저장 연동: `HeroSidebar` 내에서 해당 일자의 메모를 즉시 작성/저장/수정할 수 있도록 인터페이스 연동.
+  4. **캘린더 타일 배지 및 내비게이션 에셋 교체 (`desktop-calendar.tsx`)**:
+     - `VERSION` 배지 바로 우측의 중복 게임 아이콘 완전 제거 (타일 우측 상단 단일 정렬 유지).
+     - `PICKUP` 및 `CONTENTS` 배지를 `VERSION`과 동일하게 `start_date`에만 단일 표기하도록 로직 개편.
+     - 헤더 월 이동 버튼(`<`, `>`)을 `public/assets/nav/`의 SVG 에셋(`v1-prev-dark.svg`, `v1-next-dark.svg` 등)으로 교체하여 디자인 일관성 확보.
+  5. **지출 모달(`ExpenseModal`) 일정 바인딩 UI 정돈**:
+     - `[연결할 버전 일정]` $\to$ `[연결된 버전 일정]` 레이블 변경.
+     - 비활성화 안내 문구 제거 및 필드를 상시 `disabled`로 두고 결제일 기준 매칭된 버전 제목만 출력 (기간 텍스트 제외).
+  6. **정기 구독 모달(`SubscriptionModal`) 결제수단 고정**:
+     - 결제수단 필드를 `내 지갑`(`WALLET`, disabled)으로 고정.
+- **검증 결과 (100% PASS)**:
+  - `npx tsc --noEmit`: 타입 오류 0건 통과.
+  - Vitest: 31개 테스트 파일 / 116개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 export 13개 페이지 생성 성공.
+
 ## Phase 10.7 페이지별 UI 및 인터랙션 긴급 개선 완료 (2026-10-12)
 
 - **수행 내역**:

@@ -23,8 +23,10 @@ interface MobileDrawerProps {
   schedules?: HeroScheduleItem[]
   expenses: HeroExpenseItem[]
   memos: string[]
+  memoContent?: string
   onSelectExpense?: (expenseId: string) => void
   onRegisterExpense?: () => void
+  onSaveMemo?: (content: string) => Promise<void>
   registerDisabled?: boolean
 }
 
@@ -37,8 +39,10 @@ export function MobileDrawer({
   schedules,
   expenses,
   memos,
+  memoContent,
   onSelectExpense,
   onRegisterExpense,
+  onSaveMemo,
   registerDisabled,
 }: MobileDrawerProps) {
   return (
@@ -64,8 +68,10 @@ export function MobileDrawer({
               schedules={schedules}
               expenses={expenses}
               memos={memos}
+              memoContent={memoContent}
               onSelectExpense={onSelectExpense}
               onRegisterExpense={onRegisterExpense}
+              onSaveMemo={onSaveMemo}
               registerDisabled={registerDisabled}
             />
           </div>

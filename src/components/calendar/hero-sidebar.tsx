@@ -1,11 +1,14 @@
+import { useState, useEffect } from "react"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Pencil, Check, X } from "lucide-react"
 
 const PLATFORM_LABELS: Record<string, string> = {
   GOOGLE_PLAY: "Google",
   GALAXY_STORE: "Galaxy",
+  ONE_STORE: "OneStore",
 }
 
 export interface HeroExpenseItem {
@@ -25,14 +28,16 @@ export interface HeroWalletItem {
 
 export interface HeroScheduleItem {
   id: string
-  schedule_type: "VERSION" | "PICKUP"
+  title: string
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
   start_date: string
   end_date: string
   gameName?: string | null
   iconUrl?: string
+  memo?: string | null
 }
 
-interface HeroSidebarProps {
+export interface HeroSidebarProps {
   selectedDateLabel: string
   totalAsset: number | null
   budgetAmount: number
@@ -41,8 +46,10 @@ interface HeroSidebarProps {
   schedules?: HeroScheduleItem[]
   expenses: HeroExpenseItem[]
   memos: string[]
+  memoContent?: string
   onSelectExpense?: (expenseId: string) => void
   onRegisterExpense?: () => void
+  onSaveMemo?: (content: string) => Promise<void>
   registerDisabled?: boolean
 }
 
@@ -55,14 +62,45 @@ export function HeroSidebarContent({
   schedules = [],
   expenses,
   memos,
+  memoContent,
   onSelectExpense,
   onRegisterExpense,
+  onSaveMemo,
   registerDisabled,
 }: HeroSidebarProps) {
   const budgetProgress =
     budgetAmount > 0 ? Math.min(100, Math.round((expectedExpense / budgetAmount) * 100)) : 0
   const budgetRatio = budgetAmount > 0 ? expectedExpense / budgetAmount : 0
   const budgetTone = budgetRatio > 1 ? "bg-danger" : budgetRatio >= 0.8 ? "bg-warning" : "bg-primary"
+
+  const [isEditingMemo, setIsEditingMemo] = useState(false)
+  const currentMemoText = memoContent !== undefined ? memoContent : (memos[0] || "")
+  const [memoInput, setMemoInput] = useState(currentMemoText)
+  const [isSavingMemo, setIsSavingMemo] = useState(false)
+
+  useEffect(() => {
+    setMemoInput(memoContent !== undefined ? memoContent : (memos[0] || ""))
+    setIsEditingMemo(false)
+  }, [memoContent, memos, selectedDateLabel])
+
+  // VERSION 일정은 start_date가 선택된 날짜와 일치할 때만 노출
+  const filteredSchedules = (schedules || []).filter((s) => {
+    if (s.schedule_type === "VERSION") {
+      return s.start_date === selectedDateLabel
+    }
+    return true
+  })
+
+  const handleSave = async () => {
+    if (!onSaveMemo) return
+    setIsSavingMemo(true)
+    try {
+      await onSaveMemo(memoInput)
+      setIsEditingMemo(false)
+    } finally {
+      setIsSavingMemo(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -110,35 +148,52 @@ export function HeroSidebarContent({
         <CardContent className="space-y-3">
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">게임 일정</h3>
-            {(!schedules || schedules.length === 0) ? (
+            {filteredSchedules.length === 0 ? (
               <EmptyState message="해당 일자의 일정이 없습니다." />
             ) : (
-              schedules.map((schedule) => (
-                <div key={schedule.id} className="relative overflow-hidden flex justify-between items-center min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm">
-                  {schedule.iconUrl && (
-                    <div
-                      className="absolute right-0 top-0 bottom-0 w-32 bg-no-repeat bg-right bg-cover z-0"
-                      style={{
-                        backgroundImage: `url(${schedule.iconUrl})`,
-                        maskImage: "linear-gradient(to right, transparent, black)",
-                        WebkitMaskImage: "linear-gradient(to right, transparent, black)",
-                        opacity: 0.3
-                      }}
-                    />
-                  )}
-                  <div className="relative z-10 flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${schedule.schedule_type === 'VERSION' ? 'bg-primary/20 text-primary' : 'bg-info/20 text-info'}`}>
-                        {schedule.schedule_type}
-                      </span>
-                      <span className="font-medium">{schedule.gameName ?? "게임 미연결"}</span>
+              filteredSchedules.map((schedule) => {
+                const isVersion = schedule.schedule_type === "VERSION"
+                const isPickup = schedule.schedule_type === "PICKUP"
+                const isSingle = schedule.start_date === schedule.end_date
+                return (
+                  <div key={schedule.id} className="relative overflow-hidden flex justify-between items-center min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm">
+                    {schedule.iconUrl && (
+                      <div
+                        className="absolute right-0 top-0 bottom-0 w-32 bg-no-repeat bg-right bg-cover z-0"
+                        style={{
+                          backgroundImage: `url(${schedule.iconUrl})`,
+                          maskImage: "linear-gradient(to right, transparent, black)",
+                          WebkitMaskImage: "linear-gradient(to right, transparent, black)",
+                          opacity: 0.3
+                        }}
+                      />
+                    )}
+                    <div className="relative z-10 flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
+                            isVersion
+                              ? "bg-primary/20 text-primary border-primary/30"
+                              : isPickup
+                                ? "bg-warning/20 text-warning border-warning/30"
+                                : "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                          }`}
+                        >
+                          {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
+                        </span>
+                        <span className="text-xs font-semibold px-1.5 py-0.2 rounded bg-surface border border-line text-content">
+                          {schedule.gameName ?? "게임"}
+                        </span>
+                        <span className="font-medium text-xs">{schedule.title}</span>
+                      </div>
+                      {schedule.memo && <p className="text-[11px] text-content-muted">{schedule.memo}</p>}
+                    </div>
+                    <div className="text-right relative z-10 text-xs text-content-muted shrink-0 pl-2">
+                      {isSingle ? `${schedule.start_date} (단일)` : `${schedule.start_date} ~ ${schedule.end_date}`}
                     </div>
                   </div>
-                  <div className="text-right relative z-10 text-xs text-content-muted">
-                    {schedule.start_date} ~ {schedule.end_date}
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
           </section>
 
@@ -147,50 +202,105 @@ export function HeroSidebarContent({
             {expenses.length === 0 ? (
               <EmptyState message="해당 일자의 지출이 없습니다." hint="등록 버튼으로 추가할 수 있습니다." />
             ) : (
-              expenses.map((expense) => (
-                <div
-                  key={expense.id}
-                  className={`relative overflow-hidden flex justify-between items-center min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm transition-colors duration-fast${onSelectExpense ? " cursor-pointer hover:border-line-control" : ""}`}
-                  role={onSelectExpense ? "button" : undefined}
-                  tabIndex={onSelectExpense ? 0 : undefined}
-                  aria-label={onSelectExpense ? `${expense.title} 상세` : undefined}
-                  onClick={onSelectExpense ? () => onSelectExpense(expense.id) : undefined}
-                  onKeyDown={onSelectExpense ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectExpense(expense.id) } } : undefined}
-                >
-                  {expense.iconUrl && (
-                    <div
-                      className="absolute right-0 top-0 bottom-0 w-32 bg-no-repeat bg-right bg-cover z-0"
-                      style={{
-                        backgroundImage: `url(${expense.iconUrl})`,
-                        maskImage: "linear-gradient(to right, transparent, black)",
-                        WebkitMaskImage: "linear-gradient(to right, transparent, black)",
-                        opacity: 0.3
-                      }}
-                    />
-                  )}
-                  <div className="relative z-10">
-                    <p className="font-medium">{expense.title}</p>
-                    <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"} · {expense.payment_method === 'WALLET' ? '내 지갑' : (expense.payment_method ?? '')}</p>
+              expenses.map((expense) => {
+                const statusLabel = expense.status === "CONFIRMED" ? "확정" : expense.status === "PLANNED" ? "예정" : "취소"
+                const statusTone = expense.status === "CONFIRMED" ? "text-success" : expense.status === "PLANNED" ? "text-info" : "text-danger"
+                return (
+                  <div
+                    key={expense.id}
+                    className={`relative overflow-hidden flex justify-between items-center min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm transition-colors duration-fast${onSelectExpense ? " cursor-pointer hover:border-line-control" : ""}`}
+                    role={onSelectExpense ? "button" : undefined}
+                    tabIndex={onSelectExpense ? 0 : undefined}
+                    aria-label={onSelectExpense ? `${expense.title} 상세` : undefined}
+                    onClick={onSelectExpense ? () => onSelectExpense(expense.id) : undefined}
+                    onKeyDown={onSelectExpense ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectExpense(expense.id) } } : undefined}
+                  >
+                    {expense.iconUrl && (
+                      <div
+                        className="absolute right-0 top-0 bottom-0 w-32 bg-no-repeat bg-right bg-cover z-0"
+                        style={{
+                          backgroundImage: `url(${expense.iconUrl})`,
+                          maskImage: "linear-gradient(to right, transparent, black)",
+                          WebkitMaskImage: "linear-gradient(to right, transparent, black)",
+                          opacity: 0.3
+                        }}
+                      />
+                    )}
+                    <div className="relative z-10">
+                      <p className="font-medium">{expense.title}</p>
+                      <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"} · {expense.payment_method === 'WALLET' ? '내 지갑' : (expense.payment_method ?? '')}</p>
+                    </div>
+                    <div className="text-right relative z-10">
+                      <p className="font-semibold text-info">{expense.final_amount.toLocaleString()} 원</p>
+                      <p className={`text-xs mt-0.5 ${statusTone}`}>{statusLabel}</p>
+                    </div>
                   </div>
-                  <div className="text-right relative z-10">
-                    <p className="font-semibold text-info">{expense.final_amount.toLocaleString()} 원</p>
-                    <p className="text-xs text-content-muted mt-1">{expense.status}</p>
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
           </section>
 
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold">메모</h3>
-            {memos.length === 0 ? (
-              <EmptyState message="메모가 없습니다." />
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">메모</h3>
+              {!isEditingMemo && onSaveMemo && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingMemo(true)}
+                  className="text-xs text-content-secondary hover:text-content flex items-center gap-1"
+                >
+                  <Pencil className="w-3 h-3" />
+                  {currentMemoText ? "수정" : "작성"}
+                </button>
+              )}
+            </div>
+
+            {isEditingMemo ? (
+              <div className="space-y-2">
+                <textarea
+                  value={memoInput}
+                  onChange={(e) => setMemoInput(e.target.value)}
+                  maxLength={200}
+                  placeholder="메모를 입력하세요 (최대 200자)"
+                  className="w-full h-20 rounded-md border border-line-control bg-surface-2 p-2.5 text-sm text-content focus:outline-none focus:ring-1 focus:ring-primary"
+                  autoFocus
+                />
+                <div className="flex items-center justify-between text-xs text-content-secondary">
+                  <span>{memoInput.length} / 200자</span>
+                  <div className="flex gap-1.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setMemoInput(currentMemoText)
+                        setIsEditingMemo(false)
+                      }}
+                      className="h-7 px-2 text-xs"
+                      disabled={isSavingMemo}
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      취소
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => void handleSave()}
+                      className="h-7 px-2 text-xs bg-primary hover:bg-primary-hover text-white"
+                      disabled={isSavingMemo}
+                    >
+                      <Check className="w-3 h-3 mr-1" />
+                      {isSavingMemo ? "저장 중..." : "저장"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : currentMemoText ? (
+              <p className="rounded-md border border-line bg-surface-2 p-3 text-sm whitespace-pre-wrap">
+                {currentMemoText}
+              </p>
             ) : (
-              memos.map((memo, index) => (
-                <p key={`${memo}-${index}`} className="rounded-md border border-line bg-surface-2 p-3 text-sm">
-                  {memo}
-                </p>
-              ))
+              <EmptyState message="메모가 없습니다." />
             )}
           </section>
         </CardContent>

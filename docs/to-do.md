@@ -276,6 +276,36 @@
   - 작업: `npx tsc --noEmit`, Vitest 테스트 실행, `npm run build` 정적 export 빌드 검증
   - verify: TypeScript 타입 에러 0건, Vitest 30개 파일 / 106개 테스트 전체 통과 (100% PASS), `npm run build` 정적 13개 페이지 export 생성 성공
 
+### Phase 11. 게임 일정 구조 다변화, 대시보드 중앙 모달 전환 및 네이버페이 충전 결제 연동
+- [x] 11.1 게임 일정 스키마 확장(`CONTENTS`, 단일 목표일), 게임 관리 일정 모달 전환 및 홈 대시보드/지출 정돈
+  - 대상 파일: `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/schedule-banner.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/subscription/subscription-modal.tsx`
+  - 작업:
+    1. DB `game_schedules.schedule_type`에 `CONTENTS` 추가 (`chk_schedule_type` 제약 갱신), 단일 목표 일정(`start_date = end_date = target_date`) 지원 및 관리자 등록 UI(`AdminPage`) 확장.
+    2. 게임 관리(`/dashboard/games`): 내 구독 게임 '일정 보기' 우측 Sheet를 화면 중앙 팝업 다이얼로그(`<Dialog>`)로 전환.
+    3. 홈 대시보드(`/dashboard`): 사이드바(`HeroSidebar`) 레이아웃 원상 복구, 캘린더 타일에서 지출 항목에 의한 아이콘 증식 제거(공식 일정 시작일에만 아이콘 노출), 개인 메모 인라인 편집/저장 UI 연동.
+    4. 캘린더 타일 배지 및 내비게이션(`desktop-calendar.tsx`): `VERSION` 배지 옆 중복 아이콘 제거, `PICKUP`/`CONTENTS` 배지 시작일(`start_date`) 한정 노출, 내비게이션 버튼을 `public/assets/nav/` SVG 에셋으로 교체.
+    5. 지출 모달(`ExpenseModal`): `[연결된 버전 일정]` 레이블 변경, 비활성화 안내 텍스트 제거, 상시 disabled 상태로 매칭 버전 명칭만 노출(기간 텍스트 제외).
+    6. 정기 구독 모달(`SubscriptionModal`): 결제수단 필드를 '내 지갑'(`WALLET`, disabled)으로 고정.
+  - verify: `CONTENTS` 등록 및 캘린더/배너 정상 표시, 게임 일정 모달 동작, 대시보드 사이드바 복원 및 인라인 메모 저장 확인, 타일 아이콘 중복 제거 확인, Vitest 31개 파일 / 116개 테스트 전체 통과 (100% PASS), `npm run build` 정적 13개 페이지 export 생성 성공
+- [ ] 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현
+  - 대상 파일: `md/SCHEMA.sql`, `src/lib/naver-pay-calculations.ts`, `src/lib/naver-pay-calculations.test.ts`, `src/components/wallet/store-wallet-widget.tsx`
+  - 작업:
+    1. `store_wallets`에 `NAVER_PAY` 플랫폼 지원 (`chk_wallet_platform_settings`).
+    2. 네이버페이 충전 및 결제 계산 순수 함수 `calculateNaverPayPayment` 모듈화 (부족액 $S$, 1만원 단위 올림 충전액 $R$, 총 자산 잔액 검증 $B_{total} \ge R$, 최종 잔액 계산).
+    3. `process_expense_payment` RPC에 네이버페이 결제 시 부족액 충전($R$ 자산 차감 + 지갑 충전) 및 결제($P$ 차감) 원자적 단일 트랜잭션 구현.
+  - verify: 단위 테스트(잔액 충분, 1만원 단위 올림 충전, 총 자산 부족 차단) 작성 및 RPC 트랜잭션 정합성 검증
+- [ ] 11.3 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동
+  - 대상 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`
+  - 작업:
+    1. 결제 모달 내 [결제 플랫폼(구글/갤럭시/기타)] -> [결제 수단(기본 지갑/네이버페이)] 2단계 종속 선택 구조 구현.
+    2. 네이버페이 선택 시 실시간 잔액 비교 및 "부족 금액 안내 / 1만원 단위 충전 프리뷰" 인라인 카드 노출.
+    3. 잔액 부족 시 `[충전 후 결제]` 원클릭 승인 플로우 제공.
+    4. 자동 계산값 기본 채움 및 최종 실결제액 수동 오버라이드 지원.
+  - verify: 결제 수단별 잔액 차감 및 충전 게이트웨이 모달 동작 확인, 수동 수정값 유지 검증
+- [ ] 11.4 반응형 모바일 튜닝 및 종합 회귀 테스트
+  - 대상 파일: 전체 변경 화면 및 테스트 스위트
+  - 작업: 모바일 뷰포트 패딩, 중앙 모달 크기 반응형 세부 조정, `npx tsc --noEmit`, Vitest 전체 테스트 실행, `npm run build` 정적 export 검증.
+
 ### Phase 7. Web/PWA 통합, 안정화 및 릴리스 검증
 - [x] 7.1 게임 버전/픽업 패스 일정 안전 동기화 검증
   - 대상 파일: `md/SCHEMA.sql` (트리거 검증)

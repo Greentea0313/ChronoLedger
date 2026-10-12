@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>홈 대시보드 내비게이션 버튼 3안 시안</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "A2Z", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; background: #0f1115; color: #f5f7fa; padding: 40px 24px; }
+  .page { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+  .sub { color: #a0a9b8; font-size: 14px; margin-bottom: 32px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .card { border-radius: 16px; padding: 24px; background: #171a21; border: 1px solid #2a2f3a; }
+  .card.light { background: #ffffff; border-color: #d8dde7; color: #171a21; }
+  .card h2 { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+  .card .desc { font-size: 13px; color: #a0a9b8; margin-bottom: 20px; line-height: 1.5; }
+  .card.light .desc { color: #5d6675; }
+  .demo { border-radius: 12px; padding: 20px 16px; margin-bottom: 16px; }
+  .demo.dark { background: #171a21; border: 1px solid #2a2f3a; }
+  .demo.light { background: #f0f2f6; border: 1px solid #d8dde7; }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .cal-title { font-size: 22px; font-weight: 700; }
+  .demo.light .cal-title { color: #171a21; }
+  .demo.dark .cal-title { color: #f5f7fa; }
+  .btn-row { display: flex; align-items: center; gap: 6px; }
+  .spec { font-size: 12px; line-height: 1.7; border-top: 1px dashed #2a2f3a; padding-top: 12px; color: #b3bbc8; }
+  .card.light .spec { border-color: #d8dde7; color: #495264; }
+  .spec code { background: rgba(124,140,255,.15); padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-bottom: 12px; }
+  .tag.v1 { background: rgba(101,169,255,.15); color: #65a9ff; }
+  .tag.v2 { background: rgba(76,214,165,.15); color: #4cd6a5; }
+  .tag.v3 { background: rgba(124,140,255,.18); color: #8c9cff; }
+  /* V1 */
+  .v1-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid #2a2f3a; background: transparent; color: #f5f7fa; cursor: pointer; }
+  .demo.light .v1-btn { border-color: #d8dde7; color: #171a21; background: #fff; }
+  .v1-btn:hover { background: #1f2430; }
+  .demo.light .v1-btn:hover { background: #f0f2f6; }
+  /* V2 */
+  .v2-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: none; background: #1f2430; color: #b3bbc8; cursor: pointer; }
+  .demo.light .v2-btn { background: #f0f2f6; color: #495264; }
+  .v2-btn:hover { background: rgba(124,140,255,.25); color: #f5f7fa; }
+  .demo.light .v2-btn:hover { background: rgba(83,101,212,.12); color: #171a21; }
+  /* V3 */
+  .v3-pill { display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid #2a2f3a; background: #171a21; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+  .demo.light .v3-pill { border-color: #d8dde7; background: #fff; box-shadow: 0 4px 16px rgba(27,35,52,.08); }
+  .v3-pill button { border: none; background: transparent; padding: 10px 12px; cursor: pointer; color: #b3bbc8; display: flex; }
+  .demo.light .v3-pill button { color: #495264; }
+  .v3-pill button:hover { color: #7c8cff; }
+  .v3-label { min-width: 112px; text-align: center; font-size: 14px; font-weight: 700; }
+  .demo.dark .v3-label { color: #f5f7fa; }
+  .demo.light .v3-label { color: #171a21; }
+  .section-label { font-size: 12px; font-weight: 700; color: #a0a9b8; margin: 12px 0 8px; letter-spacing: .04em; }
+  .footer { margin-top: 28px; font-size: 13px; color: #a0a9b8; text-align: center; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>홈 대시보드 내비게이션 (&lt; / &gt;) — 3안 시안</h1>
+  <p class="sub">기준: desktop-calendar.tsx 헤더 · 다크/라이트 토큰 적용 · 아이콘 Lucide Chevron 1.5px · 현재 32px 터치타겟 이슈 반영</p>
+  <div class="grid">
+    <div class="card">
+      <span class="tag v1">V1 · OUTLINE SQUARE</span>
+      <h2>현행 정제안 — 가장 안전</h2>
+      <p class="desc">기존 outline 버튼 유지. border-line, hover surface-2. 변경 범위가 최소라 회귀 위험 없음.</p>
+      <p class="section-label">DARK</p>
+      <div class="demo dark"><div class="cal-header"><span class="cal-title">2026년 10월</span><span class="btn-row"><span class="v1-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span><span class="v1-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div></div>
+      <p class="section-label">LIGHT</p>
+      <div class="demo light"><div class="cal-header"><span class="cal-title">2026년 10월</span><span class="btn-row"><span class="v1-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span><span class="v1-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div></div>
+      <div class="spec">스펙: <code>32×32</code> <code>radius 10px</code> <code>border-line 1px</code> <code>icon 16px</code><br>장점: 수정 2줄 · 단점: 터치타겟 32px로 작음</div>
+    </div>
+    <div class="card">
+      <span class="tag v2">V2 · SOFT CIRCLE</span>
+      <h2>모던 원형안 — 모바일 친화</h2>
+      <p class="desc">surface-2 원형 버튼, border 없음. 카드 위에서 떠 보이고 hover 시 primary 틴트. 터치타겟 36px.</p>
+      <p class="section-label">DARK</p>
+      <div class="demo dark"><div class="cal-header"><span class="cal-title">2026년 10월</span><span class="btn-row"><span class="v2-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span><span class="v2-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div></div>
+      <p class="section-label">LIGHT</p>
+      <div class="demo light"><div class="cal-header"><span class="cal-title">2026년 10월</span><span class="btn-row"><span class="v2-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span><span class="v2-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div></div>
+      <div class="spec">스펙: <code>36×36</code> <code>radius full</code> <code>bg surface-2</code> <code>icon 20px</code><br>장점: 시인성·터치 균형 · 단점: 버튼 2개 자리 차지</div>
+    </div>
+    <div class="card">
+      <span class="tag v3">V3 · SEGMENTED PILL ★추천</span>
+      <h2>통합 필안 — 맥락 명확</h2>
+      <p class="desc">&lt; 월 라벨 &gt;를 하나의 pill로 묶음. 하단 중복 &lt;/&gt; 버튼 대체 가능. 월 이동 실수 감소.</p>
+      <p class="section-label">DARK</p>
+      <div class="demo dark"><div class="cal-header"><span class="cal-title">월간 캘린더</span><span class="v3-pill"><button aria-label="이전 달"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button><span class="v3-label">2026년 10월</span><button aria-label="다음 달"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button></span></div></div>
+      <p class="section-label">LIGHT</p>
+      <div class="demo light"><div class="cal-header"><span class="cal-title">월간 캘린더</span><span class="v3-pill"><button aria-label="이전 달"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button><span class="v3-label">2026년 10월</span><button aria-label="다음 달"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button></span></div></div>
+      <div class="spec">스펙: <code>pill radius full</code> <code>border-line + shadow-card</code> <code>hit 40px</code><br>장점: 맥락·접근성 best · 단점: 헤더 레이아웃 수정 필요</div>
+    </div>
+  </div>
+  <p class="footer">시안 선택 → desktop-calendar.tsx 적용 + 하단 중복(145–148행) 제거까지 진행 가능</p>
+</div>
+</body>
+</html>

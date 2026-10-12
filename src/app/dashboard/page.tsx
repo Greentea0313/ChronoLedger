@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { DesktopCalendar, type DesktopCalendarDay } from "@/components/calendar/desktop-calendar"
-import { HeroSidebar, type HeroExpenseItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
+import { HeroSidebar, type HeroExpenseItem, type HeroScheduleItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
 import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, parseLocalDate } from "@/lib/calendar-utils"
 import { ExpenseModal } from "@/components/expense/expense-modal"
@@ -20,10 +20,12 @@ const EXPENSE_COLUMNS = "id, title, final_amount, status, target_date, start_dat
 
 interface ScheduleRow {
   id: string
-  schedule_type: "VERSION" | "PICKUP"
+  title: string
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
   start_date: string
   end_date: string
   game_id: string
+  memo?: string | null
 }
 
 interface MemoRow {
@@ -129,7 +131,7 @@ export default function DashboardPage() {
         supabase.from("user_finances").select("total_asset, default_budget").eq("user_id", user.id).maybeSingle(),
         supabase.from("monthly_budgets").select("budget_amount").eq("user_id", user.id).eq("year", year).eq("month", month).maybeSingle(),
         supabase.from("store_wallets").select("platform, current_balance").eq("user_id", user.id),
-        supabase.from("game_schedules").select("id, schedule_type, start_date, end_date, game_id").lt("start_date", endDateExclusive).gte("end_date", startDate),
+        supabase.from("game_schedules").select("id, title, schedule_type, start_date, end_date, game_id, memo").lt("start_date", endDateExclusive).gte("end_date", startDate),
         supabase.from("personal_memos").select("memo_date, content").eq("user_id", user.id).gte("memo_date", startDate).lt("memo_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).eq("status", "PLANNED").gte("end_date", startDate).lt("end_date", endDateExclusive),
@@ -202,10 +204,16 @@ export default function DashboardPage() {
     return map
   }, [allGames])
 
+  const currentDayMemo = useMemo(
+    () => memos.find((memo) => memo.memo_date === baseDate)?.content || "",
+    [baseDate, memos],
+  )
+
   const dayMemos = useMemo(
     () => memos.filter((memo) => memo.memo_date === baseDate).map((memo) => memo.content),
     [baseDate, memos],
   )
+
   const dayExpenses = useMemo<HeroExpenseItem[]>(
     () =>
       expenses
@@ -213,10 +221,13 @@ export default function DashboardPage() {
         .map((expense) => {
           const gameInfo = expense.game_id ? userGamesMap.get(expense.game_id) : null
           return {
-            ...expense,
+            id: expense.id,
+            title: expense.title,
+            final_amount: expense.final_amount,
+            status: expense.status,
             gameName: gameInfo ? gameInfo.name : (expense.game_id ? `게임 ${expense.game_id.slice(0, 4)}` : null),
             iconUrl: gameInfo?.iconUrl,
-            payment_method: expense.payment_method
+            payment_method: expense.payment_method,
           }
         }),
     [baseDate, expenses, userGamesMap],
@@ -229,16 +240,52 @@ export default function DashboardPage() {
     [schedules, userGameIdSet],
   )
 
-  const daySchedules = useMemo(
+  const daySchedules = useMemo<HeroScheduleItem[]>(
     () => {
       const currentDaySchedules = subscribedSchedules.filter(s => baseDate >= s.start_date && baseDate <= s.end_date)
       return currentDaySchedules.map(s => {
         const gameInfo = s.game_id ? allGamesMap.get(s.game_id) : null
-        return { ...s, gameName: gameInfo ? gameInfo.name : null, iconUrl: gameInfo?.iconUrl }
+        return {
+          id: s.id,
+          title: s.title,
+          schedule_type: s.schedule_type,
+          start_date: s.start_date,
+          end_date: s.end_date,
+          gameName: gameInfo ? gameInfo.name : null,
+          iconUrl: gameInfo?.iconUrl,
+          memo: s.memo,
+        }
       })
     },
     [baseDate, subscribedSchedules, allGamesMap],
   )
+
+  const handleSaveMemo = async (content: string) => {
+    if (!user || !baseDate) return
+    const trimmed = content.trim()
+    if (trimmed === "") {
+      const { error: delErr } = await supabase
+        .from("personal_memos")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("memo_date", baseDate)
+      if (delErr) throw delErr
+    } else {
+      const { error: upsertErr } = await supabase
+        .from("personal_memos")
+        .upsert(
+          {
+            user_id: user.id,
+            memo_date: baseDate,
+            content: trimmed,
+          },
+          { onConflict: "user_id,memo_date" }
+        )
+      if (upsertErr) throw upsertErr
+    }
+    await load()
+  }
+
   const detailExpense = useMemo(() => {
     const expense = expenses.find((item) => item.id === detailExpenseId)
     return expense
@@ -261,9 +308,7 @@ export default function DashboardPage() {
   }, [subscribedSchedules])
 
   // 캘린더 타일 아이콘 매핑:
-  // 1) start_date와 end_date를 가지는 일정: 전체 기간이 아닌 start_date에만 아이콘 표기
-  // 2) start_date와 end_date를 가지는 지출: start_date에만 아이콘 표기
-  // 3) target_date만 존재하는 지출: target_date에 아이콘 표기
+  // 공식 일정: 사용자가 구독한 게임의 start_date에만 아이콘 등록 (지출 아이콘은 등록하지 않음)
   const dateGameIcons = useMemo(() => {
     const map = new Map<string, Set<string>>()
     const addGame = (date: string, gameId: string) => {
@@ -271,25 +316,14 @@ export default function DashboardPage() {
       map.get(date)!.add(gameId)
     }
 
-    // 일정: 사용자가 구독한 게임의 start_date에만 아이콘 등록
     for (const schedule of subscribedSchedules) {
       if (schedule.game_id && schedule.start_date) {
         addGame(schedule.start_date, schedule.game_id)
       }
     }
 
-    // 지출: start_date/end_date가 있으면 start_date에, 없으면(target_date만 존재) target_date에 등록
-    for (const expense of expenses) {
-      if (expense.status === "CANCELLED" || !expense.game_id) continue
-      if (expense.start_date && expense.end_date) {
-        addGame(expense.start_date, expense.game_id)
-      } else if (expense.target_date) {
-        addGame(expense.target_date, expense.game_id)
-      }
-    }
-
     return map
-  }, [expenses, subscribedSchedules])
+  }, [subscribedSchedules])
 
   const memoDates = useMemo(() => new Set(memos.map((memo) => memo.memo_date)), [memos])
 
@@ -387,8 +421,10 @@ export default function DashboardPage() {
           schedules={daySchedules}
           expenses={dayExpenses}
           memos={dayMemos}
+          memoContent={currentDayMemo}
           onSelectExpense={setDetailExpenseId}
           onRegisterExpense={() => setIsExpenseModalOpen(true)}
+          onSaveMemo={handleSaveMemo}
           registerDisabled={!isOnline}
         />
       </div>

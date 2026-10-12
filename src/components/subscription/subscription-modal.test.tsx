@@ -61,8 +61,8 @@ describe("SubscriptionModal", () => {
     expect(screen.getByLabelText("구독 제목 *")).toBeTruthy()
     expect(screen.getByLabelText("결제 주기 유형 *")).toBeTruthy()
     expect(screen.getByLabelText("매월 결제일 (1~31일) *")).toBeTruthy()
-    expect(screen.getByLabelText("기본 금액 (원) *")).toBeTruthy()
-    expect(screen.getByLabelText("결제수단 *")).toBeTruthy()
+    expect(screen.getByLabelText("결제수단 *")).toHaveProperty("disabled", true)
+    expect((screen.getByLabelText("결제수단 *") as HTMLSelectElement).value).toBe("WALLET")
     expect(screen.getByLabelText(/연관 게임/)).toBeTruthy()
   })
 

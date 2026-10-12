@@ -1,12 +1,14 @@
 interface ScheduleBannerProps {
-  type: "VERSION" | "PICKUP"
+  type: "VERSION" | "PICKUP" | "CONTENTS"
 }
 
 export function ScheduleBanner({ type }: ScheduleBannerProps) {
   const palette =
     type === "VERSION"
       ? "border-success/50 bg-success/15 text-success"
-      : "border-primary/50 bg-primary/15 text-primary"
+      : type === "PICKUP"
+        ? "border-primary/50 bg-primary/15 text-primary"
+        : "border-purple-500/50 bg-purple-500/15 text-purple-300"
 
   return (
     <span

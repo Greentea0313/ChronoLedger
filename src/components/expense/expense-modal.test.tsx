@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ExpenseModal } from "./expense-modal"
+import { getKstToday } from "@/lib/dashboard-date"
 
 const { from, rpc, useAuth, insert } = vi.hoisted(() => ({
   from: vi.fn(),
@@ -30,8 +31,9 @@ function setup() {
       return ug
     }
     if (table === "game_schedules") {
+      const today = getKstToday()
       return query({
-        data: [{ id: "s1", game_id: "g1", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-10-25", end_date: "2026-11-12" }],
+        data: [{ id: "s1", game_id: "g1", title: "버전 1.0", schedule_type: "VERSION", start_date: today, end_date: today }],
         error: null,
       })
     }
@@ -55,12 +57,13 @@ describe("ExpenseModal", () => {
   it("registers a PLANNED expense then calls process_expense_payment with 114,000 final amount", async () => {
     rpc.mockResolvedValue({ error: null })
     const onCompleted = vi.fn()
-    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} />)
+    const today = getKstToday()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} initialDate={today} />)
 
     await screen.findByRole("option", { name: "Sample RPG" })
     fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
-    await screen.findByRole("option", { name: /버전 1.0/ })
-    fireEvent.change(screen.getByLabelText("연결할 버전 일정"), { target: { value: "s1" } })
+    await screen.findByRole("option", { name: "버전 1.0" })
+    expect(screen.getByLabelText("연결된 버전 일정")).toHaveProperty("disabled", true)
     fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "119000" } })
     fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "5000" } })
     fireEvent.change(screen.getByLabelText("포인트 사용 지갑"), { target: { value: "GOOGLE_PLAY" } })
@@ -76,9 +79,9 @@ describe("ExpenseModal", () => {
       status: "PLANNED",
       original_price: 119000,
       final_amount: 119000,
-      start_date: "2026-10-25",
-      end_date: "2026-11-12",
-      target_date: "2026-11-12",
+      start_date: today,
+      end_date: today,
+      target_date: today,
     }))
     expect(rpc).toHaveBeenCalledWith("process_expense_payment", expect.objectContaining({
       p_expense_id: "e1",
@@ -130,5 +133,17 @@ describe("ExpenseModal", () => {
 
     fireEvent.change(screen.getByLabelText("카테고리"), { target: { value: "식비" } })
     expect(screen.queryByLabelText("게임")).toBeNull()
+  })
+
+  it("결제일 기간에 진행 중인 버전 일정이 없으면 연결된 버전 일정이 disabled 상태로 안내 문구가 출력된다", async () => {
+    render(<ExpenseModal open onOpenChange={vi.fn()} initialDate="2026-01-01" />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+
+    await waitFor(() => {
+      const scheduleSelect = screen.getByLabelText("연결된 버전 일정")
+      expect(scheduleSelect).toHaveProperty("disabled", true)
+    })
+    expect(screen.getByText("해당 날짜에 진행 중인 버전 일정이 없습니다")).toBeTruthy()
   })
 })

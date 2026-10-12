@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import DashboardPage from "./page"
 import { getGridRange } from "@/lib/calendar-utils"
@@ -139,9 +139,14 @@ describe("DashboardPage", () => {
 
     expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
     expect(screen.getAllByText("PICKUP").length).toBeGreaterThan(0)
-    expect(screen.getByText("메모 1")).toBeTruthy()
-    expect(screen.getByText("패키지")).toBeTruthy()
     expect(screen.getByText(/100,000/)).toBeTruthy()
+
+    // 날짜 타일 클릭 시 HeroSidebar에 메모와 지출이 표시됨
+    const dateCell = screen.getByLabelText(new RegExp(selectedDate))
+    fireEvent.click(dateCell)
+
+    expect(await screen.findByText("메모 1")).toBeTruthy()
+    expect(screen.getByText("패키지")).toBeTruthy()
     expect(expenses.gte).toHaveBeenCalledWith("target_date", getGridRange(now.getFullYear(), now.getMonth() + 1).startDate)
     expect(expenses.lt).toHaveBeenCalledWith("target_date", getGridRange(now.getFullYear(), now.getMonth() + 1).endDateExclusive)
     expect(screen.getAllByText(/30,000/).length).toBeGreaterThan(0)

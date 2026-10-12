@@ -75,7 +75,6 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   const [games, setGames] = useState<GameOption[]>([])
   const [gameId, setGameId] = useState("")
   const [schedules, setSchedules] = useState<ScheduleOption[]>([])
-  const [scheduleId, setScheduleId] = useState("")
   const [wallets, setWallets] = useState<WalletInfo[]>([])
   const [title, setTitle] = useState("")
   const [originalPrice, setOriginalPrice] = useState("")
@@ -111,7 +110,6 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     setDeductAsset(true)
     setCategory("게임")
     setGameId("")
-    setScheduleId("")
     setSchedules([])
   }, [open, plannedExpense, initialDate])
 
@@ -139,7 +137,6 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   useEffect(() => {
     if (!gameId) {
       setSchedules([])
-      setScheduleId("")
       return
     }
     let cancelled = false
@@ -158,7 +155,6 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             (s) => s.start_date <= paymentDate && paymentDate <= s.end_date
           )
           if (matched) {
-            setScheduleId(matched.id)
             const game = games.find((item) => item.id === gameId)
             if (game && !title.trim()) setTitle(`${game.name} ${matched.title}`)
           }
@@ -169,6 +165,11 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
       cancelled = true
     }
   }, [gameId, paymentDate, games, title])
+
+  const matchingVersion = useMemo(() => {
+    if (!paymentDate) return null
+    return schedules.find((s) => s.start_date <= paymentDate && paymentDate <= s.end_date) ?? null
+  }, [paymentDate, schedules])
 
   const handlePriceChange = (val: string) => {
     setOriginalPrice(val)
@@ -211,14 +212,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   const estimatedEarn = estimateEarnedPoints(finalAmount, earnWallet?.earn_rate ?? 0, paymentMethod)
   const isGameCategory = category === "게임"
 
-  const selectSchedule = (id: string) => {
-    setScheduleId(id)
-    const schedule = schedules.find((item) => item.id === id)
-    const game = games.find((item) => item.id === gameId)
-    if (schedule && game && !title.trim()) setTitle(`${game.name} ${schedule.title}`)
-  }
-
-  const handleSubmit = async (event: FormEvent | React.MouseEvent, actionType: "PLAN" | "PAY" = "PAY") => {
+  const handleSubmit = async (event: FormEvent | React.MouseEvent, actionType: "PAY" | "PLAN" = "PAY") => {
     event.preventDefault()
     if (!user) return
     if (isOffline()) return setError(OFFLINE_WRITE_MESSAGE)
@@ -234,7 +228,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     try {
       let expenseId = plannedExpense?.id ?? pendingExpenseId.current
       if (!expenseId) {
-        const schedule = isGameCategory ? schedules.find((item) => item.id === scheduleId) : undefined
+        const schedule = isGameCategory ? (matchingVersion ?? undefined) : undefined
         const { data, error: insertError } = await supabase
           .from("expenses")
           .insert({
@@ -308,7 +302,6 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                     setCategory(newCat)
                     if (newCat !== "게임") {
                       setGameId("")
-                      setScheduleId("")
                       setSchedules([])
                     }
                   }}
@@ -323,7 +316,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                 <>
                   <div>
                     <label htmlFor="expense-game" className={labelClassName}>게임</label>
-                    <select id="expense-game" className={selectClassName} value={gameId} onChange={(event) => { setGameId(event.target.value); setScheduleId("") }}>
+                    <select id="expense-game" className={selectClassName} value={gameId} onChange={(event) => setGameId(event.target.value)}>
                       <option value="">게임 선택 안 함</option>
                       {games.map((game) => (
                         <option key={game.id} value={game.id}>{game.name}</option>
@@ -332,12 +325,16 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                   </div>
                   {gameId && (
                     <div>
-                      <label htmlFor="expense-schedule" className={labelClassName}>연결할 버전 일정</label>
-                      <select id="expense-schedule" className={selectClassName} value={scheduleId} onChange={(event) => selectSchedule(event.target.value)}>
-                        <option value="">일정 연결 안 함</option>
-                        {schedules.map((schedule) => (
-                          <option key={schedule.id} value={schedule.id}>{`${schedule.title} (${schedule.start_date} ~ ${schedule.end_date})`}</option>
-                        ))}
+                      <label htmlFor="expense-schedule" className={labelClassName}>연결된 버전 일정</label>
+                      <select
+                        id="expense-schedule"
+                        className={`${selectClassName} opacity-60 cursor-not-allowed`}
+                        value={matchingVersion?.id ?? ""}
+                        disabled
+                      >
+                        <option value={matchingVersion?.id ?? ""}>
+                          {matchingVersion ? matchingVersion.title : "해당 날짜에 진행 중인 버전 일정이 없습니다"}
+                        </option>
                       </select>
                     </div>
                   )}

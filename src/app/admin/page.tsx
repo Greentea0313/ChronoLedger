@@ -22,7 +22,7 @@ interface GameOption {
 interface ScheduleItem {
   id: string
   game_id: string
-  schedule_type: "VERSION" | "PICKUP"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
   title: string
   start_date: string
   end_date: string
@@ -41,7 +41,8 @@ export default function AdminPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null)
   const [gameId, setGameId] = useState("")
-  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP">("VERSION")
+  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS">("VERSION")
+  const [isSingleDate, setIsSingleDate] = useState(false)
   const [title, setTitle] = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
@@ -92,6 +93,7 @@ export default function AdminPage() {
     setEditingScheduleId(null)
     setGameId(games.length > 0 ? games[0].id : "")
     setScheduleType("VERSION")
+    setIsSingleDate(false)
     setTitle("")
     setStartDate("")
     setEndDate("")
@@ -104,6 +106,7 @@ export default function AdminPage() {
     setEditingScheduleId(schedule.id)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
+    setIsSingleDate(schedule.start_date === schedule.end_date)
     setTitle(schedule.title)
     setStartDate(schedule.start_date)
     setEndDate(schedule.end_date)
@@ -114,12 +117,13 @@ export default function AdminPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!gameId || !title.trim() || !startDate || !endDate) {
-      setFormError("필수 항목(게임, 타이틀, 시작일, 종료일)을 모두 입력해주세요.")
+    const finalEndDate = isSingleDate ? startDate : endDate
+    if (!gameId || !title.trim() || !startDate || !finalEndDate) {
+      setFormError("필수 항목(게임, 타이틀, 날짜)을 모두 입력해주세요.")
       return
     }
 
-    if (startDate > endDate) {
+    if (startDate > finalEndDate) {
       setFormError("종료일은 시작일보다 이전일 수 없습니다.")
       return
     }
@@ -136,7 +140,7 @@ export default function AdminPage() {
           schedule_type: scheduleType,
           title: title.trim(),
           start_date: startDate,
-          end_date: endDate,
+          end_date: finalEndDate,
           memo: memo.trim() || null,
           updated_at: new Date().toISOString(),
         })
@@ -158,7 +162,7 @@ export default function AdminPage() {
         schedule_type: scheduleType,
         title: title.trim(),
         start_date: startDate,
-        end_date: endDate,
+        end_date: finalEndDate,
         memo: memo.trim() || null,
       })
 
@@ -274,6 +278,8 @@ export default function AdminPage() {
               {filteredSchedules.map((schedule) => {
                 const gameName = schedule.games?.name || games.find((g) => g.id === schedule.game_id)?.name || "게임"
                 const isVersion = schedule.schedule_type === "VERSION"
+                const isPickup = schedule.schedule_type === "PICKUP"
+                const isSingleDateItem = schedule.start_date === schedule.end_date
                 return (
                   <div
                     key={schedule.id}
@@ -288,16 +294,18 @@ export default function AdminPage() {
                           className={`text-xs font-semibold px-2 py-0.5 rounded ${
                             isVersion
                               ? "bg-primary/20 text-primary border border-primary/30"
-                              : "bg-warning/20 text-warning border border-warning/30"
+                              : isPickup
+                                ? "bg-warning/20 text-warning border border-warning/30"
+                                : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
                           }`}
                         >
-                          {isVersion ? "버전" : "픽업"}
+                          {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
                         </span>
                         <h3 className="font-medium text-sm text-content truncate">{schedule.title}</h3>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-content-secondary">
                         <span>
-                          {schedule.start_date} ~ {schedule.end_date}
+                          {isSingleDateItem ? `${schedule.start_date} (단일)` : `${schedule.start_date} ~ ${schedule.end_date}`}
                         </span>
                         {schedule.memo && (
                           <span className="truncate max-w-xs text-gray-400">· {schedule.memo}</span>
@@ -369,10 +377,11 @@ export default function AdminPage() {
                 id="schedule-type-select"
                 className="w-full bg-surface-2 border border-line rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 value={scheduleType}
-                onChange={(e) => setScheduleType(e.target.value as "VERSION" | "PICKUP")}
+                onChange={(e) => setScheduleType(e.target.value as "VERSION" | "PICKUP" | "CONTENTS")}
               >
                 <option value="VERSION">버전 (VERSION)</option>
                 <option value="PICKUP">픽업 (PICKUP)</option>
+                <option value="CONTENTS">콘텐츠 (CONTENTS)</option>
               </select>
             </div>
 
@@ -387,28 +396,63 @@ export default function AdminPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-2 pt-1 pb-1">
+              <input
+                id="schedule-is-single-date"
+                type="checkbox"
+                checked={isSingleDate}
+                onChange={(e) => {
+                  const checked = e.target.checked
+                  setIsSingleDate(checked)
+                  if (checked && startDate) {
+                    setEndDate(startDate)
+                  }
+                }}
+                className="h-4 w-4 rounded border-line text-primary focus:ring-primary"
+              />
+              <label htmlFor="schedule-is-single-date" className="text-sm font-medium text-content cursor-pointer">
+                단일 목표 일정 (하루만 진행)
+              </label>
+            </div>
+
+            {isSingleDate ? (
               <div>
-                <label htmlFor="schedule-start-date-input" className="block text-sm font-medium mb-1">시작일 *</label>
+                <label htmlFor="schedule-start-date-input" className="block text-sm font-medium mb-1">목표일 *</label>
                 <Input
                   id="schedule-start-date-input"
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => {
+                    setStartDate(e.target.value)
+                    setEndDate(e.target.value)
+                  }}
                   required
                 />
               </div>
-              <div>
-                <label htmlFor="schedule-end-date-input" className="block text-sm font-medium mb-1">종료일 *</label>
-                <Input
-                  id="schedule-end-date-input"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  required
-                />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="schedule-start-date-input" className="block text-sm font-medium mb-1">시작일 *</label>
+                  <Input
+                    id="schedule-start-date-input"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="schedule-end-date-input" className="block text-sm font-medium mb-1">종료일 *</label>
+                  <Input
+                    id="schedule-end-date-input"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label htmlFor="schedule-memo-input" className="block text-sm font-medium mb-1">메모 (선택)</label>

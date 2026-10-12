@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GameSelectModal } from "@/components/game/game-select-modal"
 import { RequestSubmissionModal } from "@/components/game/request-submission-modal"
 import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-upload"
@@ -28,7 +28,7 @@ interface GameScheduleRow {
   id: string
   game_id: string
   title: string
-  schedule_type: "VERSION" | "PICKUP"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
   start_date: string
   end_date: string
   memo: string | null
@@ -271,51 +271,56 @@ export default function GamesPage() {
 
 
 
-      {/* 공식 일정 사이드 시트 */}
-      <Sheet
+      {/* 공식 일정 중앙 팝업 다이얼로그 */}
+      <Dialog
         open={isSheetOpen}
         onOpenChange={(open) => {
           setIsSheetOpen(open)
           if (!open) setSelectedGame(null)
         }}
       >
-        <SheetContent className="overflow-y-auto w-full sm:max-w-md bg-surface text-content border-line">
-          <SheetHeader>
-            <SheetTitle className="text-content">{selectedGame?.name || "게임"} 공식 일정</SheetTitle>
-            <SheetDescription className="text-content-secondary">
-              관리자가 등록한 공식 픽업 및 버전 업데이트 일정입니다.
-            </SheetDescription>
-          </SheetHeader>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-surface text-content border-line">
+          <DialogHeader>
+            <DialogTitle className="text-content">{selectedGame?.name || "게임"} 공식 일정</DialogTitle>
+            <DialogDescription className="text-content-secondary">
+              관리자가 등록한 공식 픽업, 버전 및 콘텐츠 업데이트 일정입니다.
+            </DialogDescription>
+          </DialogHeader>
           <div className="mt-4 space-y-3">
             {isSchedulesLoading ? (
               <p className="text-sm text-content-secondary">불러오는 중...</p>
             ) : schedules.length === 0 ? (
               <p className="text-sm text-content-secondary py-8 text-center">등록된 공식 일정이 없습니다.</p>
             ) : (
-              schedules.map((sch) => (
-                <div key={sch.id} className="p-3 border border-line rounded-lg bg-surface-2 space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-sm text-content">{sch.title}</span>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded font-medium ${
-                        sch.schedule_type === "VERSION"
-                          ? "bg-primary/15 text-primary"
-                          : "bg-info/15 text-info"
-                      }`}
-                    >
-                      {sch.schedule_type === "VERSION" ? "버전" : "픽업"}
-                    </span>
+              schedules.map((sch) => {
+                const isSingle = sch.start_date === sch.end_date
+                return (
+                  <div key={sch.id} className="p-3 border border-line rounded-lg bg-surface-2 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-sm text-content">{sch.title}</span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded font-medium ${
+                          sch.schedule_type === "VERSION"
+                            ? "bg-primary/15 text-primary"
+                            : sch.schedule_type === "PICKUP"
+                              ? "bg-warning/15 text-warning"
+                              : "bg-purple-500/15 text-purple-300"
+                        }`}
+                      >
+                        {sch.schedule_type === "VERSION" ? "버전" : sch.schedule_type === "PICKUP" ? "픽업" : "콘텐츠"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-content-secondary">
+                      {isSingle ? `${sch.start_date} (단일)` : `${sch.start_date} ~ ${sch.end_date}`}
+                    </p>
+                    {sch.memo && <p className="text-xs text-content-muted mt-1">{sch.memo}</p>}
                   </div>
-                  <p className="text-xs text-content-secondary">
-                    {sch.start_date} ~ {sch.end_date}
-                  </p>
-                  {sch.memo && <p className="text-xs text-content-muted mt-1">{sch.memo}</p>}
-                </div>
-              ))
+                )
+              })
             )}
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

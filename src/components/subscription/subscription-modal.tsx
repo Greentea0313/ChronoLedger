@@ -22,12 +22,6 @@ interface GameOption {
 }
 
 
-const PAYMENT_METHODS = [
-  { value: "WALLET", label: "내 지갑" },
-  { value: "GOOGLE_PLAY", label: "Google Play" },
-  { value: "GALAXY_STORE", label: "Galaxy Store" },
-] as const
-
 const CYCLE_TYPE_OPTIONS: { value: SubscriptionCycleType; label: string; desc: string }[] = [
   {
     value: "MONTHLY_DAY",
@@ -66,7 +60,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
   const [cycleType, setCycleType] = useState<SubscriptionCycleType>("MONTHLY_DAY")
   const [billingDay, setBillingDay] = useState("1")
   const [defaultPrice, setDefaultPrice] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState<"WALLET" | "GOOGLE_PLAY" | "GALAXY_STORE">("WALLET")
+  const paymentMethod = "WALLET"
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -80,7 +74,6 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
     setCycleType("MONTHLY_DAY")
     setBillingDay("1")
     setDefaultPrice("")
-    setPaymentMethod("WALLET")
   }, [open])
 
   useEffect(() => {
@@ -288,15 +281,11 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
               </label>
               <select
                 id="sub-payment-method"
-                className={selectClassName}
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as (typeof PAYMENT_METHODS)[number]["value"])}
+                className={`${selectClassName} opacity-60 cursor-not-allowed`}
+                value="WALLET"
+                disabled
               >
-                {PAYMENT_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
+                <option value="WALLET">내 지갑</option>
               </select>
             </div>
           </div>
