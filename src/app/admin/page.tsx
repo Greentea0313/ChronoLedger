@@ -67,12 +67,16 @@ export default function AdminPage() {
     const { data, error } = await supabase
       .from("game_schedules")
       .select("id, game_id, schedule_type, title, start_date, end_date, memo, games(id, name)")
-      .order("start_date", { ascending: false })
+      .order("start_date", { ascending: true })
 
     if (error) {
       setMessage({ type: "error", text: "일정 목록을 불러오지 못했습니다: " + error.message })
     } else if (data) {
-      setSchedules(data as unknown as ScheduleItem[])
+      const sorted = (data as unknown as ScheduleItem[]).sort((a, b) => {
+        if (a.start_date !== b.start_date) return a.start_date.localeCompare(b.start_date)
+        return a.end_date.localeCompare(b.end_date)
+      })
+      setSchedules(sorted)
     }
     setIsLoadingSchedules(false)
   }, [])

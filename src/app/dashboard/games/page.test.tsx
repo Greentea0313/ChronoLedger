@@ -47,22 +47,22 @@ const mockSchedules = [
 ]
 
 function createQuery(table: string) {
-  const query = {
-    select: vi.fn(),
-    eq: vi.fn(),
-    order: vi.fn(),
-    delete: vi.fn(),
-    insert: vi.fn(),
+  const getResult = () => {
+    if (table === "user_games") return { data: mockUserGames, error: null }
+    if (table === "game_schedules") return { data: mockSchedules, error: null }
+    if (table === "games") return { data: [{ id: "game-1", name: "원신" }], error: null }
+    return { data: [], error: null }
   }
-  query.select.mockReturnValue(query)
-  query.eq.mockReturnValue(query)
-  query.order.mockImplementation(() => {
-    if (table === "user_games") return Promise.resolve({ data: mockUserGames, error: null })
-    if (table === "game_schedules") return Promise.resolve({ data: mockSchedules, error: null })
-    if (table === "games") return Promise.resolve({ data: [{ id: "game-1", name: "원신" }], error: null })
-    return Promise.resolve({ data: [], error: null })
-  })
-  query.delete.mockReturnValue(query)
+
+  const query: Record<string, unknown> = {}
+  const select = vi.fn().mockReturnValue(query)
+  const eq = vi.fn().mockReturnValue(query)
+  const gte = vi.fn().mockReturnValue(query)
+  const order = vi.fn().mockReturnValue(query)
+  const del = vi.fn().mockReturnValue(query)
+  const insert = vi.fn()
+  const then = vi.fn((resolve: (val: unknown) => unknown) => Promise.resolve(getResult()).then(resolve))
+  Object.assign(query, { select, eq, gte, order, delete: del, insert, then })
   return query
 }
 

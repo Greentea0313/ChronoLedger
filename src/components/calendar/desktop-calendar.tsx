@@ -83,42 +83,48 @@ export function DesktopCalendar({
               onClick={() => onSelectDate(day.date)}
               aria-label={day.date}
               aria-pressed={isSelected}
-              className={`relative min-h-14 overflow-hidden rounded-md border p-1 text-left transition-colors duration-fast md:min-h-24 md:p-2 ${
+              className={`relative flex flex-col justify-between min-h-[72px] md:min-h-[96px] overflow-hidden rounded-md border p-1 md:p-1.5 text-left transition-colors duration-fast ${
                 isSelected
                   ? "border-primary bg-primary/15"
                   : "border-line bg-app hover:border-line-control"
               } ${day.inCurrentMonth ? "text-content" : "text-content-muted opacity-60"}`}
             >
-              <div className="text-sm font-semibold">{day.day}</div>
-              
-              {/* Bottom-left: VERSION, PICKUP, CONTENTS tags (start_date only) */}
-              <div className="absolute bottom-1 left-1 flex flex-col gap-1 items-start">
-                {(() => {
-                  const hasVersion = day.schedules.some(s => s.schedule_type === 'VERSION' && s.is_start_date);
-                  const hasPickup = day.schedules.some(s => s.schedule_type === 'PICKUP' && s.is_start_date);
-                  const hasContents = day.schedules.some(s => s.schedule_type === 'CONTENTS' && s.is_start_date);
-                  return (
-                    <>
-                      {hasVersion && <div className="z-10"><ScheduleBanner type="VERSION" /></div>}
-                      {hasPickup && <div className="z-10"><ScheduleBanner type="PICKUP" /></div>}
-                      {hasContents && <div className="z-10"><ScheduleBanner type="CONTENTS" /></div>}
-                    </>
-                  );
-                })()}
+              {/* Top row: Day number on left, Game icons and Memo on right */}
+              <div className="flex items-start justify-between w-full">
+                <span className="text-xs md:text-sm font-semibold leading-none">{day.day}</span>
+                <div className="flex flex-col gap-0.5 items-end">
+                  {day.icons.slice(0, 3).map((icon) => (
+                    <span
+                      key={`${day.date}-${icon.gameId}`}
+                      title={icon.label}
+                      aria-label={icon.label}
+                      className="h-4 w-4 md:h-5 md:w-5 inline-block overflow-hidden rounded-[3px] md:rounded-[4px] bg-primary/20 text-center flex items-center justify-center"
+                    >
+                      {icon.iconUrl ? (
+                        <img src={icon.iconUrl} alt={icon.label} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-[10px] md:text-xs">🎮</span>
+                      )}
+                    </span>
+                  ))}
+                  {day.hasMemo && <span className="h-2 w-2 rounded-full bg-content-muted mr-0.5 mt-0.5" />}
+                </div>
               </div>
 
-              {/* Right-side: Game icons and Memo */}
-              <div className="absolute top-1 right-1 flex flex-col gap-1 items-end">
-                {day.icons.slice(0, 3).map((icon) => (
-                  <span key={`${day.date}-${icon.gameId}`} title={icon.label} aria-label={icon.label} className="h-5 w-5 inline-block overflow-hidden rounded-[4px] bg-primary/20 text-center flex items-center justify-center">
-                    {icon.iconUrl ? (
-                      <img src={icon.iconUrl} alt={icon.label} className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-xs">🎮</span>
-                    )}
-                  </span>
-                ))}
-                {day.hasMemo && <span className="h-2.5 w-2.5 rounded-full bg-content-muted mr-1 mt-0.5" />}
+              {/* Bottom-left: VERSION, PICKUP, CONTENTS tags (strictly in this order, start_date only) */}
+              <div className="flex flex-col gap-0.5 items-start mt-auto pt-1 z-10">
+                {(() => {
+                  const hasVersion = day.schedules.some((s) => s.schedule_type === "VERSION" && s.is_start_date)
+                  const hasPickup = day.schedules.some((s) => s.schedule_type === "PICKUP" && s.is_start_date)
+                  const hasContents = day.schedules.some((s) => s.schedule_type === "CONTENTS" && s.is_start_date)
+                  return (
+                    <>
+                      {hasVersion && <ScheduleBanner type="VERSION" />}
+                      {hasPickup && <ScheduleBanner type="PICKUP" />}
+                      {hasContents && <ScheduleBanner type="CONTENTS" />}
+                    </>
+                  )
+                })()}
               </div>
             </button>
           )

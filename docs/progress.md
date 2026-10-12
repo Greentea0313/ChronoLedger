@@ -1,33 +1,39 @@
 # 프로젝트 진행 현황
 
-## Phase 11.1 게임 일정 다변화, 게임 관리 일정 모달 전환 및 홈 대시보드/지출 정돈 완료 (2026-10-12)
+## Phase 11.1 게임 일정 다변화, 일정 모달 전환 및 대시보드/사이드바 3단 UI·정렬 일원화 완료 (2026-10-12)
 
 - **수행 내역**:
   1. **게임 일정 스키마 확장 (`CONTENTS`, 단일 목표 일정)**:
      - `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`: `chk_schedule_type` 제약조건에 `'CONTENTS'` 추가 및 트리거 함수 갱신.
      - 단일 목표 일정(`start_date = end_date = target_date`) 구조를 채택하여 기존 날짜 범위 쿼리와 100% 하위 호환 유지.
-     - `src/components/calendar/schedule-banner.tsx`: 콘텐츠(`CONTENTS`) 보라색 배지 스타일 추가.
+     - `src/components/calendar/schedule-banner.tsx`: 콘텐츠(`CONTENTS`) 보라색 배지 스타일 추가 및 텍스트/패딩 크기 최적화(`text-[8px] md:text-[9px]`, `px-1 py-[1px]`).
      - `src/app/admin/page.tsx`: 일정 타입 선택에 `CONTENTS` 추가, "단일 목표 일정 (하루만 진행)" 체크박스 토글 UI 지원 및 목록 배지/단일 일정 표기 개선.
      - `src/components/game/request-submission-modal.tsx`, `request-validation.ts`: 유저 요청 모달 및 유효성 검증기에 `CONTENTS` 지원 추가.
-  2. **게임 관리(`/dashboard/games`) 내 구독 게임 일정 보기 중앙 모달 전환**:
-     - `src/app/dashboard/games/page.tsx`: 기존 우측 슬라이드인 Sheet를 화면 중앙 팝업 다이얼로그(`<Dialog>`)로 전환하여 구독 게임의 상세 일정을 집중해서 조회할 수 있도록 개선.
-  3. **홈 대시보드(`/dashboard`) 사이드바 레이아웃 복구 및 타일 아이콘/메모 개선**:
-     - `src/app/dashboard/page.tsx`: 2열 그리드(`DesktopCalendar` + `HeroSidebar`)로 원상 복구하고 스토어 포인트 카드 및 기존 요약 UI 유지.
-     - 캘린더 타일 아이콘 증식 제거: 공식 일정이 아닌 지출(`expenses`) 항목은 타일 아이콘에서 제외하여 순수 구독 게임의 공식 일정 시작일(`start_date`)에만 아이콘 등록.
-     - 개인 메모 인라인 편집/저장 연동: `HeroSidebar` 내에서 해당 일자의 메모를 즉시 작성/저장/수정할 수 있도록 인터페이스 연동.
-  4. **캘린더 타일 배지 및 내비게이션 에셋 교체 (`desktop-calendar.tsx`)**:
-     - `VERSION` 배지 바로 우측의 중복 게임 아이콘 완전 제거 (타일 우측 상단 단일 정렬 유지).
-     - `PICKUP` 및 `CONTENTS` 배지를 `VERSION`과 동일하게 `start_date`에만 단일 표기하도록 로직 개편.
-     - 헤더 월 이동 버튼(`<`, `>`)을 `public/assets/nav/`의 SVG 에셋(`v1-prev-dark.svg`, `v1-next-dark.svg` 등)으로 교체하여 디자인 일관성 확보.
-  5. **지출 모달(`ExpenseModal`) 일정 바인딩 UI 정돈**:
-     - `[연결할 버전 일정]` $\to$ `[연결된 버전 일정]` 레이블 변경.
-     - 비활성화 안내 문구 제거 및 필드를 상시 `disabled`로 두고 결제일 기준 매칭된 버전 제목만 출력 (기간 텍스트 제외).
-  6. **정기 구독 모달(`SubscriptionModal`) 결제수단 고정**:
-     - 결제수단 필드를 `내 지갑`(`WALLET`, disabled)으로 고정.
+  2. **캘린더 타일 배지 우선순위 및 배치 개선 (`desktop-calendar.tsx`)**:
+     - 타일 좌측 배지가 겹칠 경우 엄격하게 `[VERSION]` $\to$ `[PICKUP]` $\to$ `[CONTENTS]` 순서로 정렬 노출.
+     - 3개 배지가 모두 겹치더라도 날짜 번호(`day.day`)를 가리지 않도록 상단(날짜 숫자 + 게임 아이콘)과 하단(`mt-auto` 배지 스택)을 수직 분리하는 `flex-col justify-between min-h-[72px] md:min-h-[96px]` 레이아웃 적용.
+     - `VERSION` 배지 바로 우측의 중복 게임 아이콘 완전 제거, `PICKUP` 및 `CONTENTS` 배지 또한 `start_date`에만 단일 표기.
+     - 헤더 월 이동 버튼(`<`, `>`)을 `public/assets/nav/`의 신규 SVG 에셋으로 교체.
+  3. **선택일 일정(`HeroSidebar`) 3단 수직 구조 개편**:
+     - 기존 가로형 레이아웃에서 발생하던 긴 게임명/제목 말줄임 깨짐을 해결하기 위해 직관적인 3단 카드 구조로 전면 개편:
+       - 1행: `[배지] 게임명`
+       - 2행: `YYYY-MM-DD ~ YYYY-MM-DD`
+       - 3행: `일정 제목` (굵은 텍스트)
+       - 4행: `메모` (존재할 경우)
+  4. **전체 화면 일정 정렬 로직 일원화**:
+     - 1순위 `start_date` 오름차순(ASC), 2순위 `end_date` 오름차순(ASC) 기준을 전역 통일:
+       - 홈 대시보드 사이드바(`hero-sidebar.tsx`, `daySchedules`)
+       - 게임 관리 내 구독 게임 일정 보기 모달(`dashboard/games/page.tsx`)
+       - 관리자 센터 공식 일정 목록(`admin/page.tsx`)
+  5. **게임 관리(`/dashboard/games`) 내 구독 게임 일정 모달 및 만료 필터링**:
+     - 기존 우측 슬라이드인 Sheet를 화면 중앙 팝업 다이얼로그(`<Dialog>`)로 전환.
+     - `gte("end_date", today)` 필터링을 통해 이미 종료된 '만료 일정'을 제외하고 현재 진행 중이거나 예정된 일정만 깔끔하게 노출.
+  6. **지출 모달 및 정기 구독 모달 UI 정돈**:
+     - `ExpenseModal`: `[연결된 버전 일정]` 레이블 변경, 비활성화 안내 문구 제거, 상시 disabled 상태로 매칭 버전 명칭만 노출(기간 텍스트 제외).
+     - `SubscriptionModal`: 결제수단 필드를 '내 지갑'(`WALLET`, disabled)으로 고정.
 - **검증 결과 (100% PASS)**:
-  - `npx tsc --noEmit`: 타입 오류 0건 통과.
-  - Vitest: 31개 테스트 파일 / 116개 테스트 전체 통과 (100% PASS).
-  - `npm run build`: Next.js 14 정적 export 13개 페이지 생성 성공.
+  - `npx vitest run`: 32개 테스트 파일 / 118개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 export 13개 페이지 생성 성공 (Linting 및 정적 HTML 생성 완료).
 
 ## Phase 10.7 페이지별 UI 및 인터랙션 긴급 개선 완료 (2026-10-12)
 

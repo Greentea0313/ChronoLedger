@@ -12,7 +12,7 @@ export function ScheduleBanner({ type }: ScheduleBannerProps) {
 
   return (
     <span
-      className={`inline-flex max-w-full items-center truncate rounded border px-1 py-0.5 text-[10px] font-semibold md:px-1.5 ${palette}`}
+      className={`inline-flex max-w-full items-center truncate rounded border px-1 py-[1px] text-[8px] md:text-[9px] font-semibold leading-tight ${palette}`}
     >
       {type}
     </span>

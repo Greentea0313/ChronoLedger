@@ -11,6 +11,7 @@ import { GameSelectModal } from "@/components/game/game-select-modal"
 import { RequestSubmissionModal } from "@/components/game/request-submission-modal"
 import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-upload"
 import { resizeImageToWebP } from "@/lib/image-resizer"
+import { getKstToday } from "@/lib/dashboard-date"
 import { Calendar, Gamepad2, ImagePlus, Loader2, Trash2 } from "lucide-react"
 
 interface UserGameRow {
@@ -85,12 +86,20 @@ export default function GamesPage() {
     if (!selectedGame || !isSheetOpen) return
     const fetchSchedules = async () => {
       setIsSchedulesLoading(true)
+      const today = getKstToday()
       const { data } = await supabase
         .from("game_schedules")
         .select("*")
         .eq("game_id", selectedGame.id)
-        .order("start_date", { ascending: false })
-      if (data) setSchedules(data as GameScheduleRow[])
+        .gte("end_date", today)
+        .order("start_date", { ascending: true })
+      if (data) {
+        const sorted = (data as GameScheduleRow[]).sort((a, b) => {
+          if (a.start_date !== b.start_date) return a.start_date.localeCompare(b.start_date)
+          return a.end_date.localeCompare(b.end_date)
+        })
+        setSchedules(sorted)
+      }
       setIsSchedulesLoading(false)
     }
     void fetchSchedules()

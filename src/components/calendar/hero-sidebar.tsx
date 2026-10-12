@@ -84,12 +84,20 @@ export function HeroSidebarContent({
   }, [memoContent, memos, selectedDateLabel])
 
   // VERSION 일정은 start_date가 선택된 날짜와 일치할 때만 노출
-  const filteredSchedules = (schedules || []).filter((s) => {
-    if (s.schedule_type === "VERSION") {
-      return s.start_date === selectedDateLabel
-    }
-    return true
-  })
+  // 정렬 로직: start_date 오름차순, start_date 일치 시 end_date 오름차순
+  const filteredSchedules = (schedules || [])
+    .filter((s) => {
+      if (s.schedule_type === "VERSION") {
+        return s.start_date === selectedDateLabel
+      }
+      return true
+    })
+    .sort((a, b) => {
+      if (a.start_date !== b.start_date) {
+        return a.start_date.localeCompare(b.start_date)
+      }
+      return a.end_date.localeCompare(b.end_date)
+    })
 
   const handleSave = async () => {
     if (!onSaveMemo) return
@@ -156,41 +164,55 @@ export function HeroSidebarContent({
                 const isPickup = schedule.schedule_type === "PICKUP"
                 const isSingle = schedule.start_date === schedule.end_date
                 return (
-                  <div key={schedule.id} className="relative overflow-hidden flex justify-between items-center min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm">
+                  <div
+                    key={schedule.id}
+                    className="relative overflow-hidden rounded-md border border-line bg-surface-2 p-3 text-sm flex flex-col gap-1 transition-colors hover:border-line-control"
+                  >
                     {schedule.iconUrl && (
                       <div
-                        className="absolute right-0 top-0 bottom-0 w-32 bg-no-repeat bg-right bg-cover z-0"
+                        className="absolute right-0 top-0 bottom-0 w-28 bg-no-repeat bg-right bg-cover z-0 pointer-events-none"
                         style={{
                           backgroundImage: `url(${schedule.iconUrl})`,
                           maskImage: "linear-gradient(to right, transparent, black)",
                           WebkitMaskImage: "linear-gradient(to right, transparent, black)",
-                          opacity: 0.3
+                          opacity: 0.25,
                         }}
                       />
                     )}
-                    <div className="relative z-10 flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
-                            isVersion
-                              ? "bg-primary/20 text-primary border-primary/30"
-                              : isPickup
-                                ? "bg-warning/20 text-warning border-warning/30"
-                                : "bg-purple-500/20 text-purple-300 border-purple-500/30"
-                          }`}
-                        >
-                          {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
-                        </span>
-                        <span className="text-xs font-semibold px-1.5 py-0.2 rounded bg-surface border border-line text-content">
-                          {schedule.gameName ?? "게임"}
-                        </span>
-                        <span className="font-medium text-xs">{schedule.title}</span>
-                      </div>
-                      {schedule.memo && <p className="text-[11px] text-content-muted">{schedule.memo}</p>}
+                    {/* Line 1: [픽업] 명일방주 */}
+                    <div className="relative z-10 flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
+                          isVersion
+                            ? "bg-primary/20 text-primary border-primary/30"
+                            : isPickup
+                              ? "bg-warning/20 text-warning border-warning/30"
+                              : "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                        }`}
+                      >
+                        {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
+                      </span>
+                      <span className="text-xs font-semibold text-content">
+                        {schedule.gameName ?? "게임"}
+                      </span>
                     </div>
-                    <div className="text-right relative z-10 text-xs text-content-muted shrink-0 pl-2">
+
+                    {/* Line 2: 2026-10-14 ~ 2026-10-28 */}
+                    <div className="relative z-10 text-xs text-content-muted">
                       {isSingle ? `${schedule.start_date} (단일)` : `${schedule.start_date} ~ ${schedule.end_date}`}
                     </div>
+
+                    {/* Line 3: 켈시 에스페란타/클로저 (Title) */}
+                    <div className="relative z-10 font-bold text-sm text-content leading-snug">
+                      {schedule.title}
+                    </div>
+
+                    {/* Line 4: 메모 (있는 경우) */}
+                    {schedule.memo && (
+                      <p className="relative z-10 text-[11px] text-content-secondary mt-0.5 whitespace-pre-wrap">
+                        {schedule.memo}
+                      </p>
+                    )}
                   </div>
                 )
               })

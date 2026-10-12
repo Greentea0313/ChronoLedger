@@ -240,10 +240,16 @@ export default function DashboardPage() {
     [schedules, userGameIdSet],
   )
 
-  const daySchedules = useMemo<HeroScheduleItem[]>(
-    () => {
-      const currentDaySchedules = subscribedSchedules.filter(s => baseDate >= s.start_date && baseDate <= s.end_date)
-      return currentDaySchedules.map(s => {
+  const daySchedules = useMemo<HeroScheduleItem[]>(() => {
+    const currentDaySchedules = subscribedSchedules
+      .filter((s) => baseDate >= s.start_date && baseDate <= s.end_date)
+      .sort((a, b) => {
+        if (a.start_date !== b.start_date) {
+          return a.start_date.localeCompare(b.start_date)
+        }
+        return a.end_date.localeCompare(b.end_date)
+      })
+    return currentDaySchedules.map((s) => {
         const gameInfo = s.game_id ? allGamesMap.get(s.game_id) : null
         return {
           id: s.id,

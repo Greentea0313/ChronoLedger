@@ -277,16 +277,18 @@
   - verify: TypeScript 타입 에러 0건, Vitest 30개 파일 / 106개 테스트 전체 통과 (100% PASS), `npm run build` 정적 13개 페이지 export 생성 성공
 
 ### Phase 11. 게임 일정 구조 다변화, 대시보드 중앙 모달 전환 및 네이버페이 충전 결제 연동
-- [x] 11.1 게임 일정 스키마 확장(`CONTENTS`, 단일 목표일), 게임 관리 일정 모달 전환 및 홈 대시보드/지출 정돈
+- [x] 11.1 게임 일정 스키마 확장(`CONTENTS`, 단일 목표일), 일정 모달 전환 및 대시보드/사이드바 3단 UI·정렬 일원화
   - 대상 파일: `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/schedule-banner.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/subscription/subscription-modal.tsx`
   - 작업:
     1. DB `game_schedules.schedule_type`에 `CONTENTS` 추가 (`chk_schedule_type` 제약 갱신), 단일 목표 일정(`start_date = end_date = target_date`) 지원 및 관리자 등록 UI(`AdminPage`) 확장.
-    2. 게임 관리(`/dashboard/games`): 내 구독 게임 '일정 보기' 우측 Sheet를 화면 중앙 팝업 다이얼로그(`<Dialog>`)로 전환.
+    2. 게임 관리(`/dashboard/games`): 내 구독 게임 '일정 보기' 우측 Sheet를 화면 중앙 팝업 다이얼로그(`<Dialog>`)로 전환하고, `end_date >= today` 필터링으로 만료된 일정 제외.
     3. 홈 대시보드(`/dashboard`): 사이드바(`HeroSidebar`) 레이아웃 원상 복구, 캘린더 타일에서 지출 항목에 의한 아이콘 증식 제거(공식 일정 시작일에만 아이콘 노출), 개인 메모 인라인 편집/저장 UI 연동.
-    4. 캘린더 타일 배지 및 내비게이션(`desktop-calendar.tsx`): `VERSION` 배지 옆 중복 아이콘 제거, `PICKUP`/`CONTENTS` 배지 시작일(`start_date`) 한정 노출, 내비게이션 버튼을 `public/assets/nav/` SVG 에셋으로 교체.
-    5. 지출 모달(`ExpenseModal`): `[연결된 버전 일정]` 레이블 변경, 비활성화 안내 텍스트 제거, 상시 disabled 상태로 매칭 버전 명칭만 노출(기간 텍스트 제외).
-    6. 정기 구독 모달(`SubscriptionModal`): 결제수단 필드를 '내 지갑'(`WALLET`, disabled)으로 고정.
-  - verify: `CONTENTS` 등록 및 캘린더/배너 정상 표시, 게임 일정 모달 동작, 대시보드 사이드바 복원 및 인라인 메모 저장 확인, 타일 아이콘 중복 제거 확인, Vitest 31개 파일 / 116개 테스트 전체 통과 (100% PASS), `npm run build` 정적 13개 페이지 export 생성 성공
+    4. 캘린더 타일 배지 및 내비게이션(`desktop-calendar.tsx`): 배지 겹침 시 `[VERSION]` $\to$ `[PICKUP]` $\to$ `[CONTENTS]` 우선순위 렌더링, 상/하단 수직 분리 레이아웃으로 날짜 가림 방지, `VERSION` 배지 옆 중복 아이콘 제거, `PICKUP`/`CONTENTS` 배지 시작일(`start_date`) 한정 노출, 내비게이션 버튼을 `public/assets/nav/` SVG 에셋으로 교체.
+    5. 선택일 일정(`HeroSidebar`): 3단 수직 카드 구조(`[배지] 게임명` / 기간 / 일정 제목(볼드) / 메모) 개편.
+    6. 전체 화면 일정 정렬 로직 일원화: 1순위 `start_date ASC`, 2순위 `end_date ASC` (대시보드 사이드바, 게임 일정 모달, 관리자 공식 일정 목록).
+    7. 지출 모달(`ExpenseModal`): `[연결된 버전 일정]` 레이블 변경, 비활성화 안내 텍스트 제거, 상시 disabled 상태로 매칭 버전 명칭만 노출(기간 텍스트 제외).
+    8. 정기 구독 모달(`SubscriptionModal`): 결제수단 필드를 '내 지갑'(`WALLET`, disabled)으로 고정.
+  - verify: `CONTENTS` 등록 및 캘린더/배너 정상 표시, 게임 일정 중앙 모달 동작 및 만료 일정 필터링 확인, 타일 배지 엄격한 순서 렌더링 검증, 사이드바 3단 레이아웃 및 2차 정렬 단위 테스트 검증, Vitest 32개 파일 / 118개 테스트 전체 통과 (100% PASS), `npm run build` 정적 13개 페이지 export 빌드 성공
 - [ ] 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현
   - 대상 파일: `md/SCHEMA.sql`, `src/lib/naver-pay-calculations.ts`, `src/lib/naver-pay-calculations.test.ts`, `src/components/wallet/store-wallet-widget.tsx`
   - 작업:

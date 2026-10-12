@@ -30,4 +30,34 @@ describe("DesktopCalendar", () => {
     expect(screen.getByLabelText("게임 A")).toBeTruthy()
     expect(screen.queryByText(/원/)).toBeNull()
   })
+
+  it("renders multiple banners strictly in order [VERSION], [PICKUP], [CONTENTS]", () => {
+    render(
+      <DesktopCalendar
+        year={2026}
+        month={10}
+        selectedDate="2026-10-15"
+        onSelectDate={vi.fn()}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
+        days={[
+          {
+            date: "2026-10-15",
+            day: 15,
+            inCurrentMonth: true,
+            schedules: [
+              { id: "s3", schedule_type: "CONTENTS", is_start_date: true, game_id: "g1" },
+              { id: "s2", schedule_type: "PICKUP", is_start_date: true, game_id: "g1" },
+              { id: "s1", schedule_type: "VERSION", is_start_date: true, game_id: "g1" },
+            ],
+            icons: [],
+            hasMemo: false,
+          },
+        ]}
+      />,
+    )
+
+    const banners = screen.getAllByText(/VERSION|PICKUP|CONTENTS/).map((el) => el.textContent)
+    expect(banners).toEqual(["VERSION", "PICKUP", "CONTENTS"])
+  })
 })
