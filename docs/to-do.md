@@ -306,13 +306,15 @@
     4. 자동 계산값 기본 채움 및 최종 실결제액 수동 오버라이드 지원 (수동 금액 입력 시 할인액 자동 역산 및 DB 제약조건 무결성 보장).
     5. 지출 상세 모달(`ExpenseDetailModal`) 내 네이버페이 결제 라벨 및 전액 환불 안내 메시지 적용.
   - verify: 단위 테스트(플랫폼별 수단 필터링, 네이버페이 부족액 올림 충전 프리뷰, 원클릭 결제 RPC 파라미터, 실결제액 수동 오버라이드 역산, 상세 모달 환불 문구 등 13개 케이스) 통과, Vitest 34개 파일 / 143개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공
-- [ ] 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석 구현
-  - 대상 파일: `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/app/dashboard/expenses/page.tsx`
+- [x] 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석 구현
+  - 대상 파일: `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/expense/expense-detail-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`
   - 작업:
-    1. DB 스키마: `expenses.pickup_schedule_id UUID NULL REFERENCES public.game_schedules(id) ON DELETE SET NULL` 컬럼 및 외래키/인덱스 추가, `md/MIGRATION_PHASE11.sql` 마이그레이션 DDL 반영 (기존 `schedule_id` 버전 일정과 독립 공존).
-    2. 지출 등록/수정 모달(`ExpenseModal`, `ExpenseDetailModal`): 카테고리가 '게임'일 때 결제일(`target_date`) 기준 해당 게임의 진행 중인 픽업 일정(`schedule_type = 'PICKUP'`) 목록을 `[픽업 선택 (선택 사항)]` 드롭다운으로 조회 및 바인딩 지원 (이중 픽업 등 특정 캐릭터 가챠 선택 가능).
-    3. 소비 화면(`/dashboard/expenses`) 통계 UI: 게임별 픽업 과금 통계 섹션 추가 (확정 `CONFIRMED` 지출 기준 픽업별 총 과금액 가로 막대 차트/랭킹 카드, 버전 내 픽업 과금 비중(%) 표시, 미지정 지출 '버전 일반' 분리 표기로 정합성 100% 보장).
-  - verify: 지출 추가/수정 시 픽업 바인딩 저장 확인, 복수 픽업별 분리 집계 및 버전 대비 비중 계산 단위 테스트, Vitest 및 정적 빌드 검증
+    1. DB 스키마: `expenses.pickup_schedule_id UUID NULL REFERENCES public.game_schedules(id) ON DELETE SET NULL` 컬럼 및 인덱스(`idx_expenses_pickup_schedule_id`), 일정 게임 일치 트리거 검증(`validate_expense_references`) 반영, `md/MIGRATION_PHASE11.sql` 마이그레이션 DDL 추가, TypeScript 데이터베이스 타입 동기화.
+    2. 지출 등록 모달(`ExpenseModal`): 카테고리가 '게임'일 때 결제일(`paymentDate`) 기준 진행 중인 픽업 일정(`schedule_type = 'PICKUP'`) 목록을 `[픽업 선택 (선택 사항)]` 드롭다운으로 조회 및 바인딩 지원 (`pickup_schedule_id` insert 반영).
+    3. 지출 상세 모달(`ExpenseDetailModal`): 바인딩된 픽업 타이틀(`pickupTitle`) 항목 표시.
+    4. 소비 화면(`/dashboard/expenses`) 통계 UI: 게임별 픽업 과금 통계 섹션 추가 (확정 `CONFIRMED` 지출 기준 픽업별 총 과금액 가로 막대 차트 `BarChart layout="vertical"`, 랭킹 카드, 버전 내 픽업 과금 비중(%) 표시, 게임 선택 필터 드롭다운, 미지정 지출 '버전 일반' 분리 표기로 정합성 100% 보장).
+    5. 지출 목록 테이블 및 모바일 카드: 게임 지출 항목에 `[픽업명]` 뱃지 렌더링.
+  - verify: 단위 테스트(ExpenseModal 픽업 드롭다운 바인딩, ExpenseDetailModal 픽업 타이틀 노출, ExpensesPage 픽업 통계 집계 및 배지 렌더링 등) 통과, Vitest 34개 파일 / 146개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공
 - [ ] 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트
   - 대상 파일: 전체 변경 화면 및 테스트 스위트
   - 작업: 모바일 뷰포트 패딩, 중앙 모달 크기 반응형 세부 조정, `npx tsc --noEmit`, Vitest 전체 테스트 실행, `npm run build` 정적 export 검증.

@@ -1,4 +1,4 @@
-﻿
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
@@ -21,14 +21,14 @@ export type Database = {
                   ]
                 },"expenses": {
                   Row: {
-                    "billing_cycle": string | null,"cancellation_kind": string | null,"category": string,"created_at": string | null,"deduct_from_asset": boolean,"discount_amount": number,"earned_points": number,"end_date": string | null,"final_amount": number,"game_id": string | null,"id": string,"memo": string | null,"original_price": number,"payment_method": string,"point_discount_amount": number,"point_platform": string | null,"schedule_id": string | null,"start_date": string | null,"status": string,"target_date": string,"template_id": string | null,"title": string,"used_points": number,"user_id": string
+                    "billing_cycle": string | null,"cancellation_kind": string | null,"category": string,"created_at": string | null,"deduct_from_asset": boolean,"discount_amount": number,"earned_points": number,"end_date": string | null,"final_amount": number,"game_id": string | null,"id": string,"memo": string | null,"original_price": number,"payment_method": string,"pickup_schedule_id": string | null,"point_discount_amount": number,"point_platform": string | null,"schedule_id": string | null,"start_date": string | null,"status": string,"target_date": string,"template_id": string | null,"title": string,"used_points": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category": string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date": string,"template_id"?: string | null,"title": string,"used_points"?: number,"user_id": string
+                    "billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category": string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date": string,"template_id"?: string | null,"title": string,"used_points"?: number,"user_id": string
                   }
                   Update: {
-                    "billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category"?: string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date"?: string,"template_id"?: string | null,"title"?: string,"used_points"?: number,"user_id"?: string
+                    "billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category"?: string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date"?: string,"template_id"?: string | null,"title"?: string,"used_points"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -36,6 +36,12 @@ export type Database = {
       columns: ["game_id"]
 isOneToOne: false
       referencedRelation: "games"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expenses_pickup_schedule_id_fkey"
+      columns: ["pickup_schedule_id"]
+isOneToOne: false
+      referencedRelation: "game_schedules"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "expenses_schedule_id_fkey"

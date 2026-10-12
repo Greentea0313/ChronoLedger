@@ -1,5 +1,24 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석 완료 (2026-10-13)
+
+- **결정 및 배경**:
+  - 버전 일정(`schedule_id`) 단위의 거시적 예산 귀속과 분리하여, 지출 등록 시 특정 캐릭터/가챠 픽업(`pickup_schedule_id`)을 선택적으로 바인딩할 수 있도록 데이터베이스 및 프론트엔드 파이프라인 구현.
+  - 소비 화면(`/dashboard/expenses`)에 확정(`CONFIRMED`) 지출 기준의 픽업별 소비 분석 섹션을 도입: 가로 막대 차트(`BarChart layout="vertical"`), 픽업별 과금 랭킹 카드, 버전 내 픽업 비중(%), 게임 선택 필터를 제공하며, 픽업을 지정하지 않은 과금(패키지/월정액 등)은 `'버전 일반'`으로 분리 집계하여 100% 회계 정합성을 달성.
+- **수행 내역**:
+  - `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`: `expenses.pickup_schedule_id` 외래키 및 인덱스(`idx_expenses_pickup_schedule_id`), 게임 일치 트리거(`validate_expense_references`) 반영.
+  - `src/types/database.types.ts`: `expenses` Row, Insert, Update, Relationships에 `pickup_schedule_id` 동기화.
+  - `src/components/expense/expense-modal.tsx`: 게임 선택 및 결제일 기준 유효 픽업 일정 목록 메모이제이션, `[픽업 선택 (선택 사항)]` 드롭다운 제공, 지출 insert 시 바인딩 반영.
+  - `src/components/expense/expense-detail-modal.tsx`: 픽업 타이틀(`pickupTitle`) 렌더링.
+  - `src/app/dashboard/expenses/page.tsx`: 픽업 과금 통계 섹션(가로 막대 차트 + 랭킹 카드, 게임 선택 필터, 버전 일반 분리 집계), 목록 테이블 및 모바일 카드 내 `[픽업명]` 뱃지 표시.
+  - 단위 테스트 추가: `expense-modal.test.tsx` (10/10 PASS), `expense-detail-modal.test.tsx` (5/5 PASS), `expenses/page.test.tsx` (6/6 PASS).
+- **검증 증거**:
+  - `npx vitest run`: 34개 파일 / 146개 테스트 전체 통과 (100% PASS).
+  - `npx tsc --noEmit`: 0 오류.
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+- **다음 추천 구현 단계**:
+  - Phase 11.5: 반응형 모바일 튜닝 및 종합 회귀 테스트 (모바일 뷰포트 패딩 및 모달 크기 반응형 세부 점검).
+
 ## Phase 11.3 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동 완료 (2026-10-13)
 
 - **결정 및 배경**:

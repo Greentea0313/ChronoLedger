@@ -27,7 +27,7 @@ import {
 } from "recharts"
 
 const EXPENSE_COLUMNS =
-  "id, title, final_amount, status, cancellation_kind, target_date, end_date, game_id, template_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, point_platform, deduct_from_asset, memo, games(name, default_icon_url)"
+  "id, title, final_amount, status, cancellation_kind, target_date, end_date, game_id, schedule_id, pickup_schedule_id, template_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, point_platform, deduct_from_asset, memo, games(name, default_icon_url)"
 
 interface ExpenseRow {
   id: string
@@ -38,6 +38,8 @@ interface ExpenseRow {
   target_date: string
   end_date: string | null
   game_id: string | null
+  schedule_id?: string | null
+  pickup_schedule_id?: string | null
   template_id?: string | null
   category: string
   original_price: number
@@ -50,6 +52,13 @@ interface ExpenseRow {
   deduct_from_asset?: boolean
   memo?: string | null
   games?: { name?: string; default_icon_url?: string } | null
+}
+
+interface ScheduleItem {
+  id: string
+  title: string
+  schedule_type: string
+  game_id: string
 }
 
 interface SubscriptionTemplateRow {
@@ -103,6 +112,10 @@ export default function ExpensesPage() {
   const [intervalRemainingDays, setIntervalRemainingDays] = useState("30")
   const [isSavingIntervalDays, setIsSavingIntervalDays] = useState(false)
 
+  // 픽업 통계 관련 상태
+  const [schedulesMap, setSchedulesMap] = useState<Map<string, ScheduleItem>>(new Map())
+  const [selectedPickupGameFilter, setSelectedPickupGameFilter] = useState<string>("ALL")
+
   const loadExpenses = useCallback(async () => {
     if (!user) return
     setIsLoading(true)
@@ -133,10 +146,24 @@ export default function ExpensesPage() {
     }
   }, [user])
 
+  const loadSchedules = useCallback(async () => {
+    const { data } = await supabase
+      .from("game_schedules")
+      .select("id, title, schedule_type, game_id")
+    if (data) {
+      const map = new Map<string, ScheduleItem>()
+      for (const item of data) {
+        map.set(item.id, item as ScheduleItem)
+      }
+      setSchedulesMap(map)
+    }
+  }, [])
+
   useEffect(() => {
     void loadExpenses()
     void loadSubscriptions()
-  }, [loadExpenses, loadSubscriptions])
+    void loadSchedules()
+  }, [loadExpenses, loadSubscriptions, loadSchedules])
 
   // 통계: 오직 CONFIRMED 지출만 집계
   const categoryData = useMemo(() => {
@@ -179,6 +206,71 @@ export default function ExpensesPage() {
       })
   }, [expenses])
 
+  // 픽업 과금 통계에 표시할 게임 목록
+  const gameFilterOptions = useMemo(() => {
+    const gamesMap = new Map<string, string>()
+    for (const exp of expenses) {
+      if (exp.category === "게임" && exp.game_id) {
+        gamesMap.set(exp.game_id, exp.games?.name || "게임")
+      }
+    }
+    return Array.from(gamesMap.entries()).map(([id, name]) => ({ id, name }))
+  }, [expenses])
+
+  // 픽업별 소비 통계 (오직 CONFIRMED + category === '게임')
+  const pickupStatsData = useMemo(() => {
+    const targetExpenses = expenses.filter((exp) => {
+      if (exp.status !== "CONFIRMED" || exp.category !== "게임") return false
+      if (selectedPickupGameFilter !== "ALL" && exp.game_id !== selectedPickupGameFilter) return false
+      return true
+    })
+
+    const groupMap = new Map<string, { key: string; name: string; amount: number; count: number; isPickup: boolean }>()
+    let totalGameSpent = 0
+
+    for (const exp of targetExpenses) {
+      totalGameSpent += exp.final_amount
+      let key = "GENERAL"
+      let name = "버전 일반"
+      let isPickup = false
+
+      if (exp.pickup_schedule_id && schedulesMap.has(exp.pickup_schedule_id)) {
+        const sched = schedulesMap.get(exp.pickup_schedule_id)!
+        key = sched.id
+        name = sched.title
+        isPickup = true
+      }
+
+      const existing = groupMap.get(key)
+      if (existing) {
+        existing.amount += exp.final_amount
+        existing.count += 1
+      } else {
+        groupMap.set(key, {
+          key,
+          name,
+          amount: exp.final_amount,
+          count: 1,
+          isPickup,
+        })
+      }
+    }
+
+    const list = Array.from(groupMap.values()).map((item) => ({
+      ...item,
+      percent: totalGameSpent > 0 ? Math.round((item.amount / totalGameSpent) * 100) : 0,
+    }))
+
+    // 금액 내림차순 정렬
+    list.sort((a, b) => b.amount - a.amount)
+
+    return {
+      totalGameSpent,
+      list,
+      hasData: list.length > 0,
+    }
+  }, [expenses, selectedPickupGameFilter, schedulesMap])
+
   // 액션 핸들러
   const handleAddExpense = () => {
     setPayingExpense(null)
@@ -191,6 +283,7 @@ export default function ExpensesPage() {
       title: expense.title,
       original_price: expense.original_price,
       payment_method: expense.payment_method,
+      pickup_schedule_id: expense.pickup_schedule_id ?? null,
     })
     setIsExpenseModalOpen(true)
   }
@@ -305,6 +398,7 @@ export default function ExpensesPage() {
       point_platform: expense.point_platform,
       deduct_from_asset: expense.deduct_from_asset,
       gameName: expense.games?.name ?? null,
+      pickupTitle: expense.pickup_schedule_id ? schedulesMap.get(expense.pickup_schedule_id)?.title ?? null : null,
     })
   }
 
@@ -492,6 +586,143 @@ export default function ExpensesPage() {
             </Card>
           </div>
 
+          {/* 게임 픽업별 과금 분석 (Phase 11.4) */}
+          <Card className="flex flex-col">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4 pb-2">
+              <div>
+                <CardTitle>게임 픽업별 과금 분석</CardTitle>
+                <p className="text-xs text-content-secondary mt-1">
+                  확정 결제 기준 픽업별 소비액과 비중을 분석합니다. 미지정 지출은 &apos;버전 일반&apos;으로 집계됩니다.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="pickup-game-filter" className="text-xs text-content-secondary whitespace-nowrap">
+                  게임 필터:
+                </label>
+                <select
+                  id="pickup-game-filter"
+                  className="h-8 rounded-md border border-line bg-surface-2 px-2.5 text-xs text-content focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                  value={selectedPickupGameFilter}
+                  onChange={(e) => setSelectedPickupGameFilter(e.target.value)}
+                >
+                  <option value="ALL">전체 게임</option>
+                  {gameFilterOptions.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </CardHeader>
+            <CardContent className="min-h-[260px] pt-4">
+              {!pickupStatsData.hasData ? (
+                <EmptyState
+                  message="확정된 게임 과금 데이터가 없습니다."
+                  hint="게임 카테고리의 확정 지출이 등록되면 픽업별 과금액 통계가 표시됩니다."
+                />
+              ) : (
+                <div className="grid gap-6 lg:grid-cols-12 items-start">
+                  {/* 가로 막대 차트 (좌측 7컬럼) */}
+                  <div className="lg:col-span-7 space-y-2">
+                    <p className="text-xs font-medium text-content-secondary">픽업별 과금액 (원)</p>
+                    <div style={{ height: Math.max(220, pickupStatsData.list.length * 42) }} className="w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={pickupStatsData.list}
+                          layout="vertical"
+                          margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                        >
+                          <XAxis
+                            type="number"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "#9BA3B2", fontSize: 11 }}
+                            tickFormatter={(val: number) => `${Math.round(val / 10000)}만`}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "#F5F7FA", fontSize: 12 }}
+                            width={110}
+                          />
+                          <Tooltip
+                            cursor={{ fill: "rgba(255,255,255,0.05)" }}
+                            contentStyle={{
+                              backgroundColor: "#171A21",
+                              borderColor: "#2A2F3A",
+                              borderRadius: "8px",
+                            }}
+                            itemStyle={{ color: "#F5F7FA" }}
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            formatter={(value: any, _name: any, props: any) => [
+                              `${Number(value).toLocaleString()} 원 (${props.payload.percent}%)`,
+                              props.payload.isPickup ? "픽업 과금액" : "버전 일반 지출",
+                            ]}
+                          />
+                          <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                            {pickupStatsData.list.map((entry, idx) => (
+                              <Cell
+                                key={`cell-${idx}`}
+                                fill={entry.isPickup ? "#7C8CFF" : "#64748B"}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* 픽업 랭킹 및 비중 카드 (우측 5컬럼) */}
+                  <div className="lg:col-span-5 space-y-3 bg-surface-2/60 p-4 rounded-lg border border-line">
+                    <div className="flex items-center justify-between border-b border-line pb-2.5">
+                      <span className="text-xs font-semibold text-content">픽업 과금 순위</span>
+                      <span className="text-xs text-content-secondary">
+                        총 {pickupStatsData.totalGameSpent.toLocaleString()} 원
+                      </span>
+                    </div>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                      {pickupStatsData.list.map((item, index) => (
+                        <div
+                          key={item.key}
+                          className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-surface-1/40 hover:bg-surface-1 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <span
+                              className={`w-5 h-5 flex items-center justify-center rounded text-[11px] font-bold shrink-0 ${
+                                index === 0
+                                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                                  : index === 1
+                                  ? "bg-slate-300/20 text-slate-300 border border-slate-300/40"
+                                  : index === 2
+                                  ? "bg-amber-700/20 text-amber-600 border border-amber-700/40"
+                                  : "bg-surface-2 text-content-muted"
+                              }`}
+                            >
+                              {index + 1}
+                            </span>
+                            <span className="font-medium text-content truncate" title={item.name}>
+                              {item.name}
+                            </span>
+                          </div>
+                          <div className="text-right shrink-0 ml-3">
+                            <span className="font-semibold text-content block">
+                              {item.amount.toLocaleString()} 원
+                            </span>
+                            <span className="text-[11px] text-content-secondary">
+                              {item.percent}% ({item.count}건)
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* 전체 지출 내역 목록 영역 */}
           <Card className="flex flex-col">
             <CardHeader>
@@ -523,7 +754,7 @@ export default function ExpensesPage() {
                               {expense.target_date}
                             </td>
                             <td className="py-3">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 {expense.games?.default_icon_url && (
                                   /* eslint-disable-next-line @next/next/no-img-element */
                                   <img
@@ -533,6 +764,11 @@ export default function ExpensesPage() {
                                   />
                                 )}
                                 <span className="font-medium text-content">{expense.title}</span>
+                                {expense.pickup_schedule_id && schedulesMap.has(expense.pickup_schedule_id) && (
+                                  <span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/15 text-primary border border-primary/30">
+                                    {schedulesMap.get(expense.pickup_schedule_id)!.title}
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td className="py-3 text-content-secondary">{expense.category}</td>
@@ -622,7 +858,14 @@ export default function ExpensesPage() {
                         )}
                         <div className="flex justify-between items-start relative z-10">
                           <div>
-                            <p className="font-semibold text-content">{expense.title}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-semibold text-content">{expense.title}</p>
+                              {expense.pickup_schedule_id && schedulesMap.has(expense.pickup_schedule_id) && (
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary border border-primary/30">
+                                  {schedulesMap.get(expense.pickup_schedule_id)!.title}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-content-secondary mt-0.5">
                               {expense.target_date} · {expense.category} ·{" "}
                               {METHOD_LABELS[expense.payment_method] || expense.payment_method}

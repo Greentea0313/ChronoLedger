@@ -25,6 +25,7 @@ export interface PlannedExpenseInput {
   title: string
   original_price: number
   payment_method?: string
+  pickup_schedule_id?: string | null
 }
 
 interface ExpenseModalProps {
@@ -89,6 +90,8 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   const [games, setGames] = useState<GameOption[]>([])
   const [gameId, setGameId] = useState("")
   const [schedules, setSchedules] = useState<ScheduleOption[]>([])
+  const [pickupSchedules, setPickupSchedules] = useState<ScheduleOption[]>([])
+  const [pickupScheduleId, setPickupScheduleId] = useState("")
   const [wallets, setWallets] = useState<WalletInfo[]>([])
   const [title, setTitle] = useState("")
   const [originalPrice, setOriginalPrice] = useState("")
@@ -137,6 +140,8 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     setCategory("게임")
     setGameId("")
     setSchedules([])
+    setPickupSchedules([])
+    setPickupScheduleId(plannedExpense?.pickup_schedule_id ?? "")
   }, [open, plannedExpense, initialDate])
 
   useEffect(() => {
@@ -166,6 +171,8 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   useEffect(() => {
     if (!gameId) {
       setSchedules([])
+      setPickupSchedules([])
+      setPickupScheduleId("")
       return
     }
     let cancelled = false
@@ -174,11 +181,14 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
         .from("game_schedules")
         .select("id, game_id, title, schedule_type, start_date, end_date")
         .eq("game_id", gameId)
-        .eq("schedule_type", "VERSION")
+        .in("schedule_type", ["VERSION", "PICKUP"])
         .order("start_date")
       if (!cancelled) {
-        const versionSchedules = (data ?? []) as ScheduleOption[]
+        const all = (data ?? []) as ScheduleOption[]
+        const versionSchedules = all.filter((s) => s.schedule_type === "VERSION")
+        const pickups = all.filter((s) => s.schedule_type === "PICKUP")
         setSchedules(versionSchedules)
+        setPickupSchedules(pickups)
         if (paymentDate) {
           const matched = versionSchedules.find(
             (s) => s.start_date <= paymentDate && paymentDate <= s.end_date
@@ -199,6 +209,19 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     if (!paymentDate) return null
     return schedules.find((s) => s.start_date <= paymentDate && paymentDate <= s.end_date) ?? null
   }, [paymentDate, schedules])
+
+  const availablePickups = useMemo(() => {
+    if (!paymentDate) return []
+    return pickupSchedules.filter(
+      (p) => p.start_date <= paymentDate && paymentDate <= p.end_date
+    )
+  }, [paymentDate, pickupSchedules])
+
+  useEffect(() => {
+    if (pickupScheduleId && !availablePickups.some((p) => p.id === pickupScheduleId)) {
+      setPickupScheduleId("")
+    }
+  }, [availablePickups, pickupScheduleId])
 
   const updateCalculatedFinal = (orig: number, disc: number, pts: number) => {
     const calculated = Math.max(0, orig - disc - pts)
@@ -353,6 +376,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             user_id: user.id,
             game_id: isGameCategory && gameId ? gameId : null,
             schedule_id: schedule?.id ?? null,
+            pickup_schedule_id: isGameCategory && pickupScheduleId ? pickupScheduleId : null,
             title: title.trim(),
             category,
             status: "PLANNED",
@@ -421,6 +445,8 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                     if (newCat !== "게임") {
                       setGameId("")
                       setSchedules([])
+                      setPickupSchedules([])
+                      setPickupScheduleId("")
                       setPaymentPlatform("OTHER")
                       if (paymentMethod === "GOOGLE_PLAY" || paymentMethod === "GALAXY_STORE") {
                         setPaymentMethod("WALLET")
@@ -448,19 +474,37 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                     </select>
                   </div>
                   {gameId && (
-                    <div>
-                      <label htmlFor="expense-schedule" className={labelClassName}>연결된 버전 일정</label>
-                      <select
-                        id="expense-schedule"
-                        className={`${selectClassName} opacity-60 cursor-not-allowed`}
-                        value={matchingVersion?.id ?? ""}
-                        disabled
-                      >
-                        <option value={matchingVersion?.id ?? ""}>
-                          {matchingVersion ? matchingVersion.title : "해당 날짜에 진행 중인 버전 일정이 없습니다"}
-                        </option>
-                      </select>
-                    </div>
+                    <>
+                      <div>
+                        <label htmlFor="expense-schedule" className={labelClassName}>연결된 버전 일정</label>
+                        <select
+                          id="expense-schedule"
+                          className={`${selectClassName} opacity-60 cursor-not-allowed`}
+                          value={matchingVersion?.id ?? ""}
+                          disabled
+                        >
+                          <option value={matchingVersion?.id ?? ""}>
+                            {matchingVersion ? matchingVersion.title : "해당 날짜에 진행 중인 버전 일정이 없습니다"}
+                          </option>
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="expense-pickup" className={labelClassName}>픽업 선택 (선택 사항)</label>
+                        <select
+                          id="expense-pickup"
+                          className={selectClassName}
+                          value={pickupScheduleId}
+                          onChange={(event) => setPickupScheduleId(event.target.value)}
+                        >
+                          <option value="">픽업 선택 안 함 (버전 일반 지출)</option>
+                          {availablePickups.map((pickup) => (
+                            <option key={pickup.id} value={pickup.id}>
+                              {pickup.title} ({pickup.start_date} ~ {pickup.end_date})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
                   )}
                 </>
               )}

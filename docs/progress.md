@@ -1,5 +1,39 @@
 # 프로젝트 진행 현황
 
+## Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석 완료 (2026-10-13)
+
+- **배경 및 요구사항**:
+  - 기존 지출은 버전 일정(`schedule_id`) 단위로만 바인딩되어 동시 진행되는 복수 가챠(이중 픽업 등)의 픽업별 과금 통계를 확인할 수 없었음.
+  - 가계부 지출에 특정 픽업 일정(`pickup_schedule_id`)을 선택적으로 바인딩하고, 소비 화면에서 게임별 픽업 과금액 순위, 막대 차트, 비중(%), 미지정 '버전 일반' 지출 분리 분석을 지원하는 기능 요구.
+- **수행 내역**:
+  1. **DB 스키마 및 마이그레이션 (`md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`)**:
+     - `expenses.pickup_schedule_id UUID NULL REFERENCES public.game_schedules(id) ON DELETE SET NULL` 컬럼 추가.
+     - `idx_expenses_pickup_schedule_id` 부분 인덱스 생성.
+     - `validate_expense_references()` 트리거 함수에 픽업 일정의 게임 일치 검증 로직 반영.
+     - TypeScript 데이터베이스 타입(Row, Insert, Update, Relationships)에 `pickup_schedule_id` 완벽 동기화.
+  2. **지출 모달 UI (`src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`)**:
+     - 카테고리가 '게임'이고 게임이 선택되었을 때 결제일(`paymentDate`) 기준 진행 중인 픽업 일정(`schedule_type = 'PICKUP'`) 목록을 조회하여 `[픽업 선택 (선택 사항)]` 드롭다운 제공.
+     - 픽업 미선택 시 기본값 `""` (`null` 저장, "버전 일반 지출"로 집계).
+     - 지출 insert 시 `pickup_schedule_id: isGameCategory && pickupScheduleId ? pickupScheduleId : null` 바인딩 저장.
+     - 지출 상세 모달(`ExpenseDetailModal`) 내 픽업 타이틀(`pickupTitle`) 표시 항목 추가.
+  3. **소비 화면(`/dashboard/expenses/page.tsx`) 통계 및 뱃지 UI**:
+     - `game_schedules` 조회를 통해 schedule ID $\to$ title 맵을 메모리 캐싱.
+     - 확정(`CONFIRMED`) 지출 기준 게임 픽업별 과금 분석 섹션 추가:
+       - 게임 선택 필터 드롭다운 (전체 게임 / 개별 게임).
+       - 가로 막대 차트 (`BarChart layout="vertical"`): 픽업별 총 과금액 막대 렌더링.
+       - 픽업 과금 순위 랭킹 카드: 최다 과금 픽업 순위, 과금액, 비중(%), 결제 건수 표시.
+       - 미지정 과금은 `'버전 일반'`으로 명확히 분리 표기하여 100% 회계 정합성 보장.
+     - 지출 목록 테이블 및 모바일 카드 내 `[픽업명]` 뱃지 렌더링.
+     - 확정 모달 및 환불 모달 호출 시 픽업 정보 연동.
+  4. **단위 테스트 확장**:
+     - `expense-modal.test.tsx`: 픽업 드롭다운 렌더링 및 `pickup_schedule_id` 저장 검증 (10/10 PASS).
+     - `expense-detail-modal.test.tsx`: 픽업 타이틀 표시 검증 (5/5 PASS).
+     - `expenses/page.test.tsx`: 픽업 과금 분석 섹션 렌더링, 픽업명/버전 일반 분리 집계, 테이블 뱃지 노출 검증 (6/6 PASS).
+- **검증 증거**:
+  - `npx vitest run`: 34개 테스트 파일 / 146개 테스트 전체 통과 (100% PASS).
+  - `npx tsc --noEmit`: 컴파일 에러 0건.
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## Phase 11.3 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동 완료 (2026-10-13)
 
 - **배경 및 요구사항**:

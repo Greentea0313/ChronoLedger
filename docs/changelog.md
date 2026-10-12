@@ -1,5 +1,25 @@
 # 변경 이력
 
+## 2026-10-13 (Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석)
+
+- **DB 스키마 및 마이그레이션 (`md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`)**:
+  - `expenses.pickup_schedule_id UUID NULL REFERENCES public.game_schedules(id) ON DELETE SET NULL` 컬럼 추가.
+  - 픽업 지출 인덱스(`idx_expenses_pickup_schedule_id`) 생성.
+  - 지출-일정 게임 일치 트리거 검증 함수(`validate_expense_references()`)에 픽업 일정 게임 검증 로직 추가.
+  - TypeScript 데이터베이스 타입(Row, Insert, Update, Relationships)에 `pickup_schedule_id` 완벽 반영.
+- **지출 모달 UI 픽업 바인딩 지원 (`src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`)**:
+  - 카테고리가 '게임'이고 게임이 선택된 경우 결제일 기준 진행 중인 픽업 일정 목록을 `[픽업 선택 (선택 사항)]` 드롭다운으로 노출.
+  - 지출 등록 시 `pickup_schedule_id` 저장 연동.
+  - 지출 상세 모달에 연결된 픽업 타이틀(`pickupTitle`) 표시.
+- **소비 화면 가챠/픽업 분석 통계 섹션 추가 (`src/app/dashboard/expenses/page.tsx`)**:
+  - 확정(`CONFIRMED`) 지출 기준 픽업별 총 과금액 가로 막대 차트(`BarChart layout="vertical"`).
+  - 픽업 과금 순위 랭킹 카드: 최다 과금 픽업 순위, 과금액, 비중(%), 건수 렌더링.
+  - 픽업 미지정 과금은 `'버전 일반'`으로 명확히 분리 표기하여 100% 회계 정합성 보장.
+  - 게임 선택 필터 드롭다운 연동.
+  - 지출 목록 테이블 및 모바일 카드 내 `[픽업명]` 뱃지 렌더링.
+- **검증 무결성**:
+  - Vitest 34개 파일 / 146개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공.
+
 ## 2026-10-13 (Phase 11.3 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동)
 
 - **결제 플랫폼 $\to$ 결제 수단 2단계 종속 선택 구조 (`src/components/expense/expense-modal.tsx`)**:

@@ -168,6 +168,7 @@ CREATE TABLE public.expenses (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     game_id UUID REFERENCES public.games(id) ON DELETE SET NULL,
     schedule_id UUID REFERENCES public.game_schedules(id) ON DELETE SET NULL,
+    pickup_schedule_id UUID REFERENCES public.game_schedules(id) ON DELETE SET NULL,
     template_id UUID REFERENCES public.subscription_templates(id) ON DELETE SET NULL,
     billing_cycle VARCHAR(7), -- YYYY-MM 형식 정기 구독 식별자
     cancellation_kind VARCHAR(30) CHECK (cancellation_kind IN ('PLANNED_CANCEL', 'TEMPLATE_DEACTIVATION', 'PAYMENT_REFUND')),
@@ -231,6 +232,11 @@ CREATE UNIQUE INDEX idx_expenses_template_schedule_id
     ON public.expenses(template_id, schedule_id) 
     WHERE template_id IS NOT NULL AND schedule_id IS NOT NULL;
 
+-- 픽업별 지출 조회 인덱스
+CREATE INDEX idx_expenses_pickup_schedule_id 
+    ON public.expenses(pickup_schedule_id) 
+    WHERE pickup_schedule_id IS NOT NULL;
+
 ALTER TABLE public.expenses ADD CONSTRAINT chk_expenses_billing_cycle
     CHECK (billing_cycle IS NULL OR billing_cycle ~ '^[0-9]{4}-(0[1-9]|1[0-2])$');
 ALTER TABLE public.expenses ADD CONSTRAINT chk_expenses_point_platform
@@ -257,6 +263,7 @@ CREATE TABLE public.store_point_transactions (
 -- 인덱스 보강
 CREATE INDEX idx_expenses_user_target_date ON public.expenses(user_id, target_date);
 CREATE INDEX idx_expenses_schedule_id ON public.expenses(schedule_id);
+CREATE INDEX idx_expenses_pickup_schedule_id ON public.expenses(pickup_schedule_id);
 CREATE INDEX idx_game_schedules_dates ON public.game_schedules(start_date, end_date);
 CREATE INDEX idx_personal_memos_user_date ON public.personal_memos(user_id, memo_date);
 CREATE INDEX idx_store_point_transactions_user_platform ON public.store_point_transactions(user_id, platform);
@@ -576,12 +583,18 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- 일정 및 구독 템플릿 참조는 본인 소유와 게임 관계가 일치해야 한다.
 CREATE OR REPLACE FUNCTION public.validate_expense_references()
 RETURNS TRIGGER AS $$
-DECLARE v_schedule_game UUID; v_template_user UUID; v_template_game UUID;
+DECLARE v_schedule_game UUID; v_pickup_game UUID; v_template_user UUID; v_template_game UUID;
 BEGIN
     IF NEW.schedule_id IS NOT NULL THEN
         SELECT game_id INTO v_schedule_game FROM public.game_schedules WHERE id = NEW.schedule_id;
         IF NOT FOUND OR NEW.game_id IS DISTINCT FROM v_schedule_game THEN
             RAISE EXCEPTION '지출 게임과 일정 게임이 일치해야 합니다.';
+        END IF;
+    END IF;
+    IF NEW.pickup_schedule_id IS NOT NULL THEN
+        SELECT game_id INTO v_pickup_game FROM public.game_schedules WHERE id = NEW.pickup_schedule_id;
+        IF NOT FOUND OR NEW.game_id IS DISTINCT FROM v_pickup_game THEN
+            RAISE EXCEPTION '지출 게임과 픽업 일정 게임이 일치해야 합니다.';
         END IF;
     END IF;
     IF NEW.template_id IS NOT NULL THEN
@@ -599,7 +612,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER trg_validate_expense_references
-BEFORE INSERT OR UPDATE OF user_id, game_id, schedule_id, template_id ON public.expenses
+BEFORE INSERT OR UPDATE OF user_id, game_id, schedule_id, pickup_schedule_id, template_id ON public.expenses
 FOR EACH ROW EXECUTE FUNCTION public.validate_expense_references();
 
 -- Account deletion requests remain readable to their owner while personal data

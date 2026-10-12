@@ -27,15 +27,18 @@ vi.mock("recharts", async () => {
 })
 
 function createExpenseQueryBuilder(data: unknown[]) {
+  const promise = Promise.resolve({ data, error: null })
   const query = {
     select: vi.fn(),
     eq: vi.fn(),
     order: vi.fn(),
     update: vi.fn(),
+    then: promise.then.bind(promise),
+    catch: promise.catch.bind(promise),
   }
   query.select.mockReturnValue(query)
   query.eq.mockReturnValue(query)
-  query.order.mockReturnValue(Promise.resolve({ data, error: null }))
+  query.order.mockReturnValue(query)
   query.update.mockReturnValue(query)
   return query
 }
@@ -202,6 +205,75 @@ describe("ExpensesPage", () => {
     expect(screen.getByText("넷플릭스")).toBeTruthy()
     expect(screen.getByText("매월 15일")).toBeTruthy()
     expect(screen.getByRole("button", { name: "구독 중지" })).toBeTruthy()
+  })
+
+  it("게임 픽업별 과금 분석 섹션과 픽업 배지가 정상 렌더링된다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const pickupExpenses = [
+      {
+        id: "exp-p1",
+        title: "수영복 픽업 10연차",
+        category: "게임",
+        status: "CONFIRMED",
+        target_date: "2026-10-10",
+        end_date: null,
+        game_id: "game-1",
+        pickup_schedule_id: "sched-p1",
+        original_price: 33000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 33000,
+        payment_method: "GOOGLE_PLAY",
+        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+      },
+      {
+        id: "exp-p2",
+        title: "월정액 구매",
+        category: "게임",
+        status: "CONFIRMED",
+        target_date: "2026-10-11",
+        end_date: null,
+        game_id: "game-1",
+        pickup_schedule_id: null,
+        original_price: 6000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 6000,
+        payment_method: "GOOGLE_PLAY",
+        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+      },
+    ]
+
+    const expenseBuilder = createExpenseQueryBuilder(pickupExpenses)
+    const schedulesBuilder = createExpenseQueryBuilder([
+      { id: "sched-p1", title: "수영복 한정 픽업", schedule_type: "PICKUP", game_id: "game-1" },
+    ])
+    const subscriptionBuilder = createExpenseQueryBuilder([])
+
+    from.mockImplementation((table: string) => {
+      if (table === "game_schedules") return schedulesBuilder
+      if (table === "subscription_templates") return subscriptionBuilder
+      return expenseBuilder
+    })
+
+    render(<ExpensesPage />)
+
+    // 게임 픽업 분석 섹션 확인
+    expect(await screen.findByText("게임 픽업별 과금 분석")).toBeTruthy()
+    expect(screen.getByText("픽업 과금 순위")).toBeTruthy()
+    expect(screen.getByText("총 39,000 원")).toBeTruthy()
+
+    // 픽업명 및 '버전 일반' 분리 집계 확인
+    expect(screen.getAllByText("수영복 한정 픽업").length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText("버전 일반")).toBeTruthy()
+
+    // 목록 테이블 내 픽업 배지 노출 확인
+    const badges = screen.getAllByText("수영복 한정 픽업")
+    expect(badges.length).toBeGreaterThanOrEqual(1)
   })
 })
 

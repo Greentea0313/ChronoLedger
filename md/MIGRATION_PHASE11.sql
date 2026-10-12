@@ -386,3 +386,53 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- ==============================================================================
+-- 10. 픽업별 지출 바인딩 및 가챠 소비 통계/분석 (Phase 11.4)
+-- ==============================================================================
+
+-- 10-1. expenses 테이블에 pickup_schedule_id 외래키 추가
+ALTER TABLE public.expenses
+    ADD COLUMN IF NOT EXISTS pickup_schedule_id UUID REFERENCES public.game_schedules(id) ON DELETE SET NULL;
+
+-- 10-2. 픽업 지출 인덱스 생성
+CREATE INDEX IF NOT EXISTS idx_expenses_pickup_schedule_id 
+    ON public.expenses(pickup_schedule_id)
+    WHERE pickup_schedule_id IS NOT NULL;
+
+-- 10-3. 일정 및 구독 템플릿 참조 검증 트리거 함수 갱신 (픽업 일정 게임 일치 검증 추가)
+CREATE OR REPLACE FUNCTION public.validate_expense_references()
+RETURNS TRIGGER AS $$
+DECLARE v_schedule_game UUID; v_pickup_game UUID; v_template_user UUID; v_template_game UUID;
+BEGIN
+    IF NEW.schedule_id IS NOT NULL THEN
+        SELECT game_id INTO v_schedule_game FROM public.game_schedules WHERE id = NEW.schedule_id;
+        IF NOT FOUND OR NEW.game_id IS DISTINCT FROM v_schedule_game THEN
+            RAISE EXCEPTION '지출 게임과 일정 게임이 일치해야 합니다.';
+        END IF;
+    END IF;
+    IF NEW.pickup_schedule_id IS NOT NULL THEN
+        SELECT game_id INTO v_pickup_game FROM public.game_schedules WHERE id = NEW.pickup_schedule_id;
+        IF NOT FOUND OR NEW.game_id IS DISTINCT FROM v_pickup_game THEN
+            RAISE EXCEPTION '지출 게임과 픽업 일정 게임이 일치해야 합니다.';
+        END IF;
+    END IF;
+    IF NEW.template_id IS NOT NULL THEN
+        SELECT user_id, game_id INTO v_template_user, v_template_game
+        FROM public.subscription_templates WHERE id = NEW.template_id;
+        IF NOT FOUND OR v_template_user IS DISTINCT FROM NEW.user_id THEN
+            RAISE EXCEPTION '본인 소유의 구독 템플릿만 연결할 수 있습니다.';
+        END IF;
+        IF v_template_game IS NOT NULL AND NEW.game_id IS DISTINCT FROM v_template_game THEN
+            RAISE EXCEPTION '지출 게임과 구독 템플릿 게임이 일치해야 합니다.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_validate_expense_references ON public.expenses;
+CREATE TRIGGER trg_validate_expense_references
+BEFORE INSERT OR UPDATE OF user_id, game_id, schedule_id, pickup_schedule_id, template_id ON public.expenses
+FOR EACH ROW EXECUTE FUNCTION public.validate_expense_references();
+
+
