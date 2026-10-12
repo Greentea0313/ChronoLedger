@@ -104,7 +104,7 @@ describe("AdminRequestsPage", () => {
     expect(scheduleQuery.select).toHaveBeenCalledWith("*, games(name)")
     expect(scheduleQuery.eq).toHaveBeenCalledWith("request_status", "PENDING")
 
-    const iconUrlInput = container.querySelector('input[type="url"]')
+    const iconUrlInput = container.querySelector('input[aria-label="Sample RPG 기본 아이콘 URL"]')
     expect(iconUrlInput).not.toBeNull()
     if (!(iconUrlInput instanceof HTMLInputElement)) throw new Error("Expected the game icon URL input.")
     await act(async () => {
@@ -125,6 +125,42 @@ describe("AdminRequestsPage", () => {
       p_request_id: "game-request-1",
       p_default_icon_url: "https://example.test/game.webp",
     })
+  })
+
+  it("allows admin to directly add a game by entering name and icon URL and clicking [게임 등록]", async () => {
+    await renderPage()
+
+    const nameInput = container.querySelector("#direct-game-name")
+    const iconInput = container.querySelector("#direct-game-icon-url")
+    expect(nameInput).not.toBeNull()
+    expect(iconInput).not.toBeNull()
+
+    if (!(nameInput instanceof HTMLInputElement) || !(iconInput instanceof HTMLInputElement)) {
+      throw new Error("Expected direct game name and icon URL inputs.")
+    }
+
+    await act(async () => {
+      nameInput.value = "신규 게임"
+      Simulate.change(nameInput)
+      iconInput.value = "https://example.test/new-game.webp"
+      Simulate.change(iconInput)
+    })
+
+    const createButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("게임 등록"),
+    )
+    expect(createButton).toBeDefined()
+
+    await act(async () => {
+      createButton!.click()
+      await Promise.resolve()
+    })
+
+    expect(rpc).toHaveBeenCalledWith("admin_create_game", {
+      p_name: "신규 게임",
+      p_default_icon_url: "https://example.test/new-game.webp",
+    })
+    expect(container.textContent).toContain("'신규 게임' 게임이 성공적으로 등록되었습니다.")
   })
 
   it("does not fetch requests for a non-admin user", async () => {

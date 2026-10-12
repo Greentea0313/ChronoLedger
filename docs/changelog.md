@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-13 (관리자 요청 페이지 직접 게임 추가 기능 및 [게임 등록] 버튼 구현)
+
+- **관리자 직접 게임 추가 카드 UI (`src/app/admin/requests/page.tsx`)**:
+  - `/admin/requests`의 "게임 요청" 탭 상단에 관리자가 유저 건의 승인 없이 즉시 새 게임을 마스터 카탈로그에 등록할 수 있는 카드 폼 추가.
+  - 게임 이름, 기본 아이콘 URL 입력란 및 `[게임 등록]` 버튼 구현.
+  - URL 유효성 검사, 필수 입력값 검증, 중복 등록 방어 에러 처리 및 성공 피드백 표시.
+- **`admin_create_game` 보안 정의자 RPC 및 DB 스키마 갱신 (`md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`)**:
+  - 관리자 권한 검증 및 게임 카탈로그 원자적 등록 함수 `admin_create_game` 추가 및 권한 부여.
+- **단위 테스트 추가 (`src/app/admin/requests/page.test.tsx`)**:
+  - 관리자가 입력란을 통해 게임 이름과 아이콘 URL을 입력하고 `[게임 등록]` 버튼을 클릭해 등록을 완료하는 플로우 검증 (총 163개 테스트 100% 통과).
+
 ## 2026-10-13 (정기 구독 템플릿 수정/삭제 기능 구현 및 카드 액션 버튼 레이아웃 개편)
 
 - **정기 구독 템플릿 수정 기능 (`src/components/subscription/subscription-modal.tsx`)**:

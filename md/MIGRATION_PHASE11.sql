@@ -487,5 +487,47 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 REVOKE ALL ON FUNCTION public.delete_subscription_template(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.delete_subscription_template(UUID) TO authenticated;
 
+-- ==============================================================================
+-- 13. 관리자 직접 게임 등록 RPC (admin_create_game) 추가
+-- ==============================================================================
+
+CREATE OR REPLACE FUNCTION public.admin_create_game(p_name TEXT, p_default_icon_url TEXT)
+RETURNS UUID AS $$
+DECLARE
+    v_game_id UUID;
+    v_name TEXT := btrim(p_name);
+    v_url TEXT := btrim(p_default_icon_url);
+    v_is_admin BOOLEAN;
+BEGIN
+    v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
+
+    IF NOT coalesce(v_is_admin, false) THEN
+        RAISE EXCEPTION '관리자 권한이 필요합니다.';
+    END IF;
+
+    IF v_name IS NULL OR v_name = '' THEN
+        RAISE EXCEPTION '게임 이름을 입력해 주세요.';
+    END IF;
+
+    IF v_url IS NULL OR v_url = '' THEN
+        RAISE EXCEPTION '게임 기본 아이콘 URL을 입력해 주세요.';
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM public.games WHERE name = v_name) THEN
+        RAISE EXCEPTION '이미 등록된 게임 이름입니다.';
+    END IF;
+
+    INSERT INTO public.games(name, default_icon_url, created_by)
+    VALUES (v_name, v_url, auth.uid())
+    RETURNING id INTO v_game_id;
+
+    RETURN v_game_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.admin_create_game(TEXT, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_create_game(TEXT, TEXT) TO authenticated;
+
 
 
