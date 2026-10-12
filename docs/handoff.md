@@ -1,5 +1,21 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## Phase 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트 완료 (2026-10-13)
+
+- **결정 및 배경**:
+  - 모바일(360px~390px) 환경에서 모달 다이얼로그의 입력 여백을 유연하게 처리하기 위해 다이얼로그 패딩을 `p-4 sm:p-6`으로 일관되게 튜닝.
+  - 지출 목록 모바일 카드 뷰에서 긴 항목명과 픽업 뱃지가 겹치거나 가로 오버플로우를 발생시키지 않도록 `flex-wrap` 기반 안전 레이아웃 적용.
+- **수행 내역**:
+  - `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/subscription/subscription-modal.tsx`: 다이얼로그 패딩 `p-4 sm:p-6` 적용.
+  - `src/app/dashboard/expenses/page.tsx`: 모바일 카드 뷰 타이틀 뱃지 컨테이너 `flex-wrap` 적용.
+- **검증 증거**:
+  - `npx vitest run`: 34개 파일 / 146개 테스트 전체 통과 (100% PASS).
+  - `npx tsc --noEmit`: 0 오류.
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+- **Phase 11 전체 완료 현황**:
+  - Phase 11.1 ~ 11.5 전체 구현 및 검증 완료.
+  - Supabase 마이그레이션 DDL: `md/MIGRATION_PHASE11.sql`.
+
 ## Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석 완료 (2026-10-13)
 
 - **결정 및 배경**:

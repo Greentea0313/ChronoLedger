@@ -1,5 +1,23 @@
 # 프로젝트 진행 현황
 
+## Phase 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트 완료 (2026-10-13)
+
+- **배경 및 요구사항**:
+  - 모바일 소형 뷰포트(360px~390px) 환경에서 모달 다이얼로그의 여백 패딩 및 입력 폼 가독성 향상.
+  - 지출 목록 모바일 카드 뷰에서 긴 항목명과 픽업 뱃지가 겹치거나 잘리지 않도록 줄바꿈 래핑 최적화.
+  - Phase 11 전체 변경분에 대한 TypeScript 타입 검사, 단위/통합 테스트, Next.js 정적 export 빌드 종합 검증.
+- **수행 내역**:
+  1. **모달 컴포넌트 모바일 패딩 최적화**:
+     - `src/components/expense/expense-modal.tsx`: `DialogContent`에 `p-4 sm:p-6` 적용하여 좁은 화면에서의 폼 가용 영역 확보.
+     - `src/components/expense/expense-detail-modal.tsx`: `DialogContent`에 `p-4 sm:p-6` 적용.
+     - `src/components/subscription/subscription-modal.tsx`: `DialogContent`에 `p-4 sm:p-6` 적용.
+  2. **모바일 카드 뷰 배지 레이아웃 보강 (`src/app/dashboard/expenses/page.tsx`)**:
+     - 타이틀과 픽업 뱃지 컨테이너에 `flex items-center gap-1.5 flex-wrap`을 적용하여 좁은 화면에서도 뱃지가 오버플로우 없이 유연하게 줄바꿈되도록 개선.
+  3. **종합 회귀 검증**:
+     - Vitest: 34개 테스트 파일 / 146개 테스트 전체 통과 (100% PASS).
+     - `tsc --noEmit`: 타입 오류 0건 (Clean).
+     - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석 완료 (2026-10-13)
 
 - **배경 및 요구사항**:

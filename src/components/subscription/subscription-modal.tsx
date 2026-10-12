@@ -150,7 +150,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-line bg-surface text-content sm:max-w-[480px]">
+      <DialogContent className="border-line bg-surface text-content sm:max-w-[480px] p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>새 정기 구독 추가</DialogTitle>
           <DialogDescription>

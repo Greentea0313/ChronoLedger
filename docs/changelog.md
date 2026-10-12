@@ -1,5 +1,14 @@
 # 변경 이력
 
+## 2026-10-13 (Phase 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트)
+
+- **모달 컴포넌트 모바일 패딩 최적화**:
+  - `ExpenseModal`, `ExpenseDetailModal`, `SubscriptionModal`의 `DialogContent` 패딩을 `p-4 sm:p-6`으로 튜닝하여 좁은 화면에서의 가용 폼 영역 및 가독성 개선.
+- **모바일 카드 뷰 뱃지 레이아웃 보강**:
+  - `src/app/dashboard/expenses/page.tsx`: 타이틀 및 픽업 뱃지 컨테이너에 `flex-wrap`을 적용하여 좁은 뷰포트에서도 오버플로우 방지.
+- **종합 회귀 검증 무결성**:
+  - Vitest 34개 파일 / 146개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공.
+
 ## 2026-10-13 (Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석)
 
 - **DB 스키마 및 마이그레이션 (`md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`)**:

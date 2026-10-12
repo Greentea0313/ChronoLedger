@@ -80,7 +80,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: Expens
 
   return (
     <Dialog open={expense !== null} onOpenChange={close}>
-      <DialogContent className="border-gray-700 bg-gray-800 text-white">
+      <DialogContent className="border-gray-700 bg-gray-800 text-white p-4 sm:p-6">
         {expense && (
           <>
             <DialogHeader>

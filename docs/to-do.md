@@ -315,9 +315,10 @@
     4. 소비 화면(`/dashboard/expenses`) 통계 UI: 게임별 픽업 과금 통계 섹션 추가 (확정 `CONFIRMED` 지출 기준 픽업별 총 과금액 가로 막대 차트 `BarChart layout="vertical"`, 랭킹 카드, 버전 내 픽업 과금 비중(%) 표시, 게임 선택 필터 드롭다운, 미지정 지출 '버전 일반' 분리 표기로 정합성 100% 보장).
     5. 지출 목록 테이블 및 모바일 카드: 게임 지출 항목에 `[픽업명]` 뱃지 렌더링.
   - verify: 단위 테스트(ExpenseModal 픽업 드롭다운 바인딩, ExpenseDetailModal 픽업 타이틀 노출, ExpensesPage 픽업 통계 집계 및 배지 렌더링 등) 통과, Vitest 34개 파일 / 146개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공
-- [ ] 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트
-  - 대상 파일: 전체 변경 화면 및 테스트 스위트
-  - 작업: 모바일 뷰포트 패딩, 중앙 모달 크기 반응형 세부 조정, `npx tsc --noEmit`, Vitest 전체 테스트 실행, `npm run build` 정적 export 검증.
+- [x] 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트
+  - 대상 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/subscription/subscription-modal.tsx`, 전체 테스트 스위트
+  - 작업: 모바일 뷰포트 패딩 최적화(`p-4 sm:p-6`), 중앙 모달 반응형 크기 세부 조정, 지출 목록 모바일 카드 타이틀-배지 줄바꿈 래핑, `npx tsc --noEmit`, Vitest 전체 테스트 실행, `npm run build` 정적 export 검증.
+  - verify: Vitest 34개 파일 / 146개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공.
 
 ### Phase 7. Web/PWA 통합, 안정화 및 릴리스 검증
 - [x] 7.1 게임 버전/픽업 패스 일정 안전 동기화 검증

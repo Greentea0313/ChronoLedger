@@ -424,7 +424,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-gray-700 bg-gray-800 text-white">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-gray-700 bg-gray-800 text-white p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{plannedExpense ? "예정 지출 결제" : "지출 등록 및 결제"}</DialogTitle>
           <DialogDescription>결제 금액과 포인트는 서버에서 다시 검증하여 한 번에 반영됩니다.</DialogDescription>
