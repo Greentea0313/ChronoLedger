@@ -118,6 +118,20 @@
   --shadow-modal: 0 20px 60px rgba(27, 35, 52, 0.16);
 }
 
+/* 내비게이션 에셋 라이트/다크 테마 동기화 */
+.nav-asset-dark {
+  display: block;
+}
+.nav-asset-light {
+  display: none;
+}
+[data-theme="light"] .nav-asset-dark {
+  display: none !important;
+}
+[data-theme="light"] .nav-asset-light {
+  display: block !important;
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;

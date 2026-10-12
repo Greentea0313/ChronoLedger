@@ -54,8 +54,8 @@ export function DesktopCalendar({
             className="h-8 w-8 p-0 rounded-[10px] flex items-center justify-center transition-opacity hover:opacity-80"
             aria-label="이전 달"
           >
-            <img src="/assets/nav/v1-prev-dark.svg" alt="" className="hidden dark:block h-8 w-8" />
-            <img src="/assets/nav/v1-prev-light.svg" alt="" className="block dark:hidden h-8 w-8" />
+            <img src="/assets/nav/v1-prev-dark.svg" alt="" className="nav-asset-dark h-8 w-8" />
+            <img src="/assets/nav/v1-prev-light.svg" alt="" className="nav-asset-light h-8 w-8" />
           </button>
           <button
             type="button"
@@ -63,8 +63,8 @@ export function DesktopCalendar({
             className="h-8 w-8 p-0 rounded-[10px] flex items-center justify-center transition-opacity hover:opacity-80"
             aria-label="다음 달"
           >
-            <img src="/assets/nav/v1-next-dark.svg" alt="" className="hidden dark:block h-8 w-8" />
-            <img src="/assets/nav/v1-next-light.svg" alt="" className="block dark:hidden h-8 w-8" />
+            <img src="/assets/nav/v1-next-dark.svg" alt="" className="nav-asset-dark h-8 w-8" />
+            <img src="/assets/nav/v1-next-light.svg" alt="" className="nav-asset-light h-8 w-8" />
           </button>
         </div>
       </header>
