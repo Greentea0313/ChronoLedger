@@ -297,14 +297,15 @@
     3. `process_expense_payment` 및 `refund_expense_payment` RPC에 네이버페이 결제 시 부족액 충전($R$ 자산 차감 + 네이버페이 머니 충전) 및 결제($P$ 차감) 원자적 단일 트랜잭션 구현, 자산 이중 차감 및 이중 환불 원천 차단.
     4. 스토어 지갑 위젯(`StoreWalletWidget`)에 네이버페이 잔액(원) 표시 및 수동 목표 잔액 보정(`adjust_wallet_balance`) 지원.
   - verify: 단위 테스트(잔액 충분, 1만원 단위 올림 충전, 총 자산 부족 차단 등 9개 시나리오) 및 위젯 렌더링/보정 테스트 통과, Vitest 34개 파일 / 138개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공
-- [ ] 11.3 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동
-  - 대상 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`
+- [x] 11.3 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동
+  - 대상 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/expense/expense-detail-modal.test.tsx`
   - 작업:
-    1. 결제 모달 내 [결제 플랫폼(구글/갤럭시/기타)] -> [결제 수단(기본 지갑/네이버페이)] 2단계 종속 선택 구조 구현.
-    2. 네이버페이 선택 시 실시간 잔액 비교 및 "부족 금액 안내 / 1만원 단위 충전 프리뷰" 인라인 카드 노출.
-    3. 잔액 부족 시 `[충전 후 결제]` 원클릭 승인 플로우 제공.
-    4. 자동 계산값 기본 채움 및 최종 실결제액 수동 오버라이드 지원.
-  - verify: 결제 수단별 잔액 차감 및 충전 게이트웨이 모달 동작 확인, 수동 수정값 유지 검증
+    1. 결제 모달 내 [결제 플랫폼(구글/갤럭시/기타)] -> [결제 수단(내 지갑/스토어/네이버페이)] 2단계 종속 선택 구조 구현.
+    2. 네이버페이 선택 시 실시간 잔액 비교 및 "부족 금액 안내 / 1만원 단위 자동 충전 프리뷰" 인라인 카드 노출, 사용 포인트 입력 비활성화 및 리셋 가드.
+    3. 네이버페이 잔액 부족 시 `[충전 후 결제]` 원클릭 승인 버튼 라벨 전환 및 단일 트랜잭션 RPC 연동, 총 자산 부족 시 `[총 자산 부족]` 경고 및 비활성화.
+    4. 자동 계산값 기본 채움 및 최종 실결제액 수동 오버라이드 지원 (수동 금액 입력 시 할인액 자동 역산 및 DB 제약조건 무결성 보장).
+    5. 지출 상세 모달(`ExpenseDetailModal`) 내 네이버페이 결제 라벨 및 전액 환불 안내 메시지 적용.
+  - verify: 단위 테스트(플랫폼별 수단 필터링, 네이버페이 부족액 올림 충전 프리뷰, 원클릭 결제 RPC 파라미터, 실결제액 수동 오버라이드 역산, 상세 모달 환불 문구 등 13개 케이스) 통과, Vitest 34개 파일 / 143개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공
 - [ ] 11.4 픽업별 지출 바인딩 및 가챠 소비 통계/분석 구현
   - 대상 파일: `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/app/dashboard/expenses/page.tsx`
   - 작업:

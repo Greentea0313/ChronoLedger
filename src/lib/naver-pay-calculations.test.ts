@@ -147,3 +147,4 @@ describe("calculateNaverPayPayment", () => {
     ).toThrow("총 자산 잔액은 0원 이상이어야 합니다.")
   })
 })
+

@@ -49,4 +49,16 @@ describe("ExpenseDetailModal", () => {
     render(<ExpenseDetailModal expense={{ ...confirmed, status: "PLANNED" }} onOpenChange={vi.fn()} />)
     expect(screen.queryByRole("button", { name: "결제 취소" })).toBeNull()
   })
+
+  it("renders NAVER_PAY label and tailored refund confirmation message", () => {
+    const naverExpense: ExpenseDetail = {
+      ...confirmed,
+      payment_method: "NAVER_PAY",
+    }
+    render(<ExpenseDetailModal expense={naverExpense} onOpenChange={vi.fn()} />)
+    expect(screen.getByText("네이버페이")).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("button", { name: "결제 취소" }))
+    expect(screen.getByText("결제 금액을 네이버페이 머니 잔액으로 전액 환불합니다. 계속할까요?")).toBeTruthy()
+  })
 })

@@ -33,6 +33,12 @@ interface ExpenseDetailModalProps {
 }
 
 const STATUS_LABELS = { PLANNED: "예정", CONFIRMED: "결제 완료", CANCELLED: "취소됨" }
+const METHOD_LABELS: Record<string, string> = {
+  WALLET: "내 지갑",
+  GOOGLE_PLAY: "Google Play",
+  GALAXY_STORE: "Galaxy Store",
+  NAVER_PAY: "네이버페이",
+}
 
 function won(value: number | undefined): string {
   return `${(value ?? 0).toLocaleString()} 원`
@@ -88,7 +94,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: Expens
               {expense.discount_amount !== undefined && (<><dt className="text-gray-400">할인</dt><dd>{won(expense.discount_amount)}</dd></>)}
               {expense.used_points !== undefined && (<><dt className="text-gray-400">사용 포인트</dt><dd>{`${expense.used_points.toLocaleString()} P`}</dd></>)}
               {expense.earned_points !== undefined && (<><dt className="text-gray-400">적립 포인트</dt><dd>{`${expense.earned_points.toLocaleString()} P`}</dd></>)}
-              {expense.payment_method && (<><dt className="text-gray-400">결제수단</dt><dd>{expense.payment_method}</dd></>)}
+              {expense.payment_method && (<><dt className="text-gray-400">결제수단</dt><dd>{METHOD_LABELS[expense.payment_method] ?? expense.payment_method}</dd></>)}
               <dt className="text-gray-400">실결제액</dt>
               <dd>{won(expense.final_amount)}</dd>
             </dl>
@@ -100,7 +106,11 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: Expens
             )}
             {expense.status === "CONFIRMED" && isConfirming && (
               <div className="space-y-2 rounded-md border border-danger/50 p-3 text-sm">
-                <p>사용 포인트와 총 자산을 복원하고 적립 포인트를 회수합니다. 계속할까요?</p>
+                <p>
+                  {expense.payment_method === "NAVER_PAY"
+                    ? "결제 금액을 네이버페이 머니 잔액으로 전액 환불합니다. 계속할까요?"
+                    : "사용 포인트와 총 자산을 복원하고 적립 포인트를 회수합니다. 계속할까요?"}
+                </p>
                 <div className="flex gap-2">
                   <Button type="button" variant="destructive" disabled={isSubmitting || !isOnline} onClick={() => void refund()}>
                     {isSubmitting ? "처리 중..." : "취소 확정"}
