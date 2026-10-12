@@ -74,3 +74,17 @@
 24. **DB 테이블의 체크 제약조건(`CHECK constraint`) 미갱신 상태에서 신규 등급 데이터 수정 시 `violates check constraint` 실패**
    - `store_wallets` 테이블의 구버전 제약조건 `chk_wallet_platform_settings`는 `platform = 'GALAXY_STORE' AND user_tier IS NULL`을 강제한다. 따라서 `UPDATE store_wallets SET user_tier = 'GENERAL'`을 실행하기 전에 반드시 `ALTER TABLE store_wallets DROP CONSTRAINT chk_wallet_platform_settings;` 및 신규 4대 등급을 허용하는 새 제약조건을 먼저 추가해야 마이그레이션이 성공한다.
 
+25. **정적 이미지 에셋의 압축률 불균형 및 MapIterator TypeScript 빌드 오류**
+   - 정적 에셋 등록 시 일부 이미지가 비압축 대용량 PNG(수백 KiB)로 등록되고 다른 이미지는 20 KiB 미만 WebP인 경우, 네트워크 병목 및 브라우저 디코딩 지연으로 인해 특정 아이콘만 뒤늦게 깜빡이며 로드되는 현상이 발생한다. 공용 및 정적 아이콘 에셋은 256×256 WebP로 균등하게 경량화해야 한다.
+   - `tsconfig.json`의 컴파일러 타겟 설정에 따라 `for..of`를 `Map.values()`(MapIterator)에 직접 사용하면 `Type 'MapIterator' can only be iterated through when using the '--downlevelIteration' flag` 빌드 오류가 발생하므로, `Map.forEach` 또는 `Array.from()`을 사용한다.
+
+26. **백그라운드 재조회/포커스 갱신 시 페이지 스켈레톤 언마운트로 인한 모달 입력값 초기화 주의**
+   - 페이지 레벨 컴포넌트(`ExpensesPage`, `GamesPage` 등)에서 `if (isLoading) return <Skeleton />` 패턴을 사용하고 백그라운드 데이터 재조회(`loadExpenses()`, `loadGames()`) 시마다 무조건 `setIsLoading(true)`를 호출하면, 사용자가 브라우저 창 전환(Alt+Tab, 윈도우 포커스 이동)으로 토큰 갱신이나 백그라운드 쿼리가 일어날 때마다 전체 페이지가 스켈레톤으로 대체되었다가 복구된다.
+   - 이때 모달 다이얼로그(`SubscriptionModal`, `ExpenseModal` 등)가 언마운트되었다가 다시 마운트되면서 사용자가 작성 중이던 폼 입력값이 기본값으로 모두 초기화되는 심각한 UX 결함이 발생한다.
+   - 방어책:
+     1. 페이지 레벨에서는 최초 로드 여부 플래그(`hasLoadedInitialRef`)를 두어 `if (isLoading && !hasLoadedInitialRef.current) return <Skeleton />` 형태로 최초 진입 시에만 스켈레톤을 렌더링하고, 이후 백그라운드 재조회 시에는 컴포넌트 트리를 절대 언마운트하지 않는다.
+     2. 데이터 로드 콜백(`loadExpenses`, `loadSubscriptions`, `loadGames`)의 의존성 배열에 객체 레퍼런스(`user`) 대신 원시 타입(`user?.id`)을 사용하여 토큰 갱신 시 불필요한 재호출을 방지한다.
+     3. 모달 내부에서는 `prevOpenRef`를 활용하여 모달이 `false -> true`로 열리는 순간에만 폼을 초기화하고, 열려 있는 도중에는 리렌더링이 발생해도 입력값이 초기화되지 않도록 가드한다.
+
+
+

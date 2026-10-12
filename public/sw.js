@@ -4,9 +4,23 @@
  *    - 키: 요청 URL + JWT sub. 익명(anon) 토큰·만료 토큰 요청은 저장/제공하지 않는다.
  *    - 로그아웃/세션 없음 시 클라이언트가 CLEAR_CACHES를 보내 전부 삭제한다.
  * 쓰기(비-GET) 요청은 절대 가로채지 않는다. */
-const SHELL_CACHE = "chronoledger-shell-v2"
+const SHELL_CACHE = "chronoledger-shell-v3"
 const DATA_CACHE = "chronoledger-data-v1"
-const PRECACHE_URLS = ["/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-512.png"]
+const PRECACHE_URLS = [
+  "/manifest.json",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/icon-maskable-512.png",
+  "/assets/games/arknights.png",
+  "/assets/games/chaos_zero_nightmare.png",
+  "/assets/games/endfield.png",
+  "/assets/games/genshin.png",
+  "/assets/games/limbus_company.png",
+  "/assets/games/nikke.png",
+  "/assets/games/star_rail.png",
+  "/assets/games/wuthering_wave.png",
+  "/assets/games/zenless_zone_zero.png",
+]
 
 const params = new URL(self.location.href).searchParams
 const SUPABASE_ORIGIN = params.get("supabaseOrigin") || ""
@@ -111,7 +125,11 @@ self.addEventListener("fetch", (event) => {
   }
 
   const isStatic =
-    url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/manifest.json"
+    url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname.startsWith("/assets/") ||
+    url.pathname.startsWith("/fonts/") ||
+    url.pathname === "/manifest.json"
   if (!isStatic) return
 
   event.respondWith(

@@ -1,5 +1,24 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 페이지 로드 부드러움 향상 및 게임 아이콘 지연 로딩 최적화 (2026-10-13)
+
+- **결정 및 배경**:
+  - 특정 게임 아이콘(니케 430KB, 스타레일 209KB, 원신 184KB)이 비압축 PNG로 남아있어 타 아이콘 대비 10~30배의 용량 차이로 뒤늦게 로드되던 문제를 해결하기 위해, 에셋을 256x256 WebP 포맷으로 압축 최적화(동일 파일명 유지).
+  - PWA 서비스 워커(`sw.js`) 캐시 대상에 `/assets/`와 `/fonts/`를 포함하고 게임 아이콘을 프리캐시 목록에 추가하여 2회차 로드부터 0ms 로딩 보장.
+  - 전역 이미지 사전 로드 유틸(`icon-preload.ts`) 및 부드러운 스켈레톤/페이드인 전환(`game-icon.tsx`, `page-skeletons.tsx`, `loading.tsx`) 도입.
+- **수행 내역**:
+  - `public/assets/games/`: `nikke.png`, `star_rail.png`, `genshin.png` 91~94% 압축 최적화.
+  - `public/sw.js`: `/assets/` 및 `/fonts/` 캐시 대상 추가, PRECACHE_URLS 확장, 셸 캐시 v3 승격.
+  - `src/lib/icon-preload.ts`: 중복 방지 브라우저 메모리 사전 로더 신규 생성 및 각 페이지 연동.
+  - `src/lib/storage-upload.ts`: `downloadUserIcon` 인메모리 캐시 도입으로 중복 네트워크 및 404 대기 차단.
+  - `src/components/ui/game-icon.tsx`: 스켈레톤 펄스 + 페이드인 + Fallback 통합 아이콘 컴포넌트 추가 및 캘린더/게임/소비 화면 적용.
+  - `src/components/ui/skeleton.tsx`, `page-skeletons.tsx`, `src/app/dashboard/loading.tsx`: 페이지별 스켈레톤 레이아웃 및 Next.js Suspense 로딩 폴백 연동.
+- **검증 증거**:
+  - `npx vitest run`: 37개 파일 / 158개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공 (0 error).
+- **다음 추천 구현 단계**:
+  - 실제 디바이스 PWA 환경에서 캐시 히트율 및 전환 애니메이션 체감 품질 최종 확인.
+
 ## Phase 11.5 반응형 모바일 튜닝 및 종합 회귀 테스트 완료 (2026-10-13)
 
 - **결정 및 배경**:

@@ -15,6 +15,8 @@ import { getKstToday } from "@/lib/dashboard-date"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { isOffline } from "@/lib/offline-guard"
 import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
+import { DashboardSkeleton } from "@/components/ui/page-skeletons"
+import { preloadImages } from "@/lib/icon-preload"
 
 const EXPENSE_COLUMNS = "id, title, final_amount, status, target_date, start_date, end_date, game_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, deduct_from_asset, point_platform"
 
@@ -168,8 +170,14 @@ export default function DashboardPage() {
         mergedExpenses.set(row.id, row)
       }
       setExpenses(Array.from(mergedExpenses.values()))
-      setUserGames((userGameResult.data ?? []) as unknown as UserGameRow[])
-      setAllGames((allGamesResult.data ?? []) as AllGameRow[])
+      const userGameRows = (userGameResult.data ?? []) as unknown as UserGameRow[]
+      const allGameRows = (allGamesResult.data ?? []) as AllGameRow[]
+      setUserGames(userGameRows)
+      setAllGames(allGameRows)
+      preloadImages([
+        ...userGameRows.map((g) => g.games?.default_icon_url),
+        ...allGameRows.map((g) => g.default_icon_url),
+      ].filter(Boolean) as string[])
       setOverdueExpenses(
         findOverduePlannedExpenses(
           ((overdueResult.data ?? []) as unknown as (OverduePlannedExpense & { status: "PLANNED" | "CONFIRMED" | "CANCELLED" })[]),
@@ -367,14 +375,14 @@ export default function DashboardPage() {
   )
 
   if (authLoading || (!hasLoadedInitial && isLoading) || !ready) {
-    return <div className="p-6 text-white">불러오는 중...</div>
+    return <DashboardSkeleton />
   }
   if (!user) {
     return <div className="p-6 text-white">로그인이 필요합니다.</div>
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in">
       {error && <p role="alert" className="text-red-400">{error}</p>}
       {overdueExpenses.length > 0 && (
         <div className="flex items-center justify-end">

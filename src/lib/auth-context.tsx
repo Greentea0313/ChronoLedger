@@ -67,7 +67,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       authEventReceived = true
       setSession(nextSession)
-      setUser(nextSession?.user ?? null)
+      setUser((prevUser) => {
+        const nextUser = nextSession?.user ?? null
+        if (!prevUser && !nextUser) return null
+        if (
+          prevUser &&
+          nextUser &&
+          prevUser.id === nextUser.id &&
+          prevUser.email === nextUser.email &&
+          prevUser.updated_at === nextUser.updated_at
+        ) {
+          return prevUser
+        }
+        return nextUser
+      })
       if (nextSession?.user) fetchProfile(nextSession.user.id)
       else { setRole(null); setNickname(null) }
       if (event === "SIGNED_OUT" || !nextSession?.user) {

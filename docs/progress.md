@@ -1,6 +1,51 @@
 # 프로젝트 진행 현황
 
-## 정기 구독 모달 연관 게임 선택 및 버전 패스형 활성화 버그 수정 완료 (2026-10-13)
+## Alt+Tab/창 전환 시 모달 입력값 초기화 방지 및 백그라운드 재조회 스켈레톤 언마운트 차단 완료 (2026-10-13)
+
+- **배경 및 원인 분석**:
+  - **스켈레톤 컴포넌트의 화면 언마운트**: `ExpensesPage` 및 `GamesPage`에서 `if (isLoading) return <Skeleton />` 패턴을 사용하고 있었는데, 사용자가 창 전환(Alt+Tab) 후 브라우저로 돌아올 때 창 포커스 이벤트 및 Supabase 세션 갱신으로 백그라운드 데이터 재조회(`loadExpenses()`)가 트리거됨.
+  - 이 과정에서 `setIsLoading(true)`가 호출되면서 전체 화면이 스켈레톤 컴포넌트로 잠시 대체되었다가 복구되었고, 이때 활성화되어 있던 모달 다이얼로그(`<SubscriptionModal>`, `<ExpenseModal>`)가 언마운트 후 재생성되면서 폼 입력값이 모두 기본값으로 날아가는 현상 발생.
+  - 또한 모달 내부 `useEffect`에서도 `open`이 열려 있는 상태에서 부모 리렌더링 시 폼 필드를 재설정하는 부작용이 존재했음.
+- **수행 내역**:
+  1. **페이지 레벨 최초 로드 가드 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/games/page.tsx`)**:
+     - `hasLoadedInitialRef` 플래그를 도입하여 `if (isLoading && !hasLoadedInitialRef.current) return <Skeleton />` 형태로 최초 1회 진입 시에만 스켈레톤을 렌더링하고, 이후 백그라운드 재조회 시에는 화면 컴포넌트 트리를 절대 언마운트하지 않도록 수정.
+     - 데이터 로드 콜백(`loadExpenses`, `loadSubscriptions`, `loadGames`)의 `useCallback` 의존성을 `user` 객체에서 불변 원시값인 `userId: user?.id`로 교체하여 창 포커스 시 불필요한 재호출 방지.
+  2. **모달 내부 폼 리셋 가드 (`src/components/subscription/subscription-modal.tsx`, `src/components/expense/expense-modal.tsx`)**:
+     - `prevOpenRef`를 적용하여 모달이 닫힌 상태에서 새로 열리는 전이 시점(`open && !prevOpenRef.current`)에만 폼을 초기화하도록 가드. 모달이 열려 있는 도중 부모 리렌더링이나 세션 갱신이 일어나도 사용자가 입력 중인 폼 상태가 영구 보존됨.
+  3. **인증 컨텍스트 사용자 객체 레퍼런스 안정화 (`src/lib/auth-context.tsx`)**:
+     - `setUser`에서 이전 사용자와 동일한 `id`, `email`, `updated_at`을 가질 경우 기존 레퍼런스를 유지하여 불필요한 React 전역 리렌더링 방지.
+  4. **단위 테스트 보강 (`src/components/subscription/subscription-modal.test.tsx`)**:
+     - 모달이 열려 있는 상태에서 `useAuth` 사용자 갱신 및 부모 리렌더링이 발생해도 입력한 내용이 초기화되지 않음을 검증하는 테스트 추가 (총 158개 테스트 100% 통과).
+- **검증 무결성**:
+  - Vitest: 37개 테스트 파일 / 158개 테스트 전체 통과 (100% PASS).
+  - `tsc --noEmit`: 0 errors.
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공 (0 warnings).
+
+## 페이지 로드 부드러움 향상 및 게임 아이콘 지연 로딩 최적화 완료 (2026-10-13)
+
+- **배경 및 원인 분석**:
+  - **아이콘 용량 불균형**: 전체 9개 공용 게임 아이콘 중 6개는 고압축 WebP(12KB~24KB)였으나, `nikke.png`(430KB), `star_rail.png`(209KB), `genshin.png`(184KB) 3종이 비압축 대용량 원본 PNG로 저장되어 있어 네트워크 다운로드 및 디코딩 병목으로 인해 해당 아이콘들만 뒤늦게 깜빡이며 로드되는 현상 발생.
+  - **PWA 서비스 워커 캐시 누락**: `public/sw.js`에서 `/_next/static/`, `/icons/`만 정적 캐시(`isStatic`) 대상으로 등록되어 있어, `/assets/` 경로의 게임 아이콘들이 브라우저 캐시에 사전 저장되지 못하고 매번 네트워크를 탐색함.
+  - **스토리지 404 요청 병목**: `/dashboard/games`에서 커스텀 아이콘이 없는 게임에 대해서도 매번 Supabase Storage로 다운로드를 시도하여 대량의 404 응답을 대기하느라 네트워크 커넥션 풀을 소진함.
+  - **페이지 로드 깜빡임**: 대시보드, 소비, 게임 화면에서 데이터 로딩 중 전체 화면이 단순 "불러오는 중..." 텍스트로 대체되었다가 데이터 수신 후 전체 돔이 교체되는 깜빡임(Layout shift/FOUC) 발생.
+- **수행 내역**:
+  1. **게임 아이콘 에셋 고효율 최적화 (`public/assets/games/`)**:
+     - `nikke.png`(430KB $\to$ 26KB, 94% 절감), `star_rail.png`(209KB $\to$ 18KB, 91% 절감), `genshin.png`(184KB $\to$ 14KB, 92% 절감) 3종을 256x256 WebP 포맷으로 변환(동일 경로/확장자 유지하여 스키마/시드 호환성 100% 보존). 전체 에셋 크기 ~900KB $\to$ ~160KB로 경량화.
+  2. **PWA 서비스 워커 및 사전 로드 엔진 (`public/sw.js`, `src/lib/icon-preload.ts`)**:
+     - `sw.js`의 `isStatic` 판별에 `/assets/` 및 `/fonts/` 추가, `PRECACHE_URLS`에 전체 게임 아이콘 등록 및 셸 캐시 v3 업그레이드.
+     - `src/lib/icon-preload.ts`: 중복 없는 브라우저 메모리 캐시 이미지 프리로더 구현. 대시보드/소비/게임 데이터 패치 시 즉시 백그라운드 사전 로드 실행.
+  3. **우아한 게임 아이콘 컴포넌트 (`src/components/ui/game-icon.tsx`)**:
+     - 이미지 로딩 중 미세 펄스 스켈레톤 제공, 로드 완료 시 `transition-opacity duration-200` 페이드인 처리.
+     - 로드 실패 시 Gamepad2 대체 아이콘 폴백. 캘린더, 게임 목록, 지출 내역에 전면 적용.
+  4. **인메모리 유저 커스텀 아이콘 캐싱 (`src/lib/storage-upload.ts`)**:
+     - `downloadUserIcon`에 인메모리 `Map` 캐시 계층 도입으로 세션 내 중복 다운로드 0ms 단축 및 404 실패 반복 요청 차단.
+  5. **스켈레톤 UI 및 부드러운 페이지 전환 (`src/components/ui/skeleton.tsx`, `page-skeletons.tsx`, `src/app/dashboard/loading.tsx`)**:
+     - 각 화면 레이아웃과 일치하는 `DashboardSkeleton`, `ExpensesPageSkeleton`, `GamesPageSkeleton` 구현.
+     - Next.js 서스펜스 라우트 전환용 `src/app/dashboard/loading.tsx` 추가.
+     - 콘텐츠 마운트 시 `animate-fade-in` CSS 애니메이션 적용으로 자연스러운 진입감 제공.
+- **검증 무결성**:
+  - Vitest: 37개 테스트 파일 / 158개 테스트 전체 통과 (100% PASS).
+  - Next.js 프로덕션 빌드: 15개 정적 페이지 export 정상 완료 (0 error).
 
 - **배경 및 원인 분석**:
   - `SubscriptionModal`에서 카테고리 필드가 `'정기 구독'`으로 고정된 상태에서, 결제 주기 옵션(`CYCLE_TYPE_OPTIONS`)의 `VERSION_PASS` 비활성화 조건이 `category !== "게임"`으로 하드코딩되어 있어, 사용자가 연관 게임을 선택해도 '게임 버전 패스형' 옵션이 영구적으로 비활성화(`disabled`)되는 버그 발생.

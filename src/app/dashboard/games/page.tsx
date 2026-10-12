@@ -12,6 +12,9 @@ import { RequestSubmissionModal } from "@/components/game/request-submission-mod
 import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-upload"
 import { resizeImageToWebP } from "@/lib/image-resizer"
 import { getKstToday } from "@/lib/dashboard-date"
+import { GameIcon } from "@/components/ui/game-icon"
+import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
+import { preloadImages } from "@/lib/icon-preload"
 import { Calendar, Gamepad2, ImagePlus, Loader2, Trash2 } from "lucide-react"
 
 interface UserGameRow {
@@ -49,26 +52,35 @@ export default function GamesPage() {
   const [isSchedulesLoading, setIsSchedulesLoading] = useState(false)
 
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const hasLoadedInitialRef = useRef(false)
+  const userId = user?.id
 
   const loadGames = useCallback(async () => {
-    if (!user) return
-    setIsLoading(true)
+    if (!userId) return
+    if (!hasLoadedInitialRef.current) {
+      setIsLoading(true)
+    }
     const { data } = await supabase
       .from("user_games")
       .select("id, game_id, custom_icon_path, games(id, name, default_icon_url)")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false })
 
     const rows = (data as unknown as UserGameRow[]) || []
     setUserGames(rows)
+    hasLoadedInitialRef.current = true
     setIsLoading(false)
+
+    // 기본 아이콘 즉시 사전 로드
+    const defaultIcons = rows.map((r) => r.games?.default_icon_url).filter(Boolean) as string[]
+    preloadImages(defaultIcons)
 
     // 비동기로 유저 커스텀 아이콘 다운로드
     const iconMap: Record<string, string> = {}
     await Promise.all(
       rows.map(async (ug) => {
         try {
-          const url = await downloadUserIcon(user.id, ug.game_id)
+          const url = await downloadUserIcon(userId, ug.game_id)
           if (url) iconMap[ug.game_id] = url
         } catch {
           // 커스텀 아이콘 없으면 기본 아이콘 유지
@@ -76,7 +88,7 @@ export default function GamesPage() {
       })
     )
     setGameIcons(iconMap)
-  }, [user])
+  }, [userId])
 
   useEffect(() => {
     void loadGames()
@@ -111,6 +123,11 @@ export default function GamesPage() {
     try {
       const webpBlob = await resizeImageToWebP(file)
       await uploadUserIcon(user.id, gameId, webpBlob)
+      await supabase
+        .from("user_games")
+        .update({ custom_icon_path: `${user.id}/${gameId}.webp` })
+        .eq("user_id", user.id)
+        .eq("game_id", gameId)
       const newUrl = URL.createObjectURL(webpBlob)
       setGameIcons((prev) => ({ ...prev, [gameId]: newUrl }))
       alert("게임 아이콘이 성공적으로 변경되었습니다.")
@@ -140,11 +157,11 @@ export default function GamesPage() {
     }
   }
 
-  if (isLoading) return <div className="p-6 text-content">불러오는 중...</div>
+  if (isLoading && !hasLoadedInitialRef.current) return <GamesPageSkeleton />
   if (!user) return <div className="p-6 text-content">로그인이 필요합니다.</div>
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* 상단 헤더 */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>
@@ -195,16 +212,12 @@ export default function GamesPage() {
                     <div className="flex items-start gap-3">
                       {/* 게임 아이콘 */}
                       <div className="relative w-14 h-14 rounded-lg border border-line bg-surface-3 flex items-center justify-center overflow-hidden shrink-0">
-                        {iconSrc ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={iconSrc}
-                            alt={gameName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Gamepad2 className="w-7 h-7 text-content-secondary" />
-                        )}
+                        <GameIcon
+                          src={iconSrc}
+                          alt={gameName}
+                          fallbackIcon={<Gamepad2 className="w-7 h-7 text-content-secondary" />}
+                          priority
+                        />
                         {isUploading && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <Loader2 className="w-5 h-5 text-white animate-spin" />

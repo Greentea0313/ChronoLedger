@@ -108,51 +108,61 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const pendingExpenseId = useRef<string | null>(null)
+  const prevOpenRef = useRef(false)
+  const prevPlannedExpenseIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!open) return
-    pendingExpenseId.current = null
-    setError(null)
-    setPaymentDate(initialDate || getKstToday())
-    setTitle(plannedExpense?.title ?? "")
-    const origStr = plannedExpense ? String(plannedExpense.original_price) : ""
-    setOriginalPrice(origStr)
-    setDiscountAmount("")
-    setCouponPercent("")
-    setUsedPoints("")
-    setFinalAmountInput(origStr)
+    const isOpening = open && !prevOpenRef.current
+    const isNewPlannedExpense = open && plannedExpense?.id !== prevPlannedExpenseIdRef.current
 
-    const method = plannedExpense?.payment_method
-    if (method === "GALAXY_STORE") {
-      setPaymentPlatform("GALAXY_STORE")
-      setPaymentMethod("GALAXY_STORE")
-    } else if (method === "GOOGLE_PLAY") {
-      setPaymentPlatform("GOOGLE_PLAY")
-      setPaymentMethod("GOOGLE_PLAY")
-    } else if (method === "NAVER_PAY") {
-      setPaymentPlatform("OTHER")
-      setPaymentMethod("NAVER_PAY")
-    } else {
-      setPaymentPlatform("GOOGLE_PLAY")
-      setPaymentMethod("WALLET")
+    if (isOpening || isNewPlannedExpense) {
+      pendingExpenseId.current = null
+      setError(null)
+      setPaymentDate(initialDate || getKstToday())
+      setTitle(plannedExpense?.title ?? "")
+      const origStr = plannedExpense ? String(plannedExpense.original_price) : ""
+      setOriginalPrice(origStr)
+      setDiscountAmount("")
+      setCouponPercent("")
+      setUsedPoints("")
+      setFinalAmountInput(origStr)
+
+      const method = plannedExpense?.payment_method
+      if (method === "GALAXY_STORE") {
+        setPaymentPlatform("GALAXY_STORE")
+        setPaymentMethod("GALAXY_STORE")
+      } else if (method === "GOOGLE_PLAY") {
+        setPaymentPlatform("GOOGLE_PLAY")
+        setPaymentMethod("GOOGLE_PLAY")
+      } else if (method === "NAVER_PAY") {
+        setPaymentPlatform("OTHER")
+        setPaymentMethod("NAVER_PAY")
+      } else {
+        setPaymentPlatform("GOOGLE_PLAY")
+        setPaymentMethod("WALLET")
+      }
+      setDeductAsset(true)
+      setCategory("게임")
+      setGameId("")
+      setSchedules([])
+      setPickupSchedules([])
+      setPickupScheduleId(plannedExpense?.pickup_schedule_id ?? "")
     }
-    setDeductAsset(true)
-    setCategory("게임")
-    setGameId("")
-    setSchedules([])
-    setPickupSchedules([])
-    setPickupScheduleId(plannedExpense?.pickup_schedule_id ?? "")
+    prevOpenRef.current = open
+    prevPlannedExpenseIdRef.current = plannedExpense?.id ?? null
   }, [open, plannedExpense, initialDate])
 
+  const userId = user?.id
+
   useEffect(() => {
-    if (!open || !user) return
+    if (!open || !userId) return
     let cancelled = false
     void (async () => {
       const [gameResult, walletResult, userGamesResult, financeResult] = await Promise.all([
         supabase.from("games").select("id, name").order("name"),
-        supabase.from("store_wallets").select("platform, current_balance, earn_rate").eq("user_id", user.id),
-        supabase.from("user_games").select("game_id").eq("user_id", user.id),
-        supabase.from("user_finances").select("total_asset").eq("user_id", user.id),
+        supabase.from("store_wallets").select("platform, current_balance, earn_rate").eq("user_id", userId),
+        supabase.from("user_games").select("game_id").eq("user_id", userId),
+        supabase.from("user_finances").select("total_asset").eq("user_id", userId),
       ])
       if (cancelled) return
       const userGameIds = new Set((userGamesResult.data ?? []).map((ug: { game_id: string }) => ug.game_id))
@@ -166,7 +176,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     return () => {
       cancelled = true
     }
-  }, [open, user])
+  }, [open, userId])
 
   useEffect(() => {
     if (!gameId) {

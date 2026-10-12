@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -65,24 +65,30 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setError(null)
-    setTitle("")
-    setCategory("정기 구독")
-    setGameId("")
-    setCycleType("MONTHLY_DAY")
-    setBillingDay("1")
-    setDefaultPrice("")
-  }, [open])
+  const prevOpenRef = useRef(false)
 
   useEffect(() => {
-    if (!open || !user) return
+    if (open && !prevOpenRef.current) {
+      setError(null)
+      setTitle("")
+      setCategory("정기 구독")
+      setGameId("")
+      setCycleType("MONTHLY_DAY")
+      setBillingDay("1")
+      setDefaultPrice("")
+    }
+    prevOpenRef.current = open
+  }, [open])
+
+  const userId = user?.id
+
+  useEffect(() => {
+    if (!open || !userId) return
     let cancelled = false
     void (async () => {
       const [gameResult, userGamesResult] = await Promise.all([
         supabase.from("games").select("id, name").order("name"),
-        supabase.from("user_games").select("game_id").eq("user_id", user.id),
+        supabase.from("user_games").select("game_id").eq("user_id", userId),
       ])
       if (cancelled) return
       const userGameIds = new Set((userGamesResult.data ?? []).map((ug: { game_id: string }) => ug.game_id))
@@ -92,7 +98,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
     return () => {
       cancelled = true
     }
-  }, [open, user])
+  }, [open, userId])
 
 
 

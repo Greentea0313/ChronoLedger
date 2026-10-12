@@ -1,0 +1,6 @@
+import { DashboardSkeleton } from "@/components/ui/page-skeletons"
+
+export default function DashboardLoading() {
+  return <DashboardSkeleton />
+}
+

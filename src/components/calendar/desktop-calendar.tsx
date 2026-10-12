@@ -1,4 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
 import { ScheduleBanner } from "@/components/calendar/schedule-banner"
+import { GameIcon } from "@/components/ui/game-icon"
 
 export interface CalendarScheduleItem {
   id: string
@@ -101,7 +103,12 @@ export function DesktopCalendar({
                       className="h-4 w-4 md:h-5 md:w-5 inline-block overflow-hidden rounded-[3px] md:rounded-[4px] bg-primary/20 text-center flex items-center justify-center"
                     >
                       {icon.iconUrl ? (
-                        <img src={icon.iconUrl} alt={icon.label} className="h-full w-full object-cover" />
+                        <GameIcon
+                          src={icon.iconUrl}
+                          alt={icon.label}
+                          fallbackIcon={<span className="text-[10px] md:text-xs">🎮</span>}
+                          priority
+                        />
                       ) : (
                         <span className="text-[10px] md:text-xs">🎮</span>
                       )}

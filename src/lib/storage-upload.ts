@@ -1,5 +1,19 @@
 import { supabase } from "@/lib/supabase/client"
 
+const userIconCache = new Map<string, string | null>()
+
+/**
+ * 캐시된 유저 아이콘 메모리 해제 및 초기화
+ */
+export function clearUserIconCache(): void {
+  userIconCache.forEach((url) => {
+    if (url && typeof window !== "undefined") {
+      URL.revokeObjectURL(url)
+    }
+  })
+  userIconCache.clear()
+}
+
 /**
  * 256x256 WebP 변환이 완료된 Blob 이미지를 Supabase user-icons 버킷에 업로드합니다.
  * 기존 이미지가 있을 경우 덮어씁니다 (upsert).
@@ -17,6 +31,16 @@ export async function uploadUserIcon(userId: string, gameId: string, imageBlob: 
   if (error) {
     throw new Error(`이미지 업로드에 실패했습니다: ${error.message}`)
   }
+
+  // 캐시 갱신
+  const cacheKey = `${userId}/${gameId}`
+  const oldUrl = userIconCache.get(cacheKey)
+  if (oldUrl && typeof window !== "undefined") {
+    URL.revokeObjectURL(oldUrl)
+  }
+  if (typeof window !== "undefined") {
+    userIconCache.set(cacheKey, URL.createObjectURL(imageBlob))
+  }
 }
 
 /**
@@ -24,6 +48,11 @@ export async function uploadUserIcon(userId: string, gameId: string, imageBlob: 
  * 브라우저에서 렌더링할 수 있는 임시 Object URL로 반환합니다.
  */
 export async function downloadUserIcon(userId: string, gameId: string): Promise<string | null> {
+  const cacheKey = `${userId}/${gameId}`
+  if (userIconCache.has(cacheKey)) {
+    return userIconCache.get(cacheKey) ?? null
+  }
+
   const filePath = `${userId}/${gameId}.webp`
 
   const { data, error } = await supabase.storage
@@ -33,13 +62,16 @@ export async function downloadUserIcon(userId: string, gameId: string): Promise<
   if (error) {
     // 커스텀 아이콘이 없어서 404가 뜨는 경우는 에러가 아니라 기본 아이콘을 보여주면 됨
     if (error.message.includes('not found') || error.message.includes('Object not found') || error.name === 'StorageApiError') {
+      userIconCache.set(cacheKey, null)
       return null
     }
     throw new Error(`이미지 다운로드에 실패했습니다: ${error.message}`)
   }
 
-  // Blob 데이터를 브라우저 <img> 태그의 src로 쓸 수 있도록 임시 URL 생성
-  return URL.createObjectURL(data)
+  // Blob 데이터를 브라우저 <img> 태그의 src로 쓸 수 있도록 임시 URL 생성 및 캐싱
+  const objectUrl = URL.createObjectURL(data)
+  userIconCache.set(cacheKey, objectUrl)
+  return objectUrl
 }
 
 /**
@@ -55,6 +87,14 @@ export async function deleteUserIcon(userId: string, gameId: string): Promise<vo
   if (error) {
     throw new Error(`이미지 삭제에 실패했습니다: ${error.message}`)
   }
+
+  // 캐시 삭제 및 Object URL 정리
+  const cacheKey = `${userId}/${gameId}`
+  const oldUrl = userIconCache.get(cacheKey)
+  if (oldUrl && typeof window !== "undefined") {
+    URL.revokeObjectURL(oldUrl)
+  }
+  userIconCache.delete(cacheKey)
 }
 
 // 프로필 사진은 게임 아이콘과 같은 비공개 버킷의 사용자 폴더에 `profile.webp`로 저장한다.

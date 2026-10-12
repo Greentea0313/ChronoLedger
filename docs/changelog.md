@@ -1,5 +1,34 @@
 # 변경 이력
 
+## 2026-10-13 (Alt+Tab/창 전환 시 모달 입력값 초기화 방지 및 백그라운드 재조회 스켈레톤 언마운트 차단)
+
+- **소비 및 게임 페이지 백그라운드 재조회 시 스켈레톤 언마운트 차단 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/games/page.tsx`)**:
+  - `hasLoadedInitialRef` 플래그를 도입하여 `if (isLoading && !hasLoadedInitialRef.current) return <Skeleton />` 형태로 최초 마운트 시에만 스켈레톤을 노출하고, 창 포커스 복귀(Alt+Tab)나 백그라운드 쿼리 재실행 시 페이지 전체가 스켈레톤으로 대체되어 모달이 언마운트되는 현상을 원천 차단.
+  - 데이터 페칭 콜백(`loadExpenses`, `loadSubscriptions`, `loadGames`)의 의존성을 객체 레퍼런스(`user`)에서 원시 ID(`userId: user?.id`)로 변경하여 토큰 갱신 시 불필요한 재호출 방지.
+- **모달 내부 폼 리셋 가드 (`src/components/subscription/subscription-modal.tsx`, `src/components/expense/expense-modal.tsx`)**:
+  - `prevOpenRef`를 적용하여 모달이 닫힌 상태에서 새로 열리는 시점(`open && !prevOpenRef.current`)에만 폼을 초기화하도록 가드. 모달이 열려 있는 상태에서 부모 컴포넌트가 리렌더링되더라도 사용자가 입력해 둔 모든 값(제목, 게임, 금액, 결제 주기, 결제일 등)이 100% 보존되도록 개선.
+- **인증 컨텍스트 사용자 레퍼런스 안정화 (`src/lib/auth-context.tsx`)**:
+  - `onAuthStateChange`에서 `prevUser`와 `nextUser`의 `id`, `email`, `updated_at`이 동일한 경우 이전 레퍼런스를 유지하여 토큰 갱신 시 전역 컴포넌트 트리 리렌더링 전파 방지.
+- **단위 테스트 검증 (`src/components/subscription/subscription-modal.test.tsx`)**:
+  - 팝업이 열려 있는 상태에서 `useAuth` 사용자 객체 갱신 및 부모 리렌더링이 발생해도 입력한 내용이 초기화되지 않음을 검증하는 단위 테스트 추가 (총 158개 테스트 100% 통과).
+
+## 2026-10-13 (페이지 로드 부드러움 향상 및 게임 아이콘 지연 로딩 최적화)
+
+- **게임 아이콘 에셋 고효율 압축 최적화 (`public/assets/games/`)**:
+  - `nikke.png`(430KB $\to$ 26KB, 94% 절감), `star_rail.png`(209KB $\to$ 18KB, 91% 절감), `genshin.png`(184KB $\to$ 14KB, 92% 절감) 3종을 256x256 WebP로 포맷 변환하여 다른 6개 아이콘(12KB~24KB)과 균등한 초경량화 달성.
+- **PWA 서비스 워커 및 사전 로드 엔진 (`public/sw.js`, `src/lib/icon-preload.ts`)**:
+  - `public/sw.js` 정적 캐시(`isStatic`) 판별 대상에 `/assets/` 및 `/fonts/` 추가, `PRECACHE_URLS`에 전체 게임 아이콘 등록 및 셸 캐시 v3 승격.
+  - `src/lib/icon-preload.ts` 유틸리티 구현 및 대시보드/소비/게임 데이터 수신 시 백그라운드 선제적 이미지 사전 로드 연동.
+- **게임 아이콘 컴포넌트 (`src/components/ui/game-icon.tsx`)**:
+  - 이미지 로딩 중 스켈레톤 펄스, 로드 완료 시 `duration-200` 페이드인, 에러 시 Gamepad2 폴백 기능을 지원하는 재사용 컴포넌트 추가 및 캘린더, 게임 목록, 지출 테이블/템플릿에 적용.
+- **스토리지 다운로드 인메모리 캐시 (`src/lib/storage-upload.ts`)**:
+  - `downloadUserIcon`에 인메모리 Map 캐시 계층을 적용하여 반복 방문 시 다운로드 지연시간을 0ms로 단축하고 불필요한 404 실패 요청을 차단.
+- **스켈레톤 UI 및 부드러운 페이지 전환 (`src/components/ui/skeleton.tsx`, `page-skeletons.tsx`, `src/app/dashboard/loading.tsx`)**:
+  - 대시보드, 소비, 게임 화면의 단순 텍스트("불러오는 중...") 로딩을 실제 화면 뼈대와 일치하는 스켈레톤 레이아웃으로 전면 개편.
+  - Next.js 서스펜스 라우트 전환용 `src/app/dashboard/loading.tsx` 추가 및 페이지 마운트 시 `animate-fade-in` CSS 애니메이션 적용.
+- **종합 검증 무결성**:
+  - Vitest 37개 파일 / 158개 테스트 전체 통과 (100% PASS), Next.js 15개 정적 페이지 빌드 성공.
+
 ## 2026-10-13 (정기 구독 모달 연관 게임 선택 및 버전 패스형 활성화 버그 수정)
 
 - **정기 구독 모달(`SubscriptionModal`) 버전 패스형 활성화 및 카테고리 자동 동기화 (`src/components/subscription/subscription-modal.tsx`)**:

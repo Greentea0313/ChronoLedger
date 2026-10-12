@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +14,9 @@ import { ExpenseDetailModal, type ExpenseDetail } from "@/components/expense/exp
 import { SubscriptionModal } from "@/components/subscription/subscription-modal"
 import { addDays, ensureMonthlySubscriptionExpenses, type SubscriptionCycleType } from "@/lib/subscription-sync"
 import { getKstToday } from "@/lib/dashboard-date"
+import { GameIcon } from "@/components/ui/game-icon"
+import { ExpensesPageSkeleton } from "@/components/ui/page-skeletons"
+import { preloadImages } from "@/lib/icon-preload"
 import {
   Bar,
   BarChart,
@@ -102,6 +105,7 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [templates, setTemplates] = useState<SubscriptionTemplateRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const hasLoadedInitialRef = useRef(false)
 
   // 모달 제어 상태
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
@@ -116,35 +120,44 @@ export default function ExpensesPage() {
   const [schedulesMap, setSchedulesMap] = useState<Map<string, ScheduleItem>>(new Map())
   const [selectedPickupGameFilter, setSelectedPickupGameFilter] = useState<string>("ALL")
 
+  const userId = user?.id
+
   const loadExpenses = useCallback(async () => {
-    if (!user) return
-    setIsLoading(true)
+    if (!userId) return
+    if (!hasLoadedInitialRef.current) {
+      setIsLoading(true)
+    }
     const { data, error } = await supabase
       .from("expenses")
       .select(EXPENSE_COLUMNS)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("target_date", { ascending: false })
 
     if (!error && data) {
-      setExpenses(data as unknown as ExpenseRow[])
+      const rows = data as unknown as ExpenseRow[]
+      setExpenses(rows)
+      preloadImages(rows.map((e) => e.games?.default_icon_url).filter(Boolean) as string[])
     }
+    hasLoadedInitialRef.current = true
     setIsLoading(false)
-  }, [user])
+  }, [userId])
 
   const loadSubscriptions = useCallback(async () => {
-    if (!user) return
+    if (!userId) return
     const { data, error } = await supabase
       .from("subscription_templates")
       .select(
         "id, title, category, cycle_type, billing_day, default_price, payment_method, is_active, game_id, games(name, default_icon_url)",
       )
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false })
 
     if (!error && data) {
-      setTemplates(data as unknown as SubscriptionTemplateRow[])
+      const rows = data as unknown as SubscriptionTemplateRow[]
+      setTemplates(rows)
+      preloadImages(rows.map((t) => t.games?.default_icon_url).filter(Boolean) as string[])
     }
-  }, [user])
+  }, [userId])
 
   const loadSchedules = useCallback(async () => {
     const { data } = await supabase
@@ -433,11 +446,11 @@ export default function ExpensesPage() {
     void loadExpenses()
   }
 
-  if (isLoading) return <div className="p-6 text-content">불러오는 중...</div>
+  if (isLoading && !hasLoadedInitialRef.current) return <ExpensesPageSkeleton />
   if (!user) return <div className="p-6 text-content">로그인이 필요합니다.</div>
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* 헤더 */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>
@@ -756,12 +769,13 @@ export default function ExpensesPage() {
                             <td className="py-3">
                               <div className="flex items-center gap-2 flex-wrap">
                                 {expense.games?.default_icon_url && (
-                                  /* eslint-disable-next-line @next/next/no-img-element */
-                                  <img
-                                    src={expense.games.default_icon_url}
-                                    alt=""
-                                    className="h-6 w-6 rounded object-cover shrink-0"
-                                  />
+                                  <div className="h-6 w-6 rounded overflow-hidden shrink-0">
+                                    <GameIcon
+                                      src={expense.games.default_icon_url}
+                                      alt=""
+                                      priority
+                                    />
+                                  </div>
                                 )}
                                 <span className="font-medium text-content">{expense.title}</span>
                                 {expense.pickup_schedule_id && schedulesMap.has(expense.pickup_schedule_id) && (
@@ -1004,12 +1018,12 @@ export default function ExpensesPage() {
                     </div>
                     <CardTitle className="text-base font-bold text-content mt-2 flex items-center gap-2">
                       {tpl.games?.default_icon_url && (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={tpl.games.default_icon_url}
-                          alt=""
-                          className="h-5 w-5 rounded object-cover shrink-0"
-                        />
+                        <div className="h-5 w-5 rounded overflow-hidden shrink-0">
+                          <GameIcon
+                            src={tpl.games.default_icon_url}
+                            alt=""
+                          />
+                        </div>
                       )}
                       <span className="truncate">{tpl.title}</span>
                     </CardTitle>

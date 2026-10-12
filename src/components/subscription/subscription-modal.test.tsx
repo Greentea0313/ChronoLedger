@@ -174,5 +174,26 @@ describe("SubscriptionModal", () => {
       }),
     )
   })
+
+  it("팝업이 열려있는 동안 부모 리렌더링이나 user 객체 갱신(Alt+Tab/창 포커스)이 발생해도 입력한 내용이 초기화되지 않는다", async () => {
+    const { rerender } = render(<SubscriptionModal open onOpenChange={vi.fn()} />)
+
+    await screen.findByRole("option", { name: "원신" })
+    fireEvent.change(screen.getByLabelText(/연관 게임/), { target: { value: "g1" } })
+    fireEvent.change(screen.getByLabelText("결제 주기 유형 *"), { target: { value: "VERSION_PASS" } })
+    fireEvent.change(screen.getByLabelText("구독 제목 *"), { target: { value: "임시 작성 중인 패스" } })
+    fireEvent.change(screen.getByLabelText("기본 금액 (원) *"), { target: { value: "9900" } })
+
+    // 창 포커스/세션 갱신으로 user 객체 레퍼런스가 변경되며 리렌더링되는 상황 재현
+    useAuth.mockReturnValue({ user: { id: "user-123", email: "test@test.com" } })
+    rerender(<SubscriptionModal open onOpenChange={vi.fn()} />)
+
+    // 입력했던 모든 필드 값이 보존되어야 함
+    expect((screen.getByLabelText("구독 제목 *") as HTMLInputElement).value).toBe("임시 작성 중인 패스")
+    expect((screen.getByLabelText("기본 금액 (원) *") as HTMLInputElement).value).toBe("9900")
+    expect((screen.getByLabelText(/연관 게임/) as HTMLSelectElement).value).toBe("g1")
+    expect((screen.getByLabelText("결제 주기 유형 *") as HTMLSelectElement).value).toBe("VERSION_PASS")
+    expect((screen.getByLabelText("카테고리") as HTMLInputElement).value).toBe("게임")
+  })
 })
 
