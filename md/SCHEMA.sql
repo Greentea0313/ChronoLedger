@@ -126,6 +126,7 @@ CREATE TABLE public.subscription_templates (
     category VARCHAR(50) NOT NULL DEFAULT '정기 구독',
     cycle_type VARCHAR(20) NOT NULL DEFAULT 'MONTHLY_DAY' CHECK (cycle_type IN ('MONTHLY_DAY', 'INTERVAL_30', 'VERSION_PASS')),
     billing_day SMALLINT DEFAULT 1 CHECK (billing_day BETWEEN 1 AND 31),
+    interval_days INTEGER DEFAULT 30 CHECK (interval_days > 0),
     default_price BIGINT NOT NULL DEFAULT 0 CHECK (default_price >= 0),
     payment_method VARCHAR(30) NOT NULL DEFAULT 'WALLET' CHECK (payment_method IN ('WALLET', 'GOOGLE_PLAY', 'GALAXY_STORE')),
     is_active BOOLEAN NOT NULL DEFAULT true,

@@ -10,6 +10,7 @@ export interface SubscriptionTemplate {
   category: string
   cycle_type?: SubscriptionCycleType
   billing_day: number
+  interval_days?: number
   default_price: number
   payment_method: "WALLET" | "GOOGLE_PLAY" | "GALAXY_STORE"
   game_id: string | null
@@ -42,28 +43,45 @@ export async function ensureMonthlySubscriptionExpenses(
   let templates: SubscriptionTemplate[] = []
   const { data: rawTemplates, error: templateError } = await supabase
     .from("subscription_templates")
-    .select("id, title, category, cycle_type, billing_day, default_price, payment_method, game_id, is_active")
+    .select("id, title, category, cycle_type, billing_day, interval_days, default_price, payment_method, game_id, is_active")
     .eq("user_id", userId)
     .eq("is_active", true)
 
   if (templateError) {
-    // DB에 cycle_type 컬럼이 아직 없는 경우를 위한 하위 호환 폴백
-    const fallback = await supabase
+    // DB에 interval_days 컬럼이 아직 없는 경우를 위한 하위 호환 폴백
+    const fallbackWithCycle = await supabase
       .from("subscription_templates")
-      .select("id, title, category, billing_day, default_price, payment_method, game_id, is_active")
+      .select("id, title, category, cycle_type, billing_day, default_price, payment_method, game_id, is_active")
       .eq("user_id", userId)
       .eq("is_active", true)
-    if (fallback.error || !fallback.data) {
-      console.warn("구독 템플릿 조회 건너뜀:", fallback.error || templateError)
-      return 0
+
+    if (!fallbackWithCycle.error && fallbackWithCycle.data) {
+      templates = (fallbackWithCycle.data as unknown as SubscriptionTemplate[]).map((t) => ({
+        ...t,
+        interval_days: 30,
+      }))
+    } else {
+      // cycle_type 컬럼도 없는 구버전 호환 폴백
+      const fallbackOld = await supabase
+        .from("subscription_templates")
+        .select("id, title, category, billing_day, default_price, payment_method, game_id, is_active")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+
+      if (fallbackOld.error || !fallbackOld.data) {
+        console.warn("구독 템플릿 조회 건너뜀:", fallbackOld.error || templateError)
+        return 0
+      }
+      templates = (fallbackOld.data as unknown as SubscriptionTemplate[]).map((t) => ({
+        ...t,
+        cycle_type: "MONTHLY_DAY",
+        interval_days: 30,
+      }))
     }
-    templates = (fallback.data as unknown as SubscriptionTemplate[]).map((t) => ({
-      ...t,
-      cycle_type: "MONTHLY_DAY",
-    }))
   } else {
     templates = (rawTemplates || []) as SubscriptionTemplate[]
   }
+
 
   if (templates.length === 0) {
     return 0
@@ -124,11 +142,12 @@ export async function ensureMonthlySubscriptionExpenses(
     }
   }
 
-  // 2. INTERVAL_30 템플릿 처리 (30일 누적 충전형)
+  // 2. INTERVAL_30 템플릿 처리 (누적 충전형)
   const intervalTemplates = (templates as SubscriptionTemplate[]).filter(
     (t) => t.cycle_type === "INTERVAL_30",
   )
   for (const template of intervalTemplates) {
+    const stepDays = template.interval_days || 30
     const { data: existingExpenses } = await supabase
       .from("expenses")
       .select("id, status, target_date")
@@ -147,7 +166,8 @@ export async function ensureMonthlySubscriptionExpenses(
     const latestConfirmed = ((existingExpenses || []) as { status: string; target_date: string }[]).find(
       (e) => e.status === "CONFIRMED",
     )
-    const targetDate = latestConfirmed ? addDays(latestConfirmed.target_date, 30) : today
+    const targetDate = latestConfirmed ? addDays(latestConfirmed.target_date, stepDays) : today
+
 
     const row = {
       user_id: userId,

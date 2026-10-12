@@ -72,6 +72,7 @@ interface SubscriptionTemplateRow {
   category: string
   cycle_type?: SubscriptionCycleType
   billing_day: number
+  interval_days?: number
   default_price: number
   payment_method: string
   is_active: boolean
@@ -160,12 +161,29 @@ export default function ExpensesPage() {
     const { data, error } = await supabase
       .from("subscription_templates")
       .select(
-        "id, title, category, cycle_type, billing_day, default_price, payment_method, is_active, game_id, games(name, default_icon_url)",
+        "id, title, category, cycle_type, billing_day, interval_days, default_price, payment_method, is_active, game_id, games(name, default_icon_url)",
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
 
-    if (!error && data) {
+    if (error) {
+      // interval_days 컬럼이 DB에 없는 경우 하위 호환 폴백
+      const fallback = await supabase
+        .from("subscription_templates")
+        .select(
+          "id, title, category, cycle_type, billing_day, default_price, payment_method, is_active, game_id, games(name, default_icon_url)",
+        )
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+      if (!fallback.error && fallback.data) {
+        const rows = (fallback.data as unknown as SubscriptionTemplateRow[]).map((r) => ({
+          ...r,
+          interval_days: 30,
+        }))
+        setTemplates(rows)
+        preloadImages(rows.map((t) => t.games?.default_icon_url).filter(Boolean) as string[])
+      }
+    } else if (data) {
       const rows = data as unknown as SubscriptionTemplateRow[]
       setTemplates(rows)
       preloadImages(rows.map((t) => t.games?.default_icon_url).filter(Boolean) as string[])
@@ -324,7 +342,7 @@ export default function ExpensesPage() {
       const diffDays = Math.max(0, Math.round((targetMs - todayMs) / (1000 * 60 * 60 * 24)))
       setIntervalRemainingDays(String(diffDays))
     } else {
-      setIntervalRemainingDays("30")
+      setIntervalRemainingDays(String(template.interval_days || 30))
     }
   }
 
@@ -970,7 +988,7 @@ export default function ExpensesPage() {
           <div>
             <h2 className="text-lg font-bold text-content">정기 구독</h2>
             <p className="text-xs text-content-secondary mt-0.5">
-              매월 고정 결제, 30일 누적 충전형, 게임 버전 패스를 관리합니다.
+              매월 고정 결제, 누적 충전형, 게임 버전 패스를 관리합니다.
             </p>
           </div>
 
@@ -1000,7 +1018,7 @@ export default function ExpensesPage() {
                         </span>
                         <span className="text-[11px] px-2 py-0.5 rounded bg-surface-2 text-content-secondary border border-line">
                           {tpl.cycle_type === "INTERVAL_30"
-                            ? "30일 충전형"
+                            ? `누적 충전형 (${tpl.interval_days || 30}일)`
                             : tpl.cycle_type === "VERSION_PASS"
                             ? "버전 패스형"
                             : `매월 ${tpl.billing_day}일`}
@@ -1118,7 +1136,7 @@ export default function ExpensesPage() {
         }}
       />
 
-      {/* 30일 누적 충전형 남은 날짜 수정 다이얼로그 */}
+      {/* 누적 충전형 남은 날짜 수정 다이얼로그 */}
       <Dialog
         open={Boolean(editingIntervalTemplate)}
         onOpenChange={(open) => {

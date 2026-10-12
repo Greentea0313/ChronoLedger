@@ -30,8 +30,8 @@ const CYCLE_TYPE_OPTIONS: { value: SubscriptionCycleType; label: string; desc: s
   },
   {
     value: "INTERVAL_30",
-    label: "30일 누적 충전형",
-    desc: "월정액 결제 시마다 +30일 연장 누적",
+    label: "누적 충전형",
+    desc: "결제 시마다 설정된 일수만큼 연장 누적 (기본 30일)",
   },
   {
     value: "VERSION_PASS",
@@ -59,6 +59,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
   const [games, setGames] = useState<GameOption[]>([])
   const [cycleType, setCycleType] = useState<SubscriptionCycleType>("MONTHLY_DAY")
   const [billingDay, setBillingDay] = useState("1")
+  const [intervalDays, setIntervalDays] = useState("30")
   const [defaultPrice, setDefaultPrice] = useState("")
   const paymentMethod = "WALLET"
 
@@ -75,10 +76,12 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
       setGameId("")
       setCycleType("MONTHLY_DAY")
       setBillingDay("1")
+      setIntervalDays("30")
       setDefaultPrice("")
     }
     prevOpenRef.current = open
   }, [open])
+
 
   const userId = user?.id
 
@@ -130,25 +133,40 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
         return setError("결제일은 1일에서 31일 사이로 입력해 주세요.")
       }
     }
+    if (cycleType === "INTERVAL_30") {
+      const daysNum = Number(intervalDays)
+      if (isNaN(daysNum) || daysNum < 1) {
+        return setError("연장 누적 일수는 1일 이상이어야 합니다.")
+      }
+    }
     const priceNum = toAmount(defaultPrice)
     if (priceNum < 0) return setError("기본 금액은 0원 이상이어야 합니다.")
 
     setIsSubmitting(true)
     try {
       const targetCategory = gameId ? "게임" : "정기 구독"
-      const { error: insertError } = await supabase
+      const insertPayload: Record<string, unknown> = {
+        user_id: user.id,
+        title: title.trim(),
+        category: targetCategory,
+        game_id: gameId || null,
+        cycle_type: cycleType,
+        billing_day: cycleType === "MONTHLY_DAY" ? Number(billingDay) : 1,
+        interval_days: cycleType === "INTERVAL_30" ? Number(intervalDays) : 30,
+        default_price: priceNum,
+        payment_method: paymentMethod,
+        is_active: true,
+      }
+
+      let { error: insertError } = await supabase
         .from("subscription_templates")
-        .insert({
-          user_id: user.id,
-          title: title.trim(),
-          category: targetCategory,
-          game_id: gameId || null,
-          cycle_type: cycleType,
-          billing_day: cycleType === "MONTHLY_DAY" ? Number(billingDay) : 1,
-          default_price: priceNum,
-          payment_method: paymentMethod,
-          is_active: true,
-        })
+        .insert(insertPayload)
+
+      if (insertError && (insertError.code === "42703" || insertError.message?.includes("interval_days"))) {
+        delete insertPayload.interval_days
+        const fallbackRes = await supabase.from("subscription_templates").insert(insertPayload)
+        insertError = fallbackRes.error
+      }
 
       if (insertError) {
         throw new Error(insertError.message)
@@ -272,6 +290,29 @@ export function SubscriptionModal({ open, onOpenChange, onCreated }: Subscriptio
               />
               <p className="text-[11px] text-content-muted mt-0.5">
                 해당 월에 없는 일자(예: 2월 30일)는 말일로 자동 보정됩니다.
+              </p>
+            </div>
+          )}
+
+          {/* 5-2. 연장 누적 일수 (INTERVAL_30일 때 노출) */}
+          {cycleType === "INTERVAL_30" && (
+            <div>
+              <label htmlFor="sub-interval-days" className={labelClassName}>
+                결제 시 연장 일수 (일) *
+              </label>
+              <Input
+                id="sub-interval-days"
+                type="number"
+                min="1"
+                max="365"
+                className={inputClassName}
+                placeholder="30"
+                value={intervalDays}
+                onChange={(e) => setIntervalDays(e.target.value)}
+                required
+              />
+              <p className="text-[11px] text-content-muted mt-0.5">
+                결제 확정 시마다 이 일수만큼 다음 예정일이 누적 연장됩니다. (기본값: 30일)
               </p>
             </div>
           )}

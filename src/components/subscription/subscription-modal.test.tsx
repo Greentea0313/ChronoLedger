@@ -144,6 +144,7 @@ describe("SubscriptionModal", () => {
       game_id: null,
       cycle_type: "MONTHLY_DAY",
       billing_day: 25,
+      interval_days: 30,
       default_price: 17000,
       payment_method: "WALLET",
       is_active: true,
@@ -151,15 +152,20 @@ describe("SubscriptionModal", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it("30일 충전형(INTERVAL_30) 선택 시 결제일 입력란이 숨겨지고 정상 저장된다", async () => {
+  it("누적 충전형(INTERVAL_30) 선택 시 결제일 입력란이 숨겨지고 연장 일수 입력란이 노출되어 지정한 일수로 정상 저장된다", async () => {
     const onCreated = vi.fn()
     render(<SubscriptionModal open onOpenChange={vi.fn()} onCreated={onCreated} />)
 
     fireEvent.change(screen.getByLabelText("구독 제목 *"), { target: { value: "유튜브 프리미엄" } })
     fireEvent.change(screen.getByLabelText("결제 주기 유형 *"), { target: { value: "INTERVAL_30" } })
 
-    // INTERVAL_30에서는 매월 결제일 입력란 숨김
+    // INTERVAL_30에서는 매월 결제일 입력란 숨김, 연장 일수 입력란 노출 (기본값 30)
     expect(screen.queryByLabelText("매월 결제일 (1~31일) *")).toBeNull()
+    const intervalInput = screen.getByLabelText("결제 시 연장 일수 (일) *") as HTMLInputElement
+    expect(intervalInput.value).toBe("30")
+
+    // 연장 일수를 14일로 변경
+    fireEvent.change(intervalInput, { target: { value: "14" } })
 
     fireEvent.change(screen.getByLabelText("기본 금액 (원) *"), { target: { value: "14900" } })
     fireEvent.click(screen.getByRole("button", { name: "구독 추가" }))
@@ -170,6 +176,7 @@ describe("SubscriptionModal", () => {
         title: "유튜브 프리미엄",
         cycle_type: "INTERVAL_30",
         billing_day: 1,
+        interval_days: 14,
         default_price: 14900,
       }),
     )

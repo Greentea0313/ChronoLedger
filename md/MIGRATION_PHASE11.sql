@@ -439,4 +439,11 @@ CREATE TRIGGER trg_validate_expense_references
 BEFORE INSERT OR UPDATE OF user_id, game_id, schedule_id, pickup_schedule_id, template_id ON public.expenses
 FOR EACH ROW EXECUTE FUNCTION public.validate_expense_references();
 
+-- ==============================================================================
+-- 11. 정기 구독 누적 충전형 주기 일수(interval_days) 확장
+-- ==============================================================================
+ALTER TABLE public.subscription_templates
+    ADD COLUMN IF NOT EXISTS interval_days INTEGER DEFAULT 30 CHECK (interval_days > 0);
+
+
 

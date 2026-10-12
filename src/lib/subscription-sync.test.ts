@@ -137,6 +137,58 @@ describe("subscription-sync", () => {
       )
     })
 
+    it("INTERVAL_30: interval_days가 설정되어 있으면 기본 30일 대신 설정된 일수만큼 연장하여 다음 회차를 생성한다", async () => {
+      const templateQuery = createTemplateQuery([
+        {
+          id: "template-interval-7",
+          title: "주간 패키지",
+          category: "게임",
+          cycle_type: "INTERVAL_30",
+          interval_days: 7,
+          billing_day: 1,
+          default_price: 3300,
+          payment_method: "GOOGLE_PLAY",
+          game_id: "game-1",
+        },
+      ])
+
+      const expenseQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({
+          data: [
+            { id: "e1", status: "CONFIRMED", target_date: "2026-10-01" },
+          ],
+          error: null,
+        }),
+      }
+
+      const insert = vi.fn().mockResolvedValue({ error: null })
+
+      from.mockImplementation((table: string) => {
+        if (table === "subscription_templates") return templateQuery
+        if (table === "expenses") {
+          return {
+            ...expenseQuery,
+            insert,
+          }
+        }
+        return {}
+      })
+
+      const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 10, "2026-10-05")
+
+      expect(createdCount).toBe(1)
+      expect(insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          template_id: "template-interval-7",
+          target_date: "2026-10-08", // 2026-10-01 + 7일
+          status: "PLANNED",
+          final_amount: 3300,
+        }),
+      )
+    })
+
     it("INTERVAL_30: 이미 미결제 PLANNED 회차가 존재하면 중복 생성하지 않는다", async () => {
       const templateQuery = createTemplateQuery([
         {
