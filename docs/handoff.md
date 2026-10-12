@@ -1,5 +1,33 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 정식 아이콘 1A 확정 및 적용 (2026-10-12)
+
+- **선정**: `docs/icon-concepts-v2-preview.html`(3종) → `docs/icon-concepts-v3-c-variants-preview.html`(시안1 기반 1A/1B/1C) 중 **1A(C-Chrono + 메모 도트)** 확정.
+- **생성**: `scripts/generate_icons.py`를 1A 스펙으로 교체(바탕 `#0F1115`, C `#F5B942`, 바늘 `#7C8CFF`, 도트 `#4CD6A5`, SVG round-cap 재현용 끝점 디스크).
+  `public/icons/icon-{512,192,180,maskable-512}.png` 4종 재생성 및 192px 실물 확인.
+- **미세 보정**: 소형 렌더에서 메모 도트가 링에 닿아 보여 `(414,256)→(420,256)` 이동, v3 미리보기 1A 5곳 동기화.
+- **연결**: `src/app/layout.tsx:10-11`(manifest + icon-192/apple-180), `public/manifest.json:13-16` 기존 참조 유지, 코드 변경 없음.
+- **다음**: PWA 설치·마스크블 크롭 실기기 확인은 Android 검증 보류 결정에 따라 후순위.
+
+## 회원가입 페이지 분리 및 닉네임 입력 지원 (2026-10-12)
+
+- **결정 및 배경**:
+  - 기존 단일 `/auth` 페이지에서 로그인과 회원가입이 동일 폼으로 처리되던 구조를 개선. 기존 로그인 화면 레이아웃과 디자인은 유지한 채 '회원가입' 버튼 클릭 시 전용 페이지(`/auth/signup`)로 이동하도록 라우팅 분리.
+  - 가입 시 이메일, 비밀번호 외에 닉네임(최대 20자)을 필수 입력하도록 하여 유저 메타데이터 및 프로필에 닉네임을 사전 설정할 수 있도록 처리.
+- **수행 내역**:
+  - `src/app/auth/signup/page.tsx`: 신규 회원가입 전용 페이지 생성. 이메일, 비밀번호, 닉네임 필드 구성 및 `supabase.auth.signUp` 메타데이터 바인딩.
+  - `src/app/auth/page.tsx`: 인라인 가입 함수 제거, 회원가입 버튼 클릭 시 `router.push("/auth/signup")` 네비게이션 연동.
+  - `src/app/dashboard/auth/page.tsx`: 안전 리다이렉트 페이지 배치 (`/dashboard/auth` $\to$ `/auth`).
+  - `src/app/auth/page.test.tsx`: 회원가입 이동 테스트로 갱신.
+  - `src/app/auth/signup/page.test.tsx`: 회원가입 폼 및 케이스별 5건 단위 테스트 추가.
+- **검증 증거**:
+  - `npx vitest run`: 33개 파일 / 128개 테스트 전체 통과 (100% PASS).
+  - `npx next build`: 정적 15개 페이지 export 빌드 성공.
+- **다음 개발 권장 사항**:
+  - Phase 11.2 네이버페이 지갑 모델 및 충전 엔진 구현
+  - Phase 11.3 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동
+  - Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계 구현
+
 ## Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계 파이프라인 등록 (2026-10-12)
 
 - **결정 및 배경**:

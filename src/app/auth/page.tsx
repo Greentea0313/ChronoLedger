@@ -53,32 +53,6 @@ export default function AuthPage() {
     }
   }
 
-  const handleSignUp = async () => {
-    const form = document.querySelector<HTMLFormElement>("#auth-form")
-    if (!form?.reportValidity()) return
-
-    setLoading(true)
-    setMessage("")
-    setMessageIsError(false)
-
-    try {
-      const { data, error } = await supabase.auth.signUp({ email, password })
-      if (error) {
-        setMessage(error.message)
-        setMessageIsError(true)
-      } else if (data.session) {
-        setMessage("회원가입이 완료되었습니다. 대시보드로 이동합니다.")
-        router.replace("/dashboard")
-      } else {
-        setMessage("가입 확인 메일을 확인한 뒤 이메일과 비밀번호로 로그인해주세요.")
-      }
-    } catch (cause: unknown) {
-      setMessage(cause instanceof Error ? cause.message : "회원가입 중 오류가 발생했습니다.")
-      setMessageIsError(true)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleGoogleLogin = async () => {
     setLoading(true)
@@ -163,7 +137,7 @@ export default function AuthPage() {
               </Button>
               <Button
                 type="button"
-                onClick={() => void handleSignUp()}
+                onClick={() => router.push("/auth/signup")}
                 variant="outline"
                 size="lg"
                 className="w-full"

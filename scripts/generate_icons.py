@@ -1,27 +1,33 @@
-"""ChronoLedger A안(C-Clock) 아이콘 생성기.
+"""ChronoLedger icon generator - Draft 1A (C-Chrono + memo dot).
 
-시안: docs/icon-drafts-preview.html 의 시안 A.
-출력: public/icons/icon-{512,192,180,maskable-512}.png
-실행: python scripts/generate_icons.py
+Source: docs/icon-concepts-v3-c-variants-preview.html, variant 1A (selected).
+Geometry replicates the approved 1A SVG (512 viewBox):
+  - bg #0F1115, C-ring #F5B942 (center-line R150, width 64, gap +-45.6 deg)
+  - hands #7C8CFF (width 36, round caps, center dot r26)
+  - memo dot #4CD6A5 (r20 at (414,256), in the C opening)
+Targets: public/icons/icon-{512,192,180,maskable-512}.png
+Usage: python scripts/generate_icons.py
 """
 import math
 import os
 
 from PIL import Image, ImageDraw
 
-BG = (17, 24, 39)          # #111827 (manifest theme/background와 동일)
-YELLOW = (250, 204, 21)    # #FACC15 (기존 아이콘 링 실측값)
-BLUE = (96, 165, 250)      # #60A5FA (기존 아이콘 바늘 실측값)
+BG = (15, 17, 21)        # #0F1115 (dark color.bg token)
+RING = (245, 185, 66)    # #F5B942 (warning token)
+HAND = (124, 140, 255)   # #7C8CFF (primary dark token)
+DOT = (76, 214, 165)     # #4CD6A5 (success token, memo dot)
 
 BASE = 512
-# RING_R은 바깥 반지름 (Pillow arc 스트로크가 bbox 안쪽으로 그려짐을 실측 확인)
-RING_R = 158  # 원본 192px 실측 바깥 R 59 환산
-RING_W = 32   # 링 굵기 (원본 실측 12 환산)
-GAP_HALF = 43  # C 벌어짐 절반각 (원본 실측값)
-HOUR_TIP = (256, 160)    # 12시 방향 (원본 실측 길이 환산)
-MINUTE_TIP = (317, 235)  # 3시 살짝 위 방향 (원본 실측 길이/각도 환산)
-HAND_W = 23   # 바늘 굵기 (원본 실측 8.5 환산)
-DOT_R = 23    # 중심 도트 (원본 실측 환산)
+RING_R = 150   # center-line radius of the C ring
+RING_W = 64    # ring stroke width
+GAP_HALF = math.degrees(math.atan2(106, 104))  # ~45.6 deg (endpoints (360,150)/(360,362))
+HAND_W = 36
+HOUR_TIP = (256, 168)
+MINUTE_TIP = (322, 282)
+CENTER_R = 26
+MEMO_DOT = (420, 256)
+MEMO_R = 20  # 16px rendering drops nothing; dot stays separated from ring
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(ROOT, "public", "icons")
@@ -31,6 +37,10 @@ def _t(p, c, u):
     return (c + (p[0] - 256) * u, c + (p[1] - 256) * u)
 
 
+def _disc(d, xy, r, fill):
+    d.ellipse([xy[0] - r, xy[1] - r, xy[0] + r, xy[1] + r], fill=fill)
+
+
 def render(size, k=1.0, supersample=4):
     big = size * supersample
     u = (big / BASE) * k
@@ -38,22 +48,26 @@ def render(size, k=1.0, supersample=4):
     im = Image.new("RGB", (big, big), BG)
     d = ImageDraw.Draw(im)
 
+    # C ring (Pillow arc has butt caps, so add round endpoint discs like SVG linecap)
     r = RING_R * u
     w = max(1, round(RING_W * u))
     d.arc([c - r, c - r, c + r, c + r], start=GAP_HALF, end=360 - GAP_HALF,
-          fill=YELLOW, width=w)
-    # 끝처리: 원본처럼 호를 그대로 끝냄(별도 라운드 캡 없음 — 다운스케일 AA가 둥글게 만듦)
+          fill=RING, width=w)
+    for sgn in (1, -1):
+        ex = c + RING_R * u * math.cos(math.radians(GAP_HALF))
+        ey = c + sgn * RING_R * u * math.sin(math.radians(GAP_HALF))
+        _disc(d, (ex, ey), w / 2, RING)
 
-    # 시곗바늘
+    # clock hands with round tips
     hw = max(1, round(HAND_W * u))
     for tip in (HOUR_TIP, MINUTE_TIP):
         tx, ty = _t(tip, c, u)
-        d.line([(c, c), (tx, ty)], fill=BLUE, width=hw)
-        d.ellipse([tx - hw / 2, ty - hw / 2, tx + hw / 2, ty + hw / 2], fill=BLUE)
+        d.line([(c, c), (tx, ty)], fill=HAND, width=hw)
+        _disc(d, (tx, ty), hw / 2, HAND)
 
-    # 중심 도트
-    dr = DOT_R * u
-    d.ellipse([c - dr, c - dr, c + dr, c + dr], fill=BLUE)
+    # center dot + memo dot in the C opening
+    _disc(d, (c, c), CENTER_R * u, HAND)
+    _disc(d, _t(MEMO_DOT, c, u), MEMO_R * u, DOT)
 
     return im.resize((size, size), Image.LANCZOS)
 
@@ -64,7 +78,7 @@ def main():
         ("icon-512.png", 512, 1.0),
         ("icon-192.png", 192, 1.0),
         ("icon-180.png", 180, 1.0),
-        ("icon-maskable-512.png", 512, 0.9),  # 마스크 크롭 대비 여유
+        ("icon-maskable-512.png", 512, 0.9),  # maskable safe-area shrink
     ]
     for name, size, k in targets:
         path = os.path.join(OUT_DIR, name)

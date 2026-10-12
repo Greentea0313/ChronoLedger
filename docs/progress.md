@@ -1,5 +1,28 @@
 # 프로젝트 진행 현황
 
+## 회원가입 페이지 분리 및 닉네임 입력 지원 (2026-10-12)
+
+- **배경 및 요구사항**:
+  - 기존 `/auth`에서 로그인과 회원가입이 단일 화면/폼에 공존하던 구조에서, 기존 로그인 화면의 UI 형태를 그대로 유지한 채 회원가입 버튼 클릭 시 별도 회원가입 전용 페이지(`/auth/signup`)로 이동하도록 라우팅 분리.
+  - 회원가입 페이지에서 이메일, 비밀번호, 닉네임을 필수 입력받아 계정을 생성하도록 구현.
+- **수행 내역**:
+  1. **신규 회원가입 페이지 (`src/app/auth/signup/page.tsx`)**:
+     - 이메일, 비밀번호(6자 이상), 닉네임(최대 20자) 입력 필드 및 유효성 검증 제공.
+     - `supabase.auth.signUp` 호출 시 `options: { data: { nickname: trimmedNickname } }` 메타데이터를 전달하여 `raw_user_meta_data`에 저장.
+     - 즉시 세션이 활성화되는 경우 `users` 테이블의 `nickname` 컬럼 업데이트 폴백 및 `/dashboard` 자동 이동.
+     - 이메일 인증이 필요한 환경의 경우 안내 메시지 출력.
+     - 이미 로그인된 상태일 경우 `/dashboard`로 리다이렉트.
+     - 기존 로그인 화면으로 돌아갈 수 있는 `<Link href="/auth">로그인</Link>` 제공.
+  2. **기존 로그인 페이지 (`src/app/auth/page.tsx`)**:
+     - 기존 로그인 및 Google OAuth UI는 유지하되, 인라인 `handleSignUp` 로직을 제거하고 '회원가입' 버튼 클릭 시 `router.push("/auth/signup")`으로 이동하도록 변경.
+  3. **라우팅 방어 (`src/app/dashboard/auth/page.tsx`)**:
+     - `/dashboard/auth` 경로 접근 시 `/auth`로 즉시 치환 리다이렉트 처리.
+  4. **테스트 및 검증**:
+     - `src/app/auth/page.test.tsx`: 회원가입 버튼 클릭 시 `/auth/signup` 네비게이션 호출 검증 반영.
+     - `src/app/auth/signup/page.test.tsx`: 렌더링, 기존 로그인 시 리다이렉트, 닉네임 메타데이터 전달 및 가입 성공/확인 메일 안내/실패 에러 검증 등 5개 단위 테스트 작성.
+     - Vitest 33개 파일 / 128개 테스트 전체 통과 (100% PASS).
+     - Next.js 정적 export 15개 페이지 빌드 성공 (`next build`).
+
 ## Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계 파이프라인 편입 (2026-10-12)
 
 - **배경 및 요구사항**:

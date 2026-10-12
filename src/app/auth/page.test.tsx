@@ -2,23 +2,23 @@ import { act, fireEvent, render, screen, cleanup } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import AuthPage from "./page"
 
-const { signInWithPassword, signUp, signInWithOAuth, useAuth, replace } = vi.hoisted(() => ({
+const { signInWithPassword, signInWithOAuth, useAuth, replace, push } = vi.hoisted(() => ({
   signInWithPassword: vi.fn(),
-  signUp: vi.fn(),
   signInWithOAuth: vi.fn(),
   useAuth: vi.fn(),
   replace: vi.fn(),
+  push: vi.fn(),
 }))
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace }),
+  useRouter: () => ({ replace, push }),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 
 vi.mock("@/lib/supabase/client", () => ({
   supabase: {
-    auth: { signInWithPassword, signUp, signInWithOAuth },
+    auth: { signInWithPassword, signInWithOAuth },
   },
 }))
 
@@ -26,9 +26,9 @@ describe("AuthPage", () => {
   beforeEach(() => {
     useAuth.mockReturnValue({ user: null, isLoading: false })
     signInWithPassword.mockReset()
-    signUp.mockReset()
     signInWithOAuth.mockReset()
     replace.mockReset()
+    push.mockReset()
     window.history.replaceState({}, "", "/auth")
   })
 
@@ -65,18 +65,14 @@ describe("AuthPage", () => {
     expect(replace).not.toHaveBeenCalled()
   })
 
-  it("explains email confirmation when signup does not create a session", async () => {
-    signUp.mockResolvedValue({ data: { session: null }, error: null })
+  it("navigates to signup page when signup button is clicked", async () => {
     render(<AuthPage />)
-    fireEvent.change(screen.getByLabelText("이메일"), { target: { value: "new@example.com" } })
-    fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "secret123" } })
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "회원가입" }))
     })
 
-    expect(signUp).toHaveBeenCalledWith({ email: "new@example.com", password: "secret123" })
-    expect(screen.getByRole("status").textContent).toContain("가입 확인 메일")
+    expect(push).toHaveBeenCalledWith("/auth/signup")
   })
 
   it("requests Google OAuth with the Web/PWA callback", async () => {

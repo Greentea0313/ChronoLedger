@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChronoLedger 아이콘 시안 1 기반 변형 3종 (v3)</title>
+<style>
+*{box-sizing:border-box}body{font-family:'Malgun Gothic',system-ui,sans-serif;background:#0F1115;color:#F5F7FA;margin:0;padding:32px}
+h1{font-size:22px;margin:0 0 8px}p.sub{color:#B3BBC8;font-size:14px;margin:0 0 8px;max-width:1100px;line-height:1.7}
+p.sub code{color:#7C8CFF;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;margin-top:20px}
+.card{background:#171A21;border:1px solid #2A2F3A;border-radius:16px;padding:24px;text-align:center}
+.card h2{font-size:17px;margin:0 0 4px}.card .desc{font-size:13px;color:#B3BBC8;margin:0 0 16px;min-height:44px;line-height:1.6}
+.big{width:180px;height:180px;margin:0 auto 16px;display:block;border-radius:40px;box-shadow:0 8px 28px rgba(0,0,0,.4)}
+.sizes{display:flex;align-items:flex-end;justify-content:center;gap:14px;margin:12px 0;padding:12px;background:#0F1115;border-radius:12px}
+.sizes div{text-align:center;font-size:11px;color:#A0A9B8}.sizes svg{display:block;margin:0 auto 4px;border-radius:6px}
+.row-light{background:#F5F7FA;border-radius:12px;padding:12px;margin-top:12px}
+.row-light svg{border-radius:12px}
+code{font-size:11px;color:#7C8CFF;word-break:break-all}
+.token{font-size:12px;color:#A0A9B8;margin-top:12px;text-align:left;background:#0F1115;padding:10px 12px;border-radius:10px;line-height:1.8}
+.token b{color:#F5F7FA}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;margin-bottom:8px}
+.b-rec{background:#4CD6A5;color:#101426}.b-sub{background:#2A2F3A;color:#B3BBC8}
+.foot{margin-top:24px;color:#B3BBC8;font-size:13px;line-height:1.8;max-width:1100px}
+</style>
+</head>
+<body>
+<h1>시안 1(C-Chrono) 기반 변형 3종 (v3)</h1>
+<p class="sub">파일: <code>docs/icon-concepts-v3-c-variants-preview.html</code> — 브라우저로 직접 연 파일입니다.<br>
+공통 뼈대: v2 시안 1의 C-링 + 시곗바늘 지오메트리(토큰 색 <code>#F5B942</code>/<code>#7C8CFF</code>, 바탕 <code>#0F1115</code>).
+3종은 <strong>"같은 C, 다른 액센트"</strong> 변형입니다 — C의 열린 틈·하단에 무엇을 두느냐가 차이점입니다.
+전 시안 마스커블 80% 안전영역 준수, 축소 테스트(48/32/16px) + 라이트 배경 테스트 포함, <code>&lt;text&gt;</code> 미사용.</p>
+
+<div class="grid">
+
+<!-- ============ 1A ============ -->
+<div class="card">
+<div class="badge b-rec">기준안</div>
+<h2>시안 1A — C + 메모 도트 (v2-1 유지)</h2>
+<p class="desc">비교 기준. C 틈에 성공색 메모 1도트(FR-071 타일 언어). 요소 최소, 소형 가독성 최상.</p>
+<svg class="big" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#2A2F3A" stroke-width="8"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="420" cy="256" r="20" fill="#4CD6A5"/></svg>
+<div class="sizes">
+<div><svg width="48" height="48" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="420" cy="256" r="20" fill="#4CD6A5"/></svg>48px</div>
+<div><svg width="32" height="32" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="420" cy="256" r="20" fill="#4CD6A5"/></svg>32px</div>
+<div><svg width="16" height="16" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="420" cy="256" r="20" fill="#4CD6A5"/></svg>16px</div>
+</div>
+<div class="row-light"><svg width="96" height="96" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="420" cy="256" r="20" fill="#4CD6A5"/></svg></div>
+<div class="token"><b>액센트:</b> 틈새 메모 도트 <code>#4CD6A5</code><br><b>장점:</b> 16px·파비콘 가독성 최상 · 기존 임시 아이콘과 연속성<br><b>단점:</b> 가계부 속성은 은유적(도트 서사를 알아야 읽힘)</div>
+</div>
+
+<!-- ============ 1B ============ -->
+<div class="card">
+<div class="badge b-sub">원장 게이지형</div>
+<h2>시안 1B — C + 예산 바</h2>
+<p class="desc">C를 86%로 축소·상단 배치하고 하단에 <b>예산 바(82% 주의 채움, FR-022)</b> 추가. 시간(Chrono) + 예산(Ledger) 이중 서사. 바는 축소 시 베이스라인으로 읽힙니다.</p>
+<svg class="big" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#2A2F3A" stroke-width="8"/><path d="M346 136 A129 129 0 1 0 346 320" stroke="#F5B942" stroke-width="55" fill="none" stroke-linecap="round"/><line x1="256" y1="228" x2="256" y2="152" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><line x1="256" y1="228" x2="313" y2="250" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><circle cx="256" cy="228" r="22" fill="#7C8CFF"/><circle cx="400" cy="228" r="18" fill="#4CD6A5"/><rect x="116" y="404" width="280" height="32" rx="16" fill="#2A2F3A"/><rect x="116" y="404" width="230" height="32" rx="16" fill="#F5B942"/></svg>
+<div class="sizes">
+<div><svg width="48" height="48" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M346 136 A129 129 0 1 0 346 320" stroke="#F5B942" stroke-width="55" fill="none" stroke-linecap="round"/><line x1="256" y1="228" x2="256" y2="152" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><line x1="256" y1="228" x2="313" y2="250" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><circle cx="256" cy="228" r="22" fill="#7C8CFF"/><circle cx="400" cy="228" r="18" fill="#4CD6A5"/><rect x="116" y="404" width="280" height="32" rx="16" fill="#2A2F3A"/><rect x="116" y="404" width="230" height="32" rx="16" fill="#F5B942"/></svg>48px</div>
+<div><svg width="32" height="32" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M346 136 A129 129 0 1 0 346 320" stroke="#F5B942" stroke-width="55" fill="none" stroke-linecap="round"/><line x1="256" y1="228" x2="256" y2="152" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><line x1="256" y1="228" x2="313" y2="250" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><circle cx="256" cy="228" r="22" fill="#7C8CFF"/><circle cx="400" cy="228" r="18" fill="#4CD6A5"/><rect x="116" y="404" width="280" height="32" rx="16" fill="#2A2F3A"/><rect x="116" y="404" width="230" height="32" rx="16" fill="#F5B942"/></svg>32px</div>
+<div><svg width="16" height="16" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M346 136 A129 129 0 1 0 346 320" stroke="#F5B942" stroke-width="55" fill="none" stroke-linecap="round"/><line x1="256" y1="228" x2="256" y2="152" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><line x1="256" y1="228" x2="313" y2="250" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><circle cx="256" cy="228" r="22" fill="#7C8CFF"/><rect x="116" y="404" width="280" height="32" rx="16" fill="#2A2F3A"/><rect x="116" y="404" width="230" height="32" rx="16" fill="#F5B942"/></svg>16px</div>
+</div>
+<div class="row-light"><svg width="96" height="96" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M346 136 A129 129 0 1 0 346 320" stroke="#F5B942" stroke-width="55" fill="none" stroke-linecap="round"/><line x1="256" y1="228" x2="256" y2="152" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><line x1="256" y1="228" x2="313" y2="250" stroke="#7C8CFF" stroke-width="31" stroke-linecap="round"/><circle cx="256" cy="228" r="22" fill="#7C8CFF"/><circle cx="400" cy="228" r="18" fill="#4CD6A5"/><rect x="116" y="404" width="280" height="32" rx="16" fill="#2A2F3A"/><rect x="116" y="404" width="230" height="32" rx="16" fill="#F5B942"/></svg></div>
+<div class="token"><b>액센트:</b> 하단 예산 바 — 트랙 <code>#2A2F3A</code> + 82% 채움 <code>#F5B942</code>(230/280)<br><b>장점:</b> 3종 중 원장·예산 서사 최강 · 바가 소형에서도 실루엣 유지<br><b>단점:</b> C 축소로 16px 시계 디테일 약화 · 요소 수 최다(16px는 도트 생략형)</div>
+</div>
+
+<!-- ============ 1C ============ -->
+<div class="card">
+<div class="badge b-sub">코인형</div>
+<h2>시안 1C — C + ₩ 미니코인</h2>
+<p class="desc">틈새 도트 자리에 <b>골드 미니코인(벡터 ₩)</b>을 품은 C. "일정 사이사이의 지출"이라는 은유. 대형에서 개성이 가장 강합니다.</p>
+<svg class="big" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#2A2F3A" stroke-width="8"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="416" cy="256" r="36" fill="#F5B942" stroke="#0F1115" stroke-width="8"/><line x1="398" y1="244" x2="434" y2="244" stroke="#0F1115" stroke-width="8" stroke-linecap="round"/><polyline points="400,244 408,266 416,250 424,266 432,244" fill="none" stroke="#0F1115" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<div class="sizes">
+<div><svg width="48" height="48" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="416" cy="256" r="36" fill="#F5B942" stroke="#0F1115" stroke-width="8"/><line x1="398" y1="244" x2="434" y2="244" stroke="#0F1115" stroke-width="8" stroke-linecap="round"/><polyline points="400,244 408,266 416,250 424,266 432,244" fill="none" stroke="#0F1115" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>48px</div>
+<div><svg width="32" height="32" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="416" cy="256" r="36" fill="#F5B942" stroke="#0F1115" stroke-width="8"/><line x1="398" y1="244" x2="434" y2="244" stroke="#0F1115" stroke-width="8" stroke-linecap="round"/><polyline points="400,244 408,266 416,250 424,266 432,244" fill="none" stroke="#0F1115" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>32px</div>
+<div><svg width="16" height="16" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="416" cy="256" r="36" fill="#F5B942" stroke="#0F1115" stroke-width="8"/></svg>16px</div>
+</div>
+<div class="row-light"><svg width="96" height="96" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0F1115"/><path d="M360 150 A150 150 0 1 0 360 362" stroke="#F5B942" stroke-width="64" fill="none" stroke-linecap="round"/><line x1="256" y1="256" x2="256" y2="168" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><line x1="256" y1="256" x2="322" y2="282" stroke="#7C8CFF" stroke-width="36" stroke-linecap="round"/><circle cx="256" cy="256" r="26" fill="#7C8CFF"/><circle cx="416" cy="256" r="36" fill="#F5B942" stroke="#0F1115" stroke-width="8"/><line x1="398" y1="244" x2="434" y2="244" stroke="#0F1115" stroke-width="8" stroke-linecap="round"/><polyline points="400,244 408,266 416,250 424,266 432,244" fill="none" stroke="#0F1115" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<div class="token"><b>액센트:</b> 틈새 미니코인 <code>#F5B942</code> + 벡터 ₩ 스트로크(16px는 코인만)<br><b>장점:</b> 대형(스토어·스플래시) 개성 최상 · 돈 속성 직접 표현<br><b>단점:</b> 16px에서 코인이 C링과 붙어 보여 두께로 읽힘 · ₩ 획은 48px부터 식별</div>
+</div>
+
+</div>
+<div class="foot">
+<b>총평:</b> 안전 선택은 <b>1A</b>(소형 가독성·연속성), 원장 의미를 C 틀 안에서 가장 강하게 넣은 안은 <b>1B</b>,
+대형 노출용 개성은 <b>1C</b>입니다. 1B·1C의 소형 리스크는 16px생략형(도트/₩ 획 제거)으로 완화해 두었습니다.
+선택안이 정해지면 해당 안으로 <code>scripts/generate_icons.py</code>를 확장해
+<code>public/icons/icon-{512,192,180,maskable-512}.png</code> 4종을 재생성하고 <code>public/manifest.json</code> 연결을 검증합니다.
+</div>
+</body>
+</html>

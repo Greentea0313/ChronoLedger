@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-12 (회원가입 페이지 분리 및 닉네임 입력 지원)
+
+- **회원가입 라우팅 분리 (`src/app/auth/signup/page.tsx`)**:
+  - 기존 `/auth`에서 단일 폼으로 처리되던 회원가입 로직을 별도 전용 페이지로 분리.
+  - 이메일, 비밀번호(6자 이상), 닉네임(최대 20자) 입력 폼 제공.
+  - `supabase.auth.signUp` 호출 시 닉네임을 메타데이터(`options: { data: { nickname } }`)로 저장하고 세션 생성 시 `users` 테이블 동기화 폴백 지원.
+- **기존 로그인 페이지 연동 (`src/app/auth/page.tsx`)**:
+  - 기존 로그인 및 Google OAuth UI는 유지하면서 '회원가입' 버튼 클릭 시 `/auth/signup` 페이지로 라우팅되도록 변경.
+- **경로 리다이렉트 지원 (`src/app/dashboard/auth/page.tsx`)**:
+  - `/dashboard/auth` 접근 시 404 없이 `/auth`로 즉시 리다이렉트 처리.
+- **단위 테스트 및 빌드 무결성**:
+  - `src/app/auth/page.test.tsx` 갱신 및 `src/app/auth/signup/page.test.tsx` 신규 5건 테스트 추가 (전체 33개 파일 128개 테스트 100% 통과, `next build` 15개 정적 페이지 빌드 성공).
+
 ## 2026-10-12 (Phase 11.4 픽업별 지출 바인딩 및 가챠 소비 통계 파이프라인 등록)
 
 - **파이프라인 등록**: 픽업별 지출 추적 및 소비 통계 분석 요구사항을 Phase 11.4로 신규 등록(`docs/to-do.md`, `docs/progress.md`, `docs/handoff.md`).
