@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-10-13 (소비 페이지 전체 지출 내역 10개 단위 페이지네이션 및 누적 충전형 주기 커스텀 지원)
+
+- **전체 지출 내역 10개 단위 페이지네이션 구현 (`src/app/dashboard/expenses/page.tsx`)**:
+  - 기존에 등록된 모든 지출 내역을 한 화면에 무제한 나열하던 방식에서 10개 단위(`EXPENSES_PER_PAGE = 10`) 페이지 분할 렌더링으로 개선.
+  - 데스크톱 테이블 뷰와 모바일 카드 뷰 모두 현재 페이지 데이터(`paginatedExpenses`)만 렌더링하여 렌더링 성능 최적화 및 스크롤 피로도 해소.
+  - 하단에 총 건수 및 현재 표시 범위(`총 N건 중 A - B건 표시 (페이지 X / Y)`), 이전/다음 버튼(`ChevronLeft`, `ChevronRight`), 스마트 번호 네비게이션(7페이지 초과 시 생략 부호 `...` 지원) UI 추가.
+  - 내역 변경/삭제 시 페이지 범위를 초과하지 않도록 자동 클램핑 방어 로직 적용.
+- **누적 충전형 정기 구독 결제 주기(`interval_days`) 커스텀 기능 (`src/components/subscription/subscription-modal.tsx`, `src/lib/subscription-sync.ts`)**:
+  - '30일 누적 충전형'에서 '누적 충전형'으로 명칭 통일 및 결제 주기 일수(기본값 30일) 자유 입력 지원.
+  - 다음 회차 자동 생성 시 템플릿의 `interval_days`만큼 목표일 누적 연장 처리.
+  - DB 스키마 컬럼 미존재 시에도 무중단 동작하도록 프론트엔드 폴백 처리.
+- **단위 테스트 보강 (`src/app/dashboard/expenses/page.test.tsx`, `src/lib/subscription-sync.test.ts`, `src/components/subscription/subscription-modal.test.tsx`)**:
+  - 25개 지출 데이터 기준 10개 단위 페이지 분할 및 2페이지 이동/이전 복귀 검증 테스트 추가 (총 160개 테스트 100% 통과).
+
 ## 2026-10-13 (게임 버전 패스형/정기 구독 예정 지출 생성 실패 수정 및 버전 시작일 바인딩 개선)
 
 - **PostgREST 부분 유니크 인덱스 충돌 에러(42P10) 해결 및 `insert` 전환 (`src/lib/subscription-sync.ts`)**:

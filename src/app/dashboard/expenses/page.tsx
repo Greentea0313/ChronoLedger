@@ -17,8 +17,24 @@ import { getKstToday } from "@/lib/dashboard-date"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ExpensesPageSkeleton } from "@/components/ui/page-skeletons"
 import { isOffline } from "@/lib/offline-guard"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { preloadImages } from "@/lib/icon-preload"
+
+const EXPENSES_PER_PAGE = 10
+
+function getPaginationRange(current: number, total: number): (number | "...")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "...", total]
+  }
+  if (current >= total - 3) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total]
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total]
+}
 import {
   Bar,
   BarChart,
@@ -106,6 +122,7 @@ export default function ExpensesPage() {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<"expenses" | "subscriptions">("expenses")
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
   const [templates, setTemplates] = useState<SubscriptionTemplateRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const hasLoadedInitialRef = useRef(false)
@@ -314,6 +331,20 @@ export default function ExpensesPage() {
       hasData: list.length > 0,
     }
   }, [expenses, selectedPickupGameFilter, schedulesMap])
+
+  // 전체 지출 내역 페이지네이션 계산
+  const totalExpensePages = Math.max(1, Math.ceil(expenses.length / EXPENSES_PER_PAGE))
+
+  useEffect(() => {
+    if (currentPage > totalExpensePages) {
+      setCurrentPage(totalExpensePages)
+    }
+  }, [currentPage, totalExpensePages])
+
+  const paginatedExpenses = useMemo(() => {
+    const start = (currentPage - 1) * EXPENSES_PER_PAGE
+    return expenses.slice(start, start + EXPENSES_PER_PAGE)
+  }, [expenses, currentPage])
 
   // 액션 핸들러
   const handleAddExpense = () => {
@@ -792,7 +823,7 @@ export default function ExpensesPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line">
-                        {expenses.map((expense) => (
+                        {paginatedExpenses.map((expense) => (
                           <tr key={expense.id} className="hover:bg-surface-2/40 transition-colors">
                             <td className="py-3 text-content-secondary whitespace-nowrap">
                               {expense.target_date}
@@ -885,7 +916,7 @@ export default function ExpensesPage() {
 
                   {/* Mobile Card View */}
                   <div className="md:hidden space-y-3">
-                    {expenses.map((expense) => (
+                    {paginatedExpenses.map((expense) => (
                       <div
                         key={expense.id}
                         className="relative overflow-hidden p-3.5 rounded-lg border border-line bg-surface-2 text-sm space-y-2.5"
@@ -976,6 +1007,71 @@ export default function ExpensesPage() {
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  {/* 페이지네이션 바 */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-line text-xs text-content-secondary">
+                    <div data-testid="pagination-info">
+                      총 <span className="font-semibold text-content">{expenses.length.toLocaleString()}</span>건 중{" "}
+                      <span className="font-semibold text-content">
+                        {(currentPage - 1) * EXPENSES_PER_PAGE + 1} - {Math.min(currentPage * EXPENSES_PER_PAGE, expenses.length)}
+                      </span>
+                      건 표시 (페이지 <span className="font-semibold text-content">{currentPage}</span> / {totalExpensePages})
+                    </div>
+
+                    {totalExpensePages > 1 && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          aria-label="이전 페이지"
+                          className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span className="hidden sm:inline ml-1">이전</span>
+                        </Button>
+
+                        <div className="flex items-center gap-1">
+                          {getPaginationRange(currentPage, totalExpensePages).map((p, idx) =>
+                            p === "..." ? (
+                              <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-content-muted select-none">
+                                ...
+                              </span>
+                            ) : (
+                              <Button
+                                key={`page-${p}`}
+                                size="sm"
+                                variant={p === currentPage ? "default" : "outline"}
+                                onClick={() => setCurrentPage(p as number)}
+                                aria-label={`${p} 페이지로 이동`}
+                                aria-current={p === currentPage ? "page" : undefined}
+                                className={`h-8 w-8 p-0 text-xs ${
+                                  p === currentPage
+                                    ? "bg-primary text-white font-semibold hover:bg-primary-hover"
+                                    : "border-line-control text-content-secondary hover:text-content hover:bg-surface-2"
+                                }`}
+                              >
+                                {p}
+                              </Button>
+                            ),
+                          )}
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCurrentPage((p) => Math.min(totalExpensePages, p + 1))}
+                          disabled={currentPage === totalExpensePages}
+                          aria-label="다음 페이지"
+                          className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                        >
+                          <span className="hidden sm:inline mr-1">다음</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </>
               )}

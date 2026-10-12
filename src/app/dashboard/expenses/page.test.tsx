@@ -277,5 +277,56 @@ describe("ExpensesPage", () => {
     const badges = screen.getAllByText("수영복 한정 픽업")
     expect(badges.length).toBeGreaterThanOrEqual(1)
   })
+
+  it("지출 내역이 10개를 초과할 경우 10개 단위로 페이지네이션이 동작한다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const manyExpenses = Array.from({ length: 25 }, (_, i) => ({
+      id: `exp-${i + 1}`,
+      title: `지출 항목 ${i + 1}`,
+      category: "식비",
+      status: "CONFIRMED",
+      target_date: "2026-10-10",
+      end_date: null,
+      game_id: null,
+      original_price: 1000,
+      discount_amount: 0,
+      point_discount_amount: 0,
+      used_points: 0,
+      earned_points: 0,
+      final_amount: 1000,
+      payment_method: "WALLET",
+      games: null,
+    }))
+
+    const expenseBuilder = createExpenseQueryBuilder(manyExpenses)
+    from.mockReturnValue(expenseBuilder)
+
+    render(<ExpensesPage />)
+
+    // 1페이지에서 1~10번째 항목은 노출되고 11번째는 미노출
+    const items1 = await screen.findAllByText("지출 항목 1")
+    expect(items1.length).toBeGreaterThan(0)
+    expect(screen.getAllByText("지출 항목 10").length).toBeGreaterThan(0)
+    expect(screen.queryAllByText("지출 항목 11").length).toBe(0)
+
+    // 페이지네이션 안내 문구 확인
+    expect(screen.getByTestId("pagination-info").textContent).toContain("총 25건 중 1 - 10건 표시")
+
+    // 2페이지 버튼 클릭
+    const page2Button = screen.getByRole("button", { name: "2 페이지로 이동" })
+    fireEvent.click(page2Button)
+
+    // 2페이지 항목(11~20) 노출 확인
+    expect(screen.getAllByText("지출 항목 11").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("지출 항목 20").length).toBeGreaterThan(0)
+    expect(screen.queryAllByText("지출 항목 1").length).toBe(0)
+    expect(screen.getByTestId("pagination-info").textContent).toContain("총 25건 중 11 - 20건 표시")
+
+    // 이전 버튼 클릭 시 1페이지로 복귀
+    const prevButton = screen.getByRole("button", { name: "이전 페이지" })
+    fireEvent.click(prevButton)
+    expect(screen.getAllByText("지출 항목 1").length).toBeGreaterThan(0)
+    expect(screen.queryAllByText("지출 항목 11").length).toBe(0)
+  })
 })
 
