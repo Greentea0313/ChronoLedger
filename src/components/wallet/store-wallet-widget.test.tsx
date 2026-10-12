@@ -16,6 +16,7 @@ describe("StoreWalletWidget", () => {
       data: [
         { platform: "GOOGLE_PLAY", current_balance: 1200, earn_rate: 0.1, user_tier: "BRONZE" },
         { platform: "GALAXY_STORE", current_balance: 300, earn_rate: 1, user_tier: null },
+        { platform: "NAVER_PAY", current_balance: 45000, earn_rate: 0, user_tier: null },
       ],
       error: null,
     })
@@ -27,6 +28,7 @@ describe("StoreWalletWidget", () => {
     const onChanged = vi.fn()
     render(<StoreWalletWidget onChanged={onChanged} />)
     expect(await screen.findByText("1,200 P")).toBeTruthy()
+    expect(screen.getByText("45,000 원")).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText("Google Play 등급"), { target: { value: "GOLD" } })
     fireEvent.click(screen.getByRole("button", { name: "Google 등급 저장" }))
@@ -55,5 +57,23 @@ describe("StoreWalletWidget", () => {
     fireEvent.click(screen.getByRole("button", { name: "잔액 보정" }))
 
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("adjust_wallet_balance", { p_platform: "GALAXY_STORE", p_target_balance: 500, p_memo: "앱 잔액과 일치" }))
+  })
+
+  it("adjusts Naver Pay balance with won unit label", async () => {
+    render(<StoreWalletWidget />)
+    await screen.findByText("45,000 원")
+
+    fireEvent.change(screen.getByLabelText("지갑"), { target: { value: "NAVER_PAY" } })
+    fireEvent.change(screen.getByLabelText("목표 잔액 (원)"), { target: { value: "60000" } })
+    fireEvent.change(screen.getByLabelText("메모 (선택)"), { target: { value: "계좌 충전 잔액 동기화" } })
+    fireEvent.click(screen.getByRole("button", { name: "잔액 보정" }))
+
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("adjust_wallet_balance", {
+        p_platform: "NAVER_PAY",
+        p_target_balance: 60000,
+        p_memo: "계좌 충전 잔액 동기화",
+      }),
+    )
   })
 })

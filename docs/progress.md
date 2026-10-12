@@ -1,6 +1,38 @@
 # 프로젝트 진행 현황
 
-## 회원가입 페이지 분리 및 닉네임 입력 지원 (2026-10-12)
+## Phase 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현 완료 (2026-10-12)
+
+- **배경 및 요구사항**:
+  - 기존 결제수단(`WALLET`, `GOOGLE_PLAY`, `GALAXY_STORE`)에 이어 현금성 간편결제 수단인 `NAVER_PAY`(네이버페이) 지갑 모델 구축.
+  - 네이버페이 결제 시 현재 머니 잔액이 부족한 경우($S = \text{결제액} - \text{잔액} > 0$), 10,000원 단위 올림 충전($R = \lceil S / 10,000 \rceil \times 10,000$)을 계산하고 총 자산($B_{total} \ge R$) 검증 후 자산 차감 및 지갑 충전·결제 잔액 차감을 원자적 단일 트랜잭션으로 처리하는 로직 요구.
+- **수행 내역**:
+  1. **네이버페이 계산 엔진 모듈 (`src/lib/naver-pay-calculations.ts`)**:
+     - 순수 함수 `calculateNaverPayPayment(currentBalance, paymentAmount, totalAsset)` 구현.
+     - 잔액 충분 시 무충전 결제, 부족 시 10,000원 단위 올림 충전액 $R$ 산출, 총 자산 부족 시 `INSUFFICIENT_TOTAL_ASSETS` 에러 throw, 유효하지 않은 금액 입력 방어.
+     - 단위 테스트(`naver-pay-calculations.test.ts`): 9가지 시나리오(잔액 충분, 0원 일치, 1원 부족, 1만원/1만1원 부족, 0원 시작 올림 충전, 총 자산 부족 차단, 음수/0원 예외) 작성 완료 및 9/9 PASS.
+  2. **결제 타입 및 에러 매핑 확장 (`src/lib/payment-calculations.ts`)**:
+     - `PaymentMethod` 및 `PointPlatform`에 `"NAVER_PAY"` 추가.
+     - `estimateEarnedPoints`에서 네이버페이 결제 시 적립 0P 처리.
+     - `mapPaymentError`에 네이버페이 충전 자산 부족(`INSUFFICIENT_TOTAL_ASSETS`) 및 지갑 부재 친화적 메시지 매핑 추가.
+  3. **스토어/페이 지갑 관리 UI 갱신 (`src/components/wallet/store-wallet-widget.tsx`)**:
+     - 상단 잔액 그리드를 3열(`sm:grid-cols-3`)로 확장하여 Google Play(P), Galaxy Store(P), **네이버페이 머니 잔액(원)** 동시 표시.
+     - 잔액 수동 보정 드롭다운에 `NAVER_PAY` 옵션 추가 및 라벨을 `목표 잔액 (원)`으로 동적 전환.
+     - `store-wallet-widget.test.tsx`에 네이버페이 렌더링 및 보정 RPC 테스트 추가 (4/4 PASS).
+  4. **컴포넌트 타입/라벨 동기화**:
+     - `src/components/expense/expense-modal.tsx`: `METHOD_LABELS`에 `NAVER_PAY: "네이버페이"` 추가.
+     - `src/app/dashboard/expenses/page.tsx`: `METHOD_LABELS`에 `NAVER_PAY: "네이버페이"` 추가.
+  5. **DB 스키마 및 마이그레이션 DDL 반영 (`md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`)**:
+     - `store_wallets`: `platform IN ('GOOGLE_PLAY', 'GALAXY_STORE', 'NAVER_PAY')`, `chk_wallet_platform_settings`에 `(platform = 'NAVER_PAY' AND user_tier IS NULL AND earn_rate = 0)` 추가.
+     - `expenses`: `payment_method IN ('WALLET', 'GOOGLE_PLAY', 'GALAXY_STORE', 'NAVER_PAY')`.
+     - `store_point_transactions`: `platform`에 `NAVER_PAY`, `transaction_type`에 `RECHARGE` 추가.
+     - `adjust_wallet_balance`: `p_platform = 'NAVER_PAY'` 시 기본 earn_rate 0, tier NULL로 행 생성/보정 처리.
+     - `process_expense_payment`: 네이버페이 결제 시 부족액 검증, $R$ 계산, 총 자산 검증 및 $R$ 자산 차감, 네이버페이 $R$ 충전(`RECHARGE`), 네이버페이 $P$ 결제 차감(`USE`) 단일 트랜잭션 수행. 끝부분의 일반 자산 차감(`p_deduct_asset`) 시 네이버페이 결제는 제외(`p_payment_method <> 'NAVER_PAY'`)하여 **자산 이중 차감 원천 방지**.
+     - `refund_expense_payment`: `payment_method = 'NAVER_PAY'`인 경우 네이버페이 지갑 잔액으로 환불 증액 및 `REFUND` 로그 기록, 일반 자산 복원 시 네이버페이는 제외하여 **자산 이중 증액 원천 방지**.
+- **검증 증거**:
+  - `npx vitest run`: 34개 테스트 파일 / 138개 테스트 전체 통과 (100% PASS).
+  - `npx tsc --noEmit`: 컴파일 오류 0건.
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 
 - **배경 및 요구사항**:
   - 기존 `/auth`에서 로그인과 회원가입이 단일 화면/폼에 공존하던 구조에서, 기존 로그인 화면의 UI 형태를 그대로 유지한 채 회원가입 버튼 클릭 시 별도 회원가입 전용 페이지(`/auth/signup`)로 이동하도록 라우팅 분리.

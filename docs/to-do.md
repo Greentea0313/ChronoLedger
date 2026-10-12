@@ -289,13 +289,14 @@
     7. 지출 모달(`ExpenseModal`): `[연결된 버전 일정]` 레이블 변경, 비활성화 안내 텍스트 제거, 상시 disabled 상태로 매칭 버전 명칭만 노출(기간 텍스트 제외).
     8. 정기 구독 모달(`SubscriptionModal`): 결제수단 필드를 '내 지갑'(`WALLET`, disabled)으로 고정.
   - verify: `CONTENTS` 등록 및 캘린더/배너 정상 표시, 게임 일정 중앙 모달 동작 및 만료 일정 필터링 확인, 타일 배지 엄격한 순서 렌더링 검증, 타일 아이콘 가나다순 정렬 단위 테스트 검증, 사이드바 3단 레이아웃 및 2차 정렬 단위 테스트 검증, Vitest 32개 파일 / 119개 테스트 전체 통과 (100% PASS), `npm run build` 정적 13개 페이지 export 빌드 성공
-- [ ] 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현
-  - 대상 파일: `md/SCHEMA.sql`, `src/lib/naver-pay-calculations.ts`, `src/lib/naver-pay-calculations.test.ts`, `src/components/wallet/store-wallet-widget.tsx`
+- [x] 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현
+  - 대상 파일: `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/lib/naver-pay-calculations.ts`, `src/lib/naver-pay-calculations.test.ts`, `src/lib/payment-calculations.ts`, `src/components/wallet/store-wallet-widget.tsx`, `src/components/wallet/store-wallet-widget.test.tsx`
   - 작업:
-    1. `store_wallets`에 `NAVER_PAY` 플랫폼 지원 (`chk_wallet_platform_settings`).
+    1. `store_wallets`, `expenses`, `store_point_transactions`에 `NAVER_PAY` 플랫폼/결제수단/`RECHARGE` 트랜잭션 지원 및 DB 제약조건(`chk_wallet_platform_settings`: 네이버페이는 등급 NULL, 적립률 0%) 추가.
     2. 네이버페이 충전 및 결제 계산 순수 함수 `calculateNaverPayPayment` 모듈화 (부족액 $S$, 1만원 단위 올림 충전액 $R$, 총 자산 잔액 검증 $B_{total} \ge R$, 최종 잔액 계산).
-    3. `process_expense_payment` RPC에 네이버페이 결제 시 부족액 충전($R$ 자산 차감 + 지갑 충전) 및 결제($P$ 차감) 원자적 단일 트랜잭션 구현.
-  - verify: 단위 테스트(잔액 충분, 1만원 단위 올림 충전, 총 자산 부족 차단) 작성 및 RPC 트랜잭션 정합성 검증
+    3. `process_expense_payment` 및 `refund_expense_payment` RPC에 네이버페이 결제 시 부족액 충전($R$ 자산 차감 + 네이버페이 머니 충전) 및 결제($P$ 차감) 원자적 단일 트랜잭션 구현, 자산 이중 차감 및 이중 환불 원천 차단.
+    4. 스토어 지갑 위젯(`StoreWalletWidget`)에 네이버페이 잔액(원) 표시 및 수동 목표 잔액 보정(`adjust_wallet_balance`) 지원.
+  - verify: 단위 테스트(잔액 충분, 1만원 단위 올림 충전, 총 자산 부족 차단 등 9개 시나리오) 및 위젯 렌더링/보정 테스트 통과, Vitest 34개 파일 / 138개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공
 - [ ] 11.3 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동
   - 대상 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`
   - 작업:

@@ -59,6 +59,7 @@ const METHOD_LABELS: Record<PaymentMethod, string> = {
   WALLET: "내 지갑",
   GOOGLE_PLAY: "Google Play",
   GALAXY_STORE: "Galaxy Store",
+  NAVER_PAY: "네이버페이",
 }
 const selectClassName = "h-10 w-full rounded-md border border-gray-600 bg-gray-700 px-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
 const labelClassName = "block text-xs text-gray-300"

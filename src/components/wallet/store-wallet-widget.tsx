@@ -167,7 +167,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
         {isLoading ? (
           <p className="text-sm text-content-secondary">불러오는 중...</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 p-3 rounded-md border border-line bg-surface-2 text-sm">
+          <div className="grid gap-4 sm:grid-cols-3 p-3 rounded-md border border-line bg-surface-2 text-sm">
             <div>
               <span className="text-xs text-content-secondary block">Google Play 포인트 잔액</span>
               <span className="font-semibold text-content text-base">{balanceOf("GOOGLE_PLAY").toLocaleString()} P</span>
@@ -175,6 +175,10 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
             <div>
               <span className="text-xs text-content-secondary block">Galaxy Store 포인트 잔액</span>
               <span className="font-semibold text-content text-base">{balanceOf("GALAXY_STORE").toLocaleString()} P</span>
+            </div>
+            <div>
+              <span className="text-xs text-content-secondary block">네이버페이 머니 잔액</span>
+              <span className="font-semibold text-content text-base">{balanceOf("NAVER_PAY").toLocaleString()} 원</span>
             </div>
           </div>
         )}
@@ -237,7 +241,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
         <form noValidate className="space-y-3 pt-4 border-t border-line" onSubmit={(event) => void saveAdjustment(event)}>
           <h3 className="text-sm font-bold text-content">지갑 잔액 수동 보정</h3>
           <p className="text-xs text-content-secondary">
-            실제 스토어 앱의 포인트와 차이가 있을 때 목표 잔액과 사유를 입력하여 보정합니다.
+            실제 스토어 앱의 포인트 또는 네이버페이 잔액과 차이가 있을 때 목표 잔액과 사유를 입력하여 보정합니다.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
@@ -250,17 +254,20 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
               >
                 <option value="GOOGLE_PLAY">Google Play</option>
                 <option value="GALAXY_STORE">Galaxy Store</option>
+                <option value="NAVER_PAY">네이버페이</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label htmlFor="adjust-target" className="block text-xs text-content-secondary">목표 잔액 (P)</label>
+              <label htmlFor="adjust-target" className="block text-xs text-content-secondary">
+                {adjustPlatform === "NAVER_PAY" ? "목표 잔액 (원)" : "목표 잔액 (P)"}
+              </label>
               <Input
                 id="adjust-target"
                 type="number"
                 inputMode="numeric"
                 min={0}
                 step={1}
-                placeholder="예: 500"
+                placeholder={adjustPlatform === "NAVER_PAY" ? "예: 10000" : "예: 500"}
                 value={targetBalance}
                 onChange={(event) => setTargetBalance(event.target.value)}
                 className="border-line-control bg-surface-2 text-content"

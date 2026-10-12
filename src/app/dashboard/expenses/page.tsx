@@ -78,6 +78,7 @@ const METHOD_LABELS: Record<string, string> = {
   WALLET: "내 지갑",
   GOOGLE_PLAY: "Google Play",
   GALAXY_STORE: "Galaxy Store",
+  NAVER_PAY: "네이버페이",
 }
 
 const STATUS_LABELS: Record<string, string> = {

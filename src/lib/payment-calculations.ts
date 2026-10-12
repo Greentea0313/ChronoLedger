@@ -1,5 +1,5 @@
-export type PaymentMethod = "WALLET" | "GOOGLE_PLAY" | "GALAXY_STORE"
-export type PointPlatform = "GOOGLE_PLAY" | "GALAXY_STORE"
+export type PaymentMethod = "WALLET" | "GOOGLE_PLAY" | "GALAXY_STORE" | "NAVER_PAY"
+export type PointPlatform = "GOOGLE_PLAY" | "GALAXY_STORE" | "NAVER_PAY"
 
 export const GOOGLE_TIER_RATES = {
   BRONZE: 0.1,
@@ -52,7 +52,7 @@ export function resolvePointPlatform(
 }
 
 export function estimateEarnedPoints(finalAmount: number, earnRate: number, method: PaymentMethod): number {
-  if (method === "WALLET") return 0
+  if (method === "WALLET" || method === "NAVER_PAY") return 0
   return Math.floor((finalAmount * earnRate) / 100)
 }
 
@@ -84,6 +84,8 @@ export function validatePayment(
 const ERROR_MESSAGES: Array<[string, string]> = [
   ["적립 포인트를 이미 사용", "적립된 포인트를 이미 사용해 잔액이 부족하므로 결제를 취소할 수 없습니다."],
   ["포인트 잔액이 부족", "포인트 잔액이 부족합니다."],
+  ["총 자산 잔액이 부족하여 네이버페이를 충전", "총 자산 잔액이 부족하여 네이버페이를 충전할 수 없습니다."],
+  ["네이버페이 지갑 설정이 없습니다", "네이버페이 지갑이 없습니다. 설정에서 지갑을 먼저 생성해 주세요."],
   ["미래 날짜", "미래 날짜로 결제할 수 없습니다."],
   ["결제할 수 있는 본인 소유의 예정 지출", "이미 처리되었거나 결제할 수 없는 지출입니다."],
   ["취소할 수 있는 확정 결제", "이미 취소되었거나 취소할 수 없는 결제입니다."],

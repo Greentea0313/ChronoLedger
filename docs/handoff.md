@@ -1,6 +1,27 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
-## 정식 아이콘 1A 확정 및 적용 (2026-10-12)
+## Phase 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현 완료 (2026-10-12)
+
+- **결정 및 배경**:
+  - 현금성 간편결제 수단인 네이버페이(`NAVER_PAY`)의 잔액 부족 시 자동 올림 충전($R = \lceil S / 10,000 \rceil \times 10,000$) 및 총 자산 연동 모델 확정.
+  - 구글/갤럭시 스토어의 포인트와 달리 네이버페이 머니는 현금성 자산(원 단위)이므로 등급(`user_tier`)은 `NULL`, 적립률(`earn_rate`)은 `0.00`으로 고정하는 제약조건 적용.
+  - RPC 트랜잭션 수준에서 충전액 $R$ 자산 차감, 네이버페이 충전(`RECHARGE`), 결제액 $P$ 네이버페이 잔액 차감(`USE`)을 원자적으로 처리하며, 기본 자산 차감 옵션과의 이중 차감 및 환불 시의 이중 환불을 원천 차단.
+- **수행 내역**:
+  - `src/lib/naver-pay-calculations.ts`: 네이버페이 올림 충전 및 결제 계산 순수 함수 `calculateNaverPayPayment` 구현.
+  - `src/lib/naver-pay-calculations.test.ts`: 잔액 충분, 0원 일치, 1원 부족, 1만원/1만1원 부족, 올림 충전, 총 자산 부족 차단 등 9개 케이스 단위 테스트 (100% 통과).
+  - `src/lib/payment-calculations.ts`: `PaymentMethod` / `PointPlatform`에 `"NAVER_PAY"` 추가 및 에러 매핑 확장.
+  - `src/components/wallet/store-wallet-widget.tsx`: 3열 그리드로 네이버페이 잔액(원) 표시 및 수동 보정 드롭다운 지원.
+  - `src/components/wallet/store-wallet-widget.test.tsx`: 네이버페이 렌더링 및 보정 RPC 단위 테스트 4/4 통과.
+  - `src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`: 네이버페이 결제 라벨 동기화.
+  - `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`: `store_wallets`, `expenses`, `store_point_transactions`, `adjust_wallet_balance`, `process_expense_payment`, `refund_expense_payment` DDL 및 RPC 갱신.
+- **검증 증거**:
+  - `npx vitest run`: 34개 파일 / 138개 테스트 전체 통과 (100% PASS).
+  - `npx tsc --noEmit`: 오류 0건 (Clean).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+- **다음 구현 추천 단계**:
+  - Phase 11.3: 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동 (`[결제 플랫폼] -> [결제 수단]`, 네이버페이 충전 프리뷰 인라인 카드, `[충전 후 결제]` 원클릭 버튼).
+  - Phase 11.4: 픽업별 지출 바인딩 및 가챠 소비 통계 구현 (`pickup_schedule_id` 컬럼, 픽업 가로 막대 차트, 픽업 비중 계산).
+
 
 - **선정**: `docs/icon-concepts-v2-preview.html`(3종) → `docs/icon-concepts-v3-c-variants-preview.html`(시안1 기반 1A/1B/1C) 중 **1A(C-Chrono + 메모 도트)** 확정.
 - **생성**: `scripts/generate_icons.py`를 1A 스펙으로 교체(바탕 `#0F1115`, C `#F5B942`, 바늘 `#7C8CFF`, 도트 `#4CD6A5`, SVG round-cap 재현용 끝점 디스크).

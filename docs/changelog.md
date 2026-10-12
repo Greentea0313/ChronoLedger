@@ -1,6 +1,24 @@
 # 변경 이력
 
-## 2026-10-12 (회원가입 페이지 분리 및 닉네임 입력 지원)
+## 2026-10-12 (Phase 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현)
+
+- **네이버페이 충전 및 결제 계산 엔진 모듈화 (`src/lib/naver-pay-calculations.ts`)**:
+  - 부족액 발생 시 10,000원 단위 올림 충전액($R$) 계산, 총 자산 검증 및 잔액 차감을 순수 함수 `calculateNaverPayPayment`로 분리.
+  - 9가지 엣지 케이스 단위 테스트 작성 및 전체 통과 (`naver-pay-calculations.test.ts`).
+- **결제 타입 및 에러 매핑 확장 (`src/lib/payment-calculations.ts`)**:
+  - `PaymentMethod`, `PointPlatform`에 `"NAVER_PAY"` 추가.
+  - 네이버페이 결제 시 적립 0P 처리 및 충전 자산 부족 에러 친화적 메시지 매핑 추가.
+- **스토어/페이 지갑 위젯 확장 (`src/components/wallet/store-wallet-widget.tsx`)**:
+  - 3열 그리드로 네이버페이 잔액(원) 표시 및 수동 목표 잔액 보정(`adjust_wallet_balance`) 지원.
+  - 단위 테스트(`store-wallet-widget.test.tsx`) 4건 통과.
+- **지출 관련 컴포넌트 라벨 동기화**:
+  - `src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`에 `NAVER_PAY` 레이블 추가.
+- **DB 스키마 및 마이그레이션 DDL 갱신 (`md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`)**:
+  - `store_wallets`, `expenses`, `store_point_transactions`의 CHECK 제약조건 확장.
+  - `process_expense_payment` 및 `refund_expense_payment` RPC에 네이버페이 충전·결제 트랜잭션 및 자산 이중 차감/환불 방지 로직 적용.
+- **검증 무결성**:
+  - Vitest 34개 파일 / 138개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공.
+
 
 - **회원가입 라우팅 분리 (`src/app/auth/signup/page.tsx`)**:
   - 기존 `/auth`에서 단일 폼으로 처리되던 회원가입 로직을 별도 전용 페이지로 분리.
