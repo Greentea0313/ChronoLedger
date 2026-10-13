@@ -18,6 +18,13 @@ const PLATFORM_ORDER: Record<string, number> = {
   NAVER_PAY: 3,
 }
 
+const METHOD_LABELS: Record<string, string> = {
+  WALLET: "내 지갑",
+  NAVER_PAY: "네이버페이",
+  GOOGLE_PLAY: "내 지갑 (구 Google Play)",
+  GALAXY_STORE: "내 지갑 (구 Galaxy Store)",
+}
+
 export interface HeroExpenseItem {
   id: string
   title: string
@@ -360,7 +367,7 @@ export function HeroSidebarContent({
                     )}
                     <div className="relative z-10">
                       <p className="font-medium">{expense.title}</p>
-                      <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"} · {expense.payment_method === 'WALLET' ? '내 지갑' : (expense.payment_method ?? '')}</p>
+                      <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"} · {METHOD_LABELS[expense.payment_method || ""] ?? (expense.payment_method || "내 지갑")}</p>
                     </div>
                     <div className="text-right relative z-10">
                       <p className="font-semibold text-info">{expense.final_amount.toLocaleString()} 원</p>

@@ -11,10 +11,15 @@
      - `target_date: schedule?.end_date ?? input.paymentDate`를 `target_date: input.paymentDate`로 교체하여 사용자가 지정한 날짜가 온전히 저장/수정되도록 수정.
      - 픽업 연계 기간과 지출 예정일의 정합성 보장.
      - 모드별 날짜 라벨을 `지출 예정일`, `결제일`, `결제일 / 예정일`로 직관화.
-  2. **확정 지출(`CONFIRMED`) 결제일 수정 기능 추가 (`src/components/expense/expense-detail-modal.tsx`, `md/MIGRATION_EXPENSE_EDIT.sql`, `md/SCHEMA.sql`)**:
+  2. **예정 지출 결제 확정 시 카테고리 및 게임 ID 하드코딩 리셋 방어 (`src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`)**:
+     - 예정 지출 [확정] 결제 시 카테고리가 무조건 "게임"으로 초기화되고 `game_id`가 날아가던 현상 방어.
+     - `PlannedExpenseInput`에 `category`, `game_id`, `target_date`를 포함하여 원본 예정 지출 정보 복원.
+  3. **사이드바 지출 결제수단 한글 라벨링 (`src/components/calendar/hero-sidebar.tsx`)**:
+     - `NAVER_PAY` 등 영문 코드로 찍히던 결제수단을 `METHOD_LABELS`를 통해 한글 시맨틱 라벨(`네이버페이`, `내 지갑`)로 정규화 노출.
+  4. **확정 지출(`CONFIRMED`) 결제일 수정 기능 추가 (`src/components/expense/expense-detail-modal.tsx`, `md/MIGRATION_EXPENSE_EDIT.sql`, `md/SCHEMA.sql`)**:
      - `update_confirmed_expense_metadata` RPC에 `p_target_date` 파라미터 및 미래 날짜 방어 가드 추가.
      - `ExpenseDetailModal`의 [정보 수정] 폼에 결제일(`editDate`) 입력란을 신설하여 결제일도 자유롭게 수정 및 보정 가능하도록 지원.
-  3. **무결점 검증**:
+  5. **무결점 검증**:
      - 단위 테스트 추가 (`src/components/expense/expense-modal.test.tsx`, `src/components/expense/expense-detail-modal.test.tsx`).
      - Vitest 39개 파일 206개 테스트 100% PASS (`vitest run`).
      - Next.js 14 정적 export 빌드 성공 (`npm run build`).

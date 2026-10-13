@@ -6,6 +6,12 @@
   - 원인: 지출 등록 및 수정 시 `target_date: schedule?.end_date ?? input.paymentDate`로 하드코딩되어 있어, 버전 일정이 연결된 게임의 경우 사용자가 지정한 결제일/예정일(예: 전반부 픽업 시작일)이 완전히 무시되고 버전 종료일(예: 3주 뒤)로 강제 저장되던 문제 해결.
   - 조치: `target_date: input.paymentDate`로 정상화하여 사용자가 입력한 날짜 그대로 예정일/결제일이 지정되도록 수정. 픽업 기간과 지출 예정일이 불일치하던 데이터 모순을 원천 해소.
   - 라벨 개선: 모드에 따라 `지출 예정일` / `결제일` / `결제일 / 예정일`로 명확히 분기 표시.
+- **예정 지출 결제 확정 시 카테고리 및 게임 ID 하드코딩 리셋 방어 (`src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`)**:
+  - 원인: 예정 지출의 [확정] 결제 진행 시 `ExpenseModal` 내부에서 카테고리가 무조건 `"게임"`으로 하드코딩되고 `gameId`가 `""`로 초기화되어, 등록해 둔 연관 게임 및 카테고리가 유실되던 현상 해소.
+  - 조치: `PlannedExpenseInput` 인터페이스에 `category`, `game_id`, `target_date`를 포함하고, 결제 모달 오픈 시 원본 예정 지출의 카테고리, 게임 ID, 지출일을 온전히 보존·복원하도록 개선.
+- **사이드바 지출 결제수단 영문 코드(`NAVER_PAY` 등) 한글 시맨틱 라벨 표기 (`src/components/calendar/hero-sidebar.tsx`)**:
+  - 원인: 대시보드 히어로 사이드바 지출 목록에서 네이버페이 결제건이 `NAVER_PAY` 영문 코드로 그대로 노출되던 미비점 해소.
+  - 조치: `METHOD_LABELS` 객체를 도입하여 `네이버페이`, `내 지갑` 등으로 한글 정규화 표시.
 - **확정 지출(`CONFIRMED`) 결제일(`target_date`) 수정 지원 (`src/components/expense/expense-detail-modal.tsx`, `md/MIGRATION_EXPENSE_EDIT.sql`, `md/SCHEMA.sql`)**:
   - 기존에는 결제 완료 건의 [정보 수정]에서 제목, 카테고리, 메모만 수정 가능하여 결제일을 변경할 수 없던 제약 해소.
   - `update_confirmed_expense_metadata` RPC에 `p_target_date DATE DEFAULT NULL` 파라미터 및 미래 날짜 방어 가드 추가.

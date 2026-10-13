@@ -28,6 +28,9 @@ export interface PlannedExpenseInput {
   original_price: number
   payment_method?: string
   pickup_schedule_id?: string | null
+  category?: string
+  game_id?: string | null
+  target_date?: string
 }
 
 export interface PlannedExpenseEditInput {
@@ -188,7 +191,7 @@ export function ExpenseModal({
           setPaymentPlatform("GOOGLE_PLAY")
         }
       } else {
-        setPaymentDate(initialDate || getKstToday())
+        setPaymentDate(plannedExpense?.target_date || initialDate || getKstToday())
         setTitle(plannedExpense?.title ?? "")
         const origStr = plannedExpense ? String(plannedExpense.original_price) : ""
         setOriginalPrice(origStr)
@@ -209,9 +212,10 @@ export function ExpenseModal({
         } else {
           setPaymentPlatform("GOOGLE_PLAY")
         }
-        setCategory("게임")
-        setGameId("")
-        prevGameIdRef.current = ""
+        const plannedCat = plannedExpense?.category as (typeof CATEGORIES)[number] | undefined
+        setCategory(plannedCat && CATEGORIES.includes(plannedCat) ? plannedCat : "게임")
+        setGameId(plannedExpense?.game_id ?? "")
+        prevGameIdRef.current = plannedExpense?.game_id ?? ""
         setSchedules([])
         setPickupSchedules([])
         setPickupScheduleId(plannedExpense?.pickup_schedule_id ?? "")

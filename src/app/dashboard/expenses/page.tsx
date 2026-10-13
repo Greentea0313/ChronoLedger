@@ -538,6 +538,9 @@ export default function ExpensesPage() {
       original_price: expense.original_price,
       payment_method: expense.payment_method,
       pickup_schedule_id: expense.pickup_schedule_id ?? null,
+      category: expense.category,
+      game_id: expense.game_id ?? null,
+      target_date: expense.target_date,
     })
     setIsExpenseModalOpen(true)
   }
