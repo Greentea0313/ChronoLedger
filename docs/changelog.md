@@ -16,9 +16,18 @@
   - 기존에는 결제 완료 건의 [정보 수정]에서 제목, 카테고리, 메모만 수정 가능하여 결제일을 변경할 수 없던 제약 해소.
   - `update_confirmed_expense_metadata` RPC에 `p_target_date DATE DEFAULT NULL` 파라미터 및 미래 날짜 방어 가드 추가.
   - `ExpenseDetailModal`에 결제일(`editDate`) 입력 폼을 신설하여 결제 완료된 지출의 날짜도 자유롭게 보정 가능하도록 개선.
+- **특정일 지정 지출 원칙 확립 (`start_date = target_date = end_date = input.paymentDate`) (`src/components/expense/expense-modal.tsx`)**:
+  - 원인: 지출 등록 시 게임이 연결되면 게임 버전 일정의 시작일/종료일이 지출의 `start_date`, `end_date`로 복사되어, 단일 지출임에도 6주짜리 기간형 지출처럼 취급되던 문제 원천 해소.
+  - 조치: 특정일 지정 지출은 `start_date = target_date = end_date = input.paymentDate`로 단일일 일치화. 게임 버전 일정 및 픽업 일정은 각각 `schedule_id`와 `pickup_schedule_id` 외래키로만 연결되도록 분리.
+  - 예정 지출 수정 모드(`EDIT_PLAN`)에서도 버전 변경 시 `schedule_id`가 올바르게 업데이트되도록 보강.
+- **예산 귀속 및 만료 판정 기준을 지출 예정일(`target_date`)로 통일 (`src/lib/budget-calculations.ts`)**:
+  - 원인: `getBudgetDate`에서 `expense.end_date`를 우선 반환하여, 10월 14일 픽업 예정 지출이 11월 19일 버전 종료일 예산으로 넘어가고 기한 지난 팝업도 11월 19일까지 뜨지 않던 왜곡 해소.
+  - 조치: 사용자가 지정한 `target_date`를 예산 배정 및 만료 판정 기준으로 완전 일원화.
+- **지출 목록 정렬 및 과거 기록 분리 기준일 정상화 (`src/app/dashboard/expenses/page.tsx`)**:
+  - `getExpenseEffectiveDate`가 버전 `end_date` 대신 `target_date`를 반환하도록 수정하여 테이블 정렬 순서 및 7일 경과 과거 기록 분리가 실제 지출 예정일과 일치하도록 개선.
 - **테스트 무결점 검증**:
-  - 예정 지출 등록 시 지정 날짜 유지 및 예정 지출 수정 모드에서 날짜 변경 검증 테스트 추가 (`src/components/expense/expense-modal.test.tsx`).
-  - 확정 지출 결제일 수정 RPC 연동 테스트 추가 (`src/components/expense/expense-detail-modal.test.tsx`).
+  - 예정 지출 등록/수정 시 `start_date`, `end_date`가 `target_date`와 동일하게 저장되는지 검증 (`src/components/expense/expense-modal.test.tsx`).
+  - `target_date` 기준 월 귀속 단위 테스트 갱신 (`src/lib/budget-calculations.test.ts`).
   - Vitest 39개 파일 206개 테스트 100% 통과 (`vitest run`).
   - Next.js 14 정적 export 빌드 성공 (`npm run build`).
 

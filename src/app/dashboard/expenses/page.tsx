@@ -457,11 +457,8 @@ export default function ExpensesPage() {
     }
   }, [expenses, selectedPickupGameFilter, schedulesMap, getExpensePickupIds])
 
-  // 1. 각 지출의 정렬 및 기간 판정 기준 날짜 (start_date < end_date 인 내역이라면 end_date 를 기준, 그 외는 target_date)
+  // 1. 각 지출의 정렬 및 기간 판정 기준 날짜 (지출 예정일/결제일 target_date 기준)
   const getExpenseEffectiveDate = (expense: ExpenseRow): string => {
-    if (expense.start_date && expense.end_date && expense.start_date < expense.end_date) {
-      return expense.end_date
-    }
     return expense.target_date
   }
 

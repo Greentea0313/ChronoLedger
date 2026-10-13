@@ -19,8 +19,12 @@
   4. **확정 지출(`CONFIRMED`) 결제일 수정 기능 추가 (`src/components/expense/expense-detail-modal.tsx`, `md/MIGRATION_EXPENSE_EDIT.sql`, `md/SCHEMA.sql`)**:
      - `update_confirmed_expense_metadata` RPC에 `p_target_date` 파라미터 및 미래 날짜 방어 가드 추가.
      - `ExpenseDetailModal`의 [정보 수정] 폼에 결제일(`editDate`) 입력란을 신설하여 결제일도 자유롭게 수정 및 보정 가능하도록 지원.
-  5. **무결점 검증**:
-     - 단위 테스트 추가 (`src/components/expense/expense-modal.test.tsx`, `src/components/expense/expense-detail-modal.test.tsx`).
+  5. **특정일 지정 지출 원칙 확립 및 예산 귀속·정렬 기준일 정상화**:
+     - `expense-modal.tsx`: 지출 등록/수정 시 `start_date = target_date = end_date = input.paymentDate`로 단일일 일치화 (버전 일정의 기간이 지출의 기간으로 복사되던 결함 해소).
+     - `budget-calculations.ts`: `getBudgetDate`를 `target_date` 기준으로 통일하여 지출 예정일이 속한 달의 예산으로 정상 귀속 및 만료 판정 정합성 확립.
+     - `expenses/page.tsx`: 지출 정렬 및 7일 경과 과거 기록 분리 기준일을 `target_date`로 일원화.
+  6. **무결점 검증**:
+     - 단위 테스트 추가 및 갱신 (`src/components/expense/expense-modal.test.tsx`, `src/lib/budget-calculations.test.ts`).
      - Vitest 39개 파일 206개 테스트 100% PASS (`vitest run`).
      - Next.js 14 정적 export 빌드 성공 (`npm run build`).
 

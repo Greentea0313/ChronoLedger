@@ -520,6 +520,8 @@ describe("ExpenseModal", () => {
     await waitFor(() => expect(onCompleted).toHaveBeenCalled())
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
       target_date: "2026-10-15",
+      start_date: "2026-10-15",
+      end_date: "2026-10-15",
       status: "PLANNED",
     }))
   })
@@ -555,6 +557,8 @@ describe("ExpenseModal", () => {
     await waitFor(() => expect(onCompleted).toHaveBeenCalled())
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       target_date: "2026-10-25",
+      start_date: "2026-10-25",
+      end_date: "2026-10-25",
     }))
   })
 })

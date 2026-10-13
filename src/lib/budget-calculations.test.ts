@@ -17,17 +17,18 @@ const pickup = (overrides: Partial<BudgetExpense> = {}): BudgetExpense => ({
 })
 
 describe("budget-calculations", () => {
-  it("미결제 10/25~11/12 픽업은 종료일이 속한 11월 예산으로 배정된다", () => {
+  it("미결제 11/12 예정 지출은 11월 예산으로 배정된다", () => {
     const expense = pickup()
     expect(calculateExpectedExpense([expense], { year: 2026, month: 11 })).toBe(30000)
     expect(calculateExpectedExpense([expense], { year: 2026, month: 10 })).toBe(0)
     expect(spansMultipleMonths("2026-10-25", "2026-11-12")).toBe(true)
   })
 
-  it("target_date가 시작월이어도 PLANNED는 종료일 월로 귀속한다", () => {
+  it("지출 예정일(target_date)이 속한 달의 예산으로 귀속한다", () => {
     const expense = pickup({ target_date: "2026-10-25" })
-    expect(getBudgetDate(expense)).toBe("2026-11-12")
-    expect(calculateExpectedExpense([expense], { year: 2026, month: 11 })).toBe(30000)
+    expect(getBudgetDate(expense)).toBe("2026-10-25")
+    expect(calculateExpectedExpense([expense], { year: 2026, month: 10 })).toBe(30000)
+    expect(calculateExpectedExpense([expense], { year: 2026, month: 11 })).toBe(0)
   })
 
   it("10월에 결제하면 11월 예상 소비액이 즉시 줄고 10월에 합산된다", () => {

@@ -20,11 +20,10 @@ function sameMonth(date: string, { year, month }: MonthKey): boolean {
 }
 
 /**
- * 예산 귀속 날짜. 미결제(PLANNED) 기간 지출은 종료일이 속한 달로 배정하고,
- * 결제 완료(CONFIRMED) 지출은 결제일(target_date)이 속한 달로 배정한다.
+ * 예산 귀속 날짜.
+ * 사용자가 지정한 지출 예정일/결제일(target_date)이 속한 달로 배정한다.
  */
 export function getBudgetDate(expense: BudgetExpense): string {
-  if (expense.status === "PLANNED" && expense.end_date) return expense.end_date
   return expense.target_date
 }
 
