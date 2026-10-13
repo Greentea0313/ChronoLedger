@@ -202,15 +202,20 @@ export function HeroSidebarContent({
                     className="relative overflow-hidden rounded-md border border-line bg-surface-2 p-3 text-sm flex flex-col gap-1 transition-colors hover:border-line-control"
                   >
                     {group.iconUrl && (
-                      <div
-                        className="absolute right-0 top-0 bottom-0 w-28 bg-no-repeat bg-right bg-cover z-0 pointer-events-none"
-                        style={{
-                          backgroundImage: `url(${group.iconUrl})`,
-                          maskImage: "linear-gradient(to right, transparent, black)",
-                          WebkitMaskImage: "linear-gradient(to right, transparent, black)",
-                          opacity: 0.25,
-                        }}
-                      />
+                      <div className="absolute right-0 top-0 bottom-0 w-28 overflow-hidden z-0 pointer-events-none">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={group.iconUrl}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover object-right select-none"
+                          style={{
+                            maskImage: "linear-gradient(to right, transparent 0%, black 80%)",
+                            WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 80%)",
+                            opacity: 0.45,
+                          }}
+                        />
+                      </div>
                     )}
                     {/* Line 1: [픽업] 명일방주 */}
                     <div className="relative z-10 flex items-center gap-1.5 flex-wrap">

@@ -461,5 +461,49 @@ describe("ExpensesPage", () => {
       "쿠팡 와우 멤버십 (충전형)",
     ])
   })
+
+  it("12개를 초과하는 정기 구독은 12개 단위 페이지네이션이 적용되고 2페이지로 이동할 수 있다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+
+    const manyTemplates = Array.from({ length: 15 }, (_, i) => ({
+      id: `tpl-batch-${i + 1}`,
+      title: `구독 서비스 #${String(i + 1).padStart(2, "0")}`,
+      category: "정기 구독",
+      cycle_type: "MONTHLY_DAY",
+      billing_day: (i % 28) + 1,
+      default_price: 10000 + i * 1000,
+      payment_method: "WALLET",
+      is_active: true,
+      game_id: null,
+      games: null,
+    }))
+
+    from.mockImplementation((table: string) => {
+      if (table === "subscription_templates") return createExpenseQueryBuilder(manyTemplates)
+      return createExpenseQueryBuilder([])
+    })
+
+    render(<ExpensesPage />)
+
+    const subTab = await screen.findByRole("tab", { name: "정기 구독" })
+    fireEvent.click(subTab)
+
+    // 1페이지: #01부터 #12까지 렌더링되고, #13은 없어야 함
+    expect(screen.getByText("구독 서비스 #01")).toBeTruthy()
+    expect(screen.getByText("구독 서비스 #12")).toBeTruthy()
+    expect(screen.queryByText("구독 서비스 #13")).toBeNull()
+
+    // 페이지네이션 바 확인
+    expect(screen.getByText(/1 \/ 2/)).toBeTruthy()
+
+    // 2페이지 버튼 클릭
+    const page2Button = screen.getByRole("button", { name: "2 페이지로 이동" })
+    fireEvent.click(page2Button)
+
+    // 2페이지: #13부터 #15까지 렌더링되고, #01은 없어야 함
+    expect(screen.getByText("구독 서비스 #13")).toBeTruthy()
+    expect(screen.getByText("구독 서비스 #15")).toBeTruthy()
+    expect(screen.queryByText("구독 서비스 #01")).toBeNull()
+  })
 })
 

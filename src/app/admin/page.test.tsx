@@ -240,4 +240,39 @@ describe("AdminPage - 일정 관리", () => {
       expect(schedulesBuilder.eq).toHaveBeenCalledWith("id", "schedule-2")
     })
   })
+
+  it("10개를 초과하는 공식 일정은 페이지네이션 바가 렌더링되고 2페이지로 이동할 수 있다", async () => {
+    const manySchedules = Array.from({ length: 15 }, (_, i) => ({
+      id: `schedule-batch-${i + 1}`,
+      game_id: "game-1",
+      schedule_type: "VERSION" as const,
+      title: `일정 테스트 #${i + 1}`,
+      start_date: `2026-10-${String(i + 1).padStart(2, "0")}`,
+      end_date: `2026-10-${String(i + 2).padStart(2, "0")}`,
+      memo: null,
+      games: { id: "game-1", name: "원신" },
+    }))
+
+    schedulesBuilder.order.mockResolvedValue({ data: manySchedules, error: null })
+
+    render(<AdminPage />)
+    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+
+    // 1페이지 항목은 표시되지만 11번째는 1페이지에 없음
+    expect(screen.getByText("일정 테스트 #1")).toBeTruthy()
+    expect(screen.getByText("일정 테스트 #10")).toBeTruthy()
+    expect(screen.queryByText("일정 테스트 #11")).toBeNull()
+
+    // 페이지네이션 바 정보 확인
+    expect(screen.getByText(/1 \/ 2/)).toBeTruthy()
+
+    // 2페이지 버튼 클릭
+    const page2Button = screen.getByRole("button", { name: "2 페이지로 이동" })
+    fireEvent.click(page2Button)
+
+    // 2페이지의 11번째 항목이 표시됨
+    expect(screen.getByText("일정 테스트 #11")).toBeTruthy()
+    expect(screen.getByText("일정 테스트 #15")).toBeTruthy()
+    expect(screen.queryByText("일정 테스트 #1")).toBeNull()
+  })
 })

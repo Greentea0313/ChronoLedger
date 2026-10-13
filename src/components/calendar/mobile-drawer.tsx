@@ -53,12 +53,12 @@ export function MobileDrawer({
             선택일 상세
           </Button>
         </DrawerTrigger>
-        <DrawerContent className="max-h-[88dvh] overflow-y-auto p-4">
-          <DrawerHeader className="px-1">
-            <DrawerTitle>{selectedDateLabel}</DrawerTitle>
-            <DrawerDescription>지출/메모 상세</DrawerDescription>
+        <DrawerContent className="max-h-[90dvh] flex flex-col">
+          <DrawerHeader className="px-4 pt-3 pb-2 shrink-0 border-b border-line/50 text-left">
+            <DrawerTitle className="text-base font-bold text-content">{selectedDateLabel}</DrawerTitle>
+            <DrawerDescription className="text-xs text-content-secondary">지출 및 일정 상세</DrawerDescription>
           </DrawerHeader>
-          <div className="pb-4">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             <HeroSidebarContent
               selectedDateLabel={selectedDateLabel}
               totalAsset={totalAsset}

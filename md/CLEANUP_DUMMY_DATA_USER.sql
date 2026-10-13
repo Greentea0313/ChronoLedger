@@ -43,3 +43,4 @@ BEGIN
 
     RAISE NOTICE '테스트 계정(%)의 더미 데이터가 성공적으로 모두 정리(삭제)되었습니다.', v_user_id;
 END $$;
+

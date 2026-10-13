@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,7 +12,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Plus, Pencil, Trash2, Copy, Calendar, Filter, Loader2, AlertCircle } from "lucide-react"
+import { Plus, Pencil, Trash2, Copy, Calendar, Filter, Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
+
+const SCHEDULES_PER_PAGE = 10
+
+function getPaginationRange(current: number, total: number): (number | "...")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "...", total]
+  }
+  if (current >= total - 3) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total]
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total]
+}
 
 interface GameOption {
   id: string
@@ -36,6 +51,22 @@ export default function AdminPage() {
   const [schedules, setSchedules] = useState<ScheduleItem[]>([])
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false)
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("")
+  const [currentSchedulePage, setCurrentSchedulePage] = useState(1)
+
+  const filteredSchedules = useMemo(() => {
+    return schedules.filter((schedule) => {
+      if (!selectedGameFilter) return true
+      return schedule.game_id === selectedGameFilter
+    })
+  }, [schedules, selectedGameFilter])
+
+  const totalSchedulePages = Math.max(1, Math.ceil(filteredSchedules.length / SCHEDULES_PER_PAGE))
+
+  useEffect(() => {
+    if (currentSchedulePage > totalSchedulePages) {
+      setCurrentSchedulePage(totalSchedulePages)
+    }
+  }, [currentSchedulePage, totalSchedulePages])
 
   // 모달 상태 (추가 및 수정 공용)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -220,10 +251,10 @@ export default function AdminPage() {
     }
   }
 
-  const filteredSchedules = schedules.filter((schedule) => {
-    if (!selectedGameFilter) return true
-    return schedule.game_id === selectedGameFilter
-  })
+  const paginatedSchedules = filteredSchedules.slice(
+    (currentSchedulePage - 1) * SCHEDULES_PER_PAGE,
+    currentSchedulePage * SCHEDULES_PER_PAGE,
+  )
 
   return (
     <div className="space-y-6">
@@ -253,7 +284,10 @@ export default function AdminPage() {
           <select
             className="bg-surface-2 border border-line rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             value={selectedGameFilter}
-            onChange={(e) => setSelectedGameFilter(e.target.value)}
+            onChange={(e) => {
+              setSelectedGameFilter(e.target.value)
+              setCurrentSchedulePage(1)
+            }}
             aria-label="게임 필터 선택"
           >
             <option value="">전체 게임 ({schedules.length})</option>
@@ -296,81 +330,146 @@ export default function AdminPage() {
               {selectedGameFilter ? "선택한 게임에 등록된 일정이 없습니다." : "등록된 일정이 없습니다. 새 일정을 추가해주세요."}
             </div>
           ) : (
-            <div className="divide-y divide-line">
-              {filteredSchedules.map((schedule) => {
-                const gameName = schedule.games?.name || games.find((g) => g.id === schedule.game_id)?.name || "게임"
-                const isVersion = schedule.schedule_type === "VERSION"
-                const isPickup = schedule.schedule_type === "PICKUP"
-                const isSingleDateItem = schedule.start_date === schedule.end_date
-                return (
-                  <div
-                    key={schedule.id}
-                    className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-2/40 px-2 rounded-lg transition-colors"
-                  >
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
-                          {gameName}
-                        </span>
-                        <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                            isVersion
-                              ? "bg-primary/20 text-primary border border-primary/30"
-                              : isPickup
-                                ? "bg-warning/20 text-warning border border-warning/30"
-                                : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                          }`}
+            <>
+              <div className="divide-y divide-line">
+                {paginatedSchedules.map((schedule) => {
+                  const gameName = schedule.games?.name || games.find((g) => g.id === schedule.game_id)?.name || "게임"
+                  const isVersion = schedule.schedule_type === "VERSION"
+                  const isPickup = schedule.schedule_type === "PICKUP"
+                  const isSingleDateItem = schedule.start_date === schedule.end_date
+                  return (
+                    <div
+                      key={schedule.id}
+                      className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-2/40 px-2 rounded-lg transition-colors"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
+                            {gameName}
+                          </span>
+                          <span
+                            className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                              isVersion
+                                ? "bg-primary/20 text-primary border border-primary/30"
+                                : isPickup
+                                  ? "bg-warning/20 text-warning border border-warning/30"
+                                  : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                            }`}
+                          >
+                            {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
+                          </span>
+                          <h3 className="font-medium text-sm text-content truncate">{schedule.title}</h3>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-content-secondary">
+                          <span>
+                            {isSingleDateItem ? `${schedule.start_date} (단일)` : `${schedule.start_date} ~ ${schedule.end_date}`}
+                          </span>
+                          {schedule.memo && (
+                            <span className="truncate max-w-xs text-gray-400">· {schedule.memo}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openDuplicateModal(schedule)}
+                          className="h-8 px-2.5 text-xs flex items-center gap-1"
+                          aria-label={`일정 복사: ${schedule.title}`}
                         >
-                          {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
-                        </span>
-                        <h3 className="font-medium text-sm text-content truncate">{schedule.title}</h3>
+                          <Copy className="h-3.5 w-3.5" />
+                          복사
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditModal(schedule)}
+                          className="h-8 px-2.5 text-xs flex items-center gap-1"
+                          aria-label={`일정 수정: ${schedule.title}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          수정
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDeletingSchedule(schedule)}
+                          className="h-8 px-2.5 text-xs flex items-center gap-1"
+                          aria-label={`일정 삭제: ${schedule.title}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          삭제
+                        </Button>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-content-secondary">
-                        <span>
-                          {isSingleDateItem ? `${schedule.start_date} (단일)` : `${schedule.start_date} ~ ${schedule.end_date}`}
-                        </span>
-                        {schedule.memo && (
-                          <span className="truncate max-w-xs text-gray-400">· {schedule.memo}</span>
-                        )}
-                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {totalSchedulePages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-line mt-2">
+                  <p className="text-xs text-content-secondary">
+                    전체 {filteredSchedules.length}개 일정 중{" "}
+                    <span className="font-semibold text-content">
+                      {currentSchedulePage} / {totalSchedulePages}
+                    </span>{" "}
+                    페이지
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentSchedulePage((p) => Math.max(1, p - 1))}
+                      disabled={currentSchedulePage === 1}
+                      aria-label="이전 페이지"
+                      className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="ml-1">이전</span>
+                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {getPaginationRange(currentSchedulePage, totalSchedulePages).map((p, idx) =>
+                        p === "..." ? (
+                          <span key={`schedule-ellipsis-${idx}`} className="px-1.5 py-1 text-content-muted select-none">
+                            ...
+                          </span>
+                        ) : (
+                          <Button
+                            key={`schedule-page-${p}`}
+                            size="sm"
+                            variant={p === currentSchedulePage ? "default" : "outline"}
+                            onClick={() => setCurrentSchedulePage(p as number)}
+                            aria-label={`${p} 페이지로 이동`}
+                            aria-current={p === currentSchedulePage ? "page" : undefined}
+                            className={`h-8 w-8 p-0 text-xs ${
+                              p === currentSchedulePage
+                                ? "bg-primary text-white font-semibold hover:bg-primary-hover"
+                                : "bg-surface border-line-control text-content hover:bg-surface-2"
+                            }`}
+                          >
+                            {p}
+                          </Button>
+                        ),
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openDuplicateModal(schedule)}
-                        className="h-8 px-2.5 text-xs flex items-center gap-1"
-                        aria-label={`일정 복사: ${schedule.title}`}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        복사
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditModal(schedule)}
-                        className="h-8 px-2.5 text-xs flex items-center gap-1"
-                        aria-label={`일정 수정: ${schedule.title}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        수정
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setDeletingSchedule(schedule)}
-                        className="h-8 px-2.5 text-xs flex items-center gap-1"
-                        aria-label={`일정 삭제: ${schedule.title}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        삭제
-                      </Button>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentSchedulePage((p) => Math.min(totalSchedulePages, p + 1))}
+                      disabled={currentSchedulePage === totalSchedulePages}
+                      aria-label="다음 페이지"
+                      className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                    >
+                      <span className="mr-1">다음</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
-                )
-              })}
-            </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

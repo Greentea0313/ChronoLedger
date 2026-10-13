@@ -22,6 +22,7 @@ import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
 import { preloadImages } from "@/lib/icon-preload"
 
 const EXPENSES_PER_PAGE = 10
+const SUBSCRIPTIONS_PER_PAGE = 12
 
 function getPaginationRange(current: number, total: number): (number | "...")[] {
   if (total <= 7) {
@@ -280,6 +281,20 @@ export default function ExpensesPage() {
       return a.title.localeCompare(b.title, "ko")
     })
   }, [templates])
+
+  const [currentSubscriptionPage, setCurrentSubscriptionPage] = useState(1)
+  const totalSubscriptionPages = Math.max(1, Math.ceil(sortedTemplates.length / SUBSCRIPTIONS_PER_PAGE))
+
+  useEffect(() => {
+    if (currentSubscriptionPage > totalSubscriptionPages) {
+      setCurrentSubscriptionPage(totalSubscriptionPages)
+    }
+  }, [currentSubscriptionPage, totalSubscriptionPages])
+
+  const paginatedTemplates = useMemo(() => {
+    const start = (currentSubscriptionPage - 1) * SUBSCRIPTIONS_PER_PAGE
+    return sortedTemplates.slice(start, start + SUBSCRIPTIONS_PER_PAGE)
+  }, [sortedTemplates, currentSubscriptionPage])
 
   // 통계: 오직 CONFIRMED 지출만 집계
   const categoryData = useMemo(() => {
@@ -1163,7 +1178,7 @@ export default function ExpensesPage() {
                                 className={`h-8 w-8 p-0 text-xs ${
                                   p === currentPage
                                     ? "bg-primary text-white font-semibold hover:bg-primary-hover"
-                                    : "border-line-control text-content-secondary hover:text-content hover:bg-surface-2"
+                                    : "bg-surface border-line-control text-content hover:bg-surface-2"
                                 }`}
                               >
                                 {p}
@@ -1211,131 +1226,196 @@ export default function ExpensesPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sortedTemplates.map((tpl) => (
-                <Card
-                  key={tpl.id}
-                  className={`flex flex-col justify-between transition-all border ${
-                    tpl.is_active ? "border-line bg-surface" : "border-line/50 bg-surface/50 opacity-60"
-                  }`}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary">
-                          {tpl.category}
-                        </span>
-                        <span className="text-[11px] px-2 py-0.5 rounded bg-surface-2 text-content-secondary border border-line">
-                          {tpl.cycle_type === "INTERVAL_30"
-                            ? `누적 충전형 (${tpl.interval_days || 30}일)`
-                            : tpl.cycle_type === "VERSION_PASS"
-                            ? "버전 패스형"
-                            : `매월 ${tpl.billing_day}일`}
-                        </span>
-                        {tpl.cycle_type === "INTERVAL_30" && (() => {
-                          const plannedExp = expenses.find((e) => e.template_id === tpl.id && e.status === "PLANNED")
-                          if (!plannedExp) return null
-                          const today = getKstToday()
-                          const todayMs = new Date(today + "T00:00:00+09:00").getTime()
-                          const targetMs = new Date(plannedExp.target_date + "T00:00:00+09:00").getTime()
-                          const diffDays = Math.max(0, Math.round((targetMs - todayMs) / (1000 * 60 * 60 * 24)))
-                          return (
-                            <span className="text-[11px] px-2 py-0.5 rounded bg-info/10 text-info font-medium border border-info/30">
-                              남은 {diffDays}일
-                            </span>
-                          )
-                        })()}
-                      </div>
-                      <span
-                        className={`text-[11px] font-medium px-2 py-0.5 rounded shrink-0 ${
-                          tpl.is_active
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : "bg-content-muted/20 text-content-muted"
-                        }`}
-                      >
-                        {tpl.is_active ? "이용 중" : "중지됨"}
-                      </span>
-                    </div>
-                    <CardTitle className="text-base font-bold text-content mt-2 flex items-center gap-2">
-                      {tpl.games?.default_icon_url && (
-                        <div className="h-5 w-5 rounded overflow-hidden shrink-0">
-                          <GameIcon
-                            src={tpl.games.default_icon_url}
-                            alt=""
-                          />
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {paginatedTemplates.map((tpl) => (
+                  <Card
+                    key={tpl.id}
+                    className={`flex flex-col justify-between transition-all border ${
+                      tpl.is_active ? "border-line bg-surface" : "border-line/50 bg-surface/50 opacity-60"
+                    }`}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary">
+                            {tpl.category}
+                          </span>
+                          <span className="text-[11px] px-2 py-0.5 rounded bg-surface-2 text-content-secondary border border-line">
+                            {tpl.cycle_type === "INTERVAL_30"
+                              ? `누적 충전형 (${tpl.interval_days || 30}일)`
+                              : tpl.cycle_type === "VERSION_PASS"
+                              ? "버전 패스형"
+                              : `매월 ${tpl.billing_day}일`}
+                          </span>
+                          {tpl.cycle_type === "INTERVAL_30" && (() => {
+                            const plannedExp = expenses.find((e) => e.template_id === tpl.id && e.status === "PLANNED")
+                            if (!plannedExp) return null
+                            const today = getKstToday()
+                            const todayMs = new Date(today + "T00:00:00+09:00").getTime()
+                            const targetMs = new Date(plannedExp.target_date + "T00:00:00+09:00").getTime()
+                            const diffDays = Math.max(0, Math.round((targetMs - todayMs) / (1000 * 60 * 60 * 24)))
+                            return (
+                              <span className="text-[11px] px-2 py-0.5 rounded bg-info/10 text-info font-medium border border-info/30">
+                                남은 {diffDays}일
+                              </span>
+                            )
+                          })()}
                         </div>
-                      )}
-                      <span className="truncate">{tpl.title}</span>
-                    </CardTitle>
-                    {tpl.games?.name && (
-                      <p className="text-xs text-content-secondary">{tpl.games.name}</p>
-                    )}
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex items-baseline justify-between pt-2 border-t border-line text-sm">
-                      <div>
-                        <p className="text-xs text-content-muted">기본 금액</p>
-                        <p className="font-bold text-info text-base">
-                          {(tpl.default_price ?? 0).toLocaleString()} 원
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-content-muted">결제수단</p>
-                        <p className="text-xs text-content font-medium">
-                          {METHOD_LABELS[tpl.payment_method] || tpl.payment_method}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenEditTemplate(tpl)}
-                          className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
+                        <span
+                          className={`text-[11px] font-medium px-2 py-0.5 rounded shrink-0 ${
+                            tpl.is_active
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-content-muted/20 text-content-muted"
+                          }`}
                         >
-                          수정
-                        </Button>
-                        {tpl.cycle_type === "INTERVAL_30" && (
+                          {tpl.is_active ? "이용 중" : "중지됨"}
+                        </span>
+                      </div>
+                      <CardTitle className="text-base font-bold text-content mt-2 flex items-center gap-2">
+                        {tpl.games?.default_icon_url && (
+                          <div className="h-5 w-5 rounded overflow-hidden shrink-0">
+                            <GameIcon
+                              src={tpl.games.default_icon_url}
+                              alt=""
+                            />
+                          </div>
+                        )}
+                        <span className="truncate">{tpl.title}</span>
+                      </CardTitle>
+                      {tpl.games?.name && (
+                        <p className="text-xs text-content-secondary">{tpl.games.name}</p>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-baseline justify-between pt-2 border-t border-line text-sm">
+                        <div>
+                          <p className="text-xs text-content-muted">기본 금액</p>
+                          <p className="font-bold text-info text-base">
+                            {(tpl.default_price ?? 0).toLocaleString()} 원
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-content-muted">결제수단</p>
+                          <p className="text-xs text-content font-medium">
+                            {METHOD_LABELS[tpl.payment_method] || tpl.payment_method}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleOpenIntervalEdit(tpl)}
+                            onClick={() => handleOpenEditTemplate(tpl)}
                             className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
                           >
-                            남은 날짜 수정
+                            수정
                           </Button>
-                        )}
+                          {tpl.cycle_type === "INTERVAL_30" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenIntervalEdit(tpl)}
+                              className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
+                            >
+                              남은 날짜 수정
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void handleToggleTemplateActive(tpl)}
+                            className={`h-7 px-2.5 text-xs border-line-control ${
+                              tpl.is_active
+                                ? "text-content-secondary hover:text-danger hover:border-danger/50"
+                                : "text-primary hover:bg-primary/10"
+                            }`}
+                          >
+                            {tpl.is_active ? "구독 중지" : "구독 재개"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenDeleteTemplate(tpl)}
+                            aria-label={`${tpl.title} 구독 삭제`}
+                            title="구독 삭제"
+                            className="h-7 w-7 p-0 text-content-secondary hover:text-danger hover:bg-danger/10 hover:border-danger/50 border-line-control"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-danger" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void handleToggleTemplateActive(tpl)}
-                          className={`h-7 px-2.5 text-xs border-line-control ${
-                            tpl.is_active
-                              ? "text-content-secondary hover:text-danger hover:border-danger/50"
-                              : "text-primary hover:bg-primary/10"
-                          }`}
-                        >
-                          {tpl.is_active ? "구독 중지" : "구독 재개"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenDeleteTemplate(tpl)}
-                          aria-label={`${tpl.title} 구독 삭제`}
-                          title="구독 삭제"
-                          className="h-7 w-7 p-0 text-content-secondary hover:text-danger hover:bg-danger/10 hover:border-danger/50 border-line-control"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-danger" />
-                        </Button>
-                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {totalSubscriptionPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3">
+                  <p className="text-xs text-content-secondary">
+                    전체 {sortedTemplates.length}개 구독 중{" "}
+                    <span className="font-semibold text-content">
+                      {currentSubscriptionPage} / {totalSubscriptionPages}
+                    </span>{" "}
+                    페이지
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentSubscriptionPage((p) => Math.max(1, p - 1))}
+                      disabled={currentSubscriptionPage === 1}
+                      aria-label="이전 페이지"
+                      className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="ml-1">이전</span>
+                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {getPaginationRange(currentSubscriptionPage, totalSubscriptionPages).map((p, idx) =>
+                        p === "..." ? (
+                          <span key={`sub-ellipsis-${idx}`} className="px-1.5 py-1 text-content-muted select-none">
+                            ...
+                          </span>
+                        ) : (
+                          <Button
+                            key={`sub-page-${p}`}
+                            size="sm"
+                            variant={p === currentSubscriptionPage ? "default" : "outline"}
+                            onClick={() => setCurrentSubscriptionPage(p as number)}
+                            aria-label={`${p} 페이지로 이동`}
+                            aria-current={p === currentSubscriptionPage ? "page" : undefined}
+                            className={`h-8 w-8 p-0 text-xs ${
+                              p === currentSubscriptionPage
+                                ? "bg-primary text-white font-semibold hover:bg-primary-hover"
+                                : "bg-surface border-line-control text-content hover:bg-surface-2"
+                            }`}
+                          >
+                            {p}
+                          </Button>
+                        ),
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentSubscriptionPage((p) => Math.min(totalSubscriptionPages, p + 1))}
+                      disabled={currentSubscriptionPage === totalSubscriptionPages}
+                      aria-label="다음 페이지"
+                      className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                    >
+                      <span className="mr-1">다음</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>

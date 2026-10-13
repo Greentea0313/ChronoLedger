@@ -368,7 +368,7 @@ export default function GamesPage() {
                             className={`h-8 w-8 p-0 text-xs ${
                               p === currentPage
                                 ? "bg-primary text-white font-semibold hover:bg-primary-hover"
-                                : "border-line-control text-content-secondary hover:text-content hover:bg-surface-2"
+                                : "bg-surface border-line-control text-content hover:bg-surface-2"
                             }`}
                           >
                             {p}

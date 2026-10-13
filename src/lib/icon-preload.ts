@@ -12,6 +12,7 @@ export function preloadImage(url: string | null | undefined): void {
   preloadedUrls.add(url)
   const img = new window.Image()
   img.decoding = "async"
+  img.referrerPolicy = "no-referrer"
   img.src = url
 }
 

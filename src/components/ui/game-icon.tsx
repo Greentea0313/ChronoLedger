@@ -61,6 +61,7 @@ export function GameIcon({
         )}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
+        referrerPolicy="no-referrer"
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
       />

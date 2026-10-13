@@ -28,7 +28,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       type="button"
       onClick={toggle}
       aria-pressed={theme === "light"}
-      className={`inline-flex h-11 items-center gap-2 rounded-md border border-line-control px-3 text-sm text-content-secondary transition-colors duration-fast hover:bg-surface-2 hover:text-content md:h-10 ${className}`}
+      className={`inline-flex h-11 items-center gap-2 rounded-md border border-line-control bg-surface px-3 text-sm text-content transition-colors duration-fast hover:bg-surface-2 md:h-10 ${className}`}
     >
       <span aria-hidden="true">{theme === "light" ? "☀️" : "🌙"}</span>
       {theme === "light" ? "라이트 테마" : "다크 테마"}

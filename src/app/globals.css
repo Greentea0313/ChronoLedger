@@ -103,10 +103,10 @@
   --surface: 255 255 255;
   --surface-2: 240 242 246;
   --border: 216 221 231;
-  --control-border: 132 143 162;
+  --control-border: 100 112 135;
   --text-primary: 23 26 33;
-  --text-secondary: 73 82 100;
-  --text-muted: 93 102 117;
+  --text-secondary: 55 65 81;
+  --text-muted: 85 95 110;
   --primary: 83 101 212;
   --primary-hover: 64 82 192;
   --on-primary: 255 255 255;
