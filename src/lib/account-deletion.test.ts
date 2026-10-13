@@ -1,72 +1,78 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   fetchAccountDeletionStatus,
   requestAccountDeletion,
 } from "./account-deletion"
 import { retryDelayMs } from "../../netlify/functions-lib/account-deletion"
 
-const { getSession } = vi.hoisted(() => ({ getSession: vi.fn() }))
+const { getSession, rpc } = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  rpc: vi.fn(),
+}))
 
 vi.mock("@/lib/supabase/client", () => ({
-  supabase: { auth: { getSession } },
+  supabase: {
+    auth: { getSession },
+    rpc,
+  },
 }))
 
 describe("account deletion client", () => {
-  const fetchMock = vi.fn()
-
   beforeEach(() => {
     getSession.mockReset().mockResolvedValue({
       data: { session: { access_token: "user-access-token" } },
       error: null,
     })
-    fetchMock.mockReset()
-    vi.stubGlobal("fetch", fetchMock)
+    rpc.mockReset()
   })
 
-  afterEach(() => vi.unstubAllGlobals())
-
-  it("sends the user's bearer session and confirmation email to the request function", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ status: "PENDING", statusToken: "opaque-status-token" }),
+  it("calls request_account_deletion RPC with confirmation email and returns status token", async () => {
+    rpc.mockResolvedValueOnce({
+      data: "opaque-status-token",
+      error: null,
     })
 
     await expect(requestAccountDeletion("user@example.com")).resolves.toBe("opaque-status-token")
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/.netlify/functions/request-account-deletion",
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          Authorization: "Bearer user-access-token",
-        }),
-        body: JSON.stringify({ confirmationEmail: "user@example.com" }),
-      }),
-    )
+    expect(rpc).toHaveBeenCalledWith("request_account_deletion", {
+      p_confirmation_email: "user@example.com",
+    })
   })
 
-  it("rejects an invalid status response and preserves explicit service errors", async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ error: "CONFIRMATION_REQUIRED" }),
+  it("rejects an invalid confirmation email and preserves explicit RPC errors", async () => {
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "CONFIRMATION_REQUIRED" },
     })
     await expect(requestAccountDeletion("wrong@example.com"))
       .rejects.toThrow("CONFIRMATION_REQUIRED")
 
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ status: "COMPLETED" }),
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "SOME_UNEXPECTED_ERROR" },
     })
     await expect(requestAccountDeletion("user@example.com"))
       .rejects.toThrow("ACCOUNT_DELETION_REQUEST_FAILED")
   })
 
-  it("reads an opaque status token without exposing account details", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "DATA_CLEANUP" }),
+  it("reads an opaque status token via get_account_deletion_status RPC without exposing details", async () => {
+    rpc.mockResolvedValueOnce({
+      data: { status: "DATA_CLEANUP", updatedAt: "2026-10-13T00:00:00Z" },
+      error: null,
     })
     await expect(fetchAccountDeletionStatus("opaque-token")).resolves.toBe("DATA_CLEANUP")
+    expect(rpc).toHaveBeenCalledWith("get_account_deletion_status", {
+      p_status_token: "opaque-token",
+    })
+  })
+
+  it("returns null when status token is not found or empty", async () => {
+    await expect(fetchAccountDeletionStatus("")).resolves.toBeNull()
+
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    })
+    await expect(fetchAccountDeletionStatus("not-found-token")).resolves.toBeNull()
   })
 })
 

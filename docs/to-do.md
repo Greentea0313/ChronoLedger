@@ -45,9 +45,10 @@
   - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
 - [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](Netlify_Web_Architecture_Proposal.md)에 반영했다.
 - [ ] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
+  - [x] **Cloudflare Pages 호스팅 환경 구성**: [`.nvmrc`](../.nvmrc) (Node.js 20 LTS), [`public/_headers`](../public/_headers) (불변 캐싱 및 보안 헤더), [`public/_redirects`](../public/_redirects) 설정 완료.
+  - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`md/MIGRATION_PG_CRON.sql`](../md/MIGRATION_PG_CRON.sql)) 작성 완료.
+  - [x] **탈퇴 API Supabase RPC 완전 통합**: Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` `SECURITY DEFINER` RPC 함수로 프론트엔드 직접 연동 완료 ([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts)).
   - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
-  - [ ] **백그라운드 스케줄러 분리 이관**: 웹 배포 플랫폼 종속성 제거를 위해 5분 주기 탈퇴 워커(`account-deletion-worker`)를 Netlify Functions에서 **Supabase `pg_cron`** 또는 **Supabase Edge Function**으로 분리 이관.
-  - [ ] 탈퇴 관련 API(`request-account-deletion`, `account-deletion-status`)를 Supabase RPC(`SECURITY DEFINER`) 또는 Supabase Edge Function으로 통합.
 - [ ] (보류/대안) Netlify 후보 유지 시 점검 사항:
   - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 통과.
   - 원격 정적 경로 검증: `chronoledger-validation-20261007` Draft Deploy(Production 아님)에서 로그인 화면, `/auth`, callback 안내, 보호 동작 확인 완료.

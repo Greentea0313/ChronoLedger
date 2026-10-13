@@ -1,5 +1,26 @@
 # 프로젝트 진행 현황
 
+## Cloudflare Pages 호스팅 환경 구축 및 계정 탈퇴 Supabase pg_cron / RPC 완전 이관 (2026-10-13)
+
+- **배경 및 사용자 요구사항**:
+  - Netlify 무료 티어의 월 300분 빌드 시간 및 100GB 대역폭 초과 시 사이트 정지 하드 리밋 문제를 근본적으로 해결하기 위해, 완전 무료 무제한 대역폭의 **Cloudflare Pages**와 데이터베이스 내부 완결 스케줄러인 **Supabase `pg_cron`** 체제로 이관.
+  - Netlify Functions에 종속되어 있던 5분 주기 탈퇴 워커 및 클라이언트 탈퇴 API(`request-account-deletion`, `account-deletion-status`)를 Supabase `SECURITY DEFINER` RPC 함수로 전환하여 순수 정적 SPA 웹앱 환경에서도 100% 정상 작동하도록 개편.
+- **수행 내역**:
+  1. **Cloudflare Pages 배포 및 정적 호스팅 자산 구축**:
+     - [`.nvmrc`](../.nvmrc): Cloudflare Pages 빌드 환경을 위한 Node.js LTS 버전(`20.18.0`) 명시.
+     - [`public/_headers`](../public/_headers): Cloudflare Pages 캐싱 규칙 및 보안 헤더(X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Referrer-Policy, `/sw.js` 무캐시, `/_next/static/*` 1년 불변 캐싱) 추가.
+     - [`public/_redirects`](../public/_redirects): Cloudflare Pages 호환 0ms SPA 라우팅 리다이렉트 유지.
+  2. **Supabase Database pg_cron 탈퇴 워커 및 원자적 함수 구현 (`md/MIGRATION_PG_CRON.sql`, `md/SCHEMA.sql`)**:
+     - `purge_expired_account_deletion_requests(p_limit)`: `SECURITY DEFINER` 함수로 단일 PostgreSQL 트랜잭션 내에서 `storage.objects`(user-icons 버킷), 10개 개인 데이터 테이블, `auth.users`를 원자적으로 영구 삭제.
+     - 5분 주기 `cron.schedule('chronoledger-account-purge', '*/5 * * * *', ...)` 자동 스케줄 등록 스크립트 작성.
+  3. **계정 탈퇴 API의 Supabase Database RPC 완전 통합 (`src/lib/account-deletion.ts`, `src/lib/account-deletion.test.ts`)**:
+     - Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion(p_confirmation_email)`, `get_account_deletion_status(p_status_token)` RPC를 직접 호출하도록 리팩토링.
+     - 외부 서버리스 함수 및 외부 Cron 호출 비용이 완전히 0이 되며 네트워크 실패 위험 원천 차단.
+  4. **검증 및 빌드 확인**:
+     - 단위 테스트 39개 파일, 191개 테스트 전체 통과 (`vitest run`).
+     - TypeScript 타입 검사 통과 (`tsc --noEmit`).
+     - Next.js 14 정적 15개 페이지 export 빌드 성공 (`npm run build`).
+
 ## 지출 등록 모달 픽업 선택 필드 비활성화 및 결제일 기준 자동 연계 구현 (2026-10-13)
 
 - **배경 및 사용자 요구사항**:

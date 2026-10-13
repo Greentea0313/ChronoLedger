@@ -22,58 +22,63 @@ const validStatuses: AccountDeletionStatus[] = [
 ]
 
 export async function requestAccountDeletion(confirmationEmail: string): Promise<string> {
-  const { data, error: sessionError } = await supabase.auth.getSession()
-  if (sessionError || !data.session?.access_token) {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError || !sessionData.session?.access_token) {
     throw new Error("AUTHENTICATION_REQUIRED")
   }
 
-  const response = await fetch("/.netlify/functions/request-account-deletion", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${data.session.access_token}`,
-    },
-    body: JSON.stringify({ confirmationEmail }),
+  const { data, error } = await supabase.rpc("request_account_deletion", {
+    p_confirmation_email: confirmationEmail,
   })
-  const body: unknown = await response.json()
-  if (
-    !response.ok ||
-    typeof body !== "object" ||
-    body === null ||
-    !("statusToken" in body) ||
-    typeof body.statusToken !== "string"
-  ) {
-    const errorCode =
-      typeof body === "object" && body !== null && "error" in body && typeof body.error === "string"
-        ? body.error
-        : "ACCOUNT_DELETION_REQUEST_FAILED"
-    throw new Error(errorCode)
+
+  if (error) {
+    if (error.message.includes("CONFIRMATION_REQUIRED")) {
+      throw new Error("CONFIRMATION_REQUIRED")
+    }
+    if (error.message.includes("AUTHENTICATION_REQUIRED")) {
+      throw new Error("AUTHENTICATION_REQUIRED")
+    }
+    throw new Error("ACCOUNT_DELETION_REQUEST_FAILED")
   }
-  return body.statusToken
+
+  if (typeof data !== "string" || !data) {
+    throw new Error("ACCOUNT_DELETION_REQUEST_FAILED")
+  }
+
+  return data
 }
 
 export async function fetchAccountDeletionStatus(
   statusToken: string,
 ): Promise<AccountDeletionStatus | null> {
-  const response = await fetch("/.netlify/functions/account-deletion-status", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ statusToken }),
-  })
-  if (response.status === 404) return null
-  if (!response.ok) throw new Error("ACCOUNT_DELETION_STATUS_UNAVAILABLE")
+  if (!statusToken || typeof statusToken !== "string") {
+    return null
+  }
 
-  const body: unknown = await response.json()
+  const { data, error } = await supabase.rpc("get_account_deletion_status", {
+    p_status_token: statusToken,
+  })
+
+  if (error) {
+    throw new Error("ACCOUNT_DELETION_STATUS_UNAVAILABLE")
+  }
+
+  if (!data) {
+    return null
+  }
+
+  const parsedData = typeof data === "string" ? JSON.parse(data) : data
   if (
-    typeof body !== "object" ||
-    body === null ||
-    !("status" in body) ||
-    typeof body.status !== "string" ||
-    !validStatuses.includes(body.status as AccountDeletionStatus)
+    typeof parsedData !== "object" ||
+    parsedData === null ||
+    !("status" in parsedData) ||
+    typeof parsedData.status !== "string" ||
+    !validStatuses.includes(parsedData.status as AccountDeletionStatus)
   ) {
     throw new Error("ACCOUNT_DELETION_STATUS_INVALID")
   }
-  return body.status as AccountDeletionStatus
+
+  return parsedData.status as AccountDeletionStatus
 }
 
 export function accountDeletionStatusMessage(status: AccountDeletionStatus): string {

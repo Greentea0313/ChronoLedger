@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-10-13 (Cloudflare Pages 호스팅 환경 구축 및 계정 탈퇴 Supabase pg_cron / RPC 완전 이관)
+
+- **Cloudflare Pages 정적 호스팅 자산 구축 (`.nvmrc`, `public/_headers`, `public/_redirects`)**:
+  - Node.js 20 LTS 명시(`.nvmrc`), Cloudflare Pages 정적 캐시 최적화 및 보안 헤더(`public/_headers`) 설정.
+- **Supabase Database pg_cron 탈퇴 워커 및 원자적 함수 (`md/MIGRATION_PG_CRON.sql`, `md/SCHEMA.sql`)**:
+  - `purge_expired_account_deletion_requests` 함수를 통해 `storage.objects`(user-icons 버킷), 10개 개인 데이터 테이블, `auth.users`를 원자적으로 일괄 영구 삭제하는 로직 구현.
+  - 5분 주기 `cron.schedule` 자동 등록 스크립트 작성으로 외부 서버리스 Cron 종속성 제거.
+- **계정 탈퇴 API의 Supabase RPC 완전 통합 (`src/lib/account-deletion.ts`, `src/lib/account-deletion.test.ts`, `md/SCHEMA.sql`)**:
+  - Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` RPC를 Supabase JS 클라이언트로 직접 호출하도록 리팩토링.
+  - 불투명 SHA-256 토큰 생성 및 검증을 DB 내부에서 원자적으로 처리.
+- **단위 테스트 및 정적 빌드 검증**:
+  - 전체 단위 테스트 39개 파일, 191개 테스트 100% PASS (`vitest run`).
+  - Next.js 14 정적 15개 페이지 export 빌드 성공 (`npm run build`).
+
 ## 2026-10-13 (지출 등록 모달 픽업 선택 필드 비활성화 및 결제일 기준 자동 연계 구현)
 
 - **픽업 선택 필드 비활성화 및 자동 매핑 로직 적용 (`src/components/expense/expense-modal.tsx`)**:

@@ -716,6 +716,151 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 REVOKE ALL ON FUNCTION public.claim_account_deletion_requests(INTEGER) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_account_deletion_requests(INTEGER) TO service_role;
 
+-- [pg_cron 백그라운드 워커] 만료된 계정 탈퇴 요청 일괄 영구 삭제 원자적 함수
+CREATE OR REPLACE FUNCTION public.purge_expired_account_deletion_requests(p_limit INTEGER DEFAULT 10)
+RETURNS INTEGER AS $$
+DECLARE
+    v_req RECORD;
+    v_purged_count INTEGER := 0;
+BEGIN
+    FOR v_req IN
+        SELECT id, user_id
+        FROM public.account_deletion_requests
+        WHERE status IN ('PENDING', 'STORAGE_CLEANUP', 'DATA_CLEANUP', 'AUTH_DELETE_PENDING')
+          AND retry_after <= NOW()
+          AND (locked_until IS NULL OR locked_until < NOW())
+        ORDER BY requested_at ASC
+        FOR UPDATE SKIP LOCKED
+        LIMIT p_limit
+    LOOP
+        UPDATE public.account_deletion_requests
+        SET locked_until = NOW() + INTERVAL '5 minutes',
+            attempt_count = attempt_count + 1,
+            updated_at = NOW()
+        WHERE id = v_req.id;
+
+        IF v_req.user_id IS NOT NULL THEN
+            DELETE FROM storage.objects
+            WHERE bucket_id = 'user-icons'
+              AND (name LIKE v_req.user_id || '/%' OR (path_tokens IS NOT NULL AND path_tokens[1] = v_req.user_id::text));
+
+            DELETE FROM public.schedule_requests WHERE user_id = v_req.user_id;
+            DELETE FROM public.game_requests WHERE user_id = v_req.user_id;
+            DELETE FROM public.store_point_transactions WHERE user_id = v_req.user_id;
+            DELETE FROM public.expenses WHERE user_id = v_req.user_id;
+            DELETE FROM public.subscription_templates WHERE user_id = v_req.user_id;
+            DELETE FROM public.personal_memos WHERE user_id = v_req.user_id;
+            DELETE FROM public.user_games WHERE user_id = v_req.user_id;
+            DELETE FROM public.monthly_budgets WHERE user_id = v_req.user_id;
+            DELETE FROM public.store_wallets WHERE user_id = v_req.user_id;
+            DELETE FROM public.user_finances WHERE user_id = v_req.user_id;
+
+            DELETE FROM auth.users WHERE id = v_req.user_id;
+        END IF;
+
+        UPDATE public.account_deletion_requests
+        SET status = 'COMPLETED',
+            storage_completed_at = NOW(),
+            data_completed_at = NOW(),
+            user_id = NULL,
+            locked_until = NULL,
+            last_error_code = NULL,
+            updated_at = NOW()
+        WHERE id = v_req.id;
+
+        v_purged_count := v_purged_count + 1;
+    END LOOP;
+
+    RETURN v_purged_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, storage;
+
+REVOKE ALL ON FUNCTION public.purge_expired_account_deletion_requests(INTEGER) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.purge_expired_account_deletion_requests(INTEGER) TO service_role;
+
+-- [계정 탈퇴 요청 RPC] 확인 이메일 검증 및 탈퇴 토큰 발급
+CREATE OR REPLACE FUNCTION public.request_account_deletion(p_confirmation_email TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_user_email TEXT;
+    v_token TEXT;
+    v_token_hash CHAR(64);
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'AUTHENTICATION_REQUIRED';
+    END IF;
+
+    SELECT email INTO v_user_email
+    FROM auth.users
+    WHERE id = v_user_id;
+
+    IF v_user_email IS NULL THEN
+        RAISE EXCEPTION 'AUTHENTICATION_REQUIRED';
+    END IF;
+
+    IF p_confirmation_email IS NULL OR LOWER(TRIM(p_confirmation_email)) <> LOWER(TRIM(v_user_email)) THEN
+        RAISE EXCEPTION 'CONFIRMATION_REQUIRED';
+    END IF;
+
+    v_token := gen_random_uuid()::text;
+    v_token_hash := encode(sha256(convert_to(v_token, 'UTF8')), 'hex');
+
+    INSERT INTO public.account_deletion_requests (
+        user_id, status_token_hash, status, attempt_count, retry_after, locked_until, last_error_code, requested_at, updated_at
+    )
+    VALUES (
+        v_user_id, v_token_hash, 'PENDING', 0, NOW(), NULL, NULL, NOW(), NOW()
+    )
+    ON CONFLICT (user_id) DO UPDATE
+    SET status_token_hash = EXCLUDED.status_token_hash,
+        status = 'PENDING',
+        attempt_count = 0,
+        retry_after = NOW(),
+        locked_until = NULL,
+        last_error_code = NULL,
+        requested_at = NOW(),
+        updated_at = NOW();
+
+    RETURN v_token;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+REVOKE ALL ON FUNCTION public.request_account_deletion(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.request_account_deletion(TEXT) TO authenticated;
+
+-- [계정 탈퇴 상태 조회 RPC] 불투명 토큰 해시 기반 상태 조회
+CREATE OR REPLACE FUNCTION public.get_account_deletion_status(p_status_token TEXT)
+RETURNS JSONB AS $$
+DECLARE
+    v_token_hash CHAR(64);
+    v_status VARCHAR(30);
+    v_updated_at TIMESTAMPTZ;
+BEGIN
+    IF p_status_token IS NULL OR TRIM(p_status_token) = '' THEN
+        RETURN NULL;
+    END IF;
+
+    v_token_hash := encode(sha256(convert_to(p_status_token, 'UTF8')), 'hex');
+
+    SELECT status, updated_at INTO v_status, v_updated_at
+    FROM public.account_deletion_requests
+    WHERE status_token_hash = v_token_hash;
+
+    IF NOT FOUND THEN
+        RETURN NULL;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'status', v_status,
+        'updatedAt', v_updated_at
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.get_account_deletion_status(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_account_deletion_status(TEXT) TO authenticated, anon;
+
 CREATE OR REPLACE FUNCTION public.block_pending_account_data_mutations()
 RETURNS TRIGGER AS $$
 DECLARE
