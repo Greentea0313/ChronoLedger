@@ -1,5 +1,22 @@
 # 변경 이력
 
+## 2026-10-14 (지출 등록 모달 항목명 원복 버그 수정 및 Recharts 차트 Y축 라이트 모드 가독성 개선)
+
+- **지출 등록 모달(`ExpenseModal`) 항목명 자동 리셋 및 원복 버그 해결 (`src/components/expense/expense-modal.tsx`)**:
+  - 원인: 일정 연동 `useEffect`의 의존성 배열에 `title`이 포함되어 있어, 사용자가 항목명을 수정하려고 전체 삭제하거나 백스페이스를 누를 때(`!title.trim()` 조건 충족) 이펙트가 재실행되며 Supabase 비동기 조회 후 게임 버전 일정 제목(`${game.name} ${matched.title}`)으로 강제 덮어쓰기되던 결함 해소.
+  - 조치:
+    - `title`을 이펙트 의존성 배열에서 제외하고 `titleRef`로 최신 상태를 참조하도록 분리.
+    - `prevGameIdRef`를 신설하여 사용자가 게임 셀렉트박스를 직접 변경했을 때(`prevGameIdRef.current !== gameId`)에만 1회 기본값 제안이 동작하도록 제어.
+    - 예정 지출 수정 모드(`isEditMode`) 및 예정 지출 결제 모드(`isPlannedPayment`)에서는 일정에 의한 항목명 덮어쓰기를 원천 방어하여 사용자의 수정 주도권 보장.
+    - 모달 오픈 시 `editingExpense`와 `plannedExpense`의 ID를 정규화(`?? null`)하여 부모 리렌더링에 따른 폼 무한 리셋 방어.
+  - 검증: 사용자가 항목명을 지우거나 새로 입력해도 원래 텍스트로 되돌아가지 않고 온전히 유지됨을 검증하는 단위 테스트 케이스 추가 (`src/components/expense/expense-modal.test.tsx`).
+- **지출 분석 차트 Y축 카테고리 레이블 가독성 수정 (`src/app/dashboard/expenses/page.tsx`)**:
+  - 원인: 픽업 과금 막대 차트의 `YAxis` 컴포넌트에 `tick={{ fill: "#F5F7FA" }}`가 하드코딩되어 라이트 테마의 흰색 배경 위에서 "일반" 등의 텍스트가 완전히 투명해져 보이지 않던 문제 해결.
+  - 조치: `XAxis`, `YAxis`, `CartesianGrid`, `Tooltip` 컴포넌트에 하드코딩된 HEX 컬러 대신 시맨틱 CSS 변수 `rgb(var(--text-primary))`, `rgb(var(--text-secondary))`, `rgb(var(--border))`, `rgb(var(--surface))`를 적용하여 라이트/다크 테마 모두에서 명확한 대비 확보.
+- **테스트 및 정적 빌드 무결점 검증**:
+  - Vitest 39개 파일 203개 테스트 100% 통과 (`vitest run`).
+  - Next.js 14 정적 export 빌드 성공 (`npm run build`).
+
 ## 2026-10-13 (라이트 테마 전수 검증 및 UI 가독성·대비 전면 최적화)
 
 - **라이트/다크 테마 시맨틱 컬러 토큰 전면 정합화**:

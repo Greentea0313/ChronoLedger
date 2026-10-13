@@ -1,5 +1,23 @@
 # 프로젝트 진행 현황
 
+## 지출 등록 모달 항목명 원복 버그 수정 및 Recharts 차트 Y축 가독성 개선 (2026-10-14)
+
+- **배경 및 사용자 요구사항**:
+  1. 지출 등록 모달(`ExpenseModal`)에서 항목명 텍스트를 수정하려고 지우거나 입력할 때 곧바로 원래 텍스트로 되돌아가버리는 버그 발생.
+  2. 지출 분석 탭의 '게임 픽업별 과금 분석' 그래프 Y축 카테고리 텍스트("일반" 등)가 라이트 테마에서 투명하게 처리되어 보이지 않는 문제 발생.
+- **수행 내역**:
+  1. **항목명 입력 주도권 보장 및 무한 리셋 원천 차단 (`src/components/expense/expense-modal.tsx`)**:
+     - `game_schedules` 연동 `useEffect`의 의존성 배열에서 `title`을 제거하고 `titleRef`를 활용해 의존성 루프 해소.
+     - `prevGameIdRef`를 도입하여 게임 셀렉트박스를 새로 선택한 최초 1회에만 비어있는 항목명에 버전을 제안하도록 제한.
+     - `isEditMode` 및 `isPlannedPayment` 모드에서는 사용자가 지정한 항목명을 일정 매핑 로직이 절대 덮어쓰지 못하도록 안전 가드 구성.
+     - 모달 오픈 감지 시 `plannedExpense?.id ?? null` 정규화로 매 렌더링마다 폼 필드가 리셋되던 문제 1차 방어.
+  2. **차트 Y축 텍스트 시맨틱 토큰 적용 (`src/app/dashboard/expenses/page.tsx`)**:
+     - `YAxis`의 하드코딩된 `#F5F7FA`를 `rgb(var(--text-secondary))`로 변경하여 라이트/다크 테마 환경 모두에서 선명한 대비 확보.
+  3. **무결점 검증**:
+     - 사용자 항목명 삭제 및 수정 유지 기능 단위 테스트 추가 (`src/components/expense/expense-modal.test.tsx`).
+     - Vitest 39개 파일 203개 테스트 100% PASS (`vitest run`).
+     - Next.js 14 정적 export 빌드 성공 (`npm run build`).
+
 ## 라이트 테마 전수 검증 및 UI 가독성·대비 전면 최적화 (2026-10-13)
 
 - **배경 및 사용자 요구사항**:

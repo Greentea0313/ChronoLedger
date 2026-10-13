@@ -849,7 +849,7 @@ export default function ExpensesPage() {
                                 <Cell
                                   key={`cell-${index}`}
                                   fill={entry.color}
-                                  stroke={isHovered ? "#FFFFFF" : "#171A21"}
+                                  stroke={isHovered ? "#FFFFFF" : "rgb(var(--surface))"}
                                   strokeWidth={isHovered ? 3 : 2}
                                   cursor="pointer"
                                   onMouseEnter={() => setActiveCategoryIndex(index)}
@@ -863,11 +863,12 @@ export default function ExpensesPage() {
                           </Pie>
                           <Tooltip
                             contentStyle={{
-                              backgroundColor: "#171A21",
-                              borderColor: "#2A2F3A",
+                              backgroundColor: "rgb(var(--surface))",
+                              borderColor: "rgb(var(--border))",
                               borderRadius: "8px",
+                              color: "rgb(var(--text-primary))",
                             }}
-                            itemStyle={{ color: "#F5F7FA" }}
+                            itemStyle={{ color: "rgb(var(--text-primary))" }}
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={(value: any, _name: any, props: any) => {
                               const percent = props.payload.percent ?? 0
@@ -930,28 +931,29 @@ export default function ExpensesPage() {
                         margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                         onMouseLeave={() => setActiveMonthlyIndex(null)}
                       >
-                        <CartesianGrid vertical={false} stroke="#2A2F3A" strokeDasharray="3 3" opacity={0.6} />
+                        <CartesianGrid vertical={false} stroke="rgb(var(--border))" strokeDasharray="3 3" opacity={0.6} />
                         <XAxis
                           dataKey="label"
-                          axisLine={{ stroke: "#374151", strokeWidth: 1 }}
-                          tickLine={{ stroke: "#374151" }}
-                          tick={{ fill: "#9BA3B2", fontSize: 12 }}
+                          axisLine={{ stroke: "rgb(var(--border))", strokeWidth: 1 }}
+                          tickLine={{ stroke: "rgb(var(--border))" }}
+                          tick={{ fill: "rgb(var(--text-secondary))", fontSize: 12 }}
                         />
                         <YAxis
-                          axisLine={{ stroke: "#374151", strokeWidth: 1 }}
-                          tickLine={{ stroke: "#374151" }}
-                          tick={{ fill: "#9BA3B2", fontSize: 12 }}
+                          axisLine={{ stroke: "rgb(var(--border))", strokeWidth: 1 }}
+                          tickLine={{ stroke: "rgb(var(--border))" }}
+                          tick={{ fill: "rgb(var(--text-secondary))", fontSize: 12 }}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           tickFormatter={(val: any) => `${Math.round(Number(val) / 10000)}만`}
                         />
                         <Tooltip
                           cursor={false}
                           contentStyle={{
-                            backgroundColor: "#171A21",
-                            borderColor: "#2A2F3A",
+                            backgroundColor: "rgb(var(--surface))",
+                            borderColor: "rgb(var(--border))",
                             borderRadius: "8px",
+                            color: "rgb(var(--text-primary))",
                           }}
-                          itemStyle={{ color: "#F5F7FA" }}
+                          itemStyle={{ color: "rgb(var(--text-primary))" }}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           formatter={(value: any) => [`${Number(value).toLocaleString()} 원`, "소비액"]}
                         />
@@ -1031,30 +1033,31 @@ export default function ExpensesPage() {
                           margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
                           onMouseLeave={() => setActivePickupIndex(null)}
                         >
-                          <CartesianGrid horizontal={false} stroke="#2A2F3A" strokeDasharray="3 3" opacity={0.6} />
+                          <CartesianGrid horizontal={false} stroke="rgb(var(--border))" strokeDasharray="3 3" opacity={0.6} />
                           <XAxis
                             type="number"
-                            axisLine={{ stroke: "#374151", strokeWidth: 1 }}
-                            tickLine={{ stroke: "#374151" }}
-                            tick={{ fill: "#9BA3B2", fontSize: 11 }}
+                            axisLine={{ stroke: "rgb(var(--border))", strokeWidth: 1 }}
+                            tickLine={{ stroke: "rgb(var(--border))" }}
+                            tick={{ fill: "rgb(var(--text-secondary))", fontSize: 11 }}
                             tickFormatter={(val: number) => `${Math.round(val / 10000)}만`}
                           />
                           <YAxis
                             type="category"
                             dataKey="name"
-                            axisLine={{ stroke: "#374151", strokeWidth: 1 }}
-                            tickLine={{ stroke: "#374151" }}
-                            tick={{ fill: "#F5F7FA", fontSize: 12 }}
+                            axisLine={{ stroke: "rgb(var(--border))", strokeWidth: 1 }}
+                            tickLine={{ stroke: "rgb(var(--border))" }}
+                            tick={{ fill: "rgb(var(--text-primary))", fontSize: 12, fontWeight: 500 }}
                             width={110}
                           />
                           <Tooltip
                             cursor={false}
                             contentStyle={{
-                              backgroundColor: "#171A21",
-                              borderColor: "#2A2F3A",
+                              backgroundColor: "rgb(var(--surface))",
+                              borderColor: "rgb(var(--border))",
                               borderRadius: "8px",
+                              color: "rgb(var(--text-primary))",
                             }}
-                            itemStyle={{ color: "#F5F7FA" }}
+                            itemStyle={{ color: "rgb(var(--text-primary))" }}
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={(value: any, _name: any, props: any) => [
                               `${Number(value).toLocaleString()} 원 (${props.payload.percent}%)`,

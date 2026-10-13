@@ -472,4 +472,30 @@ describe("ExpenseModal", () => {
       final_amount: 44000,
     }))
   })
+
+  it("retains user-modified title when cleared or edited, without bouncing back to schedule title", async () => {
+    setup()
+    const today = getKstToday()
+    render(<ExpenseModal open onOpenChange={vi.fn()} initialDate={today} />)
+
+    await screen.findByRole("option", { name: "Sample RPG" })
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    await screen.findByRole("option", { name: "버전 1.0" })
+
+    const titleInput = screen.getByLabelText("항목명") as HTMLInputElement
+    // 게임 선택 직후 일정 연동으로 자동 제안됨
+    expect(titleInput.value).toBe("Sample RPG 버전 1.0")
+
+    // 사용자가 항목명을 완전히 지움
+    fireEvent.change(titleInput, { target: { value: "" } })
+    expect(titleInput.value).toBe("")
+
+    // 사용자가 새로운 항목명 입력
+    fireEvent.change(titleInput, { target: { value: "수동 입력 과금" } })
+    expect(titleInput.value).toBe("수동 입력 과금")
+
+    // 비동기 쿼리가 완료되어도 타이틀이 복원되지 않고 유지되는지 확인
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(titleInput.value).toBe("수동 입력 과금")
+  })
 })

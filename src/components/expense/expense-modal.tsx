@@ -129,15 +129,22 @@ export function ExpenseModal({
   const [isEarnedPointsManual, setIsEarnedPointsManual] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isEditMode = Boolean(editingExpense)
+  const isPlannedPayment = Boolean(plannedExpense && !isEditMode)
   const pendingExpenseId = useRef<string | null>(null)
   const prevOpenRef = useRef(false)
   const prevPlannedExpenseIdRef = useRef<string | null>(null)
   const prevEditingExpenseIdRef = useRef<string | null>(null)
+  const prevGameIdRef = useRef<string>("")
+  const titleRef = useRef(title)
+  titleRef.current = title
 
   useEffect(() => {
+    const plannedId = plannedExpense?.id ?? null
+    const editingId = editingExpense?.id ?? null
     const isOpening = open && !prevOpenRef.current
-    const isNewPlannedExpense = open && plannedExpense?.id !== prevPlannedExpenseIdRef.current
-    const isNewEditingExpense = open && editingExpense?.id !== prevEditingExpenseIdRef.current
+    const isNewPlannedExpense = open && plannedId !== null && plannedId !== prevPlannedExpenseIdRef.current
+    const isNewEditingExpense = open && editingId !== null && editingId !== prevEditingExpenseIdRef.current
 
     if (isOpening || isNewPlannedExpense || isNewEditingExpense) {
       pendingExpenseId.current = null
@@ -162,6 +169,7 @@ export function ExpenseModal({
         const cat = editingExpense.category as (typeof CATEGORIES)[number]
         setCategory(CATEGORIES.includes(cat) ? cat : "게임")
         setGameId(editingExpense.game_id ?? "")
+        prevGameIdRef.current = editingExpense.game_id ?? ""
         setPickupScheduleId(editingExpense.pickup_schedule_id ?? "")
 
         const method = editingExpense.payment_method
@@ -203,14 +211,15 @@ export function ExpenseModal({
         }
         setCategory("게임")
         setGameId("")
+        prevGameIdRef.current = ""
         setSchedules([])
         setPickupSchedules([])
         setPickupScheduleId(plannedExpense?.pickup_schedule_id ?? "")
       }
     }
     prevOpenRef.current = open
-    prevPlannedExpenseIdRef.current = plannedExpense?.id ?? null
-    prevEditingExpenseIdRef.current = editingExpense?.id ?? null
+    prevPlannedExpenseIdRef.current = plannedId
+    prevEditingExpenseIdRef.current = editingId
   }, [open, plannedExpense, editingExpense, initialDate])
 
   const userId = user?.id
@@ -244,8 +253,10 @@ export function ExpenseModal({
       setSchedules([])
       setPickupSchedules([])
       setPickupScheduleId("")
+      prevGameIdRef.current = ""
       return
     }
+    const isGameChanged = prevGameIdRef.current !== gameId
     let cancelled = false
     void (async () => {
       const { data } = await supabase
@@ -260,21 +271,22 @@ export function ExpenseModal({
         const pickups = all.filter((s) => s.schedule_type === "PICKUP")
         setSchedules(versionSchedules)
         setPickupSchedules(pickups)
-        if (paymentDate) {
+        if (isGameChanged && !isEditMode && !isPlannedPayment && paymentDate) {
           const matched = versionSchedules.find(
             (s) => s.start_date <= paymentDate && paymentDate <= s.end_date
           )
           if (matched) {
             const game = games.find((item) => item.id === gameId)
-            if (game && !title.trim()) setTitle(`${game.name} ${matched.title}`)
+            if (game && !titleRef.current.trim()) setTitle(`${game.name} ${matched.title}`)
           }
         }
+        prevGameIdRef.current = gameId
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [gameId, paymentDate, games, title])
+  }, [gameId, paymentDate, games, isEditMode, isPlannedPayment])
 
   const matchingVersion = useMemo(() => {
     if (!paymentDate) return null
@@ -442,9 +454,6 @@ export function ExpenseModal({
       !isOnline ||
       (paymentMethod === "NAVER_PAY" && naverCalc?.isAssetInsufficient),
   )
-
-  const isEditMode = Boolean(editingExpense)
-  const isPlannedPayment = Boolean(plannedExpense && !isEditMode)
 
   const handleSubmit = async (
     event: FormEvent | React.MouseEvent,
