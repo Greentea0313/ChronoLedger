@@ -275,4 +275,105 @@ describe("AdminPage - 일정 관리", () => {
     expect(screen.getByText("일정 테스트 #15")).toBeTruthy()
     expect(screen.queryByText("일정 테스트 #1")).toBeNull()
   })
+
+  it("등록된 게임 목록 탭에서 전체 게임을 조회하고 수정할 수 있다", async () => {
+    gamesBuilder.update.mockReturnValue(gamesBuilder)
+    gamesBuilder.eq.mockResolvedValue({ error: null })
+
+    render(<AdminPage />)
+
+    // 게임 목록 탭 클릭
+    const gamesTab = await screen.findByRole("tab", { name: /등록된 게임 목록/ })
+    fireEvent.click(gamesTab)
+
+    expect(screen.getByText("등록된 전체 게임 목록")).toBeTruthy()
+    expect(screen.getByText("원신")).toBeTruthy()
+    expect(screen.getByText("붕괴: 스타레일")).toBeTruthy()
+
+    // '원신' 게임 수정 버튼 클릭
+    const editBtn = screen.getByRole("button", { name: "게임 수정: 원신" })
+    fireEvent.click(editBtn)
+
+    expect(screen.getByRole("heading", { name: "게임 정보 수정" })).toBeTruthy()
+
+    const nameInput = screen.getByPlaceholderText("예: 원신, 붕괴: 스타레일") as HTMLInputElement
+    expect(nameInput.value).toBe("원신")
+
+    // 이름 및 아이콘 변경
+    fireEvent.change(nameInput, { target: { value: "원신 (수정됨)" } })
+    const iconInput = screen.getByPlaceholderText("https://... (웹 이미지 주소)") as HTMLInputElement
+    fireEvent.change(iconInput, { target: { value: "https://example.com/genshin-new.webp" } })
+
+    // 수정 저장
+    fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+    await waitFor(() => {
+      expect(gamesBuilder.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "원신 (수정됨)",
+          default_icon_url: "https://example.com/genshin-new.webp",
+        })
+      )
+      expect(gamesBuilder.eq).toHaveBeenCalledWith("id", "game-1")
+    })
+  })
+
+  it("등록된 게임을 삭제 모달을 통해 안전하게 삭제할 수 있다", async () => {
+    gamesBuilder.delete.mockReturnValue(gamesBuilder)
+    gamesBuilder.eq.mockResolvedValue({ error: null })
+
+    render(<AdminPage />)
+
+    // 게임 목록 탭 클릭
+    const gamesTab = await screen.findByRole("tab", { name: /등록된 게임 목록/ })
+    fireEvent.click(gamesTab)
+
+    // '붕괴: 스타레일' 삭제 버튼 클릭
+    const deleteBtn = screen.getByRole("button", { name: "게임 삭제: 붕괴: 스타레일" })
+    fireEvent.click(deleteBtn)
+
+    expect(screen.getByRole("heading", { name: "게임 삭제 확인" })).toBeTruthy()
+    expect(screen.getByText(/'붕괴: 스타레일'/)).toBeTruthy()
+
+    // 모달 내 최종 삭제 버튼 클릭
+    const confirmDeleteBtn = screen.getAllByRole("button", { name: "삭제" })
+    fireEvent.click(confirmDeleteBtn[confirmDeleteBtn.length - 1])
+
+    await waitFor(() => {
+      expect(gamesBuilder.delete).toHaveBeenCalled()
+      expect(gamesBuilder.eq).toHaveBeenCalledWith("id", "game-2")
+    })
+  })
+
+  it("새 게임 등록 모달을 통해 신규 게임을 등록할 수 있다", async () => {
+    gamesBuilder.insert.mockResolvedValue({ error: null })
+
+    render(<AdminPage />)
+
+    // 게임 목록 탭 클릭
+    const gamesTab = await screen.findByRole("tab", { name: /등록된 게임 목록/ })
+    fireEvent.click(gamesTab)
+
+    // 새 게임 등록 버튼 클릭
+    fireEvent.click(screen.getByRole("button", { name: "새 게임 등록" }))
+
+    expect(screen.getByRole("heading", { name: "새 게임 등록" })).toBeTruthy()
+
+    // 인풋 입력
+    fireEvent.change(screen.getByPlaceholderText("예: 원신, 붕괴: 스타레일"), { target: { value: "명조: 워더링 웨이브" } })
+    fireEvent.change(screen.getByPlaceholderText("https://... (웹 이미지 주소)"), { target: { value: "https://example.com/wuthering.webp" } })
+
+    // 게임 등록 버튼 클릭
+    fireEvent.click(screen.getByRole("button", { name: "게임 등록" }))
+
+    await waitFor(() => {
+      expect(gamesBuilder.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "명조: 워더링 웨이브",
+          default_icon_url: "https://example.com/wuthering.webp",
+          status: "APPROVED",
+        })
+      )
+    })
+  })
 })

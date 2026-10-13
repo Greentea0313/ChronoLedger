@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CheckCircle, XCircle, Loader2, AlertCircle, Plus } from "lucide-react"
+import Link from "next/link"
+import { CheckCircle, XCircle, Loader2, AlertCircle, Plus, ArrowLeft } from "lucide-react"
 
 type GameRequest = {
   id: string
@@ -365,9 +366,18 @@ export default function AdminRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-surface p-4 rounded-xl border border-line">
-        <h2 className="text-lg font-semibold text-content">데이터 제안 대기열</h2>
-        <p className="text-sm text-content-secondary mt-1">유저들이 건의한 게임 및 일정 추가 요청을 검토하고 승인합니다.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-4 rounded-xl border border-line">
+        <div>
+          <h2 className="text-lg font-semibold text-content">데이터 제안 대기열</h2>
+          <p className="text-sm text-content-secondary mt-1">유저들이 건의한 게임 및 일정 추가 요청을 검토하고 승인합니다.</p>
+        </div>
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-line-control bg-surface text-content hover:bg-surface-2 self-start sm:self-center transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 text-primary" />
+          <span>관리자 콘솔로 이동</span>
+        </Link>
       </div>
 
       {error && (
