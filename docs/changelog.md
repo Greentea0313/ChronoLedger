@@ -1,5 +1,17 @@
 # 변경 이력
 
+## 2026-10-13 (지출 등록 모달 픽업 선택 필드 비활성화 및 결제일 기준 자동 연계 구현)
+
+- **픽업 선택 필드 비활성화 및 자동 매핑 로직 적용 (`src/components/expense/expense-modal.tsx`)**:
+  - `expense-pickup` select 필드를 비활성화(`disabled`, `opacity-60 cursor-not-allowed`)하여 수동 조작 방지.
+  - 결제일(`paymentDate`)이 픽업 기간 내인 경우:
+    - 1개 진행 중: 해당 픽업 배너로 자동 연계(`pickup_schedule_id` 저장).
+    - 2개 이상 진행 중: 모든 배너에 자동 동시 연계(`[PICKUPS:id1,id2,...]` 메타데이터 바인딩 및 1건 1x 회계 처리).
+  - 결제일이 픽업 기간 외인 경우:
+    - '진행 중인 픽업 없음 (픽업 외 지출)'로 자동 매핑(`pickup_schedule_id = null`, `memo = null`).
+- **테스트 추가 및 검증 (`src/components/expense/expense-modal.test.tsx`)**:
+  - 필드 disabled 상태, 단일 픽업 자동 연계, 복수 픽업 동시 연계, 픽업 외 지출 자동 매핑 4개 케이스 전체 100% 통과 (총 190개 테스트 통과).
+
 ## 2026-10-13 (웹 배포 플랫폼 비교 분석 및 아키텍처 제안 갱신: Cloudflare Pages + Supabase pg_cron)
 
 - **Netlify 무료 플랜 리소스 한계 및 운영 리스크 분석 (`docs/Netlify_Web_Architecture_Proposal.md`, `docs/to-do.md`)**:

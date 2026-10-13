@@ -266,17 +266,15 @@ describe("ExpenseModal", () => {
     expect(pointsInput).toHaveProperty("disabled", true)
   })
 
-  it("게임 선택 시 결제일 기준 진행 중인 픽업 일정이 드롭다운에 노출되고 선택 시 pickup_schedule_id가 저장된다", async () => {
+  it("게임 선택 시 결제일 기준 진행 중인 픽업 일정이 있으면 필드가 disabled 상태로 자동 바인딩되어 pickup_schedule_id가 저장된다", async () => {
     const onCompleted = vi.fn()
     render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} />)
     await screen.findByRole("option", { name: "Sample RPG" })
 
     fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
-    await screen.findByLabelText("픽업 선택 (선택 사항)")
-
-    // 픽업 선택
-    const pickupSelect = screen.getByLabelText("픽업 선택 (선택 사항)")
-    fireEvent.change(pickupSelect, { target: { value: "p1" } })
+    const pickupSelect = await screen.findByLabelText("연결된 픽업 일정")
+    expect(pickupSelect).toHaveProperty("disabled", true)
+    expect(screen.getByText(/신규 캐릭터 픽업/)).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "10000" } })
     fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
@@ -286,6 +284,30 @@ describe("ExpenseModal", () => {
       game_id: "g1",
       schedule_id: "s1",
       pickup_schedule_id: "p1",
+      memo: null,
+    }))
+  })
+
+  it("결제일이 픽업 기간 외에 속하면 '진행 중인 픽업 없음 (픽업 외 지출)'로 자동 매핑되고 pickup_schedule_id가 null로 저장된다", async () => {
+    const onCompleted = vi.fn()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} initialDate="2026-01-01" />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    const pickupSelect = await screen.findByLabelText("연결된 픽업 일정")
+    expect(pickupSelect).toHaveProperty("disabled", true)
+    expect(screen.getByText("진행 중인 픽업 없음 (픽업 외 지출)")).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "상시 뽑기" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "15000" } })
+    fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      game_id: "g1",
+      schedule_id: null,
+      pickup_schedule_id: null,
+      memo: null,
     }))
   })
 
@@ -326,7 +348,9 @@ describe("ExpenseModal", () => {
     await screen.findByRole("option", { name: "Sample RPG" })
 
     fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
-    await screen.findByText(/진행 중인 모든 배너에 동시 연계/)
+    const pickupSelect = await screen.findByLabelText("연결된 픽업 일정")
+    expect(pickupSelect).toHaveProperty("disabled", true)
+    expect(screen.getByRole("option", { name: /진행 중인 모든 배너에 동시 연계/ })).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "30000" } })
     fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))

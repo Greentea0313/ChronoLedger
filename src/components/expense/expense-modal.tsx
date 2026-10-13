@@ -233,11 +233,9 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     } else if (availablePickups.length === 1) {
       setPickupScheduleId(availablePickups[0].id)
     } else {
-      if (!pickupScheduleId || (pickupScheduleId !== "ALL_CURRENT" && !availablePickups.some((p) => p.id === pickupScheduleId))) {
-        setPickupScheduleId("ALL_CURRENT")
-      }
+      setPickupScheduleId("ALL_CURRENT")
     }
-  }, [availablePickups, pickupScheduleId])
+  }, [availablePickups])
 
   const updateCalculatedFinal = (orig: number, disc: number, pts: number) => {
     const calculated = Math.max(0, orig - disc - pts)
@@ -515,33 +513,36 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                         </select>
                       </div>
                       <div>
-                        <label htmlFor="expense-pickup" className={labelClassName}>픽업 선택 (선택 사항)</label>
+                        <label htmlFor="expense-pickup" className={labelClassName}>연결된 픽업 일정</label>
                         <select
                           id="expense-pickup"
-                          className={selectClassName}
+                          className={`${selectClassName} opacity-60 cursor-not-allowed`}
                           value={pickupScheduleId}
-                          onChange={(event) => setPickupScheduleId(event.target.value)}
+                          disabled
                         >
                           {availablePickups.length === 0 ? (
-                            <option value="">진행 중인 픽업 없음 (일반 지출)</option>
+                            <option value="">진행 중인 픽업 없음 (픽업 외 지출)</option>
+                          ) : availablePickups.length === 1 ? (
+                            <option value={availablePickups[0].id}>
+                              {availablePickups[0].title} ({availablePickups[0].start_date} ~ {availablePickups[0].end_date})
+                            </option>
                           ) : (
-                            <>
-                              {availablePickups.length > 1 && (
-                                <option value="ALL_CURRENT">
-                                  진행 중인 모든 배너에 동시 연계 ({availablePickups.map((p) => p.title).join(", ")})
-                                </option>
-                              )}
-                              {availablePickups.map((pickup) => (
-                                <option key={pickup.id} value={pickup.id}>
-                                  {pickup.title} ({pickup.start_date} ~ {pickup.end_date})
-                                </option>
-                              ))}
-                            </>
+                            <option value="ALL_CURRENT">
+                              진행 중인 모든 배너에 동시 연계 ({availablePickups.map((p) => p.title).join(", ")})
+                            </option>
                           )}
                         </select>
-                        {availablePickups.length > 1 && pickupScheduleId === "ALL_CURRENT" && (
+                        {availablePickups.length > 1 ? (
                           <p className="text-[11px] text-blue-400 mt-1">
-                            ※ 동시 진행 배너 모두에 연계 표시되며, 총 자산 차감 및 게임 전체 과금액은 1건(1x)만 계산됩니다.
+                            ※ 결제일 기준 진행 중인 모든 배너에 동시 연계되며, 자산 차감 및 총 과금액은 1건(1x)만 계산됩니다.
+                          </p>
+                        ) : availablePickups.length === 1 ? (
+                          <p className="text-[11px] text-blue-400 mt-1">
+                            ※ 결제일이 픽업 기간 내에 포함되어 해당 배너로 자동 연계됩니다.
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-gray-400 mt-1">
+                            ※ 결제일이 픽업 기간 외에 해당하여 픽업 외 지출(일반)로 자동 매핑됩니다.
                           </p>
                         )}
                       </div>
