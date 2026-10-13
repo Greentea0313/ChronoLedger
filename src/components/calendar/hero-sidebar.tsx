@@ -8,7 +8,14 @@ import { Pencil, Check, X } from "lucide-react"
 const PLATFORM_LABELS: Record<string, string> = {
   GOOGLE_PLAY: "Google",
   GALAXY_STORE: "Galaxy",
+  NAVER_PAY: "네이버페이",
   ONE_STORE: "OneStore",
+}
+
+const PLATFORM_ORDER: Record<string, number> = {
+  GOOGLE_PLAY: 1,
+  GALAXY_STORE: 2,
+  NAVER_PAY: 3,
 }
 
 export interface HeroExpenseItem {
@@ -48,6 +55,8 @@ interface HeroScheduleGroup {
   items: HeroScheduleItem[]
 }
 
+import { IncomeModal } from "@/components/finance/income-modal"
+
 export interface HeroSidebarProps {
   selectedDateLabel: string
   totalAsset: number | null
@@ -62,6 +71,29 @@ export interface HeroSidebarProps {
   onRegisterExpense?: () => void
   onSaveMemo?: (content: string) => Promise<void>
   registerDisabled?: boolean
+  onIncomeAdded?: () => void
+}
+
+export function ScheduleTitleBadges({ title }: { title: string }) {
+  if (!title) return null
+  if (title.includes("/")) {
+    const parts = title.split("/").map((p) => p.trim()).filter(Boolean)
+    if (parts.length > 1) {
+      return (
+        <span className="inline-flex flex-wrap items-center gap-1">
+          {parts.map((part, idx) => (
+            <span
+              key={idx}
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-surface border border-line text-content"
+            >
+              {part}
+            </span>
+          ))}
+        </span>
+      )
+    }
+  }
+  return <span>{title}</span>
 }
 
 export function HeroSidebarContent({
@@ -78,12 +110,14 @@ export function HeroSidebarContent({
   onRegisterExpense,
   onSaveMemo,
   registerDisabled,
+  onIncomeAdded,
 }: HeroSidebarProps) {
   const budgetProgress =
     budgetAmount > 0 ? Math.min(100, Math.round((expectedExpense / budgetAmount) * 100)) : 0
   const budgetRatio = budgetAmount > 0 ? expectedExpense / budgetAmount : 0
   const budgetTone = budgetRatio > 1 ? "bg-danger" : budgetRatio >= 0.8 ? "bg-warning" : "bg-primary"
 
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
   const [isEditingMemo, setIsEditingMemo] = useState(false)
   const currentMemoText = memoContent !== undefined ? memoContent : (memos[0] || "")
   const [memoInput, setMemoInput] = useState(currentMemoText)
@@ -145,8 +179,17 @@ export function HeroSidebarContent({
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle>요약</CardTitle>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/10"
+            onClick={() => setIsIncomeModalOpen(true)}
+          >
+            + 수익
+          </Button>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p>{`총 자산: ${totalAsset?.toLocaleString() ?? "-"} 원`}</p>
@@ -167,11 +210,14 @@ export function HeroSidebarContent({
           {wallets.length === 0 ? (
             <EmptyState message="지갑 정보가 없습니다." hint="설정에서 스토어 포인트를 등록해 보세요." />
           ) : (
-            wallets.map((wallet) => (
-              <p key={wallet.platform}>
-                {PLATFORM_LABELS[wallet.platform] ?? wallet.platform}: {wallet.current_balance.toLocaleString()}P
-              </p>
-            ))
+            [...wallets]
+              .sort((a, b) => (PLATFORM_ORDER[a.platform] ?? 99) - (PLATFORM_ORDER[b.platform] ?? 99))
+              .map((wallet) => (
+                <p key={wallet.platform}>
+                  {PLATFORM_LABELS[wallet.platform] ?? wallet.platform}: {wallet.current_balance.toLocaleString()}
+                  {wallet.platform === "NAVER_PAY" ? "원" : "P"}
+                </p>
+              ))
           )}
         </CardContent>
       </Card>
@@ -245,7 +291,16 @@ export function HeroSidebarContent({
                       <ul className="relative z-10 flex flex-col gap-0.5">
                         {group.items.map((item) => (
                           <li key={item.id} className="leading-snug">
-                            <div className="font-bold text-sm text-content">{`• ${item.title}`}</div>
+                            <div className="font-bold text-sm text-content">
+                              {item.title.includes("/") ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <span>•</span>
+                                  <ScheduleTitleBadges title={item.title} />
+                                </span>
+                              ) : (
+                                `• ${item.title}`
+                              )}
+                            </div>
                             {item.memo && (
                               <p className="pl-3 text-[11px] text-content-secondary whitespace-pre-wrap">
                                 {item.memo}
@@ -257,7 +312,7 @@ export function HeroSidebarContent({
                     ) : (
                       <>
                         <div className="relative z-10 font-bold text-sm text-content leading-snug">
-                          {group.items[0].title}
+                          <ScheduleTitleBadges title={group.items[0].title} />
                         </div>
 
                         {/* Line 4: 메모 (있는 경우) */}
@@ -382,6 +437,13 @@ export function HeroSidebarContent({
           </section>
         </CardContent>
       </Card>
+
+      {/* 수익 추가 모달 */}
+      <IncomeModal
+        open={isIncomeModalOpen}
+        onOpenChange={setIsIncomeModalOpen}
+        onCompleted={onIncomeAdded}
+      />
     </div>
   )
 }

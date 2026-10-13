@@ -1,6 +1,44 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
-## 정기 구독 템플릿 정렬 및 구독 게임 가나다순 정렬·12개 단위 페이지네이션 구현 (2026-10-13)
+## 다중 픽업 배너 1x 회계 방어·수익 추가·앱 아이콘 및 13가지 종합 UX 개선 (2026-10-13)
+
+- **결정 및 배경**:
+  - **1x 회계 정합성 방어 & 복수 픽업 바인딩**:
+    - 동일 기간 내 동일 게임에 2개 이상의 픽업 배너가 열려 있는 경우, 지출 등록 시 `[진행 중인 모든 배너에 동시 연계]`를 지원.
+    - 단일 지출 레코드(실제 결제액 1건)를 기반으로 하여 총 자산 차감(-1x), 게임 총 과금액(+1x), 카테고리 지출액(+1x)이 절대 2배(2x) 중복 계산되지 않도록 엄격히 방어.
+    - 지출 목록 및 픽업 통계 차트에서는 각 픽업 배너에 동시 연계 뱃지 및 통계를 표시하고 명확한 안내 문구(`※ 동일 기간 복수 배너 지출은 각 배너 항목에 동시 연계되며, 게임 전체 과금액 및 총 자산 차감은 1회(1x)만 정상 합산됩니다`) 제공.
+    - 진행 중인 픽업이 없을 때는 자동으로 `[일반]` 지출로 처리되어 `[버전 일반]` $\to$ `[일반]` 라벨 일원화.
+  - **수익(급여, 용돈 등) 추가 기능 신설**:
+    - `IncomeModal` 컴포넌트(`src/components/finance/income-modal.tsx`) 생성.
+    - 소비 페이지(`/dashboard/expenses`) 상단 헤더에 `[+ 수익 추가]` 버튼(에메랄드) 및 대시보드 사이드바(`hero-sidebar.tsx`) 요약 카드에 `[+ 수익]` 버튼 배치.
+    - 급여/용돈/상여금/금융수익/기타 선택, 실시간 총 자산 증액 프리뷰 및 `set_user_finance_settings` RPC를 통한 자산 안전 증액 연동.
+  - **앱 아이콘 및 PWA 마스커블 아이콘 Safe Zone / 파비콘 정비**:
+    - 안드로이드/PWA Adaptive Icon 원형 마스크(지름 80% 안전 구역)에 맞추어 `scripts/generate_icons.py`에서 `k=0.75` 축소 및 maskable 생성 시 외곽 테두리 사각형 제거(이중 프레임 방지).
+    - `public/favicon.ico`(16, 32, 48 멀티사이즈) 생성 및 `layout.tsx` metadata icons 연결.
+  - **소비 페이지 7일 경과 과거 기록 분리 및 오름차순 정렬**:
+    - `today <= end_date + 7`은 기본 내역, `today > end_date + 7`은 헤더 우측 `[과거 기록 (N건)]` 버튼으로 토글 분리.
+    - 유효 날짜(`start_date < end_date`이면 `end_date`, 그 외 `target_date`) 기준 오름차순(과거 $\to$ 미래) 정렬.
+    - 정기 구독 탭 카테고리 필터 `[전체/게임/기타]` 드롭다운 추가.
+  - **캘린더 & 사이드바 UI 개선**:
+    - Netlify(`/`) 접속 시 `/auth` 리다이렉트 지연 해결 (`public/_redirects` 302 규칙 추가 및 meta refresh/인라인 스크립트 적용).
+    - 달력 타일 높이 균일화(`h-[54px] md:h-[100px]`), 모바일 달력 dot icon(일정=primary, 메모=muted) 간소화.
+    - 모바일 일자 선택 후 메모 작성 드로어 버튼 연결.
+    - 우측 사이드바 스토어 포인트 순서 고정(Google $\to$ Galaxy $\to$ 네이버페이) 및 네이버페이 '원' 단위 분기 표기.
+    - 명일방주 등 슬래시(`/`) 구분 다중 캐릭터 배너 뱃지 분리 표시(`ScheduleTitleBadges`).
+    - 관리자 페이지(`/admin`) 공식 일정 카드 좌측 배경에 게임 아이콘 그라데이션 마스킹 적용.
+- **수행 내역**:
+  - `public/_redirects`, `src/app/page.tsx`
+  - `public/favicon.ico`, `public/icons/*`, `scripts/generate_icons.py`, `src/app/layout.tsx`
+  - `src/components/finance/income-modal.tsx`, `income-modal.test.tsx`
+  - `src/components/expense/expense-modal.tsx`, `expense-modal.test.tsx`
+  - `src/app/dashboard/expenses/page.tsx`, `expenses/page.test.tsx`
+  - `src/components/calendar/hero-sidebar.tsx`, `hero-sidebar.test.tsx`
+  - `src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`
+  - `src/app/admin/page.tsx`
+- **검증 증거**:
+  - `npx vitest run`: 39개 테스트 스위트 / 189개 테스트 전체 통과 (100% PASS).
+  - `npx tsc --noEmit`: TypeScript 검증 에러 0건 (완전 무결).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
 
 - **결정 및 배경**:
   - `/dashboard/expenses` 정기 구독 탭: 사용자 요청에 따라 정기 구독 템플릿 목록의 정렬 순서를 `[게임]` 그룹(게임별 묶음, 가나다순) $\to$ `[정기 구독]` 그룹(고정 결제일 오름차순 $\to$ 누적 충전형)으로 일원화.
@@ -242,6 +280,15 @@
 - **생성**: `scripts/generate_icons.py`를 1A 스펙으로 교체(바탕 `#0F1115`, C `#F5B942`, 바늘 `#7C8CFF`, 도트 `#4CD6A5`, SVG round-cap 재현용 끝점 디스크).
   `public/icons/icon-{512,192,180,maskable-512}.png` 4종 재생성 및 192px 실물 확인.
 - **미세 보정**: 소형 렌더에서 메모 도트가 링에 닿아 보여 `(414,256)→(420,256)` 이동, v3 미리보기 1A 5곳 동기화.
+  이후 PNG 실측 대조에서 미리보기의 안쪽 테두리(`#2A2F3A` 프레임) 누락을 발견해 생성기에 `rounded_rectangle` 프레임을 추가하고 4종 재생성.
+  사용자 대조에서 v3 시안 작성 시 링을 64px로 굵게 그린 것이 결정 1A(얇은 링)와 다르다는 지적을 받아
+  기존 임시 아이콘 실측치(링 R158/굵기 32, 바늘 23, 틈 43도)로 되돌리고 1A 토큰 색·메모 도트(r16)·프레임만 유지해 4종 재생성, v3 미리보기 1A 5곳 동기화.
+- **링 끝 캡 버그 수정**: PIL `arc`+원반 방식이 곡선 안쪽으로 불거져 링 끝에 노란 도트가 달린 것처럼 렌더됨을 확대 검증으로 확인.
+  링을 마스크 합성(밴드−틈 쐐기+바깥 반원 캡)으로 다시 짜 SVG `linecap=round`와 일치시킴. `arc`/`pieslice` 각도 기준 불일치도 실측으로 확인.
+- **병행 세션 주의**: 동일 트리에서 다른 세션이 작업 중. `generate_icons.py`에 favicon.ico 생성·maskable(k=0.75, 프레임 없음) 추가,
+  `layout.tsx`에 favicon 연결, 그 외 expenses/calendar 등 다수 수정. 아이콘 최종안(thick/thin) 결정 후 해당안으로 4종+favicon 재생성 필요.
+- **최종 결정 A (thick)**: 승인 1A 원문 수치로 확정. 캡 수정된 생성기로 4종+favicon 재생성, 픽셀 실측(바탕·링·바늘 색 정확, 도트 (419,255)) 및
+  캡 확대 검증 완료. v3 미리보기 1A 5곳 원문 수치로 원복.
 - **연결**: `src/app/layout.tsx:10-11`(manifest + icon-192/apple-180), `public/manifest.json:13-16` 기존 참조 유지, 코드 변경 없음.
 - **다음**: PWA 설치·마스크블 크롭 실기기 확인은 Android 검증 보류 결정에 따라 후순위.
 

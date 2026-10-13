@@ -228,8 +228,14 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   }, [paymentDate, pickupSchedules])
 
   useEffect(() => {
-    if (pickupScheduleId && !availablePickups.some((p) => p.id === pickupScheduleId)) {
+    if (availablePickups.length === 0) {
       setPickupScheduleId("")
+    } else if (availablePickups.length === 1) {
+      setPickupScheduleId(availablePickups[0].id)
+    } else {
+      if (!pickupScheduleId || (pickupScheduleId !== "ALL_CURRENT" && !availablePickups.some((p) => p.id === pickupScheduleId))) {
+        setPickupScheduleId("ALL_CURRENT")
+      }
     }
   }, [availablePickups, pickupScheduleId])
 
@@ -380,13 +386,22 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
       let expenseId = plannedExpense?.id ?? pendingExpenseId.current
       if (!expenseId) {
         const schedule = isGameCategory ? (matchingVersion ?? undefined) : undefined
+        const isAllCurrent = pickupScheduleId === "ALL_CURRENT"
+        const effectivePickupId = isAllCurrent
+          ? (availablePickups[0]?.id ?? null)
+          : (pickupScheduleId || null)
+        const linkedIds = isAllCurrent
+          ? availablePickups.map((p) => p.id)
+          : (effectivePickupId ? [effectivePickupId] : [])
+        const pickupMeta = linkedIds.length > 1 ? `[PICKUPS:${linkedIds.join(",")}]` : null
+
         const { data, error: insertError } = await supabase
           .from("expenses")
           .insert({
             user_id: user.id,
             game_id: isGameCategory && gameId ? gameId : null,
             schedule_id: schedule?.id ?? null,
-            pickup_schedule_id: isGameCategory && pickupScheduleId ? pickupScheduleId : null,
+            pickup_schedule_id: isGameCategory ? effectivePickupId : null,
             title: title.trim(),
             category,
             status: "PLANNED",
@@ -397,6 +412,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             final_amount: input.originalPrice,
             payment_method: paymentMethod,
             deduct_from_asset: effectiveDeductAsset,
+            memo: pickupMeta,
           })
           .select("id")
           .single()
@@ -506,13 +522,28 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                           value={pickupScheduleId}
                           onChange={(event) => setPickupScheduleId(event.target.value)}
                         >
-                          <option value="">픽업 선택 안 함 (버전 일반 지출)</option>
-                          {availablePickups.map((pickup) => (
-                            <option key={pickup.id} value={pickup.id}>
-                              {pickup.title} ({pickup.start_date} ~ {pickup.end_date})
-                            </option>
-                          ))}
+                          {availablePickups.length === 0 ? (
+                            <option value="">진행 중인 픽업 없음 (일반 지출)</option>
+                          ) : (
+                            <>
+                              {availablePickups.length > 1 && (
+                                <option value="ALL_CURRENT">
+                                  진행 중인 모든 배너에 동시 연계 ({availablePickups.map((p) => p.title).join(", ")})
+                                </option>
+                              )}
+                              {availablePickups.map((pickup) => (
+                                <option key={pickup.id} value={pickup.id}>
+                                  {pickup.title} ({pickup.start_date} ~ {pickup.end_date})
+                                </option>
+                              ))}
+                            </>
+                          )}
                         </select>
+                        {availablePickups.length > 1 && pickupScheduleId === "ALL_CURRENT" && (
+                          <p className="text-[11px] text-blue-400 mt-1">
+                            ※ 동시 진행 배너 모두에 연계 표시되며, 총 자산 차감 및 게임 전체 과금액은 1건(1x)만 계산됩니다.
+                          </p>
+                        )}
                       </div>
                     </>
                   )}

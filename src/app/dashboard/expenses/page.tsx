@@ -17,9 +17,10 @@ import { getKstToday } from "@/lib/dashboard-date"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ExpensesPageSkeleton } from "@/components/ui/page-skeletons"
 import { isOffline } from "@/lib/offline-guard"
-import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Trash2, History } from "lucide-react"
 
 import { preloadImages } from "@/lib/icon-preload"
+import { IncomeModal } from "@/components/finance/income-modal"
 
 const EXPENSES_PER_PAGE = 10
 const SUBSCRIPTIONS_PER_PAGE = 12
@@ -49,7 +50,7 @@ import {
 } from "recharts"
 
 const EXPENSE_COLUMNS =
-  "id, title, final_amount, status, cancellation_kind, target_date, end_date, game_id, schedule_id, pickup_schedule_id, template_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, point_platform, deduct_from_asset, memo, games(name, default_icon_url)"
+  "id, title, final_amount, status, cancellation_kind, target_date, start_date, end_date, game_id, schedule_id, pickup_schedule_id, template_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, point_platform, deduct_from_asset, memo, games(name, default_icon_url)"
 
 interface ExpenseRow {
   id: string
@@ -58,6 +59,7 @@ interface ExpenseRow {
   status: "PLANNED" | "CONFIRMED" | "CANCELLED"
   cancellation_kind?: "PLANNED_CANCEL" | "TEMPLATE_DEACTIVATION" | "PAYMENT_REFUND" | null
   target_date: string
+  start_date?: string | null
   end_date: string | null
   game_id: string | null
   schedule_id?: string | null
@@ -130,6 +132,7 @@ export default function ExpensesPage() {
 
   // 모달 제어 상태
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<SubscriptionTemplateRow | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<SubscriptionTemplateRow | null>(null)
@@ -282,8 +285,24 @@ export default function ExpensesPage() {
     })
   }, [templates])
 
+  const [subscriptionFilter, setSubscriptionFilter] = useState<"ALL" | "GAME" | "OTHER">("ALL")
+
+  const filteredTemplates = useMemo(() => {
+    if (subscriptionFilter === "GAME") {
+      return sortedTemplates.filter((t) => t.category === "게임" || Boolean(t.game_id))
+    }
+    if (subscriptionFilter === "OTHER") {
+      return sortedTemplates.filter((t) => t.category !== "게임" && !t.game_id)
+    }
+    return sortedTemplates
+  }, [sortedTemplates, subscriptionFilter])
+
   const [currentSubscriptionPage, setCurrentSubscriptionPage] = useState(1)
-  const totalSubscriptionPages = Math.max(1, Math.ceil(sortedTemplates.length / SUBSCRIPTIONS_PER_PAGE))
+  const totalSubscriptionPages = Math.max(1, Math.ceil(filteredTemplates.length / SUBSCRIPTIONS_PER_PAGE))
+
+  useEffect(() => {
+    setCurrentSubscriptionPage(1)
+  }, [subscriptionFilter])
 
   useEffect(() => {
     if (currentSubscriptionPage > totalSubscriptionPages) {
@@ -293,8 +312,8 @@ export default function ExpensesPage() {
 
   const paginatedTemplates = useMemo(() => {
     const start = (currentSubscriptionPage - 1) * SUBSCRIPTIONS_PER_PAGE
-    return sortedTemplates.slice(start, start + SUBSCRIPTIONS_PER_PAGE)
-  }, [sortedTemplates, currentSubscriptionPage])
+    return filteredTemplates.slice(start, start + SUBSCRIPTIONS_PER_PAGE)
+  }, [filteredTemplates, currentSubscriptionPage])
 
   // 통계: 오직 CONFIRMED 지출만 집계
   const categoryData = useMemo(() => {
@@ -348,6 +367,20 @@ export default function ExpensesPage() {
     return Array.from(gamesMap.entries()).map(([id, name]) => ({ id, name }))
   }, [expenses])
 
+  // 지출에 연결된 픽업 스케줄 ID 목록 (메모 내 [PICKUPS:id1,id2] 메타데이터 또는 pickup_schedule_id)
+  const getExpensePickupIds = useCallback((expense: ExpenseRow): string[] => {
+    if (expense.memo) {
+      const match = expense.memo.match(/\[PICKUPS:([^\]]+)\]/)
+      if (match && match[1]) {
+        return match[1].split(",").map((s) => s.trim()).filter(Boolean)
+      }
+    }
+    if (expense.pickup_schedule_id) {
+      return [expense.pickup_schedule_id]
+    }
+    return []
+  }, [])
+
   // 픽업별 소비 통계 (오직 CONFIRMED + category === '게임')
   const pickupStatsData = useMemo(() => {
     const targetExpenses = expenses.filter((exp) => {
@@ -360,36 +393,50 @@ export default function ExpensesPage() {
     let totalGameSpent = 0
 
     for (const exp of targetExpenses) {
+      // 1x 회계 원칙: 각 지출 레코드는 실제 결제액 기준 단 1회만 합산 (복수 배너 연계 시에도 중복 합산 절대 방지)
       totalGameSpent += exp.final_amount
-      let key = "GENERAL"
-      let name = "버전 일반"
-      let isPickup = false
 
-      if (exp.pickup_schedule_id && schedulesMap.has(exp.pickup_schedule_id)) {
-        const sched = schedulesMap.get(exp.pickup_schedule_id)!
-        key = sched.id
-        name = sched.title
-        isPickup = true
-      }
-
-      const existing = groupMap.get(key)
-      if (existing) {
-        existing.amount += exp.final_amount
-        existing.count += 1
+      const pickupIds = getExpensePickupIds(exp)
+      if (pickupIds.length === 0) {
+        const existing = groupMap.get("GENERAL")
+        if (existing) {
+          existing.amount += exp.final_amount
+          existing.count += 1
+        } else {
+          groupMap.set("GENERAL", {
+            key: "GENERAL",
+            name: "일반",
+            amount: exp.final_amount,
+            count: 1,
+            isPickup: false,
+          })
+        }
       } else {
-        groupMap.set(key, {
-          key,
-          name,
-          amount: exp.final_amount,
-          count: 1,
-          isPickup,
-        })
+        // 복수 배너가 존재하는 경우 모든 해당 배너 항목에 지출을 연계 반영
+        for (const pId of pickupIds) {
+          const sched = schedulesMap.get(pId)
+          const key = pId
+          const name = sched?.title || "픽업"
+          const existing = groupMap.get(key)
+          if (existing) {
+            existing.amount += exp.final_amount
+            existing.count += 1
+          } else {
+            groupMap.set(key, {
+              key,
+              name,
+              amount: exp.final_amount,
+              count: 1,
+              isPickup: true,
+            })
+          }
+        }
       }
     }
 
     const list = Array.from(groupMap.values()).map((item) => ({
       ...item,
-      percent: totalGameSpent > 0 ? Math.round((item.amount / totalGameSpent) * 100) : 0,
+      percent: totalGameSpent > 0 ? Math.min(100, Math.round((item.amount / totalGameSpent) * 100)) : 0,
     }))
 
     // 금액 내림차순 정렬
@@ -400,10 +447,54 @@ export default function ExpensesPage() {
       list,
       hasData: list.length > 0,
     }
-  }, [expenses, selectedPickupGameFilter, schedulesMap])
+  }, [expenses, selectedPickupGameFilter, schedulesMap, getExpensePickupIds])
+
+  // 1. 각 지출의 정렬 및 기간 판정 기준 날짜 (start_date < end_date 인 내역이라면 end_date 를 기준, 그 외는 target_date)
+  const getExpenseEffectiveDate = (expense: ExpenseRow): string => {
+    if (expense.start_date && expense.end_date && expense.start_date < expense.end_date) {
+      return expense.end_date
+    }
+    return expense.target_date
+  }
+
+  // 2. 전체 지출 내역 날짜 기준 오름차순(과거 -> 미래) 정렬 (동일 날짜는 기존 순서 유지)
+  const sortedExpenses = useMemo(() => {
+    return [...expenses].sort((a, b) => {
+      const dateA = getExpenseEffectiveDate(a)
+      const dateB = getExpenseEffectiveDate(b)
+      if (dateA !== dateB) return dateA.localeCompare(dateB)
+      return 0
+    })
+  }, [expenses])
+
+  // 3. (today <= end_date + 7) 기본 노출 vs (today > end_date + 7) 과거 기록 분리
+  const { activeExpenses, pastExpenses } = useMemo(() => {
+    const today = getKstToday()
+    const active: ExpenseRow[] = []
+    const past: ExpenseRow[] = []
+
+    for (const exp of sortedExpenses) {
+      const effDate = getExpenseEffectiveDate(exp)
+      const cutoffDate = addDays(effDate, 7)
+      if (today <= cutoffDate) {
+        active.push(exp)
+      } else {
+        past.push(exp)
+      }
+    }
+
+    return { activeExpenses: active, pastExpenses: past }
+  }, [sortedExpenses])
+
+  const [showPastExpenses, setShowPastExpenses] = useState(false)
+  const displayedExpenses = showPastExpenses ? pastExpenses : activeExpenses
 
   // 전체 지출 내역 페이지네이션 계산
-  const totalExpensePages = Math.max(1, Math.ceil(expenses.length / EXPENSES_PER_PAGE))
+  const totalExpensePages = Math.max(1, Math.ceil(displayedExpenses.length / EXPENSES_PER_PAGE))
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [showPastExpenses])
 
   useEffect(() => {
     if (currentPage > totalExpensePages) {
@@ -413,8 +504,8 @@ export default function ExpensesPage() {
 
   const paginatedExpenses = useMemo(() => {
     const start = (currentPage - 1) * EXPENSES_PER_PAGE
-    return expenses.slice(start, start + EXPENSES_PER_PAGE)
-  }, [expenses, currentPage])
+    return displayedExpenses.slice(start, start + EXPENSES_PER_PAGE)
+  }, [displayedExpenses, currentPage])
 
   // 액션 핸들러
   const handleAddExpense = () => {
@@ -649,12 +740,20 @@ export default function ExpensesPage() {
         </div>
         <div className="flex items-center gap-2">
           {activeTab === "expenses" ? (
-            <Button
-              onClick={handleAddExpense}
-              className="h-10 bg-primary hover:bg-primary-hover text-white font-medium"
-            >
-              + 지출 추가
-            </Button>
+            <>
+              <Button
+                onClick={() => setIsIncomeModalOpen(true)}
+                className="h-10 bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+              >
+                + 수익 추가
+              </Button>
+              <Button
+                onClick={handleAddExpense}
+                className="h-10 bg-primary hover:bg-primary-hover text-white font-medium"
+              >
+                + 지출 추가
+              </Button>
+            </>
           ) : (
             <Button
               onClick={handleAddSubscription}
@@ -795,7 +894,10 @@ export default function ExpensesPage() {
               <div>
                 <CardTitle>게임 픽업별 과금 분석</CardTitle>
                 <p className="text-xs text-content-secondary mt-1">
-                  확정 결제 기준 픽업별 소비액과 비중을 분석합니다. 미지정 지출은 &apos;버전 일반&apos;으로 집계됩니다.
+                  확정 결제 기준 픽업별 소비액과 비중을 분석합니다. 미지정 지출은 &apos;일반&apos;으로 집계됩니다.
+                </p>
+                <p className="text-[11px] text-info/90 mt-0.5">
+                  ※ 동일 기간 복수 픽업 진행 지출은 각 배너에 동시 연계되며, 게임 전체 과금액 및 총 자산에는 1회(1x)만 정상 합산됩니다.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -861,7 +963,7 @@ export default function ExpensesPage() {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={(value: any, _name: any, props: any) => [
                               `${Number(value).toLocaleString()} 원 (${props.payload.percent}%)`,
-                              props.payload.isPickup ? "픽업 과금액" : "버전 일반 지출",
+                              props.payload.isPickup ? "픽업 과금액" : "일반 지출",
                             ]}
                           />
                           <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={24}>
@@ -928,12 +1030,31 @@ export default function ExpensesPage() {
 
           {/* 전체 지출 내역 목록 영역 */}
           <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle>전체 지출 내역</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-line">
+              <div>
+                <CardTitle>{showPastExpenses ? "과거 지출 기록" : "전체 지출 내역"}</CardTitle>
+                <p className="text-xs text-content-secondary mt-1">
+                  {showPastExpenses
+                    ? `종료일 기준 7일이 경과한 지난 지출 내역입니다. (총 ${pastExpenses.length}건)`
+                    : `진행 중이거나 최근 7일 이내 및 예정 지출 내역입니다. (총 ${activeExpenses.length}건)`}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPastExpenses((prev) => !prev)}
+                className="text-xs h-8 px-2.5 flex items-center gap-1.5 shrink-0"
+              >
+                <History className="h-3.5 w-3.5" />
+                {showPastExpenses ? "최근 내역 보기" : `과거 기록 (${pastExpenses.length})`}
+              </Button>
             </CardHeader>
-            <CardContent>
-              {expenses.length === 0 ? (
-                <EmptyState message="지출 내역이 없습니다." hint="우측 상단 '+ 지출 추가' 버튼으로 새 지출을 등록해 보세요." />
+            <CardContent className="pt-4">
+              {displayedExpenses.length === 0 ? (
+                <EmptyState
+                  message={showPastExpenses ? "과거 지출 내역이 없습니다." : "최근 지출 내역이 없습니다."}
+                  hint={showPastExpenses ? "'최근 내역 보기'를 눌러 돌아갈 수 있습니다." : "우측 상단 '+ 지출 추가' 버튼으로 새 지출을 등록해 보세요."}
+                />
               ) : (
                 <>
                   {/* Desktop Table View */}
@@ -968,11 +1089,17 @@ export default function ExpensesPage() {
                                   </div>
                                 )}
                                 <span className="font-medium text-content">{expense.title}</span>
-                                {expense.pickup_schedule_id && schedulesMap.has(expense.pickup_schedule_id) && (
-                                  <span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/15 text-primary border border-primary/30">
-                                    {schedulesMap.get(expense.pickup_schedule_id)!.title}
-                                  </span>
-                                )}
+                                {getExpensePickupIds(expense).map((pId) => {
+                                  if (!schedulesMap.has(pId)) return null
+                                  return (
+                                    <span
+                                      key={pId}
+                                      className="inline-block px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/15 text-primary border border-primary/30"
+                                    >
+                                      {schedulesMap.get(pId)!.title}
+                                    </span>
+                                  )
+                                })}
                               </div>
                             </td>
                             <td className="py-3 text-content-secondary">{expense.category}</td>
@@ -1064,11 +1191,17 @@ export default function ExpensesPage() {
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="font-semibold text-content">{expense.title}</p>
-                              {expense.pickup_schedule_id && schedulesMap.has(expense.pickup_schedule_id) && (
-                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary border border-primary/30">
-                                  {schedulesMap.get(expense.pickup_schedule_id)!.title}
-                                </span>
-                              )}
+                              {getExpensePickupIds(expense).map((pId) => {
+                                if (!schedulesMap.has(pId)) return null
+                                return (
+                                  <span
+                                    key={pId}
+                                    className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary border border-primary/30"
+                                  >
+                                    {schedulesMap.get(pId)!.title}
+                                  </span>
+                                )
+                              })}
                             </div>
                             <p className="text-xs text-content-secondary mt-0.5">
                               {expense.target_date} · {expense.category} ·{" "}
@@ -1140,9 +1273,9 @@ export default function ExpensesPage() {
                   {/* 페이지네이션 바 */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-line text-xs text-content-secondary">
                     <div data-testid="pagination-info">
-                      총 <span className="font-semibold text-content">{expenses.length.toLocaleString()}</span>건 중{" "}
+                      총 <span className="font-semibold text-content">{displayedExpenses.length.toLocaleString()}</span>건 중{" "}
                       <span className="font-semibold text-content">
-                        {(currentPage - 1) * EXPENSES_PER_PAGE + 1} - {Math.min(currentPage * EXPENSES_PER_PAGE, expenses.length)}
+                        {(currentPage - 1) * EXPENSES_PER_PAGE + 1} - {Math.min(currentPage * EXPENSES_PER_PAGE, displayedExpenses.length)}
                       </span>
                       건 표시 (페이지 <span className="font-semibold text-content">{currentPage}</span> / {totalExpensePages})
                     </div>
@@ -1209,19 +1342,39 @@ export default function ExpensesPage() {
 
         {/* 탭 2: 정기 구독 탭 */}
         <TabsContent value="subscriptions" className="space-y-4 mt-6">
-          <div>
-            <h2 className="text-lg font-bold text-content">정기 구독</h2>
-            <p className="text-xs text-content-secondary mt-0.5">
-              매월 고정 결제, 누적 충전형, 게임 버전 패스를 관리합니다.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-content">정기 구독</h2>
+              <p className="text-xs text-content-secondary mt-0.5">
+                매월 고정 결제, 누적 충전형, 게임 버전 패스를 관리합니다.
+              </p>
+            </div>
+            {templates.length > 0 && (
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                <label htmlFor="subscription-filter" className="text-xs text-content-secondary whitespace-nowrap">
+                  카테고리:
+                </label>
+                <select
+                  id="subscription-filter"
+                  className="h-8 rounded-md border border-line bg-surface-2 px-2.5 text-xs text-content focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                  value={subscriptionFilter}
+                  onChange={(e) => setSubscriptionFilter(e.target.value as "ALL" | "GAME" | "OTHER")}
+                  aria-label="정기 구독 카테고리 필터"
+                >
+                  <option value="ALL">전체 ({sortedTemplates.length})</option>
+                  <option value="GAME">게임 ({sortedTemplates.filter((t) => t.category === "게임" || Boolean(t.game_id)).length})</option>
+                  <option value="OTHER">기타 ({sortedTemplates.filter((t) => t.category !== "게임" && !t.game_id).length})</option>
+                </select>
+              </div>
+            )}
           </div>
 
-          {templates.length === 0 ? (
+          {filteredTemplates.length === 0 ? (
             <Card>
               <CardContent className="p-8">
                 <EmptyState
-                  message="등록된 정기 구독이 없습니다."
-                  hint="우측 상단 '+ 구독 추가' 버튼을 눌러 정기 결제 항목을 등록하세요."
+                  message={templates.length === 0 ? "등록된 정기 구독이 없습니다." : "선택한 카테고리의 정기 구독이 없습니다."}
+                  hint={templates.length === 0 ? "우측 상단 '+ 구독 추가' 버튼을 눌러 정기 결제 항목을 등록하세요." : "카테고리 필터를 '전체'로 변경해 보세요."}
                 />
               </CardContent>
             </Card>
@@ -1356,7 +1509,7 @@ export default function ExpensesPage() {
               {totalSubscriptionPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3">
                   <p className="text-xs text-content-secondary">
-                    전체 {sortedTemplates.length}개 구독 중{" "}
+                    전체 {filteredTemplates.length}개 구독 중{" "}
                     <span className="font-semibold text-content">
                       {currentSubscriptionPage} / {totalSubscriptionPages}
                     </span>{" "}
@@ -1426,6 +1579,15 @@ export default function ExpensesPage() {
         onOpenChange={setIsExpenseModalOpen}
         onCompleted={handleModalCompleted}
         plannedExpense={payingExpense}
+      />
+
+      {/* 수익(자산 증액) 추가 모달 */}
+      <IncomeModal
+        open={isIncomeModalOpen}
+        onOpenChange={setIsIncomeModalOpen}
+        onCompleted={() => {
+          void loadExpenses()
+        }}
       />
 
       {/* 결제 취소/환불 모달 */}

@@ -88,16 +88,17 @@ export function DesktopCalendar({
               onClick={() => onSelectDate(day.date)}
               aria-label={day.date}
               aria-pressed={isSelected}
-              className={`relative flex flex-col justify-between min-h-[72px] md:min-h-[96px] overflow-hidden rounded-md border p-1 md:p-1.5 text-left transition-colors duration-fast ${
+              className={`relative flex flex-col justify-between h-[54px] md:h-[100px] overflow-hidden rounded-md border p-1 md:p-1.5 text-left transition-colors duration-fast ${
                 isSelected
                   ? "border-primary bg-primary/15"
                   : "border-line bg-app hover:border-line-control"
               } ${day.inCurrentMonth ? "text-content" : "text-content-muted opacity-60"}`}
             >
-              {/* Top row: Day number on left, Game icons and Memo on right */}
+              {/* Top row: Day number on left, Game icons and Memo on right (Desktop) / Dots on Mobile */}
               <div className="flex items-start justify-between w-full">
                 <span className="text-xs md:text-sm font-semibold leading-none">{day.day}</span>
-                <div className="flex flex-col gap-0.5 items-end">
+                {/* Desktop: Game icons & memo dot */}
+                <div className="hidden md:flex flex-col gap-0.5 items-end">
                   {day.icons.slice(0, 3).map((icon) => (
                     <span
                       key={`${day.date}-${icon.gameId}`}
@@ -119,10 +120,20 @@ export function DesktopCalendar({
                   ))}
                   {day.hasMemo && <span className="h-2 w-2 rounded-full bg-content-muted mr-0.5 mt-0.5" />}
                 </div>
+
+                {/* Mobile only: Small dots for game schedules and memo in top right */}
+                <div className="flex md:hidden items-center gap-1">
+                  {day.schedules.length > 0 && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" title="게임 일정 있음" />
+                  )}
+                  {day.hasMemo && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-content-muted" title="메모 있음" />
+                  )}
+                </div>
               </div>
 
-              {/* Bottom-left: VERSION, PICKUP, CONTENTS tags (strictly in this order, start_date only) */}
-              <div className="flex flex-col gap-0.5 items-start mt-auto pt-1 z-10">
+              {/* Desktop Bottom-left: VERSION, PICKUP, CONTENTS tags (Hidden on mobile) */}
+              <div className="hidden md:flex flex-col gap-0.5 items-start mt-auto pt-1 z-10">
                 {(() => {
                   const hasVersion = day.schedules.some((s) => s.schedule_type === "VERSION" && s.is_start_date)
                   const hasPickup = day.schedules.some((s) => s.schedule_type === "PICKUP" && s.is_start_date)

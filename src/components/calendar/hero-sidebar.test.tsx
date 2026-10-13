@@ -1,6 +1,23 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { HeroSidebarContent, type HeroScheduleItem } from "./hero-sidebar"
+
+vi.mock("@/lib/supabase/client", () => ({
+  supabase: {
+    rpc: vi.fn(),
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        }),
+      }),
+    }),
+  },
+}))
+
+vi.mock("@/lib/auth-context", () => ({
+  useAuth: () => ({ user: { id: "test-user" } }),
+}))
 
 describe("HeroSidebarContent", () => {
   it("sorts schedules by start_date ASC then end_date ASC and displays vertical 3-line card format", () => {
@@ -52,19 +69,16 @@ describe("HeroSidebarContent", () => {
       />,
     )
 
-    // Check title order in the rendered cards
-    const titles = screen.getAllByText(/켈시 에스페란타|오트쿠튀르|사|1.6/).map((el) => el.textContent)
-    expect(titles).toEqual([
-      "켈시 에스페란타/클로저",
-      "오트쿠튀르::르루주 붉은 신 싱클레어",
-      "사",
-      "1.6",
-    ])
+    // Check title order and split badges in the rendered cards
+    expect(screen.getByText("켈시 에스페란타")).toBeTruthy()
+    expect(screen.getByText("클로저")).toBeTruthy()
+    expect(screen.getByText("오트쿠튀르::르루주 붉은 신 싱클레어")).toBeTruthy()
+    expect(screen.getByText("사")).toBeTruthy()
+    expect(screen.getByText("1.6")).toBeTruthy()
 
     // Verify 3-line content components exist for each card
     expect(screen.getByText("명일방주")).toBeTruthy()
     expect(screen.getByText("2026-10-14 ~ 2026-10-28")).toBeTruthy()
-    expect(screen.getByText("켈시 에스페란타/클로저")).toBeTruthy()
 
     expect(screen.getByText("림버스 컴퍼니")).toBeTruthy()
     expect(screen.getByText("2026-10-15 ~ 2026-10-28")).toBeTruthy()

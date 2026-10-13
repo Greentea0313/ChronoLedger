@@ -454,8 +454,10 @@ export default function DashboardPage() {
             schedules={daySchedules}
             expenses={dayExpenses}
             memos={dayMemos}
+            memoContent={currentDayMemo}
             onSelectExpense={setDetailExpenseId}
             onRegisterExpense={() => setIsExpenseModalOpen(true)}
+            onSaveMemo={handleSaveMemo}
             registerDisabled={!isOnline}
           />
         </div>

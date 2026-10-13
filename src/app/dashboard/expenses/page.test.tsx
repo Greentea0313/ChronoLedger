@@ -87,7 +87,7 @@ describe("ExpensesPage", () => {
       category: "정기 구독",
       status: "CANCELLED",
       cancellation_kind: "PLANNED_CANCEL",
-      target_date: "2026-10-01",
+      target_date: "2026-10-12",
       end_date: null,
       game_id: null,
       original_price: 9900,
@@ -314,9 +314,9 @@ describe("ExpensesPage", () => {
     expect(screen.getByText("픽업 과금 순위")).toBeTruthy()
     expect(screen.getByText("총 39,000 원")).toBeTruthy()
 
-    // 픽업명 및 '버전 일반' 분리 집계 확인
+    // 픽업명 및 '일반' 분리 집계 확인
     expect(screen.getAllByText("수영복 한정 픽업").length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText("버전 일반")).toBeTruthy()
+    expect(screen.getByText("일반")).toBeTruthy()
 
     // 목록 테이블 내 픽업 배지 노출 확인
     const badges = screen.getAllByText("수영복 한정 픽업")
@@ -504,6 +504,59 @@ describe("ExpensesPage", () => {
     expect(screen.getByText("구독 서비스 #13")).toBeTruthy()
     expect(screen.getByText("구독 서비스 #15")).toBeTruthy()
     expect(screen.queryByText("구독 서비스 #01")).toBeNull()
+  })
+
+  it("복수 픽업 배너에 동시 연계된 지출이 있더라도 게임 총 과금액은 1x로만 합산되고 각 픽업 뱃지가 모두 렌더링된다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const today = "2026-10-15"
+    const multiPickupExpenses = [
+      {
+        id: "exp-multi-1",
+        title: "동시 픽업 패키지",
+        category: "게임",
+        status: "CONFIRMED",
+        target_date: today,
+        start_date: today,
+        end_date: today,
+        game_id: "game-1",
+        pickup_schedule_id: "sched-p1",
+        original_price: 50000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 50000,
+        payment_method: "GOOGLE_PLAY",
+        memo: "[PICKUPS:sched-p1,sched-p2]",
+        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+      },
+    ]
+
+    const expenseBuilder = createExpenseQueryBuilder(multiPickupExpenses)
+    const schedulesBuilder = createExpenseQueryBuilder([
+      { id: "sched-p1", title: "배너 A (픽업 1)", schedule_type: "PICKUP", game_id: "game-1" },
+      { id: "sched-p2", title: "배너 B (픽업 2)", schedule_type: "PICKUP", game_id: "game-1" },
+    ])
+    const subscriptionBuilder = createExpenseQueryBuilder([])
+
+    from.mockImplementation((table: string) => {
+      if (table === "game_schedules") return schedulesBuilder
+      if (table === "subscription_templates") return subscriptionBuilder
+      return expenseBuilder
+    })
+
+    render(<ExpensesPage />)
+
+    // 게임 픽업 분석 섹션 확인: 총 과금액은 50,000원 (100,000원이 아님!)
+    expect(await screen.findByText("게임 픽업별 과금 분석")).toBeTruthy()
+    expect(screen.getByText("총 50,000 원")).toBeTruthy()
+
+    // 배너 A와 배너 B 모두 뱃지가 렌더링됨
+    expect(screen.getAllByText("배너 A (픽업 1)").length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText("배너 B (픽업 2)").length).toBeGreaterThanOrEqual(1)
+
+    // 수익 추가 버튼 노출 확인
+    expect(screen.getByRole("button", { name: "+ 수익 추가" })).toBeTruthy()
   })
 })
 

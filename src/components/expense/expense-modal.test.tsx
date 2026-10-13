@@ -288,4 +288,57 @@ describe("ExpenseModal", () => {
       pickup_schedule_id: "p1",
     }))
   })
+
+  it("동일 날짜에 2개 이상의 픽업 배너가 존재하면 진행 중인 모든 배너가 기본 연계되며 단 1회(1x) 지출로 저장된다", async () => {
+    const today = getKstToday()
+    from.mockImplementation((table: string) => {
+      if (table === "games") return query({ data: [{ id: "g1", name: "Sample RPG" }], error: null })
+      if (table === "user_games") {
+        const ug = query(null)
+        ug.eq.mockResolvedValue({ data: [{ game_id: "g1" }], error: null })
+        return ug
+      }
+      if (table === "game_schedules") {
+        return query({
+          data: [
+            { id: "s1", game_id: "g1", title: "버전 1.0", schedule_type: "VERSION", start_date: today, end_date: today },
+            { id: "p1", game_id: "g1", title: "캐릭터 A 픽업", schedule_type: "PICKUP", start_date: today, end_date: today },
+            { id: "p2", game_id: "g1", title: "캐릭터 B 픽업", schedule_type: "PICKUP", start_date: today, end_date: today },
+          ],
+          error: null,
+        })
+      }
+      if (table === "user_finances") {
+        const fin = query(null)
+        fin.eq.mockResolvedValue({ data: [{ total_asset: 50000 }], error: null })
+        return fin
+      }
+      const wallets = query(null)
+      wallets.eq.mockResolvedValue({
+        data: [{ platform: "GOOGLE_PLAY", current_balance: 10000, earn_rate: 0.2 }],
+        error: null,
+      })
+      return wallets
+    })
+
+    const onCompleted = vi.fn()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    await screen.findByText(/진행 중인 모든 배너에 동시 연계/)
+
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "30000" } })
+    fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    // 1건만 등록되며, 복수 픽업 메타데이터가 담김
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      game_id: "g1",
+      original_price: 30000,
+      final_amount: 30000,
+      pickup_schedule_id: "p1",
+      memo: "[PICKUPS:p1,p2]",
+    }))
+  })
 })

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { GameIcon } from "@/components/ui/game-icon"
+import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import {
   Plus,
   Pencil,
@@ -64,7 +65,7 @@ interface ScheduleItem {
   start_date: string
   end_date: string
   memo: string | null
-  games?: { id?: string; name?: string } | null
+  games?: { id?: string; name?: string; default_icon_url?: string | null } | null
 }
 
 export default function AdminPage() {
@@ -547,16 +548,34 @@ export default function AdminPage() {
                 <>
                   <div className="divide-y divide-line">
                     {paginatedSchedules.map((schedule) => {
-                      const gameName = schedule.games?.name || games.find((g) => g.id === schedule.game_id)?.name || "게임"
+                      const matchedGame = games.find((g) => g.id === schedule.game_id)
+                      const gameName = schedule.games?.name || matchedGame?.name || "게임"
+                      const iconUrl = schedule.games?.default_icon_url || matchedGame?.default_icon_url
                       const isVersion = schedule.schedule_type === "VERSION"
                       const isPickup = schedule.schedule_type === "PICKUP"
                       const isSingleDateItem = schedule.start_date === schedule.end_date
                       return (
                         <div
                           key={schedule.id}
-                          className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-2/40 px-2 rounded-lg transition-colors"
+                          className="relative overflow-hidden py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-2/40 px-3 rounded-lg transition-colors border border-transparent hover:border-line"
                         >
-                          <div className="space-y-1 min-w-0">
+                          {iconUrl && (
+                            <div className="absolute left-0 top-0 bottom-0 w-28 overflow-hidden z-0 pointer-events-none">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={iconUrl}
+                                alt=""
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover object-left select-none"
+                                style={{
+                                  maskImage: "linear-gradient(to right, black 25%, transparent 100%)",
+                                  WebkitMaskImage: "linear-gradient(to right, black 25%, transparent 100%)",
+                                  opacity: 0.35,
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div className="space-y-1 min-w-0 z-10">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
                                 {gameName}
@@ -572,7 +591,9 @@ export default function AdminPage() {
                               >
                                 {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
                               </span>
-                              <h3 className="font-medium text-sm text-content truncate">{schedule.title}</h3>
+                              <div className="font-medium text-sm text-content flex items-center gap-1.5 flex-wrap">
+                                <ScheduleTitleBadges title={schedule.title} />
+                              </div>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-content-secondary">
                               <span>
