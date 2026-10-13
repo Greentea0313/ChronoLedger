@@ -1,5 +1,24 @@
 # 프로젝트 진행 현황
 
+## 라이트 테마 전수 검증 및 UI 가독성·대비 전면 최적화 (2026-10-13)
+
+- **배경 및 사용자 요구사항**:
+  - 라이트 테마 전환 시 UI 요소(텍스트, 뱃지, 버튼, 입력폼, 차트 등)가 흐려지거나 아예 보이지 않게 되는(low contrast / invisible) 문제를 전체 페이지에서 전수 검증 및 해소.
+  - 디자인 시스템 시맨틱 토큰(`content`, `content-secondary`, `content-muted`, `surface`, `surface-2`, `line`, `primary`, `success`, `warning`, `danger`, `info`)과의 완전한 정합성 확립.
+- **수행 내역**:
+  1. **`tailwind.config.ts`의 `textColor: { white: token("text-primary") }` 부작용 해소**:
+     - 유색 버튼(`bg-primary`, `bg-emerald-600`, `bg-danger`) 위의 텍스트를 `text-primary-foreground`로 통일하여 라이트 테마에서 유색 배경 위에 검은 글씨가 올라가던 버그 완전 해결.
+  2. **하드코딩된 다크 전용 모달 클래스 전면 전환**:
+     - `expense-modal.tsx`, `expense-detail-modal.tsx`, `overdue-planned-modal.tsx`: `border-gray-700 bg-gray-800 text-white`를 `border-line bg-surface text-content`로 전환.
+     - 폼 필드 상수를 `border-line-control bg-surface-2 text-content`로 통일.
+  3. **WCAG 대비 미달 하드코딩 파스텔 텍스트 개선**:
+     - 콘텐츠 배너의 `text-purple-300`을 `text-purple-700 dark:text-purple-300`으로 전환.
+     - 픽업 순위 2위 뱃지의 `text-slate-300`을 `text-slate-700 dark:text-slate-300`으로 전환.
+     - 지출 상태 뱃지의 `text-emerald-400`, `text-amber-400`, `text-red-400`을 `text-success`, `text-warning`, `text-danger`로 전환.
+     - 상단바 로고의 `WebkitTextStroke: "1px black"` 인라인 스타일 제거.
+  4. **무결점 검증**:
+     - Vitest 39개 파일 202개 테스트 100% PASS 및 Next.js 14 정적 export 빌드 성공.
+
 ## Cloudflare Pages 호스팅 환경 구축 및 계정 탈퇴 Supabase pg_cron / RPC 완전 이관 (2026-10-13)
 
 - **배경 및 사용자 요구사항**:
