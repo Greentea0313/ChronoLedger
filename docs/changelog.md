@@ -1,5 +1,28 @@
 # 변경 이력
 
+## 2026-10-13 (스토어 이벤트 적립률/포인트 수동 수정 및 지출 내역 분리 수정·취소 내역 필터링 구현)
+
+- **스토어별 이벤트 포인트 적립 및 포인트 수동 수정 (`src/lib/payment-calculations.ts`, `src/components/expense/expense-modal.tsx`)**:
+  - 프리셋 버튼을 배제하고 `부스트 배율: [ n ] 배`, `페이백률: [ n ] %` 숫자 입력란만 제공하여 원하는 값을 직접 기입하도록 UI 간소화.
+  - 구글 플레이 부스트 n배(`기본 적립률 × n`) 및 갤럭시 스토어 n% 페이백(`실결제액 × n%`) 실효 적립률 및 포인트 계산 로직 구현 (`calculateStoreEventEarn`).
+  - 자동 계산된 예상 적립 포인트를 사용자가 직접 수정할 수 있는 수동 수정 필드 및 `[자동 계산값 복원]` 버튼 제공.
+  - 결제 시 `[구글 부스트: n배]`, `[갤스 페이백: n%]` 이벤트 태그가 메모에 보존되도록 자동 병합 처리 (`mergeEventMemo`).
+- **확정 지출(`CONFIRMED`) 비회계 메타데이터 분리 수정 및 원장 불변성 보호 (`src/components/expense/expense-detail-modal.tsx`, `md/MIGRATION_EXPENSE_EDIT.sql`)**:
+  - 회계 무결성 보장을 위해 결제 완료된 지출은 금액 및 결제수단 수정을 DB 차원에서 원천 차단.
+  - 비회계 메타데이터(항목명, 카테고리, 메모) 전용 보안 정의자 RPC `update_confirmed_expense_metadata` 구현 및 연동.
+  - 지출 상세 모달 내 `[정보 수정]` 모드를 신설하여 항목명, 카테고리, 메모를 즉시 수정 및 저장 가능.
+- **예정 지출(`PLANNED`) 전면 정보 수정 지원 (`src/components/expense/expense-modal.tsx`)**:
+  - 미결제 상태인 예정 지출에 대해 항목명, 정가, 날짜, 카테고리, 결제수단 등 모든 필드를 수정할 수 있는 `editingExpense` 모드 지원.
+- **가계부 목록 취소 내역 숨기기 토글 필터 (`src/app/dashboard/expenses/page.tsx`)**:
+  - 취소/환불로 쌓이는 내역을 화면에서 가려주는 `[✓] 취소 내역 숨기기` 토글 체크박스 신설 (기본값: 체크됨).
+  - 지출 목록에서 `PLANNED` 지출의 `[수정]` 버튼 및 `CONFIRMED` 지출의 `[상세 / 수정]` 액션 버튼 신설.
+- **DB RPC 마이그레이션 (`md/MIGRATION_STORE_EVENT_EARN.sql`, `md/MIGRATION_EXPENSE_EDIT.sql`, `md/SCHEMA.sql`)**:
+  - `process_expense_payment`에 `p_custom_earned_points` 및 `p_memo` 지원 추가.
+  - `update_confirmed_expense_metadata` RPC 함수 및 실행 권한 등록.
+- **단위 테스트 및 빌드 검증**:
+  - 단위 테스트 39개 파일 202개 전건 100% 통과 (`vitest run`).
+  - Next.js 14 정적 export 빌드 성공 (`npm run build`).
+
 ## 2026-10-13 (결제 수단 / 결제 플랫폼 / 할인 수단 정합성 리팩토링 및 0원 결제·복합 결제 지원)
 
 - **결제 수단(Payment Method)과 결제 플랫폼(Platform) 및 할인 수단(Discount)의 명확한 역할 분리 (`src/lib/payment-calculations.ts`)**:
