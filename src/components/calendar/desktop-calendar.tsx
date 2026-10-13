@@ -133,7 +133,7 @@ export function DesktopCalendar({
               </div>
 
               {/* Desktop Bottom-left: VERSION, PICKUP, CONTENTS tags (Hidden on mobile) */}
-              <div className="hidden md:flex flex-col gap-0.5 items-start mt-auto pt-1 z-10">
+              <div className="hidden md:flex flex-col gap-0.5 items-start absolute bottom-1.5 left-1.5 z-10">
                 {(() => {
                   const hasVersion = day.schedules.some((s) => s.schedule_type === "VERSION" && s.is_start_date)
                   const hasPickup = day.schedules.some((s) => s.schedule_type === "PICKUP" && s.is_start_date)

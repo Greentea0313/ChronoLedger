@@ -1,5 +1,9 @@
-export type PaymentMethod = "WALLET" | "GOOGLE_PLAY" | "GALAXY_STORE" | "NAVER_PAY"
+export type PaymentMethod = "WALLET" | "NAVER_PAY"
+export type LegacyPaymentMethod = PaymentMethod | "GOOGLE_PLAY" | "GALAXY_STORE"
+export type PaymentPlatform = "GOOGLE_PLAY" | "GALAXY_STORE" | "OTHER"
+export type WalletPlatform = "GOOGLE_PLAY" | "GALAXY_STORE" | "NAVER_PAY"
 export type PointPlatform = "GOOGLE_PLAY" | "GALAXY_STORE" | "NAVER_PAY"
+export type StorePlatform = "GOOGLE_PLAY" | "GALAXY_STORE"
 
 export const GOOGLE_TIER_RATES = {
   BRONZE: 0.1,
@@ -33,26 +37,41 @@ export interface PaymentInput {
   pointDiscountAmount: number
   usedPoints: number
   paymentMethod: PaymentMethod
+  paymentPlatform?: PaymentPlatform
   pointPlatform: PointPlatform | null
   paymentDate: string
 }
 
 export function calculateFinalAmount(input: Pick<PaymentInput, "originalPrice" | "discountAmount" | "pointDiscountAmount">): number {
-  return input.originalPrice - input.discountAmount - input.pointDiscountAmount
+  return Math.max(0, input.originalPrice - input.discountAmount - input.pointDiscountAmount)
 }
 
-// 스토어 결제는 결제 스토어가 포인트 플랫폼이며, 지갑 결제는 포인트를 쓸 때만 별도 플랫폼을 지정한다.
+// 스토어 플랫폼(Google Play, Galaxy Store)은 해당 스토어가 기본 포인트 플랫폼이며,
+// 기타 플랫폼은 포인트를 사용할 때 지정된 포인트 플랫폼을 사용한다.
 export function resolvePointPlatform(
-  method: PaymentMethod,
+  platformOrMethod: PaymentPlatform | LegacyPaymentMethod,
   selected: PointPlatform | null,
   usedPoints: number,
 ): PointPlatform | null {
-  if (method === "GOOGLE_PLAY" || method === "GALAXY_STORE") return method
+  if (platformOrMethod === "GOOGLE_PLAY" || platformOrMethod === "GALAXY_STORE") return platformOrMethod
   return usedPoints > 0 ? selected : null
 }
 
-export function estimateEarnedPoints(finalAmount: number, earnRate: number, method: PaymentMethod): number {
-  if (method === "WALLET" || method === "NAVER_PAY") return 0
+// 스토어 플랫폼(GOOGLE_PLAY, GALAXY_STORE) 결제 시 최종 실결제액에 대해 해당 스토어 등급별 포인트 적립을 계산한다.
+export function estimateEarnedPoints(
+  finalAmount: number,
+  earnRate: number,
+  platformOrMethod: PaymentPlatform | LegacyPaymentMethod | null,
+): number {
+  if (
+    !platformOrMethod ||
+    platformOrMethod === "WALLET" ||
+    platformOrMethod === "NAVER_PAY" ||
+    platformOrMethod === "OTHER" ||
+    finalAmount <= 0
+  ) {
+    return 0
+  }
   return Math.floor((finalAmount * earnRate) / 100)
 }
 

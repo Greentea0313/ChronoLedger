@@ -162,25 +162,25 @@ describe("ExpenseModal", () => {
     expect(screen.getByText("해당 날짜에 진행 중인 버전 일정이 없습니다")).toBeTruthy()
   })
 
-  it("2단계 결제 선택: 결제 플랫폼 변경 시 지원되는 결제수단 옵션 목록이 동적으로 변경된다", async () => {
+  it("결제 플랫폼(스토어)과 실제 결제수단(내 지갑, 네이버페이)이 명확히 분리되어 제공된다", async () => {
     render(<ExpenseModal open onOpenChange={vi.fn()} />)
     await screen.findByRole("option", { name: "Sample RPG" })
 
-    // Google Play 플랫폼: 내 지갑, Google Play, 네이버페이
-    const methodSelect = screen.getByLabelText("결제수단")
-    expect(methodSelect.textContent).toContain("Google Play")
-    expect(methodSelect.textContent).toContain("내 지갑")
-    expect(methodSelect.textContent).toContain("네이버페이")
+    // 결제 플랫폼에는 스토어가 노출됨
+    const platformSelect = screen.getByLabelText("결제 플랫폼")
+    expect(platformSelect.textContent).toContain("Google Play")
+    expect(platformSelect.textContent).toContain("Galaxy Store")
+    expect(platformSelect.textContent).toContain("기타 (스토어 외)")
 
-    // Galaxy Store 플랫폼으로 변경
-    fireEvent.change(screen.getByLabelText("결제 플랫폼"), { target: { value: "GALAXY_STORE" } })
-    expect(methodSelect.textContent).toContain("Galaxy Store")
+    // 실제 결제수단에는 오직 '내 지갑'과 '네이버페이'만 제공되고 스토어는 결제수단에 포함되지 않음
+    const methodSelect = screen.getByLabelText("결제수단")
     expect(methodSelect.textContent).toContain("내 지갑")
     expect(methodSelect.textContent).toContain("네이버페이")
     expect(methodSelect.textContent).not.toContain("Google Play")
+    expect(methodSelect.textContent).not.toContain("Galaxy Store")
 
-    // 기타 (스토어 외) 플랫폼으로 변경
-    fireEvent.change(screen.getByLabelText("결제 플랫폼"), { target: { value: "OTHER" } })
+    // 플랫폼을 변경해도 실제 결제수단은 항상 '내 지갑'과 '네이버페이' 유지
+    fireEvent.change(platformSelect, { target: { value: "GALAXY_STORE" } })
     expect(methodSelect.textContent).toContain("내 지갑")
     expect(methodSelect.textContent).toContain("네이버페이")
     expect(methodSelect.textContent).not.toContain("Galaxy Store")
@@ -252,18 +252,20 @@ describe("ExpenseModal", () => {
     }))
   })
 
-  it("네이버페이 선택 시 포인트 입력 필드가 비활성화되고 사용 포인트가 0으로 리셋된다", async () => {
+  it("네이버페이 선택 시에도 스토어 포인트 사용이 가능하며 차액에 대해 네이버페이 충전/결제가 계산된다", async () => {
     render(<ExpenseModal open onOpenChange={vi.fn()} />)
     await screen.findByRole("option", { name: "Sample RPG" })
 
-    const pointsInput = screen.getByLabelText("사용 포인트 (P)") as HTMLInputElement
-    fireEvent.change(pointsInput, { target: { value: "2000" } })
-    expect(pointsInput.value).toBe("2000")
-
-    // 네이버페이로 변경 시
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "15000" } })
+    fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "5000" } })
     fireEvent.change(screen.getByLabelText("결제수단"), { target: { value: "NAVER_PAY" } })
-    expect(pointsInput.value).toBe("")
-    expect(pointsInput).toHaveProperty("disabled", true)
+
+    // 15,000 - 5,000P = 실결제액 10,000원
+    expect(screen.getByText("실결제액: 10,000 원")).toBeTruthy()
+    // 네이버페이 잔액 3,000원, 필요 결제액 10,000원 -> 부족액 7,000원 -> 10,000원 자동 충전
+    expect(screen.getByText("7,000 원")).toBeTruthy() // 결제 필요 부족액
+    expect(screen.getByText("+10,000 원")).toBeTruthy() // 10,000원 단위 자동 충전액
+    expect(screen.getByText("3,000 원")).toBeTruthy() // 충전 및 결제 후 예상 잔액 (3000 + 10000 - 10000)
   })
 
   it("게임 선택 시 결제일 기준 진행 중인 픽업 일정이 있으면 필드가 disabled 상태로 자동 바인딩되어 pickup_schedule_id가 저장된다", async () => {

@@ -1,5 +1,35 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 결제 수단 / 결제 플랫폼 / 할인 수단 정합성 리팩토링 및 0원 결제·복합 결제 지원 (2026-10-13)
+
+- **결정 및 배경**:
+  - **실결제 수단(`PaymentMethod`) 2대 체계 정립**:
+    - 실제로 사용자의 자본이 인출되는 실결제 수단을 **'내 지갑'(`WALLET`, 계좌/현금)**과 **'네이버페이'(`NAVER_PAY`, 머니 및 10,000원 단위 올림 자동 충전)**로 엄격히 한정.
+    - 기존에 결제 수단으로 오분류되어 있던 'Google Play'와 'Galaxy Store'는 결제가 일어나는 **결제 플랫폼(스토어)**이자 쿠폰/포인트 **할인 수단**으로 재분류.
+  - **스토어 포인트 적립(`estimateEarnedPoints`) 기준 개편**:
+    - 기존에는 결제 수단이 스토어(`GOOGLE_PLAY`/`GALAXY_STORE`)여야만 적립되어 '내 지갑'이나 '네이버페이' 결제 시 적립이 누락되던 모순 해결.
+    - 결제 수단과 무관하게 **결제 플랫폼(`PaymentPlatform`)**이 Google Play 또는 Galaxy Store이면, 최종 실결제액에 대해 해당 스토어 등급별 적립률로 포인트가 자동 계산/적립되도록 로직 수정.
+  - **네이버페이 + 스토어 포인트 복합 결제 허용**:
+    - 인앱 결제 시 구글 플레이/갤럭시 스토어 포인트를 사용하고 남은 차액을 네이버페이로 결제할 수 있도록 지원.
+    - 네이버페이 선택 시 포인트 필드 비활성화 제약 및 DB RPC 내 네이버페이+포인트 사용 에러 제약 해제.
+  - **100% 전액 할인 및 포인트 결제 (0원 결제) 지원**:
+    - 할인과 포인트로 전액 차감 시 최종 실결제액이 0원이 되며, 자산 차감 및 네이버페이 충전액이 0원으로 정상 확정(`CONFIRMED`) 처리.
+- **수행 내역**:
+  - `src/lib/payment-calculations.ts`, `src/lib/payment-calculations.test.ts`:
+    - `PaymentMethod`(`WALLET` | `NAVER_PAY`), `PaymentPlatform`, `PointPlatform`, `WalletPlatform` 정제.
+    - 플랫폼 기반 적립 산식 및 0원 결제, 네이버페이 복합 결제 검증 로직 구현.
+  - `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`:
+    - 결제 플랫폼 선택과 결제수단 선택의 분리 UI 제공.
+    - 0원 결제 네이버페이 프리뷰 안내 및 스토어 포인트 복합 결제 허용.
+  - `src/components/expense/expense-detail-modal.tsx`, `src/app/dashboard/expenses/page.tsx`:
+    - 결제 플랫폼 라벨 추가 및 구버전 결제수단 하위 호환 표시.
+  - `md/MIGRATION_PAYMENT_REFINEMENT.sql`, `md/SCHEMA.sql`:
+    - `process_expense_payment`, `refund_expense_payment` RPC 갱신 및 기존 결제수단 마이그레이션 DDL 제공.
+- **검증 증거**:
+  - `npx vitest run`: 39개 파일 / 192개 테스트 100% 통과 (PASS).
+  - `npx tsc --noEmit`: TypeScript 무결점 검증 성공 (0 errors).
+  - `npm run build`: Next.js 14 정적 export 빌드 성공.
+
 ## 다중 픽업 배너 1x 회계 방어·수익 추가·앱 아이콘 및 13가지 종합 UX 개선 (2026-10-13)
 
 - **결정 및 배경**:

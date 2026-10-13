@@ -36,9 +36,13 @@ interface ExpenseDetailModalProps {
 const STATUS_LABELS = { PLANNED: "예정", CONFIRMED: "결제 완료", CANCELLED: "취소됨" }
 const METHOD_LABELS: Record<string, string> = {
   WALLET: "내 지갑",
+  NAVER_PAY: "네이버페이",
+  GOOGLE_PLAY: "내 지갑 (구 Google Play)",
+  GALAXY_STORE: "내 지갑 (구 Galaxy Store)",
+}
+const PLATFORM_LABELS: Record<string, string> = {
   GOOGLE_PLAY: "Google Play",
   GALAXY_STORE: "Galaxy Store",
-  NAVER_PAY: "네이버페이",
 }
 
 function won(value: number | undefined): string {
@@ -96,6 +100,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded }: Expens
               {expense.discount_amount !== undefined && (<><dt className="text-gray-400">할인</dt><dd>{won(expense.discount_amount)}</dd></>)}
               {expense.used_points !== undefined && (<><dt className="text-gray-400">사용 포인트</dt><dd>{`${expense.used_points.toLocaleString()} P`}</dd></>)}
               {expense.earned_points !== undefined && (<><dt className="text-gray-400">적립 포인트</dt><dd>{`${expense.earned_points.toLocaleString()} P`}</dd></>)}
+              {expense.point_platform && PLATFORM_LABELS[expense.point_platform] && (<><dt className="text-gray-400">결제 플랫폼</dt><dd>{PLATFORM_LABELS[expense.point_platform]}</dd></>)}
               {expense.payment_method && (<><dt className="text-gray-400">결제수단</dt><dd>{METHOD_LABELS[expense.payment_method] ?? expense.payment_method}</dd></>)}
               <dt className="text-gray-400">실결제액</dt>
               <dd>{won(expense.final_amount)}</dd>

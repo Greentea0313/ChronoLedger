@@ -111,10 +111,11 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const METHOD_LABELS: Record<string, string> = {
   WALLET: "내 지갑",
-  GOOGLE_PLAY: "Google Play",
-  GALAXY_STORE: "Galaxy Store",
   NAVER_PAY: "네이버페이",
+  GOOGLE_PLAY: "내 지갑 (구 Google Play)",
+  GALAXY_STORE: "내 지갑 (구 Galaxy Store)",
 }
+
 
 const STATUS_LABELS: Record<string, string> = {
   PLANNED: "예정",

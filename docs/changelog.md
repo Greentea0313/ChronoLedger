@@ -1,5 +1,33 @@
 # 변경 이력
 
+## 2026-10-13 (결제 수단 / 결제 플랫폼 / 할인 수단 정합성 리팩토링 및 0원 결제·복합 결제 지원)
+
+- **결제 수단(Payment Method)과 결제 플랫폼(Platform) 및 할인 수단(Discount)의 명확한 역할 분리 (`src/lib/payment-calculations.ts`)**:
+  - 실제 자산이 빠져나가는 실결제 수단(`PaymentMethod`)을 **'내 지갑'(`WALLET`, 메인 계좌 자산)**과 **'네이버페이'(`NAVER_PAY`, 머니 및 부족 시 자동 충전)** 2대로 명확히 정제.
+  - 기존에 결제 수단으로 혼용되던 **'Google Play'**와 **'Galaxy Store'**를 결제가 발생하는 **결제 플랫폼(스토어)** 및 쿠폰/포인트 **할인 수단**으로 재정립.
+  - 스토어 포인트 적립(`estimateEarnedPoints`) 기준을 결제 수단이 아닌 **결제 플랫폼(`PaymentPlatform`)** 기준으로 전면 수정하여, 실결제 수단으로 '내 지갑'이나 '네이버페이'를 사용하더라도 스토어 포인트가 공식 등급별 비율에 따라 정상 적립되도록 개선.
+- **지출 등록 모달 2대 실결제 수단 통합 및 스토어 포인트 복합 결제 허용 (`src/components/expense/expense-modal.tsx`)**:
+  - 결제 플랫폼(Google Play, Galaxy Store, 기타)과 무관하게 실제 결제 수단은 항상 **'내 지갑'** 또는 **'네이버페이'** 중 선택하도록 UI 일원화.
+  - 네이버페이 결제 시 스토어 포인트(`usedPoints`) 비활성화 제약을 해제하여, 구글 플레이/갤럭시 스토어에서 포인트를 사용하고 남은 차액에 대해서만 네이버페이 머니 차감 및 10,000원 단위 자동 충전이 동작하도록 지원.
+  - 스토어 포인트나 쿠폰으로 100% 전액 차감(실결제액 = 0원) 시, 자산 차감 및 네이버페이 충전액이 0원으로 안전하게 결제 확정되도록 안내 및 계산 로직 보강.
+- **DB RPC 및 마이그레이션 스크립트 구축 (`md/MIGRATION_PAYMENT_REFINEMENT.sql`, `md/SCHEMA.sql`)**:
+  - `process_expense_payment`: `p_payment_method`를 `WALLET`과 `NAVER_PAY`로 검증하며, 구버전 데이터는 실결제 수단 `WALLET`과 플랫폼 스토어로 안전하게 하위 호환 매핑. 네이버페이+스토어 포인트 복합 결제 에러 제약 해제 및 스토어 플랫폼 기준 포인트 적립 계산 로직 적용.
+  - `refund_expense_payment`: 실결제액이 0원인 건의 결제 취소 시 불필요한 원장 기록 및 자산 복원을 방지하는 안전 가드 추가.
+  - 기존 `expenses` 테이블 내 구버전 `GOOGLE_PLAY`/`GALAXY_STORE` 결제수단 데이터를 `point_platform` 보존 및 `payment_method = 'WALLET'`으로 정제하는 SQL 마이그레이션 제공.
+- **지출 상세 모달 및 목록 표기 개선 (`src/components/expense/expense-detail-modal.tsx`, `src/app/dashboard/expenses/page.tsx`)**:
+  - 결제 상세 화면에 '결제 플랫폼'(Google Play / Galaxy Store) 항목을 신설하여 결제수단과 스토어를 분리 표시.
+- **단위 테스트 및 빌드 검증**:
+  - 플랫폼-수단 분리 테스트, 네이버페이와 스토어 포인트 복합 결제 테스트, 0원 결제 적립 방지 테스트 등 39개 파일 192개 테스트 전체 100% 통과 및 Next.js 14 정적 export 빌드 성공.
+
+## 2026-10-13 (캘린더 타일 배너 하단 정렬 및 상향 적층 구조 개선)
+
+- **달력 타일 내 배너 하단 고정 및 상향 적층 레이아웃 적용 (`src/components/calendar/desktop-calendar.tsx`)**:
+  - 타일 상단 우측에 게임 아이콘이 다수(2~3개) 위치할 때 상단 행 높이로 인해 아래쪽 배너(`CONTENTS` 등)가 잘리던 현상 해결.
+  - 배너 컨테이너를 타일 하단 기준(`absolute bottom-1.5 left-1.5`)에 앵커링하여 최하단 배너가 타일 경계를 벗어나지 않도록 보장.
+  - 기존 표시 우선순위 규칙(`VERSION` > `PICKUP` > `CONTENTS`)을 유지하면서, 신규 배너 추가 시 하단에 삽입되고 기존 배너가 위로 상향 적층(Lift)되는 구조 확립.
+- **단위 테스트 보강 및 검증 (`src/components/calendar/desktop-calendar.test.tsx`)**:
+  - 배너 컨테이너의 하단 앵커링 클래스(`absolute bottom-1.5 left-1.5`) 검증 테스트 추가 및 전체 테스트 191개 통과.
+
 ## 2026-10-13 (Cloudflare Pages 호스팅 환경 구축 및 계정 탈퇴 Supabase pg_cron / RPC 완전 이관)
 
 - **Cloudflare Pages 정적 호스팅 자산 구축 (`.nvmrc`, `public/_headers`, `public/_redirects`)**:

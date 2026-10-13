@@ -14,6 +14,7 @@ const base: PaymentInput = {
   pointDiscountAmount: 5000,
   usedPoints: 250,
   paymentMethod: "WALLET",
+  paymentPlatform: "GOOGLE_PLAY",
   pointPlatform: "GOOGLE_PLAY",
   paymentDate: "2026-10-08",
 }
@@ -23,15 +24,29 @@ describe("payment calculations", () => {
     expect(calculateFinalAmount(base)).toBe(114000)
   })
 
-  it("resolves the point platform from the payment method", () => {
+  it("computes 0 for 100% full discount (no negative amount)", () => {
+    expect(calculateFinalAmount({ originalPrice: 10000, discountAmount: 10000, pointDiscountAmount: 0 })).toBe(0)
+    expect(calculateFinalAmount({ originalPrice: 10000, discountAmount: 5000, pointDiscountAmount: 5000 })).toBe(0)
+  })
+
+  it("resolves the point platform from the payment platform or legacy method", () => {
     expect(resolvePointPlatform("GALAXY_STORE", "GOOGLE_PLAY", 0)).toBe("GALAXY_STORE")
+    expect(resolvePointPlatform("OTHER", "GOOGLE_PLAY", 0)).toBeNull()
+    expect(resolvePointPlatform("OTHER", "GALAXY_STORE", 10)).toBe("GALAXY_STORE")
     expect(resolvePointPlatform("WALLET", "GOOGLE_PLAY", 0)).toBeNull()
     expect(resolvePointPlatform("WALLET", "GALAXY_STORE", 10)).toBe("GALAXY_STORE")
   })
 
-  it("estimates earned points only for store payments", () => {
+  it("estimates earned points based on payment platform regardless of payment method", () => {
+    // Google Play 플랫폼 결제 시: '내 지갑' 결제든 '네이버페이' 결제든 스토어 포인트 적립
     expect(estimateEarnedPoints(114000, 0.2, "GOOGLE_PLAY")).toBe(228)
+    expect(estimateEarnedPoints(100000, 1.1, "GALAXY_STORE")).toBe(1100)
+    // 기타 플랫폼 또는 지갑 결제 시 스토어 플랫폼이 아니면 0P
+    expect(estimateEarnedPoints(114000, 0.2, "OTHER")).toBe(0)
     expect(estimateEarnedPoints(114000, 0.2, "WALLET")).toBe(0)
+    expect(estimateEarnedPoints(114000, 0.2, "NAVER_PAY")).toBe(0)
+    // 0원 결제(100% 할인) 시 적립은 0P
+    expect(estimateEarnedPoints(0, 0.2, "GOOGLE_PLAY")).toBe(0)
   })
 
   it("accepts valid input and rejects invalid combinations", () => {
@@ -42,6 +57,8 @@ describe("payment calculations", () => {
     expect(validatePayment({ ...base, discountAmount: 120000 }, "2026-10-08", 300)).toContain("초과")
     expect(validatePayment({ ...base, pointPlatform: null }, "2026-10-08", 300)).toContain("지갑")
     expect(validatePayment({ ...base, originalPrice: -1 }, "2026-10-08", 300)).toContain("정수")
+    // NAVER_PAY 결제 시에도 스토어 포인트 정상 허용
+    expect(validatePayment({ ...base, paymentMethod: "NAVER_PAY" }, "2026-10-08", 300)).toBeNull()
   })
 
   it("maps refund rejection to a friendly message and hides unknown errors", () => {

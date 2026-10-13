@@ -61,8 +61,6 @@ export type PaymentPlatform = "GOOGLE_PLAY" | "GALAXY_STORE" | "OTHER"
 const CATEGORIES = ["게임", "식비", "교통", "생활", "기타"] as const
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   WALLET: "내 지갑",
-  GOOGLE_PLAY: "Google Play",
-  GALAXY_STORE: "Galaxy Store",
   NAVER_PAY: "네이버페이",
 }
 const PLATFORM_LABELS: Record<PaymentPlatform, string> = {
@@ -70,11 +68,7 @@ const PLATFORM_LABELS: Record<PaymentPlatform, string> = {
   GALAXY_STORE: "Galaxy Store",
   OTHER: "기타 (스토어 외)",
 }
-const PLATFORM_METHODS: Record<PaymentPlatform, PaymentMethod[]> = {
-  GOOGLE_PLAY: ["WALLET", "GOOGLE_PLAY", "NAVER_PAY"],
-  GALAXY_STORE: ["WALLET", "GALAXY_STORE", "NAVER_PAY"],
-  OTHER: ["WALLET", "NAVER_PAY"],
-}
+const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = ["WALLET", "NAVER_PAY"]
 const selectClassName = "h-10 w-full rounded-md border border-gray-600 bg-gray-700 px-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
 const labelClassName = "block text-xs text-gray-300"
 const inputClassName = "bg-gray-900 text-white"
@@ -128,18 +122,19 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
       setFinalAmountInput(origStr)
 
       const method = plannedExpense?.payment_method
-      if (method === "GALAXY_STORE") {
-        setPaymentPlatform("GALAXY_STORE")
-        setPaymentMethod("GALAXY_STORE")
-      } else if (method === "GOOGLE_PLAY") {
-        setPaymentPlatform("GOOGLE_PLAY")
-        setPaymentMethod("GOOGLE_PLAY")
-      } else if (method === "NAVER_PAY") {
-        setPaymentPlatform("OTHER")
+      if (method === "NAVER_PAY") {
         setPaymentMethod("NAVER_PAY")
       } else {
-        setPaymentPlatform("GOOGLE_PLAY")
         setPaymentMethod("WALLET")
+      }
+      if (method === "GALAXY_STORE") {
+        setPaymentPlatform("GALAXY_STORE")
+        setSelectedPointPlatform("GALAXY_STORE")
+      } else if (method === "GOOGLE_PLAY") {
+        setPaymentPlatform("GOOGLE_PLAY")
+        setSelectedPointPlatform("GOOGLE_PLAY")
+      } else {
+        setPaymentPlatform("GOOGLE_PLAY")
       }
       setDeductAsset(true)
       setCategory("게임")
@@ -303,16 +298,17 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
         pointDiscountAmount: uPoints,
         usedPoints: uPoints,
         paymentMethod,
-        pointPlatform: resolvePointPlatform(paymentMethod, selectedPointPlatform, uPoints),
+        paymentPlatform,
+        pointPlatform: resolvePointPlatform(paymentPlatform, selectedPointPlatform, uPoints),
         paymentDate,
       }
     },
-    [discountAmount, originalPrice, paymentDate, paymentMethod, selectedPointPlatform, usedPoints],
+    [discountAmount, originalPrice, paymentDate, paymentMethod, paymentPlatform, selectedPointPlatform, usedPoints],
   )
   const finalAmount = calculateFinalAmount(input)
   const pointWallet = wallets.find((wallet) => wallet.platform === input.pointPlatform)
-  const earnWallet = wallets.find((wallet) => wallet.platform === paymentMethod)
-  const estimatedEarn = estimateEarnedPoints(finalAmount, earnWallet?.earn_rate ?? 0, paymentMethod)
+  const earnWallet = wallets.find((wallet) => wallet.platform === paymentPlatform)
+  const estimatedEarn = estimateEarnedPoints(finalAmount, earnWallet?.earn_rate ?? 0, paymentPlatform)
   const isGameCategory = category === "게임"
 
   const naverWallet = wallets.find((wallet) => wallet.platform === "NAVER_PAY")
@@ -472,9 +468,6 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                       setPickupSchedules([])
                       setPickupScheduleId("")
                       setPaymentPlatform("OTHER")
-                      if (paymentMethod === "GOOGLE_PLAY" || paymentMethod === "GALAXY_STORE") {
-                        setPaymentMethod("WALLET")
-                      }
                     } else {
                       setPaymentPlatform("GOOGLE_PLAY")
                     }
@@ -582,10 +575,8 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                 min={0}
                 step={1}
                 value={usedPoints}
-                disabled={paymentMethod === "NAVER_PAY"}
-                placeholder={paymentMethod === "NAVER_PAY" ? "네이버페이 사용 불가" : undefined}
                 onChange={(event) => handleUsedPointsChange(event.target.value)}
-                className={`${inputClassName} ${paymentMethod === "NAVER_PAY" ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={inputClassName}
               />
             </div>
           </div>
@@ -617,9 +608,8 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                 onChange={(event) => {
                   const nextPlatform = event.target.value as PaymentPlatform
                   setPaymentPlatform(nextPlatform)
-                  const available = PLATFORM_METHODS[nextPlatform]
-                  if (!available.includes(paymentMethod)) {
-                    setPaymentMethod("WALLET")
+                  if (nextPlatform === "GOOGLE_PLAY" || nextPlatform === "GALAXY_STORE") {
+                    setSelectedPointPlatform(nextPlatform)
                   }
                 }}
               >
@@ -637,13 +627,9 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                 onChange={(event) => {
                   const nextMethod = event.target.value as PaymentMethod
                   setPaymentMethod(nextMethod)
-                  if (nextMethod === "NAVER_PAY") {
-                    setUsedPoints("")
-                    updateCalculatedFinal(toAmount(originalPrice), toAmount(discountAmount), 0)
-                  }
                 }}
               >
-                {PLATFORM_METHODS[paymentPlatform].map((method) => (
+                {AVAILABLE_PAYMENT_METHODS.map((method) => (
                   <option key={method} value={method}>{METHOD_LABELS[method]}</option>
                 ))}
               </select>
@@ -655,7 +641,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             <Input id="expense-date" type="date" value={paymentDate} min={plannedExpense ? getKstToday() : undefined} onChange={(event) => setPaymentDate(event.target.value)} className={inputClassName} />
           </div>
 
-          {paymentMethod !== "NAVER_PAY" && input.usedPoints > 0 && (
+          {input.usedPoints > 0 && (
             <div>
               <label htmlFor="expense-point-platform" className={labelClassName}>포인트 사용 지갑</label>
               <select id="expense-point-platform" className={selectClassName} value={selectedPointPlatform} onChange={(event) => setSelectedPointPlatform(event.target.value as PointPlatform)}>
@@ -675,7 +661,11 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
                 <span className="text-xs text-gray-400">보유 머니: {naverBalance.toLocaleString()} 원</span>
               </div>
 
-              {naverCalc && naverCalc.isRechargeNeeded ? (
+              {finalAmount <= 0 ? (
+                <div className="text-xs text-emerald-300/90 py-1">
+                  할인 및 포인트로 전액 결제되어 추가 충전 및 결제액이 없습니다 (0원 결제).
+                </div>
+              ) : naverCalc && naverCalc.isRechargeNeeded ? (
                 naverCalc.isAssetInsufficient ? (
                   <div className="rounded bg-rose-950/50 border border-rose-500/50 p-2.5 text-xs text-rose-300 space-y-1">
                     <div className="flex justify-between font-semibold">
@@ -731,14 +721,14 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
 
           <div className="rounded border border-gray-700 bg-gray-900 p-3 text-sm" aria-live="polite">
             <p>{`실결제액: ${finalAmount.toLocaleString()} 원`}</p>
-            {pointWallet && paymentMethod !== "NAVER_PAY" && (
+            {pointWallet && input.usedPoints > 0 && (
               <p className="text-xs text-gray-400">{`포인트 잔액: ${pointWallet.current_balance.toLocaleString()} P`}</p>
             )}
             {paymentMethod === "NAVER_PAY" && (
               <p className="text-xs text-emerald-400">{`네이버페이 머니 잔액: ${naverBalance.toLocaleString()} 원`}</p>
             )}
-            {paymentMethod !== "WALLET" && paymentMethod !== "NAVER_PAY" && (
-              <p className="text-xs text-gray-400">{`예상 적립(앱 추정): ${estimatedEarn.toLocaleString()} P`}</p>
+            {paymentPlatform !== "OTHER" && estimatedEarn > 0 && (
+              <p className="text-xs text-gray-400">{`${PLATFORM_LABELS[paymentPlatform]} 예상 적립(앱 추정): ${estimatedEarn.toLocaleString()} P`}</p>
             )}
           </div>
 

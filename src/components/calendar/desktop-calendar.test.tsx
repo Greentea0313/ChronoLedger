@@ -59,6 +59,12 @@ describe("DesktopCalendar", () => {
 
     const banners = screen.getAllByText(/VERSION|PICKUP|CONTENTS/).map((el) => el.textContent)
     expect(banners).toEqual(["VERSION", "PICKUP", "CONTENTS"])
+
+    const versionElement = screen.getByText("VERSION")
+    const bannerContainer = versionElement.parentElement
+    expect(bannerContainer?.className).toContain("absolute")
+    expect(bannerContainer?.className).toContain("bottom-1.5")
+    expect(bannerContainer?.className).toContain("left-1.5")
   })
 
   it("gameFilter prop이 전달되었을 때 상단 헤더에 정상적으로 렌더링된다", () => {
