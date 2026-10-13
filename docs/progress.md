@@ -32,11 +32,14 @@
   2. 현재 프로젝트(Next.js 14 Static Export + Supabase + 5분 Cron 워커)에 가장 적합한 배포 플랫폼 후보군 비교 분석 및 장단점 검토.
   3. 안정적인 100% 무료 운영을 위한 최적 권장 아키텍처 수립 및 문서 반영.
 - **수행 내역**:
-  1. **배포 플랫폼별 적합도 비교 평가 (`docs/Netlify_Web_Architecture_Proposal.md`)**:
+  1. **배포 플랫폼별 적합도 비교 평가 및 제안서 전면 리팩토링 (`docs/Netlify_Web_Architecture_Proposal.md`)**:
+     - 상단의 최신 권장안과 하단 구버전 Netlify 권장 내용 간의 불일치를 해소하고 전체 문서를 **Cloudflare Pages + Supabase pg_cron** 기준으로 전면 리팩토링.
      - **1위 Cloudflare Pages + Workers (95점)**: 대역폭 완전 무제한 무료, 월 500회 빌드(시간 제한 없음), 1분 단위 스케줄러 지원으로 가장 적합.
      - **2위 Vercel (88점)**: 월 6,000분 빌드, Next.js 최고 궁합, 단 무료 플랜 Cron은 일 1회 제한.
      - **3위 Netlify (80점)**: 기존 세팅 즉시 사용 가능하나, 월 300분 빌드/100GB 대역폭 초과 시 사이트 일시 정지(Hard Limit) 리스크.
      - **4위 GitHub Pages (75점)**: 정적 호스팅 무료이나 서버리스 API 및 Cron 미지원.
+     - 구버전 2026-10-06 ~ 10-07 이력은 '부록(Archived History)'으로 격리 보존하고, 실제 코드베이스 경로(`src/`) 및 단일 export 산출물 원칙을 정확히 반영.
+     - 구체적인 5단계 이관 액션 플랜(Supabase `pg_cron` 활성화 $\to$ Cloudflare Pages 프로젝트 생성 $\to$ 환경 변수 $\to$ Redirect URL 갱신) 수립 완료.
   2. **정적 웹과 백그라운드 스케줄러의 완전 분리 아키텍처 수립**:
      - 웹 프론트엔드(`out/`): **Cloudflare Pages**로 호스팅하여 트래픽/빌드 비용 걱정 없이 고가용성 유지.
      - 5분 주기 탈퇴 워커(`account-deletion-worker`): Netlify Functions 대신 **Supabase Database 내부 `pg_cron`** 또는 **Supabase Edge Function**으로 분리 이관.

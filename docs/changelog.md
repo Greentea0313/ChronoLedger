@@ -14,9 +14,11 @@
 
 ## 2026-10-13 (웹 배포 플랫폼 비교 분석 및 아키텍처 제안 갱신: Cloudflare Pages + Supabase pg_cron)
 
-- **Netlify 무료 플랜 리소스 한계 및 운영 리스크 분석 (`docs/Netlify_Web_Architecture_Proposal.md`, `docs/to-do.md`)**:
+- **Netlify 무료 플랜 리소스 한계 분석 및 제안서 전면 리팩토링 (`docs/Netlify_Web_Architecture_Proposal.md`, `docs/to-do.md`)**:
   - Netlify 무료 티어의 월간 빌드 시간(300분) 및 대역폭(100GB) 소진 시 신규 배포 차단 및 사이트 자동 일시 정지(Hard Limit) 리스크 문서화.
-  - 5분 주기 백그라운드 탈퇴 워커(`account-deletion-worker`)의 웹 호스팅 종속성 문제 분석.
+  - 상단 요약과 하단 구버전 내용 간 불일치를 전면 해소하고, 문서를 **Cloudflare Pages + Supabase pg_cron** 중심으로 완전 재구성.
+  - 구버전 2026-10-06 ~ 10-07 초기 이력은 부록(Archived History)으로 분리 격리.
+  - 5분 주기 백그라운드 탈퇴 워커(`account-deletion-worker`)의 웹 호스팅 종속성을 해결하기 위한 구체적 5단계 이관 액션 플랜 수립.
 - **배포 플랫폼 적합도 비교 평가 및 권장 아키텍처 수립**:
   - 프로젝트 특성(Next.js 14 `output: 'export'` 정적 빌드 + Supabase 백엔드)에 맞춰 4개 플랫폼 비교 평가:
     1. **Cloudflare Pages + Workers (95점, 최우선 권장)**: 대역폭 무제한 무료, 월 500회 빌드, 1분 단위 스케줄러 지원.
