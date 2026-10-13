@@ -1,15 +1,32 @@
 # 변경 이력
 
+## 2026-10-13 (웹 배포 플랫폼 비교 분석 및 아키텍처 제안 갱신: Cloudflare Pages + Supabase pg_cron)
+
+- **Netlify 무료 플랜 리소스 한계 및 운영 리스크 분석 (`docs/Netlify_Web_Architecture_Proposal.md`, `docs/to-do.md`)**:
+  - Netlify 무료 티어의 월간 빌드 시간(300분) 및 대역폭(100GB) 소진 시 신규 배포 차단 및 사이트 자동 일시 정지(Hard Limit) 리스크 문서화.
+  - 5분 주기 백그라운드 탈퇴 워커(`account-deletion-worker`)의 웹 호스팅 종속성 문제 분석.
+- **배포 플랫폼 적합도 비교 평가 및 권장 아키텍처 수립**:
+  - 프로젝트 특성(Next.js 14 `output: 'export'` 정적 빌드 + Supabase 백엔드)에 맞춰 4개 플랫폼 비교 평가:
+    1. **Cloudflare Pages + Workers (95점, 최우선 권장)**: 대역폭 무제한 무료, 월 500회 빌드, 1분 단위 스케줄러 지원.
+    2. **Vercel (88점)**: 월 6,000분 빌드, Next.js 최고 궁합, 단 무료 플랜 Cron 일 1회 제한.
+    3. **Netlify (80점, 현행 유지)**: 세팅 불필요하나 월 300분/100GB 초과 시 사이트 중단 위험.
+    4. **GitHub Pages (75점)**: 무료 정적 호스팅 우수하나 서버리스/스케줄러 미지원.
+- **정적 웹과 백그라운드 스케줄러 분리 아키텍처 확립**:
+  - 웹 프론트엔드(`out/`): **Cloudflare Pages**로 호스팅하여 트래픽/빌드 비용 걱정 없이 고가용성 유지.
+  - 백그라운드 5분 주기 워커: Netlify Functions 대신 **Supabase Database 내부 `pg_cron`** 또는 **Supabase Edge Function**으로 분리 이관.
+  - 향후 이관 및 검증 로드맵을 `docs/to-do.md` 구현 체크리스트에 반영.
+
 ## 2026-10-13 (소비 페이지 차트 시각적 품질 강화 및 호버 하이라이트 인터랙션 구현)
 
 - **카테고리 도넛 차트 색상 대비 강화 및 호버 연동 (`src/app/dashboard/expenses/page.tsx`)**:
   - `CATEGORY_COLORS`에서 '게임'(`#6366F1`, 인디고)과 '정기 구독'(`#10B981`, 에메랄드)을 뚜렷하게 분리된 고대비 색상으로 개편.
   - 도넛 슬라이스 기본 테두리(`stroke="#171A21"`) 부여.
-  - 마우스 호버 시 흰색 테두리(`stroke="#FFFFFF"`, 두께 3px) 및 은은한 글로우 하이라이트 적용.
+  - 마우스 호버 시 깔끔한 흰색 솔리드 테두리(`stroke="#FFFFFF"`, 두께 3px) 하이라이트 적용 (불필요한 드롭 섀도우 번짐 제거).
   - 하단 범례 카드와 원 그래프 슬라이스 간 마우스 호버 시 양방향 포커스 하이라이트 연동.
-- **막대 그래프 축선(X/Y Axis Line), 눈금선 및 CartesianGrid 격자 복원**:
-  - 월별 소비 추이: X축/Y축 기준 축선(`stroke="#374151"`) 복원, 수평 점선 격자(`CartesianGrid vertical={false}`) 추가, 막대 테두리 및 호버 시 흰색 외곽선 강조.
+- **막대 그래프 축선(X/Y Axis Line), 눈금선 및 CartesianGrid 격자 복원, 배경 하이라이트 제거**:
+  - 월별 소비 추이: X축/Y축 기준 축선(`stroke="#374151"`) 복원, 수평 점선 격자(`CartesianGrid vertical={false}`) 추가, 막대 테두리 및 호버 시 솔리드 흰색 외곽선 강조.
   - 게임 픽업별 과금 분석: 가로 막대 X축/Y축 기준선 복원, 수직 점선 격자(`CartesianGrid horizontal={false}`) 추가, 막대 테두리 및 우측 순위 카드와의 양방향 호버 하이라이트 연동.
+  - 막대 그래프 호버 시 배경 영역 전체가 반투명 사각형으로 하이라이트되던 툴팁 커서(`Tooltip cursor={false}`) 및 드롭 섀도우 글로우를 완전히 제거하여 막대 외곽선만 또렷하게 표시.
 - **테스트 및 검증**:
   - 단위 테스트 11건 100% 통과 (`vitest run src/app/dashboard/expenses/page.test.tsx`), TypeScript 및 Next.js 14 프로덕션 빌드 무결성 확인.
 

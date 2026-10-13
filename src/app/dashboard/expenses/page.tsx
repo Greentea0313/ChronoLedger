@@ -824,7 +824,6 @@ export default function ExpensesPage() {
                                   cursor="pointer"
                                   onMouseEnter={() => setActiveCategoryIndex(index)}
                                   style={{
-                                    filter: isHovered ? "drop-shadow(0px 0px 8px rgba(255,255,255,0.45))" : undefined,
                                     transition: "all 0.15s ease",
                                     outline: "none",
                                   }}
@@ -916,7 +915,7 @@ export default function ExpensesPage() {
                           tickFormatter={(val: any) => `${Math.round(Number(val) / 10000)}만`}
                         />
                         <Tooltip
-                          cursor={{ fill: "rgba(255,255,255,0.05)" }}
+                          cursor={false}
                           contentStyle={{
                             backgroundColor: "#171A21",
                             borderColor: "#2A2F3A",
@@ -938,7 +937,6 @@ export default function ExpensesPage() {
                                 cursor="pointer"
                                 onMouseEnter={() => setActiveMonthlyIndex(index)}
                                 style={{
-                                  filter: isHovered ? "drop-shadow(0px 0px 6px rgba(99,102,241,0.5))" : undefined,
                                   transition: "all 0.15s ease",
                                 }}
                               />
@@ -1020,7 +1018,7 @@ export default function ExpensesPage() {
                             width={110}
                           />
                           <Tooltip
-                            cursor={{ fill: "rgba(255,255,255,0.05)" }}
+                            cursor={false}
                             contentStyle={{
                               backgroundColor: "#171A21",
                               borderColor: "#2A2F3A",
@@ -1048,7 +1046,6 @@ export default function ExpensesPage() {
                                   cursor="pointer"
                                   onMouseEnter={() => setActivePickupIndex(idx)}
                                   style={{
-                                    filter: isHovered ? "drop-shadow(0px 0px 6px rgba(255,255,255,0.35))" : undefined,
                                     transition: "all 0.15s ease",
                                   }}
                                 />

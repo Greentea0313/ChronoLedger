@@ -1,5 +1,24 @@
 # 프로젝트 진행 현황
 
+## 웹 배포 플랫폼 비교 분석 및 아키텍처 제안 갱신 (2026-10-13)
+
+- **배경 및 사용자 요구사항**:
+  1. Netlify 무료 플랜 사용 시 빌드 시간/크레딧 및 트래픽 소진으로 사이트 및 배포가 멈추는(Paused) 제약 사항 확인.
+  2. 현재 프로젝트(Next.js 14 Static Export + Supabase + 5분 Cron 워커)에 가장 적합한 배포 플랫폼 후보군 비교 분석 및 장단점 검토.
+  3. 안정적인 100% 무료 운영을 위한 최적 권장 아키텍처 수립 및 문서 반영.
+- **수행 내역**:
+  1. **배포 플랫폼별 적합도 비교 평가 (`docs/Netlify_Web_Architecture_Proposal.md`)**:
+     - **1위 Cloudflare Pages + Workers (95점)**: 대역폭 완전 무제한 무료, 월 500회 빌드(시간 제한 없음), 1분 단위 스케줄러 지원으로 가장 적합.
+     - **2위 Vercel (88점)**: 월 6,000분 빌드, Next.js 최고 궁합, 단 무료 플랜 Cron은 일 1회 제한.
+     - **3위 Netlify (80점)**: 기존 세팅 즉시 사용 가능하나, 월 300분 빌드/100GB 대역폭 초과 시 사이트 일시 정지(Hard Limit) 리스크.
+     - **4위 GitHub Pages (75점)**: 정적 호스팅 무료이나 서버리스 API 및 Cron 미지원.
+  2. **정적 웹과 백그라운드 스케줄러의 완전 분리 아키텍처 수립**:
+     - 웹 프론트엔드(`out/`): **Cloudflare Pages**로 호스팅하여 트래픽/빌드 비용 걱정 없이 고가용성 유지.
+     - 5분 주기 탈퇴 워커(`account-deletion-worker`): Netlify Functions 대신 **Supabase Database 내부 `pg_cron`** 또는 **Supabase Edge Function**으로 분리 이관.
+  3. **체크리스트 및 변경 이력 동기화**:
+     - `docs/to-do.md`: 배포 플랫폼 다각화 재평가 완료 체크 및 Cloudflare Pages 배포 검증/Supabase pg_cron 이관 로드맵 등록.
+     - `docs/changelog.md`: 변경 내역 등록 완료.
+
 ## 소비 페이지 차트 시각적 명확성 및 마우스 호버 인터랙션 개선 (2026-10-13)
 
 - **배경 및 사용자 요구사항**:
@@ -17,10 +36,12 @@
   3. **월별 세로 막대그래프 축선, 격자, 테두리 및 호버 인터랙션**:
      - `CartesianGrid vertical={false}` 수평 점선 격자선 추가.
      - `XAxis`, `YAxis`에 `axisLine={{ stroke: "#374151", strokeWidth: 1 }}` 및 `tickLine` 복원으로 기준 축 정립.
-     - 막대 테두리(`stroke="#4338CA"`) 적용 및 호버 시 `stroke="#FFFFFF"`, `strokeWidth=2` 하이라이트.
+     - 막대 테두리(`stroke="#4338CA"`) 적용 및 호버 시 솔리드 `stroke="#FFFFFF"`, `strokeWidth=2` 하이라이트.
+     - `Tooltip cursor={false}`를 적용하여 마우스 호버 시 배경에 나타나던 반투명 회색 하이라이트 음영 밴드를 완전 제거.
   4. **게임 픽업 가로 막대그래프 축선, 격자 및 우측 순위 카드 연동**:
      - `CartesianGrid horizontal={false}` 수직 점선 격자선 추가.
      - `XAxis`, `YAxis` 축선 복원 및 가로 막대 테두리 적용.
+     - `Tooltip cursor={false}` 적용으로 가로 막대 호버 시 전체 배경이 하이라이트되는 현상 제거.
      - `activePickupIndex` 상태를 통해 가로 막대와 우측 픽업 과금 순위 카드 간 양방향 호버 하이라이트 연동.
   5. **검증**:
      - 단위 테스트 11건 100% 통과 (`vitest run src/app/dashboard/expenses/page.test.tsx`).

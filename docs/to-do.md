@@ -43,17 +43,16 @@
 - [ ] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
   - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했다.
   - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
-- [ ] 사용자는 Netlify를 우선 후보로 고려한다. [`Netlify_Web_Architecture_Proposal.md`](Netlify_Web_Architecture_Proposal.md)의 2026-10-07 재검토 권고에 따라 우선 현재 `output: 'export'` 산출물을 Deploy Preview에서 검증한다. 정적 경로가 웹 요구를 막는 증거가 나오기 전에는 Web/Desktop 이중 빌드나 SRS 변경을 하지 않는다.
-- [ ] Netlify 후보 확인: 정적 export 산출물과 `/auth` 하위 경로, Google OAuth callback/Redirect URL, PWA service worker 및 Preview/Production 환경 변수 분리를 작은 검증 브랜치에서 확인한다. 결과가 확인되기 전까지 Netlify는 채택 확정이 아니다.
-  - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 5개 통과.
-  - 원격 정적 경로 검증: `chronoledger-validation-20261007` Draft Deploy(Production 아님)에서 사용자가 로그인 화면, `/auth`, callback 안내, 비로그인 `/dashboard` → `/auth` 보호 동작을 확인했다. 비인증 HTTP 요청은 Netlify Edge Access에 의해 401이며 예상된 사이트 접근 제한이다.
-  - Draft Deploy는 GitHub 자동 배포에 연결되지 않았다. 추후 Git 연동/PR Deploy Preview 설정은 Production branch 배포를 시작하지 않는 방식으로 별도 검토한다. CLI가 만든 루트 `.netlify/`는 Git에서 무시한다.
+- [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](Netlify_Web_Architecture_Proposal.md)에 반영했다.
+- [ ] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
+  - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
+  - [ ] **백그라운드 스케줄러 분리 이관**: 웹 배포 플랫폼 종속성 제거를 위해 5분 주기 탈퇴 워커(`account-deletion-worker`)를 Netlify Functions에서 **Supabase `pg_cron`** 또는 **Supabase Edge Function**으로 분리 이관.
+  - [ ] 탈퇴 관련 API(`request-account-deletion`, `account-deletion-status`)를 Supabase RPC(`SECURITY DEFINER`) 또는 Supabase Edge Function으로 통합.
+- [ ] (보류/대안) Netlify 후보 유지 시 점검 사항:
+  - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 통과.
+  - 원격 정적 경로 검증: `chronoledger-validation-20261007` Draft Deploy(Production 아님)에서 로그인 화면, `/auth`, callback 안내, 보호 동작 확인 완료.
   - [x] Supabase Authentication → URL Configuration → Redirect URLs에 원격 배포 도메인의 `/auth/callback` 등록 완료 (2026-10-13 사용자 확인 완료).
-  - GitHub PR Deploy Preview와 Netlify site-level Preview/Production 환경 변수 분리는 미검증이다. 현재 Draft는 로컬 `.env.local`로 빌드한 `out`을 업로드했으며 Netlify Git 빌드 설정은 연결하지 않았다.
-  - 현재 앱과 문서는 `main`에 통합되어 원격에 push됐다.
-  - 현재 앱 worktree에는 `public/`, PWA manifest, service worker가 없으므로 PWA 자산 경로 점검은 해당 산출물이 추가된 뒤 수행한다.
-  - 검토 메모: 공식 Netlify 문서는 OpenNext 어댑터를 통한 Next.js 서버 기능을 지원한다고 설명하며, Next.js static export 문서는 Server Actions·cookies·동적 Route Handler 등 서버 기능이 export 대상에서 제외된다고 명시한다. Tauri의 Next.js 안내도 `output: 'export'`와 `out` 디렉터리를 요구한다. 그러므로 제안의 Web 일반 Next 빌드와 Tauri 정적 빌드는 별도 설정/빌드 증명이 필요하다. 현재 Next.js 설정에서 전환이 쉬운지, PWA 서비스워커가 각 산출물과 공존하는지는 구현 확인 전 미정이다. ([Netlify](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/), [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports), [Tauri + Next.js](https://v2.tauri.app/start/frontend/nextjs/))
-  - 제안서의 예시 폴더는 `app/`, `components/` 루트를 제안하지만 architecture 문서의 현행 앱 경로는 `src/app/`, `src/components/`다. 이 제안 구조는 현재 저장소 구조를 설명하는 것으로 취급하지 않는다.
+  - Netlify Git 자동 배포 연결 시 월 300분 빌드 한도 모니터링 및 PR 프리뷰 빌드 비활성화 등 크레딧 절약 설정 필요.
 
 ## Gemini 진행 문서 대조 기록 (2026-10-03)
 
