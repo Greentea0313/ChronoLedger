@@ -1,5 +1,149 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 정기 구독 템플릿 정렬 및 구독 게임 가나다순 정렬·12개 단위 페이지네이션 구현 (2026-10-13)
+
+- **결정 및 배경**:
+  - `/dashboard/expenses` 정기 구독 탭: 사용자 요청에 따라 정기 구독 템플릿 목록의 정렬 순서를 `[게임]` 그룹(게임별 묶음, 가나다순) $\to$ `[정기 구독]` 그룹(고정 결제일 오름차순 $\to$ 누적 충전형)으로 일원화.
+  - `/dashboard/games` 구독 게임 탭: 내 구독 게임 카드들을 게임 이름 기준 가나다순으로 정렬하고, 12개 단위 페이지네이션을 적용하여 대량의 게임 구독 시에도 쾌적한 탐색 UI 제공.
+  - 일반 사용자 계정(`users.id = dae6adf8-7bfe-457e-8a05-c1e2ce64a381`) 테스트를 위한 더미 데이터 SQL(`md/DUMMY_DATA_USER.sql`) 제공.
+- **수행 내역**:
+  - `src/app/dashboard/expenses/page.tsx`:
+    - `sortedTemplates` 훅 추가: 게임 템플릿 판별 후 게임명 가나다순 $\to$ 주기 순 $\to$ 결제일 순 정렬, 일반 구독 템플릿은 결제일 오름차순 $\to$ 누적 충전형 순 정렬.
+  - `src/app/dashboard/games/page.tsx`:
+    - `sortedUserGames` 훅: 게임 이름 가나다순 정렬.
+    - `GAMES_PER_PAGE = 12` 기준 페이지네이션 바 UI 추가 (`getPaginationRange`, 이전/다음, 페이지 번호).
+  - `md/DUMMY_DATA_USER.sql`, `md/CLEANUP_DUMMY_DATA_USER.sql`:
+    - 사용자 자산 150만 원, 10월 예산 35만 원.
+    - 스토어 지갑 3종(Google Play GOLD 13%, Galaxy Store GENERAL 10%, Naver Pay 0%).
+    - 게임 14종 카탈로그 및 전체 구독 등록(12개 페이지네이션 테스트 지원).
+    - 정기 구독 템플릿 7종(정렬 순서 검증 지원).
+    - 지출 18건(확정 12건, 예정 4건, 취소 2건) 및 캘린더 메모 등록.
+    - 테스트 완료 후 해당 계정의 지출, 구독, 게임, 메모를 원상 복구할 수 있는 정리 스크립트(`md/CLEANUP_DUMMY_DATA_USER.sql`) 제공.
+  - 테스트 및 빌드 검증:
+    - `src/app/dashboard/games/page.test.tsx`: 가나다순 정렬 및 12개 페이지네이션 검증 테스트 추가.
+    - `src/app/dashboard/expenses/page.test.tsx`: 구독 템플릿 5종 정렬 순서 검증 테스트 추가.
+- **검증 증거**:
+  - `npx vitest run`: 37개 파일 / 168개 테스트 전체 통과 (100% PASS).
+  - `npx tsc --noEmit`: TypeScript 무결성 검증 통과 (에러 0건).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
+## Supabase 원격 Redirect URL 최종 등록 완료 확인 (2026-10-13)
+
+- **결정 및 배경**:
+  - Supabase 콘솔(Authentication $\to$ URL Configuration $\to$ Redirect URLs)에 배포 도메인의 `/auth/callback` 등록이 사용자 확인을 통해 완료됨.
+  - 이에 따라 Web/PWA 배포 환경에서 Google OAuth 및 PKCE 인증 세션 왕복이 정상 동작할 수 있는 환경 준비가 완료됨.
+
+## 관리자 요청 페이지 요청 승인/반려 권한 보완 및 테이블 폴백 지원 (2026-10-13)
+
+- **결정 및 배경**:
+  - 기존 승인/반려 RPC(`approve_game_request`, `reject_game_request`, `approve_schedule_request`, `reject_schedule_request`)가 JWT 토큰의 `app_metadata.role = 'admin'`만 검사하여, 데이터베이스 `public.users.role = 'admin'`으로 권한을 부여받은 관리자 계정에서 승인/반려 실행 시 권한 에러가 발생하던 결함 수정.
+  - 마이그레이션 DDL 미적용 원격 환경에서도 관리자 작업이 중단되지 않도록 프론트엔드 단에서 직접 테이블 CUD 폴백 로직을 보강하고 성공 안내 토스트를 추가함.
+- **수행 내역**:
+  - `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`: 4종 승인/반려 RPC에 `public.users.role = 'admin'` 통합 권한 검증 추가.
+  - `src/app/admin/requests/page.tsx`:
+    - 승인/반려 RPC 실패 시 `games` 인서트, `game_schedules` 인서트/업데이트, `game_requests`/`schedule_requests` 상태 변경 직접 테이블 처리 폴백 구현.
+    - 처리 완료 후 성공 피드백 안내 메시지(`successMessage`) 배너 노출.
+    - 일정 요청 타입에 `CONTENTS` 추가 대응 (`VERSION` | `PICKUP` | `CONTENTS`).
+  - `src/app/admin/requests/page.test.tsx`: 승인/반려 RPC 실패 시 테이블 폴백 처리 및 성공 메시지 노출 검증 단위 테스트 추가.
+- **검증 증거**:
+  - `npx vitest run`: 37개 파일 / 165개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
+## 관리자 요청 페이지 직접 게임 추가 기능 및 [게임 등록] 버튼 구현 (2026-10-13)
+
+- **결정 및 배경**:
+  - 관리자가 일반 유저의 건의를 기다리지 않고 공식 게임 마스터 카탈로그에 신규 게임을 직접 추가할 수 있도록 `/admin/requests` 페이지 상단에 전용 카드 및 폼 배치.
+  - 사용자 요구사항에 따라 버튼 이름을 명확히 `[게임 등록]`으로 적용.
+- **수행 내역**:
+  - `src/app/admin/requests/page.tsx`:
+    - "게임 요청" 탭 상단에 `관리자 직접 게임 추가` 카드 추가.
+    - 게임 이름, 기본 아이콘 URL 필드 및 유효성 검사(`http:`/`https:`) 구현.
+    - 버튼 명칭: `[게임 등록]` (처리 중일 때 `등록 중...`).
+  - `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`:
+    - 보안 정의자 RPC `admin_create_game(p_name TEXT, p_default_icon_url TEXT)` 추가 (관리자 권한 검증, 게임명 중복 검증).
+    - 프론트엔드에서 RPC 우선 호출 및 실패 시 direct insert 폴백 지원.
+  - `src/app/admin/requests/page.test.tsx`: 관리자 직접 게임 등록 단위 테스트 추가.
+- **검증 증거**:
+  - `npx vitest run`: 37개 파일 / 163개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
+## 정기 구독 템플릿 수정/삭제 기능 구현 및 카드 액션 버튼 레이아웃 개편 (2026-10-13)
+
+- **결정 및 배경**:
+  - 기존에는 정기 구독 탭에서 등록된 템플릿의 세부 정보(제목, 금액, 결제 주기, 결제일 등)를 수정하거나 템플릿 자체를 삭제할 수 없었던 문제 해결.
+  - 요구사항에 맞춰 구독 카드의 액션 버튼 레이아웃을 개편:
+    - 좌측 정렬: `[수정]`, `[남은 날짜 수정]` (누적 충전형일 때만 노출)
+    - 우측 정렬: `[구독 중지]`(또는 `[구독 재개]`), `[휴지통 모양 아이콘]`(삭제)
+- **수행 내역**:
+  - `src/components/subscription/subscription-modal.tsx`:
+    - `editingTemplate` prop 지원 및 기존 폼 값 자동 바인딩.
+    - 수정 제출 시 `subscription_templates.update()` 호출 및 미결제(`PLANNED`) 회차의 기본 정보 자동 동기화.
+  - `src/app/dashboard/expenses/page.tsx`:
+    - 구독 카드에 `Trash2` 삭제 아이콘 버튼 추가 및 확인 다이얼로그 연동.
+    - 안전 회차 정리: 미결제(`PLANNED`) 회차는 정리되고, 과거 이미 결제 완료된(`CONFIRMED`) 내역은 안전 보존.
+    - `delete_subscription_template` RPC 연동 및 직접 테이블 삭제 폴백 지원.
+    - 액션 버튼 행을 좌측(수정 그룹)과 우측(상태/삭제 그룹)으로 분리 배치.
+  - `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`:
+    - `delete_subscription_template(p_template_id UUID)` RPC 및 RLS `Delete own templates` 정책 추가.
+  - `src/components/subscription/subscription-modal.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`:
+    - 템플릿 수정 및 삭제 단위 테스트 추가.
+- **검증 증거**:
+  - `npx vitest run`: 37개 파일 / 162개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
+## 전체 지출 내역 10개 단위 클라이언트 페이지네이션 및 누적 충전 주기 커스텀 지원 (2026-10-13)
+
+- **결정 및 배경**:
+  - 지출 내역이 증가함에 따라 데스크톱/모바일 뷰에서 스크롤이 무한정 길어지는 문제를 해결하기 위해 10개 단위 페이지네이션 도입. (전체 지출 통계 및 차트는 정확도를 위해 전체 데이터 유지).
+  - 기존 고정 30일 주기였던 누적 충전형 상품을 7일(주간), 14일(2주) 등 원하는 일수로 자유롭게 지정할 수 있도록 커스텀 주기 지원.
+- **수행 내역**:
+  - `src/app/dashboard/expenses/page.tsx`:
+    - `EXPENSES_PER_PAGE = 10` 기준 슬라이싱 적용.
+    - 총 N건 중 A-B건 표시, 이전/다음 버튼, 페이지 번호 버튼(스마트 말줄임표 `...`) 구현.
+    - 지출 상태 변경/삭제 시 총 페이지 수 축소에 따른 자동 클램핑 `useEffect` 적용.
+  - `src/components/subscription/subscription-modal.tsx`, `src/lib/subscription-sync.ts`:
+    - 명칭을 '누적 충전형'으로 변경하고, 주기 일수(`interval_days`, 기본값 30일) 자유 입력 지원.
+    - 다음 회차 자동 생성 시 `template.interval_days` 반영 및 폴백 지원.
+  - `src/app/dashboard/expenses/page.test.tsx`:
+    - 25개 지출 항목 기준 페이지네이션 분할 및 이동 검증 테스트 추가.
+- **검증 증거**:
+  - `npx vitest run`: 37개 파일 / 160개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
+## 게임 버전 패스형/정기 구독 예정 지출 생성 실패 수정 및 버전 시작일 바인딩 개선 (2026-10-13)
+
+- **결정 및 배경**:
+  - PostgREST의 `.upsert`가 부분 유니크 인덱스(`WHERE ... IS NOT NULL`) 조건절을 포함하지 못해 발생하던 `42P10` 에러로 인한 예정 지출 저장 중단 해결.
+  - 버전 패스 회차 생성 시 목표 결제일(`target_date`)이 버전 종료일이 아닌 실제 오픈일(`s.start_date`)에 바인딩되도록 개선.
+  - 소비 페이지 진입 시 미반영 구독 회차를 즉시 생성하는 자동 지연 동기화 연동.
+- **수행 내역**:
+  - `src/lib/subscription-sync.ts`:
+    - `MONTHLY_DAY`, `VERSION_PASS` 모두 기존 등록 회차를 선조회하여 미등록 회차만 필터링한 후 안전한 `.insert()`로 저장 (동시성 23505 에러 무해 처리).
+    - 버전 패스 예정 회차의 `target_date`를 버전 시작일(`s.start_date`)로 지정.
+  - `src/app/dashboard/expenses/page.tsx`:
+    - `loadExpenses()` 실행 시 온라인 상태이면 `ensureMonthlySubscriptionExpenses` 선행 호출.
+  - `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`:
+    - `sync_version_expenses_trigger()` SQL 트리거에서 `VERSION` 일정 변경 시 `target_date = NEW.start_date` 자동 동기화.
+- **검증 증거**:
+  - `npx vitest run`: 37개 파일 / 158개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
+## Alt+Tab/창 전환 시 모달 입력값 초기화 방지 및 백그라운드 재조회 스켈레톤 언마운트 차단 (2026-10-13)
+
+- **결정 및 배경**:
+  - 창 포커스 전환(Alt+Tab) 시 백그라운드 데이터 재조회가 트리거되면서 화면이 스켈레톤 컴포넌트로 대체/언마운트되어, 사용자가 모달에서 입력 중이던 내용이 날아가던 현상 차단.
+- **수행 내역**:
+  - `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/games/page.tsx`:
+    - `hasLoadedInitialRef` 플래그로 최초 1회 로드 시에만 스켈레톤을 렌더링하고 백그라운드 재조회 시 언마운트 차단.
+    - `useCallback` 의존성을 `user` 객체 대신 불변 원시값인 `user?.id`로 교체.
+  - `src/components/subscription/subscription-modal.tsx`, `src/components/expense/expense-modal.tsx`:
+    - `prevOpenRef` 가드를 적용하여 모달이 닫힌 상태에서 새로 열리는 시점에만 폼을 초기화하도록 수정. 부모 리렌더링 시 폼 값 영구 보존.
+  - `src/lib/auth-context.tsx`:
+    - `setUser`에서 동일 사용자 식별자 유지 시 불필요한 레퍼런스 변경 방지.
+- **검증 증거**:
+  - `npx vitest run`: 37개 파일 / 158개 테스트 전체 통과 (100% PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 페이지 로드 부드러움 향상 및 게임 아이콘 지연 로딩 최적화 (2026-10-13)
 
 - **결정 및 배경**:

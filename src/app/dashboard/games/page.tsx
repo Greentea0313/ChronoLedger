@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,7 +15,22 @@ import { getKstToday } from "@/lib/dashboard-date"
 import { GameIcon } from "@/components/ui/game-icon"
 import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
-import { Calendar, Gamepad2, ImagePlus, Loader2, Trash2 } from "lucide-react"
+import { Calendar, ChevronLeft, ChevronRight, Gamepad2, ImagePlus, Loader2, Trash2 } from "lucide-react"
+
+const GAMES_PER_PAGE = 12
+
+function getPaginationRange(current: number, total: number): (number | "...")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "...", total]
+  }
+  if (current >= total - 3) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total]
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total]
+}
 
 interface UserGameRow {
   id: string
@@ -45,6 +60,7 @@ export default function GamesPage() {
   const [gameIcons, setGameIcons] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [uploadingGameId, setUploadingGameId] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const [selectedGame, setSelectedGame] = useState<{ id: string; name: string } | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -54,6 +70,28 @@ export default function GamesPage() {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const hasLoadedInitialRef = useRef(false)
   const userId = user?.id
+
+  // 게임 이름 기준 가나다순 정렬
+  const sortedUserGames = useMemo(() => {
+    return [...userGames].sort((a, b) => {
+      const nameA = a.games?.name || ""
+      const nameB = b.games?.name || ""
+      return nameA.localeCompare(nameB, "ko")
+    })
+  }, [userGames])
+
+  const totalGamePages = Math.max(1, Math.ceil(sortedUserGames.length / GAMES_PER_PAGE))
+
+  useEffect(() => {
+    if (currentPage > totalGamePages) {
+      setCurrentPage(totalGamePages)
+    }
+  }, [currentPage, totalGamePages])
+
+  const paginatedUserGames = useMemo(() => {
+    const start = (currentPage - 1) * GAMES_PER_PAGE
+    return sortedUserGames.slice(start, start + GAMES_PER_PAGE)
+  }, [sortedUserGames, currentPage])
 
   const loadGames = useCallback(async () => {
     if (!userId) return
@@ -198,95 +236,162 @@ export default function GamesPage() {
               hint="상단의 '+ 구독 추가' 버튼으로 카탈로그에서 게임을 구독해보세요."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {userGames.map((ug) => {
-                const gameName = ug.games?.name || "알 수 없는 게임"
-                const iconSrc = gameIcons[ug.game_id] || ug.games?.default_icon_url || null
-                const isUploading = uploadingGameId === ug.game_id
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paginatedUserGames.map((ug) => {
+                  const gameName = ug.games?.name || "알 수 없는 게임"
+                  const iconSrc = gameIcons[ug.game_id] || ug.games?.default_icon_url || null
+                  const isUploading = uploadingGameId === ug.game_id
 
-                return (
-                  <div
-                    key={ug.id}
-                    className="flex flex-col justify-between p-4 rounded-lg border border-line bg-surface-2 hover:border-line-control transition-all"
-                  >
-                    <div className="flex items-start gap-3">
-                      {/* 게임 아이콘 */}
-                      <div className="relative w-14 h-14 rounded-lg border border-line bg-surface-3 flex items-center justify-center overflow-hidden shrink-0">
-                        <GameIcon
-                          src={iconSrc}
-                          alt={gameName}
-                          fallbackIcon={<Gamepad2 className="w-7 h-7 text-content-secondary" />}
-                          priority
+                  return (
+                    <div
+                      key={ug.id}
+                      className="flex flex-col justify-between p-4 rounded-lg border border-line bg-surface-2 hover:border-line-control transition-all"
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* 게임 아이콘 */}
+                        <div className="relative w-14 h-14 rounded-lg border border-line bg-surface-3 flex items-center justify-center overflow-hidden shrink-0">
+                          <GameIcon
+                            src={iconSrc}
+                            alt={gameName}
+                            fallbackIcon={<Gamepad2 className="w-7 h-7 text-content-secondary" />}
+                            priority
+                          />
+                          {isUploading && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <Loader2 className="w-5 h-5 text-white animate-spin" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 게임 명칭 및 구독 정보 */}
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-content text-base truncate">{gameName}</h3>
+                          <p className="text-xs text-content-secondary mt-0.5">공용 일정 연동 중</p>
+                        </div>
+                      </div>
+
+                      {/* 액션 버튼 그룹 */}
+                      <div className="mt-4 pt-3 border-t border-line flex items-center justify-between gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-xs border-line-control hover:bg-surface-3 text-content"
+                          onClick={() => {
+                            setSelectedGame({ id: ug.game_id, name: gameName })
+                            setIsSheetOpen(true)
+                          }}
+                        >
+                          <Calendar className="w-3.5 h-3.5 mr-1 text-primary" />
+                          일정 보기
+                        </Button>
+
+                        {/* 커스텀 아이콘 등록/변경 */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs border-line-control hover:bg-surface-3 text-content px-2.5"
+                          disabled={isUploading}
+                          onClick={() => fileInputRefs.current[ug.game_id]?.click()}
+                          title="아이콘 등록/변경"
+                        >
+                          <ImagePlus className="w-3.5 h-3.5" />
+                        </Button>
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          className="hidden"
+                          ref={(el) => {
+                            fileInputRefs.current[ug.game_id] = el
+                          }}
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              void handleIconUpload(ug.game_id, e.target.files[0])
+                            }
+                          }}
                         />
-                        {isUploading && (
-                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <Loader2 className="w-5 h-5 text-white animate-spin" />
-                          </div>
-                        )}
-                      </div>
 
-                      {/* 게임 명칭 및 구독 정보 */}
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-content text-base truncate">{gameName}</h3>
-                        <p className="text-xs text-content-secondary mt-0.5">공용 일정 연동 중</p>
+                        {/* 구독 해제 버튼 */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs border-danger/40 text-danger hover:bg-danger/10 px-2.5"
+                          onClick={() => void handleUnsubscribe(ug.id, ug.game_id, gameName)}
+                          title="구독 해제"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     </div>
+                  )
+                })}
+              </div>
 
-                    {/* 액션 버튼 그룹 */}
-                    <div className="mt-4 pt-3 border-t border-line flex items-center justify-between gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 text-xs border-line-control hover:bg-surface-3 text-content"
-                        onClick={() => {
-                          setSelectedGame({ id: ug.game_id, name: gameName })
-                          setIsSheetOpen(true)
-                        }}
-                      >
-                        <Calendar className="w-3.5 h-3.5 mr-1 text-primary" />
-                        일정 보기
-                      </Button>
+              {/* 페이지네이션 바 */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-line text-xs text-content-secondary mt-4">
+                <div data-testid="pagination-info">
+                  총 <span className="font-semibold text-content">{sortedUserGames.length.toLocaleString()}</span>개 중{" "}
+                  <span className="font-semibold text-content">
+                    {(currentPage - 1) * GAMES_PER_PAGE + 1} - {Math.min(currentPage * GAMES_PER_PAGE, sortedUserGames.length)}
+                  </span>
+                  개 표시 (페이지 <span className="font-semibold text-content">{currentPage}</span> / {totalGamePages})
+                </div>
 
-                      {/* 커스텀 아이콘 등록/변경 */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-line-control hover:bg-surface-3 text-content px-2.5"
-                        disabled={isUploading}
-                        onClick={() => fileInputRefs.current[ug.game_id]?.click()}
-                        title="아이콘 등록/변경"
-                      >
-                        <ImagePlus className="w-3.5 h-3.5" />
-                      </Button>
-                      <input
-                        type="file"
-                        accept="image/png, image/jpeg, image/jpg, image/webp"
-                        className="hidden"
-                        ref={(el) => {
-                          fileInputRefs.current[ug.game_id] = el
-                        }}
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            void handleIconUpload(ug.game_id, e.target.files[0])
-                          }
-                        }}
-                      />
+                {totalGamePages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      aria-label="이전 페이지"
+                      className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="hidden sm:inline ml-1">이전</span>
+                    </Button>
 
-                      {/* 구독 해제 버튼 */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-danger/40 text-danger hover:bg-danger/10 px-2.5"
-                        onClick={() => void handleUnsubscribe(ug.id, ug.game_id, gameName)}
-                        title="구독 해제"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                    <div className="flex items-center gap-1">
+                      {getPaginationRange(currentPage, totalGamePages).map((p, idx) =>
+                        p === "..." ? (
+                          <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-content-muted select-none">
+                            ...
+                          </span>
+                        ) : (
+                          <Button
+                            key={`page-${p}`}
+                            size="sm"
+                            variant={p === currentPage ? "default" : "outline"}
+                            onClick={() => setCurrentPage(p as number)}
+                            aria-label={`${p} 페이지로 이동`}
+                            aria-current={p === currentPage ? "page" : undefined}
+                            className={`h-8 w-8 p-0 text-xs ${
+                              p === currentPage
+                                ? "bg-primary text-white font-semibold hover:bg-primary-hover"
+                                : "border-line-control text-content-secondary hover:text-content hover:bg-surface-2"
+                            }`}
+                          >
+                            {p}
+                          </Button>
+                        )
+                      )}
                     </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentPage((p) => Math.min(totalGamePages, p + 1))}
+                      disabled={currentPage === totalGamePages}
+                      aria-label="다음 페이지"
+                      className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                    >
+                      <span className="hidden sm:inline mr-1">다음</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
-                )
-              })}
-            </div>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -1,5 +1,47 @@
 # 프로젝트 진행 현황
 
+## 정기 구독 템플릿 정렬 및 구독 게임 가나다순 정렬·12개 단위 페이지네이션 구현 (2026-10-13)
+
+- **배경 및 사용자 요구사항**:
+  1. `/dashboard/expenses` 정기 구독 탭:
+     - 템플릿 목록의 정렬 기준 개편: `[게임]` 그룹(연관 게임끼리 묶어 게임 이름의 가나다순 정렬) $\to$ `[정기 구독]` 그룹(고정 결제일 오름차순 $\to$ 누적 충전형 순서)으로 정렬.
+  2. `/dashboard/games` 구독 게임 탭:
+     - 내 구독 게임 카드들을 게임 이름을 기준으로 가나다순 정렬.
+     - 구독 게임 카드 그리드에 **12개 단위 페이지네이션** 적용 (페이지 번호 및 이전/다음 네비게이션).
+  3. 일반 사용자 계정(`users.id = dae6adf8-7bfe-457e-8a05-c1e2ce64a381`) 테스트를 위한 종합 더미 데이터 SQL 생성.
+- **수행 내역**:
+  1. **정기 구독 템플릿 정렬 훅 (`src/app/dashboard/expenses/page.tsx`)**:
+     - `sortedTemplates` `useMemo` 구현:
+       - 1단계: `[게임]` 그룹 우선 배치 (`category === '게임' || Boolean(game_id)`).
+         - 게임 이름 기준 가나다순 정렬 (`gameNameA.localeCompare(gameNameB, "ko")`).
+         - 동일 게임 내 주기 우선순위: `MONTHLY_DAY (1)` $\to$ `INTERVAL_30 (2)` $\to$ 기타 (`VERSION_PASS` 등 3).
+         - 동일 주기 내: 고정 결제일(`billing_day`) 오름차순.
+       - 2단계: `[정기 구독]` 일반 그룹:
+         - 고정 결제(`MONTHLY_DAY`, 결제일 `billing_day` 오름차순) $\to$ 누적 충전형(`INTERVAL_30`) 순서 정렬.
+     - 구독 탭 렌더링에 `sortedTemplates.map` 적용.
+  2. **구독 게임 가나다순 정렬 및 12개 페이지네이션 (`src/app/dashboard/games/page.tsx`)**:
+     - `sortedUserGames`: `[...userGames].sort((a, b) => (a.games?.name || "").localeCompare(b.games?.name || "", "ko"))` 가나다순 정렬 구현.
+     - `GAMES_PER_PAGE = 12` 기준 `paginatedUserGames` 슬라이싱 및 현재 페이지 유효성 자동 보정.
+     - 하단 페이지네이션 바 UI 추가 (`getPaginationRange`, 이전/다음 버튼, 페이지 번호 버튼, 총 건수 표시).
+  3. **일반 사용자 테스트용 더미 데이터 생성 및 정리 SQL 작성 (`md/DUMMY_DATA_USER.sql`, `md/CLEANUP_DUMMY_DATA_USER.sql`)**:
+     - 대상 ID `dae6adf8-7bfe-457e-8a05-c1e2ce64a381`를 위한 멱등 트랜잭션 스크립트.
+     - 14종 게임 등록 및 전체 구독(12개 페이지네이션 즉시 검증 가능).
+     - 스토어 지갑 3종(Google Play GOLD 13%, Galaxy Store GENERAL 10%, Naver Pay 0%) 제약 조건 완전 준수.
+     - 사용자 자산 150만 원, 10월 예산 35만 원 등록.
+     - 정기 구독 템플릿 7종(게임 4종 + 일반 3종) 등록(정렬 순서 즉시 검증 가능).
+     - 가계부 지출 18건(확정 12건, 예정 4건, 취소 2건) 및 캘린더 메모 등록.
+     - 검증 완료 후 테스트 계정의 지출, 구독, 게임, 메모를 원상 복구할 수 있는 정리 스크립트(`md/CLEANUP_DUMMY_DATA_USER.sql`) 제공.
+  4. **단위 테스트 및 빌드 검증 (`src/app/dashboard/games/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`)**:
+     - 게임 이름 가나다순 정렬 및 15개 목킹 데이터를 통한 12개 단위 페이지네이션 탐색 테스트 추가.
+     - 정기 구독 템플릿 5종 정렬 순서(`[게임]` 가나다순 $\to$ `[정기 구독]` 결제일 오름차순 $\to$ 누적 충전형) 검증 테스트 추가.
+     - Vitest 37개 파일 / 168개 테스트 전체 100% PASS (`tsc --noEmit` 무결성 확인 및 Next.js 14 정적 15개 페이지 빌드 성공).
+
+## Supabase 원격 Redirect URL 최종 등록 완료 확인 (2026-10-13)
+
+- **현황**:
+  - Supabase Authentication $\to$ URL Configuration $\to$ Redirect URLs에 배포 도메인의 `/auth/callback` 등록이 사용자 확인을 통해 완료됨.
+  - 이에 따라 원격 배포 환경에서 Google OAuth 및 PKCE 인증 콜백 정상 왕복이 가능한 상태로 준비됨.
+
 ## 관리자 요청 페이지 직접 게임 추가 기능 및 [게임 등록] 버튼 구현 완료 (2026-10-13)
 
 - **배경 및 사용자 요구사항**:

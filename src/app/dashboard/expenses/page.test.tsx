@@ -373,5 +373,93 @@ describe("ExpensesPage", () => {
     expect(screen.getAllByText("지출 항목 1").length).toBeGreaterThan(0)
     expect(screen.queryAllByText("지출 항목 11").length).toBe(0)
   })
+
+  it("정기 구독 탭의 템플릿 목록이 [게임] (게임명 가나다순) > [정기 구독] (결제일 오름차순 > 누적 충전형) 순서로 정렬된다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const templates = [
+      {
+        id: "tpl-sub-2",
+        title: "유튜브 프리미엄",
+        category: "정기 구독",
+        cycle_type: "MONTHLY_DAY",
+        billing_day: 25,
+        default_price: 14900,
+        payment_method: "WALLET",
+        is_active: true,
+        game_id: null,
+        games: null,
+      },
+      {
+        id: "tpl-game-genshin",
+        title: "공월 축복",
+        category: "게임",
+        cycle_type: "INTERVAL_30",
+        billing_day: null,
+        default_price: 5900,
+        payment_method: "WALLET",
+        is_active: true,
+        game_id: "game-1",
+        games: { id: "game-1", name: "원신" },
+      },
+      {
+        id: "tpl-sub-1",
+        title: "넷플릭스",
+        category: "정기 구독",
+        cycle_type: "MONTHLY_DAY",
+        billing_day: 5,
+        default_price: 17000,
+        payment_method: "WALLET",
+        is_active: true,
+        game_id: null,
+        games: null,
+      },
+      {
+        id: "tpl-game-starrail",
+        title: "열차보급허가증",
+        category: "게임",
+        cycle_type: "INTERVAL_30",
+        billing_day: null,
+        default_price: 5900,
+        payment_method: "WALLET",
+        is_active: true,
+        game_id: "game-2",
+        games: { id: "game-2", name: "붕괴: 스타레일" },
+      },
+      {
+        id: "tpl-sub-interval",
+        title: "쿠팡 와우 멤버십 (충전형)",
+        category: "정기 구독",
+        cycle_type: "INTERVAL_30",
+        billing_day: null,
+        default_price: 4990,
+        payment_method: "WALLET",
+        is_active: true,
+        game_id: null,
+        games: null,
+      },
+    ]
+
+    from.mockImplementation((table: string) => {
+      if (table === "subscription_templates") return createExpenseQueryBuilder(templates)
+      return createExpenseQueryBuilder([])
+    })
+
+    render(<ExpensesPage />)
+
+    const subTab = await screen.findByRole("tab", { name: "정기 구독" })
+    fireEvent.click(subTab)
+
+    const headings = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((h) => h.textContent?.trim())
+      .filter((text) => text && text !== "정기 구독")
+    expect(headings).toEqual([
+      "열차보급허가증",
+      "공월 축복",
+      "넷플릭스",
+      "유튜브 프리미엄",
+      "쿠팡 와우 멤버십 (충전형)",
+    ])
+  })
 })
 

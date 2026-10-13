@@ -176,5 +176,60 @@ describe("GamesPage", () => {
 
     expect(document.body.textContent).toContain("공식 일정")
   })
+
+  it("sorts subscribed games in Korean alphabetical order (붕괴: 스타레일 before 원신)", async () => {
+    await act(async () => root.render(<GamesPage />))
+    const headings = Array.from(container.querySelectorAll("h3")).map((h) => h.textContent)
+    expect(headings).toEqual(["붕괴: 스타레일", "원신"])
+  })
+
+  it("paginates games with 12 items per page and renders pagination bar", async () => {
+    const manyGames = Array.from({ length: 15 }, (_, i) => ({
+      id: `user-game-${i + 1}`,
+      game_id: `game-${i + 1}`,
+      custom_icon_path: null,
+      games: {
+        id: `game-${i + 1}`,
+        name: `게임 ${String(i + 1).padStart(2, "0")}`,
+        default_icon_url: null,
+      },
+    }))
+
+    from.mockImplementation((table: string) => {
+      if (table === "user_games") {
+        const query = createQuery("user_games")
+        const then = vi.fn((resolve: (val: unknown) => unknown) =>
+          Promise.resolve({ data: manyGames, error: null }).then(resolve)
+        )
+        query.then = then
+        return query
+      }
+      return createQuery(table)
+    })
+
+    await act(async () => root.render(<GamesPage />))
+
+    const paginationInfo = container.querySelector('[data-testid="pagination-info"]')
+    expect(paginationInfo?.textContent).toContain("총 15개 중 1 - 12개 표시 (페이지 1 / 2)")
+
+    // 1페이지에는 12개 카드만 렌더링되어야 함
+    const headingsPage1 = Array.from(container.querySelectorAll("h3"))
+    expect(headingsPage1.length).toBe(12)
+
+    // 2페이지 버튼 클릭
+    const page2Btn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.getAttribute("aria-label") === "2 페이지로 이동"
+    )
+    expect(page2Btn).toBeDefined()
+
+    await act(async () => {
+      Simulate.click(page2Btn!)
+      await Promise.resolve()
+    })
+
+    expect(paginationInfo?.textContent).toContain("총 15개 중 13 - 15개 표시 (페이지 2 / 2)")
+    const headingsPage2 = Array.from(container.querySelectorAll("h3"))
+    expect(headingsPage2.length).toBe(3)
+  })
 })
 

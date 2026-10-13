@@ -229,6 +229,58 @@ export default function ExpensesPage() {
     void loadSchedules()
   }, [loadExpenses, loadSubscriptions, loadSchedules])
 
+  // 정기 구독 탭 정렬: [게임] (게임명 가나다순) > [정기 구독] (고정 결제 (결제일 오름차순) > 누적 충전형)
+  const sortedTemplates = useMemo(() => {
+    return [...templates].sort((a, b) => {
+      const isGameA = a.category === "게임" || Boolean(a.game_id)
+      const isGameB = b.category === "게임" || Boolean(b.game_id)
+
+      // 1. [게임]이 [정기 구독]보다 우선
+      if (isGameA && !isGameB) return -1
+      if (!isGameA && isGameB) return 1
+
+      // 1-1. [게임] 그룹 내 정렬
+      if (isGameA && isGameB) {
+        const gameNameA = a.games?.name || ""
+        const gameNameB = b.games?.name || ""
+        const gameCompare = gameNameA.localeCompare(gameNameB, "ko")
+        if (gameCompare !== 0) return gameCompare
+
+        // 동일 게임 내: 고정 결제 (결제일 오름차순) > 누적 충전형 > 버전 패스 순
+        const getCycleRank = (cycle?: string) => {
+          if (cycle === "MONTHLY_DAY") return 1
+          if (cycle === "INTERVAL_30") return 2
+          return 3
+        }
+        const rankDiff = getCycleRank(a.cycle_type) - getCycleRank(b.cycle_type)
+        if (rankDiff !== 0) return rankDiff
+
+        if (a.cycle_type === "MONTHLY_DAY") {
+          const dayDiff = (a.billing_day || 0) - (b.billing_day || 0)
+          if (dayDiff !== 0) return dayDiff
+        }
+
+        return a.title.localeCompare(b.title, "ko")
+      }
+
+      // 1-2. [정기 구독] 그룹 내 정렬: 고정 결제 (결제일 오름차순) > 누적 충전형 순서
+      const getSubRank = (cycle?: string) => {
+        if (cycle === "MONTHLY_DAY") return 1
+        if (cycle === "INTERVAL_30") return 2
+        return 3
+      }
+      const rankDiff = getSubRank(a.cycle_type) - getSubRank(b.cycle_type)
+      if (rankDiff !== 0) return rankDiff
+
+      if (a.cycle_type === "MONTHLY_DAY") {
+        const dayDiff = (a.billing_day || 0) - (b.billing_day || 0)
+        if (dayDiff !== 0) return dayDiff
+      }
+
+      return a.title.localeCompare(b.title, "ko")
+    })
+  }, [templates])
+
   // 통계: 오직 CONFIRMED 지출만 집계
   const categoryData = useMemo(() => {
     const sums: Record<string, number> = {}
@@ -1160,7 +1212,7 @@ export default function ExpensesPage() {
             </Card>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {templates.map((tpl) => (
+              {sortedTemplates.map((tpl) => (
                 <Card
                   key={tpl.id}
                   className={`flex flex-col justify-between transition-all border ${

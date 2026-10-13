@@ -48,7 +48,7 @@
   - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 5개 통과.
   - 원격 정적 경로 검증: `chronoledger-validation-20261007` Draft Deploy(Production 아님)에서 사용자가 로그인 화면, `/auth`, callback 안내, 비로그인 `/dashboard` → `/auth` 보호 동작을 확인했다. 비인증 HTTP 요청은 Netlify Edge Access에 의해 401이며 예상된 사이트 접근 제한이다.
   - Draft Deploy는 GitHub 자동 배포에 연결되지 않았다. 추후 Git 연동/PR Deploy Preview 설정은 Production branch 배포를 시작하지 않는 방식으로 별도 검토한다. CLI가 만든 루트 `.netlify/`는 Git에서 무시한다.
-  - 다음 검증 단계: Supabase Authentication → URL Configuration → Redirect URLs에 `https://6ac51bafa812ad0b6d62149b--chronoledger-validation-20261007.netlify.app/auth/callback`을 임시 추가하고 Draft URL에서 Google OAuth 왕복을 검증한 뒤 임시 허용 URL 정리 여부를 확인한다. 오늘은 사용자가 중단을 요청해 미실행이다.
+  - [x] Supabase Authentication → URL Configuration → Redirect URLs에 원격 배포 도메인의 `/auth/callback` 등록 완료 (2026-10-13 사용자 확인 완료).
   - GitHub PR Deploy Preview와 Netlify site-level Preview/Production 환경 변수 분리는 미검증이다. 현재 Draft는 로컬 `.env.local`로 빌드한 `out`을 업로드했으며 Netlify Git 빌드 설정은 연결하지 않았다.
   - 현재 앱과 문서는 `main`에 통합되어 원격에 push됐다.
   - 현재 앱 worktree에는 `public/`, PWA manifest, service worker가 없으므로 PWA 자산 경로 점검은 해당 산출물이 추가된 뒤 수행한다.
