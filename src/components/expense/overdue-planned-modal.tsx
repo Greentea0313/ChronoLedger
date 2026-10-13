@@ -52,7 +52,7 @@ export function OverduePlannedModal({ open, expenses, onPay, onChanged }: Overdu
         hideClose
         onInteractOutside={(event) => event.preventDefault()}
         onEscapeKeyDown={(event) => event.preventDefault()}
-        className="max-h-[90vh] overflow-y-auto border-gray-700 bg-gray-800 text-white"
+        className="max-h-[90vh] overflow-y-auto border-line bg-surface text-content"
       >
         <DialogHeader>
           <DialogTitle>기한이 지난 예정 지출</DialogTitle>
@@ -61,15 +61,15 @@ export function OverduePlannedModal({ open, expenses, onPay, onChanged }: Overdu
           </DialogDescription>
         </DialogHeader>
 
-        {!isOnline && <p role="status" className="text-sm text-yellow-300">오프라인 상태입니다. 연결이 복구되면 결제 또는 예정 취소를 진행할 수 있습니다.</p>}
-        {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
-        {expenses.length === 0 && <p className="text-sm text-gray-300">정리할 항목이 없습니다.</p>}
+        {!isOnline && <p role="status" className="text-sm text-warning font-medium">오프라인 상태입니다. 연결이 복구되면 결제 또는 예정 취소를 진행할 수 있습니다.</p>}
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+        {expenses.length === 0 && <p className="text-sm text-content-muted">정리할 항목이 없습니다.</p>}
 
         <ul className="space-y-2">
           {expenses.map((expense) => (
-            <li key={expense.id} className="rounded border border-gray-600 p-3 text-sm">
+            <li key={expense.id} className="rounded border border-line bg-surface-2 p-3 text-sm">
               <p className="font-medium">{expense.title}</p>
-              <p className="text-gray-400">{`만료일 ${getBudgetDate({ ...expense, status: "PLANNED" })} · ${expense.final_amount.toLocaleString()} 원`}</p>
+              <p className="text-content-secondary">{`만료일 ${getBudgetDate({ ...expense, status: "PLANNED" })} · ${expense.final_amount.toLocaleString()} 원`}</p>
               <div className="mt-2 flex gap-2">
                 <Button type="button" size="sm" disabled={!isOnline || busyId !== null} onClick={() => onPay(expense)}>
                   결제하기

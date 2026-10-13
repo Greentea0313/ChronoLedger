@@ -359,7 +359,7 @@ export function RequestSubmissionModal({
               )}
               {submitError && <p role="alert" className="text-sm text-danger">{submitError}</p>}
               {successMessage && <p role="status" className="text-sm text-success">{successMessage}</p>}
-              <Button type="submit" disabled={isSubmitting || !user || !isOnline} className="w-full bg-primary hover:bg-primary-hover text-white">
+              <Button type="submit" disabled={isSubmitting || !user || !isOnline} className="w-full bg-primary hover:bg-primary-hover text-primary-foreground">
                 {isSubmitting ? "제출 중..." : "요청 제출"}
               </Button>
             </form>

@@ -84,9 +84,9 @@ const PLATFORM_LABELS: Record<PaymentPlatform, string> = {
   OTHER: "기타 (스토어 외)",
 }
 const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = ["WALLET", "NAVER_PAY"]
-const selectClassName = "h-10 w-full rounded-md border border-gray-600 bg-gray-700 px-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-const labelClassName = "block text-xs text-gray-300"
-const inputClassName = "bg-gray-900 text-white"
+const selectClassName = "h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+const labelClassName = "block text-xs text-content-secondary"
+const inputClassName = "bg-surface-2 text-content border-line-control"
 
 function toAmount(value: string): number {
   return value.trim() === "" ? 0 : Number(value)
@@ -585,7 +585,7 @@ export function ExpenseModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-gray-700 bg-gray-800 text-white p-4 sm:p-6">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-line bg-surface text-content p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "예정 지출 수정" : isPlannedPayment ? "예정 지출 결제" : "지출 등록 및 결제"}</DialogTitle>
           <DialogDescription>
@@ -669,15 +669,15 @@ export function ExpenseModal({
                           )}
                         </select>
                         {availablePickups.length > 1 ? (
-                          <p className="text-[11px] text-blue-400 mt-1">
+                          <p className="text-[11px] text-info mt-1">
                             ※ 결제일 기준 진행 중인 모든 배너에 동시 연계되며, 자산 차감 및 총 과금액은 1건(1x)만 계산됩니다.
                           </p>
                         ) : availablePickups.length === 1 ? (
-                          <p className="text-[11px] text-blue-400 mt-1">
+                          <p className="text-[11px] text-info mt-1">
                             ※ 결제일이 픽업 기간 내에 포함되어 해당 배너로 자동 연계됩니다.
                           </p>
                         ) : (
-                          <p className="text-[11px] text-gray-400 mt-1">
+                          <p className="text-[11px] text-content-secondary mt-1">
                             ※ 결제일이 픽업 기간 외에 해당하여 픽업 외 지출(일반)로 자동 매핑됩니다.
                           </p>
                         )}
@@ -727,7 +727,7 @@ export function ExpenseModal({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="expense-final-amount" className={labelClassName}>최종 실결제액 (원)</label>
-              <span className="text-[11px] text-blue-400">수동 수정 시 할인이 자동 역산됩니다</span>
+              <span className="text-[11px] text-info">수동 수정 시 할인이 자동 역산됩니다</span>
             </div>
             <Input
               id="expense-final-amount"
@@ -786,20 +786,20 @@ export function ExpenseModal({
 
           {/* 스토어 포인트 적립 및 이벤트 부스트/페이백 설정 */}
           {paymentPlatform !== "OTHER" && (
-            <div className="rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2.5 text-sm">
+            <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 space-y-2.5 text-sm">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-indigo-300">
+                <span className="font-semibold text-primary">
                   {PLATFORM_LABELS[paymentPlatform]} 포인트 적립
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-content-secondary">
                   기본 적립률: {baseEarnRate}%
                 </span>
               </div>
 
               {/* Google Play 포인트 부스트 이벤트 */}
               {paymentPlatform === "GOOGLE_PLAY" && (
-                <div className="space-y-1.5 pt-1 border-t border-indigo-500/20">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-200">
+                <div className="space-y-1.5 pt-1 border-t border-primary/20">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-content">
                     <input
                       type="checkbox"
                       id="expense-google-boost-toggle"
@@ -809,13 +809,13 @@ export function ExpenseModal({
                         setIsEarnedPointsManual(false)
                       }}
                     />
-                    <span className="font-medium text-indigo-200">포인트 부스트 이벤트 적용</span>
+                    <span className="font-medium text-primary">포인트 부스트 이벤트 적용</span>
                   </label>
 
                   {isGoogleBoostEnabled && (
                     <div className="pl-5 space-y-1">
                       <div className="flex items-center gap-2">
-                        <label htmlFor="expense-google-multiplier" className="text-xs text-gray-300 whitespace-nowrap">
+                        <label htmlFor="expense-google-multiplier" className="text-xs text-content-secondary whitespace-nowrap">
                           부스트 배율:
                         </label>
                         <div className="flex items-center gap-1">
@@ -830,12 +830,12 @@ export function ExpenseModal({
                               setGoogleBoostMultiplier(e.target.value)
                               setIsEarnedPointsManual(false)
                             }}
-                            className="h-7 w-20 px-2 text-xs bg-gray-900 border-gray-600 text-white"
+                            className="h-7 w-20 px-2 text-xs bg-surface-2 border-line text-content"
                           />
-                          <span className="text-xs text-gray-300">배</span>
+                          <span className="text-xs text-content-secondary">배</span>
                         </div>
                       </div>
-                      <p className="text-[11px] text-indigo-300">
+                      <p className="text-[11px] text-primary">
                         적립률: 기본 {baseEarnRate}% × {googleBoostMultiplier || 1}배 ={" "}
                         {(baseEarnRate * (Number(googleBoostMultiplier) || 1)).toFixed(2)}%
                       </p>
@@ -846,8 +846,8 @@ export function ExpenseModal({
 
               {/* Galaxy Store 페이백 이벤트 */}
               {paymentPlatform === "GALAXY_STORE" && (
-                <div className="space-y-1.5 pt-1 border-t border-indigo-500/20">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-200">
+                <div className="space-y-1.5 pt-1 border-t border-primary/20">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-content">
                     <input
                       type="checkbox"
                       id="expense-galaxy-payback-toggle"
@@ -857,13 +857,13 @@ export function ExpenseModal({
                         setIsEarnedPointsManual(false)
                       }}
                     />
-                    <span className="font-medium text-indigo-200">페이백 이벤트 적용</span>
+                    <span className="font-medium text-primary">페이백 이벤트 적용</span>
                   </label>
 
                   {isGalaxyPaybackEnabled && (
                     <div className="pl-5 space-y-1">
                       <div className="flex items-center gap-2">
-                        <label htmlFor="expense-galaxy-payback-rate" className="text-xs text-gray-300 whitespace-nowrap">
+                        <label htmlFor="expense-galaxy-payback-rate" className="text-xs text-content-secondary whitespace-nowrap">
                           페이백률:
                         </label>
                         <div className="flex items-center gap-1">
@@ -879,12 +879,12 @@ export function ExpenseModal({
                               setGalaxyPaybackRate(e.target.value)
                               setIsEarnedPointsManual(false)
                             }}
-                            className="h-7 w-20 px-2 text-xs bg-gray-900 border-gray-600 text-white"
+                            className="h-7 w-20 px-2 text-xs bg-surface-2 border-line text-content"
                           />
-                          <span className="text-xs text-gray-300">%</span>
+                          <span className="text-xs text-content-secondary">%</span>
                         </div>
                       </div>
-                      <p className="text-[11px] text-indigo-300">
+                      <p className="text-[11px] text-primary">
                         적립률: {galaxyPaybackRate || 0}% (기본 등급 적립률 대체)
                       </p>
                     </div>
@@ -893,9 +893,9 @@ export function ExpenseModal({
               )}
 
               {/* 예상 적립 포인트 표시 및 수동 오버라이드 */}
-              <div className="pt-1.5 border-t border-indigo-500/20">
+              <div className="pt-1.5 border-t border-primary/20">
                 <div className="flex items-center justify-between gap-2">
-                  <label htmlFor="expense-earned-points" className="text-xs text-gray-300 whitespace-nowrap">
+                  <label htmlFor="expense-earned-points" className="text-xs text-content-secondary whitespace-nowrap">
                     예상 적립 포인트 (P):
                   </label>
                   <div className="flex items-center gap-1">
@@ -910,17 +910,17 @@ export function ExpenseModal({
                         setEarnedPointsInput(e.target.value)
                         setIsEarnedPointsManual(true)
                       }}
-                      className="h-7 w-28 px-2 text-right text-xs bg-gray-900 border-gray-600 text-white"
+                      className="h-7 w-28 px-2 text-right text-xs bg-surface-2 border-line text-content"
                     />
-                    <span className="text-xs text-gray-300">P</span>
+                    <span className="text-xs text-content-secondary">P</span>
                   </div>
                 </div>
-                <div className="flex justify-between items-center mt-1 text-[11px] text-gray-400">
+                <div className="flex justify-between items-center mt-1 text-[11px] text-content-secondary">
                   <span>※ 영수증과 차이가 있을 경우 직접 수정할 수 있습니다.</span>
                   {isEarnedPointsManual && (
                     <button
                       type="button"
-                      className="text-indigo-400 underline hover:text-indigo-300 text-[11px]"
+                      className="text-primary underline hover:opacity-80 text-[11px]"
                       onClick={() => {
                         setIsEarnedPointsManual(false)
                         setEarnedPointsInput(storeEventResult.earnedPoints > 0 ? String(storeEventResult.earnedPoints) : "")
@@ -945,22 +945,22 @@ export function ExpenseModal({
           )}
 
           {paymentMethod === "NAVER_PAY" && (
-            <div className="rounded-lg border border-emerald-500/40 bg-emerald-950/20 p-3 space-y-2 text-sm">
+            <div className="rounded-lg border border-success/30 bg-success/10 p-3 space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-emerald-400 flex items-center gap-1.5">
-                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-semibold text-success flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-success animate-pulse" />
                   네이버페이 머니 결제 프리뷰
                 </span>
-                <span className="text-xs text-gray-400">보유 머니: {naverBalance.toLocaleString()} 원</span>
+                <span className="text-xs text-content-secondary">보유 머니: {naverBalance.toLocaleString()} 원</span>
               </div>
 
               {finalAmount <= 0 ? (
-                <div className="text-xs text-emerald-300/90 py-1">
+                <div className="text-xs text-success py-1">
                   할인 및 포인트로 전액 결제되어 추가 충전 및 결제액이 없습니다 (0원 결제).
                 </div>
               ) : naverCalc && naverCalc.isRechargeNeeded ? (
                 naverCalc.isAssetInsufficient ? (
-                  <div className="rounded bg-rose-950/50 border border-rose-500/50 p-2.5 text-xs text-rose-300 space-y-1">
+                  <div className="rounded bg-danger/10 border border-danger/30 p-2.5 text-xs text-danger space-y-1">
                     <div className="flex justify-between font-semibold">
                       <span>⚠️ 총 자산 잔액 부족</span>
                       <span>필요 충전: {naverCalc.rechargeAmount.toLocaleString()} 원</span>
@@ -970,28 +970,28 @@ export function ExpenseModal({
                     </p>
                   </div>
                 ) : (
-                  <div className="rounded bg-gray-900/80 border border-gray-700/80 p-2.5 text-xs space-y-1.5">
-                    <div className="flex justify-between text-gray-300">
+                  <div className="rounded bg-surface-2 border border-line p-2.5 text-xs space-y-1.5">
+                    <div className="flex justify-between text-content">
                       <span>결제 필요 부족액</span>
-                      <span className="text-amber-400 font-semibold">{naverCalc.shortage.toLocaleString()} 원</span>
+                      <span className="text-warning font-semibold">{naverCalc.shortage.toLocaleString()} 원</span>
                     </div>
-                    <div className="flex justify-between text-gray-300">
+                    <div className="flex justify-between text-content">
                       <span>10,000원 단위 자동 충전액</span>
-                      <span className="text-emerald-400 font-semibold">+{naverCalc.rechargeAmount.toLocaleString()} 원</span>
+                      <span className="text-success font-semibold">+{naverCalc.rechargeAmount.toLocaleString()} 원</span>
                     </div>
-                    <div className="flex justify-between text-gray-400 border-t border-gray-800 pt-1">
+                    <div className="flex justify-between text-content-secondary border-t border-line pt-1">
                       <span>충전 및 결제 후 예상 잔액</span>
-                      <span className="text-white font-medium">{naverCalc.finalBalance.toLocaleString()} 원</span>
+                      <span className="text-content font-medium">{naverCalc.finalBalance.toLocaleString()} 원</span>
                     </div>
-                    <p className="text-[11px] text-gray-400 mt-1">
+                    <p className="text-[11px] text-content-secondary mt-1">
                       * 총 자산({totalAsset.toLocaleString()}원)에서 {naverCalc.rechargeAmount.toLocaleString()}원이 차감되어 충전 후 결제됩니다.
                     </p>
                   </div>
                 )
               ) : (
-                <div className="text-xs text-emerald-300/90 flex justify-between items-center py-1">
+                <div className="text-xs text-success flex justify-between items-center py-1">
                   <span>머니 잔액이 충분하여 추가 충전 없이 결제됩니다.</span>
-                  <span className="text-gray-300">결제 후: {(naverBalance - finalAmount).toLocaleString()} 원</span>
+                  <span className="text-content">결제 후: {(naverBalance - finalAmount).toLocaleString()} 원</span>
                 </div>
               )}
             </div>
@@ -1007,21 +1007,21 @@ export function ExpenseModal({
             <span>
               총 자산에서 차감
               {paymentMethod === "NAVER_PAY" && (
-                <span className="text-xs text-gray-400 ml-1.5">(네이버페이는 부족 시 충전액만 차감)</span>
+                <span className="text-xs text-content-secondary ml-1.5">(네이버페이는 부족 시 충전액만 차감)</span>
               )}
             </span>
           </label>
 
-          <div className="rounded border border-gray-700 bg-gray-900 p-3 text-sm" aria-live="polite">
+          <div className="rounded border border-line bg-surface-2 p-3 text-sm text-content" aria-live="polite">
             <p>{`실결제액: ${finalAmount.toLocaleString()} 원`}</p>
             {pointWallet && input.usedPoints > 0 && (
-              <p className="text-xs text-gray-400">{`포인트 잔액: ${pointWallet.current_balance.toLocaleString()} P`}</p>
+              <p className="text-xs text-content-secondary">{`포인트 잔액: ${pointWallet.current_balance.toLocaleString()} P`}</p>
             )}
             {paymentMethod === "NAVER_PAY" && (
-              <p className="text-xs text-emerald-400">{`네이버페이 머니 잔액: ${naverBalance.toLocaleString()} 원`}</p>
+              <p className="text-xs text-success">{`네이버페이 머니 잔액: ${naverBalance.toLocaleString()} 원`}</p>
             )}
             {paymentPlatform !== "OTHER" && toAmount(earnedPointsInput) > 0 && (
-              <p className="text-xs text-indigo-300">
+              <p className="text-xs text-primary font-medium">
                 {`${PLATFORM_LABELS[paymentPlatform]} 예상 적립: ${toAmount(earnedPointsInput).toLocaleString()} P`}
                 {storeEventResult.eventTag && ` ${storeEventResult.eventTag}`}
                 {isEarnedPointsManual && " (수동 수정됨)"}
@@ -1029,13 +1029,13 @@ export function ExpenseModal({
             )}
           </div>
 
-          {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
           {isEditMode ? (
             <Button
               type="button"
               disabled={isSubmitting || !isOnline}
-              className="w-full bg-primary hover:bg-primary-hover text-white"
+              className="w-full bg-primary hover:bg-primary-hover text-primary-foreground"
               onClick={(e) => void handleSubmit(e, "EDIT_PLAN")}
             >
               {isSubmitting ? "수정 중..." : "예정 지출 수정 완료"}
@@ -1046,7 +1046,7 @@ export function ExpenseModal({
             </Button>
           ) : (
             <div className="flex gap-2">
-              <Button type="button" variant="outline" disabled={isSubmitting || !isOnline} className="flex-1 bg-gray-700 text-white hover:bg-gray-600 border-gray-600" onClick={(e) => void handleSubmit(e, "PLAN")}>
+              <Button type="button" variant="outline" disabled={isSubmitting || !isOnline} className="flex-1" onClick={(e) => void handleSubmit(e, "PLAN")}>
                 예정 지출로 등록
               </Button>
               <Button type="button" disabled={isPayDisabled} className="flex-1" onClick={(e) => void handleSubmit(e, "PAY")}>

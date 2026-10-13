@@ -469,7 +469,7 @@ export default function AdminRequestsPage() {
                 <div className="flex justify-end pt-1">
                   <Button
                     type="submit"
-                    className="bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm h-9 px-4 font-medium"
+                    className="bg-primary hover:bg-primary-hover text-primary-foreground text-xs sm:text-sm h-9 px-4 font-medium"
                     disabled={isCreatingGame || !isOnline}
                   >
                     {isCreatingGame ? (

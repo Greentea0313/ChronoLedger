@@ -207,7 +207,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
                 <option key={tier} value={tier}>{`${tier} (${GOOGLE_TIER_RATES[tier].toFixed(2)}%)`}</option>
               ))}
             </select>
-            <Button type="submit" disabled={isSaving || !isOnline} className="shrink-0 bg-primary hover:bg-primary-hover text-white">
+            <Button type="submit" disabled={isSaving || !isOnline} className="shrink-0 bg-primary hover:bg-primary-hover text-primary-foreground">
               Google 등급 저장
             </Button>
           </div>
@@ -231,7 +231,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
                 </option>
               ))}
             </select>
-            <Button type="submit" disabled={isSaving || !isOnline} className="shrink-0 bg-primary hover:bg-primary-hover text-white">
+            <Button type="submit" disabled={isSaving || !isOnline} className="shrink-0 bg-primary hover:bg-primary-hover text-primary-foreground">
               Galaxy 등급 저장
             </Button>
           </div>

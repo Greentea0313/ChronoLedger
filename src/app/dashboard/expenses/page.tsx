@@ -779,13 +779,13 @@ export default function ExpensesPage() {
             <>
               <Button
                 onClick={() => setIsIncomeModalOpen(true)}
-                className="h-10 bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+                className="h-10 bg-emerald-600 hover:bg-emerald-500 text-primary-foreground font-medium"
               >
                 + 수익 추가
               </Button>
               <Button
                 onClick={handleAddExpense}
-                className="h-10 bg-primary hover:bg-primary-hover text-white font-medium"
+                className="h-10 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
               >
                 + 지출 추가
               </Button>
@@ -793,7 +793,7 @@ export default function ExpensesPage() {
           ) : (
             <Button
               onClick={handleAddSubscription}
-              className="h-10 bg-primary hover:bg-primary-hover text-white font-medium"
+              className="h-10 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
             >
               + 구독 추가
             </Button>
@@ -1113,11 +1113,11 @@ export default function ExpensesPage() {
                               <span
                                 className={`w-5 h-5 flex items-center justify-center rounded text-[11px] font-bold shrink-0 ${
                                   index === 0
-                                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                                    ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40"
                                     : index === 1
-                                    ? "bg-slate-300/20 text-slate-300 border border-slate-300/40"
+                                    ? "bg-slate-400/20 text-slate-700 dark:text-slate-300 border border-slate-400/40"
                                     : index === 2
-                                    ? "bg-amber-700/20 text-amber-600 border border-amber-700/40"
+                                    ? "bg-amber-700/20 text-amber-700 dark:text-amber-500 border border-amber-700/40"
                                     : "bg-surface-2 text-content-muted"
                                 }`}
                               >
@@ -1241,10 +1241,10 @@ export default function ExpensesPage() {
                               <span
                                 className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                                   expense.status === "CONFIRMED"
-                                    ? "bg-emerald-500/10 text-emerald-400"
+                                    ? "bg-success/15 text-success"
                                     : expense.status === "PLANNED"
-                                    ? "bg-amber-500/10 text-amber-400"
-                                    : "bg-red-500/10 text-red-400"
+                                    ? "bg-warning/15 text-warning"
+                                    : "bg-danger/15 text-danger"
                                 }`}
                               >
                                 {STATUS_LABELS[expense.status] || expense.status}
@@ -1256,7 +1256,7 @@ export default function ExpensesPage() {
                                   <Button
                                     size="sm"
                                     onClick={() => handleConfirmPlanned(expense)}
-                                    className="h-7 px-2.5 text-xs bg-primary hover:bg-primary-hover text-white"
+                                    className="h-7 px-2.5 text-xs bg-primary hover:bg-primary-hover text-primary-foreground"
                                   >
                                     확정
                                   </Button>
@@ -1357,10 +1357,10 @@ export default function ExpensesPage() {
                           <span
                             className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium shrink-0 ${
                               expense.status === "CONFIRMED"
-                                ? "bg-emerald-500/10 text-emerald-400"
+                                ? "bg-success/15 text-success"
                                 : expense.status === "PLANNED"
-                                ? "bg-amber-500/10 text-amber-400"
-                                : "bg-red-500/10 text-red-400"
+                                ? "bg-warning/15 text-warning"
+                                : "bg-danger/15 text-danger"
                             }`}
                           >
                             {STATUS_LABELS[expense.status] || expense.status}
@@ -1376,7 +1376,7 @@ export default function ExpensesPage() {
                                 <Button
                                   size="sm"
                                   onClick={() => handleConfirmPlanned(expense)}
-                                  className="h-7 px-2.5 text-xs bg-primary hover:bg-primary-hover text-white"
+                                  className="h-7 px-2.5 text-xs bg-primary hover:bg-primary-hover text-primary-foreground"
                                 >
                                   확정
                                 </Button>
@@ -1474,7 +1474,7 @@ export default function ExpensesPage() {
                                 aria-current={p === currentPage ? "page" : undefined}
                                 className={`h-8 w-8 p-0 text-xs ${
                                   p === currentPage
-                                    ? "bg-primary text-white font-semibold hover:bg-primary-hover"
+                                    ? "bg-primary text-primary-foreground font-semibold hover:bg-primary-hover"
                                     : "bg-surface border-line-control text-content hover:bg-surface-2"
                                 }`}
                               >
@@ -1582,7 +1582,7 @@ export default function ExpensesPage() {
                         <span
                           className={`text-[11px] font-medium px-2 py-0.5 rounded shrink-0 ${
                             tpl.is_active
-                              ? "bg-emerald-500/10 text-emerald-400"
+                              ? "bg-success/15 text-success"
                               : "bg-content-muted/20 text-content-muted"
                           }`}
                         >
@@ -1708,7 +1708,7 @@ export default function ExpensesPage() {
                             aria-current={p === currentSubscriptionPage ? "page" : undefined}
                             className={`h-8 w-8 p-0 text-xs ${
                               p === currentSubscriptionPage
-                                ? "bg-primary text-white font-semibold hover:bg-primary-hover"
+                                ? "bg-primary text-primary-foreground font-semibold hover:bg-primary-hover"
                                 : "bg-surface border-line-control text-content hover:bg-surface-2"
                             }`}
                           >
@@ -1849,7 +1849,7 @@ export default function ExpensesPage() {
                 isNaN(parseInt(intervalRemainingDays, 10)) ||
                 parseInt(intervalRemainingDays, 10) < 0
               }
-              className="bg-primary hover:bg-primary-hover text-white"
+              className="bg-primary hover:bg-primary-hover text-primary-foreground"
             >
               {isSavingIntervalDays ? "저장 중..." : "저장"}
             </Button>
@@ -1897,7 +1897,7 @@ export default function ExpensesPage() {
               type="button"
               onClick={() => void handleConfirmDeleteTemplate()}
               disabled={isDeletingTemplate}
-              className="bg-danger hover:bg-danger/90 text-white"
+              className="bg-danger hover:bg-danger/90 text-primary-foreground"
             >
               {isDeletingTemplate ? "삭제 중..." : "삭제"}
             </Button>

@@ -398,12 +398,12 @@ export default function DashboardPage() {
     return <DashboardSkeleton />
   }
   if (!user) {
-    return <div className="p-6 text-white">로그인이 필요합니다.</div>
+    return <div className="p-6 text-content">로그인이 필요합니다.</div>
   }
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {error && <p role="alert" className="text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-danger">{error}</p>}
       {overdueExpenses.length > 0 && (
         <div className="flex items-center justify-end">
           <span className="text-sm text-warning">{`기한 지난 예정 ${overdueExpenses.length}건을 정리해야 합니다.`}</span>

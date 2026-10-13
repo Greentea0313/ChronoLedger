@@ -1,5 +1,21 @@
 # 변경 이력
 
+## 2026-10-13 (라이트 테마 전수 검증 및 UI 가독성·대비 전면 최적화)
+
+- **라이트/다크 테마 시맨틱 컬러 토큰 전면 정합화**:
+  - `tailwind.config.ts`의 `textColor: { white: token("text-primary") }` 설정으로 인해 유색 배경 버튼(`bg-primary`, `bg-emerald-600`, `bg-danger` 등) 위에 검정색 텍스트가 렌더링되던 시각적 결함을 해결하기 위해, 모든 유색 버튼 텍스트를 `text-primary-foreground`로 표준화.
+  - 모달 대화상자(`expense-modal.tsx`, `expense-detail-modal.tsx`, `overdue-planned-modal.tsx`) 내 하드코딩된 다크 전용 클래스(`bg-gray-800`, `bg-gray-900`, `border-gray-700`, `text-white`)를 시맨틱 디자인 토큰(`border-line bg-surface text-content`, `bg-surface-2`)으로 전면 전환하여 라이트 테마에서 깔끔하고 높은 대비의 모달 UI 제공.
+- **연한 파스텔 하드코딩 색상 및 WCAG 대비 취약 요소 제거**:
+  - **콘텐츠 배너 (`schedule-banner.tsx`, `hero-sidebar.tsx`, `games/page.tsx`, `admin/page.tsx`)**: 흰색/연회색 타일 위에서 흐려지던 `text-purple-300`을 `text-purple-700 dark:text-purple-300` 및 시맨틱 배경으로 개선.
+  - **픽업 통계 순위 뱃지 (`expenses/page.tsx`)**: 라이트 테마에서 글자가 사라지던 2위 은색 뱃지의 `text-slate-300`을 `text-slate-700 dark:text-slate-300`으로 수정하고, 1위(`text-amber-600 dark:text-amber-400`), 3위(`text-amber-700 dark:text-amber-500`)의 명도 대비 확보.
+  - **지출 상태 뱃지 (`expenses/page.tsx`)**: 테이블 및 모바일 카드의 `CONFIRMED`/`PLANNED`/`CANCELLED` 뱃지에 밝은 파스텔 하드코딩 색상(`text-emerald-400`, `text-amber-400`, `text-red-400`) 대신 시맨틱 클래스 `text-success`, `text-warning`, `text-danger` 적용.
+  - **스토어 이벤트 및 네이버페이 프리뷰 박스 (`expense-modal.tsx`)**: 어두운 인디고/에메랄드/로즈 박스를 `bg-primary/10 border-primary/30`, `bg-success/10 border-success/30`, `bg-danger/10 border-danger/30` 및 시맨틱 텍스트 토큰으로 일원화.
+  - **인풋 및 라벨 폼 컴포넌트**: `selectClassName`, `inputClassName`, `labelClassName`을 `border-line-control bg-surface-2 text-content`, `text-content-secondary`로 표준화.
+  - **상단바 로고 (`topbar.tsx`)**: 라이트 모드에서 번짐과 거친 테두리를 유발하던 `WebkitTextStroke: "1px black"` 인라인 스타일 제거.
+- **단위 테스트 및 빌드 무결점 검증**:
+  - Vitest 39개 파일 202개 테스트 100% 통과 (`vitest run`).
+  - Next.js 14 정적 export 빌드 성공 (`npm run build`).
+
 ## 2026-10-13 (스토어 이벤트 적립률/포인트 수동 수정 및 지출 내역 분리 수정·취소 내역 필터링 구현)
 
 - **스토어별 이벤트 포인트 적립 및 포인트 수동 수정 (`src/lib/payment-calculations.ts`, `src/components/expense/expense-modal.tsx`)**:

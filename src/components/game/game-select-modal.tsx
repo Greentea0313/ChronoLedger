@@ -115,7 +115,7 @@ export function GameSelectModal({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className={className ?? "bg-primary hover:bg-primary-hover text-white font-medium"}>
+        <Button className={className ?? "bg-primary hover:bg-primary-hover text-primary-foreground font-medium"}>
           <Plus className="w-4 h-4 mr-2" /> {triggerText}
         </Button>
       </DialogTrigger>
@@ -178,7 +178,7 @@ export function GameSelectModal({
               {error && <p className="text-sm text-danger">{error}</p>}
 
               <Button
-                className="w-full bg-primary hover:bg-primary-hover text-white font-medium"
+                className="w-full bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
                 onClick={handleSubmit}
                 disabled={isLoading || !isOnline}
               >

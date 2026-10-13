@@ -443,7 +443,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
             <Button
               type="submit"
               disabled={isSubmitting || !isOnline}
-              className="bg-primary hover:bg-primary-hover text-white"
+              className="bg-primary hover:bg-primary-hover text-primary-foreground"
             >
               {isSubmitting ? "저장 중..." : editingTemplate ? "수정 완료" : "구독 추가"}
             </Button>

@@ -207,7 +207,7 @@ export function IncomeModal({ open, onOpenChange, onCompleted }: IncomeModalProp
               <span>현재 총 자산</span>
               <span>{currentAsset.toLocaleString()} 원</span>
             </div>
-            <div className="flex justify-between text-emerald-400 font-semibold">
+            <div className="flex justify-between text-success font-semibold">
               <span>+ 추가 수익금</span>
               <span>+{amountNum.toLocaleString()} 원</span>
             </div>
@@ -236,7 +236,7 @@ export function IncomeModal({ open, onOpenChange, onCompleted }: IncomeModalProp
             <Button
               type="submit"
               disabled={isSubmitting || !isOnline || amountNum <= 0}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+              className="bg-emerald-600 hover:bg-emerald-500 text-primary-foreground font-medium"
             >
               {isSubmitting ? "반영 중..." : "수익 추가"}
             </Button>

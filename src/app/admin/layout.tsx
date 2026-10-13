@@ -80,7 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href="/admin"
                 className={`h-10 inline-flex items-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${
                   isSchedulesTab
-                    ? "bg-primary text-white shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-surface-2 text-content-secondary hover:bg-surface-3 hover:text-content"
                 }`}
               >
@@ -91,7 +91,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href="/admin/requests"
                 className={`h-10 inline-flex items-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${
                   isRequestsTab
-                    ? "bg-primary text-white shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-surface-2 text-content-secondary hover:bg-surface-3 hover:text-content"
                 }`}
               >

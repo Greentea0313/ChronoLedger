@@ -185,7 +185,7 @@ export function HeroSidebarContent({
             type="button"
             size="sm"
             variant="outline"
-            className="h-7 px-2 text-xs text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/10"
+            className="h-7 px-2 text-xs text-success border-success/40 hover:bg-success/10"
             onClick={() => setIsIncomeModalOpen(true)}
           >
             + 수익
@@ -271,7 +271,7 @@ export function HeroSidebarContent({
                             ? "bg-primary/20 text-primary border-primary/30"
                             : isPickup
                               ? "bg-warning/20 text-warning border-warning/30"
-                              : "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                              : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
                         }`}
                       >
                         {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
@@ -418,7 +418,7 @@ export function HeroSidebarContent({
                       type="button"
                       size="sm"
                       onClick={() => void handleSave()}
-                      className="h-7 px-2 text-xs bg-primary hover:bg-primary-hover text-white"
+                      className="h-7 px-2 text-xs bg-primary hover:bg-primary-hover text-primary-foreground"
                       disabled={isSavingMemo}
                     >
                       <Check className="w-3 h-3 mr-1" />

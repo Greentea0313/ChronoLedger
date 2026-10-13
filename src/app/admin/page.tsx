@@ -586,7 +586,7 @@ export default function AdminPage() {
                                     ? "bg-primary/20 text-primary border border-primary/30"
                                     : isPickup
                                       ? "bg-warning/20 text-warning border border-warning/30"
-                                      : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                      : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
                                 }`}
                               >
                                 {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
@@ -600,7 +600,7 @@ export default function AdminPage() {
                                 {isSingleDateItem ? `${schedule.start_date} (단일)` : `${schedule.start_date} ~ ${schedule.end_date}`}
                               </span>
                               {schedule.memo && (
-                                <span className="truncate max-w-xs text-gray-400">· {schedule.memo}</span>
+                                <span className="truncate max-w-xs text-content-muted">· {schedule.memo}</span>
                               )}
                             </div>
                           </div>
@@ -680,7 +680,7 @@ export default function AdminPage() {
                                 aria-current={p === currentSchedulePage ? "page" : undefined}
                                 className={`h-8 w-8 p-0 text-xs ${
                                   p === currentSchedulePage
-                                    ? "bg-primary text-white font-semibold hover:bg-primary-hover"
+                                    ? "bg-primary text-primary-foreground font-semibold hover:bg-primary-hover"
                                     : "bg-surface border-line-control text-content hover:bg-surface-2"
                                 }`}
                               >
@@ -850,7 +850,7 @@ export default function AdminPage() {
                                 aria-current={p === currentGamePage ? "page" : undefined}
                                 className={`h-8 w-8 p-0 text-xs ${
                                   p === currentGamePage
-                                    ? "bg-primary text-white font-semibold hover:bg-primary-hover"
+                                    ? "bg-primary text-primary-foreground font-semibold hover:bg-primary-hover"
                                     : "bg-surface border-line-control text-content hover:bg-surface-2"
                                 }`}
                               >

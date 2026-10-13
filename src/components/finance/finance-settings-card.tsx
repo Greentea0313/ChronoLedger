@@ -145,7 +145,7 @@ export function FinanceSettingsCard({ onChanged }: FinanceSettingsCardProps) {
             <Button
               type="submit"
               disabled={isSaving || !isOnline}
-              className="bg-primary hover:bg-primary-hover text-white font-medium"
+              className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
             >
               {isSaving ? "저장 중..." : "재무 설정 저장"}
             </Button>

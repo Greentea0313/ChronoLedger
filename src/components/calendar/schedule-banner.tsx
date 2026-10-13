@@ -8,7 +8,7 @@ export function ScheduleBanner({ type }: ScheduleBannerProps) {
       ? "border-success/50 bg-success/15 text-success"
       : type === "PICKUP"
         ? "border-primary/50 bg-primary/15 text-primary"
-        : "border-purple-500/50 bg-purple-500/15 text-purple-300"
+        : "border-purple-500/40 bg-purple-500/15 text-purple-700 dark:text-purple-300"
 
   return (
     <span

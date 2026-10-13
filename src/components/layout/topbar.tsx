@@ -104,7 +104,7 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface">
       <div className="mx-auto flex min-h-16 w-full max-w-content flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2 md:px-6 lg:px-8">
-        <Link href="/dashboard" className="mr-2 text-2xl font-black tracking-tight text-primary md:mr-4" style={{ WebkitTextStroke: "1px black" }}>
+        <Link href="/dashboard" className="mr-2 text-2xl font-black tracking-tight text-primary md:mr-4">
           ChronoLedger
         </Link>
 

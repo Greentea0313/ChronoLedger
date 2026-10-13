@@ -61,13 +61,13 @@ export default function SettingsPage() {
 
       <Card className="border-danger/50 text-content">
         <CardHeader>
-          <CardTitle className="text-red-300">계정 삭제</CardTitle>
+          <CardTitle className="text-danger">계정 삭제</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-200">
+          <p className="text-sm text-content">
             계정을 삭제하면 개인 재무, 예산, 게임 구독, 지출, 메모, 포인트 원장, 요청 내역과 비공개 게임 아이콘이 제거됩니다. 공용 게임과 일정은 유지됩니다. 이 작업은 되돌릴 수 없습니다.
           </p>
-          <p className="text-sm text-gray-300">
+          <p className="text-sm text-content-secondary">
             정리 작업이 진행되는 동안에는 개인 기능 접근이 차단됩니다. 정리가 완료되면 등록 이메일로 안내한 뒤 인증 계정을 삭제합니다.
           </p>
           <form className="space-y-3" onSubmit={(event) => void handleAccountDeletion(event)}>
@@ -81,9 +81,9 @@ export default function SettingsPage() {
               value={confirmationEmail}
               onChange={(event) => setConfirmationEmail(event.target.value)}
               required
-              className="bg-gray-900 text-white"
+              className="bg-surface-2 text-content border-line"
             />
-            {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
             <Button type="submit" variant="destructive" disabled={isSubmitting}>
               {isSubmitting ? "삭제 요청 중..." : "계정 삭제 요청"}
             </Button>

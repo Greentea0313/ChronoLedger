@@ -150,7 +150,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
 
   return (
     <Dialog open={expense !== null} onOpenChange={close}>
-      <DialogContent className="border-gray-700 bg-gray-800 text-white p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="border-line bg-surface text-content p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
         {expense && (
           <>
             <DialogHeader>
@@ -159,30 +159,30 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
             </DialogHeader>
 
             {isEditing ? (
-              <div className="space-y-4 rounded-md border border-gray-700 bg-gray-900/60 p-4 text-sm">
+              <div className="space-y-4 rounded-md border border-line bg-surface-2 p-4 text-sm">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-primary">지출 정보 수정</p>
-                  <p className="text-[11px] text-gray-400">
+                  <p className="text-[11px] text-content-secondary">
                     회계 무결성을 위해 결제 금액과 결제수단은 변경할 수 없습니다. 금액 변경은 결제 취소 후 재등록해 주세요.
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="edit-expense-title" className="block text-xs text-gray-300">항목명</label>
+                  <label htmlFor="edit-expense-title" className="block text-xs text-content-secondary">항목명</label>
                   <Input
                     id="edit-expense-title"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="bg-gray-800 text-white border-gray-600"
+                    className="bg-surface-2 text-content border-line"
                     placeholder="지출 항목명"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="edit-expense-category" className="block text-xs text-gray-300">카테고리</label>
+                  <label htmlFor="edit-expense-category" className="block text-xs text-content-secondary">카테고리</label>
                   <select
                     id="edit-expense-category"
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value)}
-                    className="h-10 w-full rounded-md border border-gray-600 bg-gray-800 px-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     {CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
@@ -192,13 +192,13 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="edit-expense-memo" className="block text-xs text-gray-300">메모</label>
+                  <label htmlFor="edit-expense-memo" className="block text-xs text-content-secondary">메모</label>
                   <textarea
                     id="edit-expense-memo"
                     value={editMemo}
                     onChange={(e) => setEditMemo(e.target.value)}
                     rows={3}
-                    className="w-full rounded-md border border-gray-600 bg-gray-800 p-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="w-full rounded-md border border-line-control bg-surface-2 p-2.5 text-sm text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     placeholder="메모 입력"
                   />
                 </div>
@@ -213,21 +213,21 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
               </div>
             ) : (
               <dl className="grid grid-cols-2 gap-1 text-sm">
-                {expense.gameName && (<><dt className="text-gray-400">게임</dt><dd>{expense.gameName}</dd></>)}
-                {expense.pickupTitle && (<><dt className="text-gray-400">픽업</dt><dd>{expense.pickupTitle}</dd></>)}
-                {expense.category && (<><dt className="text-gray-400">카테고리</dt><dd>{expense.category}</dd></>)}
-                {expense.original_price !== undefined && (<><dt className="text-gray-400">정가</dt><dd>{won(expense.original_price)}</dd></>)}
-                {expense.discount_amount !== undefined && (<><dt className="text-gray-400">할인</dt><dd>{won(expense.discount_amount)}</dd></>)}
-                {expense.used_points !== undefined && (<><dt className="text-gray-400">사용 포인트</dt><dd>{`${expense.used_points.toLocaleString()} P`}</dd></>)}
-                {expense.earned_points !== undefined && (<><dt className="text-gray-400">적립 포인트</dt><dd>{`${expense.earned_points.toLocaleString()} P`}</dd></>)}
-                {expense.point_platform && PLATFORM_LABELS[expense.point_platform] && (<><dt className="text-gray-400">결제 플랫폼</dt><dd>{PLATFORM_LABELS[expense.point_platform]}</dd></>)}
-                {expense.payment_method && (<><dt className="text-gray-400">결제수단</dt><dd>{METHOD_LABELS[expense.payment_method] ?? expense.payment_method}</dd></>)}
-                <dt className="text-gray-400">실결제액</dt>
+                {expense.gameName && (<><dt className="text-content-secondary">게임</dt><dd>{expense.gameName}</dd></>)}
+                {expense.pickupTitle && (<><dt className="text-content-secondary">픽업</dt><dd>{expense.pickupTitle}</dd></>)}
+                {expense.category && (<><dt className="text-content-secondary">카테고리</dt><dd>{expense.category}</dd></>)}
+                {expense.original_price !== undefined && (<><dt className="text-content-secondary">정가</dt><dd>{won(expense.original_price)}</dd></>)}
+                {expense.discount_amount !== undefined && (<><dt className="text-content-secondary">할인</dt><dd>{won(expense.discount_amount)}</dd></>)}
+                {expense.used_points !== undefined && (<><dt className="text-content-secondary">사용 포인트</dt><dd>{`${expense.used_points.toLocaleString()} P`}</dd></>)}
+                {expense.earned_points !== undefined && (<><dt className="text-content-secondary">적립 포인트</dt><dd>{`${expense.earned_points.toLocaleString()} P`}</dd></>)}
+                {expense.point_platform && PLATFORM_LABELS[expense.point_platform] && (<><dt className="text-content-secondary">결제 플랫폼</dt><dd>{PLATFORM_LABELS[expense.point_platform]}</dd></>)}
+                {expense.payment_method && (<><dt className="text-content-secondary">결제수단</dt><dd>{METHOD_LABELS[expense.payment_method] ?? expense.payment_method}</dd></>)}
+                <dt className="text-content-secondary">실결제액</dt>
                 <dd>{won(expense.final_amount)}</dd>
                 {expense.memo && (
                   <>
-                    <dt className="text-gray-400">메모</dt>
-                    <dd className="col-span-2 text-xs text-gray-300 bg-gray-900/50 p-2 rounded mt-1 whitespace-pre-wrap">
+                    <dt className="text-content-secondary">메모</dt>
+                    <dd className="col-span-2 text-xs text-content bg-surface-2 border border-line p-2 rounded mt-1 whitespace-pre-wrap">
                       {expense.memo}
                     </dd>
                   </>
@@ -235,10 +235,10 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
               </dl>
             )}
 
-            {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
             {expense.status === "CONFIRMED" && !isEditing && !isConfirming && (
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-700/60">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
                 <Button type="button" variant="outline" size="sm" onClick={startEdit}>
                   정보 수정
                 </Button>

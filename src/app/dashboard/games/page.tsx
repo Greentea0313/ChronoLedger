@@ -211,7 +211,7 @@ export default function GamesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <GameSelectModal onGameAdded={() => void loadGames()} triggerText="구독 추가" className="h-10 bg-primary hover:bg-primary-hover text-white font-medium" />
+          <GameSelectModal onGameAdded={() => void loadGames()} triggerText="구독 추가" className="h-10 bg-primary hover:bg-primary-hover text-primary-foreground font-medium" />
           {!isAdmin && <RequestSubmissionModal triggerText="+ 추가 요청" className="h-10 border-line text-content hover:bg-surface-2 font-medium" />}
         </div>
       </header>
@@ -259,7 +259,7 @@ export default function GamesPage() {
                           />
                           {isUploading && (
                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                              <Loader2 className="w-5 h-5 text-white animate-spin" />
+                              <Loader2 className="w-5 h-5 text-primary-foreground animate-spin" />
                             </div>
                           )}
                         </div>
@@ -367,7 +367,7 @@ export default function GamesPage() {
                             aria-current={p === currentPage ? "page" : undefined}
                             className={`h-8 w-8 p-0 text-xs ${
                               p === currentPage
-                                ? "bg-primary text-white font-semibold hover:bg-primary-hover"
+                                ? "bg-primary text-primary-foreground font-semibold hover:bg-primary-hover"
                                 : "bg-surface border-line-control text-content hover:bg-surface-2"
                             }`}
                           >
@@ -431,7 +431,7 @@ export default function GamesPage() {
                             ? "bg-primary/15 text-primary"
                             : sch.schedule_type === "PICKUP"
                               ? "bg-warning/15 text-warning"
-                              : "bg-purple-500/15 text-purple-300"
+                              : "bg-purple-500/15 text-purple-700 dark:text-purple-300"
                         }`}
                       >
                         {sch.schedule_type === "VERSION" ? "버전" : sch.schedule_type === "PICKUP" ? "픽업" : "콘텐츠"}

@@ -118,7 +118,7 @@ export function UserRequestsCard() {
             size="sm"
             variant={filter === "ALL" ? "default" : "outline"}
             onClick={() => setFilter("ALL")}
-            className={`text-xs h-7 ${filter === "ALL" ? "bg-primary text-white" : "border-line text-content"}`}
+            className={`text-xs h-7 ${filter === "ALL" ? "bg-primary text-primary-foreground" : "border-line text-content"}`}
           >
             전체 ({totalCount})
           </Button>
@@ -126,7 +126,7 @@ export function UserRequestsCard() {
             size="sm"
             variant={filter === "GAME" ? "default" : "outline"}
             onClick={() => setFilter("GAME")}
-            className={`text-xs h-7 ${filter === "GAME" ? "bg-primary text-white" : "border-line text-content"}`}
+            className={`text-xs h-7 ${filter === "GAME" ? "bg-primary text-primary-foreground" : "border-line text-content"}`}
           >
             게임 요청 ({gameRequests.length})
           </Button>
@@ -134,7 +134,7 @@ export function UserRequestsCard() {
             size="sm"
             variant={filter === "SCHEDULE" ? "default" : "outline"}
             onClick={() => setFilter("SCHEDULE")}
-            className={`text-xs h-7 ${filter === "SCHEDULE" ? "bg-primary text-white" : "border-line text-content"}`}
+            className={`text-xs h-7 ${filter === "SCHEDULE" ? "bg-primary text-primary-foreground" : "border-line text-content"}`}
           >
             일정 요청 ({scheduleRequests.length})
           </Button>

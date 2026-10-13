@@ -48,7 +48,7 @@ export default function AuthCallbackPage() {
   }, [router])
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-900 p-4 text-blue-400">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4 text-primary">
       <div className="space-y-4 text-center">
         {error ? (
           <>
