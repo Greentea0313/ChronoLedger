@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { DesktopCalendar, type DesktopCalendarDay } from "@/components/calendar/desktop-calendar"
+import { CalendarGameFilter, type GameFilterOption } from "@/components/calendar/calendar-game-filter"
 import { HeroSidebar, type HeroExpenseItem, type HeroScheduleItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
 import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, parseLocalDate } from "@/lib/calendar-utils"
@@ -83,6 +84,7 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [userGames, setUserGames] = useState<UserGameRow[]>([])
   const [allGames, setAllGames] = useState<AllGameRow[]>([])
+  const [selectedGameIds, setSelectedGameIds] = useState<string[] | null>(null)
 
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
   const [detailExpenseId, setDetailExpenseId] = useState<string | null>(null)
@@ -244,12 +246,30 @@ export default function DashboardPage() {
         }),
     [baseDate, expenses, userGamesMap],
   )
-  const userGameIdSet = useMemo(() => new Set(userGames.map((g) => g.game_id)), [userGames])
+  const gameFilterOptions = useMemo<GameFilterOption[]>(() => {
+    return userGames
+      .map((ug) => ({
+        id: ug.game_id,
+        name: ug.games?.name || "게임",
+        iconUrl: ug.games?.default_icon_url || null,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, "ko"))
+  }, [userGames])
 
-  // 사용자가 구독한 게임의 일정만 캘린더에 표시 (구독하지 않은 게임의 공용 일정은 표시 제외)
+  const allUserGameIds = useMemo(() => userGames.map((g) => g.game_id), [userGames])
+
+  const effectiveSelectedGameIds = useMemo(() => {
+    if (selectedGameIds === null) return allUserGameIds
+    const validSet = new Set(allUserGameIds)
+    return selectedGameIds.filter((id) => validSet.has(id))
+  }, [allUserGameIds, selectedGameIds])
+
+  const activeGameIdSet = useMemo(() => new Set(effectiveSelectedGameIds), [effectiveSelectedGameIds])
+
+  // 사용자가 구독하고 게임 필터에서 활성화한 게임의 일정만 캘린더 및 사이드바에 표시
   const subscribedSchedules = useMemo(
-    () => schedules.filter((s) => !s.game_id || userGameIdSet.has(s.game_id)),
-    [schedules, userGameIdSet],
+    () => schedules.filter((s) => !s.game_id || activeGameIdSet.has(s.game_id)),
+    [schedules, activeGameIdSet],
   )
 
   const daySchedules = useMemo<HeroScheduleItem[]>(() => {
@@ -417,6 +437,13 @@ export default function DashboardPage() {
             onSelectDate={setSelectedDate}
             onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
             onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}
+            gameFilter={
+              <CalendarGameFilter
+                games={gameFilterOptions}
+                selectedGameIds={effectiveSelectedGameIds}
+                onChangeSelectedGameIds={setSelectedGameIds}
+              />
+            }
           />
           <MobileDrawer
             selectedDateLabel={baseDate}

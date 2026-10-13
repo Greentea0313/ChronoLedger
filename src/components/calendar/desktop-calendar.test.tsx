@@ -60,4 +60,22 @@ describe("DesktopCalendar", () => {
     const banners = screen.getAllByText(/VERSION|PICKUP|CONTENTS/).map((el) => el.textContent)
     expect(banners).toEqual(["VERSION", "PICKUP", "CONTENTS"])
   })
+
+  it("gameFilter prop이 전달되었을 때 상단 헤더에 정상적으로 렌더링된다", () => {
+    render(
+      <DesktopCalendar
+        year={2026}
+        month={10}
+        selectedDate="2026-10-15"
+        onSelectDate={vi.fn()}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
+        days={[]}
+        gameFilter={<div data-testid="custom-filter">게임 필터 버튼</div>}
+      />,
+    )
+
+    expect(screen.getByTestId("custom-filter")).toBeTruthy()
+    expect(screen.getByText("게임 필터 버튼")).toBeTruthy()
+  })
 })

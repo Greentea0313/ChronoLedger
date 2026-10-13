@@ -32,6 +32,7 @@ interface DesktopCalendarProps {
   onSelectDate: (date: string) => void
   onPrevMonth: () => void
   onNextMonth: () => void
+  gameFilter?: React.ReactNode
 }
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"]
@@ -44,12 +45,14 @@ export function DesktopCalendar({
   onSelectDate,
   onPrevMonth,
   onNextMonth,
+  gameFilter,
 }: DesktopCalendarProps) {
   return (
     <section className="rounded-lg border border-line bg-surface p-3 shadow-card md:p-4" aria-label="월간 캘린더">
       <header className="mb-3 flex items-center justify-between">
         <h2 className="text-[22px] font-bold text-content">{`${year}년 ${month}월`}</h2>
         <div className="flex items-center gap-1.5">
+          {gameFilter}
           <button
             type="button"
             onClick={onPrevMonth}
