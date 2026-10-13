@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-13 (소비 페이지 차트 시각적 품질 강화 및 호버 하이라이트 인터랙션 구현)
+
+- **카테고리 도넛 차트 색상 대비 강화 및 호버 연동 (`src/app/dashboard/expenses/page.tsx`)**:
+  - `CATEGORY_COLORS`에서 '게임'(`#6366F1`, 인디고)과 '정기 구독'(`#10B981`, 에메랄드)을 뚜렷하게 분리된 고대비 색상으로 개편.
+  - 도넛 슬라이스 기본 테두리(`stroke="#171A21"`) 부여.
+  - 마우스 호버 시 흰색 테두리(`stroke="#FFFFFF"`, 두께 3px) 및 은은한 글로우 하이라이트 적용.
+  - 하단 범례 카드와 원 그래프 슬라이스 간 마우스 호버 시 양방향 포커스 하이라이트 연동.
+- **막대 그래프 축선(X/Y Axis Line), 눈금선 및 CartesianGrid 격자 복원**:
+  - 월별 소비 추이: X축/Y축 기준 축선(`stroke="#374151"`) 복원, 수평 점선 격자(`CartesianGrid vertical={false}`) 추가, 막대 테두리 및 호버 시 흰색 외곽선 강조.
+  - 게임 픽업별 과금 분석: 가로 막대 X축/Y축 기준선 복원, 수직 점선 격자(`CartesianGrid horizontal={false}`) 추가, 막대 테두리 및 우측 순위 카드와의 양방향 호버 하이라이트 연동.
+- **테스트 및 검증**:
+  - 단위 테스트 11건 100% 통과 (`vitest run src/app/dashboard/expenses/page.test.tsx`), TypeScript 및 Next.js 14 프로덕션 빌드 무결성 확인.
+
 ## 2026-10-13 (관리자 요청 페이지 직접 게임 추가 기능 및 [게임 등록] 버튼 구현)
 
 - **관리자 직접 게임 추가 카드 UI (`src/app/admin/requests/page.tsx`)**:
