@@ -99,10 +99,10 @@
 
 [data-theme="light"] {
   color-scheme: light;
-  --bg: 245 247 250;
+  --bg: 236 240 245;
   --surface: 255 255 255;
-  --surface-2: 240 242 246;
-  --border: 216 221 231;
+  --surface-2: 243 246 250;
+  --border: 214 221 230;
   --control-border: 100 112 135;
   --text-primary: 23 26 33;
   --text-secondary: 55 65 81;

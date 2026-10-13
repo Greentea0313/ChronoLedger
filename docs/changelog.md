@@ -13,6 +13,10 @@
 - **지출 분석 차트 Y축 카테고리 레이블 가독성 수정 (`src/app/dashboard/expenses/page.tsx`)**:
   - 원인: 픽업 과금 막대 차트의 `YAxis` 컴포넌트에 `tick={{ fill: "#F5F7FA" }}`가 하드코딩되어 라이트 테마의 흰색 배경 위에서 "일반" 등의 텍스트가 완전히 투명해져 보이지 않던 문제 해결.
   - 조치: `XAxis`, `YAxis`, `CartesianGrid`, `Tooltip` 컴포넌트에 하드코딩된 HEX 컬러 대신 시맨틱 CSS 변수 `rgb(var(--text-primary))`, `rgb(var(--text-secondary))`, `rgb(var(--border))`, `rgb(var(--surface))`를 적용하여 라이트/다크 테마 모두에서 명확한 대비 확보.
+- **라이트 테마 배경색 톤 개선 (테크니컬 슬레이트 쿨 그레이 도입, `src/app/globals.css`)**:
+  - 기존의 백색에 가까웠던 라이트 테마 배경(`--bg`: `rgb(245, 247, 250)`)을 눈이 편안하고 차분한 테크니컬 슬레이트 쿨 그레이(`rgb(236, 240, 245)`, `#ECF0F5`)로 미세 톤다운.
+  - 서브 표면(`--surface-2`: `rgb(243, 246, 250)`) 및 테두리(`--border`: `rgb(214, 221, 230)`)를 슬레이트 톤에 맞추어 재정렬.
+  - 결과: 순백색 메인 카드(`--surface: #FFFFFF`)와의 명암 대비(Elevation)가 극대화되어 카드가 또렷하게 분리되고, 장시간 화면을 보아도 눈부심이 없는 20대 테크/게이밍 맞춤형 무드 연출.
 - **테스트 및 정적 빌드 무결점 검증**:
   - Vitest 39개 파일 203개 테스트 100% 통과 (`vitest run`).
   - Next.js 14 정적 export 빌드 성공 (`npm run build`).

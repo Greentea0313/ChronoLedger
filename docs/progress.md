@@ -13,7 +13,10 @@
      - 모달 오픈 감지 시 `plannedExpense?.id ?? null` 정규화로 매 렌더링마다 폼 필드가 리셋되던 문제 1차 방어.
   2. **차트 Y축 텍스트 시맨틱 토큰 적용 (`src/app/dashboard/expenses/page.tsx`)**:
      - `YAxis`의 하드코딩된 `#F5F7FA`를 `rgb(var(--text-secondary))`로 변경하여 라이트/다크 테마 환경 모두에서 선명한 대비 확보.
-  3. **무결점 검증**:
+  3. **라이트 테마 배경 톤 개선 (`src/app/globals.css`)**:
+     - 라이트 테마 배경색(`--bg`)을 기존 `rgb(245, 247, 250)`에서 차분한 슬레이트 쿨 그레이 `rgb(236, 240, 245)`(#ECF0F5)로 톤다운.
+     - 메인 순백 카드(`--surface`)와의 입체감/구분을 확실히 확보하고, 20대 게이머 유저층이 선호하는 눈이 편안한 테크니컬 디자인 완성.
+  4. **무결점 검증**:
      - 사용자 항목명 삭제 및 수정 유지 기능 단위 테스트 추가 (`src/components/expense/expense-modal.test.tsx`).
      - Vitest 39개 파일 203개 테스트 100% PASS (`vitest run`).
      - Next.js 14 정적 export 빌드 성공 (`npm run build`).
