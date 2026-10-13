@@ -40,6 +40,7 @@ function getPaginationRange(current: number, total: number): (number | "...")[] 
 import {
   Bar,
   BarChart,
+  CartesianGrid,
   Cell,
   Pie,
   PieChart,
@@ -100,12 +101,12 @@ interface SubscriptionTemplateRow {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  게임: "#7C8CFF",
-  "정기 구독": "#4E97FF",
-  식비: "#2DD4BF",
-  교통: "#FBBF24",
-  생활: "#F472B6",
-  기타: "#A78BFA",
+  게임: "#6366F1",
+  "정기 구독": "#10B981",
+  식비: "#F59E0B",
+  교통: "#06B6D4",
+  생활: "#EC4899",
+  기타: "#8B5CF6",
 }
 
 const METHOD_LABELS: Record<string, string> = {
@@ -146,6 +147,11 @@ export default function ExpensesPage() {
   // 픽업 통계 관련 상태
   const [schedulesMap, setSchedulesMap] = useState<Map<string, ScheduleItem>>(new Map())
   const [selectedPickupGameFilter, setSelectedPickupGameFilter] = useState<string>("ALL")
+
+  // 차트 마우스 호버 하이라이트 상태
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState<number | null>(null)
+  const [activeMonthlyIndex, setActiveMonthlyIndex] = useState<number | null>(null)
+  const [activePickupIndex, setActivePickupIndex] = useState<number | null>(null)
 
   const userId = user?.id
 
@@ -805,10 +811,26 @@ export default function ExpensesPage() {
                             innerRadius={50}
                             outerRadius={80}
                             paddingAngle={3}
+                            onMouseLeave={() => setActiveCategoryIndex(null)}
                           >
-                            {categoryData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
+                            {categoryData.map((entry, index) => {
+                              const isHovered = activeCategoryIndex === index
+                              return (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={entry.color}
+                                  stroke={isHovered ? "#FFFFFF" : "#171A21"}
+                                  strokeWidth={isHovered ? 3 : 2}
+                                  cursor="pointer"
+                                  onMouseEnter={() => setActiveCategoryIndex(index)}
+                                  style={{
+                                    filter: isHovered ? "drop-shadow(0px 0px 8px rgba(255,255,255,0.45))" : undefined,
+                                    transition: "all 0.15s ease",
+                                    outline: "none",
+                                  }}
+                                />
+                              )
+                            })}
                           </Pie>
                           <Tooltip
                             contentStyle={{
@@ -827,16 +849,36 @@ export default function ExpensesPage() {
                       </ResponsiveContainer>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 pt-3 border-t border-line">
-                      {categoryData.map((item) => (
-                        <div key={item.category} className="flex items-center gap-2 text-xs">
-                          <span
-                            className="h-2.5 w-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <span className="text-content-secondary truncate">{item.category}</span>
-                          <span className="font-semibold text-content ml-auto">{item.percent}%</span>
-                        </div>
-                      ))}
+                      {categoryData.map((item, index) => {
+                        const isHovered = activeCategoryIndex === index
+                        return (
+                          <div
+                            key={item.category}
+                            className={`flex items-center gap-2 text-xs p-1.5 rounded-md transition-all cursor-pointer ${
+                              isHovered
+                                ? "bg-surface-2 ring-1 ring-primary/50 shadow-sm"
+                                : "hover:bg-surface-2/60"
+                            }`}
+                            onMouseEnter={() => setActiveCategoryIndex(index)}
+                            onMouseLeave={() => setActiveCategoryIndex(null)}
+                          >
+                            <span
+                              className="h-2.5 w-2.5 rounded-full shrink-0 transition-all"
+                              style={{
+                                backgroundColor: item.color,
+                                boxShadow: isHovered ? `0 0 8px ${item.color}` : "none",
+                                transform: isHovered ? "scale(1.2)" : "scale(1)",
+                              }}
+                            />
+                            <span className={`truncate transition-colors ${isHovered ? "text-content font-medium" : "text-content-secondary"}`}>
+                              {item.category}
+                            </span>
+                            <span className={`font-semibold ml-auto transition-colors ${isHovered ? "text-primary" : "text-content"}`}>
+                              {item.percent}%
+                            </span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </>
                 )}
@@ -854,16 +896,21 @@ export default function ExpensesPage() {
                 ) : (
                   <div className="h-[260px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                      <BarChart
+                        data={monthlyData}
+                        margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                        onMouseLeave={() => setActiveMonthlyIndex(null)}
+                      >
+                        <CartesianGrid vertical={false} stroke="#2A2F3A" strokeDasharray="3 3" opacity={0.6} />
                         <XAxis
                           dataKey="label"
-                          axisLine={false}
-                          tickLine={false}
+                          axisLine={{ stroke: "#374151", strokeWidth: 1 }}
+                          tickLine={{ stroke: "#374151" }}
                           tick={{ fill: "#9BA3B2", fontSize: 12 }}
                         />
                         <YAxis
-                          axisLine={false}
-                          tickLine={false}
+                          axisLine={{ stroke: "#374151", strokeWidth: 1 }}
+                          tickLine={{ stroke: "#374151" }}
                           tick={{ fill: "#9BA3B2", fontSize: 12 }}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           tickFormatter={(val: any) => `${Math.round(Number(val) / 10000)}만`}
@@ -879,7 +926,25 @@ export default function ExpensesPage() {
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           formatter={(value: any) => [`${Number(value).toLocaleString()} 원`, "소비액"]}
                         />
-                        <Bar dataKey="amount" fill="#7C8CFF" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                        <Bar dataKey="amount" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                          {monthlyData.map((_, index) => {
+                            const isHovered = activeMonthlyIndex === index
+                            return (
+                              <Cell
+                                key={`month-${index}`}
+                                fill={isHovered ? "#818CF8" : "#6366F1"}
+                                stroke={isHovered ? "#FFFFFF" : "#4338CA"}
+                                strokeWidth={isHovered ? 2 : 1}
+                                cursor="pointer"
+                                onMouseEnter={() => setActiveMonthlyIndex(index)}
+                                style={{
+                                  filter: isHovered ? "drop-shadow(0px 0px 6px rgba(99,102,241,0.5))" : undefined,
+                                  transition: "all 0.15s ease",
+                                }}
+                              />
+                            )
+                          })}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -936,19 +1001,21 @@ export default function ExpensesPage() {
                           data={pickupStatsData.list}
                           layout="vertical"
                           margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                          onMouseLeave={() => setActivePickupIndex(null)}
                         >
+                          <CartesianGrid horizontal={false} stroke="#2A2F3A" strokeDasharray="3 3" opacity={0.6} />
                           <XAxis
                             type="number"
-                            axisLine={false}
-                            tickLine={false}
+                            axisLine={{ stroke: "#374151", strokeWidth: 1 }}
+                            tickLine={{ stroke: "#374151" }}
                             tick={{ fill: "#9BA3B2", fontSize: 11 }}
                             tickFormatter={(val: number) => `${Math.round(val / 10000)}만`}
                           />
                           <YAxis
                             type="category"
                             dataKey="name"
-                            axisLine={false}
-                            tickLine={false}
+                            axisLine={{ stroke: "#374151", strokeWidth: 1 }}
+                            tickLine={{ stroke: "#374151" }}
                             tick={{ fill: "#F5F7FA", fontSize: 12 }}
                             width={110}
                           />
@@ -967,12 +1034,26 @@ export default function ExpensesPage() {
                             ]}
                           />
                           <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={24}>
-                            {pickupStatsData.list.map((entry, idx) => (
-                              <Cell
-                                key={`cell-${idx}`}
-                                fill={entry.isPickup ? "#7C8CFF" : "#64748B"}
-                              />
-                            ))}
+                            {pickupStatsData.list.map((entry, idx) => {
+                              const isHovered = activePickupIndex === idx
+                              const baseFill = entry.isPickup ? "#6366F1" : "#475569"
+                              const activeFill = entry.isPickup ? "#818CF8" : "#64748B"
+                              const baseStroke = entry.isPickup ? "#4338CA" : "#334155"
+                              return (
+                                <Cell
+                                  key={`cell-${idx}`}
+                                  fill={isHovered ? activeFill : baseFill}
+                                  stroke={isHovered ? "#FFFFFF" : baseStroke}
+                                  strokeWidth={isHovered ? 2 : 1}
+                                  cursor="pointer"
+                                  onMouseEnter={() => setActivePickupIndex(idx)}
+                                  style={{
+                                    filter: isHovered ? "drop-shadow(0px 0px 6px rgba(255,255,255,0.35))" : undefined,
+                                    transition: "all 0.15s ease",
+                                  }}
+                                />
+                              )
+                            })}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -988,39 +1069,48 @@ export default function ExpensesPage() {
                       </span>
                     </div>
                     <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                      {pickupStatsData.list.map((item, index) => (
-                        <div
-                          key={item.key}
-                          className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-surface-1/40 hover:bg-surface-1 transition-colors"
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <span
-                              className={`w-5 h-5 flex items-center justify-center rounded text-[11px] font-bold shrink-0 ${
-                                index === 0
-                                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
-                                  : index === 1
-                                  ? "bg-slate-300/20 text-slate-300 border border-slate-300/40"
-                                  : index === 2
-                                  ? "bg-amber-700/20 text-amber-600 border border-amber-700/40"
-                                  : "bg-surface-2 text-content-muted"
-                              }`}
-                            >
-                              {index + 1}
-                            </span>
-                            <span className="font-medium text-content truncate" title={item.name}>
-                              {item.name}
-                            </span>
+                      {pickupStatsData.list.map((item, index) => {
+                        const isHovered = activePickupIndex === index
+                        return (
+                          <div
+                            key={item.key}
+                            className={`flex items-center justify-between text-xs py-1.5 px-2 rounded transition-all cursor-pointer ${
+                              isHovered
+                                ? "bg-surface-2 ring-1 ring-primary/50 shadow-sm"
+                                : "bg-surface-1/40 hover:bg-surface-1"
+                            }`}
+                            onMouseEnter={() => setActivePickupIndex(index)}
+                            onMouseLeave={() => setActivePickupIndex(null)}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span
+                                className={`w-5 h-5 flex items-center justify-center rounded text-[11px] font-bold shrink-0 ${
+                                  index === 0
+                                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                                    : index === 1
+                                    ? "bg-slate-300/20 text-slate-300 border border-slate-300/40"
+                                    : index === 2
+                                    ? "bg-amber-700/20 text-amber-600 border border-amber-700/40"
+                                    : "bg-surface-2 text-content-muted"
+                                }`}
+                              >
+                                {index + 1}
+                              </span>
+                              <span className={`font-medium truncate ${isHovered ? "text-primary" : "text-content"}`} title={item.name}>
+                                {item.name}
+                              </span>
+                            </div>
+                            <div className="text-right shrink-0 ml-3">
+                              <span className={`font-semibold block ${isHovered ? "text-primary" : "text-content"}`}>
+                                {item.amount.toLocaleString()} 원
+                              </span>
+                              <span className="text-[11px] text-content-secondary">
+                                {item.percent}% ({item.count}건)
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-right shrink-0 ml-3">
-                            <span className="font-semibold text-content block">
-                              {item.amount.toLocaleString()} 원
-                            </span>
-                            <span className="text-[11px] text-content-secondary">
-                              {item.percent}% ({item.count}건)
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
