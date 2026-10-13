@@ -97,7 +97,26 @@ describe("ExpenseDetailModal", () => {
       p_title: "패키지 (수정됨)",
       p_category: "식비",
       p_memo: "저녁 회식 결제",
+      p_target_date: "2026-10-08",
     })
+  })
+
+  it("allows updating target_date for confirmed expenses", async () => {
+    rpc.mockResolvedValue({ error: null })
+    const onUpdated = vi.fn()
+    render(<ExpenseDetailModal expense={confirmed} onOpenChange={vi.fn()} onUpdated={onUpdated} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "정보 수정" }))
+    const dateInput = screen.getByLabelText("결제일")
+    fireEvent.change(dateInput, { target: { value: "2026-10-05" } })
+
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalled())
+    expect(rpc).toHaveBeenCalledWith("update_confirmed_expense_metadata", expect.objectContaining({
+      p_expense_id: "e1",
+      p_target_date: "2026-10-05",
+    }))
   })
 
   it("validates empty title when saving metadata edit", async () => {

@@ -60,6 +60,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState("")
   const [editCategory, setEditCategory] = useState("기타")
+  const [editDate, setEditDate] = useState("")
   const [editMemo, setEditMemo] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,6 +69,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
     if (expense) {
       setEditTitle(expense.title || "")
       setEditCategory(expense.category || "기타")
+      setEditDate(expense.target_date || "")
       setEditMemo(expense.memo || "")
       setIsEditing(false)
       setIsConfirming(false)
@@ -88,6 +90,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
     if (!expense) return
     setEditTitle(expense.title || "")
     setEditCategory(expense.category || "기타")
+    setEditDate(expense.target_date || "")
     setEditMemo(expense.memo || "")
     setIsEditing(true)
     setIsConfirming(false)
@@ -114,6 +117,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
       p_title: trimmedTitle,
       p_category: editCategory,
       p_memo: trimmedMemo,
+      p_target_date: editDate || null,
     })
 
     setIsSaving(false)
@@ -125,6 +129,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
     expense.title = trimmedTitle
     expense.category = editCategory
     expense.memo = trimmedMemo
+    if (editDate) expense.target_date = editDate
     setIsEditing(false)
     onUpdated?.()
   }
@@ -190,6 +195,16 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="edit-expense-date" className="block text-xs text-content-secondary">결제일</label>
+                  <Input
+                    id="edit-expense-date"
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="bg-surface-2 text-content border-line"
+                  />
                 </div>
                 <div className="space-y-1">
                   <label htmlFor="edit-expense-memo" className="block text-xs text-content-secondary">메모</label>

@@ -564,12 +564,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- 결제 완료된 지출의 비회계 메타데이터(제목, 카테고리, 메모) 수정 함수
+-- 결제 완료된 지출의 비회계 메타데이터(제목, 카테고리, 메모, 결제일) 수정 함수
 CREATE OR REPLACE FUNCTION public.update_confirmed_expense_metadata(
     p_expense_id UUID,
     p_title VARCHAR(150),
     p_category VARCHAR(50),
-    p_memo TEXT DEFAULT NULL
+    p_memo TEXT DEFAULT NULL,
+    p_target_date DATE DEFAULT NULL
 )
 RETURNS VOID AS $$
 DECLARE
@@ -588,6 +589,10 @@ BEGIN
         RAISE EXCEPTION '올바르지 않은 카테고리입니다.';
     END IF;
 
+    IF p_target_date IS NOT NULL AND p_target_date > (NOW() AT TIME ZONE 'Asia/Seoul')::date THEN
+        RAISE EXCEPTION '미래 날짜로 결제일을 설정할 수 없습니다.';
+    END IF;
+
     SELECT status INTO v_status
     FROM public.expenses
     WHERE id = p_expense_id AND user_id = v_user_id;
@@ -603,7 +608,8 @@ BEGIN
     UPDATE public.expenses
     SET title = btrim(p_title),
         category = p_category,
-        memo = p_memo
+        memo = p_memo,
+        target_date = coalesce(p_target_date, target_date)
     WHERE id = p_expense_id AND user_id = v_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -1356,7 +1362,7 @@ CREATE POLICY "Read own point transactions" ON public.store_point_transactions F
 REVOKE ALL ON FUNCTION public.process_expense_payment(UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE, BIGINT, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.process_expense_payment(UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE, BIGINT, TEXT) TO authenticated;
 REVOKE ALL ON FUNCTION public.refund_expense_payment(UUID) FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.update_confirmed_expense_metadata(UUID, VARCHAR, VARCHAR, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.update_confirmed_expense_metadata(UUID, VARCHAR, VARCHAR, TEXT, DATE) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.cancel_planned_expense(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.restore_cancelled_expense(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.update_store_wallet_settings(VARCHAR, VARCHAR, NUMERIC) FROM PUBLIC, anon;
@@ -1370,7 +1376,7 @@ REVOKE ALL ON FUNCTION public.admin_create_game(TEXT, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.delete_subscription_template(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.process_expense_payment(UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.refund_expense_payment(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.update_confirmed_expense_metadata(UUID, VARCHAR, VARCHAR, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.update_confirmed_expense_metadata(UUID, VARCHAR, VARCHAR, TEXT, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_planned_expense(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.restore_cancelled_expense(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_store_wallet_settings(VARCHAR, VARCHAR, NUMERIC) TO authenticated;

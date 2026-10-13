@@ -1,5 +1,24 @@
 # 프로젝트 진행 현황
 
+## 지출 결제일/예정일 수정 결함 및 버전 종료일 강제 고정 버그 해결 (2026-10-14)
+
+- **배경 및 사용자 요구사항**:
+  1. 예정 지출 등록 시 게임 버전이 연결된 경우, 사용자가 지정한 날짜가 무시되고 버전의 `end_date`로 지출 예정일이 강제 묶이는 심각한 데이터 불일치 버그 발생 (전반부 픽업 지출인데 날짜는 버전 종료일이 되는 모순 발생).
+  2. 예정 지출 수정 모드에서 날짜를 변경해도 다시 버전 종료일로 덮어써져 날짜 수정이 불가능하던 현상 발생.
+  3. 결제 완료된 확정 지출(`CONFIRMED`)의 상세 모달에서 결제일을 수정할 수 있는 UI 및 백엔드 미비.
+- **수행 내역**:
+  1. **예정 지출 및 신규 지출 날짜 사용자 지정 주도권 정상화 (`src/components/expense/expense-modal.tsx`)**:
+     - `target_date: schedule?.end_date ?? input.paymentDate`를 `target_date: input.paymentDate`로 교체하여 사용자가 지정한 날짜가 온전히 저장/수정되도록 수정.
+     - 픽업 연계 기간과 지출 예정일의 정합성 보장.
+     - 모드별 날짜 라벨을 `지출 예정일`, `결제일`, `결제일 / 예정일`로 직관화.
+  2. **확정 지출(`CONFIRMED`) 결제일 수정 기능 추가 (`src/components/expense/expense-detail-modal.tsx`, `md/MIGRATION_EXPENSE_EDIT.sql`, `md/SCHEMA.sql`)**:
+     - `update_confirmed_expense_metadata` RPC에 `p_target_date` 파라미터 및 미래 날짜 방어 가드 추가.
+     - `ExpenseDetailModal`의 [정보 수정] 폼에 결제일(`editDate`) 입력란을 신설하여 결제일도 자유롭게 수정 및 보정 가능하도록 지원.
+  3. **무결점 검증**:
+     - 단위 테스트 추가 (`src/components/expense/expense-modal.test.tsx`, `src/components/expense/expense-detail-modal.test.tsx`).
+     - Vitest 39개 파일 206개 테스트 100% PASS (`vitest run`).
+     - Next.js 14 정적 export 빌드 성공 (`npm run build`).
+
 ## 지출 등록 모달 항목명 원복 버그 수정 및 Recharts 차트 Y축 가독성 개선 (2026-10-14)
 
 - **배경 및 사용자 요구사항**:

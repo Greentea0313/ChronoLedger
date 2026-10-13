@@ -494,7 +494,7 @@ export function ExpenseModal({
           .update({
             title: title.trim(),
             category,
-            target_date: schedule?.end_date ?? input.paymentDate,
+            target_date: input.paymentDate,
             start_date: schedule?.start_date ?? null,
             end_date: schedule?.end_date ?? null,
             original_price: input.originalPrice,
@@ -536,7 +536,7 @@ export function ExpenseModal({
             title: title.trim(),
             category,
             status: "PLANNED",
-            target_date: schedule?.end_date ?? input.paymentDate,
+            target_date: input.paymentDate,
             start_date: schedule?.start_date ?? null,
             end_date: schedule?.end_date ?? null,
             original_price: input.originalPrice,
@@ -789,7 +789,9 @@ export function ExpenseModal({
           </div>
 
           <div>
-            <label htmlFor="expense-date" className={labelClassName}>결제일</label>
+            <label htmlFor="expense-date" className={labelClassName}>
+              {isPlannedPayment ? "결제일" : isEditMode ? "지출 예정일" : "결제일 / 예정일"}
+            </label>
             <Input id="expense-date" type="date" value={paymentDate} min={isPlannedPayment ? getKstToday() : undefined} onChange={(event) => setPaymentDate(event.target.value)} className={inputClassName} />
           </div>
 

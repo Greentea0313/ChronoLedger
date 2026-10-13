@@ -498,4 +498,63 @@ describe("ExpenseModal", () => {
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(titleInput.value).toBe("수동 입력 과금")
   })
+
+  it("saves user-selected paymentDate as target_date instead of version schedule end_date for planned expense", async () => {
+    setup()
+    const onCompleted = vi.fn()
+    const today = getKstToday()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} initialDate={today} />)
+
+    await screen.findByRole("option", { name: "Sample RPG" })
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    await screen.findByRole("option", { name: "버전 1.0" })
+
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "55000" } })
+
+    // 날짜를 명시적으로 변경 (예: 오늘 날짜)
+    const dateInput = screen.getByLabelText("결제일 / 예정일") as HTMLInputElement
+    fireEvent.change(dateInput, { target: { value: "2026-10-15" } })
+
+    fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      target_date: "2026-10-15",
+      status: "PLANNED",
+    }))
+  })
+
+  it("updates target_date when edited in planned expense edit mode", async () => {
+    setup()
+    const onCompleted = vi.fn()
+    const editingPlanned = {
+      id: "exp-plan-2",
+      title: "패키지",
+      original_price: 33000,
+      category: "게임",
+      game_id: "g1",
+      target_date: "2026-10-10",
+      payment_method: "WALLET",
+    }
+
+    render(
+      <ExpenseModal
+        open
+        onOpenChange={vi.fn()}
+        onCompleted={onCompleted}
+        editingExpense={editingPlanned}
+      />
+    )
+
+    const dateInput = screen.getByLabelText("지출 예정일") as HTMLInputElement
+    expect(dateInput.value).toBe("2026-10-10")
+
+    fireEvent.change(dateInput, { target: { value: "2026-10-25" } })
+    fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      target_date: "2026-10-25",
+    }))
+  })
 })
