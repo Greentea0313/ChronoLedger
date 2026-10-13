@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
   calculateFinalAmount,
+  calculateStoreEventEarn,
   estimateEarnedPoints,
   mapPaymentError,
+  mergeEventMemo,
   resolvePointPlatform,
   validatePayment,
   type PaymentInput,
@@ -64,5 +66,51 @@ describe("payment calculations", () => {
   it("maps refund rejection to a friendly message and hides unknown errors", () => {
     expect(mapPaymentError("적립 포인트를 이미 사용하여 환불을 진행할 수 없습니다.", "x")).toContain("이미 사용")
     expect(mapPaymentError("internal sql detail", "fallback")).toBe("fallback")
+  })
+
+  it("calculates Google Play boost multiplier earnings and generates memo tags", () => {
+    // 100,000원 결제, 기본 1.3% 적립률, 4배 부스트 적용 시: 5.2% 적립 (5,200P)
+    const result = calculateStoreEventEarn(100000, 1.3, "GOOGLE_PLAY", {
+      isGoogleBoost: true,
+      googleMultiplier: 4,
+    })
+    expect(result.effectiveRate).toBe(5.2)
+    expect(result.earnedPoints).toBe(5200)
+    expect(result.eventTag).toBe("[구글 부스트: 4배]")
+
+    // 부스트 미적용 시 기본 적립
+    const normal = calculateStoreEventEarn(100000, 1.3, "GOOGLE_PLAY", {
+      isGoogleBoost: false,
+    })
+    expect(normal.effectiveRate).toBe(1.3)
+    expect(normal.earnedPoints).toBe(1300)
+    expect(normal.eventTag).toBeNull()
+  })
+
+  it("calculates Galaxy Store payback percentage earnings and generates memo tags", () => {
+    // 100,000원 결제, 기본 10% 적립률, 30% 페이백 적용 시: 30% 적립 (30,000P)
+    const result = calculateStoreEventEarn(100000, 10, "GALAXY_STORE", {
+      isGalaxyPayback: true,
+      galaxyPaybackRate: 30,
+    })
+    expect(result.effectiveRate).toBe(30)
+    expect(result.earnedPoints).toBe(30000)
+    expect(result.eventTag).toBe("[갤스 페이백: 30%]")
+
+    // 페이백 미적용 시 기본 적립
+    const normal = calculateStoreEventEarn(100000, 10, "GALAXY_STORE", {
+      isGalaxyPayback: false,
+    })
+    expect(normal.effectiveRate).toBe(10)
+    expect(normal.earnedPoints).toBe(10000)
+    expect(normal.eventTag).toBeNull()
+  })
+
+  it("merges event tags into existing memos cleanly", () => {
+    expect(mergeEventMemo("첫 결제", "[구글 부스트: 3배]")).toBe("[구글 부스트: 3배] 첫 결제")
+    expect(mergeEventMemo(null, "[갤스 페이백: 20%]")).toBe("[갤스 페이백: 20%]")
+    expect(mergeEventMemo("", "[구글 부스트: 2배]")).toBe("[구글 부스트: 2배]")
+    expect(mergeEventMemo("[구글 부스트: 3배] 기존 메모", "[구글 부스트: 3배]")).toBe("[구글 부스트: 3배] 기존 메모")
+    expect(mergeEventMemo("일반 메모", null)).toBe("일반 메모")
   })
 })

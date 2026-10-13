@@ -71,4 +71,45 @@ describe("ExpenseDetailModal", () => {
     expect(screen.getByText("픽업")).toBeTruthy()
     expect(screen.getByText("2026 수영복 한정 픽업")).toBeTruthy()
   })
+
+  it("allows updating metadata (title, category, memo) for confirmed expenses", async () => {
+    rpc.mockResolvedValue({ error: null })
+    const onUpdated = vi.fn()
+    render(<ExpenseDetailModal expense={confirmed} onOpenChange={vi.fn()} onUpdated={onUpdated} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "정보 수정" }))
+    expect(screen.getByText("지출 정보 수정")).toBeTruthy()
+
+    const titleInput = screen.getByLabelText("항목명")
+    fireEvent.change(titleInput, { target: { value: "패키지 (수정됨)" } })
+
+    const categorySelect = screen.getByLabelText("카테고리")
+    fireEvent.change(categorySelect, { target: { value: "식비" } })
+
+    const memoTextarea = screen.getByLabelText("메모")
+    fireEvent.change(memoTextarea, { target: { value: "저녁 회식 결제" } })
+
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalled())
+    expect(rpc).toHaveBeenCalledWith("update_confirmed_expense_metadata", {
+      p_expense_id: "e1",
+      p_title: "패키지 (수정됨)",
+      p_category: "식비",
+      p_memo: "저녁 회식 결제",
+    })
+  })
+
+  it("validates empty title when saving metadata edit", async () => {
+    render(<ExpenseDetailModal expense={confirmed} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "정보 수정" }))
+    const titleInput = screen.getByLabelText("항목명")
+    fireEvent.change(titleInput, { target: { value: "   " } })
+
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    expect((await screen.findByRole("alert")).textContent).toContain("항목명을 입력해 주세요.")
+    expect(rpc).not.toHaveBeenCalled()
+  })
 })

@@ -75,6 +75,71 @@ export function estimateEarnedPoints(
   return Math.floor((finalAmount * earnRate) / 100)
 }
 
+export interface StoreEventConfig {
+  isGoogleBoost?: boolean
+  googleMultiplier?: number
+  isGalaxyPayback?: boolean
+  galaxyPaybackRate?: number
+}
+
+export interface StoreEventEarnResult {
+  effectiveRate: number
+  earnedPoints: number
+  eventTag: string | null
+}
+
+/**
+ * 스토어 이벤트(Google Play 부스트 n배, Galaxy Store 페이백 n%)를 반영한
+ * 실효 적립률 및 예상 적립 포인트, 메모 태그를 계산한다.
+ */
+export function calculateStoreEventEarn(
+  finalAmount: number,
+  baseEarnRate: number,
+  platform: PaymentPlatform | LegacyPaymentMethod | null,
+  eventConfig?: StoreEventConfig,
+): StoreEventEarnResult {
+  if (
+    !platform ||
+    platform === "WALLET" ||
+    platform === "NAVER_PAY" ||
+    platform === "OTHER" ||
+    finalAmount <= 0
+  ) {
+    return { effectiveRate: 0, earnedPoints: 0, eventTag: null }
+  }
+
+  let effectiveRate = baseEarnRate
+  let eventTag: string | null = null
+
+  if (platform === "GOOGLE_PLAY" && eventConfig?.isGoogleBoost) {
+    const mult = eventConfig.googleMultiplier ?? 1
+    if (mult > 0) {
+      effectiveRate = Number((baseEarnRate * mult).toFixed(4))
+      eventTag = `[구글 부스트: ${mult}배]`
+    }
+  } else if (platform === "GALAXY_STORE" && eventConfig?.isGalaxyPayback) {
+    const payback = eventConfig.galaxyPaybackRate ?? 0
+    if (payback > 0) {
+      effectiveRate = Number(payback.toFixed(4))
+      eventTag = `[갤스 페이백: ${payback}%]`
+    }
+  }
+
+  const earnedPoints = Math.floor((finalAmount * effectiveRate) / 100)
+  return { effectiveRate, earnedPoints, eventTag }
+}
+
+/**
+ * 기존 메모에 이벤트 태그를 병합한다.
+ */
+export function mergeEventMemo(existingMemo: string | null | undefined, eventTag: string | null): string | null {
+  if (!eventTag) return existingMemo?.trim() || null
+  const trimmed = existingMemo?.trim()
+  if (!trimmed) return eventTag
+  if (trimmed.includes(eventTag)) return trimmed
+  return `${eventTag} ${trimmed}`
+}
+
 export function validatePayment(
   input: PaymentInput,
   todayKst: string,

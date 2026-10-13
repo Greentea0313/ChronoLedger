@@ -3,23 +3,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ExpenseModal } from "./expense-modal"
 import { getKstToday } from "@/lib/dashboard-date"
 
-const { from, rpc, useAuth, insert } = vi.hoisted(() => ({
+const { from, rpc, useAuth, insert, update } = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
   useAuth: vi.fn(),
   insert: vi.fn(),
+  update: vi.fn(),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from, rpc } }))
 
 function query(result: unknown) {
-  const q = { select: vi.fn(), eq: vi.fn(), in: vi.fn(), order: vi.fn(), insert: vi.fn(), single: vi.fn() }
+  const q = { select: vi.fn(), eq: vi.fn(), in: vi.fn(), order: vi.fn(), insert: vi.fn(), single: vi.fn(), update: vi.fn() }
   q.select.mockReturnValue(q)
   q.eq.mockReturnValue(q)
   q.in.mockReturnValue(q)
   q.order.mockResolvedValue(result)
   q.insert = insert
+  q.update = update
   return q
 }
 
@@ -50,6 +52,7 @@ function setup() {
     wallets.eq.mockResolvedValue({
       data: [
         { platform: "GOOGLE_PLAY", current_balance: 10000, earn_rate: 0.2 },
+        { platform: "GALAXY_STORE", current_balance: 5000, earn_rate: 10 },
         { platform: "NAVER_PAY", current_balance: 3000, earn_rate: 0 },
       ],
       error: null,
@@ -60,6 +63,8 @@ function setup() {
   inserted.select.mockReturnValue(inserted)
   inserted.single.mockResolvedValue({ data: { id: "e1" }, error: null })
   insert.mockReturnValue(inserted)
+  const updated = { eq: vi.fn().mockResolvedValue({ error: null }) }
+  update.mockReturnValue(updated)
 }
 
 describe("ExpenseModal", () => {
@@ -365,6 +370,106 @@ describe("ExpenseModal", () => {
       final_amount: 30000,
       pickup_schedule_id: "p1",
       memo: "[PICKUPS:p1,p2]",
+    }))
+  })
+
+  it("applies Google Play boost multiplier and passes custom earned points and event memo tag", async () => {
+    setup()
+    const onCompleted = vi.fn()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "패키지 구매" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "100000" } })
+
+    // 부스트 이벤트 체크 및 3배 배율 입력
+    const boostToggle = screen.getByLabelText("포인트 부스트 이벤트 적용")
+    fireEvent.click(boostToggle)
+    const multiplierInput = screen.getByLabelText("부스트 배율:")
+    fireEvent.change(multiplierInput, { target: { value: "3" } })
+
+    // 기본 0.2% × 3배 = 0.6% -> 100,000 * 0.6% = 600P
+    const earnedInput = screen.getByLabelText("예상 적립 포인트 (P):") as HTMLInputElement
+    expect(earnedInput.value).toBe("600")
+
+    fireEvent.click(screen.getByRole("button", { name: "결제 확정" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(rpc).toHaveBeenCalledWith("process_expense_payment", expect.objectContaining({
+      p_custom_earned_points: 600,
+      p_memo: "[구글 부스트: 3배]",
+    }))
+  })
+
+  it("applies Galaxy Store payback and supports manual point override", async () => {
+    setup()
+    const onCompleted = vi.fn()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "갤스 패키지" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "50000" } })
+
+    // 플랫폼을 Galaxy Store로 변경
+    fireEvent.change(screen.getByLabelText("결제 플랫폼"), { target: { value: "GALAXY_STORE" } })
+
+    // 페이백 이벤트 체크 및 30% 입력
+    const paybackToggle = screen.getByLabelText("페이백 이벤트 적용")
+    fireEvent.click(paybackToggle)
+    const paybackRateInput = screen.getByLabelText("페이백률:")
+    fireEvent.change(paybackRateInput, { target: { value: "30" } })
+
+    // 기본 계산: 50,000 * 30% = 15,000P
+    const earnedInput = screen.getByLabelText("예상 적립 포인트 (P):") as HTMLInputElement
+    expect(earnedInput.value).toBe("15000")
+
+    // 사용자가 15,200P로 직접 수정
+    fireEvent.change(earnedInput, { target: { value: "15200" } })
+
+    fireEvent.click(screen.getByRole("button", { name: "결제 확정" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(rpc).toHaveBeenCalledWith("process_expense_payment", expect.objectContaining({
+      p_custom_earned_points: 15200,
+      p_memo: "[갤스 페이백: 30%]",
+    }))
+  })
+
+  it("updates a planned expense with new values when editingExpense is provided", async () => {
+    setup()
+    const onCompleted = vi.fn()
+    const editingPlanned = {
+      id: "exp-plan-1",
+      title: "원스토어 예정 패키지",
+      original_price: 33000,
+      category: "식비",
+      target_date: "2026-10-20",
+      payment_method: "WALLET",
+    }
+
+    render(
+      <ExpenseModal
+        open
+        onOpenChange={vi.fn()}
+        onCompleted={onCompleted}
+        editingExpense={editingPlanned}
+      />
+    )
+
+    expect(screen.getByText("예정 지출 수정")).toBeTruthy()
+    const titleInput = screen.getByLabelText("항목명") as HTMLInputElement
+    expect(titleInput.value).toBe("원스토어 예정 패키지")
+
+    fireEvent.change(titleInput, { target: { value: "패키지 수정본" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "44000" } })
+
+    fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      title: "패키지 수정본",
+      original_price: 44000,
+      final_amount: 44000,
     }))
   })
 })

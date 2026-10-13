@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { ExpenseModal, type PlannedExpenseInput } from "@/components/expense/expense-modal"
+import { ExpenseModal, type PlannedExpenseInput, type PlannedExpenseEditInput } from "@/components/expense/expense-modal"
 import { ExpenseDetailModal, type ExpenseDetail } from "@/components/expense/expense-detail-modal"
 import { SubscriptionModal } from "@/components/subscription/subscription-modal"
 import { addDays, ensureMonthlySubscriptionExpenses, type SubscriptionCycleType } from "@/lib/subscription-sync"
@@ -140,6 +140,7 @@ export default function ExpensesPage() {
   const [deletingTemplate, setDeletingTemplate] = useState<SubscriptionTemplateRow | null>(null)
   const [isDeletingTemplate, setIsDeletingTemplate] = useState(false)
   const [payingExpense, setPayingExpense] = useState<PlannedExpenseInput | null>(null)
+  const [editingPlannedExpense, setEditingPlannedExpense] = useState<PlannedExpenseEditInput | null>(null)
   const [detailExpense, setDetailExpense] = useState<ExpenseDetail | null>(null)
   const [editingIntervalTemplate, setEditingIntervalTemplate] = useState<SubscriptionTemplateRow | null>(null)
   const [intervalRemainingDays, setIntervalRemainingDays] = useState("30")
@@ -494,14 +495,22 @@ export default function ExpensesPage() {
   }, [sortedExpenses])
 
   const [showPastExpenses, setShowPastExpenses] = useState(false)
-  const displayedExpenses = showPastExpenses ? pastExpenses : activeExpenses
+  const [hideCancelledExpenses, setHideCancelledExpenses] = useState(true)
+
+  const displayedExpenses = useMemo(() => {
+    const baseList = showPastExpenses ? pastExpenses : activeExpenses
+    if (hideCancelledExpenses) {
+      return baseList.filter((exp) => exp.status !== "CANCELLED")
+    }
+    return baseList
+  }, [showPastExpenses, pastExpenses, activeExpenses, hideCancelledExpenses])
 
   // 전체 지출 내역 페이지네이션 계산
   const totalExpensePages = Math.max(1, Math.ceil(displayedExpenses.length / EXPENSES_PER_PAGE))
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [showPastExpenses])
+  }, [showPastExpenses, hideCancelledExpenses])
 
   useEffect(() => {
     if (currentPage > totalExpensePages) {
@@ -517,16 +526,34 @@ export default function ExpensesPage() {
   // 액션 핸들러
   const handleAddExpense = () => {
     setPayingExpense(null)
+    setEditingPlannedExpense(null)
     setIsExpenseModalOpen(true)
   }
 
   const handleConfirmPlanned = (expense: ExpenseRow) => {
+    setEditingPlannedExpense(null)
     setPayingExpense({
       id: expense.id,
       title: expense.title,
       original_price: expense.original_price,
       payment_method: expense.payment_method,
       pickup_schedule_id: expense.pickup_schedule_id ?? null,
+    })
+    setIsExpenseModalOpen(true)
+  }
+
+  const handleEditPlanned = (expense: ExpenseRow) => {
+    setPayingExpense(null)
+    setEditingPlannedExpense({
+      id: expense.id,
+      title: expense.title,
+      original_price: expense.original_price,
+      category: expense.category,
+      target_date: expense.target_date,
+      payment_method: expense.payment_method,
+      game_id: expense.game_id ?? null,
+      pickup_schedule_id: expense.pickup_schedule_id ?? null,
+      memo: expense.memo ?? null,
     })
     setIsExpenseModalOpen(true)
   }
@@ -700,6 +727,7 @@ export default function ExpensesPage() {
       deduct_from_asset: expense.deduct_from_asset,
       gameName: expense.games?.name ?? null,
       pickupTitle: expense.pickup_schedule_id ? schedulesMap.get(expense.pickup_schedule_id)?.title ?? null : null,
+      memo: expense.memo ?? null,
     })
   }
 
@@ -726,6 +754,7 @@ export default function ExpensesPage() {
   const handleModalCompleted = () => {
     setIsExpenseModalOpen(false)
     setPayingExpense(null)
+    setEditingPlannedExpense(null)
     void loadExpenses()
   }
 
@@ -1118,7 +1147,7 @@ export default function ExpensesPage() {
 
           {/* 전체 지출 내역 목록 영역 */}
           <Card className="flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-line">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
               <div>
                 <CardTitle>{showPastExpenses ? "과거 지출 기록" : "전체 지출 내역"}</CardTitle>
                 <p className="text-xs text-content-secondary mt-1">
@@ -1127,15 +1156,26 @@ export default function ExpensesPage() {
                     : `진행 중이거나 최근 7일 이내 및 예정 지출 내역입니다. (총 ${activeExpenses.length}건)`}
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPastExpenses((prev) => !prev)}
-                className="text-xs h-8 px-2.5 flex items-center gap-1.5 shrink-0"
-              >
-                <History className="h-3.5 w-3.5" />
-                {showPastExpenses ? "최근 내역 보기" : `과거 기록 (${pastExpenses.length})`}
-              </Button>
+              <div className="flex items-center gap-3 shrink-0">
+                <label className="flex items-center gap-1.5 text-xs text-content-secondary cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={hideCancelledExpenses}
+                    onChange={(e) => setHideCancelledExpenses(e.target.checked)}
+                    className="rounded border-line bg-surface-2 text-primary focus:ring-primary h-3.5 w-3.5"
+                  />
+                  <span>취소 내역 숨기기</span>
+                </label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPastExpenses((prev) => !prev)}
+                  className="text-xs h-8 px-2.5 flex items-center gap-1.5 shrink-0"
+                >
+                  <History className="h-3.5 w-3.5" />
+                  {showPastExpenses ? "최근 내역 보기" : `과거 기록 (${pastExpenses.length})`}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="pt-4">
               {displayedExpenses.length === 0 ? (
@@ -1223,6 +1263,14 @@ export default function ExpensesPage() {
                                   <Button
                                     size="sm"
                                     variant="outline"
+                                    onClick={() => handleEditPlanned(expense)}
+                                    className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
+                                  >
+                                    수정
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
                                     onClick={() => void handleCancelPlanned(expense.id)}
                                     className="h-7 px-2.5 text-xs text-danger hover:text-danger hover:bg-danger/10 border-line-control"
                                   >
@@ -1231,14 +1279,24 @@ export default function ExpensesPage() {
                                 </div>
                               )}
                               {expense.status === "CONFIRMED" && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleOpenRefund(expense)}
-                                  className="h-7 px-2.5 text-xs text-danger hover:text-danger hover:bg-danger/10 border-line-control"
-                                >
-                                  환불
-                                </Button>
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleOpenRefund(expense)}
+                                    className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
+                                  >
+                                    상세 / 수정
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleOpenRefund(expense)}
+                                    className="h-7 px-2.5 text-xs text-danger hover:text-danger hover:bg-danger/10 border-line-control"
+                                  >
+                                    환불
+                                  </Button>
+                                </div>
                               )}
                               {expense.status === "CANCELLED" && (
                                 <Button
@@ -1312,7 +1370,7 @@ export default function ExpensesPage() {
                           <p className="font-bold text-info text-base">
                             {expense.final_amount.toLocaleString()} 원
                           </p>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
                             {expense.status === "PLANNED" && (
                               <>
                                 <Button
@@ -1325,6 +1383,14 @@ export default function ExpensesPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
+                                  onClick={() => handleEditPlanned(expense)}
+                                  className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
+                                >
+                                  수정
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   onClick={() => void handleCancelPlanned(expense.id)}
                                   className="h-7 px-2.5 text-xs text-danger hover:text-danger hover:bg-danger/10 border-line-control"
                                 >
@@ -1333,14 +1399,24 @@ export default function ExpensesPage() {
                               </>
                             )}
                             {expense.status === "CONFIRMED" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleOpenRefund(expense)}
-                                className="h-7 px-2.5 text-xs text-danger hover:text-danger hover:bg-danger/10 border-line-control"
-                              >
-                                환불
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenRefund(expense)}
+                                  className="h-7 px-2.5 text-xs text-content-secondary hover:text-content hover:bg-surface-2 border-line-control"
+                                >
+                                  상세 / 수정
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenRefund(expense)}
+                                  className="h-7 px-2.5 text-xs text-danger hover:text-danger hover:bg-danger/10 border-line-control"
+                                >
+                                  환불
+                                </Button>
+                              </>
                             )}
                             {expense.status === "CANCELLED" && (
                               <Button
@@ -1661,12 +1737,19 @@ export default function ExpensesPage() {
         </TabsContent>
       </Tabs>
 
-      {/* 새 지출 등록 및 결제 확정 모달 */}
+      {/* 새 지출 등록 및 결제 확정 / 수정 모달 */}
       <ExpenseModal
         open={isExpenseModalOpen}
-        onOpenChange={setIsExpenseModalOpen}
+        onOpenChange={(open) => {
+          setIsExpenseModalOpen(open)
+          if (!open) {
+            setPayingExpense(null)
+            setEditingPlannedExpense(null)
+          }
+        }}
         onCompleted={handleModalCompleted}
         plannedExpense={payingExpense}
+        editingExpense={editingPlannedExpense}
       />
 
       {/* 수익(자산 증액) 추가 모달 */}
@@ -1678,13 +1761,16 @@ export default function ExpensesPage() {
         }}
       />
 
-      {/* 결제 취소/환불 모달 */}
+      {/* 결제 상세/수정/취소 모달 */}
       <ExpenseDetailModal
         expense={detailExpense}
         onOpenChange={(open) => {
           if (!open) setDetailExpense(null)
         }}
         onRefunded={handleRefundCompleted}
+        onUpdated={() => {
+          void loadExpenses()
+        }}
       />
 
       {/* 정기 구독 추가/수정 모달 */}

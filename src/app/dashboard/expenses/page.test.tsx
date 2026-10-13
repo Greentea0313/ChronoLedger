@@ -31,6 +31,7 @@ function createExpenseQueryBuilder(data: unknown[]) {
   const query = {
     select: vi.fn(),
     eq: vi.fn(),
+    in: vi.fn(),
     order: vi.fn(),
     update: vi.fn(),
     insert: vi.fn().mockResolvedValue({ data: null, error: null }),
@@ -39,6 +40,7 @@ function createExpenseQueryBuilder(data: unknown[]) {
   }
   query.select.mockReturnValue(query)
   query.eq.mockReturnValue(query)
+  query.in.mockReturnValue(query)
   query.order.mockReturnValue(query)
   query.update.mockReturnValue(query)
   return query
@@ -141,7 +143,12 @@ describe("ExpensesPage", () => {
     const refundButtons = screen.getAllByRole("button", { name: "환불" })
     expect(refundButtons.length).toBeGreaterThan(0)
 
-    // CANCELLED 항목: 되돌리기 버튼 존재
+    // 취소 내역 숨기기 토글 체크 상태 확인
+    const hideCancelledCheckbox = screen.getByLabelText("취소 내역 숨기기")
+    expect(hideCancelledCheckbox).toBeTruthy()
+
+    // 취소 내역 숨기기 해제 시 CANCELLED 항목 및 되돌리기 버튼 노출
+    fireEvent.click(hideCancelledCheckbox)
     const restoreButtons = screen.getAllByRole("button", { name: "되돌리기" })
     expect(restoreButtons.length).toBeGreaterThan(0)
   })
@@ -167,6 +174,10 @@ describe("ExpensesPage", () => {
     rpc.mockResolvedValue({ error: null })
 
     render(<ExpensesPage />)
+
+    // 취소 내역 숨기기 해제
+    const hideCancelledCheckbox = await screen.findByLabelText("취소 내역 숨기기")
+    fireEvent.click(hideCancelledCheckbox)
 
     const restoreButtons = await screen.findAllByRole("button", { name: "되돌리기" })
     fireEvent.click(restoreButtons[0])
@@ -557,6 +568,37 @@ describe("ExpensesPage", () => {
 
     // 수익 추가 버튼 노출 확인
     expect(screen.getByRole("button", { name: "+ 수익 추가" })).toBeTruthy()
+  })
+
+  it("PLANNED 항목에서 [수정] 클릭 시 ExpenseModal이 열린다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const builder = createExpenseQueryBuilder(sampleExpenses)
+    from.mockReturnValue(builder)
+
+    render(<ExpensesPage />)
+
+    // PLANNED 항목(교통비)에 [수정] 버튼이 존재하며 클릭 시 예정 지출 수정 모달이 뜸
+    const editButtons = await screen.findAllByRole("button", { name: "수정" })
+    expect(editButtons.length).toBeGreaterThan(0)
+    fireEvent.click(editButtons[0])
+
+    expect(screen.getByText("예정 지출 수정")).toBeTruthy()
+  })
+
+  it("CONFIRMED 항목에서 [상세 / 수정] 클릭 시 ExpenseDetailModal이 열린다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const builder = createExpenseQueryBuilder(sampleExpenses)
+    from.mockReturnValue(builder)
+
+    render(<ExpensesPage />)
+
+    const detailButtons = await screen.findAllByRole("button", { name: "상세 / 수정" })
+    expect(detailButtons.length).toBeGreaterThan(0)
+    fireEvent.click(detailButtons[0])
+
+    // 모달이 열리며 해당 지출 항목 제목이 보임
+    expect(screen.getByRole("dialog")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "정보 수정" })).toBeTruthy()
   })
 })
 

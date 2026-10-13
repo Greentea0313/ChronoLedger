@@ -11,12 +11,14 @@ import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import {
   calculateFinalAmount,
-  estimateEarnedPoints,
+  calculateStoreEventEarn,
   mapPaymentError,
+  mergeEventMemo,
   resolvePointPlatform,
   validatePayment,
   type PaymentMethod,
   type PointPlatform,
+  type StoreEventConfig,
 } from "@/lib/payment-calculations"
 import { calculateNaverPayPayment } from "@/lib/naver-pay-calculations"
 
@@ -28,11 +30,24 @@ export interface PlannedExpenseInput {
   pickup_schedule_id?: string | null
 }
 
+export interface PlannedExpenseEditInput {
+  id: string
+  title: string
+  original_price: number
+  category?: string
+  target_date?: string
+  payment_method?: string
+  game_id?: string | null
+  pickup_schedule_id?: string | null
+  memo?: string | null
+}
+
 interface ExpenseModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCompleted?: () => void
   plannedExpense?: PlannedExpenseInput | null
+  editingExpense?: PlannedExpenseEditInput | null
   initialDate?: string
 }
 
@@ -77,7 +92,14 @@ function toAmount(value: string): number {
   return value.trim() === "" ? 0 : Number(value)
 }
 
-export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense = null, initialDate }: ExpenseModalProps) {
+export function ExpenseModal({
+  open,
+  onOpenChange,
+  onCompleted,
+  plannedExpense = null,
+  editingExpense = null,
+  initialDate,
+}: ExpenseModalProps) {
   const isOnline = useOnlineStatus()
   const { user } = useAuth()
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("게임")
@@ -99,53 +121,97 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   const [finalAmountInput, setFinalAmountInput] = useState("")
   const [deductAsset, setDeductAsset] = useState(true)
   const [paymentDate, setPaymentDate] = useState("")
+  const [isGoogleBoostEnabled, setIsGoogleBoostEnabled] = useState(false)
+  const [googleBoostMultiplier, setGoogleBoostMultiplier] = useState("2")
+  const [isGalaxyPaybackEnabled, setIsGalaxyPaybackEnabled] = useState(false)
+  const [galaxyPaybackRate, setGalaxyPaybackRate] = useState("10")
+  const [earnedPointsInput, setEarnedPointsInput] = useState("")
+  const [isEarnedPointsManual, setIsEarnedPointsManual] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const pendingExpenseId = useRef<string | null>(null)
   const prevOpenRef = useRef(false)
   const prevPlannedExpenseIdRef = useRef<string | null>(null)
+  const prevEditingExpenseIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     const isOpening = open && !prevOpenRef.current
     const isNewPlannedExpense = open && plannedExpense?.id !== prevPlannedExpenseIdRef.current
+    const isNewEditingExpense = open && editingExpense?.id !== prevEditingExpenseIdRef.current
 
-    if (isOpening || isNewPlannedExpense) {
+    if (isOpening || isNewPlannedExpense || isNewEditingExpense) {
       pendingExpenseId.current = null
       setError(null)
-      setPaymentDate(initialDate || getKstToday())
-      setTitle(plannedExpense?.title ?? "")
-      const origStr = plannedExpense ? String(plannedExpense.original_price) : ""
-      setOriginalPrice(origStr)
       setDiscountAmount("")
       setCouponPercent("")
       setUsedPoints("")
-      setFinalAmountInput(origStr)
-
-      const method = plannedExpense?.payment_method
-      if (method === "NAVER_PAY") {
-        setPaymentMethod("NAVER_PAY")
-      } else {
-        setPaymentMethod("WALLET")
-      }
-      if (method === "GALAXY_STORE") {
-        setPaymentPlatform("GALAXY_STORE")
-        setSelectedPointPlatform("GALAXY_STORE")
-      } else if (method === "GOOGLE_PLAY") {
-        setPaymentPlatform("GOOGLE_PLAY")
-        setSelectedPointPlatform("GOOGLE_PLAY")
-      } else {
-        setPaymentPlatform("GOOGLE_PLAY")
-      }
+      setIsGoogleBoostEnabled(false)
+      setGoogleBoostMultiplier("2")
+      setIsGalaxyPaybackEnabled(false)
+      setGalaxyPaybackRate("10")
+      setEarnedPointsInput("")
+      setIsEarnedPointsManual(false)
       setDeductAsset(true)
-      setCategory("게임")
-      setGameId("")
-      setSchedules([])
-      setPickupSchedules([])
-      setPickupScheduleId(plannedExpense?.pickup_schedule_id ?? "")
+
+      if (editingExpense) {
+        setTitle(editingExpense.title ?? "")
+        const origStr = String(editingExpense.original_price ?? 0)
+        setOriginalPrice(origStr)
+        setFinalAmountInput(origStr)
+        setPaymentDate(editingExpense.target_date || initialDate || getKstToday())
+        const cat = editingExpense.category as (typeof CATEGORIES)[number]
+        setCategory(CATEGORIES.includes(cat) ? cat : "게임")
+        setGameId(editingExpense.game_id ?? "")
+        setPickupScheduleId(editingExpense.pickup_schedule_id ?? "")
+
+        const method = editingExpense.payment_method
+        if (method === "NAVER_PAY") {
+          setPaymentMethod("NAVER_PAY")
+        } else {
+          setPaymentMethod("WALLET")
+        }
+        if (method === "GALAXY_STORE") {
+          setPaymentPlatform("GALAXY_STORE")
+          setSelectedPointPlatform("GALAXY_STORE")
+        } else if (method === "GOOGLE_PLAY") {
+          setPaymentPlatform("GOOGLE_PLAY")
+          setSelectedPointPlatform("GOOGLE_PLAY")
+        } else {
+          setPaymentPlatform("GOOGLE_PLAY")
+        }
+      } else {
+        setPaymentDate(initialDate || getKstToday())
+        setTitle(plannedExpense?.title ?? "")
+        const origStr = plannedExpense ? String(plannedExpense.original_price) : ""
+        setOriginalPrice(origStr)
+        setFinalAmountInput(origStr)
+
+        const method = plannedExpense?.payment_method
+        if (method === "NAVER_PAY") {
+          setPaymentMethod("NAVER_PAY")
+        } else {
+          setPaymentMethod("WALLET")
+        }
+        if (method === "GALAXY_STORE") {
+          setPaymentPlatform("GALAXY_STORE")
+          setSelectedPointPlatform("GALAXY_STORE")
+        } else if (method === "GOOGLE_PLAY") {
+          setPaymentPlatform("GOOGLE_PLAY")
+          setSelectedPointPlatform("GOOGLE_PLAY")
+        } else {
+          setPaymentPlatform("GOOGLE_PLAY")
+        }
+        setCategory("게임")
+        setGameId("")
+        setSchedules([])
+        setPickupSchedules([])
+        setPickupScheduleId(plannedExpense?.pickup_schedule_id ?? "")
+      }
     }
     prevOpenRef.current = open
     prevPlannedExpenseIdRef.current = plannedExpense?.id ?? null
-  }, [open, plannedExpense, initialDate])
+    prevEditingExpenseIdRef.current = editingExpense?.id ?? null
+  }, [open, plannedExpense, editingExpense, initialDate])
 
   const userId = user?.id
 
@@ -308,7 +374,25 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
   const finalAmount = calculateFinalAmount(input)
   const pointWallet = wallets.find((wallet) => wallet.platform === input.pointPlatform)
   const earnWallet = wallets.find((wallet) => wallet.platform === paymentPlatform)
-  const estimatedEarn = estimateEarnedPoints(finalAmount, earnWallet?.earn_rate ?? 0, paymentPlatform)
+  const baseEarnRate = earnWallet?.earn_rate ?? 0
+
+  const storeEventConfig = useMemo<StoreEventConfig>(() => ({
+    isGoogleBoost: isGoogleBoostEnabled,
+    googleMultiplier: Number(googleBoostMultiplier) || 1,
+    isGalaxyPayback: isGalaxyPaybackEnabled,
+    galaxyPaybackRate: Number(galaxyPaybackRate) || 0,
+  }), [isGoogleBoostEnabled, googleBoostMultiplier, isGalaxyPaybackEnabled, galaxyPaybackRate])
+
+  const storeEventResult = useMemo(() => {
+    return calculateStoreEventEarn(finalAmount, baseEarnRate, paymentPlatform, storeEventConfig)
+  }, [finalAmount, baseEarnRate, paymentPlatform, storeEventConfig])
+
+  useEffect(() => {
+    if (!isEarnedPointsManual) {
+      setEarnedPointsInput(storeEventResult.earnedPoints > 0 ? String(storeEventResult.earnedPoints) : "")
+    }
+  }, [storeEventResult.earnedPoints, isEarnedPointsManual])
+
   const isGameCategory = category === "게임"
 
   const naverWallet = wallets.find((wallet) => wallet.platform === "NAVER_PAY")
@@ -359,7 +443,13 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
       (paymentMethod === "NAVER_PAY" && naverCalc?.isAssetInsufficient),
   )
 
-  const handleSubmit = async (event: FormEvent | React.MouseEvent, actionType: "PAY" | "PLAN" = "PAY") => {
+  const isEditMode = Boolean(editingExpense)
+  const isPlannedPayment = Boolean(plannedExpense && !isEditMode)
+
+  const handleSubmit = async (
+    event: FormEvent | React.MouseEvent,
+    actionType: "PAY" | "PLAN" | "EDIT_PLAN" = isEditMode ? "EDIT_PLAN" : "PAY",
+  ) => {
     event.preventDefault()
     if (!user) return
     if (isOffline()) return setError(OFFLINE_WRITE_MESSAGE)
@@ -372,11 +462,48 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
       const validation = validatePayment(input, getKstToday(), input.usedPoints > 0 ? (pointWallet?.current_balance ?? 0) : null)
       if (validation) return setError(validation)
     }
-    if (!plannedExpense && !title.trim()) return setError("항목명을 입력해 주세요.")
+    if (!isPlannedPayment && !title.trim()) return setError("항목명을 입력해 주세요.")
 
     setIsSubmitting(true)
     const effectiveDeductAsset = paymentMethod === "NAVER_PAY" ? false : deductAsset
     try {
+      if (actionType === "EDIT_PLAN") {
+        if (!editingExpense) return
+        const schedule = isGameCategory ? (matchingVersion ?? undefined) : undefined
+        const isAllCurrent = pickupScheduleId === "ALL_CURRENT"
+        const effectivePickupId = isAllCurrent
+          ? (availablePickups[0]?.id ?? null)
+          : (pickupScheduleId || null)
+        const linkedIds = isAllCurrent
+          ? availablePickups.map((p) => p.id)
+          : (effectivePickupId ? [effectivePickupId] : [])
+        const pickupMeta = linkedIds.length > 1 ? `[PICKUPS:${linkedIds.join(",")}]` : null
+        const finalMemo = mergeEventMemo(pickupMeta, storeEventResult.eventTag)
+
+        const { error: updateError } = await supabase
+          .from("expenses")
+          .update({
+            title: title.trim(),
+            category,
+            target_date: schedule?.end_date ?? input.paymentDate,
+            start_date: schedule?.start_date ?? null,
+            end_date: schedule?.end_date ?? null,
+            original_price: input.originalPrice,
+            final_amount: input.originalPrice,
+            payment_method: paymentMethod,
+            deduct_from_asset: effectiveDeductAsset,
+            game_id: isGameCategory && gameId ? gameId : null,
+            pickup_schedule_id: isGameCategory ? effectivePickupId : null,
+            memo: finalMemo,
+          })
+          .eq("id", editingExpense.id)
+
+        if (updateError) throw new Error("UPDATE_FAILED")
+        onCompleted?.()
+        onOpenChange(false)
+        return
+      }
+
       let expenseId = plannedExpense?.id ?? pendingExpenseId.current
       if (!expenseId) {
         const schedule = isGameCategory ? (matchingVersion ?? undefined) : undefined
@@ -388,6 +515,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
           ? availablePickups.map((p) => p.id)
           : (effectivePickupId ? [effectivePickupId] : [])
         const pickupMeta = linkedIds.length > 1 ? `[PICKUPS:${linkedIds.join(",")}]` : null
+        const finalMemo = mergeEventMemo(pickupMeta, storeEventResult.eventTag)
 
         const { data, error: insertError } = await supabase
           .from("expenses")
@@ -406,7 +534,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             final_amount: input.originalPrice,
             payment_method: paymentMethod,
             deduct_from_asset: effectiveDeductAsset,
-            memo: pickupMeta,
+            memo: finalMemo,
           })
           .select("id")
           .single()
@@ -416,6 +544,17 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
       }
 
       if (actionType === "PAY") {
+        const customEarnedPoints = toAmount(earnedPointsInput)
+        const isAllCurrent = pickupScheduleId === "ALL_CURRENT"
+        const effectivePickupId = isAllCurrent
+          ? (availablePickups[0]?.id ?? null)
+          : (pickupScheduleId || null)
+        const linkedIds = isAllCurrent
+          ? availablePickups.map((p) => p.id)
+          : (effectivePickupId ? [effectivePickupId] : [])
+        const pickupMeta = linkedIds.length > 1 ? `[PICKUPS:${linkedIds.join(",")}]` : null
+        const finalMemo = mergeEventMemo(pickupMeta, storeEventResult.eventTag)
+
         const { error: rpcError } = await supabase.rpc("process_expense_payment", {
           p_expense_id: expenseId,
           p_original_price: input.originalPrice,
@@ -426,6 +565,8 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
           p_payment_method: paymentMethod,
           p_deduct_asset: effectiveDeductAsset,
           p_payment_date: input.paymentDate,
+          p_custom_earned_points: customEarnedPoints,
+          p_memo: finalMemo,
         })
         if (rpcError) {
           setError(`${mapPaymentError(rpcError.message, "결제를 처리하지 못했습니다.")} 입력한 내용은 예정 지출로 저장되어 다시 시도할 수 있습니다.`)
@@ -436,7 +577,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
       onCompleted?.()
       onOpenChange(false)
     } catch {
-      setError("지출을 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+      setError(actionType === "EDIT_PLAN" ? "예정 지출을 수정하지 못했습니다. 잠시 후 다시 시도해 주세요." : "지출을 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.")
     } finally {
       setIsSubmitting(false)
     }
@@ -446,12 +587,14 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto border-gray-700 bg-gray-800 text-white p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>{plannedExpense ? "예정 지출 결제" : "지출 등록 및 결제"}</DialogTitle>
-          <DialogDescription>결제 금액과 포인트는 서버에서 다시 검증하여 한 번에 반영됩니다.</DialogDescription>
+          <DialogTitle>{isEditMode ? "예정 지출 수정" : isPlannedPayment ? "예정 지출 결제" : "지출 등록 및 결제"}</DialogTitle>
+          <DialogDescription>
+            {isEditMode ? "예정된 지출의 정보를 수정합니다." : "결제 금액과 포인트는 서버에서 다시 검증하여 한 번에 반영됩니다."}
+          </DialogDescription>
         </DialogHeader>
 
         <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
-          {!plannedExpense && (
+          {!isPlannedPayment && (
             <>
               <div>
                 <label htmlFor="expense-category" className={labelClassName}>카테고리</label>
@@ -551,7 +694,7 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             </>
           )}
 
-          {plannedExpense && <p className="text-sm">{plannedExpense.title}</p>}
+          {isPlannedPayment && <p className="text-sm font-semibold">{plannedExpense?.title}</p>}
 
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -638,8 +781,158 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
 
           <div>
             <label htmlFor="expense-date" className={labelClassName}>결제일</label>
-            <Input id="expense-date" type="date" value={paymentDate} min={plannedExpense ? getKstToday() : undefined} onChange={(event) => setPaymentDate(event.target.value)} className={inputClassName} />
+            <Input id="expense-date" type="date" value={paymentDate} min={isPlannedPayment ? getKstToday() : undefined} onChange={(event) => setPaymentDate(event.target.value)} className={inputClassName} />
           </div>
+
+          {/* 스토어 포인트 적립 및 이벤트 부스트/페이백 설정 */}
+          {paymentPlatform !== "OTHER" && (
+            <div className="rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2.5 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-indigo-300">
+                  {PLATFORM_LABELS[paymentPlatform]} 포인트 적립
+                </span>
+                <span className="text-xs text-gray-400">
+                  기본 적립률: {baseEarnRate}%
+                </span>
+              </div>
+
+              {/* Google Play 포인트 부스트 이벤트 */}
+              {paymentPlatform === "GOOGLE_PLAY" && (
+                <div className="space-y-1.5 pt-1 border-t border-indigo-500/20">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-200">
+                    <input
+                      type="checkbox"
+                      id="expense-google-boost-toggle"
+                      checked={isGoogleBoostEnabled}
+                      onChange={(e) => {
+                        setIsGoogleBoostEnabled(e.target.checked)
+                        setIsEarnedPointsManual(false)
+                      }}
+                    />
+                    <span className="font-medium text-indigo-200">포인트 부스트 이벤트 적용</span>
+                  </label>
+
+                  {isGoogleBoostEnabled && (
+                    <div className="pl-5 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="expense-google-multiplier" className="text-xs text-gray-300 whitespace-nowrap">
+                          부스트 배율:
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            id="expense-google-multiplier"
+                            type="number"
+                            inputMode="decimal"
+                            step="any"
+                            min="1"
+                            value={googleBoostMultiplier}
+                            onChange={(e) => {
+                              setGoogleBoostMultiplier(e.target.value)
+                              setIsEarnedPointsManual(false)
+                            }}
+                            className="h-7 w-20 px-2 text-xs bg-gray-900 border-gray-600 text-white"
+                          />
+                          <span className="text-xs text-gray-300">배</span>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-indigo-300">
+                        적립률: 기본 {baseEarnRate}% × {googleBoostMultiplier || 1}배 ={" "}
+                        {(baseEarnRate * (Number(googleBoostMultiplier) || 1)).toFixed(2)}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Galaxy Store 페이백 이벤트 */}
+              {paymentPlatform === "GALAXY_STORE" && (
+                <div className="space-y-1.5 pt-1 border-t border-indigo-500/20">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-200">
+                    <input
+                      type="checkbox"
+                      id="expense-galaxy-payback-toggle"
+                      checked={isGalaxyPaybackEnabled}
+                      onChange={(e) => {
+                        setIsGalaxyPaybackEnabled(e.target.checked)
+                        setIsEarnedPointsManual(false)
+                      }}
+                    />
+                    <span className="font-medium text-indigo-200">페이백 이벤트 적용</span>
+                  </label>
+
+                  {isGalaxyPaybackEnabled && (
+                    <div className="pl-5 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="expense-galaxy-payback-rate" className="text-xs text-gray-300 whitespace-nowrap">
+                          페이백률:
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            id="expense-galaxy-payback-rate"
+                            type="number"
+                            inputMode="decimal"
+                            step="any"
+                            min="0.1"
+                            max="100"
+                            value={galaxyPaybackRate}
+                            onChange={(e) => {
+                              setGalaxyPaybackRate(e.target.value)
+                              setIsEarnedPointsManual(false)
+                            }}
+                            className="h-7 w-20 px-2 text-xs bg-gray-900 border-gray-600 text-white"
+                          />
+                          <span className="text-xs text-gray-300">%</span>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-indigo-300">
+                        적립률: {galaxyPaybackRate || 0}% (기본 등급 적립률 대체)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 예상 적립 포인트 표시 및 수동 오버라이드 */}
+              <div className="pt-1.5 border-t border-indigo-500/20">
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="expense-earned-points" className="text-xs text-gray-300 whitespace-nowrap">
+                    예상 적립 포인트 (P):
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      id="expense-earned-points"
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      step="1"
+                      value={earnedPointsInput}
+                      onChange={(e) => {
+                        setEarnedPointsInput(e.target.value)
+                        setIsEarnedPointsManual(true)
+                      }}
+                      className="h-7 w-28 px-2 text-right text-xs bg-gray-900 border-gray-600 text-white"
+                    />
+                    <span className="text-xs text-gray-300">P</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-1 text-[11px] text-gray-400">
+                  <span>※ 영수증과 차이가 있을 경우 직접 수정할 수 있습니다.</span>
+                  {isEarnedPointsManual && (
+                    <button
+                      type="button"
+                      className="text-indigo-400 underline hover:text-indigo-300 text-[11px]"
+                      onClick={() => {
+                        setIsEarnedPointsManual(false)
+                        setEarnedPointsInput(storeEventResult.earnedPoints > 0 ? String(storeEventResult.earnedPoints) : "")
+                      }}
+                    >
+                      자동 계산값 복원
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {input.usedPoints > 0 && (
             <div>
@@ -727,14 +1020,27 @@ export function ExpenseModal({ open, onOpenChange, onCompleted, plannedExpense =
             {paymentMethod === "NAVER_PAY" && (
               <p className="text-xs text-emerald-400">{`네이버페이 머니 잔액: ${naverBalance.toLocaleString()} 원`}</p>
             )}
-            {paymentPlatform !== "OTHER" && estimatedEarn > 0 && (
-              <p className="text-xs text-gray-400">{`${PLATFORM_LABELS[paymentPlatform]} 예상 적립(앱 추정): ${estimatedEarn.toLocaleString()} P`}</p>
+            {paymentPlatform !== "OTHER" && toAmount(earnedPointsInput) > 0 && (
+              <p className="text-xs text-indigo-300">
+                {`${PLATFORM_LABELS[paymentPlatform]} 예상 적립: ${toAmount(earnedPointsInput).toLocaleString()} P`}
+                {storeEventResult.eventTag && ` ${storeEventResult.eventTag}`}
+                {isEarnedPointsManual && " (수동 수정됨)"}
+              </p>
             )}
           </div>
 
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
 
-          {plannedExpense ? (
+          {isEditMode ? (
+            <Button
+              type="button"
+              disabled={isSubmitting || !isOnline}
+              className="w-full bg-primary hover:bg-primary-hover text-white"
+              onClick={(e) => void handleSubmit(e, "EDIT_PLAN")}
+            >
+              {isSubmitting ? "수정 중..." : "예정 지출 수정 완료"}
+            </Button>
+          ) : isPlannedPayment ? (
             <Button type="button" disabled={isPayDisabled} className="w-full" onClick={(e) => void handleSubmit(e, "PAY")}>
               {payButtonLabel}
             </Button>
