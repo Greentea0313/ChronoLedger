@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, type FormEvent } from "react"
+import { History } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,7 @@ import {
   type GalaxyTier,
   type PointPlatform,
 } from "@/lib/payment-calculations"
+import { StoreWalletAdjustHistoryModal } from "@/components/wallet/store-wallet-adjust-history-modal"
 
 interface WalletRow {
   platform: PointPlatform
@@ -52,6 +54,7 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
   const [adjustPlatform, setAdjustPlatform] = useState<PointPlatform>("GOOGLE_PLAY")
   const [targetBalance, setTargetBalance] = useState("")
   const [adjustMemo, setAdjustMemo] = useState("")
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -239,7 +242,19 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
 
         {/* 잔액 수동 보정 */}
         <form noValidate className="space-y-3 pt-4 border-t border-line" onSubmit={(event) => void saveAdjustment(event)}>
-          <h3 className="text-sm font-bold text-content">지갑 잔액 수동 보정</h3>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-content">지갑 잔액 수동 보정</h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsHistoryModalOpen(true)}
+              className="text-xs h-7 px-2.5 border-line-control text-content hover:bg-surface-2"
+            >
+              <History className="h-3.5 w-3.5 mr-1 text-content-secondary" />
+              보정 내역 보기
+            </Button>
+          </div>
           <p className="text-xs text-content-secondary">
             실제 스토어 앱의 포인트 또는 네이버페이 잔액과 차이가 있을 때 목표 잔액과 사유를 입력하여 보정합니다.
           </p>
@@ -288,6 +303,12 @@ export function StoreWalletWidget({ onChanged }: StoreWalletWidgetProps) {
             잔액 보정
           </Button>
         </form>
+
+        <StoreWalletAdjustHistoryModal
+          open={isHistoryModalOpen}
+          onOpenChange={setIsHistoryModalOpen}
+          initialPlatform={adjustPlatform}
+        />
       </CardContent>
     </Card>
   )

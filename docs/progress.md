@@ -1,5 +1,52 @@
 # 프로젝트 진행 현황
 
+## 스토어 지갑·포인트 수동 보정 내역(Audit Log) 조회 모달 구현 (2026-10-14)
+
+- **배경 및 사용자 요구사항**:
+  1. `/dashboard/settings`의 스토어 지갑 관리에서 실제 앱 잔액과 차이가 생겼을 때 잔액을 수동 보정할 수 있으나, 과거에 언제 어떤 이유로 잔액을 보정했는지 확인할 수 있는 UI가 제공되지 않음.
+  2. 사용자가 직접 조정한 이력(`store_point_transactions`의 `transaction_type = 'MANUAL_ADJUST'`)을 확인하고 역추적하여 잔액 정합성을 검증할 수 있는 모달 뷰어 제공 요구.
+- **수행 내역**:
+  1. **수동 보정 내역 조회 모달 신설 (`src/components/wallet/store-wallet-adjust-history-modal.tsx`)**:
+     - `store_point_transactions` 테이블에서 `transaction_type = 'MANUAL_ADJUST'` 레코드를 최신순 조회.
+     - 플랫폼별 필터 탭(전체, Google Play, Galaxy Store, 네이버페이) 및 새로고침 버튼 지원.
+     - 일시(YYYY-MM-DD HH:mm), 플랫폼 배지, 변동 차액(+/-), 보정 후 잔액, 사유 메모 뷰어 구성.
+     - 빈 상태(Empty State) 및 에러 상태 대응.
+  2. **스토어 지갑 관리 위젯 연동 (`src/components/wallet/store-wallet-widget.tsx`)**:
+     - 잔액 수동 보정 헤더 우측에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
+  3. **단위 테스트 및 빌드 무결점 검증**:
+     - `src/components/wallet/store-wallet-adjust-history-modal.test.tsx` 신설 (5개 테스트).
+     - `src/components/wallet/store-wallet-widget.test.tsx` 갱신 (모달 열기 테스트 추가).
+     - Vitest 40개 파일 215개 단위 테스트 100% 통과.
+     - TypeScript 타입 검사 통과 및 Next.js 14 정적 15개 페이지 export 빌드 성공.
+  4. **백로그 문서 최신화 (`docs/develop_task_backlog.md`)**:
+     - 1.1 항목 구현 완료 처리 및 아카이브 테이블 갱신.
+
+## 버전 패스형(결제 유예) 지출 옵션·연계 픽업 드롭다운 구현 및 모바일 달력 일정 점 정상화 (2026-10-14)
+
+- **배경 및 사용자 요구사항**:
+  1. 버전 패스 및 누적 충전형 구독 상품은 버전 종료일(`end_date`) 전까지만 결제하면 보상을 소급 수령하는 데 지장이 없으므로, 최종 결제 마감 시한인 `end_date`까지 결제 확정일에 유연한 변동성(결제 유예)이 보장되어야 함.
+  2. 단발성 패키지/픽업 지출(특정일 결제)과 버전 패스(기간형 결제 유예)를 지출 모달에서 분리 지원하고, 버전 패스 선택 시 해당 버전의 어떤 픽업 배너에 연계할지 드롭다운으로 직접 선택하여 픽업별 과금 통계의 정합성을 확보.
+  3. 미결제(`PLANNED`) 버전 패스의 월 예산 귀속을 최종 결제 마감 시한인 `end_date`가 속한 달로 지정하여 가용 예산 왜곡 방지 (실제 결제 시 실결제일 월로 확정 귀속).
+  4. 모바일 달력 타일의 파란색 일정 점(Dot)이 일정 진행 기간 내내 매일 찍혀 달력 전체가 파란 점으로 도배되던 현상을 데스크톱 아이콘과 동일하게 시작일(`start_date`)에만 표시되도록 수정.
+- **수행 내역**:
+  1. **모바일 달력 파란 점(Dot) 시작일 판정 정상화 (`src/components/calendar/desktop-calendar.tsx`, `desktop-calendar.test.tsx`)**:
+     - `day.schedules.length > 0`을 `day.schedules.some((s) => s.is_start_date)`로 수정하여, 일정이 시작되는 날에만 파란 점이 찍히도록 통일. 데스크톱의 메모 회색 점(`day.hasMemo`)과 모바일 메모 점은 기존 정상 상태 유지.
+  2. **지출 모달 버전 패스형 체크박스 및 연계 픽업 선택 드롭다운 구현 (`src/components/expense/expense-modal.tsx`)**:
+     - `isVersionPass` 및 `manualPickupId` 상태 도입.
+     - `matchingVersion`이 존재하는 게임 지출 등록 시 `[✓] 버전 패스형 (버전 종료일까지 결제 유예)` 체크박스 제공.
+     - 체크 시 버전 기간(`matchingVersion.start_date ~ matchingVersion.end_date`)이 적용되며, 픽업 선택 드롭다운이 활성화되어 버전 내 속한 픽업 배너(전반/후반/동시 연계/선택 안 함)를 유저가 직접 선택 가능.
+     - 체크 해제 시 기존 특정일 지출(`start_date = target_date = end_date = paymentDate`)로 저장.
+     - 편집 모드(`editingExpense`)에서 기존 기간형 지출(`start_date !== end_date`) 감지 시 체크박스 자동 활성화 및 기존 픽업 상태 복원.
+  3. **예산 귀속 및 만료 판정 마감일(`end_date`) 정합성 확립 (`src/lib/budget-calculations.ts`, `src/app/dashboard/expenses/page.tsx`)**:
+     - `getBudgetDate`: 미결제(`PLANNED`) 기간형 지출은 마감일인 `end_date`가 속한 달의 예산에서 차감 대기하고, 결제 완료(`CONFIRMED`) 또는 특정일 지출은 `target_date` 기준으로 배정.
+     - `findOverduePlannedExpenses`: 버전 패스 지출은 `end_date`가 지나야 비로소 만료된 지출로 경고하도록 판정.
+     - `getExpenseEffectiveDate`: 소비 페이지에서 미결제 기간형 지출의 활성 기간을 `end_date` + 7일로 유지.
+  4. **무결점 검증**:
+     - 단위 테스트 추가 및 갱신 (`src/components/calendar/desktop-calendar.test.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/lib/budget-calculations.test.ts`).
+     - Vitest 39개 파일 209개 테스트 100% 통과 (`vitest run`).
+     - TypeScript 타입 검사 무결점 통과 (`tsc --noEmit`).
+     - Next.js 14 정적 export 빌드 성공 (`npm run build`).
+
 ## 지출 결제일/예정일 수정 결함 및 버전 종료일 강제 고정 버그 해결 (2026-10-14)
 
 - **배경 및 사용자 요구사항**:

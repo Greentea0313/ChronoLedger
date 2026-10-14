@@ -24,11 +24,18 @@ describe("budget-calculations", () => {
     expect(spansMultipleMonths("2026-10-25", "2026-11-12")).toBe(true)
   })
 
-  it("지출 예정일(target_date)이 속한 달의 예산으로 귀속한다", () => {
-    const expense = pickup({ target_date: "2026-10-25" })
+  it("단일일 지정 예정 지출은 지출 예정일(target_date)이 속한 달의 예산으로 귀속한다", () => {
+    const expense = pickup({ target_date: "2026-10-25", end_date: "2026-10-25" })
     expect(getBudgetDate(expense)).toBe("2026-10-25")
     expect(calculateExpectedExpense([expense], { year: 2026, month: 10 })).toBe(30000)
     expect(calculateExpectedExpense([expense], { year: 2026, month: 11 })).toBe(0)
+  })
+
+  it("버전 패스형 미결제 지출(10월 시작 ~ 11월 종료)은 최종 마감일(end_date)인 11월 예산으로 귀속된다", () => {
+    const passExpense = pickup({ target_date: "2026-11-28", end_date: "2026-11-28" })
+    expect(getBudgetDate(passExpense)).toBe("2026-11-28")
+    expect(calculateExpectedExpense([passExpense], { year: 2026, month: 11 })).toBe(30000)
+    expect(calculateExpectedExpense([passExpense], { year: 2026, month: 10 })).toBe(0)
   })
 
   it("10월에 결제하면 11월 예상 소비액이 즉시 줄고 10월에 합산된다", () => {

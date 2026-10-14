@@ -84,4 +84,41 @@ describe("DesktopCalendar", () => {
     expect(screen.getByTestId("custom-filter")).toBeTruthy()
     expect(screen.getByText("게임 필터 버튼")).toBeTruthy()
   })
+
+  it("모바일에서 게임 일정 파란 점은 시작일(is_start_date)에만 렌더링되고 진행 중인 중간 날짜에는 렌더링되지 않는다", () => {
+    render(
+      <DesktopCalendar
+        year={2026}
+        month={10}
+        selectedDate="2026-10-06"
+        onSelectDate={vi.fn()}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
+        days={[
+          {
+            date: "2026-10-06",
+            day: 6,
+            inCurrentMonth: true,
+            schedules: [{ id: "s1", schedule_type: "VERSION", is_start_date: true, game_id: "g1" }],
+            icons: [],
+            hasMemo: true,
+          },
+          {
+            date: "2026-10-07",
+            day: 7,
+            inCurrentMonth: true,
+            schedules: [{ id: "s1", schedule_type: "VERSION", is_start_date: false, game_id: "g1" }],
+            icons: [],
+            hasMemo: false,
+          },
+        ]}
+      />,
+    )
+
+    const scheduleDots = screen.getAllByTitle("게임 일정 있음")
+    expect(scheduleDots).toHaveLength(1)
+    const memoDots = screen.getAllByTitle("메모 있음")
+    expect(memoDots).toHaveLength(1)
+  })
 })
+

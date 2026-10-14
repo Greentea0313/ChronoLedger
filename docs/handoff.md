@@ -1,5 +1,58 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 스토어 지갑·포인트 수동 보정 내역(Audit Log) 조회 모달 구현 (2026-10-14)
+
+- **결정 및 배경**:
+  - **수동 잔액 보정 이력 추적성(Auditability) 확보**:
+    - 사용자가 `/dashboard/settings`의 스토어 지갑 관리에서 실제 앱 잔액과 차이가 발생했을 때 수동으로 잔액을 보정할 수 있으나, 과거에 언제 어떤 이유로 보정했는지 추적할 수 있는 UI 수단이 부재했음.
+    - `store_point_transactions` 테이블에 `transaction_type = 'MANUAL_ADJUST'`로 저장된 보정 레코드들을 사용자가 직접 모달로 조회할 수 있도록 신규 기능 구현.
+  - **플랫폼별 필터링 및 단위 대응**:
+    - Google Play, Galaxy Store (포인트, P) 및 네이버페이 (머니, 원) 각각의 단위와 배지 색상을 명확히 분리하여 직관적인 UI 제공.
+    - 전체 및 개별 플랫폼 필터 탭과 새로고침 기능을 제공하여 실시간 정합성 확인 지원.
+- **수행 내역**:
+  - `src/components/wallet/store-wallet-adjust-history-modal.tsx`:
+    - `StoreWalletAdjustHistoryModal` 신설.
+    - Supabase RLS 정책(`Read own point transactions`)에 따라 `transaction_type = 'MANUAL_ADJUST'` 레코드를 최신순 조회.
+    - 일시, 플랫폼 배지, 변동 차액(+/-), 보정 후 잔액, 사유 메모 뷰어 구성.
+  - `src/components/wallet/store-wallet-widget.tsx`:
+    - 지갑 잔액 수동 보정 헤더 우측에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
+  - `src/components/wallet/store-wallet-adjust-history-modal.test.tsx`, `store-wallet-widget.test.tsx`:
+    - 빈 상태, 데이터 렌더링, 플랫폼 필터링, 에러 및 재시도, 모달 열기 버튼 연동 단위 테스트 작성.
+  - `docs/develop_task_backlog.md`:
+    - 백로그 1.1 항목 구현 완료 처리 및 아카이브 반영.
+- **검증 증거**:
+  - `npx vitest run`: 40개 파일 / 215개 테스트 100% 통과 (PASS).
+  - `npx tsc --noEmit`: TypeScript 무결점 검증 성공 (0 errors).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
+## 버전 패스형(결제 유예) 지출 옵션·연계 픽업 드롭다운 구현 및 모바일 달력 일정 점 정상화 (2026-10-14)
+
+- **결정 및 배경**:
+  - **버전 패스/누적형 구독의 결제 유예 변동성 확립**:
+    - 버전 패스는 버전 종료일(`end_date`) 전까지만 결제하면 보상을 소급 수령할 수 있으므로, 최종 결제 마감 시한인 `end_date`까지 결제 확정일에 유연한 변동성(결제 유예)이 보장되어야 함.
+    - 단발성 패키지/픽업 지출(특정일 결제)과 버전 패스(기간형 결제 유예)를 지출 모달에서 분리 지원.
+  - **연계 픽업 선택 드롭다운 제공**:
+    - 버전 패스 선택 시 해당 버전의 어떤 픽업 배너에 연계할지 드롭다운으로 직접 선택(전반/후반/동시 연계/선택 안 함)하여 픽업별 과금 통계의 정합성을 확보.
+  - **마감일(`end_date`) 기준 예산 귀속 및 만료 판정**:
+    - 미결제(`PLANNED`) 버전 패스의 월 예산 귀속을 최종 결제 마감 시한인 `end_date`가 속한 달로 지정하여 가용 예산 왜곡 방지 (실제 결제 시 실결제일 월로 확정 귀속).
+  - **모바일 달력 일정 점(Dot) 시작일 정상화**:
+    - `day.schedules.some((s) => s.is_start_date)`를 기준으로 하여 일정 시작일에만 파란 점이 노출되도록 개선.
+- **수행 내역**:
+  - `src/components/calendar/desktop-calendar.tsx`, `desktop-calendar.test.tsx`:
+    - 모바일 달력 파란 점 시작일 조건 변경 및 테스트 케이스 추가.
+  - `src/components/expense/expense-modal.tsx`, `expense-modal.test.tsx`:
+    - `isVersionPass` 체크박스 및 `manualPickupId` 드롭다운 UI 구현.
+    - 버전 패스 선택 시 `start_date`, `end_date` 및 `target_date` 마감일 설정.
+    - 단위 테스트 추가 (`버전 패스형 체크박스 선택 시 버전 시작일~종료일 기간이 반영되고, 연계 픽업을 드롭다운에서 선택할 수 있다`).
+  - `src/lib/budget-calculations.ts`, `budget-calculations.test.ts`:
+    - `getBudgetDate`를 미결제 기간형의 경우 `end_date` 기준, 결제 완료 및 특정일의 경우 `target_date` 기준으로 분기.
+  - `src/app/dashboard/expenses/page.tsx`:
+    - `getExpenseEffectiveDate`에서 미결제 기간형의 경우 `end_date` 반환.
+- **검증 증거**:
+  - `npx vitest run`: 39개 파일 / 209개 테스트 100% 통과 (PASS).
+  - `npx tsc --noEmit`: TypeScript 무결점 검증 성공 (0 errors).
+  - `npm run build`: Next.js 14 정적 export 빌드 성공.
+
 ## 결제 수단 / 결제 플랫폼 / 할인 수단 정합성 리팩토링 및 0원 결제·복합 결제 지원 (2026-10-13)
 
 - **결정 및 배경**:

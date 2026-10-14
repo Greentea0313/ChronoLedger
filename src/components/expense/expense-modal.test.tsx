@@ -561,4 +561,68 @@ describe("ExpenseModal", () => {
       end_date: "2026-10-25",
     }))
   })
+
+  it("버전 패스형 체크박스 선택 시 버전 시작일~종료일 기간이 반영되고, 연계 픽업을 드롭다운에서 선택할 수 있다", async () => {
+    from.mockImplementation((table: string) => {
+      if (table === "games") return query({ data: [{ id: "g1", name: "Sample RPG" }], error: null })
+      if (table === "user_games") {
+        const ug = query(null)
+        ug.eq.mockResolvedValue({ data: [{ game_id: "g1" }], error: null })
+        return ug
+      }
+      if (table === "game_schedules") {
+        return query({
+          data: [
+            { id: "v1", game_id: "g1", title: "버전 5.0", schedule_type: "VERSION", start_date: "2026-10-01", end_date: "2026-11-15" },
+            { id: "p1", game_id: "g1", title: "전반 캐릭터 픽업", schedule_type: "PICKUP", start_date: "2026-10-01", end_date: "2026-10-22" },
+            { id: "p2", game_id: "g1", title: "후반 캐릭터 픽업", schedule_type: "PICKUP", start_date: "2026-10-22", end_date: "2026-11-15" },
+          ],
+          error: null,
+        })
+      }
+      if (table === "user_finances") {
+        const fin = query(null)
+        fin.eq.mockResolvedValue({ data: [{ total_asset: 50000 }], error: null })
+        return fin
+      }
+      const wallets = query(null)
+      wallets.eq.mockResolvedValue({ data: [], error: null })
+      return wallets
+    })
+
+    const onCompleted = vi.fn()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} initialDate="2026-10-05" />)
+
+    await screen.findByRole("option", { name: "Sample RPG" })
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    await screen.findByRole("option", { name: "버전 5.0" })
+
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "25000" } })
+
+    // 버전 패스형 체크박스 선택
+    const versionPassToggle = screen.getByLabelText(/버전 패스형/) as HTMLInputElement
+    expect(versionPassToggle.checked).toBe(false)
+    fireEvent.click(versionPassToggle)
+    expect(versionPassToggle.checked).toBe(true)
+
+    // 픽업 드롭다운이 활성화되고 전반 픽업을 선택
+    const pickupSelect = screen.getByLabelText("연결된 픽업 일정") as HTMLSelectElement
+    expect(pickupSelect.disabled).toBe(false)
+    fireEvent.change(pickupSelect, { target: { value: "p1" } })
+
+    // 예정 지출로 등록
+    fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      game_id: "g1",
+      schedule_id: "v1",
+      pickup_schedule_id: "p1",
+      start_date: "2026-10-01",
+      end_date: "2026-11-15",
+      target_date: "2026-11-15",
+      status: "PLANNED",
+    }))
+  })
 })
+

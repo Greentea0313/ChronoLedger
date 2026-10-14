@@ -457,8 +457,11 @@ export default function ExpensesPage() {
     }
   }, [expenses, selectedPickupGameFilter, schedulesMap, getExpensePickupIds])
 
-  // 1. 각 지출의 정렬 및 기간 판정 기준 날짜 (지출 예정일/결제일 target_date 기준)
+  // 1. 각 지출의 정렬 및 기간 판정 기준 날짜 (미결제 기간형은 마감일 end_date, 결제 완료 및 특정일은 target_date 기준)
   const getExpenseEffectiveDate = (expense: ExpenseRow): string => {
+    if (expense.status === "PLANNED" && expense.end_date) {
+      return expense.end_date
+    }
     return expense.target_date
   }
 
@@ -538,6 +541,8 @@ export default function ExpensesPage() {
       category: expense.category,
       game_id: expense.game_id ?? null,
       target_date: expense.target_date,
+      start_date: expense.start_date,
+      end_date: expense.end_date,
     })
     setIsExpenseModalOpen(true)
   }
@@ -550,6 +555,8 @@ export default function ExpensesPage() {
       original_price: expense.original_price,
       category: expense.category,
       target_date: expense.target_date,
+      start_date: expense.start_date,
+      end_date: expense.end_date,
       payment_method: expense.payment_method,
       game_id: expense.game_id ?? null,
       pickup_schedule_id: expense.pickup_schedule_id ?? null,

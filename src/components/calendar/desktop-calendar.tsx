@@ -123,7 +123,7 @@ export function DesktopCalendar({
 
                 {/* Mobile only: Small dots for game schedules and memo in top right */}
                 <div className="flex md:hidden items-center gap-1">
-                  {day.schedules.length > 0 && (
+                  {day.schedules.some((s) => s.is_start_date) && (
                     <span className="h-1.5 w-1.5 rounded-full bg-primary" title="게임 일정 있음" />
                   )}
                   {day.hasMemo && (

@@ -6,21 +6,49 @@ const { from, rpc, useAuth } = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from, rpc } }))
 
+interface MockQuery {
+  select: ReturnType<typeof vi.fn>
+  eq: ReturnType<typeof vi.fn>
+  order: ReturnType<typeof vi.fn>
+}
+
 describe("StoreWalletWidget", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useAuth.mockReturnValue({ user: { id: "u1" } })
-    const q = { select: vi.fn(), eq: vi.fn() }
+    const q: MockQuery = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }
     q.select.mockReturnValue(q)
-    q.eq.mockResolvedValue({
-      data: [
-        { platform: "GOOGLE_PLAY", current_balance: 1200, earn_rate: 0.1, user_tier: "BRONZE" },
-        { platform: "GALAXY_STORE", current_balance: 300, earn_rate: 1, user_tier: null },
-        { platform: "NAVER_PAY", current_balance: 45000, earn_rate: 0, user_tier: null },
-      ],
-      error: null,
+    // store_wallets query resolves on eq("user_id", user.id)
+    q.eq.mockImplementation((col: string) => {
+      if (col === "user_id" && q.order.mock.calls.length === 0) {
+        return Promise.resolve({
+          data: [
+            { platform: "GOOGLE_PLAY", current_balance: 1200, earn_rate: 0.1, user_tier: "BRONZE" },
+            { platform: "GALAXY_STORE", current_balance: 300, earn_rate: 1, user_tier: null },
+            { platform: "NAVER_PAY", current_balance: 45000, earn_rate: 0, user_tier: null },
+          ],
+          error: null,
+        })
+      }
+      return q
     })
-    from.mockReturnValue(q)
+    from.mockImplementation((table: string) => {
+      if (table === "store_point_transactions") {
+        const transQ: MockQuery = {
+          select: vi.fn(),
+          eq: vi.fn(),
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }
+        transQ.select.mockReturnValue(transQ)
+        transQ.eq.mockReturnValue(transQ)
+        return transQ
+      }
+      return q
+    })
     rpc.mockResolvedValue({ error: null })
   })
 
@@ -75,5 +103,16 @@ describe("StoreWalletWidget", () => {
         p_memo: "계좌 충전 잔액 동기화",
       }),
     )
+  })
+
+  it("opens the adjust history modal when clicking the [보정 내역 보기] button", async () => {
+    render(<StoreWalletWidget />)
+    await screen.findByText("45,000 원")
+
+    const historyBtn = screen.getByRole("button", { name: /보정 내역 보기/i })
+    expect(historyBtn).toBeTruthy()
+    fireEvent.click(historyBtn)
+
+    expect(await screen.findByText("포인트/페이 수동 보정 내역")).toBeTruthy()
   })
 })

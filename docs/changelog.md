@@ -1,5 +1,38 @@
 # 변경 이력
 
+## 2026-10-14 (스토어 지갑·포인트 수동 보정 내역 조회 모달 구현)
+
+- **스토어 지갑/포인트 수동 보정 내역(Audit Log) 뷰어 모달 신설 (`src/components/wallet/store-wallet-adjust-history-modal.tsx`)**:
+  - `store_point_transactions` 테이블에서 `transaction_type = 'MANUAL_ADJUST'`인 레코드를 조회하여 사용자에게 제공.
+  - 일시(YYYY-MM-DD HH:mm), 스토어/수단 배지(Google Play, Galaxy Store, 네이버페이), 변동 차액(+/-), 보정 후 잔액, 사유 메모 표시.
+  - 플랫폼별 필터 탭(전체, Google Play, Galaxy Store, 네이버페이) 및 새로고침 지원.
+  - 빈 상태(Empty State) 일러스트 및 에러 시 재시도 안내 UI 제공.
+- **스토어 지갑 위젯 모달 진입점 연동 (`src/components/wallet/store-wallet-widget.tsx`)**:
+  - `지갑 잔액 수동 보정` 헤더 우측에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
+- **단위 테스트 및 빌드 무결점 검증**:
+  - `src/components/wallet/store-wallet-adjust-history-modal.test.tsx` 신설 (5개 테스트 통과).
+  - `src/components/wallet/store-wallet-widget.test.tsx` 갱신 (모달 열기 테스트 추가).
+  - Vitest 40개 파일 215개 단위 테스트 100% PASS.
+  - TypeScript 에러 0건 및 Next.js 14 정적 export 빌드 성공.
+
+## 2026-10-14 (버전 패스형 지출 옵션 및 연계 픽업 선택 드롭다운 구현, 모바일 달력 파란 점 시작일 정상화)
+
+- **버전 패스형(결제 유예) 지출 옵션 및 연계 픽업 선택 드롭다운 구현 (`src/components/expense/expense-modal.tsx`)**:
+  - 단발성 특정일 지출(기본값)과 버전 종료일까지 결제 유예가 가능한 기간형 버전 패스 지출을 분리 지원.
+  - `matchingVersion`이 존재하는 게임 선택 시 `[✓] 버전 패스형 (버전 종료일까지 결제 유예)` 체크박스 제공.
+  - 체크 시 버전 기간(`matchingVersion.start_date ~ matchingVersion.end_date`)이 적용되며, 픽업 선택 드롭다운이 활성화되어 사용자가 원하는 픽업 배너(전반/후반/전체/선택 안 함)를 직접 선택하여 과금 분석에 매핑 가능.
+  - 체크 해제 시 기존 특정일 지출(`start_date = target_date = end_date = paymentDate`)로 저장.
+  - 편집 모드(`editingExpense`)에서 기존 기간형 지출(`start_date !== end_date`) 감지 시 체크박스 자동 활성화 및 픽업 상태 복원.
+- **기간형(버전 패스) 미결제 지출의 마감일(`end_date`) 기준 예산 귀속 및 만료 판정 정합성 확립 (`src/lib/budget-calculations.ts`, `src/app/dashboard/expenses/page.tsx`)**:
+  - `getBudgetDate`: 미결제(`PLANNED`) 기간형 지출은 마감일인 `end_date`가 속한 달의 예산에서 차감 대기하고, 결제 완료(`CONFIRMED`) 또는 특정일 지출은 `target_date` 기준으로 배정.
+  - `findOverduePlannedExpenses`: 버전 패스 지출은 마감일인 `end_date`가 지나야 비로소 만료된 지출로 경고하도록 판정.
+  - `getExpenseEffectiveDate`: 소비 페이지에서 미결제 기간형 지출의 활성 기간을 `end_date` + 7일로 유지.
+- **모바일 달력 타일 파란색 일정 점(Dot) 시작일(`is_start_date`) 기준 노출 수정 (`src/components/calendar/desktop-calendar.tsx`)**:
+  - 기존 `day.schedules.length > 0`으로 인해 일정 진행 기간 내내 매일 파란 점이 찍히던 결함을 `day.schedules.some((s) => s.is_start_date)`로 변경하여 데스크톱 아이콘과 동일하게 시작일에만 파란 점이 노출되도록 정상화.
+- **테스트 및 정적 빌드 무결점 검증**:
+  - Vitest 39개 파일 209개 테스트 100% 통과 (`vitest run`).
+  - Next.js 14 정적 export 빌드 성공 (`npm run build`).
+
 ## 2026-10-14 (지출 결제일/예정일 수정 결함 및 버전 종료일 강제 고정 버그 해결)
 
 - **예정 지출 등록/수정 시 `target_date` 버전 종료일(`end_date`) 강제 고정 버그 해결 (`src/components/expense/expense-modal.tsx`)**:
