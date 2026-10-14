@@ -141,4 +141,49 @@ describe("StoreWalletAdjustHistoryModal", () => {
 
     expect(await screen.findByText("갤럭시 스토어 보정")).toBeTruthy()
   })
+
+  it("paginates records by 5 items per page and navigates between pages", async () => {
+    const mockRecords = Array.from({ length: 7 }, (_, i) => ({
+      id: `rec-${i + 1}`,
+      platform: "GOOGLE_PLAY",
+      transaction_type: "MANUAL_ADJUST",
+      amount: (i + 1) * 100,
+      balance_after: 1000 + (i + 1) * 100,
+      memo: `보정 메모 ${i + 1}번`,
+      created_at: `2026-10-14T${String(10 + i).padStart(2, "0")}:00:00Z`,
+    }))
+
+    mockQuery.order.mockResolvedValue({ data: mockRecords, error: null })
+
+    render(<StoreWalletAdjustHistoryModal open={true} onOpenChange={vi.fn()} />)
+
+    // 1페이지: 1번~5번 노출, 6번~7번 비노출
+    expect(await screen.findByText("보정 메모 1번")).toBeTruthy()
+    expect(screen.getByText("보정 메모 5번")).toBeTruthy()
+    expect(screen.queryByText("보정 메모 6번")).toBeNull()
+    expect(screen.queryByText("보정 메모 7번")).toBeNull()
+
+    // 페이지네이션 바 표시 확인
+    expect(screen.getByTestId("adjust-pagination-info").textContent).toContain("총 7건 중 1 - 5건 (페이지 1 / 2)")
+
+    // 다음 페이지 이동
+    const nextBtn = screen.getByRole("button", { name: "다음 페이지" }) as HTMLButtonElement
+    expect(nextBtn.disabled).toBe(false)
+    fireEvent.click(nextBtn)
+
+    // 2페이지: 6번~7번 노출, 1번~5번 비노출
+    expect(await screen.findByText("보정 메모 6번")).toBeTruthy()
+    expect(screen.getByText("보정 메모 7번")).toBeTruthy()
+    expect(screen.queryByText("보정 메모 1번")).toBeNull()
+    expect(screen.getByTestId("adjust-pagination-info").textContent).toContain("총 7건 중 6 - 7건 (페이지 2 / 2)")
+
+    // 이전 페이지 이동
+    const prevBtn = screen.getByRole("button", { name: "이전 페이지" }) as HTMLButtonElement
+    expect(prevBtn.disabled).toBe(false)
+    fireEvent.click(prevBtn)
+
+    // 다시 1페이지 복귀
+    expect(await screen.findByText("보정 메모 1번")).toBeTruthy()
+    expect(screen.queryByText("보정 메모 6번")).toBeNull()
+  })
 })

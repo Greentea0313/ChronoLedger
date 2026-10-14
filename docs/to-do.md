@@ -344,8 +344,8 @@
 ### Phase 12. 지갑 편의 기능(Audit Log) 및 캘린더 커스터마이징 백로그
 - [x] 12.1 스토어 지갑·포인트 수동 보정 내역(Audit Log) 조회 모달 구현 (2026-10-14)
   - 대상 파일: `src/components/wallet/store-wallet-adjust-history-modal.tsx`, `src/components/wallet/store-wallet-widget.tsx`
-  - 작업: `store_point_transactions` 테이블에서 `transaction_type = 'MANUAL_ADJUST'` 레코드 조회, 플랫폼별(전체/구글 플레이/갤럭시 스토어/네이버페이) 필터 탭, 새로고침, 증감 차액(+/-) 및 사유 메모 뷰어 제공, 지갑 잔액 수동 보정 헤더에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
-  - verify: 단위 테스트 10개(모달 5개, 위젯 5개) 통과, Vitest 40개 파일 215개 테스트 통과, Next.js 14 정적 export 빌드 성공.
+  - 작업: `store_point_transactions` 테이블에서 `transaction_type = 'MANUAL_ADJUST'` 레코드 조회, 플랫폼별(전체/구글 플레이/갤럭시 스토어/네이버페이) 필터 탭, 5개 기준 페이지네이션(`ITEMS_PER_PAGE = 5`, 이전/다음/페이지 번호/범위 안내) 바, 새로고침, 증감 차액(+/-) 및 사유 메모 뷰어 제공, 지갑 잔액 수동 보정 헤더에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
+  - verify: 단위 테스트 11개(모달 6개, 위젯 5개) 통과, Vitest 40개 파일 216개 테스트 통과, Next.js 14 정적 export 빌드 성공.
 - [ ] 12.2 캘린더 커스텀 배경 이미지 업로드 & 투명도/블러 조절
   - 대상 파일: `src/app/dashboard/page.tsx`, `src/components/calendar/desktop-calendar.tsx`, 로컬 스토리지 모듈
   - 작업:

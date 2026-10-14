@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { History, RefreshCw } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { ChevronLeft, ChevronRight, History, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -32,6 +32,8 @@ interface StoreWalletAdjustHistoryModalProps {
   onOpenChange: (open: boolean) => void
   initialPlatform?: AdjustPlatformFilter
 }
+
+const ITEMS_PER_PAGE = 5
 
 const PLATFORM_LABELS: Record<PointPlatform, { label: string; unit: string; badgeClass: string }> = {
   GOOGLE_PLAY: {
@@ -66,6 +68,19 @@ function formatDate(isoString: string): string {
   }
 }
 
+function getPaginationRange(current: number, total: number): (number | "...")[] {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  if (current <= 3) {
+    return [1, 2, 3, 4, "...", total]
+  }
+  if (current >= total - 2) {
+    return [1, "...", total - 3, total - 2, total - 1, total]
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total]
+}
+
 export function StoreWalletAdjustHistoryModal({
   open,
   onOpenChange,
@@ -76,6 +91,7 @@ export function StoreWalletAdjustHistoryModal({
   const [records, setRecords] = useState<StoreWalletAdjustRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const loadHistory = useCallback(async () => {
     if (!user) return
@@ -109,6 +125,7 @@ export function StoreWalletAdjustHistoryModal({
 
   useEffect(() => {
     if (open) {
+      setCurrentPage(1)
       void loadHistory()
     }
   }, [open, loadHistory])
@@ -116,8 +133,28 @@ export function StoreWalletAdjustHistoryModal({
   useEffect(() => {
     if (open) {
       setFilterPlatform(initialPlatform)
+      setCurrentPage(1)
     }
   }, [open, initialPlatform])
+
+  const handleFilterChange = (platform: AdjustPlatformFilter) => {
+    setFilterPlatform(platform)
+    setCurrentPage(1)
+  }
+
+  const totalPages = Math.max(1, Math.ceil(records.length / ITEMS_PER_PAGE))
+
+  // 현재 페이지가 전체 페이지보다 커질 경우 보정
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
+
+  const paginatedRecords = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    return records.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  }, [records, currentPage])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,7 +169,7 @@ export function StoreWalletAdjustHistoryModal({
                 포인트/페이 수동 보정 내역
               </DialogTitle>
               <DialogDescription className="text-xs text-content-secondary mt-0.5">
-                지갑 잔액 수동 보정에서 사용자가 직접 조정한 내역을 확인합니다.
+                지갑 잔액 수동 보정에서 사용자가 직접 조정한 내역을 확인합니다. (5개 단위 페이지)
               </DialogDescription>
             </div>
           </div>
@@ -152,7 +189,7 @@ export function StoreWalletAdjustHistoryModal({
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setFilterPlatform(item.id)}
+                onClick={() => handleFilterChange(item.id)}
                 className={`px-2.5 py-1 text-xs rounded-full border transition-colors whitespace-nowrap ${
                   filterPlatform === item.id
                     ? "bg-primary text-primary-foreground border-primary font-medium"
@@ -177,8 +214,8 @@ export function StoreWalletAdjustHistoryModal({
           </Button>
         </div>
 
-        {/* 내역 리스트 영역 */}
-        <div className="min-h-[220px] max-h-[380px] overflow-y-auto space-y-2 pr-1">
+        {/* 내역 리스트 영역 (5개 고정 슬롯 느낌으로 스크롤 최소화) */}
+        <div className="min-h-[260px] space-y-2 pr-1">
           {isLoading && records.length === 0 ? (
             <div className="flex items-center justify-center h-48 text-sm text-content-secondary">
               불러오는 중...
@@ -206,7 +243,7 @@ export function StoreWalletAdjustHistoryModal({
             </div>
           ) : (
             <div className="space-y-2">
-              {records.map((record) => {
+              {paginatedRecords.map((record) => {
                 const meta = PLATFORM_LABELS[record.platform] ?? {
                   label: record.platform,
                   unit: "P",
@@ -262,6 +299,73 @@ export function StoreWalletAdjustHistoryModal({
             </div>
           )}
         </div>
+
+        {/* 5개 기준 페이지네이션 바 */}
+        {records.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-line text-xs text-content-secondary">
+            <div data-testid="adjust-pagination-info">
+              총 <span className="font-semibold text-content">{records.length}</span>건 중{" "}
+              <span className="font-semibold text-content">
+                {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
+                {Math.min(currentPage * ITEMS_PER_PAGE, records.length)}
+              </span>
+              건 (페이지 <span className="font-semibold text-content">{currentPage}</span> / {totalPages})
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  aria-label="이전 페이지"
+                  className="h-7 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline ml-1">이전</span>
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {getPaginationRange(currentPage, totalPages).map((p, idx) =>
+                    p === "..." ? (
+                      <span key={`ellipsis-${idx}`} className="px-1 py-0.5 text-content-muted select-none">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={`page-${p}`}
+                        type="button"
+                        onClick={() => setCurrentPage(p)}
+                        className={`h-7 min-w-[28px] px-1.5 rounded text-xs font-medium transition-colors ${
+                          currentPage === p
+                            ? "bg-primary text-primary-foreground font-semibold"
+                            : "border border-line-control bg-surface text-content hover:bg-surface-2"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  aria-label="다음 페이지"
+                  className="h-7 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                >
+                  <span className="hidden sm:inline mr-1">다음</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
 
         <DialogFooter className="pt-2 border-t border-line">
           <Button

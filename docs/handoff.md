@@ -14,14 +14,15 @@
     - `StoreWalletAdjustHistoryModal` 신설.
     - Supabase RLS 정책(`Read own point transactions`)에 따라 `transaction_type = 'MANUAL_ADJUST'` 레코드를 최신순 조회.
     - 일시, 플랫폼 배지, 변동 차액(+/-), 보정 후 잔액, 사유 메모 뷰어 구성.
+    - **5개 기준 페이지네이션 (`ITEMS_PER_PAGE = 5`) 바 및 스마트 번호 내비게이션 구현**.
   - `src/components/wallet/store-wallet-widget.tsx`:
     - 지갑 잔액 수동 보정 헤더 우측에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
   - `src/components/wallet/store-wallet-adjust-history-modal.test.tsx`, `store-wallet-widget.test.tsx`:
-    - 빈 상태, 데이터 렌더링, 플랫폼 필터링, 에러 및 재시도, 모달 열기 버튼 연동 단위 테스트 작성.
+    - 빈 상태, 데이터 렌더링, 플랫폼 필터링, 에러 및 재시도, 모달 열기 버튼 연동, **5개 단위 페이지네이션 및 이전/다음 이동** 단위 테스트 작성.
   - `docs/to-do.md`, `docs/develop_task_backlog.md`:
     - 백로그 문서를 `docs/to-do.md`의 `Phase 12`로 완전 일원화하여 단일 기준(Single Source of Truth) 체계 확립.
 - **검증 증거**:
-  - `npx vitest run`: 40개 파일 / 215개 테스트 100% 통과 (PASS).
+  - `npx vitest run`: 40개 파일 / 216개 테스트 100% 통과 (PASS).
   - `npx tsc --noEmit`: TypeScript 무결점 검증 성공 (0 errors).
   - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
 

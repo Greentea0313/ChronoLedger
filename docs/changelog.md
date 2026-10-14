@@ -6,13 +6,14 @@
   - `store_point_transactions` 테이블에서 `transaction_type = 'MANUAL_ADJUST'`인 레코드를 조회하여 사용자에게 제공.
   - 일시(YYYY-MM-DD HH:mm), 스토어/수단 배지(Google Play, Galaxy Store, 네이버페이), 변동 차액(+/-), 보정 후 잔액, 사유 메모 표시.
   - 플랫폼별 필터 탭(전체, Google Play, Galaxy Store, 네이버페이) 및 새로고침 지원.
+  - **5개 기준 페이지네이션(`ITEMS_PER_PAGE = 5`, 이전/다음, 번호 내비게이션, 범위 안내) 구현**.
   - 빈 상태(Empty State) 일러스트 및 에러 시 재시도 안내 UI 제공.
 - **스토어 지갑 위젯 모달 진입점 연동 (`src/components/wallet/store-wallet-widget.tsx`)**:
   - `지갑 잔액 수동 보정` 헤더 우측에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
 - **단위 테스트 및 빌드 무결점 검증**:
-  - `src/components/wallet/store-wallet-adjust-history-modal.test.tsx` 신설 (5개 테스트 통과).
+  - `src/components/wallet/store-wallet-adjust-history-modal.test.tsx` 신설 (6개 테스트 통과, 페이지네이션 검증 포함).
   - `src/components/wallet/store-wallet-widget.test.tsx` 갱신 (모달 열기 테스트 추가).
-  - Vitest 40개 파일 215개 단위 테스트 100% PASS.
+  - Vitest 40개 파일 216개 단위 테스트 100% PASS.
   - TypeScript 에러 0건 및 Next.js 14 정적 export 빌드 성공.
 
 ## 2026-10-14 (버전 패스형 지출 옵션 및 연계 픽업 선택 드롭다운 구현, 모바일 달력 파란 점 시작일 정상화)
