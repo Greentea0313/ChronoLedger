@@ -341,6 +341,23 @@
   - 작업: 승인 SRS 수용 기준과 모바일 주요 흐름을 점검하고 정적 export 산출물을 배포 환경에서 검증
   - verify: 브라우저 빌드/테스트 통과, Android PWA 설치·인증 세션·오프라인 읽기와 쓰기 차단 확인
 
+### Phase 12. 지갑 편의 기능(Audit Log) 및 캘린더 커스터마이징 백로그
+- [x] 12.1 스토어 지갑·포인트 수동 보정 내역(Audit Log) 조회 모달 구현 (2026-10-14)
+  - 대상 파일: `src/components/wallet/store-wallet-adjust-history-modal.tsx`, `src/components/wallet/store-wallet-widget.tsx`
+  - 작업: `store_point_transactions` 테이블에서 `transaction_type = 'MANUAL_ADJUST'` 레코드 조회, 플랫폼별(전체/구글 플레이/갤럭시 스토어/네이버페이) 필터 탭, 새로고침, 증감 차액(+/-) 및 사유 메모 뷰어 제공, 지갑 잔액 수동 보정 헤더에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
+  - verify: 단위 테스트 10개(모달 5개, 위젯 5개) 통과, Vitest 40개 파일 215개 테스트 통과, Next.js 14 정적 export 빌드 성공.
+- [ ] 12.2 캘린더 커스텀 배경 이미지 업로드 & 투명도/블러 조절
+  - 대상 파일: `src/app/dashboard/page.tsx`, `src/components/calendar/desktop-calendar.tsx`, 로컬 스토리지 모듈
+  - 작업:
+    1. 브라우저 로컬 저장소(**IndexedDB**)에 이미지 Blob 영구 보관 (서버 트래픽 및 DB 부담 차단).
+    2. 메인 캘린더 컨테이너 하단에 배경 레이어 렌더링 (`object-fit: cover`) 및 텍스트/뱃지 가독성 보호를 위한 반투명 오버레이 결합.
+    3. `[배경 커스텀 설정]` 컨트롤러 제공: 이미지 업로드(Canvas 리사이징/압축), 투명도 슬라이더(10%~60% 상한 제한), 블러 효과 단계(Off/약함/보통) 토글, 기본 배경 초기화 버튼.
+  - verify: 대용량 이미지 Canvas 압축 검증, 가독성 오버레이 및 로컬 영구 보존 단위 테스트, 반응형 레이아웃 검증.
+- [ ] 12.3 모바일 뷰포트 및 반응형 인터랙션 고도화
+  - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/mobile-drawer.tsx`
+  - 작업: 360px 이하 초소형 스마트폰 뷰포트 타일 패딩/폰트 미세 조정, 선택일 상세 바텀시트 스와이프 제스처 부드러움 개선, 다중 게임 일정 존재 시 뱃지 요약 노출 방식 최적화.
+  - verify: 모바일 뷰포트 회귀 테스트 및 가로 넘침 방지 검증.
+
 ---
 
 ## 후속 단계: Windows Tauri 데스크톱 통합 (Web/PWA MVP 완료 후)

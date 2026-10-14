@@ -18,8 +18,8 @@
      - `src/components/wallet/store-wallet-widget.test.tsx` 갱신 (모달 열기 테스트 추가).
      - Vitest 40개 파일 215개 단위 테스트 100% 통과.
      - TypeScript 타입 검사 통과 및 Next.js 14 정적 15개 페이지 export 빌드 성공.
-  4. **백로그 문서 최신화 (`docs/develop_task_backlog.md`)**:
-     - 1.1 항목 구현 완료 처리 및 아카이브 테이블 갱신.
+  4. **백로그 관리 단일화 (`docs/to-do.md`, `docs/develop_task_backlog.md`)**:
+     - `develop_task_backlog.md`를 `docs/to-do.md`의 `Phase 12`로 완전 일원화하여 단일 기준(Single Source of Truth) 체계 확립.
 
 ## 버전 패스형(결제 유예) 지출 옵션·연계 픽업 드롭다운 구현 및 모바일 달력 일정 점 정상화 (2026-10-14)
 

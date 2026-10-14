@@ -18,8 +18,8 @@
     - 지갑 잔액 수동 보정 헤더 우측에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
   - `src/components/wallet/store-wallet-adjust-history-modal.test.tsx`, `store-wallet-widget.test.tsx`:
     - 빈 상태, 데이터 렌더링, 플랫폼 필터링, 에러 및 재시도, 모달 열기 버튼 연동 단위 테스트 작성.
-  - `docs/develop_task_backlog.md`:
-    - 백로그 1.1 항목 구현 완료 처리 및 아카이브 반영.
+  - `docs/to-do.md`, `docs/develop_task_backlog.md`:
+    - 백로그 문서를 `docs/to-do.md`의 `Phase 12`로 완전 일원화하여 단일 기준(Single Source of Truth) 체계 확립.
 - **검증 증거**:
   - `npx vitest run`: 40개 파일 / 215개 테스트 100% 통과 (PASS).
   - `npx tsc --noEmit`: TypeScript 무결점 검증 성공 (0 errors).
