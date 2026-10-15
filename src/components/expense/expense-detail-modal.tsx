@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
+import { useAuth } from "@/lib/auth-context"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { mapPaymentError } from "@/lib/payment-calculations"
+import { rollbackIntervalSubscriptionExpense } from "@/lib/subscription-sync"
 
 export interface ExpenseDetail {
   id: string
@@ -27,6 +29,7 @@ export interface ExpenseDetail {
   gameName?: string | null
   pickupTitle?: string | null
   memo?: string | null
+  template_id?: string | null
 }
 
 interface ExpenseDetailModalProps {
@@ -54,6 +57,7 @@ function won(value: number | undefined): string {
 }
 
 export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdated }: ExpenseDetailModalProps) {
+  const { user } = useAuth()
   const isOnline = useOnlineStatus()
   const [isConfirming, setIsConfirming] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -149,6 +153,18 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
       setError(mapPaymentError(rpcError.message, "결제를 취소하지 못했습니다. 잠시 후 다시 시도해 주세요."))
       return
     }
+
+    // 누적 충전형 구독 상품의 환불인 경우 다음 예정 지출의 일수를 충전 일수만큼 차감(롤백)
+    if (user?.id) {
+      await rollbackIntervalSubscriptionExpense({
+        userId: user.id,
+        expenseId: expense.id,
+        templateId: expense.template_id,
+      }).catch((err) => {
+        console.warn("누적 충전형 환불 차감 실패 (비차단):", err)
+      })
+    }
+
     onRefunded?.()
     close(false)
   }

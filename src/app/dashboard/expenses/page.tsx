@@ -543,6 +543,7 @@ export default function ExpensesPage() {
       target_date: expense.target_date,
       start_date: expense.start_date,
       end_date: expense.end_date,
+      template_id: expense.template_id ?? null,
     })
     setIsExpenseModalOpen(true)
   }
@@ -735,6 +736,7 @@ export default function ExpensesPage() {
       gameName: expense.games?.name ?? null,
       pickupTitle: expense.pickup_schedule_id ? schedulesMap.get(expense.pickup_schedule_id)?.title ?? null : null,
       memo: expense.memo ?? null,
+      template_id: expense.template_id ?? null,
     })
   }
 
@@ -1584,7 +1586,7 @@ export default function ExpensesPage() {
                             const diffDays = Math.max(0, Math.round((targetMs - todayMs) / (1000 * 60 * 60 * 24)))
                             return (
                               <span className="text-[11px] px-2 py-0.5 rounded bg-info/10 text-info font-medium border border-info/30">
-                                남은 {diffDays}일
+                                {diffDays}일
                               </span>
                             )
                           })()}

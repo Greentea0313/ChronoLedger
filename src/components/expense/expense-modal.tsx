@@ -21,6 +21,7 @@ import {
   type StoreEventConfig,
 } from "@/lib/payment-calculations"
 import { calculateNaverPayPayment } from "@/lib/naver-pay-calculations"
+import { createNextIntervalSubscriptionExpense } from "@/lib/subscription-sync"
 
 export interface PlannedExpenseInput {
   id: string
@@ -33,6 +34,7 @@ export interface PlannedExpenseInput {
   target_date?: string
   start_date?: string | null
   end_date?: string | null
+  template_id?: string | null
 }
 
 export interface PlannedExpenseEditInput {
@@ -611,6 +613,19 @@ export function ExpenseModal({
         if (rpcError) {
           setError(`${mapPaymentError(rpcError.message, "결제를 처리하지 못했습니다.")} 입력한 내용은 예정 지출로 저장되어 다시 시도할 수 있습니다.`)
           return
+        }
+
+        // 누적 충전형 구독 상품의 경우 결제 후 다음 회차 예정일 자동 연장 생성
+        const targetTemplateId = plannedExpense?.template_id
+        if (targetTemplateId && user?.id) {
+          await createNextIntervalSubscriptionExpense({
+            userId: user.id,
+            templateId: targetTemplateId,
+            originalTargetDate: plannedExpense.target_date,
+            paymentDate: input.paymentDate,
+          }).catch((err) => {
+            console.warn("누적 충전형 다음 회차 자동 생성 실패 (비차단):", err)
+          })
         }
       }
       pendingExpenseId.current = null

@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-10-15 (누적 충전형 구독 조기 결제 시 잔여일수 누적 연장, 환불 시 차감 롤백 및 카드 배지 개선)
+
+- **누적 충전형(`INTERVAL_30`) 구독 조기 결제 시 잔여일수 누적 연장 및 환불 시 차감(롤백) 로직 구현 (`src/lib/subscription-sync.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`)**:
+  - 결제 시 잔여일수 보존: 예정일보다 이른 시점에 결제를 확정할 경우 기존 예정일($D_{orig\_target}$)에 충전 기간(`interval_days`, 기본 30일)을 가산($D_{next} = D_{orig\_target} + 30\text{일}$)하여 누적 잔여일수가 온전히 보존 연장되도록 구현.
+  - **환불 시 충전 일수 차감(롤백)**: 결제된 누적 충전형 지출을 환불(취소)할 경우, 해당 결제로 인해 연장되었던 다음 회차 예정(`PLANNED`) 지출의 `target_date`에서 충전했던 일수(`interval_days`, 기본 30일)를 정확히 차감(`calculateRollbackIntervalTargetDate`, `rollbackIntervalSubscriptionExpense`)하여 결제 전 원래 예정일로 완벽 원복.
+  - 지출 상세/환불 모달(`ExpenseDetailModal`)에서 `refund_expense_payment` 성공 직후 `rollbackIntervalSubscriptionExpense`를 호출하도록 연동.
+  - 소비 페이지(`src/app/dashboard/expenses/page.tsx`), 대시보드 페이지(`src/app/dashboard/page.tsx`), 만료 모달(`src/components/expense/overdue-planned-modal.tsx`)의 `payingExpense` 및 `detailExpense` 전달 인터페이스에 `template_id` 완벽 연동.
+- **정기 구독 카드 잔여일수 배지 텍스트 간결화 (`src/app/dashboard/expenses/page.tsx`)**:
+  - 누적 충전형 구독 카드의 `[누적 충전형 (n일)]` 배지 옆 `[남은 n일]` 표시를 `[n일]`로 변경.
+- **단위 테스트 및 프로덕션 빌드 검증**:
+  - `src/lib/subscription-sync.test.ts`: 조기 결제 누적 연장, 환불 시 예정일 롤백 차감, 중복 생성 방지 등 신규 테스트 추가 (18개 테스트 PASS).
+  - `src/components/expense/expense-detail-modal.test.tsx`: 누적 충전형 지출 환불 시 차감 함수 호출 검증 테스트 추가 (9개 테스트 PASS).
+  - `src/app/dashboard/expenses/page.test.tsx`: 누적 충전형 카드 `[n일]` 배지 표시 테스트 추가 (14개 테스트 PASS).
+  - Vitest 40개 파일 229개 테스트 100% 통과, Next.js 14 정적 export 빌드 15개 페이지 0 에러 통과.
+
 ## 2026-10-14 (스토어 지갑·포인트 수동 보정 내역 조회 모달 구현)
 
 - **스토어 지갑/포인트 수동 보정 내역(Audit Log) 뷰어 모달 신설 (`src/components/wallet/store-wallet-adjust-history-modal.tsx`)**:

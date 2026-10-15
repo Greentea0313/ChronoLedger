@@ -1,5 +1,39 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 누적 충전형 구독 조기 결제 시 잔여일수 누적 연장, 환불 시 차감 롤백 및 카드 배지 개선 (2026-10-15)
+
+- **결정 및 배경**:
+  - **누적 충전형 조기 결제 시 기존 잔여일수 보존 및 누적 연장**:
+    - 누적 충전형(`INTERVAL_30`, 예: 월정액 30일권) 구독 상품을 예정일보다 이른 시점에 결제하여 확정 상태로 변경했을 때, `process_expense_payment`가 해당 지출 레코드의 `target_date`를 결제일로 갱신하면서 발생했던 잔여일수 유실(남아있던 10일 등이 날아가고 결제일 기준 30일로 고정되던 결함)을 원천 해결.
+    - 조기 결제($D_{pay} < D_{orig\_target}$) 시 새 예정일을 $D_{orig\_target} + \text{stepDays}$로 계산하여, 기존 잔여 일수가 온전히 보존된 상태에서 연장 일수가 누적되도록 확립.
+  - **결제 환불 시 충전 일수 정확한 차감(롤백)**:
+    - 결제된 누적 충전형 지출을 환불(취소)할 경우, 해당 결제로 인해 연장되었던 다음 예정(`PLANNED`) 지출의 예정일(`target_date`)에서 충전 일수(`interval_days`, 기본 30일)를 차감하여 결제 전 원래 예정일로 완벽하게 되돌리는 롤백 메커니즘(`rollbackIntervalSubscriptionExpense`) 구현.
+  - **결제 및 환불 모달 원자적 연동**:
+    - `ExpenseModal`: 결제 성공 시 `createNextIntervalSubscriptionExpense` 호출.
+    - `ExpenseDetailModal`: 환불 성공 시 `rollbackIntervalSubscriptionExpense` 호출.
+  - **정기 구독 카드 배지 텍스트 간결화**:
+    - 소비 페이지(`/dashboard/expenses`)의 정기 구독 카드에서 `[누적 충전형 n일]` 표시 옆의 `[남은 n일]` 표시를 `[n일]`로 간결하게 변경.
+- **수행 내역**:
+  - `src/lib/subscription-sync.ts`:
+    - `calculateNextIntervalTargetDate`: 조기 결제 시 기존 예정일 가산 계산.
+    - `createNextIntervalSubscriptionExpense`: 다음 회차 `PLANNED` 레코드 자동 생성 함수.
+    - `calculateRollbackIntervalTargetDate`: 환불 시 충전 일수 차감(롤백) 계산.
+    - `rollbackIntervalSubscriptionExpense`: 환불 시 다음 `PLANNED` 지출의 예정일 차감 업데이트 함수.
+  - `src/components/expense/expense-modal.tsx`:
+    - `PlannedExpenseInput`에 `template_id` 추가 및 결제 성공 후 자동 생성 연계.
+  - `src/components/expense/expense-detail-modal.tsx`:
+    - `ExpenseDetail`에 `template_id` 추가, `useAuth()` 연동 및 환불 성공 후 롤백 차감 함수 연동.
+  - `src/app/dashboard/expenses/page.tsx`:
+    - `handleConfirmPlanned`, `handleOpenRefund`에 `template_id` 전달.
+    - 구독 카드 배지: `남은 {diffDays}일` $\to$ `{diffDays}일`.
+  - `src/app/dashboard/page.tsx`, `src/components/expense/overdue-planned-modal.tsx`:
+    - `EXPENSE_COLUMNS`, `OverduePlannedExpense`에 `template_id` 필드 연동.
+  - `src/lib/subscription-sync.test.ts`, `src/components/expense/expense-detail-modal.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`:
+    - 누적 연장, 환불 롤백, 배지 라벨 렌더링 검증 단위 테스트 작성.
+- **검증 증거**:
+  - `npx vitest run`: 40개 파일 / 229개 테스트 100% 통과 (PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 스토어 지갑·포인트 수동 보정 내역(Audit Log) 조회 모달 구현 (2026-10-14)
 
 - **결정 및 배경**:

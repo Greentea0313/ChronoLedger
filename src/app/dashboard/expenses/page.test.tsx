@@ -600,5 +600,57 @@ describe("ExpensesPage", () => {
     expect(screen.getByRole("dialog")).toBeTruthy()
     expect(screen.getByRole("button", { name: "정보 수정" })).toBeTruthy()
   })
+
+  it("누적 충전형 구독 카드에서 잔여일 배지가 '[n일]' 형식으로 표시된다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const templates = [
+      {
+        id: "tpl-interval",
+        title: "공월 축복",
+        category: "게임",
+        cycle_type: "INTERVAL_30",
+        billing_day: null,
+        interval_days: 30,
+        default_price: 5900,
+        payment_method: "WALLET",
+        is_active: true,
+        game_id: "game-1",
+        games: { id: "game-1", name: "원신" },
+      },
+    ]
+
+    const intervalExpenses = [
+      {
+        id: "exp-interval-planned",
+        template_id: "tpl-interval",
+        title: "공월 축복",
+        category: "게임",
+        status: "PLANNED",
+        target_date: "2026-10-30", // 오늘이 10/15라면 15일 남음
+        final_amount: 5900,
+        original_price: 5900,
+        payment_method: "WALLET",
+      },
+    ]
+
+    from.mockImplementation((table: string) => {
+      if (table === "subscription_templates") return createExpenseQueryBuilder(templates)
+      if (table === "expenses") return createExpenseQueryBuilder(intervalExpenses)
+      return createExpenseQueryBuilder([])
+    })
+
+    render(<ExpensesPage />)
+
+    const subTab = await screen.findByRole("tab", { name: "정기 구독" })
+    fireEvent.click(subTab)
+
+    // '누적 충전형 (30일)' 배지 확인
+    expect(await screen.findByText("누적 충전형 (30일)")).toBeTruthy()
+    // '남은 n일'이 아닌 'n일' 배지 확인 (정규식: /^\d+일$/)
+    const daysBadges = screen.getAllByText(/\d+일/)
+    expect(daysBadges.length).toBeGreaterThan(0)
+    // '남은 '이라는 접두사가 붙은 배지는 없어야 함
+    expect(screen.queryByText(/남은 \d+일/)).toBeNull()
+  })
 })
 

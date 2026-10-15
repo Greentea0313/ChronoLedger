@@ -2,8 +2,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ExpenseDetailModal, type ExpenseDetail } from "./expense-detail-modal"
 
-const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
+const { rpc, rollbackIntervalSubscriptionExpense, useAuth } = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  rollbackIntervalSubscriptionExpense: vi.fn().mockResolvedValue(true),
+  useAuth: vi.fn().mockReturnValue({ user: { id: "user-123" } }),
+}))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { rpc } }))
+vi.mock("@/lib/auth-context", () => ({ useAuth }))
+vi.mock("@/lib/subscription-sync", () => ({ rollbackIntervalSubscriptionExpense }))
 
 const confirmed: ExpenseDetail = {
   id: "e1",
@@ -130,5 +136,25 @@ describe("ExpenseDetailModal", () => {
 
     expect((await screen.findByRole("alert")).textContent).toContain("항목명을 입력해 주세요.")
     expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it("누적 충전형 구독 지출 환불 시 rollbackIntervalSubscriptionExpense를 호출한다", async () => {
+    rpc.mockResolvedValue({ error: null })
+    const intervalExpense: ExpenseDetail = {
+      ...confirmed,
+      template_id: "tpl-interval-1",
+    }
+    const onRefunded = vi.fn()
+    render(<ExpenseDetailModal expense={intervalExpense} onOpenChange={vi.fn()} onRefunded={onRefunded} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "결제 취소" }))
+    fireEvent.click(screen.getByRole("button", { name: "취소 확정" }))
+
+    await waitFor(() => expect(onRefunded).toHaveBeenCalled())
+    expect(rollbackIntervalSubscriptionExpense).toHaveBeenCalledWith({
+      userId: "user-123",
+      expenseId: "e1",
+      templateId: "tpl-interval-1",
+    })
   })
 })

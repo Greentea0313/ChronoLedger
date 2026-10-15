@@ -346,14 +346,22 @@
   - 대상 파일: `src/components/wallet/store-wallet-adjust-history-modal.tsx`, `src/components/wallet/store-wallet-widget.tsx`
   - 작업: `store_point_transactions` 테이블에서 `transaction_type = 'MANUAL_ADJUST'` 레코드 조회, 플랫폼별(전체/구글 플레이/갤럭시 스토어/네이버페이) 필터 탭, 5개 기준 페이지네이션(`ITEMS_PER_PAGE = 5`, 이전/다음/페이지 번호/범위 안내) 바, 새로고침, 증감 차액(+/-) 및 사유 메모 뷰어 제공, 지갑 잔액 수동 보정 헤더에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
   - verify: 단위 테스트 11개(모달 6개, 위젯 5개) 통과, Vitest 40개 파일 216개 테스트 통과, Next.js 14 정적 export 빌드 성공.
-- [ ] 12.2 캘린더 커스텀 배경 이미지 업로드 & 투명도/블러 조절
+- [x] 12.2 누적 충전형(INTERVAL_30) 구독 조기 결제 시 잔여일수 누적 연장, 환불 시 차감(롤백) 및 카드 배지 변경 (2026-10-15)
+  - 대상 파일: `src/lib/subscription-sync.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/page.tsx`, `src/components/expense/overdue-planned-modal.tsx`
+  - 작업:
+    1. 결제 예정일보다 이른 날짜에 결제 확정 시 기존 남은 잔여일수에 연장 일수(`interval_days`, 기본 30일)를 누적 가산하는 계산 로직(`calculateNextIntervalTargetDate`) 및 다음 회차 `PLANNED` 자동 생성 함수(`createNextIntervalSubscriptionExpense`) 구현.
+    2. 결제 확정 모달(`ExpenseModal`) 결제 성공 시 `template_id`를 인식하여 조기 결제일 경우 기존 예정일 기준 연장된 다음 회차를 즉시 생성하도록 연동.
+    3. 누적 충전형 구독 결제 환불(취소) 시 충전했던 일수만큼 다음 예정 회차(`PLANNED`)의 예정일에서 차감(롤백)하는 함수(`calculateRollbackIntervalTargetDate`, `rollbackIntervalSubscriptionExpense`) 구현 및 지출 상세/환불 모달(`ExpenseDetailModal`) 연동.
+    4. 소비 페이지(`/dashboard/expenses`) 정기 구독 카드의 `[누적 충전형 n일]` 옆 잔여일수 배지 텍스트를 `[남은 n일]`에서 `[n일]`로 간결화.
+  - verify: 단위 테스트(조기/당일/만료후 결제일 산출, 자동 생성, 환불 시 일수 롤백 차감, 배지 텍스트) 12개 추가 통과, Vitest 40개 파일 229개 테스트 100% 통과, Next.js 14 정적 export 빌드 15개 페이지 성공.
+- [ ] 12.3 캘린더 커스텀 배경 이미지 업로드 & 투명도/블러 조절
   - 대상 파일: `src/app/dashboard/page.tsx`, `src/components/calendar/desktop-calendar.tsx`, 로컬 스토리지 모듈
   - 작업:
     1. 브라우저 로컬 저장소(**IndexedDB**)에 이미지 Blob 영구 보관 (서버 트래픽 및 DB 부담 차단).
     2. 메인 캘린더 컨테이너 하단에 배경 레이어 렌더링 (`object-fit: cover`) 및 텍스트/뱃지 가독성 보호를 위한 반투명 오버레이 결합.
     3. `[배경 커스텀 설정]` 컨트롤러 제공: 이미지 업로드(Canvas 리사이징/압축), 투명도 슬라이더(10%~60% 상한 제한), 블러 효과 단계(Off/약함/보통) 토글, 기본 배경 초기화 버튼.
   - verify: 대용량 이미지 Canvas 압축 검증, 가독성 오버레이 및 로컬 영구 보존 단위 테스트, 반응형 레이아웃 검증.
-- [ ] 12.3 모바일 뷰포트 및 반응형 인터랙션 고도화
+- [ ] 12.4 모바일 뷰포트 및 반응형 인터랙션 고도화
   - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/mobile-drawer.tsx`
   - 작업: 360px 이하 초소형 스마트폰 뷰포트 타일 패딩/폰트 미세 조정, 선택일 상세 바텀시트 스와이프 제스처 부드러움 개선, 다중 게임 일정 존재 시 뱃지 요약 노출 방식 최적화.
   - verify: 모바일 뷰포트 회귀 테스트 및 가로 넘침 방지 검증.

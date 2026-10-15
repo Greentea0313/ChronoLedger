@@ -31,6 +31,170 @@ export function addDays(dateStr: string, days: number): string {
   return `${nextYear}-${nextMonth}-${nextDay}`
 }
 
+/**
+ * 누적 충전형(INTERVAL_30) 상품의 다음 결제 예정일을 계산합니다.
+ * - 결제 예정일보다 이른 날짜에 조기 결제를 확정한 경우: 기존 예정일에 충전 일수를 가산하여 잔여 일수가 온전히 누적 연장됩니다.
+ * - 결제 예정일 당일이거나 이미 지난 경우: 결제일에 충전 일수를 가산합니다.
+ */
+export function calculateNextIntervalTargetDate(
+  originalTargetDate: string | null | undefined,
+  paymentDate: string,
+  intervalDays: number = 30,
+): string {
+  const stepDays = intervalDays > 0 ? intervalDays : 30
+  if (originalTargetDate && originalTargetDate > paymentDate) {
+    return addDays(originalTargetDate, stepDays)
+  }
+  return addDays(paymentDate, stepDays)
+}
+
+/**
+ * 누적 충전형(INTERVAL_30) 구독 상품 결제 확정 시 다음 회차 예정(PLANNED) 지출을 생성합니다.
+ */
+export async function createNextIntervalSubscriptionExpense({
+  userId,
+  templateId,
+  originalTargetDate,
+  paymentDate,
+}: {
+  userId: string
+  templateId: string
+  originalTargetDate?: string | null
+  paymentDate: string
+}): Promise<boolean> {
+  const { data: template, error: tplError } = await supabase
+    .from("subscription_templates")
+    .select("id, title, category, cycle_type, interval_days, default_price, payment_method, game_id, is_active")
+    .eq("id", templateId)
+    .single()
+
+  if (tplError || !template || template.cycle_type !== "INTERVAL_30" || !template.is_active) {
+    return false
+  }
+
+  // 이미 예정 회차가 존재하는지 확인 (중복 생성 방지)
+  const { data: existingPlanned } = await supabase
+    .from("expenses")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("template_id", templateId)
+    .eq("status", "PLANNED")
+    .maybeSingle()
+
+  if (existingPlanned) {
+    return false
+  }
+
+  const stepDays = template.interval_days || 30
+  const nextTargetDate = calculateNextIntervalTargetDate(originalTargetDate, paymentDate, stepDays)
+
+  const row = {
+    user_id: userId,
+    template_id: template.id,
+    game_id: template.game_id,
+    title: template.title,
+    category: template.category,
+    status: "PLANNED" as const,
+    target_date: nextTargetDate,
+    original_price: template.default_price,
+    discount_amount: 0,
+    point_discount_amount: 0,
+    used_points: 0,
+    earned_points: 0,
+    final_amount: template.default_price,
+    payment_method: template.payment_method,
+    point_platform: template.payment_method === "WALLET" ? null : template.payment_method,
+    deduct_from_asset: true,
+  }
+
+  const { error: insertError } = await supabase.from("expenses").insert(row)
+  if (insertError) {
+    console.error("누적 충전형 다음 회차 생성 실패:", insertError)
+    return false
+  }
+
+  return true
+}
+
+/**
+ * 누적 충전형(INTERVAL_30) 상품 환불 시 차감(롤백)된 결제 예정일을 계산합니다.
+ */
+export function calculateRollbackIntervalTargetDate(
+  currentTargetDate: string,
+  intervalDays: number = 30,
+): string {
+  const stepDays = intervalDays > 0 ? intervalDays : 30
+  return addDays(currentTargetDate, -stepDays)
+}
+
+/**
+ * 누적 충전형(INTERVAL_30) 구독 지출 환불 시 다음 회차 예정(PLANNED) 지출의 예정일을 충전 일수만큼 차감(롤백)합니다.
+ */
+export async function rollbackIntervalSubscriptionExpense({
+  userId,
+  expenseId,
+  templateId,
+}: {
+  userId: string
+  expenseId: string
+  templateId?: string | null
+}): Promise<boolean> {
+  let targetTemplateId = templateId
+
+  // 1. templateId가 주어지지 않은 경우 DB에서 환불된 지출의 template_id 확인
+  if (!targetTemplateId) {
+    const { data: refundedExpense } = await supabase
+      .from("expenses")
+      .select("template_id")
+      .eq("id", expenseId)
+      .maybeSingle()
+
+    targetTemplateId = refundedExpense?.template_id
+  }
+
+  if (!targetTemplateId) return false
+
+  // 2. 템플릿 정보 조회 (INTERVAL_30 확인)
+  const { data: template } = await supabase
+    .from("subscription_templates")
+    .select("id, cycle_type, interval_days")
+    .eq("id", targetTemplateId)
+    .maybeSingle()
+
+  if (!template || template.cycle_type !== "INTERVAL_30") return false
+
+  const stepDays = template.interval_days || 30
+
+  // 3. 해당 템플릿의 현재 미결제(PLANNED) 지출 조회
+  const { data: plannedExpense } = await supabase
+    .from("expenses")
+    .select("id, target_date")
+    .eq("user_id", userId)
+    .eq("template_id", targetTemplateId)
+    .eq("status", "PLANNED")
+    .maybeSingle()
+
+  if (!plannedExpense) return false
+
+  // 4. 예정일에서 충전 일수(stepDays)만큼 차감
+  const newTargetDate = calculateRollbackIntervalTargetDate(plannedExpense.target_date, stepDays)
+
+  // 5. PLANNED 지출 업데이트
+  const { error: updateError } = await supabase
+    .from("expenses")
+    .update({ target_date: newTargetDate })
+    .eq("id", plannedExpense.id)
+
+  if (updateError) {
+    console.error("누적 충전형 환불 차감 실패:", updateError)
+    return false
+  }
+
+  return true
+}
+
+
+
 export async function ensureMonthlySubscriptionExpenses(
   userId: string,
   year: number,

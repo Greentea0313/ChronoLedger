@@ -1,5 +1,30 @@
 # 프로젝트 진행 현황
 
+## 누적 충전형 구독 조기 결제 시 잔여일수 누적 연장, 환불 시 차감 롤백 및 카드 배지 개선 (2026-10-15)
+
+- **배경 및 사용자 요구사항**:
+  1. 누적 충전형(`INTERVAL_30`, 예: 월정액 30일권) 구독 상품을 남은 결제 예정일(만료일) 이전에 일찍 결제하여 확정 상태로 변경했을 때, 기존에 남아있던 누적 잔여일수(예: 10일)를 무시하고 결제일 기준 충전량(30일)으로 잔여일수를 고정해버리는 결함 발생.
+  2. 결제 예정일보다 이른 날짜에 결제를 확정할 경우 기존에 남아있던 일수에 충전 연장 일수(`interval_days`, 기본 30일)를 가산(누적 연장)하도록 변경.
+  3. 결제된 누적 충전형 구독 지출을 환불(취소)할 경우, 충전했던 일수만큼 다음 예정 회차의 잔여일수에서 빠지지 않는 문제 해결 (충전 일수만큼 정확히 차감 롤백).
+  4. 소비 페이지(`/dashboard/expenses`)의 정기 구독 카드에서 `[누적 충전형 n일]` 표시 옆의 `[남은 n일]` 표시를 `[n일]`로 간결하게 변경 요구.
+- **수행 내역**:
+  1. **누적 연장 및 환불 차감 결제일 산출 순수 함수 구현 (`src/lib/subscription-sync.ts`)**:
+     - `calculateNextIntervalTargetDate`: 조기 결제($D_{pay} < D_{orig\_target}$) 시 $D_{orig\_target} + \text{stepDays}$로 누적 연장.
+     - `calculateRollbackIntervalTargetDate`: 환불 시 현재 예정일에서 충전 일수를 차감($D_{current} - \text{stepDays}$)하여 결제 전 예정일로 원복.
+  2. **누적 충전형 다음 회차 자동 생성 및 결제 연동 (`src/lib/subscription-sync.ts`, `src/components/expense/expense-modal.tsx`)**:
+     - `createNextIntervalSubscriptionExpense`: 결제 모달 결제 성공 시 잔여일수가 누적된 다음 회차 `PLANNED` 지출 레코드 생성.
+  3. **누적 충전형 환불 시 일수 차감(롤백) 연동 (`src/lib/subscription-sync.ts`, `src/components/expense/expense-detail-modal.tsx`)**:
+     - `rollbackIntervalSubscriptionExpense`: 지출 상세/환불 모달에서 `refund_expense_payment` 성공 직후, 해당 템플릿의 현재 `PLANNED` 지출 예정일에서 충전 일수(`stepDays`, 30일)를 차감하여 결제 전 원래 예정일로 완벽 복원.
+     - `ExpenseDetail` 및 대시보드/소비 페이지 인터페이스에 `template_id` 완벽 연계.
+  4. **정기 구독 카드 배지 라벨 변경 (`src/app/dashboard/expenses/page.tsx`)**:
+     - `남은 {diffDays}일` $\to$ `{diffDays}일`로 배지 텍스트 수정.
+  5. **단위 테스트 및 빌드 무결점 검증**:
+     - `src/lib/subscription-sync.test.ts`에 11개 신규 테스트(조기/당일/만료후 결제, 환불 시 롤백 차감, 커스텀 일수, 중복 방지) 추가 (18개 테스트 PASS).
+     - `src/components/expense/expense-detail-modal.test.tsx`에 환불 시 롤백 함수 호출 검증 테스트 추가 (9개 테스트 PASS).
+     - `src/app/dashboard/expenses/page.test.tsx`에 `[n일]` 배지 표시 검증 테스트 추가 (14개 테스트 PASS).
+     - Vitest 40개 파일 229개 단위 테스트 100% 통과.
+     - Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 스토어 지갑·포인트 수동 보정 내역(Audit Log) 조회 모달 구현 (2026-10-14)
 
 - **배경 및 사용자 요구사항**:

@@ -15,6 +15,7 @@ export interface OverduePlannedExpense {
   final_amount: number
   target_date: string
   end_date?: string | null
+  template_id?: string | null
 }
 
 interface OverduePlannedModalProps {
