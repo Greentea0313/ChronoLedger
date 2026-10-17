@@ -1,8 +1,11 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
-## 사용자 지정 게임 아이콘 달력·소비 페이지 전역 적용 및 픽업별 과금 분석 그래프 다중 색상 적용 (2026-10-17)
+## 캘린더 커스텀 배경 이미지 업로드·투명도/블러 조절 구현, 사용자 지정 게임 아이콘 전역 적용 및 픽업 그래프 다중 색상 적용 (2026-10-17)
 
 - **결정 및 배경**:
+  - **캘린더 커스텀 배경 이미지 로컬(IndexedDB) 영구 보관 및 가독성 보호 설계 (Phase 12.3)**:
+    - 고해상도 배경화면 이미지를 서버(Supabase Storage)에 업로드할 경우 대역폭과 스토리지 한도를 급격히 소모하므로, 클라이언트 `Canvas`를 통해 최대 `1920×1080` 비율 유지 WebP(품질 0.82)로 압축한 뒤 브라우저 로컬 `IndexedDB`(`chronoledger_calendar_bg`)에 사용자별로 영구 보관하도록 설계.
+    - 배경 이미지가 과도하게 선명하면 달력의 날짜·게임 아이콘·일정 배지(`VERSION`/`PICKUP`/`CONTENTS`) 가독성을 해치므로, 투명도 상한을 **10% ~ 60%**로 제한(`clampBgOpacity`)하고, 3단계 블러(`Off` / `약함 4px` / `보통 8px`) 및 반투명 표면 오버레이(`bg-surface/40`)를 결합.
   - **사용자 지정 게임 아이콘(Custom Game Icon) 표시 범위 확대**:
     - 기존에는 `/dashboard/games` 페이지에서만 `downloadUserIcon(userId, gameId)`를 호출하여 사용자가 업로드한 커스텀 아이콘을 표시하고, 정작 달력 타일(`/dashboard`)과 소비/구독 내역(`/dashboard/expenses`)에서는 DB의 `default_icon_url`만 참조하여 커스텀 아이콘이 반영되지 않던 문제를 해결.
     - `storage-upload.ts`의 인메모리 캐시(`userIconCache`)를 활용하여 페이지 이동 시 중복 다운로드 없이 즉시 커스텀 아이콘 ObjectURL을 공유하도록 구성.
@@ -10,20 +13,23 @@
     - `/dashboard/expenses`의 `게임 픽업별 과금 분석` 탭은 게임 카테고리의 픽업 배너들을 비교·분류하기 위한 영역임에도 모든 픽업 막대가 동일한 단일 색상(`#6366F1`)으로 렌더링되어 시각적 구분이 어려웠음.
     - 8색 다중 팔레트(`PICKUP_CHART_PALETTE`)를 도입하여 각 픽업 배너 막대마다 고유한 색상을 부여하고, 우측 `픽업 과금 순위` 리스트에도 동일한 색상의 원형 도트 인디케이터를 배치하여 차트와 순위표 간 직관적 대응성을 높임 (`일반` 지출은 슬레이트 컬러 `#64748B`로 구분 유지).
 - **수행 내역**:
-  - `src/lib/storage-upload.ts`:
-    - `downloadUserIcon` 내 `if (!supabase.storage) return null` 안전 가드 추가.
-  - `src/app/dashboard/games/page.tsx`:
-    - 아이콘 업로드 직후 `downloadUserIcon`을 통해 `userIconCache`와 동일한 ObjectURL을 참조하도록 개선.
+  - `src/lib/calendar-bg-storage.ts` (신설):
+    - `loadCalendarBgRecord`, `saveCalendarBgRecord`, `clearCalendarBgRecord`: IndexedDB 및 메모리 폴백 기반 영구 저장/복원/초기화.
+    - `compressCalendarBgImage`, `calculateScaledDimensions`, `clampBgOpacity`, `getBlurFilterCss`: 이미지 압축 및 스타일 정규화 순수/유틸 함수.
+  - `src/components/calendar/calendar-bg-customizer.tsx` (신설):
+    - 캘린더 상단 헤더의 `[배경 설정]` 팝오버 컨트롤러 (이미지 업로드/변경, 10%~60% 투명도 슬라이더, Off/약함/보통 블러 토글, 기본 배경 초기화).
+  - `src/components/calendar/desktop-calendar.tsx`:
+    - `backgroundConfig` 및 `bgCustomizer` prop 지원, 하단 `object-fit: cover` 배경 이미지 레이어 및 반투명 가독성 오버레이 렌더링.
+  - `src/lib/storage-upload.ts`, `src/app/dashboard/games/page.tsx`:
+    - `downloadUserIcon` 안전 가드 추가 및 업로드 직후 캐시 ObjectURL 공유 연동.
   - `src/app/dashboard/page.tsx`:
-    - `gameIcons` 상태 추가 및 구독 게임·지출 게임 ID 대상 `downloadUserIcon` 병렬 조회 연동.
-    - `userGamesMap`, `allGamesMap`, `dayExpenses`, `daySchedules`, `gameFilterOptions`, `days`(달력 타일 `dayIcons`)에 커스텀 아이콘 우선 적용.
+    - 캘린더 커스텀 배경 상태(`bgBlob`, `bgImageUrl`, `bgOpacity`, `bgBlur`) 및 IndexedDB 핸들러 연동, `gameIcons` 병렬 조회 및 달력 타일/사이드바/필터 커스텀 아이콘 우선 적용.
   - `src/app/dashboard/expenses/page.tsx`:
-    - `gameIcons` 상태 및 `loadCustomIconsForGameIds` 헬퍼를 통해 지출 내역(데스크톱 테이블, 모바일 카드 배경) 및 정기 구독 템플릿 카드에 커스텀 아이콘 우선 적용.
-    - `PICKUP_CHART_PALETTE` 정의 및 `pickupStatsData` 항목별 색상 매핑, `<BarChart>` `<Cell>` 및 우측 순위 리스트 컬러 도트 인디케이터 적용.
-  - `src/app/dashboard/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`:
-    - 달력 타일 및 지출/구독 목록 커스텀 아이콘 우선 표시 테스트, 복수 픽업 배너 간 다중 색상 할당 단위 테스트 추가.
+    - 지출 내역 및 정기 구독 템플릿 카드에 커스텀 아이콘 우선 적용, `PICKUP_CHART_PALETTE` 기반 픽업 차트 및 순위 리스트 컬러 도트 적용.
+  - 단위 테스트 (`src/lib/calendar-bg-storage.test.ts`, `src/components/calendar/calendar-bg-customizer.test.tsx`, `src/components/calendar/desktop-calendar.test.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`):
+    - 총 10개의 신규 테스트 케이스 추가.
 - **검증 증거**:
-  - `npx vitest run`: 40개 파일 / 232개 테스트 100% 통과 (PASS).
+  - `npx vitest run`: 42개 파일 / 239개 테스트 100% 통과 (PASS).
   - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
 
 ## 누적 충전형 구독 조기 결제 시 잔여일수 누적 연장, 환불 시 차감 롤백 및 카드 배지 개선 (2026-10-15)

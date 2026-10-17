@@ -354,13 +354,13 @@
     3. 누적 충전형 구독 결제 환불(취소) 시 충전했던 일수만큼 다음 예정 회차(`PLANNED`)의 예정일에서 차감(롤백)하는 함수(`calculateRollbackIntervalTargetDate`, `rollbackIntervalSubscriptionExpense`) 구현 및 지출 상세/환불 모달(`ExpenseDetailModal`) 연동.
     4. 소비 페이지(`/dashboard/expenses`) 정기 구독 카드의 `[누적 충전형 n일]` 옆 잔여일수 배지 텍스트를 `[남은 n일]`에서 `[n일]`로 간결화.
   - verify: 단위 테스트(조기/당일/만료후 결제일 산출, 자동 생성, 환불 시 일수 롤백 차감, 배지 텍스트) 12개 추가 통과, Vitest 40개 파일 229개 테스트 100% 통과, Next.js 14 정적 export 빌드 15개 페이지 성공.
-- [ ] 12.3 캘린더 커스텀 배경 이미지 업로드 & 투명도/블러 조절
-  - 대상 파일: `src/app/dashboard/page.tsx`, `src/components/calendar/desktop-calendar.tsx`, 로컬 스토리지 모듈
+- [x] 12.3 캘린더 커스텀 배경 이미지 업로드 & 투명도/블러 조절 (2026-10-17)
+  - 대상 파일: `src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`
   - 작업:
-    1. 브라우저 로컬 저장소(**IndexedDB**)에 이미지 Blob 영구 보관 (서버 트래픽 및 DB 부담 차단).
-    2. 메인 캘린더 컨테이너 하단에 배경 레이어 렌더링 (`object-fit: cover`) 및 텍스트/뱃지 가독성 보호를 위한 반투명 오버레이 결합.
-    3. `[배경 커스텀 설정]` 컨트롤러 제공: 이미지 업로드(Canvas 리사이징/압축), 투명도 슬라이더(10%~60% 상한 제한), 블러 효과 단계(Off/약함/보통) 토글, 기본 배경 초기화 버튼.
-  - verify: 대용량 이미지 Canvas 압축 검증, 가독성 오버레이 및 로컬 영구 보존 단위 테스트, 반응형 레이아웃 검증.
+    1. 브라우저 로컬 저장소(**IndexedDB** `chronoledger_calendar_bg` 및 메모리 폴백)에 사용자별 이미지 Blob과 설정(`opacity`, `blur`) 영구 보관 (서버 트래픽 및 DB 부담 차단).
+    2. 메인 캘린더 컨테이너 하단에 배경 레이어 렌더링 (`object-fit: cover`) 및 텍스트/뱃지 가독성 보호를 위한 반투명 오버레이(`bg-surface/40`) 및 타일 반투명화(`bg-app/75`) 결합.
+    3. `[배경 커스텀 설정]` 컨트롤러(`CalendarBgCustomizer`) 제공: 이미지 업로드(최대 1920×1080 비율 유지 Canvas WebP 리사이징/압축), 투명도 슬라이더(10%~60% 상한 제한), 블러 효과 단계(Off/약함/보통) 토글, 기본 배경 초기화 버튼.
+  - verify: 대용량 이미지 리사이징/압축 및 10%~60% 클램핑 검증(`calendar-bg-storage.test.ts`), 가독성 오버레이 및 배경 레이어 렌더링 검증(`desktop-calendar.test.tsx`), 설정 컨트롤러 조작 검증(`calendar-bg-customizer.test.tsx`), Vitest 42개 파일 239개 테스트 100% 통과, Next.js 14 정적 export 빌드 성공.
 - [ ] 12.4 모바일 뷰포트 및 반응형 인터랙션 고도화
   - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/mobile-drawer.tsx`
   - 작업: 360px 이하 초소형 스마트폰 뷰포트 타일 패딩/폰트 미세 조정, 선택일 상세 바텀시트 스와이프 제스처 부드러움 개선, 다중 게임 일정 존재 시 뱃지 요약 노출 방식 최적화.

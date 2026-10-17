@@ -120,5 +120,35 @@ describe("DesktopCalendar", () => {
     const memoDots = screen.getAllByTitle("메모 있음")
     expect(memoDots).toHaveLength(1)
   })
+
+  it("backgroundConfig에 커스텀 배경 이미지가 설정되면 object-fit: cover 배경 레이어와 가독성 보호 오버레이를 렌더링한다", () => {
+    render(
+      <DesktopCalendar
+        year={2026}
+        month={10}
+        selectedDate="2026-10-06"
+        onSelectDate={vi.fn()}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
+        days={[]}
+        bgCustomizer={<button type="button">배경 설정 슬롯</button>}
+        backgroundConfig={{
+          imageUrl: "blob:custom-calendar-wallpaper",
+          opacity: 40,
+          blur: "MEDIUM",
+        }}
+      />,
+    )
+
+    expect(screen.getByText("배경 설정 슬롯")).toBeTruthy()
+    const bgImg = screen.getByTestId("calendar-custom-bg-image") as HTMLImageElement
+    expect(bgImg.getAttribute("src")).toBe("blob:custom-calendar-wallpaper")
+    expect(bgImg.style.objectFit).toBe("cover")
+    expect(bgImg.style.opacity).toBe("0.4")
+    expect(bgImg.style.filter).toBe("blur(8px)")
+
+    const overlay = screen.getByTestId("calendar-custom-bg-overlay")
+    expect(overlay).toBeTruthy()
+  })
 })
 

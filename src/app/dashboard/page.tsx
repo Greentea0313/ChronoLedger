@@ -5,6 +5,14 @@ import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { DesktopCalendar, type DesktopCalendarDay } from "@/components/calendar/desktop-calendar"
 import { CalendarGameFilter, type GameFilterOption } from "@/components/calendar/calendar-game-filter"
+import { CalendarBgCustomizer } from "@/components/calendar/calendar-bg-customizer"
+import {
+  clearCalendarBgRecord,
+  DEFAULT_CALENDAR_BG_SETTINGS,
+  loadCalendarBgRecord,
+  saveCalendarBgRecord,
+  type CalendarBgBlurLevel,
+} from "@/lib/calendar-bg-storage"
 import { HeroSidebar, type HeroExpenseItem, type HeroScheduleItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
 import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, parseLocalDate } from "@/lib/calendar-utils"
@@ -95,12 +103,103 @@ export default function DashboardPage() {
   const [payingExpense, setPayingExpense] = useState<OverduePlannedExpense | null>(null)
   const [viewMonth, setViewMonth] = useState<{ year: number; month: number } | null>(null)
 
+  // 캘린더 커스텀 배경 상태 (IndexedDB 영구 보관)
+  const [bgBlob, setBgBlob] = useState<Blob | null>(null)
+  const [bgImageUrl, setBgImageUrl] = useState<string | null>(null)
+  const [bgOpacity, setBgOpacity] = useState<number>(DEFAULT_CALENDAR_BG_SETTINGS.opacity)
+  const [bgBlur, setBgBlur] = useState<CalendarBgBlurLevel>(DEFAULT_CALENDAR_BG_SETTINGS.blur)
+
   useEffect(() => {
     const today = getTodayLocalDate()
     const parsed = parseLocalDate(today)
     setSelectedDate(today)
     setViewMonth({ year: parsed.getFullYear(), month: parsed.getMonth() + 1 })
   }, [])
+
+  useEffect(() => {
+    if (!user?.id) return
+    let active = true
+    let createdUrl: string | null = null
+
+    void loadCalendarBgRecord(user.id).then((record) => {
+      if (!active) return
+      const isDefault =
+        !record.blob &&
+        record.opacity === DEFAULT_CALENDAR_BG_SETTINGS.opacity &&
+        record.blur === DEFAULT_CALENDAR_BG_SETTINGS.blur
+      if (isDefault) return
+
+      setBgBlob(record.blob)
+      setBgOpacity(record.opacity)
+      setBgBlur(record.blur)
+      if (record.blob) {
+        createdUrl = URL.createObjectURL(record.blob)
+        setBgImageUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev)
+          return createdUrl
+        })
+      }
+    })
+
+    return () => {
+      active = false
+      if (createdUrl) {
+        URL.revokeObjectURL(createdUrl)
+      }
+    }
+  }, [user?.id])
+
+  const handleUploadBgBlob = useCallback(
+    async (blob: Blob) => {
+      const nextUrl = URL.createObjectURL(blob)
+      setBgBlob(blob)
+      setBgImageUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return nextUrl
+      })
+      await saveCalendarBgRecord(user?.id, {
+        blob,
+        opacity: bgOpacity,
+        blur: bgBlur,
+      })
+    },
+    [user?.id, bgOpacity, bgBlur],
+  )
+
+  const handleChangeBgOpacity = useCallback(
+    async (nextOpacity: number) => {
+      setBgOpacity(nextOpacity)
+      await saveCalendarBgRecord(user?.id, {
+        blob: bgBlob,
+        opacity: nextOpacity,
+        blur: bgBlur,
+      })
+    },
+    [user?.id, bgBlob, bgBlur],
+  )
+
+  const handleChangeBgBlur = useCallback(
+    async (nextBlur: CalendarBgBlurLevel) => {
+      setBgBlur(nextBlur)
+      await saveCalendarBgRecord(user?.id, {
+        blob: bgBlob,
+        opacity: bgOpacity,
+        blur: nextBlur,
+      })
+    },
+    [user?.id, bgBlob, bgOpacity],
+  )
+
+  const handleResetBg = useCallback(async () => {
+    setBgBlob(null)
+    setBgImageUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
+    setBgOpacity(DEFAULT_CALENDAR_BG_SETTINGS.opacity)
+    setBgBlur(DEFAULT_CALENDAR_BG_SETTINGS.blur)
+    await clearCalendarBgRecord(user?.id)
+  }, [user?.id])
 
   const baseDate = selectedDate ?? ""
   const year = viewMonth?.year ?? 0
@@ -487,6 +586,22 @@ export default function DashboardPage() {
             onSelectDate={setSelectedDate}
             onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
             onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}
+            backgroundConfig={{
+              imageUrl: bgImageUrl,
+              opacity: bgOpacity,
+              blur: bgBlur,
+            }}
+            bgCustomizer={
+              <CalendarBgCustomizer
+                hasCustomImage={Boolean(bgImageUrl)}
+                opacity={bgOpacity}
+                blur={bgBlur}
+                onUploadBlob={handleUploadBgBlob}
+                onChangeOpacity={handleChangeBgOpacity}
+                onChangeBlur={handleChangeBgBlur}
+                onReset={handleResetBg}
+              />
+            }
             gameFilter={
               <CalendarGameFilter
                 games={gameFilterOptions}

@@ -1,7 +1,12 @@
 # 변경 이력
 
-## 2026-10-17 (사용자 지정 게임 아이콘 달력·소비 페이지 전역 적용 및 픽업별 과금 분석 그래프 다중 색상 적용)
+## 2026-10-17 (캘린더 커스텀 배경 이미지 업로드·투명도/블러 조절 구현, 사용자 지정 게임 아이콘 전역 적용 및 픽업 그래프 다중 색상 적용)
 
+- **캘린더 커스텀 배경 이미지 업로드 및 투명도/블러 조절 기능 구현 (Phase 12.3, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`)**:
+  - **로컬 저장소(IndexedDB) 영구 보관 (`src/lib/calendar-bg-storage.ts`)**: 서버 트래픽 및 DB 스토리지 부담을 원천 차단하기 위해 브라우저 `IndexedDB`(`chronoledger_calendar_bg` / `backgrounds` 스토어, 인메모리 폴백 포함)에 사용자별(`calendar_bg_{userId}`) 이미지 `Blob`, 투명도(`opacity`), 블러 단계(`blur`)를 영구 저장·복원·초기화하도록 구현.
+  - **Canvas 비율 유지 리사이징 및 WebP 압축 (`compressCalendarBgImage`)**: 최대 15MB 이하의 PNG/JPG/JPEG/WebP 원본 이미지를 입력받아 최대 `1920×1080` 해상도 이내로 종횡비를 유지(`calculateScaledDimensions`)하여 리사이징한 뒤 `image/webp`(품질 0.82)로 압축.
+  - **메인 캘린더 배경 레이어 및 가독성 보호 오버레이 (`src/components/calendar/desktop-calendar.tsx`)**: 캘린더 컨테이너 하단에 `object-fit: cover` 배경 이미지 레이어(`calendar-custom-bg-image`)와 반투명 가독성 보호 오버레이(`calendar-custom-bg-overlay`, `bg-surface/40`)를 결합하고, 커스텀 배경 활성화 시 날짜 타일을 반투명(`bg-app/75`)으로 전환하여 배경이 자연스럽게 비치면서도 날짜·아이콘·배지(`VERSION`/`PICKUP`/`CONTENTS`) 가독성을 유지.
+  - **`[배경 커스텀 설정]` 컨트롤러 팝오버 (`src/components/calendar/calendar-bg-customizer.tsx`)**: 캘린더 상단 헤더에 `[배경 설정]` 버튼을 배치하고 이미지 업로드/변경, 투명도 슬라이더(**10% ~ 60% 상한 제한** `clampBgOpacity`), 블러 효과 단계 토글(**Off / 약함 `4px` / 보통 `8px`**), `[기본 배경 초기화]` 버튼 제공.
 - **사용자 지정 게임 아이콘(Custom Game Icon) 달력 및 소비 페이지 전역 적용 (`src/lib/storage-upload.ts`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/expenses/page.tsx`)**:
   - 기존 `/dashboard/games`에서만 표시되던 사용자 지정 게임 아이콘(`downloadUserIcon`)이 대시보드 달력 타일(`/dashboard`) 및 소비 페이지(`/dashboard/expenses`) 전반에서 기본 아이콘(`default_icon_url`)보다 우선 표시되도록 개선.
   - `src/app/dashboard/page.tsx`: 구독 게임 및 지출 연결 게임들에 대해 `downloadUserIcon`으로 커스텀 아이콘 URL을 병렬 로드(`gameIcons`)하여 캘린더 날짜 타일(`dayIcons`), 선택일 사이드바 일정/지출 목록, 게임 필터 버튼에 우선 반영.
@@ -11,9 +16,10 @@
   - 모든 픽업 배너 막대가 단일 인디고(`#6366F1`) 색상으로만 표시되어 배너 간 구분이 어렵던 문제를 해결하기 위해 8색 다중 컬러 팔레트(`PICKUP_CHART_PALETTE`: Indigo, Emerald, Amber, Pink, Cyan, Violet, Orange, Teal) 적용 (`일반` 지출은 슬레이트 컬러 유지).
   - 우측 `픽업 과금 순위` 리스트의 각 항목에도 차트 막대와 동일한 색상의 원형 도트 인디케이터(`pickup-color-dot-*`)를 함께 표시하여 직관적인 시각적 매칭 제공.
 - **단위 테스트 및 프로덕션 빌드 검증**:
+  - `src/lib/calendar-bg-storage.test.ts` (5개 테스트), `src/components/calendar/calendar-bg-customizer.test.tsx` (1개 테스트), `src/components/calendar/desktop-calendar.test.tsx` (배경 레이어/오버레이 테스트 추가) 신설 및 갱신.
   - `src/app/dashboard/page.test.tsx`: 사용자 지정 게임 아이콘 우선 렌더링 검증 테스트 추가.
   - `src/app/dashboard/expenses/page.test.tsx`: 지출 목록/정기 구독 커스텀 아이콘 우선 표시 및 픽업 과금 분석 다중 팔레트 색상 할당 테스트 추가.
-  - Vitest 40개 파일 232개 테스트 100% 통과, Next.js 14 정적 export 빌드 15개 페이지 0 에러 통과.
+  - Vitest 42개 파일 239개 테스트 100% 통과, Next.js 14 정적 export 빌드 15개 페이지 0 에러 통과.
 
 ## 2026-10-15 (누적 충전형 구독 조기 결제 시 잔여일수 누적 연장, 환불 시 차감 롤백 및 카드 배지 개선)
 
