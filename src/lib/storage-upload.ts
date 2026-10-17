@@ -53,6 +53,10 @@ export async function downloadUserIcon(userId: string, gameId: string): Promise<
     return userIconCache.get(cacheKey) ?? null
   }
 
+  if (!supabase.storage) {
+    return null
+  }
+
   const filePath = `${userId}/${gameId}.webp`
 
   const { data, error } = await supabase.storage

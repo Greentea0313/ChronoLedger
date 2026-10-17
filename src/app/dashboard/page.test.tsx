@@ -7,15 +7,18 @@ const {
   from,
   useAuth,
   ensureMonthlySubscriptionExpenses,
+  downloadUserIcon,
 } = vi.hoisted(() => ({
   from: vi.fn(),
   useAuth: vi.fn(),
   ensureMonthlySubscriptionExpenses: vi.fn(),
+  downloadUserIcon: vi.fn().mockResolvedValue(null),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/subscription-sync", () => ({ ensureMonthlySubscriptionExpenses }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
+vi.mock("@/lib/storage-upload", () => ({ downloadUserIcon }))
 
 function createQueryBuilder() {
   const query = {
@@ -341,5 +344,67 @@ describe("DashboardPage", () => {
 
     // 가나다순: 림버스 컴퍼니 -> 명일방주 -> 원신
     expect(iconLabels).toEqual(["림버스 컴퍼니", "명일방주", "원신"])
+  })
+
+  it("사용자 지정 게임 아이콘이 있으면 달력 타일에 기본 아이콘 대신 커스텀 아이콘을 표시한다", async () => {
+    const now = new Date()
+    const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-12`
+
+    useAuth.mockReturnValue({ user: { id: "user-1" }, isLoading: false })
+    ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+    downloadUserIcon.mockImplementation(async (_uid: string, gid: string) => {
+      if (gid === "game-custom") return "blob:custom-game-icon-url"
+      return null
+    })
+
+    const single = (data: unknown) => {
+      const query = createQueryBuilder()
+      query.maybeSingle.mockResolvedValue({ data, error: null })
+      return query
+    }
+    const list = (data: unknown[]) => {
+      const query = createThenableBuilder(data)
+      return query
+    }
+
+    from.mockImplementation((table: string) => {
+      switch (table) {
+        case "user_finances": return single({ total_asset: 1, default_budget: 1 })
+        case "monthly_budgets": return single(null)
+        case "game_schedules": {
+          const q = createQueryBuilder()
+          q.gte.mockResolvedValue({
+            data: [{ id: "s-custom", schedule_type: "PICKUP", start_date: startDate, end_date: startDate, game_id: "game-custom" }],
+            error: null,
+          })
+          return q
+        }
+        case "games": {
+          const q = createQueryBuilder()
+          q.select.mockResolvedValue({
+            data: [{ id: "game-custom", name: "젠레스 존 제로", default_icon_url: "/default-zzz.webp" }],
+            error: null,
+          })
+          return q
+        }
+        case "user_games": {
+          const q = createQueryBuilder()
+          q.eq.mockResolvedValue({
+            data: [{ game_id: "game-custom", games: { name: "젠레스 존 제로", default_icon_url: "/default-zzz.webp" } }],
+            error: null,
+          })
+          return q
+        }
+        default: return list([])
+      }
+    })
+
+    render(<DashboardPage />)
+
+    expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+    const iconSpan = await screen.findByLabelText("젠레스 존 제로")
+    const img = iconSpan.querySelector("img")
+    expect(img?.getAttribute("src")).toBe("blob:custom-game-icon-url")
+    downloadUserIcon.mockResolvedValue(null)
   })
 })

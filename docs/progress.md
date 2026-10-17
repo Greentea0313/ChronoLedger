@@ -1,5 +1,22 @@
 # 프로젝트 진행 현황
 
+## 사용자 지정 게임 아이콘 달력·소비 페이지 전역 적용 및 픽업별 과금 분석 그래프 다중 색상 적용 (2026-10-17)
+
+- **배경 및 사용자 요구사항**:
+  1. 변경 내역(`docs/changelog.md`) 및 인수인계 문서(`docs/handoff.md`)를 확인하여 프로젝트 최신 상태 파악.
+  2. 게임 아이콘에 사용자 지정 이미지를 적용하는 로직이 `/dashboard/games`에만 표시되고 다른 아이콘 표시 기능에는 적용되지 않는 문제 해결 — 최소한 달력 타일(`/dashboard`)과 소비 페이지(`/dashboard/expenses`)에서 정상 작동하도록 개선 요구.
+  3. 게임 픽업별 과금 분석의 그래프 색상이 단일 색상으로 되어 있어 구분되지 않는 문제를 해결하기 위해, 픽업 배너별로 다양한 그래프 색상을 적용하여 시각적 구분을 명확히 할 것 요구.
+- **수행 내역**:
+  1. **사용자 지정 게임 아이콘 전역 연동 (`src/lib/storage-upload.ts`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/expenses/page.tsx`)**:
+     - `downloadUserIcon`의 인메모리 캐시(`userIconCache`)를 활용하여 대시보드(`/dashboard`)와 소비 페이지(`/dashboard/expenses`)에서 게임별 커스텀 아이콘을 병렬 조회하고, 커스텀 아이콘이 존재할 경우 `default_icon_url`보다 우선 렌더링하도록 구현.
+     - 적용 대상: 대시보드 월간 달력 타일 아이콘, 선택일 사이드바 일정/지출 아이콘, 상단 게임 필터 버튼, 소비 페이지 데스크톱 지출 테이블 아이콘, 모바일 지출 카드 우측 배경 이미지, 정기 구독 탭 카드 아이콘.
+  2. **게임 픽업별 과금 분석 다중 컬러 팔레트 적용 (`src/app/dashboard/expenses/page.tsx`)**:
+     - 8색 팔레트(`PICKUP_CHART_PALETTE`: Indigo, Emerald, Amber, Pink, Cyan, Violet, Orange, Teal)를 정의하여 각 픽업 배너 막대에 서로 다른 색상을 부여하고, 일반 지출(`!isPickup`)은 슬레이트 색상(`#64748B`)으로 구분 유지.
+     - 우측 `픽업 과금 순위` 리스트 항목에도 해당 배너의 차트 색상과 동일한 원형 도트 인디케이터를 추가하여 가독성 향상.
+  3. **단위 테스트 및 정적 빌드 무결점 검증**:
+     - `src/app/dashboard/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`에 신규 단위 테스트 3건 추가 (총 40개 파일 232개 테스트 100% 통과).
+     - Next.js 14 정적 15개 페이지 export 빌드 성공 (`npm run build`).
+
 ## 누적 충전형 구독 조기 결제 시 잔여일수 누적 연장, 환불 시 차감 롤백 및 카드 배지 개선 (2026-10-15)
 
 - **배경 및 사용자 요구사항**:

@@ -18,6 +18,7 @@ import { isOffline } from "@/lib/offline-guard"
 import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
 import { DashboardSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
+import { downloadUserIcon } from "@/lib/storage-upload"
 
 const EXPENSE_COLUMNS = "id, title, final_amount, status, target_date, start_date, end_date, game_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, deduct_from_asset, point_platform, template_id"
 
@@ -84,6 +85,7 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [userGames, setUserGames] = useState<UserGameRow[]>([])
   const [allGames, setAllGames] = useState<AllGameRow[]>([])
+  const [gameIcons, setGameIcons] = useState<Record<string, string>>({})
   const [selectedGameIds, setSelectedGameIds] = useState<string[] | null>(null)
 
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
@@ -186,6 +188,42 @@ export default function DashboardPage() {
           today,
         ),
       )
+
+      const customIconTargetIds = Array.from(
+        new Set(
+          [
+            ...userGameRows.map((g) => g.game_id),
+            ...Array.from(mergedExpenses.values()).map((e) => e.game_id),
+          ].filter((id): id is string => Boolean(id)),
+        ),
+      )
+      if (customIconTargetIds.length > 0) {
+        const iconEntries = await Promise.all(
+          customIconTargetIds.map(async (gId) => {
+            try {
+              const url = await downloadUserIcon(user.id, gId)
+              return url ? ([gId, url] as const) : null
+            } catch {
+              return null
+            }
+          }),
+        )
+        const nextIcons: Record<string, string> = {}
+        for (const entry of iconEntries) {
+          if (entry) nextIcons[entry[0]] = entry[1]
+        }
+        setGameIcons((prev) => {
+          const prevKeys = Object.keys(prev)
+          const nextKeys = Object.keys(nextIcons)
+          if (
+            prevKeys.length === nextKeys.length &&
+            nextKeys.every((k) => prev[k] === nextIcons[k])
+          ) {
+            return prev
+          }
+          return nextIcons
+        })
+      }
     } catch {
       setError("대시보드 데이터를 불러오지 못했습니다.")
     } finally {
@@ -204,19 +242,25 @@ export default function DashboardPage() {
     const map = new Map<string, { name: string, iconUrl: string }>()
     userGames.forEach(g => {
       if (g.games) {
-        map.set(g.game_id, { name: g.games.name, iconUrl: g.games.default_icon_url })
+        map.set(g.game_id, {
+          name: g.games.name,
+          iconUrl: gameIcons[g.game_id] || g.games.default_icon_url,
+        })
       }
     })
     return map
-  }, [userGames])
+  }, [userGames, gameIcons])
 
   const allGamesMap = useMemo(() => {
     const map = new Map<string, { name: string; iconUrl?: string }>()
     allGames.forEach((g) => {
-      map.set(g.id, { name: g.name, iconUrl: g.default_icon_url || undefined })
+      map.set(g.id, {
+        name: g.name,
+        iconUrl: gameIcons[g.id] || g.default_icon_url || undefined,
+      })
     })
     return map
-  }, [allGames])
+  }, [allGames, gameIcons])
 
   const currentDayMemo = useMemo(
     () => memos.find((memo) => memo.memo_date === baseDate)?.content || "",
@@ -233,28 +277,30 @@ export default function DashboardPage() {
       expenses
         .filter((expense) => expense.target_date === baseDate && expense.status !== "CANCELLED")
         .map((expense) => {
-          const gameInfo = expense.game_id ? userGamesMap.get(expense.game_id) : null
+          const gameInfo = expense.game_id
+            ? (userGamesMap.get(expense.game_id) ?? allGamesMap.get(expense.game_id))
+            : null
           return {
             id: expense.id,
             title: expense.title,
             final_amount: expense.final_amount,
             status: expense.status,
             gameName: gameInfo ? gameInfo.name : (expense.game_id ? `게임 ${expense.game_id.slice(0, 4)}` : null),
-            iconUrl: gameInfo?.iconUrl,
+            iconUrl: (expense.game_id ? gameIcons[expense.game_id] : undefined) || gameInfo?.iconUrl,
             payment_method: expense.payment_method,
           }
         }),
-    [baseDate, expenses, userGamesMap],
+    [baseDate, expenses, userGamesMap, allGamesMap, gameIcons],
   )
   const gameFilterOptions = useMemo<GameFilterOption[]>(() => {
     return userGames
       .map((ug) => ({
         id: ug.game_id,
         name: ug.games?.name || "게임",
-        iconUrl: ug.games?.default_icon_url || null,
+        iconUrl: gameIcons[ug.game_id] || ug.games?.default_icon_url || null,
       }))
       .sort((a, b) => a.name.localeCompare(b.name, "ko"))
-  }, [userGames])
+  }, [userGames, gameIcons])
 
   const allUserGameIds = useMemo(() => userGames.map((g) => g.game_id), [userGames])
 
@@ -282,7 +328,7 @@ export default function DashboardPage() {
         return a.end_date.localeCompare(b.end_date)
       })
     return currentDaySchedules.map((s) => {
-        const gameInfo = s.game_id ? allGamesMap.get(s.game_id) : null
+        const gameInfo = s.game_id ? (allGamesMap.get(s.game_id) ?? userGamesMap.get(s.game_id)) : null
         return {
           id: s.id,
           title: s.title,
@@ -291,12 +337,12 @@ export default function DashboardPage() {
           end_date: s.end_date,
           gameId: s.game_id,
           gameName: gameInfo ? gameInfo.name : null,
-          iconUrl: gameInfo?.iconUrl,
+          iconUrl: (s.game_id ? gameIcons[s.game_id] : undefined) || gameInfo?.iconUrl,
           memo: s.memo,
         }
       })
     },
-    [baseDate, subscribedSchedules, allGamesMap],
+    [baseDate, subscribedSchedules, allGamesMap, userGamesMap, gameIcons],
   )
 
   const handleSaveMemo = async (content: string) => {
@@ -372,10 +418,14 @@ export default function DashboardPage() {
         const daySchedules = scheduleDates.get(cell.date) ?? []
         const gameIdSet = dateGameIcons.get(cell.date) ?? new Set()
         const dayIcons = Array.from(gameIdSet)
-          .filter((gameId) => allGamesMap.has(gameId))
+          .filter((gameId) => allGamesMap.has(gameId) || userGamesMap.has(gameId))
           .map((gameId) => {
-            const gameInfo = allGamesMap.get(gameId)!
-            return { gameId, label: gameInfo.name, iconUrl: gameInfo.iconUrl }
+            const gameInfo = (allGamesMap.get(gameId) ?? userGamesMap.get(gameId))!
+            return {
+              gameId,
+              label: gameInfo.name,
+              iconUrl: gameIcons[gameId] || gameInfo.iconUrl,
+            }
           })
           .sort((a, b) => a.label.localeCompare(b.label, "ko"))
 
@@ -391,7 +441,7 @@ export default function DashboardPage() {
           hasMemo: memoDates.has(cell.date),
         }
       }),
-    [allGamesMap, dateGameIcons, memoDates, month, ready, scheduleDates, year],
+    [allGamesMap, userGamesMap, gameIcons, dateGameIcons, memoDates, month, ready, scheduleDates, year],
   )
 
   if (authLoading || (!hasLoadedInitial && isLoading) || !ready) {

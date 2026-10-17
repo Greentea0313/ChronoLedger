@@ -1,5 +1,31 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 사용자 지정 게임 아이콘 달력·소비 페이지 전역 적용 및 픽업별 과금 분석 그래프 다중 색상 적용 (2026-10-17)
+
+- **결정 및 배경**:
+  - **사용자 지정 게임 아이콘(Custom Game Icon) 표시 범위 확대**:
+    - 기존에는 `/dashboard/games` 페이지에서만 `downloadUserIcon(userId, gameId)`를 호출하여 사용자가 업로드한 커스텀 아이콘을 표시하고, 정작 달력 타일(`/dashboard`)과 소비/구독 내역(`/dashboard/expenses`)에서는 DB의 `default_icon_url`만 참조하여 커스텀 아이콘이 반영되지 않던 문제를 해결.
+    - `storage-upload.ts`의 인메모리 캐시(`userIconCache`)를 활용하여 페이지 이동 시 중복 다운로드 없이 즉시 커스텀 아이콘 ObjectURL을 공유하도록 구성.
+  - **게임 픽업별 과금 분석 차트 색상 다각화**:
+    - `/dashboard/expenses`의 `게임 픽업별 과금 분석` 탭은 게임 카테고리의 픽업 배너들을 비교·분류하기 위한 영역임에도 모든 픽업 막대가 동일한 단일 색상(`#6366F1`)으로 렌더링되어 시각적 구분이 어려웠음.
+    - 8색 다중 팔레트(`PICKUP_CHART_PALETTE`)를 도입하여 각 픽업 배너 막대마다 고유한 색상을 부여하고, 우측 `픽업 과금 순위` 리스트에도 동일한 색상의 원형 도트 인디케이터를 배치하여 차트와 순위표 간 직관적 대응성을 높임 (`일반` 지출은 슬레이트 컬러 `#64748B`로 구분 유지).
+- **수행 내역**:
+  - `src/lib/storage-upload.ts`:
+    - `downloadUserIcon` 내 `if (!supabase.storage) return null` 안전 가드 추가.
+  - `src/app/dashboard/games/page.tsx`:
+    - 아이콘 업로드 직후 `downloadUserIcon`을 통해 `userIconCache`와 동일한 ObjectURL을 참조하도록 개선.
+  - `src/app/dashboard/page.tsx`:
+    - `gameIcons` 상태 추가 및 구독 게임·지출 게임 ID 대상 `downloadUserIcon` 병렬 조회 연동.
+    - `userGamesMap`, `allGamesMap`, `dayExpenses`, `daySchedules`, `gameFilterOptions`, `days`(달력 타일 `dayIcons`)에 커스텀 아이콘 우선 적용.
+  - `src/app/dashboard/expenses/page.tsx`:
+    - `gameIcons` 상태 및 `loadCustomIconsForGameIds` 헬퍼를 통해 지출 내역(데스크톱 테이블, 모바일 카드 배경) 및 정기 구독 템플릿 카드에 커스텀 아이콘 우선 적용.
+    - `PICKUP_CHART_PALETTE` 정의 및 `pickupStatsData` 항목별 색상 매핑, `<BarChart>` `<Cell>` 및 우측 순위 리스트 컬러 도트 인디케이터 적용.
+  - `src/app/dashboard/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`:
+    - 달력 타일 및 지출/구독 목록 커스텀 아이콘 우선 표시 테스트, 복수 픽업 배너 간 다중 색상 할당 단위 테스트 추가.
+- **검증 증거**:
+  - `npx vitest run`: 40개 파일 / 232개 테스트 100% 통과 (PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 누적 충전형 구독 조기 결제 시 잔여일수 누적 연장, 환불 시 차감 롤백 및 카드 배지 개선 (2026-10-15)
 
 - **결정 및 배경**:

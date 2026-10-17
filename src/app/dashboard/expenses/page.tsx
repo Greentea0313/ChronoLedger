@@ -20,6 +20,7 @@ import { isOffline } from "@/lib/offline-guard"
 import { ChevronLeft, ChevronRight, Trash2, History } from "lucide-react"
 
 import { preloadImages } from "@/lib/icon-preload"
+import { downloadUserIcon } from "@/lib/storage-upload"
 import { IncomeModal } from "@/components/finance/income-modal"
 
 const EXPENSES_PER_PAGE = 10
@@ -109,6 +110,24 @@ const CATEGORY_COLORS: Record<string, string> = {
   기타: "#8B5CF6",
 }
 
+// 픽업별 과금 분석 차트용 다중 컬러 팔레트 (배너 간 명확한 시각적 구분)
+const PICKUP_CHART_PALETTE: Array<{ base: string; active: string; stroke: string }> = [
+  { base: "#6366F1", active: "#818CF8", stroke: "#4338CA" }, // Indigo
+  { base: "#10B981", active: "#34D399", stroke: "#047857" }, // Emerald
+  { base: "#F59E0B", active: "#FBBF24", stroke: "#B45309" }, // Amber
+  { base: "#EC4899", active: "#F472B6", stroke: "#BE185D" }, // Pink
+  { base: "#06B6D4", active: "#22D3EE", stroke: "#0E7490" }, // Cyan
+  { base: "#8B5CF6", active: "#A78BFA", stroke: "#6D28D9" }, // Violet
+  { base: "#F97316", active: "#FB923C", stroke: "#C2410C" }, // Orange
+  { base: "#14B8A6", active: "#2DD4BF", stroke: "#0F766E" }, // Teal
+]
+
+const GENERAL_SPEND_COLOR = {
+  base: "#64748B",
+  active: "#94A3B8",
+  stroke: "#475569",
+}
+
 const METHOD_LABELS: Record<string, string> = {
   WALLET: "내 지갑",
   NAVER_PAY: "네이버페이",
@@ -155,7 +174,38 @@ export default function ExpensesPage() {
   const [activeMonthlyIndex, setActiveMonthlyIndex] = useState<number | null>(null)
   const [activePickupIndex, setActivePickupIndex] = useState<number | null>(null)
 
+  // 사용자 지정 게임 아이콘 URL 맵 (gameId -> objectUrl)
+  const [gameIcons, setGameIcons] = useState<Record<string, string>>({})
+
   const userId = user?.id
+
+  const loadCustomIconsForGameIds = useCallback(async (gameIds: string[]) => {
+    if (!userId || gameIds.length === 0) return
+    const uniqueIds = Array.from(new Set(gameIds.filter(Boolean)))
+    if (uniqueIds.length === 0) return
+
+    const results = await Promise.all(
+      uniqueIds.map(async (gid) => {
+        const customUrl = await downloadUserIcon(userId, gid)
+        return [gid, customUrl] as const
+      }),
+    )
+
+    const foundEntries = results.filter(([, url]) => Boolean(url)) as Array<[string, string]>
+    if (foundEntries.length === 0) return
+
+    setGameIcons((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const [gid, url] of foundEntries) {
+        if (next[gid] !== url) {
+          next[gid] = url
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [userId])
 
   const loadExpenses = useCallback(async () => {
     if (!userId) return
@@ -183,10 +233,11 @@ export default function ExpensesPage() {
       const rows = data as unknown as ExpenseRow[]
       setExpenses(rows)
       preloadImages(rows.map((e) => e.games?.default_icon_url).filter(Boolean) as string[])
+      void loadCustomIconsForGameIds(rows.map((e) => e.game_id).filter(Boolean) as string[])
     }
     hasLoadedInitialRef.current = true
     setIsLoading(false)
-  }, [userId])
+  }, [userId, loadCustomIconsForGameIds])
 
   const loadSubscriptions = useCallback(async () => {
     if (!userId) return
@@ -214,13 +265,15 @@ export default function ExpensesPage() {
         }))
         setTemplates(rows)
         preloadImages(rows.map((t) => t.games?.default_icon_url).filter(Boolean) as string[])
+        void loadCustomIconsForGameIds(rows.map((t) => t.game_id).filter(Boolean) as string[])
       }
     } else if (data) {
       const rows = data as unknown as SubscriptionTemplateRow[]
       setTemplates(rows)
       preloadImages(rows.map((t) => t.games?.default_icon_url).filter(Boolean) as string[])
+      void loadCustomIconsForGameIds(rows.map((t) => t.game_id).filter(Boolean) as string[])
     }
-  }, [userId])
+  }, [userId, loadCustomIconsForGameIds])
 
   const loadSchedules = useCallback(async () => {
     const { data } = await supabase
@@ -442,13 +495,33 @@ export default function ExpensesPage() {
       }
     }
 
-    const list = Array.from(groupMap.values()).map((item) => ({
+    const rawList = Array.from(groupMap.values()).map((item) => ({
       ...item,
       percent: totalGameSpent > 0 ? Math.min(100, Math.round((item.amount / totalGameSpent) * 100)) : 0,
     }))
 
     // 금액 내림차순 정렬
-    list.sort((a, b) => b.amount - a.amount)
+    rawList.sort((a, b) => b.amount - a.amount)
+
+    let pickupColorIdx = 0
+    const list = rawList.map((item) => {
+      if (!item.isPickup) {
+        return {
+          ...item,
+          color: GENERAL_SPEND_COLOR.base,
+          activeColor: GENERAL_SPEND_COLOR.active,
+          strokeColor: GENERAL_SPEND_COLOR.stroke,
+        }
+      }
+      const palette = PICKUP_CHART_PALETTE[pickupColorIdx % PICKUP_CHART_PALETTE.length]
+      pickupColorIdx += 1
+      return {
+        ...item,
+        color: palette.base,
+        activeColor: palette.active,
+        strokeColor: palette.stroke,
+      }
+    })
 
     return {
       totalGameSpent,
@@ -1076,9 +1149,9 @@ export default function ExpensesPage() {
                           <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={24}>
                             {pickupStatsData.list.map((entry, idx) => {
                               const isHovered = activePickupIndex === idx
-                              const baseFill = entry.isPickup ? "#6366F1" : "#475569"
-                              const activeFill = entry.isPickup ? "#818CF8" : "#64748B"
-                              const baseStroke = entry.isPickup ? "#4338CA" : "#334155"
+                              const baseFill = entry.color
+                              const activeFill = entry.activeColor
+                              const baseStroke = entry.strokeColor
                               return (
                                 <Cell
                                   key={`cell-${idx}`}
@@ -1135,6 +1208,11 @@ export default function ExpensesPage() {
                               >
                                 {index + 1}
                               </span>
+                              <span
+                                data-testid={`pickup-color-dot-${item.key}`}
+                                className="h-2.5 w-2.5 rounded-full shrink-0"
+                                style={{ backgroundColor: item.color }}
+                              />
                               <span className={`font-medium truncate ${isHovered ? "text-primary" : "text-content"}`} title={item.name}>
                                 {item.name}
                               </span>
@@ -1219,15 +1297,21 @@ export default function ExpensesPage() {
                             </td>
                             <td className="py-3">
                               <div className="flex items-center gap-2 flex-wrap">
-                                {expense.games?.default_icon_url && (
-                                  <div className="h-6 w-6 rounded overflow-hidden shrink-0">
-                                    <GameIcon
-                                      src={expense.games.default_icon_url}
-                                      alt=""
-                                      priority
-                                    />
-                                  </div>
-                                )}
+                                {(() => {
+                                  const iconUrl =
+                                    (expense.game_id ? gameIcons[expense.game_id] : undefined) ||
+                                    expense.games?.default_icon_url
+                                  if (!iconUrl) return null
+                                  return (
+                                    <div className="h-6 w-6 rounded overflow-hidden shrink-0">
+                                      <GameIcon
+                                        src={iconUrl}
+                                        alt=""
+                                        priority
+                                      />
+                                    </div>
+                                  )
+                                })()}
                                 <span className="font-medium text-content">{expense.title}</span>
                                 {getExpensePickupIds(expense).map((pId) => {
                                   if (!schedulesMap.has(pId)) return null
@@ -1334,17 +1418,23 @@ export default function ExpensesPage() {
                         key={expense.id}
                         className="relative overflow-hidden p-3.5 rounded-lg border border-line bg-surface-2 text-sm space-y-2.5"
                       >
-                        {expense.games?.default_icon_url && (
-                          <div
-                            className="absolute right-0 top-0 bottom-0 w-28 bg-no-repeat bg-right bg-cover z-0 pointer-events-none"
-                            style={{
-                              backgroundImage: `url(${expense.games.default_icon_url})`,
-                              maskImage: "linear-gradient(to right, transparent, black)",
-                              WebkitMaskImage: "linear-gradient(to right, transparent, black)",
-                              opacity: 0.2,
-                            }}
-                          />
-                        )}
+                        {(() => {
+                          const iconUrl =
+                            (expense.game_id ? gameIcons[expense.game_id] : undefined) ||
+                            expense.games?.default_icon_url
+                          if (!iconUrl) return null
+                          return (
+                            <div
+                              className="absolute right-0 top-0 bottom-0 w-28 bg-no-repeat bg-right bg-cover z-0 pointer-events-none"
+                              style={{
+                                backgroundImage: `url(${iconUrl})`,
+                                maskImage: "linear-gradient(to right, transparent, black)",
+                                WebkitMaskImage: "linear-gradient(to right, transparent, black)",
+                                opacity: 0.2,
+                              }}
+                            />
+                          )
+                        })()}
                         <div className="flex justify-between items-start relative z-10">
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
@@ -1602,14 +1692,20 @@ export default function ExpensesPage() {
                         </span>
                       </div>
                       <CardTitle className="text-base font-bold text-content mt-2 flex items-center gap-2">
-                        {tpl.games?.default_icon_url && (
-                          <div className="h-5 w-5 rounded overflow-hidden shrink-0">
-                            <GameIcon
-                              src={tpl.games.default_icon_url}
-                              alt=""
-                            />
-                          </div>
-                        )}
+                        {(() => {
+                          const iconUrl =
+                            (tpl.game_id ? gameIcons[tpl.game_id] : undefined) ||
+                            tpl.games?.default_icon_url
+                          if (!iconUrl) return null
+                          return (
+                            <div className="h-5 w-5 rounded overflow-hidden shrink-0">
+                              <GameIcon
+                                src={iconUrl}
+                                alt=""
+                              />
+                            </div>
+                          )
+                        })()}
                         <span className="truncate">{tpl.title}</span>
                       </CardTitle>
                       {tpl.games?.name && (

@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-10-17 (사용자 지정 게임 아이콘 달력·소비 페이지 전역 적용 및 픽업별 과금 분석 그래프 다중 색상 적용)
+
+- **사용자 지정 게임 아이콘(Custom Game Icon) 달력 및 소비 페이지 전역 적용 (`src/lib/storage-upload.ts`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/expenses/page.tsx`)**:
+  - 기존 `/dashboard/games`에서만 표시되던 사용자 지정 게임 아이콘(`downloadUserIcon`)이 대시보드 달력 타일(`/dashboard`) 및 소비 페이지(`/dashboard/expenses`) 전반에서 기본 아이콘(`default_icon_url`)보다 우선 표시되도록 개선.
+  - `src/app/dashboard/page.tsx`: 구독 게임 및 지출 연결 게임들에 대해 `downloadUserIcon`으로 커스텀 아이콘 URL을 병렬 로드(`gameIcons`)하여 캘린더 날짜 타일(`dayIcons`), 선택일 사이드바 일정/지출 목록, 게임 필터 버튼에 우선 반영.
+  - `src/app/dashboard/expenses/page.tsx`: 지출 내역 및 정기 구독 템플릿에 연결된 게임들의 커스텀 아이콘을 로드하여 데스크톱 지출 테이블, 모바일 지출 카드 우측 배경, 정기 구독 카드 아이콘에 우선 반영 (`default_icon_url`이 없는 커스텀 아이콘 전용 게임도 정상 노출).
+  - `src/lib/storage-upload.ts`: 인메모리 `userIconCache` 활용 및 `supabase.storage` 미정의 환경(단위 테스트 모킹 등) 안전 가드 추가.
+- **게임 픽업별 과금 분석 그래프 다중 컬러 팔레트 적용 (`src/app/dashboard/expenses/page.tsx`)**:
+  - 모든 픽업 배너 막대가 단일 인디고(`#6366F1`) 색상으로만 표시되어 배너 간 구분이 어렵던 문제를 해결하기 위해 8색 다중 컬러 팔레트(`PICKUP_CHART_PALETTE`: Indigo, Emerald, Amber, Pink, Cyan, Violet, Orange, Teal) 적용 (`일반` 지출은 슬레이트 컬러 유지).
+  - 우측 `픽업 과금 순위` 리스트의 각 항목에도 차트 막대와 동일한 색상의 원형 도트 인디케이터(`pickup-color-dot-*`)를 함께 표시하여 직관적인 시각적 매칭 제공.
+- **단위 테스트 및 프로덕션 빌드 검증**:
+  - `src/app/dashboard/page.test.tsx`: 사용자 지정 게임 아이콘 우선 렌더링 검증 테스트 추가.
+  - `src/app/dashboard/expenses/page.test.tsx`: 지출 목록/정기 구독 커스텀 아이콘 우선 표시 및 픽업 과금 분석 다중 팔레트 색상 할당 테스트 추가.
+  - Vitest 40개 파일 232개 테스트 100% 통과, Next.js 14 정적 export 빌드 15개 페이지 0 에러 통과.
+
 ## 2026-10-15 (누적 충전형 구독 조기 결제 시 잔여일수 누적 연장, 환불 시 차감 롤백 및 카드 배지 개선)
 
 - **누적 충전형(`INTERVAL_30`) 구독 조기 결제 시 잔여일수 누적 연장 및 환불 시 차감(롤백) 로직 구현 (`src/lib/subscription-sync.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`)**:

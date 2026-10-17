@@ -166,7 +166,7 @@ export default function GamesPage() {
         .update({ custom_icon_path: `${user.id}/${gameId}.webp` })
         .eq("user_id", user.id)
         .eq("game_id", gameId)
-      const newUrl = URL.createObjectURL(webpBlob)
+      const newUrl = (await downloadUserIcon(user.id, gameId)) ?? URL.createObjectURL(webpBlob)
       setGameIcons((prev) => ({ ...prev, [gameId]: newUrl }))
       alert("게임 아이콘이 성공적으로 변경되었습니다.")
     } catch (err: unknown) {

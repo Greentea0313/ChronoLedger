@@ -1,14 +1,16 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import ExpensesPage from "./page"
 
-const { from, rpc, useAuth } = vi.hoisted(() => ({
+const { from, rpc, useAuth, downloadUserIcon } = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
   useAuth: vi.fn(),
+  downloadUserIcon: vi.fn().mockResolvedValue(null),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
+vi.mock("@/lib/storage-upload", () => ({ downloadUserIcon }))
 vi.mock("@/lib/supabase/client", () => ({
   supabase: {
     from,
@@ -651,6 +653,122 @@ describe("ExpensesPage", () => {
     expect(daysBadges.length).toBeGreaterThan(0)
     // '남은 '이라는 접두사가 붙은 배지는 없어야 함
     expect(screen.queryByText(/남은 \d+일/)).toBeNull()
+  })
+
+  it("사용자 지정 게임 아이콘이 있으면 지출 목록 및 정기 구독 카드에 커스텀 아이콘을 우선 표시한다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    downloadUserIcon.mockImplementation(async (_uid: string, gid: string) => {
+      if (gid === "game-1") return "blob:custom-genshin-expense-icon"
+      return null
+    })
+
+    const expenseBuilder = createExpenseQueryBuilder(sampleExpenses)
+    const subscriptionBuilder = createExpenseQueryBuilder([
+      {
+        id: "tpl-custom",
+        title: "공월 축복",
+        category: "게임",
+        cycle_type: "INTERVAL_30",
+        billing_day: 1,
+        interval_days: 30,
+        default_price: 5900,
+        payment_method: "WALLET",
+        is_active: true,
+        game_id: "game-1",
+        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+      },
+    ])
+
+    from.mockImplementation((table: string) => {
+      if (table === "subscription_templates") return subscriptionBuilder
+      return expenseBuilder
+    })
+
+    const { container } = render(<ExpensesPage />)
+
+    await screen.findAllByText("게임 버전 패스")
+
+    await waitFor(() => {
+      const imgs = Array.from(container.querySelectorAll("img"))
+      expect(imgs.some((img) => img.getAttribute("src") === "blob:custom-genshin-expense-icon")).toBe(true)
+    })
+
+    const subTab = screen.getByRole("tab", { name: "정기 구독" })
+    fireEvent.click(subTab)
+
+    await screen.findAllByText("공월 축복")
+    const subImgs = Array.from(container.querySelectorAll("img"))
+    expect(subImgs.some((img) => img.getAttribute("src") === "blob:custom-genshin-expense-icon")).toBe(true)
+
+    downloadUserIcon.mockResolvedValue(null)
+  })
+
+  it("게임 픽업별 과금 분석에서 여러 픽업 배너마다 서로 다른 팔레트 색상이 할당된다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const today = "2026-10-15"
+    const multiPickupExpenses = [
+      {
+        id: "exp-p1",
+        title: "픽업 1 트럭",
+        category: "게임",
+        status: "CONFIRMED",
+        target_date: today,
+        start_date: today,
+        end_date: today,
+        game_id: "game-1",
+        pickup_schedule_id: "sched-p1",
+        original_price: 119000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 119000,
+        payment_method: "GOOGLE_PLAY",
+        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+      },
+      {
+        id: "exp-p2",
+        title: "픽업 2 패키지",
+        category: "게임",
+        status: "CONFIRMED",
+        target_date: today,
+        start_date: today,
+        end_date: today,
+        game_id: "game-1",
+        pickup_schedule_id: "sched-p2",
+        original_price: 59000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 59000,
+        payment_method: "GOOGLE_PLAY",
+        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+      },
+    ]
+
+    const expenseBuilder = createExpenseQueryBuilder(multiPickupExpenses)
+    const schedulesBuilder = createExpenseQueryBuilder([
+      { id: "sched-p1", title: "배너 1", schedule_type: "PICKUP", game_id: "game-1" },
+      { id: "sched-p2", title: "배너 2", schedule_type: "PICKUP", game_id: "game-1" },
+    ])
+    const subscriptionBuilder = createExpenseQueryBuilder([])
+
+    from.mockImplementation((table: string) => {
+      if (table === "game_schedules") return schedulesBuilder
+      if (table === "subscription_templates") return subscriptionBuilder
+      return expenseBuilder
+    })
+
+    render(<ExpensesPage />)
+
+    const dot1 = await screen.findByTestId("pickup-color-dot-sched-p1")
+    const dot2 = await screen.findByTestId("pickup-color-dot-sched-p2")
+
+    // 서로 다른 색상이 부여되었는지 확인 (1위: Indigo #6366F1, 2위: Emerald #10B981)
+    expect(dot1.style.backgroundColor).toBeTruthy()
+    expect(dot2.style.backgroundColor).toBeTruthy()
+    expect(dot1.style.backgroundColor).not.toBe(dot2.style.backgroundColor)
   })
 })
 
