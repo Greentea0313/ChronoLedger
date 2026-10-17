@@ -76,3 +76,4 @@ describe("calendar-bg-storage", () => {
     vi.restoreAllMocks()
   })
 })
+

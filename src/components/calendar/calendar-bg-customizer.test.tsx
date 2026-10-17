@@ -55,3 +55,4 @@ describe("CalendarBgCustomizer", () => {
     expect(screen.queryByRole("dialog", { name: "배경 커스텀 설정 패널" })).toBeNull()
   })
 })
+

@@ -283,3 +283,4 @@ function loadImageFromFile(file: File): Promise<HTMLImageElement> {
     img.src = url
   })
 }
+
