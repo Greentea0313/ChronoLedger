@@ -531,37 +531,37 @@ export default function DashboardPage() {
 
   const memoDates = useMemo(() => new Set(memos.map((memo) => memo.memo_date)), [memos])
 
-  const days = useMemo<DesktopCalendarDay[]>(
-    () =>
-      (ready ? buildCalendarGrid(year, month) : []).map((cell) => {
-        const daySchedules = scheduleDates.get(cell.date) ?? []
-        const gameIdSet = dateGameIcons.get(cell.date) ?? new Set()
-        const dayIcons = Array.from(gameIdSet)
-          .filter((gameId) => allGamesMap.has(gameId) || userGamesMap.has(gameId))
-          .map((gameId) => {
-            const gameInfo = (allGamesMap.get(gameId) ?? userGamesMap.get(gameId))!
-            return {
-              gameId,
-              label: gameInfo.name,
-              iconUrl: gameIcons[gameId] || gameInfo.iconUrl,
-            }
-          })
-          .sort((a, b) => a.label.localeCompare(b.label, "ko"))
+  const days = useMemo<DesktopCalendarDay[]>(() => {
+    const today = getTodayLocalDate()
+    return (ready ? buildCalendarGrid(year, month) : []).map((cell) => {
+      const daySchedules = scheduleDates.get(cell.date) ?? []
+      const gameIdSet = dateGameIcons.get(cell.date) ?? new Set()
+      const dayIcons = Array.from(gameIdSet)
+        .filter((gameId) => allGamesMap.has(gameId) || userGamesMap.has(gameId))
+        .map((gameId) => {
+          const gameInfo = (allGamesMap.get(gameId) ?? userGamesMap.get(gameId))!
+          return {
+            gameId,
+            label: gameInfo.name,
+            iconUrl: gameIcons[gameId] || gameInfo.iconUrl,
+          }
+        })
+        .sort((a, b) => a.label.localeCompare(b.label, "ko"))
 
-        return {
-          ...cell,
-          schedules: daySchedules.map((schedule) => ({
-            id: schedule.id,
-            schedule_type: schedule.schedule_type,
-            is_start_date: schedule.start_date === cell.date,
-            game_id: schedule.game_id,
-          })),
-          icons: dayIcons,
-          hasMemo: memoDates.has(cell.date),
-        }
-      }),
-    [allGamesMap, userGamesMap, gameIcons, dateGameIcons, memoDates, month, ready, scheduleDates, year],
-  )
+      return {
+        ...cell,
+        isToday: cell.date === today,
+        schedules: daySchedules.map((schedule) => ({
+          id: schedule.id,
+          schedule_type: schedule.schedule_type,
+          is_start_date: schedule.start_date === cell.date,
+          game_id: schedule.game_id,
+        })),
+        icons: dayIcons,
+        hasMemo: memoDates.has(cell.date),
+      }
+    })
+  }, [allGamesMap, userGamesMap, gameIcons, dateGameIcons, memoDates, month, ready, scheduleDates, year])
 
   if (authLoading || (!hasLoadedInitial && isLoading) || !ready) {
     return <DashboardSkeleton />
@@ -603,6 +603,7 @@ export default function DashboardPage() {
             month={month}
             days={days}
             selectedDate={baseDate}
+            todayDate={getTodayLocalDate()}
             onSelectDate={setSelectedDate}
             onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
             onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}

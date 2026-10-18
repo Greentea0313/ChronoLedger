@@ -171,5 +171,48 @@ describe("DesktopCalendar", () => {
     const unselectedTile = screen.getByRole("button", { name: "2026-10-07" })
     expect(unselectedTile.getAttribute("style")).toContain("rgb(var(--surface) / 0.35)")
   })
+
+  it("해당 날짜가 today일 경우 날짜 숫자 바로 오른쪽에 #EFBF04 색상의 '오늘' 배지를 렌더링한다", () => {
+    render(
+      <DesktopCalendar
+        year={2026}
+        month={10}
+        selectedDate="2026-10-17"
+        todayDate="2026-10-17"
+        onSelectDate={vi.fn()}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
+        days={[
+          {
+            date: "2026-10-17",
+            day: 17,
+            inCurrentMonth: true,
+            schedules: [],
+            icons: [],
+            hasMemo: false,
+          },
+          {
+            date: "2026-10-18",
+            day: 18,
+            inCurrentMonth: true,
+            schedules: [],
+            icons: [],
+            hasMemo: false,
+          },
+        ]}
+      />,
+    )
+
+    // 17일 타일에 오늘 배지 존재 확인
+    const todayBadge = screen.getByTestId("today-badge-2026-10-17")
+    expect(todayBadge).toBeTruthy()
+    expect(todayBadge.textContent).toBe("오늘")
+    // 색상이 #EFBF04 (rgb(239, 191, 4))인지 확인
+    expect(todayBadge.style.backgroundColor).toBe("rgb(239, 191, 4)")
+    expect(todayBadge.style.color).toBe("rgb(15, 17, 21)")
+
+    // 18일 타일에는 오늘 배지가 없어야 함
+    expect(screen.queryByTestId("today-badge-2026-10-18")).toBeNull()
+  })
 })
 

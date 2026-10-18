@@ -1,5 +1,22 @@
 # 프로젝트 진행 현황
 
+## 캘린더 날짜 타일 내 당일(Today) 표기 골드 배지 추가 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  1. 캘린더 날짜 타일의 날짜 표기(ex. 17) 바로 오른쪽에 해당 날짜가 당일(today)일 경우 이를 시각적으로 명확히 인지할 수 있는 배지 추가 요청.
+  2. 배지 색상은 `#EFBF04` (골드 옐로우) 적용 요청.
+- **수행 내역**:
+  1. **'오늘' 골드 배지 UI 렌더링 (`src/components/calendar/desktop-calendar.tsx`)**:
+     - 타일 상단 좌측 날짜 숫자 바로 오른쪽에 `flex items-center gap-1`로 묶인 **`오늘`** 골드 배지 추가.
+     - 사용자 요청 색상 반영: `backgroundColor: #EFBF04`, 글자색은 고대비 다크 텍스트 `color: #0F1115`로 조합하여 모든 테마(다크/라이트) 및 커스텀 일러스트 배경에서 최상의 시인성 확보.
+     - `drop-shadow-sm` 및 아담한 패딩(`px-1 py-[1px] text-[8px] md:text-[9px]`)을 적용하여 우측의 게임 아이콘이나 메모/일정 도트와 영역 침범 없이 조화로운 레이아웃 구성.
+  2. **오늘 날짜 인식 및 프로퍼티 연동 (`src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`)**:
+     - `DesktopCalendarDay`에 `isToday?: boolean` 추가, `DesktopCalendarProps`에 `todayDate?: string` 추가.
+     - `page.tsx`의 `days` useMemo 및 `DesktopCalendar` 내부에서 `getTodayLocalDate()`와 자동 비교/연동.
+  3. **단위 테스트 및 빌드 무결점 검증**:
+     - `src/components/calendar/desktop-calendar.test.tsx`에 오늘 날짜 타일의 `#EFBF04` 골드 '오늘' 배지 렌더링 및 비당일 타일 미렌더링 검증 테스트 추가 (6개 PASS).
+     - Vitest 42개 파일 241개 테스트 전체 통과 (100% PASS), Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 캘린더 커스텀 배경 시인성 대폭 개선: 글래스모피즘 타일, 날짜 타일 투명도(0~90%)·배경 투명도(10~90%) 개별 조절 및 가독성 섀도우 보강 (2026-10-18)
 
 - **배경 및 사용자 요구사항**:

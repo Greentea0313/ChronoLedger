@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { ScheduleBanner } from "@/components/calendar/schedule-banner"
 import { GameIcon } from "@/components/ui/game-icon"
+import { getTodayLocalDate } from "@/lib/calendar-utils"
 import {
   clampBgOpacity,
   clampTileOpacity,
@@ -26,6 +27,7 @@ export interface DesktopCalendarDay {
   date: string
   day: number
   inCurrentMonth: boolean
+  isToday?: boolean
   schedules: CalendarScheduleItem[]
   icons: CalendarGameIcon[]
   hasMemo: boolean
@@ -43,6 +45,7 @@ interface DesktopCalendarProps {
   month: number
   days: DesktopCalendarDay[]
   selectedDate: string
+  todayDate?: string
   onSelectDate: (date: string) => void
   onPrevMonth: () => void
   onNextMonth: () => void
@@ -58,6 +61,7 @@ export function DesktopCalendar({
   month,
   days,
   selectedDate,
+  todayDate,
   onSelectDate,
   onPrevMonth,
   onNextMonth,
@@ -69,6 +73,7 @@ export function DesktopCalendar({
   const bgOpacity = clampBgOpacity(backgroundConfig?.opacity ?? DEFAULT_CALENDAR_BG_SETTINGS.opacity) / 100
   const tileOpacityRatio = clampTileOpacity(backgroundConfig?.tileOpacity) / 100
   const bgBlurFilter = getBlurFilterCss(backgroundConfig?.blur ?? "OFF")
+  const currentTodayDate = todayDate ?? getTodayLocalDate()
 
   return (
     <section
@@ -139,6 +144,7 @@ export function DesktopCalendar({
         <div key={`${year}-${month}`} className="grid grid-cols-7 gap-1 animate-month-change">
           {days.map((day) => {
             const isSelected = day.date === selectedDate
+            const isToday = day.isToday ?? (day.date === currentTodayDate)
             return (
               <button
                 key={day.date}
@@ -161,17 +167,34 @@ export function DesktopCalendar({
                     : "border-line bg-app hover:border-line-control"
                 } ${day.inCurrentMonth ? "text-content" : "text-content-muted opacity-60"}`}
               >
-              {/* Top row: Day number on left, Game icons and Memo on right (Desktop) / Dots on Mobile */}
+              {/* Top row: Day number and Today badge on left, Game icons and Memo on right (Desktop) / Dots on Mobile */}
               <div className="flex items-start justify-between w-full">
-                <span
-                  className={`text-xs md:text-sm leading-none ${
-                    hasCustomBg
-                      ? "font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                      : "font-semibold"
-                  }`}
-                >
-                  {day.day}
-                </span>
+                <div className="flex items-center gap-1 min-w-0">
+                  <span
+                    className={`text-xs md:text-sm leading-none ${
+                      hasCustomBg
+                        ? "font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                        : "font-semibold"
+                    }`}
+                  >
+                    {day.day}
+                  </span>
+                  {isToday && (
+                    <span
+                      data-testid={`today-badge-${day.date}`}
+                      className={`inline-flex items-center justify-center rounded px-1 py-[1px] text-[8px] md:text-[9px] font-bold leading-tight shrink-0 ${
+                        hasCustomBg ? "drop-shadow-sm" : ""
+                      }`}
+                      style={{
+                        backgroundColor: "#EFBF04",
+                        color: "#0F1115",
+                      }}
+                      title="오늘"
+                    >
+                      오늘
+                    </span>
+                  )}
+                </div>
                 {/* Desktop: Game icons & memo dot */}
                 <div className="hidden md:flex flex-col gap-0.5 items-end">
                   {day.icons.slice(0, 3).map((icon) => (

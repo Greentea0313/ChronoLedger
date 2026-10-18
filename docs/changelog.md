@@ -1,5 +1,15 @@
 # 변경 이력
 
+## 2026-10-19 (캘린더 날짜 타일 내 당일(Today) 표기 배지 추가)
+
+- **당일(Today) 타일 식별 '오늘' 골드 배지 추가 (`src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`)**:
+  - 캘린더 날짜 타일에서 오늘 날짜(`isToday`)인 경우 날짜 표기(ex. 17) 바로 오른쪽에 사용자가 지정한 골드 색상(`backgroundColor: #EFBF04`, `color: #0F1115`)의 **`오늘`** 배지를 표시하도록 구현.
+  - 다크 테마, 라이트 테마, 커스텀 배경 일러스트 어디서든 명확한 시인성을 확보하도록 `drop-shadow-sm` 및 아담한 패딩(`px-1 py-[1px] text-[8px] md:text-[9px]`)을 적용하여 우측의 게임 아이콘이나 모바일 도트와 간섭 없이 정돈된 레이아웃 유지.
+  - `DesktopCalendarProps`에 `todayDate?: string`을 추가하고 `DesktopCalendarDay`에 `isToday?: boolean`을 지원하여 테스트 및 컴포넌트 유연성 확보.
+- **단위 테스트 및 빌드 검증**:
+  - `src/components/calendar/desktop-calendar.test.tsx`: 당일 타일에 `#EFBF04` 색상의 `오늘` 배지가 날짜 숫자 바로 오른쪽에 정상 렌더링되고, 타일 날짜가 오늘이 아닌 경우 배지가 렌더링되지 않음을 검증하는 단위 테스트 추가 (6개 PASS).
+  - Vitest 42개 파일 241개 테스트 전체 통과 및 Next.js 14 정적 export 빌드 성공.
+
 ## 2026-10-18 (캘린더 커스텀 배경 시인성 대폭 개선: 글래스모피즘 타일, 날짜 타일 투명도(0~90%) 및 배경 투명도(10~90%) 개별 조절, 텍스트·배지 가독성 섀도우 보강)
 
 - **날짜 타일 투명도(`tileOpacity`, 0% ~ 90%) 개별 조절 기능 추가 (`src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`)**:

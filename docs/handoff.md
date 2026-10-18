@@ -1,5 +1,22 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 캘린더 날짜 타일 내 당일(Today) 표기 골드 배지 추가 (2026-10-19)
+
+- **결정 및 배경**:
+  - **당일(Today) 타일 식별 편의성 향상**:
+    - 캘린더를 볼 때 현재 사용자가 위치한 오늘 날짜를 직관적으로 파악할 수 있도록 날짜 표기(ex. 17) 바로 오른쪽에 **`오늘`** 배지를 제공.
+    - 배지 색상은 사용자가 요청한 **`#EFBF04`** (골드 옐로우)를 배경색(`backgroundColor: #EFBF04`)으로 적용하고, 텍스트는 명도 대비가 우수한 다크 컬러(`color: #0F1115`)를 적용하여 다크 모드, 라이트 모드, 그리고 커스텀 배경 일러스트 위에서도 선명하게 시인되도록 설계.
+  - **레이아웃 및 프로퍼티 연동**:
+    - 타일 상단 좌측 날짜 영역을 `flex items-center gap-1`로 구성하여 배지와 날짜 숫자가 깔끔하게 정렬되며, 우측의 게임 아이콘이나 모바일 도트의 자리를 침범하지 않음.
+    - `DesktopCalendarProps.todayDate` 및 `DesktopCalendarDay.isToday`를 통해 현재 일자를 유연하게 전달/테스트할 수 있도록 구현.
+- **수행 내역**:
+  - `src/components/calendar/desktop-calendar.tsx`: `isToday` 조건부 `오늘` 골드 배지(`backgroundColor: #EFBF04`) 렌더링.
+  - `src/app/dashboard/page.tsx`: `days` useMemo에서 `isToday: cell.date === today` 및 `todayDate` prop 연동.
+  - `src/components/calendar/desktop-calendar.test.tsx`: 당일 타일 배지 렌더링 및 비당일 배지 미렌더링 단위 테스트 추가.
+- **검증 증거**:
+  - `npx vitest run`: 42개 파일 / 241개 테스트 100% 통과 (PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 캘린더 커스텀 배경 시인성 대폭 개선: 글래스모피즘 타일, 날짜 타일 투명도(0~90%)·배경 투명도(10~90%) 개별 조절 및 가독성 섀도우 보강 (2026-10-18)
 
 - **결정 및 배경**:
