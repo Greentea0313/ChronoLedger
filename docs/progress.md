@@ -1,26 +1,27 @@
 # 프로젝트 진행 현황
 
-## 캘린더 커스텀 배경 시인성 대폭 개선: 글래스모피즘 반투명 타일, 투명도 상한 90% 확대, 텍스트·일정 배지 가독성 섀도우 보강 (2026-10-18)
+## 캘린더 커스텀 배경 시인성 대폭 개선: 글래스모피즘 타일, 날짜 타일 투명도(0~90%)·배경 투명도(10~90%) 개별 조절 및 가독성 섀도우 보강 (2026-10-18)
 
 - **배경 및 사용자 요구사항**:
   1. 현재 적용된 상태로는 배경의 일러스트가 날짜 타일 색상(`bg-app/75`) 및 오버레이에 가려져 제대로 보이지 않는 현상 개선 요청.
-  2. 제안된 방안 중 **글래스모피즘 반투명 타일 전환 + 투명도 상한 90% 확대**에 더해 **텍스트 및 일정 배지 가독성 보강**을 함께 적용하도록 결정.
+  2. 제안된 방안 중 **글래스모피즘 반투명 타일 전환 + 투명도 상한 90% 확대**에 더해 **텍스트 및 일정 배지 가독성 보강**을 함께 적용.
+  3. 직전 작업이 문제 없이 이루어졌는지 정밀 점검하고, **날짜 타일의 투명도를 직접 조절하는 기능(`tileOpacity`, 0% ~ 90%)**을 추가하도록 요청.
 - **수행 내역**:
-  1. **글래스모피즘 반투명 타일 및 오버레이 완화 (`src/components/calendar/desktop-calendar.tsx`)**:
-     - 커스텀 배경 활성화 시 42개 날짜 타일 배경을 `bg-surface/15 backdrop-blur-[1px] hover:bg-surface/30`로 변경하여 배경 일러스트가 시원하게 투과되도록 개선.
-     - 가독성 보호 오버레이를 `bg-surface/40` $\to$ `bg-surface/15`로 낮추어 일러스트 색감과 선명도를 원본에 가깝게 유지.
-  2. **투명도 조절 상한선 90% 확대 및 기본값 상향 (`src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`)**:
-     - `MAX_BG_OPACITY = 90`, `DEFAULT_BG_OPACITY = 40`, `clampBgOpacity` 범위 `10 ~ 90%`로 상향.
-     - 슬라이더 상한치 90% 및 팝오버 안내 문구 동기화.
-  3. **텍스트 및 일정 배지 섀도우 가독성 보강 (`src/components/calendar/desktop-calendar.tsx`)**:
-     - 날짜 숫자에 `drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] font-bold` 적용.
-     - 요일 헤더에 `drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] font-medium` 적용.
-     - 일정 배지 컨테이너에 `drop-shadow-sm` 적용.
-     - 게임 아이콘 래퍼 및 모바일 인디케이터 도트에 `ring-1 ring-background/60 shadow-sm` 대비 테두리 적용.
+  1. **직전 작업 코드 정밀 점검 및 세부 결함 보완**:
+     - `DesktopCalendar`: 날짜 타일 숫자 `<span>`에 고정되어 있던 `text-content`로 인해 커스텀 배경 시 이전/다음 달 날짜(`!day.inCurrentMonth`)의 `text-content-muted` 색상이 덮어써지던 문제를 수정하여 당월/타월 색상 구분 유지.
+     - `DesktopCalendar`: 배경 투명도 폴백 기본값을 `25`에서 `DEFAULT_CALENDAR_BG_SETTINGS.opacity`(`40`)로 일치시킴.
+     - `CalendarBgCustomizer`: Tailwind 설정에 없던 `hover:bg-surface-1` 클래스를 정상 토큰인 `hover:bg-surface`로 정정.
+     - `docs/to-do.md`: 누락되어 있던 Phase 12.3의 최신 사양(90% 상한, 타일 투명도, 오버레이 15%) 동기화 완료.
+  2. **날짜 타일 투명도(`tileOpacity`, 0% ~ 90%) 조절 기능 구현 (`src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`)**:
+     - `CalendarBgSettings`에 `tileOpacity` 추가 (범위 `0% ~ 90%`, 기본값 `15%`), `clampTileOpacity` 순수 함수 및 IndexedDB 영구 저장·복원·초기화 연동.
+     - `[배경 커스텀 설정]` 팝오버에 **`날짜 타일 투명도` 슬라이더(`투명하게 0%` ~ `진하게 90%`)** 추가.
+     - `DesktopCalendar`의 비선택 날짜 타일에 `backgroundColor: rgb(var(--surface) / ${tileOpacityRatio})`를 동적 적용하고, `0%`일 때는 `backdrop-blur`도 제거하여 완전 투명 타일을 지원하며 호버 시 `hover:ring-1 hover:ring-primary/30`으로 깔끔한 포커스 피드백 제공.
+  3. **배경 투명도 상한선 90% 확대 및 텍스트/일정 배지 섀도우 가독성 보강**:
+     - `MAX_BG_OPACITY = 90`, `DEFAULT_BG_OPACITY = 40`, 가독성 보호 오버레이 `bg-surface/15` 적용.
+     - 날짜 숫자(`drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] font-bold`), 요일 헤더(`drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] font-medium`), 일정 배지(`drop-shadow-sm`), 아이콘 및 도트(`ring-1 ring-background/60 shadow-sm`) 대비 보강.
   4. **단위 테스트 및 정적 빌드 검증**:
-     - `src/lib/calendar-bg-storage.test.ts`, `src/components/calendar/calendar-bg-customizer.test.tsx`, `src/components/calendar/desktop-calendar.test.tsx` 갱신.
-     - `src/app/dashboard/expenses/page.test.tsx` 날짜 픽스처 최신화.
-     - Vitest 42개 파일 239개 테스트 100% 통과, Next.js 14 정적 15개 페이지 export 빌드 성공.
+     - `src/lib/calendar-bg-storage.test.ts` (6개 PASS), `src/components/calendar/calendar-bg-customizer.test.tsx` (1개 PASS), `src/components/calendar/desktop-calendar.test.tsx` (5개 PASS) 갱신.
+     - Vitest 42개 파일 240개 테스트 100% 통과, Next.js 14 정적 15개 페이지 export 빌드 성공.
 
 ## 캘린더 커스텀 배경 이미지 업로드·투명도/블러 조절 구현, 사용자 지정 게임 아이콘 전역 적용 및 픽업 그래프 다중 색상 적용 (2026-10-17)
 

@@ -3,9 +3,10 @@ import { describe, expect, it, vi } from "vitest"
 import { CalendarBgCustomizer } from "./calendar-bg-customizer"
 
 describe("CalendarBgCustomizer", () => {
-  it("배경 커스텀 설정 버튼 클릭 시 컨트롤 패널이 열리고 투명도/블러/초기화 동작이 정상 호출된다", () => {
+  it("배경 커스텀 설정 버튼 클릭 시 컨트롤 패널이 열리고 배경 투명도/타일 투명도/블러/초기화 동작이 정상 호출된다", () => {
     const onUploadBlob = vi.fn()
     const onChangeOpacity = vi.fn()
+    const onChangeTileOpacity = vi.fn()
     const onChangeBlur = vi.fn()
     const onReset = vi.fn()
 
@@ -13,9 +14,11 @@ describe("CalendarBgCustomizer", () => {
       <CalendarBgCustomizer
         hasCustomImage={true}
         opacity={30}
+        tileOpacity={20}
         blur="LOW"
         onUploadBlob={onUploadBlob}
         onChangeOpacity={onChangeOpacity}
+        onChangeTileOpacity={onChangeTileOpacity}
         onChangeBlur={onChangeBlur}
         onReset={onReset}
       />,
@@ -31,7 +34,7 @@ describe("CalendarBgCustomizer", () => {
     expect(screen.getByRole("dialog", { name: "배경 커스텀 설정 패널" })).toBeTruthy()
     expect(screen.getByText("배경 이미지 변경")).toBeTruthy()
 
-    // 투명도 슬라이더 (10% ~ 90% 상한 검증)
+    // 배경 투명도 슬라이더 (10% ~ 90% 상한 검증)
     const slider = screen.getByLabelText("배경 투명도 조절") as HTMLInputElement
     expect(slider.min).toBe("10")
     expect(slider.max).toBe("90")
@@ -39,6 +42,15 @@ describe("CalendarBgCustomizer", () => {
 
     fireEvent.change(slider, { target: { value: "45" } })
     expect(onChangeOpacity).toHaveBeenCalledWith(45)
+
+    // 날짜 타일 투명도 슬라이더 (0% ~ 90% 검증)
+    const tileSlider = screen.getByLabelText("날짜 타일 투명도 조절") as HTMLInputElement
+    expect(tileSlider.min).toBe("0")
+    expect(tileSlider.max).toBe("90")
+    expect(tileSlider.value).toBe("20")
+
+    fireEvent.change(tileSlider, { target: { value: "50" } })
+    expect(onChangeTileOpacity).toHaveBeenCalledWith(50)
 
     // 블러 단계 토글 버튼 검증 (Off / 약함 / 보통)
     const mediumBlurBtn = screen.getByRole("button", { name: "보통" })

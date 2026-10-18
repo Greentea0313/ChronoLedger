@@ -107,6 +107,7 @@ export default function DashboardPage() {
   const [bgBlob, setBgBlob] = useState<Blob | null>(null)
   const [bgImageUrl, setBgImageUrl] = useState<string | null>(null)
   const [bgOpacity, setBgOpacity] = useState<number>(DEFAULT_CALENDAR_BG_SETTINGS.opacity)
+  const [bgTileOpacity, setBgTileOpacity] = useState<number>(DEFAULT_CALENDAR_BG_SETTINGS.tileOpacity)
   const [bgBlur, setBgBlur] = useState<CalendarBgBlurLevel>(DEFAULT_CALENDAR_BG_SETTINGS.blur)
 
   useEffect(() => {
@@ -126,11 +127,13 @@ export default function DashboardPage() {
       const isDefault =
         !record.blob &&
         record.opacity === DEFAULT_CALENDAR_BG_SETTINGS.opacity &&
+        record.tileOpacity === DEFAULT_CALENDAR_BG_SETTINGS.tileOpacity &&
         record.blur === DEFAULT_CALENDAR_BG_SETTINGS.blur
       if (isDefault) return
 
       setBgBlob(record.blob)
       setBgOpacity(record.opacity)
+      setBgTileOpacity(record.tileOpacity)
       setBgBlur(record.blur)
       if (record.blob) {
         createdUrl = URL.createObjectURL(record.blob)
@@ -160,10 +163,11 @@ export default function DashboardPage() {
       await saveCalendarBgRecord(user?.id, {
         blob,
         opacity: bgOpacity,
+        tileOpacity: bgTileOpacity,
         blur: bgBlur,
       })
     },
-    [user?.id, bgOpacity, bgBlur],
+    [user?.id, bgOpacity, bgTileOpacity, bgBlur],
   )
 
   const handleChangeBgOpacity = useCallback(
@@ -172,10 +176,24 @@ export default function DashboardPage() {
       await saveCalendarBgRecord(user?.id, {
         blob: bgBlob,
         opacity: nextOpacity,
+        tileOpacity: bgTileOpacity,
         blur: bgBlur,
       })
     },
-    [user?.id, bgBlob, bgBlur],
+    [user?.id, bgBlob, bgTileOpacity, bgBlur],
+  )
+
+  const handleChangeBgTileOpacity = useCallback(
+    async (nextTileOpacity: number) => {
+      setBgTileOpacity(nextTileOpacity)
+      await saveCalendarBgRecord(user?.id, {
+        blob: bgBlob,
+        opacity: bgOpacity,
+        tileOpacity: nextTileOpacity,
+        blur: bgBlur,
+      })
+    },
+    [user?.id, bgBlob, bgOpacity, bgBlur],
   )
 
   const handleChangeBgBlur = useCallback(
@@ -184,10 +202,11 @@ export default function DashboardPage() {
       await saveCalendarBgRecord(user?.id, {
         blob: bgBlob,
         opacity: bgOpacity,
+        tileOpacity: bgTileOpacity,
         blur: nextBlur,
       })
     },
-    [user?.id, bgBlob, bgOpacity],
+    [user?.id, bgBlob, bgOpacity, bgTileOpacity],
   )
 
   const handleResetBg = useCallback(async () => {
@@ -197,6 +216,7 @@ export default function DashboardPage() {
       return null
     })
     setBgOpacity(DEFAULT_CALENDAR_BG_SETTINGS.opacity)
+    setBgTileOpacity(DEFAULT_CALENDAR_BG_SETTINGS.tileOpacity)
     setBgBlur(DEFAULT_CALENDAR_BG_SETTINGS.blur)
     await clearCalendarBgRecord(user?.id)
   }, [user?.id])
@@ -589,15 +609,18 @@ export default function DashboardPage() {
             backgroundConfig={{
               imageUrl: bgImageUrl,
               opacity: bgOpacity,
+              tileOpacity: bgTileOpacity,
               blur: bgBlur,
             }}
             bgCustomizer={
               <CalendarBgCustomizer
                 hasCustomImage={Boolean(bgImageUrl)}
                 opacity={bgOpacity}
+                tileOpacity={bgTileOpacity}
                 blur={bgBlur}
                 onUploadBlob={handleUploadBgBlob}
                 onChangeOpacity={handleChangeBgOpacity}
+                onChangeTileOpacity={handleChangeBgTileOpacity}
                 onChangeBlur={handleChangeBgBlur}
                 onReset={handleResetBg}
               />

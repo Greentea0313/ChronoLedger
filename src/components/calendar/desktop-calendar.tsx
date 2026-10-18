@@ -3,6 +3,8 @@ import { ScheduleBanner } from "@/components/calendar/schedule-banner"
 import { GameIcon } from "@/components/ui/game-icon"
 import {
   clampBgOpacity,
+  clampTileOpacity,
+  DEFAULT_CALENDAR_BG_SETTINGS,
   getBlurFilterCss,
   type CalendarBgBlurLevel,
 } from "@/lib/calendar-bg-storage"
@@ -32,6 +34,7 @@ export interface DesktopCalendarDay {
 export interface CalendarBgConfig {
   imageUrl: string | null
   opacity: number
+  tileOpacity?: number
   blur: CalendarBgBlurLevel
 }
 
@@ -63,7 +66,8 @@ export function DesktopCalendar({
   backgroundConfig,
 }: DesktopCalendarProps) {
   const hasCustomBg = Boolean(backgroundConfig?.imageUrl)
-  const bgOpacity = clampBgOpacity(backgroundConfig?.opacity ?? 25) / 100
+  const bgOpacity = clampBgOpacity(backgroundConfig?.opacity ?? DEFAULT_CALENDAR_BG_SETTINGS.opacity) / 100
+  const tileOpacityRatio = clampTileOpacity(backgroundConfig?.tileOpacity) / 100
   const bgBlurFilter = getBlurFilterCss(backgroundConfig?.blur ?? "OFF")
 
   return (
@@ -142,11 +146,18 @@ export function DesktopCalendar({
                 onClick={() => onSelectDate(day.date)}
                 aria-label={day.date}
                 aria-pressed={isSelected}
+                style={
+                  hasCustomBg && !isSelected
+                    ? { backgroundColor: `rgb(var(--surface) / ${tileOpacityRatio})` }
+                    : undefined
+                }
                 className={`relative flex flex-col justify-between h-[54px] md:h-[100px] overflow-hidden rounded-md border p-1 md:p-1.5 text-left transition-colors duration-fast ${
                   isSelected
                     ? "border-primary bg-primary/25 shadow-sm"
                     : hasCustomBg
-                    ? "border-line/40 bg-surface/15 backdrop-blur-[1px] hover:bg-surface/30 hover:border-line"
+                    ? `border-line/40 hover:border-line hover:ring-1 hover:ring-primary/30 ${
+                        tileOpacityRatio > 0 ? "backdrop-blur-[1px]" : ""
+                      }`
                     : "border-line bg-app hover:border-line-control"
                 } ${day.inCurrentMonth ? "text-content" : "text-content-muted opacity-60"}`}
               >
@@ -155,7 +166,7 @@ export function DesktopCalendar({
                 <span
                   className={`text-xs md:text-sm leading-none ${
                     hasCustomBg
-                      ? "font-bold text-content drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                      ? "font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
                       : "font-semibold"
                   }`}
                 >

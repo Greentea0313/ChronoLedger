@@ -1,15 +1,20 @@
 # 변경 이력
 
-## 2026-10-18 (캘린더 커스텀 배경 시인성 대폭 개선: 글래스모피즘 반투명 타일, 투명도 상한 90% 확대, 텍스트·일정 배지 가독성 섀도우 보강)
+## 2026-10-18 (캘린더 커스텀 배경 시인성 대폭 개선: 글래스모피즘 타일, 날짜 타일 투명도(0~90%) 및 배경 투명도(10~90%) 개별 조절, 텍스트·배지 가독성 섀도우 보강)
 
-- **캘린더 커스텀 배경 일러스트 시인성 극대화 및 글래스모피즘 타일 적용 (`src/components/calendar/desktop-calendar.tsx`)**:
+- **날짜 타일 투명도(`tileOpacity`, 0% ~ 90%) 개별 조절 기능 추가 (`src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`)**:
+  - 사용자가 배경 일러스트 노출 정도와 달력 타일 가독성 사이의 균형을 직접 세밀하게 맞출 수 있도록 **`[날짜 타일 투명도]` 슬라이더(`0% ~ 90%`, 기본값 `15%`)**를 추가하고 IndexedDB(`CalendarBgRecord.tileOpacity`)에 영구 저장·복원·초기화하도록 구현.
+  - `0%`(`투명하게`)로 설정 시 타일 배경색 및 미세 블러(`backdrop-blur`)가 완전히 제거되어 테두리와 텍스트/아이콘/배지만 남고 배경 일러스트가 100% 투과되며, 값을 높일수록(`진하게`, 최대 `90%`) 타일 배경(`rgb(var(--surface) / ratio)`)이 진해져 가독성을 높일 수 있음.
+- **캘린더 커스텀 배경 일러스트 시인성 극대화 및 직전 작업 정합성 보완 (`src/components/calendar/desktop-calendar.tsx`)**:
   - 기존 42개 날짜 타일의 `bg-app/75`(75% 불투명) 및 배경 오버레이 `bg-surface/40`로 인해 업로드한 배경 일러스트가 짙은 타일 배경에 가려져 흐릿하게 보이던 문제를 근본적으로 해결.
-  - 커스텀 배경 활성화 시 날짜 타일 배경을 미세 블러가 적용된 반투명 글래스(`bg-surface/15 backdrop-blur-[1px] hover:bg-surface/30`)로 전환하여 배경 일러스트가 달력 전체에 시원하고 또렷하게 투과되도록 개선.
   - 가독성 보호 오버레이 강도를 `bg-surface/40` $\to$ `bg-surface/15`로 완화하여 일러스트 본연의 색감과 디테일을 보존.
+  - 직전 작업 점검 및 보완:
+    - 타일 호버 시 인라인 배경색(`style.backgroundColor`)과 충돌하지 않도록 `hover:ring-1 hover:ring-primary/30 hover:border-line`으로 호버 피드백 개선.
+    - 커스텀 배경 활성화 시 이전/다음 달 날짜(`!day.inCurrentMonth`)의 `text-content-muted` 색상이 `text-content`로 덮어써지던 문제를 수정하여 당월/타월 날짜 구분성 유지.
+    - `DesktopCalendar`의 기본 투명도 폴백값을 `DEFAULT_CALENDAR_BG_SETTINGS.opacity`(`40`)로 일치시키고, `CalendarBgCustomizer`의 미정의 클래스(`hover:bg-surface-1`)를 디자인 토큰(`hover:bg-surface`)으로 정정.
 - **배경 투명도 상한선 90%로 확대 및 기본값 상향 (`src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`)**:
-  - 일러스트를 더 선명하게 감상하고 싶어 하는 사용자 니즈를 반영하여 투명도 슬라이더 상한선을 기존 60%에서 **최대 90%**로 확대 (`MAX_BG_OPACITY = 90`, `clampBgOpacity`: 10 ~ 90%).
-  - 초기 기본 투명도를 30%에서 **40%**(`DEFAULT_BG_OPACITY = 40`)로 상향 조정.
-  - 커스텀 컨트롤러 팝오버의 슬라이더 안내 레이블을 `선명하게 (90%)` 및 `(최대 90%)`로 갱신.
+  - 일러스트를 더 선명하게 감상하고 싶어 하는 사용자 니즈를 반영하여 배경 투명도 슬라이더 상한선을 기존 60%에서 **최대 90%**로 확대 (`MAX_BG_OPACITY = 90`, `clampBgOpacity`: 10 ~ 90%).
+  - 초기 기본 배경 투명도를 30%에서 **40%**(`DEFAULT_BG_OPACITY = 40`)로 상향 조정.
 - **텍스트 및 일정 배지 가독성 강화 (`src/components/calendar/desktop-calendar.tsx`)**:
   - 일러스트가 밝거나 복잡한 경우에도 날짜와 일정이 묻히지 않도록 텍스트 섀도우 및 외곽 테두리 대비를 부여:
     - 날짜 숫자: `drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] font-bold` 적용으로 밝은 배경에서도 선명한 시인성 확보.
@@ -17,11 +22,11 @@
     - 일정 배지(`VERSION`, `PICKUP`, `CONTENTS`): 배지 컨테이너에 `drop-shadow-sm`을 부여하여 배경과의 층위 분리.
     - 게임 아이콘 래퍼 및 모바일 인디케이터 도트: `ring-1 ring-background/60 shadow-sm` 대비 테두리를 추가하여 배경 위에서 또렷하게 인식되도록 보강.
 - **단위 테스트 및 프로덕션 빌드 검증**:
-  - `src/lib/calendar-bg-storage.test.ts`: 투명도 상한 90% 및 기본값 40% 검증 테스트 갱신 (5개 PASS).
-  - `src/components/calendar/calendar-bg-customizer.test.tsx`: 슬라이더 max 90 검증 갱신 (1개 PASS).
-  - `src/components/calendar/desktop-calendar.test.tsx`: 글래스모피즘 타일 및 섀도우 가독성 클래스 검증 갱신 (5개 PASS).
+  - `src/lib/calendar-bg-storage.test.ts`: 배경 투명도(10~90%) 및 날짜 타일 투명도(0~90%) 클램핑·영구 저장 테스트 (6개 PASS).
+  - `src/components/calendar/calendar-bg-customizer.test.tsx`: 배경 투명도 및 날짜 타일 투명도 슬라이더 조작 검증 (1개 PASS).
+  - `src/components/calendar/desktop-calendar.test.tsx`: 배경 레이어 및 날짜 타일 투명도 스타일(`rgb(var(--surface) / 0.35)`) 렌더링 검증 (5개 PASS).
   - `src/app/dashboard/expenses/page.test.tsx`: 픽업 지출 날짜 픽스처 최신화 (16개 PASS).
-  - Vitest 42개 파일 239개 테스트 100% 통과, Next.js 14 정적 export 빌드 15개 페이지 0 에러 통과.
+  - Vitest 42개 파일 240개 테스트 100% 통과, Next.js 14 정적 export 빌드 15개 페이지 0 에러 통과.
 
 ## 2026-10-17 (캘린더 커스텀 배경 이미지 업로드·투명도/블러 조절 구현, 사용자 지정 게임 아이콘 전역 적용 및 픽업 그래프 다중 색상 적용)
 

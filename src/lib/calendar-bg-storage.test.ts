@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import {
   calculateScaledDimensions,
   clampBgOpacity,
+  clampTileOpacity,
   clearCalendarBgRecord,
   compressCalendarBgImage,
   DEFAULT_CALENDAR_BG_SETTINGS,
@@ -11,7 +12,7 @@ import {
 } from "./calendar-bg-storage"
 
 describe("calendar-bg-storage", () => {
-  it("clampBgOpacity는 투명도 값을 10% ~ 90% 범위로 강제 클램핑한다", () => {
+  it("clampBgOpacity는 배경 투명도 값을 10% ~ 90% 범위로 강제 클램핑한다", () => {
     expect(clampBgOpacity(5)).toBe(10)
     expect(clampBgOpacity(0)).toBe(10)
     expect(clampBgOpacity(25)).toBe(25)
@@ -20,6 +21,17 @@ describe("calendar-bg-storage", () => {
     expect(clampBgOpacity(90)).toBe(90)
     expect(clampBgOpacity(100)).toBe(90)
     expect(clampBgOpacity(Number.NaN)).toBe(DEFAULT_CALENDAR_BG_SETTINGS.opacity)
+  })
+
+  it("clampTileOpacity는 날짜 타일 투명도 값을 0% ~ 90% 범위로 강제 클램핑한다", () => {
+    expect(clampTileOpacity(-10)).toBe(0)
+    expect(clampTileOpacity(0)).toBe(0)
+    expect(clampTileOpacity(15)).toBe(15)
+    expect(clampTileOpacity(50)).toBe(50)
+    expect(clampTileOpacity(90)).toBe(90)
+    expect(clampTileOpacity(100)).toBe(90)
+    expect(clampTileOpacity(undefined)).toBe(DEFAULT_CALENDAR_BG_SETTINGS.tileOpacity)
+    expect(clampTileOpacity(Number.NaN)).toBe(DEFAULT_CALENDAR_BG_SETTINGS.tileOpacity)
   })
 
   it("getBlurFilterCss는 블러 단계별 CSS 필터 문자열을 반환한다", () => {
@@ -37,30 +49,34 @@ describe("calendar-bg-storage", () => {
     expect(calculateScaledDimensions(1080, 1920)).toEqual({ width: 608, height: 1080 })
   })
 
-  it("saveCalendarBgRecord, loadCalendarBgRecord, clearCalendarBgRecord가 사용자별 배경 설정 및 Blob을 영구 보존하고 초기화한다", async () => {
+  it("saveCalendarBgRecord, loadCalendarBgRecord, clearCalendarBgRecord가 사용자별 배경 설정(투명도, 타일 투명도, 블러) 및 Blob을 영구 보존하고 초기화한다", async () => {
     const sampleBlob = new Blob(["fake-webp-data"], { type: "image/webp" })
 
     await saveCalendarBgRecord("user-bg-1", {
       blob: sampleBlob,
       opacity: 98, // 90% 상한으로 클램핑되어야 함
+      tileOpacity: 35,
       blur: "MEDIUM",
     })
 
     const loaded = await loadCalendarBgRecord("user-bg-1")
     expect(loaded.blob).toBe(sampleBlob)
     expect(loaded.opacity).toBe(90)
+    expect(loaded.tileOpacity).toBe(35)
     expect(loaded.blur).toBe("MEDIUM")
 
     // 다른 사용자는 기본 상태를 반환해야 함
     const otherUser = await loadCalendarBgRecord("user-bg-2")
     expect(otherUser.blob).toBeNull()
     expect(otherUser.opacity).toBe(40)
+    expect(otherUser.tileOpacity).toBe(15)
     expect(otherUser.blur).toBe("OFF")
 
     // 초기화 후 기본값 복귀 확인
     const cleared = await clearCalendarBgRecord("user-bg-1")
     expect(cleared.blob).toBeNull()
     expect(cleared.opacity).toBe(40)
+    expect(cleared.tileOpacity).toBe(15)
     expect(cleared.blur).toBe("OFF")
 
     const afterClear = await loadCalendarBgRecord("user-bg-1")

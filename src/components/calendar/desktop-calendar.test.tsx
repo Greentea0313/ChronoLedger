@@ -121,7 +121,7 @@ describe("DesktopCalendar", () => {
     expect(memoDots).toHaveLength(1)
   })
 
-  it("backgroundConfig에 커스텀 배경 이미지가 설정되면 object-fit: cover 배경 레이어와 가독성 보호 오버레이를 렌더링한다", () => {
+  it("backgroundConfig에 커스텀 배경 이미지가 설정되면 object-fit: cover 배경 레이어, 가독성 보호 오버레이 및 날짜 타일 투명도를 렌더링한다", () => {
     render(
       <DesktopCalendar
         year={2026}
@@ -130,11 +130,29 @@ describe("DesktopCalendar", () => {
         onSelectDate={vi.fn()}
         onPrevMonth={vi.fn()}
         onNextMonth={vi.fn()}
-        days={[]}
+        days={[
+          {
+            date: "2026-10-06",
+            day: 6,
+            inCurrentMonth: true,
+            schedules: [],
+            icons: [],
+            hasMemo: false,
+          },
+          {
+            date: "2026-10-07",
+            day: 7,
+            inCurrentMonth: true,
+            schedules: [],
+            icons: [],
+            hasMemo: false,
+          },
+        ]}
         bgCustomizer={<button type="button">배경 설정 슬롯</button>}
         backgroundConfig={{
           imageUrl: "blob:custom-calendar-wallpaper",
           opacity: 40,
+          tileOpacity: 35,
           blur: "MEDIUM",
         }}
       />,
@@ -149,6 +167,9 @@ describe("DesktopCalendar", () => {
 
     const overlay = screen.getByTestId("calendar-custom-bg-overlay")
     expect(overlay).toBeTruthy()
+
+    const unselectedTile = screen.getByRole("button", { name: "2026-10-07" })
+    expect(unselectedTile.getAttribute("style")).toContain("rgb(var(--surface) / 0.35)")
   })
 })
 

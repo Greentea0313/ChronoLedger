@@ -2,6 +2,7 @@ export type CalendarBgBlurLevel = "OFF" | "LOW" | "MEDIUM"
 
 export interface CalendarBgSettings {
   opacity: number // 10 ~ 90 (%)
+  tileOpacity: number // 0 ~ 90 (%)
   blur: CalendarBgBlurLevel
 }
 
@@ -12,11 +13,15 @@ export interface CalendarBgRecord extends CalendarBgSettings {
 
 export const DEFAULT_CALENDAR_BG_SETTINGS: CalendarBgSettings = {
   opacity: 40,
+  tileOpacity: 15,
   blur: "OFF",
 }
 
 export const MIN_BG_OPACITY = 10
 export const MAX_BG_OPACITY = 90
+
+export const MIN_TILE_OPACITY = 0
+export const MAX_TILE_OPACITY = 90
 
 const DB_NAME = "chronoledger_calendar_bg"
 const DB_VERSION = 1
@@ -33,12 +38,21 @@ function getStorageKey(userId?: string | null): string {
 }
 
 /**
- * 투명도 값을 10% ~ 90% 범위로 강제 클램핑합니다. (가독성 보호 상한 90%)
+ * 배경 투명도 값을 10% ~ 90% 범위로 강제 클램핑합니다. (가독성 보호 상한 90%)
  */
 export function clampBgOpacity(value: number): number {
-  if (Number.isNaN(value)) return DEFAULT_CALENDAR_BG_SETTINGS.opacity
+  if (typeof value !== "number" || Number.isNaN(value)) return DEFAULT_CALENDAR_BG_SETTINGS.opacity
   const rounded = Math.round(value)
   return Math.min(MAX_BG_OPACITY, Math.max(MIN_BG_OPACITY, rounded))
+}
+
+/**
+ * 날짜 타일 배경 투명도(불투명도) 값을 0% ~ 90% 범위로 강제 클램핑합니다.
+ */
+export function clampTileOpacity(value?: number | null): number {
+  if (typeof value !== "number" || Number.isNaN(value)) return DEFAULT_CALENDAR_BG_SETTINGS.tileOpacity
+  const rounded = Math.round(value)
+  return Math.min(MAX_TILE_OPACITY, Math.max(MIN_TILE_OPACITY, rounded))
 }
 
 /**
@@ -110,6 +124,7 @@ export async function loadCalendarBgRecord(userId?: string | null): Promise<Cale
         const normalized: CalendarBgRecord = {
           blob: record.blob ?? null,
           opacity: clampBgOpacity(record.opacity),
+          tileOpacity: clampTileOpacity(record.tileOpacity),
           blur: record.blur === "LOW" || record.blur === "MEDIUM" ? record.blur : "OFF",
           updatedAt: record.updatedAt || new Date().toISOString(),
         }
@@ -126,6 +141,7 @@ export async function loadCalendarBgRecord(userId?: string | null): Promise<Cale
     return {
       ...fallback,
       opacity: clampBgOpacity(fallback.opacity),
+      tileOpacity: clampTileOpacity(fallback.tileOpacity),
     }
   }
 
@@ -144,6 +160,7 @@ export async function saveCalendarBgRecord(
   input: {
     blob: Blob | null
     opacity: number
+    tileOpacity?: number
     blur: CalendarBgBlurLevel
   },
 ): Promise<CalendarBgRecord> {
@@ -151,6 +168,7 @@ export async function saveCalendarBgRecord(
   const record: CalendarBgRecord = {
     blob: input.blob,
     opacity: clampBgOpacity(input.opacity),
+    tileOpacity: clampTileOpacity(input.tileOpacity),
     blur: input.blur === "LOW" || input.blur === "MEDIUM" ? input.blur : "OFF",
     updatedAt: new Date().toISOString(),
   }
