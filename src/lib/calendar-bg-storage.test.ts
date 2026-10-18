@@ -83,9 +83,9 @@ describe("calendar-bg-storage", () => {
     expect(afterClear.blob).toBeNull()
   })
 
-  it("compressCalendarBgImage는 15MB 초과 파일이나 지원하지 않는 형식을 거부한다", async () => {
-    const hugeFile = new File([new ArrayBuffer(16 * 1024 * 1024)], "huge.png", { type: "image/png" })
-    await expect(compressCalendarBgImage(hugeFile)).rejects.toThrow("15MB 이하")
+  it("compressCalendarBgImage는 50MB 초과 파일이나 지원하지 않는 형식을 거부한다", async () => {
+    const hugeFile = new File([new ArrayBuffer(51 * 1024 * 1024)], "huge.png", { type: "image/png" })
+    await expect(compressCalendarBgImage(hugeFile)).rejects.toThrow("50MB 이하")
 
     const invalidTypeFile = new File(["gif"], "anim.gif", { type: "image/gif" })
     await expect(compressCalendarBgImage(invalidTypeFile)).rejects.toThrow("PNG, JPG, JPEG, WebP")

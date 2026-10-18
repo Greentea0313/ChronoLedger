@@ -12,8 +12,9 @@
     - 타일 호버 시 인라인 배경색(`style.backgroundColor`)과 충돌하지 않도록 `hover:ring-1 hover:ring-primary/30 hover:border-line`으로 호버 피드백 개선.
     - 커스텀 배경 활성화 시 이전/다음 달 날짜(`!day.inCurrentMonth`)의 `text-content-muted` 색상이 `text-content`로 덮어써지던 문제를 수정하여 당월/타월 날짜 구분성 유지.
     - `DesktopCalendar`의 기본 투명도 폴백값을 `DEFAULT_CALENDAR_BG_SETTINGS.opacity`(`40`)로 일치시키고, `CalendarBgCustomizer`의 미정의 클래스(`hover:bg-surface-1`)를 디자인 토큰(`hover:bg-surface`)으로 정정.
-- **배경 투명도 상한선 90%로 확대 및 기본값 상향 (`src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`)**:
+- **배경 투명도 상한선 90%로 확대 및 원본 업로드 허용 크기 50MB로 확대 (`src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`)**:
   - 일러스트를 더 선명하게 감상하고 싶어 하는 사용자 니즈를 반영하여 배경 투명도 슬라이더 상한선을 기존 60%에서 **최대 90%**로 확대 (`MAX_BG_OPACITY = 90`, `clampBgOpacity`: 10 ~ 90%).
+  - 고해상도(4K/8K 등) 대용량 원본 일러스트(15MB 초과) 업로드 시 거절되지 않고 브라우저에서 정상적으로 리사이징 및 WebP 압축을 거칠 수 있도록 업로드 허용 한도를 기존 15MB에서 **최대 50MB**(`MAX_INPUT_FILE_SIZE = 50MB`)로 대폭 확대.
   - 초기 기본 배경 투명도를 30%에서 **40%**(`DEFAULT_BG_OPACITY = 40`)로 상향 조정.
 - **텍스트 및 일정 배지 가독성 강화 (`src/components/calendar/desktop-calendar.tsx`)**:
   - 일러스트가 밝거나 복잡한 경우에도 날짜와 일정이 묻히지 않도록 텍스트 섀도우 및 외곽 테두리 대비를 부여:

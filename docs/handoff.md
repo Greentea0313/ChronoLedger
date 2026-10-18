@@ -10,8 +10,9 @@
     - 커스텀 배경 활성화 시 날짜 숫자 `<span>`에 지정된 `text-content`가 부모 버튼의 `text-content-muted`를 덮어써서 이전/다음 달 날짜(`!day.inCurrentMonth`)의 텍스트 색상 구분이 약해지던 문제를 수정.
     - 동적 인라인 `style.backgroundColor` 적용 시 기존 `hover:bg-surface/30` 클래스가 CSS 명시도(specificity)로 인해 무시되거나 고불투명도(예: 70%) 설정 시 오히려 흐려질 수 있는 문제를 방지하기 위해 `hover:border-line hover:ring-1 hover:ring-primary/30`으로 호버 인터랙션을 개선.
     - `CalendarBgCustomizer` 내 미정의 클래스(`hover:bg-surface-1`)를 `hover:bg-surface`로 정정하고, `DesktopCalendar`의 기본 투명도 폴백을 `DEFAULT_CALENDAR_BG_SETTINGS.opacity`(`40`)로 통일.
-  - **배경 투명도 상한선 90% 확대 및 텍스트/배지 가독성 섀도우 보강**:
+  - **배경 투명도 상한선 90% 확대, 원본 업로드 한도 50MB 확대 및 텍스트/배지 가독성 섀도우 보강**:
     - 배경 이미지 투명도 슬라이더 상한선을 60%에서 90%(`MAX_BG_OPACITY = 90`, 기본값 `40%`)로 확대.
+    - 15MB가 넘는 고해상도(4K/8K 등) 대용량 일러스트도 브라우저 리사이징/압축 프로세스를 통과할 수 있도록 원본 파일 크기 상한을 기존 15MB에서 **50MB**로 확대.
     - 날짜 숫자에 `drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] font-bold`, 요일 헤더에 `drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] font-medium`, 일정 배지 컨테이너에 `drop-shadow-sm`, 게임 아이콘 및 모바일 도트에 `ring-1 ring-background/60 shadow-sm`을 부여하여 모든 배경에서 또렷하게 식별되도록 보강.
 - **수행 내역**:
   - `src/lib/calendar-bg-storage.ts`: `MAX_BG_OPACITY = 90`, `DEFAULT_BG_OPACITY = 40`, `MIN_TILE_OPACITY = 0`, `MAX_TILE_OPACITY = 90`, `DEFAULT_TILE_OPACITY = 15`, `clampTileOpacity` 추가 및 IndexedDB 영구 보관 연동.

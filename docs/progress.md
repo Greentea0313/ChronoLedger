@@ -16,8 +16,9 @@
      - `CalendarBgSettings`에 `tileOpacity` 추가 (범위 `0% ~ 90%`, 기본값 `15%`), `clampTileOpacity` 순수 함수 및 IndexedDB 영구 저장·복원·초기화 연동.
      - `[배경 커스텀 설정]` 팝오버에 **`날짜 타일 투명도` 슬라이더(`투명하게 0%` ~ `진하게 90%`)** 추가.
      - `DesktopCalendar`의 비선택 날짜 타일에 `backgroundColor: rgb(var(--surface) / ${tileOpacityRatio})`를 동적 적용하고, `0%`일 때는 `backdrop-blur`도 제거하여 완전 투명 타일을 지원하며 호버 시 `hover:ring-1 hover:ring-primary/30`으로 깔끔한 포커스 피드백 제공.
-  3. **배경 투명도 상한선 90% 확대 및 텍스트/일정 배지 섀도우 가독성 보강**:
+  3. **배경 투명도 상한선 90% 확대, 원본 업로드 한도 50MB 확대 및 가독성 섀도우 보강**:
      - `MAX_BG_OPACITY = 90`, `DEFAULT_BG_OPACITY = 40`, 가독성 보호 오버레이 `bg-surface/15` 적용.
+     - 고해상도 대용량 일러스트(15MB 초과)가 리사이징을 거치지 못하고 거절당하던 문제를 해결하기 위해 업로드 허용 한도를 15MB $\to$ **50MB**로 확대.
      - 날짜 숫자(`drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] font-bold`), 요일 헤더(`drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] font-medium`), 일정 배지(`drop-shadow-sm`), 아이콘 및 도트(`ring-1 ring-background/60 shadow-sm`) 대비 보강.
   4. **단위 테스트 및 정적 빌드 검증**:
      - `src/lib/calendar-bg-storage.test.ts` (6개 PASS), `src/components/calendar/calendar-bg-customizer.test.tsx` (1개 PASS), `src/components/calendar/desktop-calendar.test.tsx` (5개 PASS) 갱신.

@@ -26,7 +26,7 @@ export const MAX_TILE_OPACITY = 90
 const DB_NAME = "chronoledger_calendar_bg"
 const DB_VERSION = 1
 const STORE_NAME = "backgrounds"
-const MAX_INPUT_FILE_SIZE = 15 * 1024 * 1024 // 15MB
+const MAX_INPUT_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const MAX_DIMENSION_WIDTH = 1920
 const MAX_DIMENSION_HEIGHT = 1080
 
@@ -227,7 +227,7 @@ export async function clearCalendarBgRecord(userId?: string | null): Promise<Cal
  */
 export async function compressCalendarBgImage(file: File): Promise<Blob> {
   if (file.size > MAX_INPUT_FILE_SIZE) {
-    throw new Error("배경 이미지는 15MB 이하 파일만 업로드할 수 있습니다.")
+    throw new Error("배경 이미지는 50MB 이하 파일만 업로드할 수 있습니다.")
   }
 
   const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
