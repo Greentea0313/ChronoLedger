@@ -1,5 +1,27 @@
 # 프로젝트 진행 현황
 
+## 캘린더 커스텀 배경 시인성 대폭 개선: 글래스모피즘 반투명 타일, 투명도 상한 90% 확대, 텍스트·일정 배지 가독성 섀도우 보강 (2026-10-18)
+
+- **배경 및 사용자 요구사항**:
+  1. 현재 적용된 상태로는 배경의 일러스트가 날짜 타일 색상(`bg-app/75`) 및 오버레이에 가려져 제대로 보이지 않는 현상 개선 요청.
+  2. 제안된 방안 중 **글래스모피즘 반투명 타일 전환 + 투명도 상한 90% 확대**에 더해 **텍스트 및 일정 배지 가독성 보강**을 함께 적용하도록 결정.
+- **수행 내역**:
+  1. **글래스모피즘 반투명 타일 및 오버레이 완화 (`src/components/calendar/desktop-calendar.tsx`)**:
+     - 커스텀 배경 활성화 시 42개 날짜 타일 배경을 `bg-surface/15 backdrop-blur-[1px] hover:bg-surface/30`로 변경하여 배경 일러스트가 시원하게 투과되도록 개선.
+     - 가독성 보호 오버레이를 `bg-surface/40` $\to$ `bg-surface/15`로 낮추어 일러스트 색감과 선명도를 원본에 가깝게 유지.
+  2. **투명도 조절 상한선 90% 확대 및 기본값 상향 (`src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`)**:
+     - `MAX_BG_OPACITY = 90`, `DEFAULT_BG_OPACITY = 40`, `clampBgOpacity` 범위 `10 ~ 90%`로 상향.
+     - 슬라이더 상한치 90% 및 팝오버 안내 문구 동기화.
+  3. **텍스트 및 일정 배지 섀도우 가독성 보강 (`src/components/calendar/desktop-calendar.tsx`)**:
+     - 날짜 숫자에 `drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] font-bold` 적용.
+     - 요일 헤더에 `drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] font-medium` 적용.
+     - 일정 배지 컨테이너에 `drop-shadow-sm` 적용.
+     - 게임 아이콘 래퍼 및 모바일 인디케이터 도트에 `ring-1 ring-background/60 shadow-sm` 대비 테두리 적용.
+  4. **단위 테스트 및 정적 빌드 검증**:
+     - `src/lib/calendar-bg-storage.test.ts`, `src/components/calendar/calendar-bg-customizer.test.tsx`, `src/components/calendar/desktop-calendar.test.tsx` 갱신.
+     - `src/app/dashboard/expenses/page.test.tsx` 날짜 픽스처 최신화.
+     - Vitest 42개 파일 239개 테스트 100% 통과, Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 캘린더 커스텀 배경 이미지 업로드·투명도/블러 조절 구현, 사용자 지정 게임 아이콘 전역 적용 및 픽업 그래프 다중 색상 적용 (2026-10-17)
 
 - **배경 및 사용자 요구사항**:

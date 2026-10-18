@@ -1,7 +1,7 @@
 export type CalendarBgBlurLevel = "OFF" | "LOW" | "MEDIUM"
 
 export interface CalendarBgSettings {
-  opacity: number // 10 ~ 60 (%)
+  opacity: number // 10 ~ 90 (%)
   blur: CalendarBgBlurLevel
 }
 
@@ -11,12 +11,12 @@ export interface CalendarBgRecord extends CalendarBgSettings {
 }
 
 export const DEFAULT_CALENDAR_BG_SETTINGS: CalendarBgSettings = {
-  opacity: 25,
+  opacity: 40,
   blur: "OFF",
 }
 
 export const MIN_BG_OPACITY = 10
-export const MAX_BG_OPACITY = 60
+export const MAX_BG_OPACITY = 90
 
 const DB_NAME = "chronoledger_calendar_bg"
 const DB_VERSION = 1
@@ -33,7 +33,7 @@ function getStorageKey(userId?: string | null): string {
 }
 
 /**
- * 투명도 값을 10% ~ 60% 범위로 강제 클램핑합니다. (가독성 보호 상한 60%)
+ * 투명도 값을 10% ~ 90% 범위로 강제 클램핑합니다. (가독성 보호 상한 90%)
  */
 export function clampBgOpacity(value: number): number {
   if (Number.isNaN(value)) return DEFAULT_CALENDAR_BG_SETTINGS.opacity

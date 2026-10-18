@@ -11,13 +11,14 @@ import {
 } from "./calendar-bg-storage"
 
 describe("calendar-bg-storage", () => {
-  it("clampBgOpacity는 투명도 값을 10% ~ 60% 범위로 강제 클램핑한다", () => {
+  it("clampBgOpacity는 투명도 값을 10% ~ 90% 범위로 강제 클램핑한다", () => {
     expect(clampBgOpacity(5)).toBe(10)
     expect(clampBgOpacity(0)).toBe(10)
     expect(clampBgOpacity(25)).toBe(25)
     expect(clampBgOpacity(60)).toBe(60)
-    expect(clampBgOpacity(85)).toBe(60)
-    expect(clampBgOpacity(100)).toBe(60)
+    expect(clampBgOpacity(85)).toBe(85)
+    expect(clampBgOpacity(90)).toBe(90)
+    expect(clampBgOpacity(100)).toBe(90)
     expect(clampBgOpacity(Number.NaN)).toBe(DEFAULT_CALENDAR_BG_SETTINGS.opacity)
   })
 
@@ -41,25 +42,25 @@ describe("calendar-bg-storage", () => {
 
     await saveCalendarBgRecord("user-bg-1", {
       blob: sampleBlob,
-      opacity: 90, // 60% 상한으로 클램핑되어야 함
+      opacity: 98, // 90% 상한으로 클램핑되어야 함
       blur: "MEDIUM",
     })
 
     const loaded = await loadCalendarBgRecord("user-bg-1")
     expect(loaded.blob).toBe(sampleBlob)
-    expect(loaded.opacity).toBe(60)
+    expect(loaded.opacity).toBe(90)
     expect(loaded.blur).toBe("MEDIUM")
 
     // 다른 사용자는 기본 상태를 반환해야 함
     const otherUser = await loadCalendarBgRecord("user-bg-2")
     expect(otherUser.blob).toBeNull()
-    expect(otherUser.opacity).toBe(25)
+    expect(otherUser.opacity).toBe(40)
     expect(otherUser.blur).toBe("OFF")
 
     // 초기화 후 기본값 복귀 확인
     const cleared = await clearCalendarBgRecord("user-bg-1")
     expect(cleared.blob).toBeNull()
-    expect(cleared.opacity).toBe(25)
+    expect(cleared.opacity).toBe(40)
     expect(cleared.blur).toBe("OFF")
 
     const afterClear = await loadCalendarBgRecord("user-bg-1")

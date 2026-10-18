@@ -89,10 +89,10 @@ export function DesktopCalendar({
               transform: backgroundConfig.blur !== "OFF" ? "scale(1.04)" : "scale(1)",
             }}
           />
-          {/* 텍스트 및 배지 가독성 보호용 반투명 오버레이 */}
+          {/* 텍스트 및 배지 가독성 보호용 반투명 오버레이 (일러스트 감상을 위해 15%로 최적화) */}
           <div
             data-testid="calendar-custom-bg-overlay"
-            className="absolute inset-0 bg-surface/40"
+            className="absolute inset-0 bg-surface/15"
           />
         </div>
       )}
@@ -123,7 +123,11 @@ export function DesktopCalendar({
             </button>
           </div>
         </header>
-        <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs text-content-muted">
+        <div
+          className={`mb-2 grid grid-cols-7 gap-1 text-center text-xs ${
+            hasCustomBg ? "text-content font-medium drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" : "text-content-muted"
+          }`}
+        >
           {WEEKDAY_LABELS.map((weekday) => (
             <span key={weekday}>{weekday}</span>
           ))}
@@ -140,15 +144,23 @@ export function DesktopCalendar({
                 aria-pressed={isSelected}
                 className={`relative flex flex-col justify-between h-[54px] md:h-[100px] overflow-hidden rounded-md border p-1 md:p-1.5 text-left transition-colors duration-fast ${
                   isSelected
-                    ? "border-primary bg-primary/20"
+                    ? "border-primary bg-primary/25 shadow-sm"
                     : hasCustomBg
-                    ? "border-line/80 bg-app/75 hover:bg-app/85 hover:border-line-control"
+                    ? "border-line/40 bg-surface/15 backdrop-blur-[1px] hover:bg-surface/30 hover:border-line"
                     : "border-line bg-app hover:border-line-control"
                 } ${day.inCurrentMonth ? "text-content" : "text-content-muted opacity-60"}`}
               >
               {/* Top row: Day number on left, Game icons and Memo on right (Desktop) / Dots on Mobile */}
               <div className="flex items-start justify-between w-full">
-                <span className="text-xs md:text-sm font-semibold leading-none">{day.day}</span>
+                <span
+                  className={`text-xs md:text-sm leading-none ${
+                    hasCustomBg
+                      ? "font-bold text-content drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                      : "font-semibold"
+                  }`}
+                >
+                  {day.day}
+                </span>
                 {/* Desktop: Game icons & memo dot */}
                 <div className="hidden md:flex flex-col gap-0.5 items-end">
                   {day.icons.slice(0, 3).map((icon) => (
@@ -156,7 +168,11 @@ export function DesktopCalendar({
                       key={`${day.date}-${icon.gameId}`}
                       title={icon.label}
                       aria-label={icon.label}
-                      className="h-4 w-4 md:h-5 md:w-5 inline-block overflow-hidden rounded-[3px] md:rounded-[4px] bg-primary/20 text-center flex items-center justify-center"
+                      className={`h-4 w-4 md:h-5 md:w-5 inline-block overflow-hidden rounded-[3px] md:rounded-[4px] text-center flex items-center justify-center ${
+                        hasCustomBg
+                          ? "bg-surface/75 shadow-sm border border-line/60"
+                          : "bg-primary/20"
+                      }`}
                     >
                       {icon.iconUrl ? (
                         <GameIcon
@@ -170,22 +186,42 @@ export function DesktopCalendar({
                       )}
                     </span>
                   ))}
-                  {day.hasMemo && <span className="h-2 w-2 rounded-full bg-content-muted mr-0.5 mt-0.5" />}
+                  {day.hasMemo && (
+                    <span
+                      className={`h-2 w-2 rounded-full bg-content-muted mr-0.5 mt-0.5 ${
+                        hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
+                      }`}
+                    />
+                  )}
                 </div>
 
                 {/* Mobile only: Small dots for game schedules and memo in top right */}
                 <div className="flex md:hidden items-center gap-1">
                   {day.schedules.some((s) => s.is_start_date) && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary" title="게임 일정 있음" />
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full bg-primary ${
+                        hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
+                      }`}
+                      title="게임 일정 있음"
+                    />
                   )}
                   {day.hasMemo && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-content-muted" title="메모 있음" />
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full bg-content-muted ${
+                        hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
+                      }`}
+                      title="메모 있음"
+                    />
                   )}
                 </div>
               </div>
 
               {/* Desktop Bottom-left: VERSION, PICKUP, CONTENTS tags (Hidden on mobile) */}
-              <div className="hidden md:flex flex-col gap-0.5 items-start absolute bottom-1.5 left-1.5 z-10">
+              <div
+                className={`hidden md:flex flex-col gap-0.5 items-start absolute bottom-1.5 left-1.5 z-10 ${
+                  hasCustomBg ? "drop-shadow-sm" : ""
+                }`}
+              >
                 {(() => {
                   const hasVersion = day.schedules.some((s) => s.schedule_type === "VERSION" && s.is_start_date)
                   const hasPickup = day.schedules.some((s) => s.schedule_type === "PICKUP" && s.is_start_date)

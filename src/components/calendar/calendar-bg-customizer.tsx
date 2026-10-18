@@ -164,14 +164,14 @@ export function CalendarBgCustomizer({
             )}
           </div>
 
-          {/* 2. 투명도 슬라이더 (10% ~ 60% 상한 제한) */}
+          {/* 2. 투명도 슬라이더 (10% ~ 90% 상한 제한) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <label htmlFor="calendar-bg-opacity-range" className="font-medium text-content-secondary">
                 배경 투명도
               </label>
               <span className="font-semibold text-primary" data-testid="calendar-bg-opacity-value">
-                {safeOpacity}% <span className="text-[10px] font-normal text-content-muted">(최대 60%)</span>
+                {safeOpacity}% <span className="text-[10px] font-normal text-content-muted">(최대 90%)</span>
               </span>
             </div>
             <input
@@ -187,7 +187,7 @@ export function CalendarBgCustomizer({
             />
             <div className="flex justify-between text-[10px] text-content-muted">
               <span>은은하게 (10%)</span>
-              <span>선명하게 (60%)</span>
+              <span>선명하게 (90%)</span>
             </div>
           </div>
 

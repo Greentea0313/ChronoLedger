@@ -31,10 +31,10 @@ describe("CalendarBgCustomizer", () => {
     expect(screen.getByRole("dialog", { name: "배경 커스텀 설정 패널" })).toBeTruthy()
     expect(screen.getByText("배경 이미지 변경")).toBeTruthy()
 
-    // 투명도 슬라이더 (10% ~ 60% 상한 검증)
+    // 투명도 슬라이더 (10% ~ 90% 상한 검증)
     const slider = screen.getByLabelText("배경 투명도 조절") as HTMLInputElement
     expect(slider.min).toBe("10")
-    expect(slider.max).toBe("60")
+    expect(slider.max).toBe("90")
     expect(slider.value).toBe("30")
 
     fireEvent.change(slider, { target: { value: "45" } })
