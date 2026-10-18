@@ -222,6 +222,7 @@ export function DesktopCalendar({
                   ))}
                   {day.hasMemo && (
                     <span
+                      data-testid="memo-dot"
                       className={`h-2 w-2 rounded-full bg-content-muted mr-0.5 mt-0.5 ${
                         hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
                       }`}

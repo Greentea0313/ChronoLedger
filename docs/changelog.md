@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-10-19 (캘린더 날짜별 개인 메모 저장 실패 결함 해결 및 UNIQUE 제약조건 마이그레이션)
+
+- **개인 메모(personal_memos) 저장 실패 원인 해결 (`src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar.tsx`)**:
+  - 기존 `handleSaveMemo`에서 Supabase의 `.upsert(..., { onConflict: "user_id,memo_date" })`를 호출하고 있었으나, 데이터베이스의 `personal_memos` 테이블에 `(user_id, memo_date)`에 대한 `UNIQUE` 제약조건(또는 인덱스)이 생성되어 있지 않아 PostgreSQL의 `42P10 (there is no unique or exclusion constraint matching the ON CONFLICT specification)` 오류가 발생하며 저장이 실패하던 문제를 해결.
+  - DB 제약조건 유무와 무관하게 100% 안전하게 동작하도록 `existingMemo` 존재 여부에 따라 명시적인 `update` / `insert` / `delete`(빈 내용 입력 시) 분기 로직으로 개편.
+  - `personal_memos` 조회 쿼리에 `id` 컬럼을 포함하고 `MemoRow` 타입에 `id?: string`을 추가하여 정확한 레코드 식별 및 업데이트 보장.
+  - 저장 요청 직후 `setMemos`를 통한 낙관적 로컬 상태 반영으로 딜레이 없이 캘린더 타일의 메모 인디케이터 도트(`day.hasMemo`)와 사이드바 텍스트가 즉각 동기화되도록 개선.
+  - `HeroSidebar`의 `handleSave`에 `try...catch` 예외 처리를 추가하여 저장 실패 시 침묵하지 않고 사용자에게 명확한 alert 알림을 제공하도록 안전망 구축.
+- **데이터베이스 스키마 및 마이그레이션 SQL 스크립트 제공 (`md/SCHEMA.sql`, `md/MIGRATION_MEMO_UNIQUE.sql`)**:
+  - `md/SCHEMA.sql`: `personal_memos` 테이블 정의에 `CONSTRAINT uq_personal_memos_user_date UNIQUE (user_id, memo_date)` 추가.
+  - `md/MIGRATION_MEMO_UNIQUE.sql` 신규 작성: 기존 DB에 중복 저장된 이력이 있을 경우 가장 최근 작성된 메모만 유지하고 중복을 정리한 뒤 `uq_personal_memos_user_date` 유니크 제약조건을 안전하게 부여하는 멱등성 보장 마이그레이션 DDL 스크립트 작성.
+- **단위 테스트 및 빌드 무결점 검증**:
+  - Vitest 42개 파일 241개 테스트 전체 통과 (100% PASS), Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 2026-10-19 (캘린더 날짜 타일 내 당일(Today) 표기 배지 추가)
 
 - **당일(Today) 타일 식별 '오늘' 골드 배지 추가 (`src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`)**:

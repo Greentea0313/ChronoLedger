@@ -114,7 +114,8 @@ CREATE TABLE public.personal_memos (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     memo_date DATE NOT NULL,
     content TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT uq_personal_memos_user_date UNIQUE (user_id, memo_date)
 );
 
 -- 8. 정기 구독 결제 템플릿

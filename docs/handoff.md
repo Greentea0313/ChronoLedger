@@ -1,5 +1,26 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 캘린더 날짜별 개인 메모 저장 실패 결함 해결 및 UNIQUE 제약조건 마이그레이션 (2026-10-19)
+
+- **결정 및 배경**:
+  - **Supabase upsert onConflict 실패 문제**:
+    - PostgreSQL의 `ON CONFLICT (user_id, memo_date)` 구문은 해당 컬럼들에 대한 `UNIQUE` 제약조건 또는 `UNIQUE` 인덱스가 데이터베이스에 물리적으로 생성되어 있어야만 실행이 가능함.
+    - 기존 `md/SCHEMA.sql` 및 실제 DB에 이 제약조건이 없어 `42P10 (there is no unique or exclusion constraint matching the ON CONFLICT specification)` 에러로 인해 메모 작성이 저장되지 않는 현상이 발생함.
+  - **방어적 클라이언트 분기 로직 적용**:
+    - DB 스키마 수정 마이그레이션이 즉시 반영되지 않은 환경에서도 메모 저장이 100% 보장되도록 `src/app/dashboard/page.tsx`의 `handleSaveMemo`를 `upsert` 의존에서 벗어나 `existingMemo` 존재 여부에 따른 명시적 `update` / `insert` / `delete` 분기 구조로 개편.
+    - 또한 저장이 진행되는 동안 사용자 인터페이스가 멈추거나 튕기지 않고 타일의 점(`day.hasMemo`)과 사이드바에 즉각 변경사항이 표시되도록 낙관적 상태 갱신(`setMemos`)을 적용함.
+- **수행 내역**:
+  - `src/app/dashboard/page.tsx`:
+    - `MemoRow` 타입에 `id?: string` 추가.
+    - `personal_memos` select 쿼리에 `id` 포함.
+    - `handleSaveMemo`에서 `upsert({ onConflict })` 제거 $\to$ `existingMemo ? update : insert`, 빈 메모 삭제(`delete`) 분기 및 `setMemos` 낙관적 업데이트.
+  - `src/components/calendar/hero-sidebar.tsx`: `handleSave`에 `try...catch` 및 오류 알림(`alert`) 보강.
+  - `md/SCHEMA.sql`: `personal_memos` 테이블에 `CONSTRAINT uq_personal_memos_user_date UNIQUE (user_id, memo_date)` 추가.
+  - `md/MIGRATION_MEMO_UNIQUE.sql`: 중복 제거 및 유니크 제약조건 추가 DDL 스크립트 신규 작성.
+- **검증 증거**:
+  - `npx vitest run`: 42개 파일 / 241개 테스트 100% 통과 (PASS).
+  - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공 (0 error).
+
 ## 캘린더 날짜 타일 내 당일(Today) 표기 골드 배지 추가 (2026-10-19)
 
 - **결정 및 배경**:

@@ -41,6 +41,7 @@ interface ScheduleRow {
 }
 
 interface MemoRow {
+  id?: string
   memo_date: string
   content: string
 }
@@ -260,7 +261,7 @@ export default function DashboardPage() {
         supabase.from("monthly_budgets").select("budget_amount").eq("user_id", user.id).eq("year", year).eq("month", month).maybeSingle(),
         supabase.from("store_wallets").select("platform, current_balance").eq("user_id", user.id),
         supabase.from("game_schedules").select("id, title, schedule_type, start_date, end_date, game_id, memo").lt("start_date", endDateExclusive).gte("end_date", startDate),
-        supabase.from("personal_memos").select("memo_date, content").eq("user_id", user.id).gte("memo_date", startDate).lt("memo_date", endDateExclusive),
+        supabase.from("personal_memos").select("id, memo_date, content").eq("user_id", user.id).gte("memo_date", startDate).lt("memo_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).eq("status", "PLANNED").gte("end_date", startDate).lt("end_date", endDateExclusive),
         supabase.from("user_games").select("game_id, games(name, default_icon_url)").eq("user_id", user.id),
@@ -467,27 +468,57 @@ export default function DashboardPage() {
   const handleSaveMemo = async (content: string) => {
     if (!user || !baseDate) return
     const trimmed = content.trim()
+    const existingMemo = memos.find((m) => m.memo_date === baseDate)
+
     if (trimmed === "") {
-      const { error: delErr } = await supabase
-        .from("personal_memos")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("memo_date", baseDate)
-      if (delErr) throw delErr
+      if (existingMemo) {
+        setMemos((prev) => prev.filter((m) => m.memo_date !== baseDate))
+        const { error: delErr } = existingMemo.id
+          ? await supabase.from("personal_memos").delete().eq("id", existingMemo.id).eq("user_id", user.id)
+          : await supabase.from("personal_memos").delete().eq("user_id", user.id).eq("memo_date", baseDate)
+        if (delErr) {
+          console.error("메모 삭제 실패:", delErr)
+          await load()
+          throw delErr
+        }
+      }
     } else {
-      const { error: upsertErr } = await supabase
-        .from("personal_memos")
-        .upsert(
-          {
+      if (existingMemo) {
+        setMemos((prev) =>
+          prev.map((m) => (m.memo_date === baseDate ? { ...m, content: trimmed } : m)),
+        )
+        const { error: updateErr } = existingMemo.id
+          ? await supabase.from("personal_memos").update({ content: trimmed }).eq("id", existingMemo.id).eq("user_id", user.id)
+          : await supabase.from("personal_memos").update({ content: trimmed }).eq("user_id", user.id).eq("memo_date", baseDate)
+        if (updateErr) {
+          console.error("메모 수정 실패:", updateErr)
+          await load()
+          throw updateErr
+        }
+      } else {
+        const tempMemo: MemoRow = { memo_date: baseDate, content: trimmed }
+        setMemos((prev) => [...prev, tempMemo])
+        const { data: inserted, error: insertErr } = await supabase
+          .from("personal_memos")
+          .insert({
             user_id: user.id,
             memo_date: baseDate,
             content: trimmed,
-          },
-          { onConflict: "user_id,memo_date" }
-        )
-      if (upsertErr) throw upsertErr
+          })
+          .select("id, memo_date, content")
+          .maybeSingle()
+        if (insertErr) {
+          console.error("메모 저장 실패:", insertErr)
+          await load()
+          throw insertErr
+        }
+        if (inserted) {
+          setMemos((prev) =>
+            prev.map((m) => (m.memo_date === baseDate ? { ...m, id: inserted.id } : m)),
+          )
+        }
+      }
     }
-    await load()
   }
 
   const detailExpense = useMemo(() => {

@@ -178,6 +178,8 @@ export function HeroSidebarContent({
     try {
       await onSaveMemo(memoInput)
       setIsEditingMemo(false)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "메모 저장 중 오류가 발생했습니다.")
     } finally {
       setIsSavingMemo(false)
     }

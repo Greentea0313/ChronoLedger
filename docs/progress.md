@@ -1,5 +1,30 @@
 # 프로젝트 진행 현황
 
+## 캘린더 날짜별 개인 메모 저장 실패 결함 해결 및 UNIQUE 제약조건 마이그레이션 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  1. 날짜 타일 클릭 후 사이드바(데스크톱) 또는 모바일 드로어에서 작성한 메모가 저장되지 않는 문제 제기.
+  2. 메모 저장/수정/삭제 시 DB 오류 없이 신뢰성 있게 저장되고, 캘린더 타일 인디케이터 도트와 사이드바에 즉각 반영될 것.
+- **원인 분석**:
+  - `personal_memos` 테이블 스키마에 `(user_id, memo_date)`에 대한 `UNIQUE` 제약조건이 누락되어 있었음.
+  - `src/app/dashboard/page.tsx`의 `handleSaveMemo`에서 `.upsert(..., { onConflict: "user_id,memo_date" })`를 호출할 때 PostgreSQL이 `42P10 (there is no unique or exclusion constraint matching the ON CONFLICT specification)` 예외를 발생시키며 저장이 거부됨.
+  - `hero-sidebar.tsx`의 `handleSave`에서 에러 핸들링이 누락되어 실패 시 아무런 알림 없이 침묵함.
+- **수행 내역**:
+  1. **명시적 분기 로직(Update/Insert/Delete) 전환 및 낙관적 로컬 상태 반영 (`src/app/dashboard/page.tsx`)**:
+     - DB 수준의 UNIQUE 제약조건 유무와 무관하게 100% 정상 작동하도록 기존 `upsert` 구문을 분기 처리:
+       - 빈 내용(`!trimmed`): 기존 메모 삭제(`delete`).
+       - 기존 메모 존재(`existingMemo`): `update` 호출 (`id` 또는 `user_id, memo_date` 기준).
+       - 신규 메모: `insert` 호출.
+     - `personal_memos` 조회 쿼리에 `id`를 포함하고 `MemoRow` 타입에 `id?: string` 추가.
+     - 저장 요청 시 `setMemos`를 통한 낙관적 상태 갱신으로 타일의 메모 인디케이터 도트(`hasMemo`)와 사이드바가 지연 없이 즉각 동기화되도록 구현.
+  2. **에러 핸들링 및 사용자 피드백 추가 (`src/components/calendar/hero-sidebar.tsx`)**:
+     - `handleSave` 내부에 `try...catch`를 적용하여 네트워크/DB 예외 발생 시 `alert("메모 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")` 피드백 제공.
+  3. **데이터베이스 스키마 및 마이그레이션 DDL 제공 (`md/SCHEMA.sql`, `md/MIGRATION_MEMO_UNIQUE.sql`)**:
+     - `SCHEMA.sql`: `personal_memos` 테이블에 `CONSTRAINT uq_personal_memos_user_date UNIQUE (user_id, memo_date)` 추가.
+     - `MIGRATION_MEMO_UNIQUE.sql`: 기존 중복 데이터 정리(가장 최근 레코드 보존) 후 유니크 제약조건을 안전하게 추가하는 마이그레이션 스크립트 작성.
+  4. **단위 테스트 및 빌드 무결점 검증**:
+     - Vitest 42개 파일 241개 테스트 전체 통과 (100% PASS), Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 캘린더 날짜 타일 내 당일(Today) 표기 골드 배지 추가 (2026-10-19)
 
 - **배경 및 사용자 요구사항**:
