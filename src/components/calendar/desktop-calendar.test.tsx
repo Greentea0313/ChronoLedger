@@ -29,6 +29,12 @@ describe("DesktopCalendar", () => {
     expect(screen.getByText("PICKUP")).toBeTruthy()
     expect(screen.getByLabelText("게임 A")).toBeTruthy()
     expect(screen.queryByText(/원/)).toBeNull()
+
+    const memoDot = screen.getByTestId("memo-dot")
+    expect(memoDot).toBeTruthy()
+    expect(memoDot.parentElement?.className).toContain("w-4")
+    expect(memoDot.parentElement?.className).toContain("md:w-5")
+    expect(memoDot.parentElement?.className).toContain("justify-center")
   })
 
   it("renders multiple banners strictly in order [VERSION], [PICKUP], [CONTENTS]", () => {
@@ -137,7 +143,7 @@ describe("DesktopCalendar", () => {
 
     const memoDots = screen.getAllByTitle("메모 있음")
     expect(memoDots).toHaveLength(1)
-    expect(memoDots[0].className).toContain("bg-content-muted")
+    expect(memoDots[0].className).toContain("bg-content-secondary")
   })
 
   it("backgroundConfig에 커스텀 배경 이미지가 설정되면 object-fit: cover 배경 레이어, 가독성 보호 오버레이 및 날짜 타일 투명도를 렌더링한다", () => {
@@ -242,6 +248,87 @@ describe("DesktopCalendar", () => {
     const otherTile = screen.getByRole("button", { name: "2026-10-18" })
     expect(otherTile.getAttribute("data-today")).toBeNull()
     expect(otherTile.className).not.toContain("max-md:border-[#EFBF04]")
+  })
+
+  it("메모 도트는 데스크톱에서 아이콘 컬럼 중심과 일치하는 래퍼 안에 위치하고, 기본 및 커스텀 배경에 따라 대비 링과 미세 그림자가 적용된다", () => {
+    const { unmount } = render(
+      <DesktopCalendar
+        year={2026}
+        month={10}
+        selectedDate="2026-10-20"
+        onSelectDate={vi.fn()}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
+        days={[
+          {
+            date: "2026-10-20",
+            day: 20,
+            inCurrentMonth: true,
+            schedules: [],
+            icons: [],
+            hasMemo: true,
+          },
+        ]}
+      />,
+    )
+
+    // 기본 배경: 데스크톱 메모 도트
+    const defaultMemoDot = screen.getByTestId("memo-dot")
+    expect(defaultMemoDot.parentElement?.className).toContain("w-4")
+    expect(defaultMemoDot.parentElement?.className).toContain("md:w-5")
+    expect(defaultMemoDot.parentElement?.className).toContain("flex")
+    expect(defaultMemoDot.parentElement?.className).toContain("justify-center")
+    expect(defaultMemoDot.className).toContain("bg-content-secondary")
+    expect(defaultMemoDot.className).toContain("ring-1")
+    expect(defaultMemoDot.className).toContain("ring-surface")
+    expect(defaultMemoDot.className).toContain("shadow-[0_0_0_1px_rgba(0,0,0,0.25)]")
+
+    // 기본 배경: 모바일 메모 도트
+    const defaultMobileMemoDot = screen.getByTestId("mobile-dot-memo")
+    expect(defaultMobileMemoDot.className).toContain("bg-content-secondary")
+    expect(defaultMobileMemoDot.className).toContain("ring-1")
+    expect(defaultMobileMemoDot.className).toContain("ring-surface")
+    expect(defaultMobileMemoDot.className).toContain("shadow-[0_0_0_1px_rgba(0,0,0,0.25)]")
+
+    unmount()
+
+    // 커스텀 배경 적용 시
+    render(
+      <DesktopCalendar
+        year={2026}
+        month={10}
+        selectedDate="2026-10-20"
+        onSelectDate={vi.fn()}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
+        days={[
+          {
+            date: "2026-10-20",
+            day: 20,
+            inCurrentMonth: true,
+            schedules: [],
+            icons: [],
+            hasMemo: true,
+          },
+        ]}
+        backgroundConfig={{
+          imageUrl: "blob:custom-bg",
+          opacity: 50,
+          tileOpacity: 50,
+          blur: "OFF",
+        }}
+      />,
+    )
+
+    const customMemoDot = screen.getByTestId("memo-dot")
+    expect(customMemoDot.className).toContain("ring-[1.5px]")
+    expect(customMemoDot.className).toContain("ring-white/80")
+    expect(customMemoDot.className).toContain("shadow-[0_1px_2px_rgba(0,0,0,0.6)]")
+
+    const customMobileMemoDot = screen.getByTestId("mobile-dot-memo")
+    expect(customMobileMemoDot.className).toContain("ring-[1.5px]")
+    expect(customMobileMemoDot.className).toContain("ring-white/80")
+    expect(customMobileMemoDot.className).toContain("shadow-[0_1px_2px_rgba(0,0,0,0.6)]")
   })
 })
 

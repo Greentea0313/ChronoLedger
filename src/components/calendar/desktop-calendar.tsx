@@ -227,12 +227,16 @@ export function DesktopCalendar({
                     </span>
                   ))}
                   {day.hasMemo && (
-                    <span
-                      data-testid="memo-dot"
-                      className={`h-2 w-2 rounded-full bg-content-muted mr-0.5 mt-0.5 ${
-                        hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
-                      }`}
-                    />
+                    <div className="w-4 md:w-5 flex justify-center">
+                      <span
+                        data-testid="memo-dot"
+                        className={`h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-content-secondary ${
+                          hasCustomBg
+                            ? "ring-[1.5px] ring-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+                            : "ring-1 ring-surface shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
+                        }`}
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -268,8 +272,10 @@ export function DesktopCalendar({
                   {day.hasMemo && (
                     <span
                       data-testid="mobile-dot-memo"
-                      className={`h-1.5 w-1.5 rounded-full bg-content-muted shrink-0 ${
-                        hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
+                      className={`h-1.5 w-1.5 rounded-full bg-content-secondary shrink-0 ${
+                        hasCustomBg
+                          ? "ring-[1.5px] ring-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+                          : "ring-1 ring-surface shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
                       }`}
                       title="메모 있음"
                     />
