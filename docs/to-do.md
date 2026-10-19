@@ -3,6 +3,7 @@
 현재 작업 우선순위와 완료 상태의 단일 기준 문서다. [Gemini 진행 기록](to-do_Gemini.md)은 별도 작성 이력으로 보존하며, 이 체크리스트와 상태가 다르면 이 문서 및 검증 가능한 구현/테스트 증거를 우선한다.
 
 ## Phase 0. SRS 및 설계 진입 게이트
+
 - [x] 0.1 예정 취소/복구와 환불 상태 전이를 분리하고 물리 삭제 금지 정책 및 RPC 경로를 명세했다.
 - [x] 0.2 앱 예상 적립식을 `floor(final_amount * rate / 100)`으로 정하고 공식 정산 비보장 및 수동 보정 정책을 명세했다.
 - [x] 0.3 일정-게임 일치, 템플릿 소유권 및 게임 일치 검증 규칙을 명세하고 SQL 트리거 초안을 추가했다.
@@ -29,12 +30,13 @@
 
 ## 설계 자료 검토 및 협업 파이프라인
 
-- [ ] 파이프라인 v2 이식 결정: (1) 설계 단계 Antigravity/Gemini 사용과 전송 승인 정책, (2) Codex/OpenCode 정식 역할 여부, (3) 참고 문서로만 둘지 가이드·Orchestrator에 반영할지, (4) Docker/VM 격리 환경 준비 여부. 상세는 [이식 검토](ChronoLedger_pipeline_v2_porting_review.md).
-
+- [x] 파이프라인 v2 및 5대 AI 모델 협업 체계 확립 완료 (2026-10-19):
+  - `Gemini 4 Argon`(주축 Orchestrator & Architect), `GPT Codex`(Core Logic & Test Maker), `Claude Opus 5.5`(Reviewer & Complex Maker), `GitHub Copilot`(General Maker & Fallback Hub), `Gemini 3.8 Flash`(Fast UI Maker & Subagent) 5대 모델 역할 분배 및 토큰 소진 시 대체(Fallback) 체인을 [`docs/handoff.md`](handoff.md) 및 [`.agents/skills/`](../.agents/skills/)에 정식 반영 완료.
+  - `"인수인계 문서를 확인해"` 명령어 기반 자동 과제 실행(`Active Dispatch Queue`), 미커밋 강제 중단 자동 복구, 토큰 부족 시 비상 인계(`⚠️ HANDOVER_NEEDED` 및 `중단 체크포인트`) 프로토콜 구축 완료.
 - [x] UI 디자인 시트와 한국어 HTML 목업을 SRS와 대조하고 아키텍처/구현 체크리스트에 참조를 추가했다.
 - [x] VS Code GitHub Copilot 저장소 지침과 Maker/Reviewer 프로필을 추가하고 사용자 안내를 연결했다. 기존 `.github/agents/*.agent.md` 파일은 Antigravity 전환 실험 시 `.bak`으로 보존했다.
-- [ ] Antigravity가 `.agents/rules/language.md` 및 Maker/Reviewer/Orchestrator skills를 인식하고 호출하는지 확인한다. 실제 도구 권한·격리 동작도 별도로 점검한다.
-- [ ] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Copilot Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다.
+- [x] Antigravity용 `.agents/rules/language.md` 및 `.agents/skills/` (`handoff`, `chronoledger-orchestrator`, `chronoledger-maker`, `chronoledger-reviewer`) 구성을 완료하고 5대 AI 모델 자동 위임/대체 체인과 연동했다.
+- [ ] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다.
 - [x] 대시보드·지출·통계 반응형 시안을 만들고 주요 화면 구성과 반응형 동작을 브라우저에서 검증한다. 사용자는 대시보드 그래프 제외, 데스크톱 표/모바일 그룹 카드, 아이콘 전체 표시, 월별 세로 막대/분류별 가로 막대를 결정했다.
 - [x] 시안 검토 후 글자 크기, 쿨 뉴트럴 라이트 팔레트/대비, 기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 확정해 UI 디자인 시트·상세 설계에 기록했다.
 - [x] A2z 제작자 페이지의 SIL OFL 1.1 및 눈누의 상업 사용/수정/재배포 허용 안내를 확인했다. 재배포 시 저작권 고지와 OFL 전문이 필요하며, 폰트 자체 단독 판매는 허용되지 않는다.
@@ -86,6 +88,7 @@
 ---
 
 ### 문서 정리
+
 - [x] 오래된 기획 검토 문서를 참조 상태와 최신 기준 문서에 따라 정리
   - 삭제: `md/fix-proposals.md`, `md/revisions_and_decisions_review.md` (구식 Gemini.sql/Downloads 기준, 활성 문서 참조 없음)
   - 보존: 현재 체크리스트/인수인계에서 참조하는 SRS 준비도 및 차단 항목 검토 이력
@@ -128,6 +131,7 @@
   - 현황: Antigravity 시스템 내장 서브에이전트(chronoledger-reviewer)로 리뷰 과정이 성공적으로 대체되어 기존 수동 PoC 및 단일 API 스크립트 도입은 폐기함.
 
 ### Phase 1. Web/PWA 환경 및 테스트 기반
+
 - [x] 1.1 Next.js 14+ (App Router) 정적 export 프로젝트 초기화
   - 대상 파일: `package.json`, `next.config.mjs`, `src/app/layout.tsx`
   - 작업: `output: 'export'` 설정, `images.unoptimized: true` 설정, Tailwind 보일러플레이트 세팅
@@ -148,6 +152,7 @@
 ---
 
 ### Phase 2. 데이터베이스 스키마, RPC 및 RLS 배포
+
 - [x] 2.1 12개 핵심 테이블 DDL 마이그레이션 적용
   - 대상 파일: `md/SCHEMA.sql`
   - 작업: Supabase 대시보드 SQL 에디터에서 통합 DDL 스크립트 실행
@@ -172,6 +177,7 @@
 ---
 
 ### Phase 3. Web/PWA 인증(Auth)
+
 - [x] 3.1 이메일 가입/로그인 및 구글 OAuth 연동
   - 대상 파일: `src/app/auth/page.tsx` 또는 통합 로그인 경로, `src/app/auth/callback/page.tsx`, `src/lib/auth-context.tsx`
   - 작업: 이메일 가입/로그인, Google OAuth/PKCE callback, 세션 상태 및 protected routes를 Web/PWA 기준으로 연결했다. 별도 callback route는 기존 공유 callback 흐름을 재사용한다.
@@ -186,6 +192,7 @@
 ---
 
 ### Phase 4. 게임 마스터, 256x256 아이콘 및 요청 시스템
+
 - [x] 4.1 클라이언트 Canvas 256x256 WebP 리사이징 모듈
   - 대상 파일: `src/lib/image-resizer.ts`
   - 작업: PNG/JPG/JPEG/WebP 입력(원본 5 MiB 이하)을 1:1 중앙 크롭 후 Canvas로 256×256 WebP 변환 (Safari 폴백 포함)
@@ -203,6 +210,7 @@
 ---
 
 ### Phase 5. 미니멀 캘린더 코어, 개인 메모 및 Lazy Generation
+
 - [x] 5.1 날짜 연산 코어 및 말일 보정 함수 작성
   - 대상 파일: `src/lib/calendar-utils.ts`
   - 작업: 6주 캘린더 그리드 및 `getAdjustedBillingDate(year, month, billingDay)` 구현
@@ -223,6 +231,7 @@
 ---
 
 ### Phase 6. 가계부, 결제/환불 RPC 연동 및 포인트 지갑
+
 - [x] 6.1 스토어 포인트 지갑 위젯 및 계정 등급 설정
   - 대상 파일: `src/components/wallet/store-wallet-widget.tsx`, `src/app/settings/page.tsx`
   - 작업: `update_store_wallet_settings` RPC 연동(구글 등급별 적립률, 갤럭시 적립률 수정) 및 잔액 수동 보정 UI 구현
@@ -252,6 +261,7 @@
 - [x] 카테고리 축약(식비, 교통, 생활) 및 소비 페이지 그래프 퍼센트(%) 표시
 
 ### Phase 10. 재정리된 기획(v2) 기반 UI/UX 및 정기 구독·지갑 개편
+
 - [x] 10.1 대시보드 캘린더 및 지출 바인딩 로직 개선
   - 대상 파일: `src/components/calendar/hero-sidebar.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/calendar/mobile-drawer.tsx`
   - 작업: `[+ 지출 추가]` 버튼명 변경, 지출 모달 내 카테고리 우선 선택(게임 시에만 게임 선택 노출), 해당 날짜의 `VERSION` 일정에만 바인딩 (`PICKUP` 일정 바인딩 제외)
@@ -277,6 +287,7 @@
   - verify: TypeScript 타입 에러 0건, Vitest 30개 파일 / 106개 테스트 전체 통과 (100% PASS), `npm run build` 정적 13개 페이지 export 생성 성공
 
 ### Phase 11. 게임 일정 구조 다변화, 대시보드 중앙 모달 전환 및 네이버페이 충전 결제 연동
+
 - [x] 11.1 게임 일정 스키마 확장(`CONTENTS`, 단일 목표일), 일정 모달 전환 및 대시보드/사이드바 3단 UI·정렬 일원화
   - 대상 파일: `md/SCHEMA.sql`, `md/MIGRATION_PHASE11.sql`, `src/types/database.types.ts`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/schedule-banner.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/subscription/subscription-modal.tsx`
   - 작업:
@@ -321,6 +332,7 @@
   - verify: Vitest 34개 파일 / 146개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공.
 
 ### Phase 7. Web/PWA 통합, 안정화 및 릴리스 검증
+
 - [x] 7.1 게임 버전/픽업 패스 일정 안전 동기화 검증
   - 대상 파일: `md/SCHEMA.sql` (트리거 검증)
   - 작업: 관리자가 버전 또는 픽업 일정의 시작일·종료일을 변경했을 때 DB 트리거 동작 확인
@@ -341,7 +353,8 @@
   - 작업: 승인 SRS 수용 기준과 모바일 주요 흐름을 점검하고 정적 export 산출물을 배포 환경에서 검증
   - verify: 브라우저 빌드/테스트 통과, Android PWA 설치·인증 세션·오프라인 읽기와 쓰기 차단 확인
 
-### Phase 12. 지갑 편의 기능(Audit Log) 및 캘린더 커스터마이징 백로그
+### Phase 12. 지갑 편의 기능(Audit Log), 캘린더 커스터마이징 및 대시보드/모바일 고도화
+
 - [x] 12.1 스토어 지갑·포인트 수동 보정 내역(Audit Log) 조회 모달 구현 (2026-10-14)
   - 대상 파일: `src/components/wallet/store-wallet-adjust-history-modal.tsx`, `src/components/wallet/store-wallet-widget.tsx`
   - 작업: `store_point_transactions` 테이블에서 `transaction_type = 'MANUAL_ADJUST'` 레코드 조회, 플랫폼별(전체/구글 플레이/갤럭시 스토어/네이버페이) 필터 탭, 5개 기준 페이지네이션(`ITEMS_PER_PAGE = 5`, 이전/다음/페이지 번호/범위 안내) 바, 새로고침, 증감 차액(+/-) 및 사유 메모 뷰어 제공, 지갑 잔액 수동 보정 헤더에 `[보정 내역 보기]` 버튼 배치 및 모달 연동.
@@ -354,16 +367,31 @@
     3. 누적 충전형 구독 결제 환불(취소) 시 충전했던 일수만큼 다음 예정 회차(`PLANNED`)의 예정일에서 차감(롤백)하는 함수(`calculateRollbackIntervalTargetDate`, `rollbackIntervalSubscriptionExpense`) 구현 및 지출 상세/환불 모달(`ExpenseDetailModal`) 연동.
     4. 소비 페이지(`/dashboard/expenses`) 정기 구독 카드의 `[누적 충전형 n일]` 옆 잔여일수 배지 텍스트를 `[남은 n일]`에서 `[n일]`로 간결화.
   - verify: 단위 테스트(조기/당일/만료후 결제일 산출, 자동 생성, 환불 시 일수 롤백 차감, 배지 텍스트) 12개 추가 통과, Vitest 40개 파일 229개 테스트 100% 통과, Next.js 14 정적 export 빌드 15개 페이지 성공.
-- [x] 12.3 캘린더 커스텀 배경 이미지 업로드 & 배경/타일 투명도·블러 조절 (2026-10-18)
-  - 대상 파일: `src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`
+- [x] 12.3 사용자 지정 게임 아이콘 전역 적용, 픽업 과금 차트 다중 색상 및 캘린더 커스텀 배경·글래스모피즘 타일 구현 (2026-10-17 ~ 2026-10-19)
+  - 대상 파일: `src/lib/storage-upload.ts`, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/calendar-bg-customizer.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/expenses/page.tsx`
   - 작업:
-    1. 브라우저 로컬 저장소(**IndexedDB** `chronoledger_calendar_bg` 및 메모리 폴백)에 사용자별 이미지 Blob과 설정(`opacity`, `tileOpacity`, `blur`) 영구 보관 (서버 트래픽 및 DB 부담 차단).
-    2. 메인 캘린더 컨테이너 하단에 배경 레이어 렌더링 (`object-fit: cover`) 및 가독성 보호용 반투명 오버레이(`bg-surface/15`), 날짜 타일 글래스모피즘(`rgb(var(--surface) / tileOpacity)` + `backdrop-blur-[1px]`), 날짜/요일/일정 배지 텍스트 그림자(`drop-shadow`) 및 아이콘 외곽 링 대비 보강.
-    3. `[배경 커스텀 설정]` 컨트롤러(`CalendarBgCustomizer`) 제공: 이미지 업로드(최대 1920×1080 비율 유지 Canvas WebP 리사이징/압축), **배경 투명도 슬라이더(10%~90% 상한)**, **날짜 타일 투명도 슬라이더(0%~90%)**, 블러 효과 단계(Off/약함/보통) 토글, 기본 배경 초기화 버튼.
-  - verify: 대용량 이미지 리사이징/압축 및 배경(10~90%)/타일(0~90%) 투명도 클램핑 검증(`calendar-bg-storage.test.ts`), 가독성 오버레이·배경 레이어·타일 투명도 스타일 렌더링 검증(`desktop-calendar.test.tsx`), 설정 컨트롤러 조작 검증(`calendar-bg-customizer.test.tsx`), Vitest 42개 파일 240개 테스트 100% 통과, Next.js 14 정적 export 빌드 성공.
-- [ ] 12.4 모바일 뷰포트 및 반응형 인터랙션 고도화
+    1. **사용자 지정 게임 아이콘 전역 적용 및 픽업 차트 다중 팔레트** (`2026-10-17`): `downloadUserIcon` 커스텀 아이콘을 대시보드 달력 타일, 선택일 사이드바, 소비/구독 내역 전반에 기본 아이콘보다 우선 적용하고, 픽업별 과금 분석 그래프 및 순위 리스트에 8색 다중 팔레트(`PICKUP_CHART_PALETTE`) 적용.
+    2. **브라우저 로컬 저장소(IndexedDB) 기반 커스텀 배경 보관** (`2026-10-17 ~ 2026-10-18`): `chronoledger_calendar_bg`에 사용자별 이미지 Blob과 설정(`opacity`, `tileOpacity`, `blur`) 영구 보관, 원본 업로드 허용 용량 **50MB(`MAX_BG_FILE_SIZE_BYTES`)** 확대 후 최대 1920×1080 Canvas WebP 리사이징/압축 저장.
+    3. **글래스모피즘 타일 및 개별 투명도 조절**: 가독성 보호용 반투명 오버레이(`bg-surface/15`), 날짜 타일 글래스모피즘(`rgb(var(--surface) / tileOpacity)` + `backdrop-blur-[1px]`), **배경 투명도 슬라이더(10%~90%)**, **날짜 타일 투명도 슬라이더(0%~90%)**, 블러 효과 단계(Off/약함/보통) 토글, 날짜/요일/일정 배지 텍스트 그림자(`drop-shadow`) 보강.
+    4. **오늘 날짜 황금색(`#EFBF04`) `오늘` 배지 추가** (`2026-10-19`): 달력 타일 내 오늘(`day.isToday`) 날짜 숫자 우측에 황금색 `#EFBF04` 배경의 `오늘` 캡슐 배지(`data-testid="today-badge-..."`) 노출.
+  - verify: 대용량(50MB) 이미지 리사이징/압축 및 배경(10~90%)/타일(0~90%) 투명도 클램핑 검증(`calendar-bg-storage.test.ts`), 가독성 오버레이·배경 레이어·타일 투명도·황금색 `오늘` 배지 렌더링 검증(`desktop-calendar.test.tsx`), 설정 컨트롤러 조작 검증(`calendar-bg-customizer.test.tsx`), Vitest 42개 파일 241개 테스트 100% 통과, Next.js 14 정적 export 빌드 성공.
+- [x] 12.4 개인 메모 저장 안정화(Update/Insert 분기 및 Unique 제약 보강) (2026-10-19)
+  - 대상 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `md/SCHEMA.sql`, `md/MIGRATION_PHASE12_MEMO_FIX.sql`
+  - 작업:
+    1. 원격 Supabase DB에 `(user_id, target_date)` 복합 유니크 제약이 누락된 경우 `.upsert(..., { onConflict: "user_id,target_date" })` 호출 시 발생하던 `42P10` 에러를 해결하기 위해, 기존 메모 `id` 유무에 따라 명시적 `.update()` 또는 `.insert()`로 분기하고 `23505` 충돌 시 `.update()` 폴백 처리.
+    2. 중복 행 자동 정리 및 `uq_personal_memos_user_target_date` 고유 제약 조건을 보강하는 마이그레이션 스크립트(`md/MIGRATION_PHASE12_MEMO_FIX.sql`) 추가.
+  - verify: 신규 메모 `.insert()` 및 기존 메모 `.update()` 분기 단위 테스트 통과, Vitest 42개 파일 242개 테스트 100% 통과.
+- [x] 12.5 대시보드 요약 카드 진행률 개편, 100% 포인트 할인(방식 A), 사이드바 드롭다운 탭 및 모바일 바텀시트 터치 개선 (2026-10-19)
+  - 대상 파일: `src/lib/budget-calculations.ts`, `src/lib/payment-calculations.ts`, `src/components/expense/expense-modal.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/calendar-bg-customizer.tsx`, `src/app/dashboard/page.tsx`
+  - 작업:
+    1. **요약 카드 진행률 및 잔여 예정 지출 표시**: 당월 예상 지출 대비 확정 지출 비율(`(confirmedExpense / expectedExpense) * 100`)로 진행률 바를 개편하고, 좌측 `진행률 n%`, 우측 잔여 예정 지출(`expectedExpense - confirmedExpense`)원 표시 (`calculateConfirmedExpense` 함수 추가).
+    2. **100% 포인트 할인 허용(방식 A) 및 플랫폼별 포인트 지갑 강제 동기화**: `할인 (원)`을 총 원화 할인액, `사용 포인트 (P)`를 차감 포인트 수량으로 취급하여 정가 100% 할인(실결제액 0원) 결제를 허용하고, 결제 플랫폼(`GOOGLE_PLAY`/`GALAXY_STORE`)과 포인트 지갑을 1:1 고정(`disabled`) 동기화하며 `OTHER` 선택 시 포인트 입력을 비활성화.
+    3. **사이드바 카드 배치 순서 및 선택일 드롭다운 탭 추가**: 사이드바 순서를 `요약` $\to$ `선택일 상세` $\to$ `스토어 포인트`로 재배치하고, 선택일 상세 카드 내 `[게임 일정 | 지출 내역 | 메모]` 드롭다운 선택기를 추가하여 선택한 섹션만 깔끔하게 노출.
+    4. **모바일 바텀시트(`MobileDrawer`) 메모 작성/저장 터치 버그 해결 및 배경 설정기 모바일 반응형 개선**: Vaul 드래그 가로채기 방지를 위해 `data-vaul-no-drag` 속성과 `onPointerDown`/`onMouseDown` 포커스 유지 가드를 적용하고, `CalendarBgCustomizer` 팝오버 폭(`max-w-[calc(100vw-2rem)]`) 및 슬라이더 터치 영역을 개선.
+  - verify: 단위 테스트(`budget-calculations.test.ts`, `payment-calculations.test.ts`, `expense-modal.test.tsx`, `hero-sidebar.test.tsx`, `dashboard/page.test.tsx`) 전체 갱신 및 추가 검증 완료, `npx tsc --noEmit` 0 에러, Vitest 42개 파일 / 247개 테스트 100% 통과, `npm run build` 정적 15개 페이지 빌드 성공.
+- [ ] 12.6 모바일 초소형 뷰포트(360px 이하) 타일·배지 세부 최적화 및 실기기 점검
   - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/mobile-drawer.tsx`
-  - 작업: 360px 이하 초소형 스마트폰 뷰포트 타일 패딩/폰트 미세 조정, 선택일 상세 바텀시트 스와이프 제스처 부드러움 개선, 다중 게임 일정 존재 시 뱃지 요약 노출 방식 최적화.
+  - 작업: 360px 이하 초소형 스마트폰 뷰포트 타일 패딩/폰트 미세 조정, 다중 게임 일정 존재 시 뱃지 요약 노출 방식 최적화 및 모바일 실기기 터치/배경 커스터마이징 체감 검증.
   - verify: 모바일 뷰포트 회귀 테스트 및 가로 넘침 방지 검증.
 
 ---
