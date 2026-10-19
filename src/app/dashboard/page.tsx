@@ -98,6 +98,7 @@ export default function DashboardPage() {
   const [selectedGameIds, setSelectedGameIds] = useState<string[] | null>(null)
 
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false)
   const [detailExpenseId, setDetailExpenseId] = useState<string | null>(null)
   const isOnline = useOnlineStatus()
   const [overdueExpenses, setOverdueExpenses] = useState<OverduePlannedExpense[]>([])
@@ -639,7 +640,12 @@ export default function DashboardPage() {
             days={days}
             selectedDate={baseDate}
             todayDate={getTodayLocalDate()}
-            onSelectDate={setSelectedDate}
+            onSelectDate={(date) => {
+              setSelectedDate(date)
+              if (typeof window !== "undefined" && window.innerWidth < 900) {
+                setIsMobileDrawerOpen(true)
+              }
+            }}
             onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
             onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}
             backgroundConfig={{
@@ -670,6 +676,8 @@ export default function DashboardPage() {
             }
           />
           <MobileDrawer
+            open={isMobileDrawerOpen}
+            onOpenChange={setIsMobileDrawerOpen}
             selectedDateLabel={baseDate}
             totalAsset={totalAsset}
             budgetAmount={budgetAmount}

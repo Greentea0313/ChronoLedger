@@ -60,6 +60,15 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. 5-Model Role Distribution & Hybrid Delegation (Project-Wide Mandatory)
+
+**The Orchestrator (`Gemini 4 Argon`) must NEVER directly edit product source files (`src/**`).**
+
+1. **Internal Subagent Delegation (`Gemini 3.8 Flash`)**:
+   - UI/Tailwind styling, badge/modal/drawer markup, fast codebase research, and `docs/` sync tasks must be delegated immediately via `define_subagent` (`enable_write_tools: true` when editing) and `invoke_subagent` with `Model: "flash"` (explicitly specified by the user).
+2. **External Model Dispatch Queue (`GPT Codex`, `Claude Opus 5.5`, `GitHub Copilot`)**:
+   - Core ledger/payment/subscription logic and Vitest unit tests (**GPT Codex**), static code review (`review.json`) and complex refactoring (**Claude Opus 5.5**), and general feature implementation (**GitHub Copilot**) must be registered as `▶ READY` in `docs/handoff.md`'s `## 🎯 Active AI Collaboration Dispatch Queue`. Stop immediately after updating the queue and ask the user to switch to the assigned model and enter `"인수인계 문서를 확인해"`.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

@@ -85,7 +85,7 @@ describe("DesktopCalendar", () => {
     expect(screen.getByText("게임 필터 버튼")).toBeTruthy()
   })
 
-  it("모바일에서 게임 일정 파란 점은 시작일(is_start_date)에만 렌더링되고 진행 중인 중간 날짜에는 렌더링되지 않는다", () => {
+  it("모바일에서 게임 일정 도트는 유형별(VERSION 초록, PICKUP 파랑, CONTENTS 보라)로 시작일(is_start_date)에만 분리 렌더링되고 진행 중인 중간 날짜에는 렌더링되지 않는다", () => {
     render(
       <DesktopCalendar
         year={2026}
@@ -99,7 +99,11 @@ describe("DesktopCalendar", () => {
             date: "2026-10-06",
             day: 6,
             inCurrentMonth: true,
-            schedules: [{ id: "s1", schedule_type: "VERSION", is_start_date: true, game_id: "g1" }],
+            schedules: [
+              { id: "s1", schedule_type: "VERSION", is_start_date: true, game_id: "g1" },
+              { id: "s2", schedule_type: "PICKUP", is_start_date: true, game_id: "g1" },
+              { id: "s3", schedule_type: "CONTENTS", is_start_date: true, game_id: "g1" },
+            ],
             icons: [],
             hasMemo: true,
           },
@@ -107,7 +111,11 @@ describe("DesktopCalendar", () => {
             date: "2026-10-07",
             day: 7,
             inCurrentMonth: true,
-            schedules: [{ id: "s1", schedule_type: "VERSION", is_start_date: false, game_id: "g1" }],
+            schedules: [
+              { id: "s1", schedule_type: "VERSION", is_start_date: false, game_id: "g1" },
+              { id: "s2", schedule_type: "PICKUP", is_start_date: false, game_id: "g1" },
+              { id: "s3", schedule_type: "CONTENTS", is_start_date: false, game_id: "g1" },
+            ],
             icons: [],
             hasMemo: false,
           },
@@ -115,10 +123,21 @@ describe("DesktopCalendar", () => {
       />,
     )
 
-    const scheduleDots = screen.getAllByTitle("게임 일정 있음")
-    expect(scheduleDots).toHaveLength(1)
+    const versionDots = screen.getAllByTitle("버전 일정 있음")
+    expect(versionDots).toHaveLength(1)
+    expect(versionDots[0].className).toContain("bg-success")
+
+    const pickupDots = screen.getAllByTitle("픽업 일정 있음")
+    expect(pickupDots).toHaveLength(1)
+    expect(pickupDots[0].className).toContain("bg-primary")
+
+    const contentsDots = screen.getAllByTitle("콘텐츠 일정 있음")
+    expect(contentsDots).toHaveLength(1)
+    expect(contentsDots[0].className).toContain("bg-purple-500")
+
     const memoDots = screen.getAllByTitle("메모 있음")
     expect(memoDots).toHaveLength(1)
+    expect(memoDots[0].className).toContain("bg-content-muted")
   })
 
   it("backgroundConfig에 커스텀 배경 이미지가 설정되면 object-fit: cover 배경 레이어, 가독성 보호 오버레이 및 날짜 타일 투명도를 렌더링한다", () => {
@@ -172,7 +191,7 @@ describe("DesktopCalendar", () => {
     expect(unselectedTile.getAttribute("style")).toContain("rgb(var(--surface) / 0.35)")
   })
 
-  it("해당 날짜가 today일 경우 날짜 숫자 바로 오른쪽에 #EFBF04 색상의 '오늘' 배지를 렌더링한다", () => {
+  it("해당 날짜가 today일 경우 데스크톱(md+)에서는 #EFBF04 '오늘' 배지를 표시하고 모바일(< md)에서는 타일 금색 테두리 강조만 적용한다", () => {
     render(
       <DesktopCalendar
         year={2026}
@@ -203,16 +222,26 @@ describe("DesktopCalendar", () => {
       />,
     )
 
-    // 17일 타일에 오늘 배지 존재 확인
+    // 17일 타일에 오늘 배지 존재 및 데스크톱 전용(hidden md:inline-flex) 확인
     const todayBadge = screen.getByTestId("today-badge-2026-10-17")
     expect(todayBadge).toBeTruthy()
     expect(todayBadge.textContent).toBe("오늘")
+    expect(todayBadge.className).toContain("hidden")
+    expect(todayBadge.className).toContain("md:inline-flex")
     // 색상이 #EFBF04 (rgb(239, 191, 4))인지 확인
     expect(todayBadge.style.backgroundColor).toBe("rgb(239, 191, 4)")
     expect(todayBadge.style.color).toBe("rgb(15, 17, 21)")
 
-    // 18일 타일에는 오늘 배지가 없어야 함
+    // 17일 타일 버튼에 모바일 금색(#EFBF04) 테두리 강조 클래스 및 data-today 속성 적용 확인
+    const todayTile = screen.getByRole("button", { name: "2026-10-17" })
+    expect(todayTile.getAttribute("data-today")).toBe("true")
+    expect(todayTile.className).toContain("max-md:border-[#EFBF04]")
+
+    // 18일 타일에는 오늘 배지 및 금색 테두리가 없어야 함
     expect(screen.queryByTestId("today-badge-2026-10-18")).toBeNull()
+    const otherTile = screen.getByRole("button", { name: "2026-10-18" })
+    expect(otherTile.getAttribute("data-today")).toBeNull()
+    expect(otherTile.className).not.toContain("max-md:border-[#EFBF04]")
   })
 })
 

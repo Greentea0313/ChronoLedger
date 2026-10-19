@@ -8,12 +8,15 @@ license: MIT
 
 After each meaningful development session, update the relevant documentation in `docs/`. In addition, `docs/handoff.md` serves as the active blackboard (Dispatch Queue) for multi-model collaboration.
 
-## 0. 신규 요구사항 입력 시 주축 모델(Gemini 4 Argon) 기본 동작 (Orchestrator Intake)
+## 0. 신규 요구사항 입력 시 주축 모델(Gemini 4 Argon) 기본 동작 (Orchestrator Intake — Hybrid Delegation)
 
-사용자가 주축 모델(**Gemini 4 Argon**)에게 프로젝트 관련 새로운 기능/수정 요구사항을 입력하면(단, 사용자가 *"직접 바로 구현해"*라고 명시한 경우 제외), Argon은 직접 구현 코드를 수정하는 대신 **Chief Orchestrator**로서 즉시 다음을 수행합니다:
-1. 요구사항과 관련 코드를 분석하여 명확한 **수용 기준(Acceptance Criteria)**과 **단계별 하위 과제(Maker $\to$ Reviewer $\to$ Orchestrator 마감)**를 설계합니다. (격리 실행이 필요한 경우 먼저 `New-CollaborationRun.ps1`로 `.worktrees/<run_id>`를 생성합니다.)
-2. 루트 `docs/handoff.md` 최상단의 **`## 🎯 Active AI Collaboration Dispatch Queue`**를 갱신하여 각 단계의 **담당 모델(및 토큰 소진 대비 대체 모델)**을 배정하고, 1번 과제의 상태를 **`▶ READY`**로 설정합니다.
-3. 사용자에게 갱신된 할당표를 요약해 보여주고, **첫 번째로 전환하여 `"인수인계 문서를 확인해"`라고 입력할 대상 AI 모델**을 안내합니다.
+사용자가 주축 모델(**Gemini 4 Argon**)에게 프로젝트 관련 새로운 기능/수정 요구사항을 입력하면(단, 사용자가 *"직접 바로 구현해"*라고 명시한 경우 제외), Argon은 **절대 직접 제품 소스 코드(`src/**`)를 수정하지 않고** **Chief Orchestrator**로서 다음 **하이브리드 위임(Hybrid Delegation)** 절차를 수행합니다:
+1. 요구사항과 관련 코드를 분석하여 명확한 **수용 기준(Acceptance Criteria)**과 **도메인별 하위 과제**를 설계합니다.
+2. **Gemini 3.8 Flash 담당 도메인 (UI/Tailwind 스타일링, 배지·모달·드로어 마크업, 고속 탐색, `docs/` 문서 동기화)**:
+   - Antigravity 내부에서 `define_subagent`(쓰기 필요 시 `enable_write_tools: true`) 및 `invoke_subagent`(`Model: "flash"` — 사용자 명시 지정 티어)를 사용해 **Gemini 3.8 Flash 서브에이전트**를 즉시 호출하여 위임합니다.
+3. **외부 모델 담당 도메인 (`GPT Codex` 코어 로직/단위 테스트, `Claude Opus 5.5` 정적 코드 리뷰/보안·RLS 검증/복합 리팩토링, `GitHub Copilot` 일반 기능)**:
+   - (격리 실행이 필요한 경우 먼저 `New-CollaborationRun.ps1`로 `.worktrees/<run_id>`를 생성한 뒤) 루트 `docs/handoff.md` 최상단의 **`## 🎯 Active AI Collaboration Dispatch Queue`**를 갱신하여 각 단계의 **담당 모델(및 토큰 소진 대비 대체 모델)**을 배정하고, 1번 과제의 상태를 **`▶ READY`**로 설정합니다.
+   - 사용자에게 갱신된 할당표를 요약해 보여주고, **전환하여 `"인수인계 문서를 확인해"`라고 입력할 대상 AI 모델**을 안내한 뒤 턴을 종료합니다.
 
 ## 1. "인수인계 문서를 확인해" (Handoff Dispatch Trigger Protocol)
 

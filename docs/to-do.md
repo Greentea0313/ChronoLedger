@@ -389,10 +389,14 @@
     3. **사이드바 카드 배치 순서 및 선택일 드롭다운 탭 추가**: 사이드바 순서를 `요약` $\to$ `선택일 상세` $\to$ `스토어 포인트`로 재배치하고, 선택일 상세 카드 내 `[게임 일정 | 지출 내역 | 메모]` 드롭다운 선택기를 추가하여 선택한 섹션만 깔끔하게 노출.
     4. **모바일 바텀시트(`MobileDrawer`) 메모 작성/저장 터치 버그 해결 및 배경 설정기 모바일 반응형 개선**: Vaul 드래그 가로채기 방지를 위해 `data-vaul-no-drag` 속성과 `onPointerDown`/`onMouseDown` 포커스 유지 가드를 적용하고, `CalendarBgCustomizer` 팝오버 폭(`max-w-[calc(100vw-2rem)]`) 및 슬라이더 터치 영역을 개선.
   - verify: 단위 테스트(`budget-calculations.test.ts`, `payment-calculations.test.ts`, `expense-modal.test.tsx`, `hero-sidebar.test.tsx`, `dashboard/page.test.tsx`) 전체 갱신 및 추가 검증 완료, `npx tsc --noEmit` 0 에러, Vitest 42개 파일 / 247개 테스트 100% 통과, `npm run build` 정적 15개 페이지 빌드 성공.
-- [ ] 12.6 모바일 초소형 뷰포트(360px 이하) 타일·배지 세부 최적화 및 실기기 점검
-  - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/mobile-drawer.tsx`
-  - 작업: 360px 이하 초소형 스마트폰 뷰포트 타일 패딩/폰트 미세 조정, 다중 게임 일정 존재 시 뱃지 요약 노출 방식 최적화 및 모바일 실기기 터치/배경 커스터마이징 체감 검증.
-  - verify: 모바일 뷰포트 회귀 테스트 및 가로 넘침 방지 검증.
+- [x] 12.6 모바일 초소형 뷰포트(360px 이하) 타일·배지 세부 최적화 및 바텀시트 즉시 연동 (2026-10-19)
+  - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/calendar-game-filter.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`
+  - 작업:
+    1. **모바일 일정 유형별 컬러 도트 분리 표시**: 모바일(`< md`) 달력 타일 우측 상단에 게임 일정 시작일(`is_start_date`)을 유형별 색상 점(`VERSION` 초록 `bg-success`, `PICKUP` 파랑 `bg-primary`, `CONTENTS` 보라 `bg-purple-500`)과 메모 회색 점(`bg-content-muted`)으로 나란히 분리 표시하고 360px 이하 초소형 타일 간격(`gap-0.5 sm:gap-1`) 최적화.
+    2. **모바일 당일(Today) 타일 금색 테두리 강조 및 데스크톱 전용 배지 처리**: 360px 이하 초소형 화면에서 두 자리 날짜 숫자와 `'오늘'` 글자 배지 및 도트가 겹치는 현상을 방지하기 위해 모바일(`< md`)에서는 오늘 타일 테두리만 금색(`#EFBF04`, `max-md:border-[#EFBF04] max-md:ring-1 max-md:ring-[#EFBF04]/70`)으로 강조하고, `'오늘'` 텍스트 배지는 데스크톱(`hidden md:inline-flex`)에서만 표시.
+    3. **모바일 달력 날짜 타일 터치 시 바텀시트(`MobileDrawer`) 즉시 오픈**: 모바일 뷰포트(`< 900px`)에서 달력 날짜 타일을 터치/클릭하면 해당 날짜 선택과 동시에 `'선택일 상세'` 바텀시트(`MobileDrawer`)가 즉시 열리도록 `open`/`onOpenChange` 제어 상태 연동(하단 `'선택일 상세'` 버튼도 함께 유지).
+    4. **초소형 뷰포트 팝오버 가로 넘침 방지**: `CalendarGameFilter` 드롭다운 팝오버에 `max-w-[calc(100vw-2rem)]`을 적용하여 320px~360px 화면에서 좌우 넘침 차단.
+  - verify: 모바일 일정 유형별 도트/오늘 금색 테두리/데스크톱 전용 배지 단위 테스트(`desktop-calendar.test.tsx`) 및 모바일(360px) 날짜 타일 클릭 시 바텀시트 오픈 테스트(`dashboard/page.test.tsx`) 통과, Vitest 42개 파일 252개 테스트 100% 통과, Next.js 14 정적 export 빌드 성공. *(남은 실기기 점검은 Phase 7.4 Android PWA 실기기 검증과 함께 수행)*
 
 ---
 

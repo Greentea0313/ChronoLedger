@@ -25,6 +25,8 @@ interface MobileDrawerProps {
   expenses: HeroExpenseItem[]
   memos: string[]
   memoContent?: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   onSelectExpense?: (expenseId: string) => void
   onRegisterExpense?: () => void
   onSaveMemo?: (content: string) => Promise<void>
@@ -43,6 +45,8 @@ export function MobileDrawer({
   expenses,
   memos,
   memoContent,
+  open,
+  onOpenChange,
   onSelectExpense,
   onRegisterExpense,
   onSaveMemo,
@@ -51,7 +55,7 @@ export function MobileDrawer({
 }: MobileDrawerProps) {
   return (
     <div className="lg:hidden">
-      <Drawer>
+      <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerTrigger asChild>
           <Button variant="outline" size="lg" className="w-full min-h-[44px]">
             선택일 상세

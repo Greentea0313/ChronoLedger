@@ -97,7 +97,7 @@ export function CalendarGameFilter({
         <div
           role="dialog"
           aria-label="게임 필터 목록"
-          className="absolute right-0 top-full mt-1.5 w-60 sm:w-64 rounded-lg border border-line bg-surface p-2 shadow-modal z-50 animate-fade-in"
+          className="absolute right-0 top-full mt-1.5 w-60 max-w-[calc(100vw-2rem)] sm:w-64 rounded-lg border border-line bg-surface p-2 shadow-modal z-50 animate-fade-in"
         >
           {/* 상단 퀵 컨트롤 바 */}
           <div className="flex items-center justify-between pb-2 mb-1 border-b border-line px-1">

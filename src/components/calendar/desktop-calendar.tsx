@@ -145,6 +145,9 @@ export function DesktopCalendar({
           {days.map((day) => {
             const isSelected = day.date === selectedDate
             const isToday = day.isToday ?? (day.date === currentTodayDate)
+            const hasVersion = day.schedules.some((s) => s.schedule_type === "VERSION" && s.is_start_date)
+            const hasPickup = day.schedules.some((s) => s.schedule_type === "PICKUP" && s.is_start_date)
+            const hasContents = day.schedules.some((s) => s.schedule_type === "CONTENTS" && s.is_start_date)
             return (
               <button
                 key={day.date}
@@ -152,6 +155,7 @@ export function DesktopCalendar({
                 onClick={() => onSelectDate(day.date)}
                 aria-label={day.date}
                 aria-pressed={isSelected}
+                data-today={isToday ? "true" : undefined}
                 style={
                   hasCustomBg && !isSelected
                     ? { backgroundColor: `rgb(var(--surface) / ${tileOpacityRatio})` }
@@ -165,10 +169,12 @@ export function DesktopCalendar({
                         tileOpacityRatio > 0 ? "backdrop-blur-[1px]" : ""
                       }`
                     : "border-line bg-app hover:border-line-control"
+                } ${
+                  isToday ? "max-md:border-[#EFBF04] max-md:ring-1 max-md:ring-[#EFBF04]/70" : ""
                 } ${day.inCurrentMonth ? "text-content" : "text-content-muted opacity-60"}`}
               >
               {/* Top row: Day number and Today badge on left, Game icons and Memo on right (Desktop) / Dots on Mobile */}
-              <div className="flex items-start justify-between w-full">
+              <div className="flex items-start justify-between w-full gap-0.5">
                 <div className="flex items-center gap-1 min-w-0">
                   <span
                     className={`text-xs md:text-sm leading-none ${
@@ -182,7 +188,7 @@ export function DesktopCalendar({
                   {isToday && (
                     <span
                       data-testid={`today-badge-${day.date}`}
-                      className={`inline-flex items-center justify-center rounded px-1 py-[1px] text-[8px] md:text-[9px] font-bold leading-tight shrink-0 ${
+                      className={`hidden md:inline-flex items-center justify-center rounded px-1 py-[1px] text-[8px] md:text-[9px] font-bold leading-tight shrink-0 ${
                         hasCustomBg ? "drop-shadow-sm" : ""
                       }`}
                       style={{
@@ -230,19 +236,39 @@ export function DesktopCalendar({
                   )}
                 </div>
 
-                {/* Mobile only: Small dots for game schedules and memo in top right */}
-                <div className="flex md:hidden items-center gap-1">
-                  {day.schedules.some((s) => s.is_start_date) && (
+                {/* Mobile only: Small dots for game schedules (by schedule_type) and memo in top right */}
+                <div className="flex md:hidden items-center gap-0.5 sm:gap-1 shrink-0 pt-0.5">
+                  {hasVersion && (
                     <span
-                      className={`h-1.5 w-1.5 rounded-full bg-primary ${
+                      data-testid="mobile-dot-version"
+                      className={`h-1.5 w-1.5 rounded-full bg-success shrink-0 ${
                         hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
                       }`}
-                      title="게임 일정 있음"
+                      title="버전 일정 있음"
+                    />
+                  )}
+                  {hasPickup && (
+                    <span
+                      data-testid="mobile-dot-pickup"
+                      className={`h-1.5 w-1.5 rounded-full bg-primary shrink-0 ${
+                        hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
+                      }`}
+                      title="픽업 일정 있음"
+                    />
+                  )}
+                  {hasContents && (
+                    <span
+                      data-testid="mobile-dot-contents"
+                      className={`h-1.5 w-1.5 rounded-full bg-purple-500 shrink-0 ${
+                        hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
+                      }`}
+                      title="콘텐츠 일정 있음"
                     />
                   )}
                   {day.hasMemo && (
                     <span
-                      className={`h-1.5 w-1.5 rounded-full bg-content-muted ${
+                      data-testid="mobile-dot-memo"
+                      className={`h-1.5 w-1.5 rounded-full bg-content-muted shrink-0 ${
                         hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""
                       }`}
                       title="메모 있음"
@@ -257,18 +283,9 @@ export function DesktopCalendar({
                   hasCustomBg ? "drop-shadow-sm" : ""
                 }`}
               >
-                {(() => {
-                  const hasVersion = day.schedules.some((s) => s.schedule_type === "VERSION" && s.is_start_date)
-                  const hasPickup = day.schedules.some((s) => s.schedule_type === "PICKUP" && s.is_start_date)
-                  const hasContents = day.schedules.some((s) => s.schedule_type === "CONTENTS" && s.is_start_date)
-                  return (
-                    <>
-                      {hasVersion && <ScheduleBanner type="VERSION" />}
-                      {hasPickup && <ScheduleBanner type="PICKUP" />}
-                      {hasContents && <ScheduleBanner type="CONTENTS" />}
-                    </>
-                  )
-                })()}
+                {hasVersion && <ScheduleBanner type="VERSION" />}
+                {hasPickup && <ScheduleBanner type="PICKUP" />}
+                {hasContents && <ScheduleBanner type="CONTENTS" />}
               </div>
             </button>
           )

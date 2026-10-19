@@ -415,4 +415,65 @@ describe("DashboardPage", () => {
     expect(img?.getAttribute("src")).toBe("blob:custom-game-icon-url")
     downloadUserIcon.mockResolvedValue(null)
   })
+
+  it("모바일 뷰포트(360px)에서 달력 날짜 타일을 클릭하면 선택일 갱신과 동시에 선택일 상세 바텀시트(MobileDrawer)가 열린다", async () => {
+    const originalInnerWidth = window.innerWidth
+    const originalMatchMedia = window.matchMedia
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 360 })
+    if (!window.matchMedia) {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        configurable: true,
+        value: vi.fn().mockImplementation((query: string) => ({
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        })),
+      })
+    }
+
+    const now = new Date()
+    const targetDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-15`
+
+    useAuth.mockReturnValue({ user: { id: "user-1" }, isLoading: false })
+    ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+
+    const single = (data: unknown) => {
+      const query = createQueryBuilder()
+      query.maybeSingle.mockResolvedValue({ data, error: null })
+      return query
+    }
+    const list = (data: unknown[]) => {
+      const query = createThenableBuilder(data)
+      return query
+    }
+
+    from.mockImplementation((table: string) => {
+      switch (table) {
+        case "user_finances": return single({ total_asset: 50000, default_budget: 100000 })
+        case "monthly_budgets": return single(null)
+        default: return list([])
+      }
+    })
+
+    try {
+      render(<DashboardPage />)
+
+      expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+      expect(screen.queryByText("지출 및 일정 상세")).toBeNull()
+
+      const dateTile = screen.getByRole("button", { name: targetDate })
+      fireEvent.click(dateTile)
+
+      expect(await screen.findByText("지출 및 일정 상세")).toBeTruthy()
+    } finally {
+      Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: originalInnerWidth })
+      Object.defineProperty(window, "matchMedia", { writable: true, configurable: true, value: originalMatchMedia })
+    }
+  })
 })

@@ -2,7 +2,8 @@
 
 ## 🎯 Active AI Collaboration Dispatch Queue (현재 활성 협업 과제)
 
-> **🤖 AI 에이전트 자동 실행 지침 (`"인수인계 문서를 확인해"`)**
+> **🤖 AI 에이전트 자동 실행 지침 (`"인수인계 문서를 확인해"` 및 하이브리드 위임 원칙)**
+> 0. **주축 모델(Gemini 4 Argon) 직접 구현 금지 및 하이브리드 위임**: `Gemini 4 Argon`(`Orchestrator & Architect`)은 절대 직접 제품 소스 코드(`src/**`)를 수정하지 않습니다. **Gemini 3.8 Flash** 담당 과제(UI/Tailwind, 배지·모달·드로어 마크업, 고속 탐색, `docs/` 동기화)는 내부 서브에이전트(`define_subagent` + `invoke_subagent` `Model: "flash"`)로 즉시 호출해 위임하고, **GPT Codex** / **Claude Opus 5.5** / **GitHub Copilot** 담당 과제는 아래 **Active Dispatch Table**에 `▶ READY`로 등록한 뒤 멈추고 사용자에게 해당 모델로 전환해 `"인수인계 문서를 확인해"`를 입력하도록 안내합니다.
 > 1. 사용자가 **`"인수인계 문서를 확인해"`**라고 입력하면, 아래 **Active Dispatch Table**에서 상태가 **`⚠️ HANDOVER_NEEDED`**(1순위) 또는 **`▶ READY`**(2순위)인 과제를 찾아 즉시 수행하십시오.
 > 2. **강제 중단 자동 복구**: 만약 이전 모델이 토큰/쿼터 초과로 문서를 갱신하지 못한 채 중단되어 상태가 `▶ READY`이거나 `🔄 IN_PROGRESS`인 경우, 새로 호출된 대체(Fallback) 모델은 즉시 대상 Worktree의 `git status --short`와 `git diff`를 스캔하여 이전 모델이 작성하다 멈춘 미커밋 변경사항을 파악한 뒤 이어서 완수하십시오.
 > 3. **토큰 부족 시 비상 인계**: 작업 도중 보유 토큰/컨텍스트 내에서 완수가 불가능하다고 판단되면, 무리하게 축약하지 말고 현재까지의 파일 수정을 안전하게 저장한 뒤:
@@ -26,7 +27,7 @@
 - **Worktree 경로**: `N/A` *(격리 실행 시 `.worktrees/<run_id>`, 일반 실행 시 `main`)*
 - **Base SHA**: `-` | **Target SHA**: `-`
 - **수용 기준 (Acceptance Criteria)**:
-  - 현재 대기 중인 활성 협업 과제가 없습니다. 주축 모델(**Gemini 4 Argon**)에게 새 작업을 요청하거나 [`docs/to-do.md`](to-do.md)의 다음 백로그 항목(예: `Phase 12.6 모바일 초소형 뷰포트(360px 이하) 타일·배지 세부 최적화 및 실기기 점검`)을 시작하도록 지시하십시오.
+  - 현재 대기 중인 활성 협업 과제가 없습니다. 주축 모델(**Gemini 4 Argon**)에게 새 작업을 요청하거나 [`docs/to-do.md`](to-do.md)의 다음 백로그 항목(예: Cloudflare Pages 배포 검증 또는 Phase 7.4 Web/PWA MVP 회귀 검증)을 시작하도록 지시하십시오.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
@@ -37,6 +38,25 @@
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 
 ---
+
+## 모바일 초소형 뷰포트(360px 이하) 달력 타일·배지 최적화 및 날짜 타일 터치 시 바텀시트 즉시 연동 (2026-10-19)
+
+- **결정 및 배경**:
+  - **모바일 달력 타일 일정 유형별 컬러 도트 분리 표시**:
+    - 모바일(`< md`) 달력 타일 우측 상단에 단일 파란 점 대신, 시작일(`is_start_date === true`)인 게임 일정을 유형별 색상 점(`VERSION`: 초록 `bg-success`, `PICKUP`: 파랑 `bg-primary`, `CONTENTS`: 보라 `bg-purple-500`)과 메모 회색 점(`bg-content-muted`)으로 나란히 분리 표시하여 타일 크기 증가 없이도 다중 일정 구성을 직관적으로 식별하도록 개선.
+    - 360px 이하 초소형 화면에서도 도트와 두 자리 날짜 숫자가 겹치지 않도록 `gap-0.5 sm:gap-1 shrink-0` 간격을 적용.
+  - **모바일 당일(Today) 타일 금색(`#EFBF04`) 테두리 강조 및 데스크톱 전용 `'오늘'` 배지 처리**:
+    - 360px 이하 화면(타일 폭 약 40px)에서 두 자리 날짜 숫자와 `'오늘'` 텍스트 배지 및 우측 상단 도트가 충돌하는 문제를 해결하기 위해, 모바일(`< md`)에서는 `'오늘'` 텍스트 배지를 숨기고(`hidden md:inline-flex`) 오늘 타일 테두리만 금색(`max-md:border-[#EFBF04] max-md:ring-1 max-md:ring-[#EFBF04]/70`)으로 강조하도록 변경.
+  - **모바일 달력 날짜 타일 터치 시 `'선택일 상세'` 바텀시트(`MobileDrawer`) 즉시 오픈**:
+    - 모바일 뷰포트(`< 900px`)에서 달력 날짜 타일을 터치하면 해당 날짜 선택과 동시에 `MobileDrawer` 바텀시트가 즉시 열리도록 `open`/`onOpenChange` 제어 상태를 연동하고, 하단 `'선택일 상세'` 버튼도 그대로 유지.
+  - **초소형 화면 게임 필터 팝오버 가로 넘침 방지**:
+    - `CalendarGameFilter` 드롭다운 팝오버에 `max-w-[calc(100vw-2rem)]`을 적용하여 320px~360px 뷰포트에서도 화면 밖으로 넘치지 않도록 보강.
+- **수행 내역 및 검증**:
+  - `src/components/calendar/desktop-calendar.tsx` / `desktop-calendar.test.tsx`: 모바일 일정 유형별 도트, 모바일 오늘 금색 테두리 및 데스크톱 전용 `'오늘'` 배지 구현·테스트.
+  - `src/components/calendar/mobile-drawer.tsx`: `open`, `onOpenChange` 제어 props 추가.
+  - `src/app/dashboard/page.tsx` / `page.test.tsx`: 모바일(`< 900px`) 날짜 타일 클릭 시 `MobileDrawer` 즉시 오픈 연동 및 360px 뷰포트 단위 테스트 추가.
+  - `src/components/calendar/calendar-game-filter.tsx`: 팝오버 `max-w-[calc(100vw-2rem)]` 반응형 보강.
+  - 검증: `npx tsc --noEmit` (0 errors), `npx vitest run` (42개 파일, 252개 테스트 전체 통과), `npm run build` (정적 15개 페이지 빌드 성공).
 
 ## 대시보드 요약 카드 진행률, 100% 포인트 할인, 사이드바 드롭다운 탭 및 모바일 터치 개선 (2026-10-19)
 

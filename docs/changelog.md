@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-19 (모바일 초소형 뷰포트(360px 이하) 달력 타일·배지 최적화 및 날짜 타일 터치 시 바텀시트 즉시 연동)
+
+- **모바일 달력 타일 일정 유형별 컬러 도트 분리 표시 (`src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`)**:
+  - 모바일(`< md`) 달력 타일 우측 상단 도트를 일정 시작일(`is_start_date`) 기준 유형별 색상(`VERSION`: 초록 `bg-success`, `PICKUP`: 파랑 `bg-primary`, `CONTENTS`: 보라 `bg-purple-500`) 및 메모 회색 점(`bg-content-muted`)으로 분리 렌더링하고 초소형 화면 간격(`gap-0.5 sm:gap-1`)을 최적화.
+- **모바일 당일(Today) 타일 금색(`#EFBF04`) 테두리 강조 및 데스크톱 전용 `'오늘'` 배지 처리 (`src/components/calendar/desktop-calendar.tsx`)**:
+  - 360px 이하 초소형 뷰포트에서 두 자리 날짜 숫자와 `'오늘'` 배지 및 우측 도트가 겹치는 현상을 해결하기 위해 모바일(`< md`)에서는 오늘 타일 테두리만 금색(`max-md:border-[#EFBF04] max-md:ring-1 max-md:ring-[#EFBF04]/70`)으로 강조하고, `'오늘'` 텍스트 배지는 데스크톱(`hidden md:inline-flex`)에서만 노출하도록 개선.
+- **모바일 달력 날짜 타일 터치 시 `'선택일 상세'` 바텀시트(`MobileDrawer`) 즉시 오픈 (`src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`)**:
+  - `MobileDrawer`에 `open`, `onOpenChange` 제어 props를 추가하고, 모바일 뷰포트(`< 900px`)에서 달력 날짜 타일 클릭 시 해당 날짜 선택과 동시에 바텀시트가 즉시 열리도록 연동(하단 `'선택일 상세'` 트리거 버튼도 유지).
+- **초소형 뷰포트 게임 필터 팝오버 가로 넘침 방지 (`src/components/calendar/calendar-game-filter.tsx`)**:
+  - 게임 필터 드롭다운 대화상자에 `max-w-[calc(100vw-2rem)]`을 추가하여 320px~360px 화면에서 가로 넘침 방지.
+- **단위 테스트 및 빌드 검증**:
+  - Vitest 42개 파일, 248개 테스트 전체 통과 (100% PASS), Next.js 14 정적 15개 페이지 빌드 성공.
+
 ## 2026-10-19 (대시보드 요약 카드 진행률, 100% 포인트 할인, 사이드바 드롭다운 탭 및 모바일 터치 개선)
 
 - **요약 카드(Summary Card) 진행률 계산식 및 UI 개편 (`src/lib/budget-calculations.ts`, `src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/mobile-drawer.tsx`)**:

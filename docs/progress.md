@@ -1,5 +1,25 @@
 # 프로젝트 진행 현황
 
+## 모바일 초소형 뷰포트(360px 이하) 달력 타일·배지 최적화 및 날짜 타일 터치 시 바텀시트 즉시 연동 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  1. **모바일 달력 타일 다중 일정 요약 표시 (도트 색상 분리)**:
+     - 모바일(`< md`)에서는 상단 우측 도트 방식을 유지하되, 게임 일정 시작일(`is_start_date`)에 대해 일정 유형별 색상(`VERSION`: 초록 `bg-success`, `PICKUP`: 파랑 `bg-primary`, `CONTENTS`: 보라 `bg-purple-500`)으로 점을 나란히 분리 표시.
+  2. **360px 이하 초소형 화면에서 두 자리 날짜와 `'오늘'` 배지/도트 겹침 해결**:
+     - 모바일(`< md`)에서는 오늘 타일 테두리만 금색(`#EFBF04`)으로 강조하고, `'오늘'` 글자 배지는 데스크톱(`md+`)에서만 표시(`hidden md:inline-flex`).
+  3. **모바일 달력 날짜 타일 터치 시 바텀시트 즉시 오픈**:
+     - 모바일 뷰포트(`< 900px`)에서 달력 날짜 타일을 터치하면 해당 날짜 선택과 동시에 `'선택일 상세'` 바텀시트(`MobileDrawer`)가 즉시 열리도록 연동(하단 `'선택일 상세'` 버튼도 함께 유지).
+
+- **수행 내역**:
+  1. **`src/components/calendar/desktop-calendar.tsx` & `src/components/calendar/desktop-calendar.test.tsx`**:
+     - 모바일 상단 우측 도트를 `hasVersion`(`bg-success`), `hasPickup`(`bg-primary`), `hasContents`(`bg-purple-500`), `day.hasMemo`(`bg-content-muted`)로 분리하고 초소형 화면 간격(`gap-0.5 sm:gap-1`) 최적화.
+     - 오늘 타일(`isToday`)에 `data-today="true"` 및 모바일 금색 테두리(`max-md:border-[#EFBF04] max-md:ring-1 max-md:ring-[#EFBF04]/70`) 적용, `'오늘'` 배지에 `hidden md:inline-flex` 적용.
+  2. **`src/components/calendar/mobile-drawer.tsx` & `src/app/dashboard/page.tsx` & `src/app/dashboard/page.test.tsx`**:
+     - `MobileDrawer`에 `open` 및 `onOpenChange` prop을 추가하고, `DashboardPage`에서 모바일(`< 900px`) 날짜 타일 클릭 시 `setIsMobileDrawerOpen(true)`가 호출되도록 연결.
+     - 360px 모바일 뷰포트에서 날짜 타일 클릭 시 바텀시트가 즉시 열리는 단위 테스트 추가.
+  3. **`src/components/calendar/calendar-game-filter.tsx`**:
+     - 초소형 화면(320px~360px)에서 게임 필터 팝오버가 화면 좌우로 넘치지 않도록 `max-w-[calc(100vw-2rem)]` 추가.
+
 ## 대시보드 요약 카드 진행률, 100% 포인트 할인, 사이드바 드롭다운 탭 및 모바일 터치 개선 (2026-10-19)
 
 - **배경 및 사용자 요구사항**:
