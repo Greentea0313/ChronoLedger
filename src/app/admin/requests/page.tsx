@@ -435,7 +435,7 @@ export default function AdminRequestsPage() {
                         if (directCreateSuccess) setDirectCreateSuccess(null)
                       }}
                       disabled={isCreatingGame || !isOnline}
-                      className="border-line bg-surface-2 text-content"
+                      className="border-line bg-surface-2 text-content truncate"
                     />
                   </div>
                 </div>
@@ -503,7 +503,7 @@ export default function AdminRequestsPage() {
                         }))
                       }
                       disabled={processingId === req.id || !isOnline}
-                      className="border-line bg-surface-2 text-content"
+                      className="border-line bg-surface-2 text-content truncate"
                     />
                     <div className="flex gap-2">
                     <Button

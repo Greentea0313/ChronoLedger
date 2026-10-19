@@ -260,7 +260,7 @@ export function HeroSidebarContent({
           </div>
 
           {selectedDetailTab === "SCHEDULE" && (
-            <section className="space-y-2">
+            <section className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
               {filteredSchedules.length === 0 ? (
                 <EmptyState message="해당 일자의 일정이 없습니다." />
               ) : (
@@ -358,7 +358,7 @@ export function HeroSidebarContent({
           )}
 
           {selectedDetailTab === "EXPENSE" && (
-            <section className="space-y-2">
+            <section className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
               {expenses.length === 0 ? (
                 <EmptyState message="해당 일자의 지출이 없습니다." hint="등록 버튼으로 추가할 수 있습니다." />
               ) : (
@@ -403,7 +403,7 @@ export function HeroSidebarContent({
           )}
 
           {selectedDetailTab === "MEMO" && (
-            <section className="space-y-2" data-vaul-no-drag>
+            <section className="space-y-2 max-h-[380px] overflow-y-auto pr-1" data-vaul-no-drag>
               {isEditingMemo ? (
                 <div className="space-y-2" data-vaul-no-drag>
                   <textarea
@@ -495,7 +495,7 @@ export function HeroSidebarContent({
 
 export function HeroSidebar(props: HeroSidebarProps) {
   return (
-    <aside className="hidden w-[340px] lg:sticky lg:top-0 lg:block lg:self-start">
+    <aside className="hidden w-[340px] lg:sticky lg:top-0 lg:block lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto pr-1">
       <HeroSidebarContent {...props} />
     </aside>
   )

@@ -566,7 +566,7 @@ describe("ExpensesPage", () => {
 
     // 픽업 과금 순위 카드 영역
     const rankingTitle = screen.getByText("픽업 과금 순위")
-    const rankingCard = (rankingTitle.closest(".space-y-3") || rankingTitle.parentElement?.parentElement!) as HTMLElement
+    const rankingCard = (rankingTitle.closest(".space-y-3") || rankingTitle.parentElement?.parentElement) as HTMLElement
 
     // 픽업 통계에 'A + B' 합동 항목 1개로 표시되고 '동시 픽업' 배지가 표시됨
     expect(within(rankingCard).getByText("배너 A (픽업 1) + 배너 B (픽업 2)")).toBeTruthy()
@@ -675,7 +675,7 @@ describe("ExpensesPage", () => {
 
     // 픽업 과금 순위 카드 영역
     const rankingTitle = screen.getByText("픽업 과금 순위")
-    const rankingCard = (rankingTitle.closest(".space-y-3") || rankingTitle.parentElement?.parentElement!) as HTMLElement
+    const rankingCard = (rankingTitle.closest(".space-y-3") || rankingTitle.parentElement?.parentElement) as HTMLElement
 
     // 1위: 합동 항목 50,000원 (50%)
     expect(within(rankingCard).getByText("배너 A (픽업 1) + 배너 B (픽업 2)")).toBeTruthy()

@@ -1372,7 +1372,7 @@ export default function AdminPage() {
 
       {/* 게임 등록 및 수정 모달 다이얼로그 */}
       <Dialog open={isGameModalOpen} onOpenChange={setIsGameModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-full overflow-hidden">
           <DialogHeader>
             <DialogTitle>
               {editingGame ? "게임 정보 수정" : "새 게임 등록"}
@@ -1384,8 +1384,8 @@ export default function AdminPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveGame} className="space-y-4 pt-2">
-            <div>
+          <form onSubmit={handleSaveGame} className="space-y-4 pt-2 w-full min-w-0">
+            <div className="w-full min-w-0">
               <label htmlFor="game-form-name" className="block text-sm font-medium mb-1">
                 게임 이름 *
               </label>
@@ -1396,11 +1396,11 @@ export default function AdminPage() {
                 onChange={(e) => setGameFormName(e.target.value)}
                 placeholder="예: 원신, 붕괴: 스타레일"
                 required
-                className="bg-surface-2 border-line text-content"
+                className="bg-surface-2 border-line text-content truncate"
               />
             </div>
 
-            <div>
+            <div className="w-full min-w-0">
               <label htmlFor="game-form-icon-url" className="block text-sm font-medium mb-1">
                 기본 아이콘 URL *
               </label>
@@ -1411,7 +1411,7 @@ export default function AdminPage() {
                 onChange={(e) => setGameFormIconUrl(e.target.value)}
                 placeholder="https://... (웹 이미지 주소)"
                 required
-                className="bg-surface-2 border-line text-content"
+                className="bg-surface-2 border-line text-content truncate"
               />
               <p className="text-[11px] text-content-muted mt-1">
                 외부 웹 호스팅 또는 CDN의 이미지 절대 URL(http/https)을 입력하세요.
@@ -1420,7 +1420,7 @@ export default function AdminPage() {
 
             {/* 실시간 아이콘 미리보기 */}
             {gameFormIconUrl.trim() && (
-              <div className="flex items-center gap-3 p-2.5 rounded-lg border border-line bg-surface-2">
+              <div className="flex items-center gap-3 p-2.5 rounded-lg border border-line bg-surface-2 w-full min-w-0 overflow-hidden">
                 <div className="h-10 w-10 rounded-lg overflow-hidden border border-line bg-surface flex items-center justify-center shrink-0">
                   <GameIcon
                     src={gameFormIconUrl.trim()}
@@ -1428,7 +1428,7 @@ export default function AdminPage() {
                     fallbackIcon={<span className="text-base">🎮</span>}
                   />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 overflow-hidden">
                   <p className="text-xs font-semibold text-content truncate">
                     {gameFormName.trim() || "아이콘 미리보기"}
                   </p>

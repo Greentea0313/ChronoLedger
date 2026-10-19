@@ -42,20 +42,25 @@
 - [x] A2z 제작자 페이지의 SIL OFL 1.1 및 눈누의 상업 사용/수정/재배포 허용 안내를 확인했다. 재배포 시 저작권 고지와 OFL 전문이 필요하며, 폰트 자체 단독 판매는 허용되지 않는다.
 - [x] A2Z의 내장 저작권 표기와 SIL OFL 1.1을 확인하고 9개 WOFF2 굵기를 시안 및 웹 앱에서 자체 호스팅한다. 두 배포 위치에 OFL 전문을 동봉한다.
 - [x] 업데이트된 시안을 양 테마와 390/900/1280px에서 재검증해 가로 넘침과 주요 반응형 패널 위치를 확인했다.
+- [x] 관리자 새 게임 등록 모달 이미지 URL 입력창 말줄임(`truncate`) 및 모달 가로 팽창 방지 완료 (2026-10-19):
+  - `src/components/ui/input.tsx` 기본 스타일 클래스에 `min-w-0` 추가.
+  - `src/app/admin/page.tsx` 새 게임 등록/수정 모달 `DialogContent`에 `w-full max-w-md overflow-hidden`, `<form>` 및 필드 래퍼에 `w-full min-w-0` 적용.
+  - 게임 이름 및 기본 아이콘 URL 입력칸에 `truncate` 클래스를 적용하여 긴 URL 입력 시 말줄임표(`...`)로 일부만 표시되도록 개선.
+  - 실시간 아이콘 미리보기 컨테이너에 `w-full min-w-0 overflow-hidden` 적용하여 긴 URL 입력 시 모달 팽창 및 가로 스크롤 완전 해결.
+- [x] 구글 로그인 버튼 공식 로고 SVG 삽입 및 우측 사이드바 세로 스크롤·높이 제약 개선 완료 (2026-10-19):
+  - `/auth` 페이지 Google 계정 로그인 버튼에 공식 4색 "G" 로고 SVG 삽입 및 `flex items-center justify-center gap-2` 레이아웃 적용 완료.
+  - 우측 사이드바 `HeroSidebar` `<aside>`에 `lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto pr-1` 적용 및 `HeroSidebarContent` 내 `SCHEDULE`, `EXPENSE`, `MEMO` 섹션에 `max-h-[380px] overflow-y-auto pr-1`을 적용하여 복수 게임 일정 겹침 시 내부 스크롤로 깔끔히 확인 가능하도록 개선 완료.
 - [ ] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
   - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했다.
   - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
 - [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](Netlify_Web_Architecture_Proposal.md)에 반영했다.
-- [ ] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
+- [ ] 배포 플랫폼 Cloudflare Pages 단일 확정 (Netlify 완전 폐기) 및 배포 검증:
+  - [x] **배포 플랫폼 결정 확정 (2026-10-19)**: 사용자 결정에 따라 이전 Netlify 배포 방식을 완전히 폐기하고 **Cloudflare Pages** 단일 호스팅으로 확정.
   - [x] **Cloudflare Pages 호스팅 환경 구성**: [`.nvmrc`](../.nvmrc) (Node.js 20 LTS), [`public/_headers`](../public/_headers) (불변 캐싱 및 보안 헤더), [`public/_redirects`](../public/_redirects) 설정 완료.
   - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`md/MIGRATION_PG_CRON.sql`](../md/MIGRATION_PG_CRON.sql)) 작성 완료.
   - [x] **탈퇴 API Supabase RPC 완전 통합**: Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` `SECURITY DEFINER` RPC 함수로 프론트엔드 직접 연동 완료 ([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts)).
-  - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
-- [ ] (보류/대안) Netlify 후보 유지 시 점검 사항:
-  - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 통과.
-  - 원격 정적 경로 검증: `chronoledger-validation-20261007` Draft Deploy(Production 아님)에서 로그인 화면, `/auth`, callback 안내, 보호 동작 확인 완료.
-  - [x] Supabase Authentication → URL Configuration → Redirect URLs에 원격 배포 도메인의 `/auth/callback` 등록 완료 (2026-10-13 사용자 확인 완료).
-  - Netlify Git 자동 배포 연결 시 월 300분 빌드 한도 모니터링 및 PR 프리뷰 빌드 비활성화 등 크레딧 절약 설정 필요.
+  - [ ] **웹 정적 호스팅 배포 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
+- [x] [폐기됨] (구) Netlify 배포 후보 및 제약 사항: 사용자 결정(2026-10-19)으로 Netlify 배포 방식 및 관련 기능은 완전히 폐기되었으며 Cloudflare Pages로 일원화됨.
 
 ## Gemini 진행 문서 대조 기록 (2026-10-03)
 

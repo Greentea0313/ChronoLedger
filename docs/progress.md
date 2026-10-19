@@ -1,5 +1,53 @@
 # 프로젝트 진행 현황
 
+## 배포 플랫폼 Cloudflare Pages 단일 확정 및 Netlify 배포 방식 완전 폐기 (2026-10-19)
+
+- **결정 배경 및 사용자 지침**:
+  - 사용자 결정에 따라 기존 Netlify 웹 호스팅 및 관련 배포 방식이 완전히 폐기되고, **Cloudflare Pages** 단일 호스팅으로 공식 확정됨.
+  - Netlify의 무료 플랜 제약(월 300분 빌드 한도, 월 100GB 대역폭 초과 시 사이트 정지 하드 리미트) 리스크를 완전히 제거하고, 트래픽 무제한 및 월 500회 빌드를 제공하는 Cloudflare Pages로 배포 파이프라인 일원화.
+- **아키텍처 및 설정 완료 현황**:
+  1. **정적 호스팅 환경**: Next.js 단일 정적 export(`output: 'export'` -> `out/`), Node.js 20 LTS([`.nvmrc`](../.nvmrc)), 불변 캐시/보안 헤더([`public/_headers`](../public/_headers)), SPA 라우팅 리디렉션([`public/_redirects`](../public/_redirects)).
+  2. **서버리스/스케줄러 분리**: 구 Netlify Functions를 완전히 배제하고, Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러([`md/MIGRATION_PG_CRON.sql`](../md/MIGRATION_PG_CRON.sql)), 프론트엔드 직접 RPC 연동([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts))으로 체계 구축 완료.
+  3. 관련 아키텍처 및 체크리스트 문서 동기화 완료 ([`docs/architecture.md`](architecture.md), [`docs/to-do.md`](to-do.md)).
+
+## 관리자 새 게임 등록 모달 이미지 URL 입력창 말줄임(truncate) 및 가로 팽창 방지 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  - 관리자 페이지의 새 게임 등록 모달에서 긴 이미지 주소(CDN/외부 호스팅 URL) 입력 시, 모달 대화상자가 가로로 무한정 늘어나 화면 바깥으로 삐져나가고 하단에 가로 스크롤바가 생기는 레이아웃 깨짐 현상 발생.
+  - 기본 UI 형태를 유지하되, 이미지 주소가 길어지면 입력칸 내에 일부만 표시(`truncate`)되도록 개선 요구.
+- **수행 내역**:
+  1. **`src/components/ui/input.tsx`**:
+     - 기본 `Input` 스타일 클래스에 `min-w-0`을 추가하여 flex/grid 레이아웃 내에서 자식 인풋의 최소 너비 팽창을 원천 방지.
+  2. **`src/app/admin/page.tsx`**:
+     - 새 게임 등록/수정 모달 `DialogContent`에 `w-full max-w-md overflow-hidden` 적용하여 가로 스크롤 방지.
+     - 모달 `<form>` 및 각 입력 필드 래퍼에 `w-full min-w-0` 적용.
+     - 게임 이름(`game-form-name`) 및 기본 아이콘 URL(`game-form-icon-url`) 입력창에 `truncate` 클래스를 추가하여 긴 텍스트 입력 시 말줄임표(`...`)로 일부만 표시.
+     - 실시간 아이콘 미리보기 컨테이너에 `w-full min-w-0 overflow-hidden`을 부여하여 초장문 텍스트로 인한 부모 컨테이너 밀림 차단.
+  3. **`src/app/admin/requests/page.tsx`**:
+     - 데이터 요청 관리 페이지의 직접 게임 생성 아이콘 URL 및 요청 큐 기본 아이콘 URL 입력창에도 `truncate` 일괄 적용.
+  4. **검증 완료**:
+     - Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS).
+     - `npx tsc --noEmit` 무결점 검증 (0 errors).
+
+## 구글 로그인 버튼 공식 로고 SVG 삽입 및 우측 사이드바 내부 스크롤·높이 제약 개선 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  1. **구글 로그인 버튼 공식 로고 누락 해결**:
+     - 기존 `/auth` 페이지의 Google 계정 로그인 버튼에 브랜드 로고가 없어 텍스트만 렌더링되던 시각적 결함을 해결하기 위해 공식 4색 "G" 로고 SVG 삽입.
+  2. **우측 사이드바 및 선택일 상세 영역 높이 제약 & 스크롤 지원**:
+     - 여러 게임 일정이 겹치거나 지출 내역이 많아질 때 데스크톱 우측 사이드바의 "선택일 상세 카드"가 화면을 벗어날 정도로 길어져 하단의 "스토어 포인트 카드"가 잘리고 화면 전체 스크롤 균형이 깨지던 문제 개선.
+     - `SCHEDULE`, `EXPENSE`, `MEMO` 목록 섹션에 `max-h-[380px] overflow-y-auto pr-1`을 적용하여 상세 카드 내부에서만 스크롤되도록 제약.
+     - 데스크톱 `<aside>` 자체에도 `lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto pr-1`를 부여하여 저해상도 모니터나 창 축소 환경에서도 사이드바가 뷰포트 바깥으로 잘리지 않도록 2중 안전장치 마련.
+
+- **수행 내역**:
+  1. **`src/app/auth/page.tsx`**:
+     - Google 공식 4색 SVG 로고 삽입 및 버튼 레이아웃 정렬(`flex items-center justify-center gap-2`).
+  2. **`src/components/calendar/hero-sidebar.tsx`**:
+     - `HeroSidebar` 데스크톱 `<aside>`에 `lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto pr-1` 적용.
+     - `HeroSidebarContent` 내 `SCHEDULE`, `EXPENSE`, `MEMO` 섹션에 `max-h-[380px] overflow-y-auto pr-1` 적용.
+  3. **검증 완료**:
+     - Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS).
+
 ## 메모 도트 중심 정렬·가시성 개선 및 복수 픽업 합동 항목 집계 (2026-10-19)
 
 - **배경 및 사용자 요구사항**:

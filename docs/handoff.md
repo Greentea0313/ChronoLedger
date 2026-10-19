@@ -23,30 +23,76 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `combined-pickup-stats` *(2026-10-19, Gemini 4 Argon 토큰 소진으로 1순위 대체 **Claude Opus 5.5**가 Orchestrator 대행)*
-- **Worktree 경로**: `main` *(메모 도트 UI 변경이 Flash 서브에이전트에 의해 `main`에서 동시 진행되어 루트 트리가 깨끗하지 않으므로 격리 Worktree 대신 `main`에서 수행)*
-- **Base SHA**: `be58faa` | **Target SHA**: `4b55c2a`
-- **사용자 결정 (2026-10-19)**: 동일 기간 복수 픽업 동시 연계 지출(`[PICKUPS:id1,id2,...]`)은 소비 페이지 **픽업별 과금 분석**에서 배너마다 전액 중복 표시하지 않고, **`A + B 동시 픽업` 합동 항목 1개로 묶어 1회만 집계**한다. 저장 데이터(메모 메타데이터·`pickup_schedule_id`)와 지출 등록 UX는 변경하지 않고 **표시/집계 레이어만** 바꾼다.
+- **Run ID**: `admin-game-modal-url-truncate` *(2026-10-19, 타 모델 토큰 소진에 따른 Gemini 3.8 Flash 전담 UI/마크업 개선)*
+- **Worktree 경로**: `main`
+- **사용자 요청 (2026-10-19)**:
+  1. 관리자 페이지에서 새 게임 등록 시 이미지 주소(URL)가 너무 길어질 경우 모달이 가로로 늘어나 화면이 깨지는 현상 수정
+  2. 기본 UI를 유지하면서 이미지 주소 등이 길어질 때 입력칸 내부에서 말줄임(`truncate`)으로 일부만 표시되도록 개선
 - **수용 기준 (Acceptance Criteria)**:
-  1. `src/app/dashboard/expenses/page.tsx`의 `pickupStatsData`에서 연계 픽업 ID가 2개 이상인 지출은 정렬된 ID 조합 키(예: `COMBO:<id1>,<id2>`)로 하나의 항목에 합산하며, 이름은 배너 제목을 ` + `로 연결(예: `A 픽업 + B 픽업`)한다. 같은 조합의 지출은 같은 항목에 누적된다.
-  2. 단일 픽업 지출 및 `일반`(픽업 없음) 집계 동작은 기존과 동일하다.
-  3. 모든 항목 `amount`의 합 = `totalGameSpent`(1x 원칙)이고, `percent`의 의미가 실제 비중과 일치한다(중복 합산 없음).
-  4. 합동 항목은 목록/차트 툴팁에서 `동시 픽업` 뱃지 또는 라벨로 단일 픽업과 구분되며, 기존 팔레트 색 배정 규칙을 따른다.
-  5. 차트 하단 안내 문구(현재 약 1077행 `※ 동일 기간 복수 픽업 진행 지출은 각 배너에 동시 연계...`)를 `※ 동일 기간 복수 픽업에 동시 연계된 지출은 'A + B' 합동 항목으로 1회만 집계됩니다.` 취지로 갱신한다.
-  6. `src/app/dashboard/expenses/page.test.tsx`의 복수 배너 테스트(약 522행)를 새 동작에 맞게 갱신하고, (a) 2배너 연계 지출이 합동 항목 1개로만 표시, (b) 단일 픽업 지출과 합동 지출이 공존할 때 항목 합계 = 게임 총 과금액을 검증하는 케이스를 추가한다.
-  7. `npx vitest run` 전체 및 `npx tsc --noEmit` 통과. 지출 모달(`expense-modal.tsx`)·지출 목록 뱃지·DB 스키마는 범위 밖.
+  1. `src/components/ui/input.tsx` 기본 클래스에 `min-w-0`을 추가하여 flex/grid 컨테이너에서 인풋 최소 너비 팽창 원천 방지
+  2. `src/app/admin/page.tsx` 새 게임 등록/수정 모달(`isGameModalOpen`)의 `DialogContent`에 `w-full max-w-md overflow-hidden`, `<form>` 및 각 필드 컨테이너에 `w-full min-w-0` 적용
+  3. `game-form-name`, `game-form-icon-url` 입력칸 및 `requests/page.tsx` 아이콘 URL 입력칸에 `truncate` 클래스를 적용하여 긴 URL 입력 시 말줄임표(`...`)로 일부만 표시
+  4. 실시간 미리보기 컨테이너에 `w-full min-w-0 overflow-hidden` 적용하여 긴 URL로 인한 부모 컨테이너 밀림 방지
+  5. Vitest 단위 테스트 42개 파일 258개 전원 PASS 및 `npx tsc --noEmit` 에러 0건 유지
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **0** | `✅ DONE` | **Claude Opus 5.5** *(Argon 대행)* | `Orchestrator` | 요구사항 분해, 사용자 결정(합동 항목 방식) 확정, 수용 기준 수립, 과제 할당 | 본 Dispatch Table |
-| **0-1** | `✅ DONE (SHA: 2ec6b18)` | **Gemini 3.8 Flash** *(내부 서브에이전트, 대체: GitHub Copilot / Gemini 4 Argon)* | `Maker (Fast UI)` | 데스크톱 메모 도트를 게임 아이콘 열 중심에 정렬하고 라이트/다크/커스텀 배경 가시성 강화(`desktop-calendar.tsx`, `desktop-calendar.test.tsx`) | `w-4 md:w-5 flex justify-center` 래퍼, `bg-content-secondary` + 대비 링/그림자. vitest 42파일/257테스트 PASS, tsc 0 errors. Orchestrator(Claude 대행) diff 검수 완료 |
-| **1** | `✅ DONE (SHA: 4b55c2a)` | ~~GitHub Copilot~~ ➡️ **Gemini 3.8 Flash** *(Copilot 토큰 소진으로 1순위 대체, 내부 서브에이전트로 실행 / 2순위: GPT Codex)* | `Maker (General)` | 위 수용 기준 1~7 구현. 허용 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`. 완료 후 `main`에 커밋 | `4b55c2a` (동일 기간 복수 픽업 동시 연계 지출을 `COMBO:<ids>` 합동 항목 1개로 집계, 안내 문구 및 툴팁/목록 '동시 픽업' 배지, vitest 42파일/258테스트 PASS, tsc 0 errors) |
-| **2** | `✅ DONE (Orchestrator 간이 검수 — 정식 독립 리뷰는 토큰 회복 후 권장)` | **Claude Opus 5.5** *(대체: Gemini 4 Argon / GitHub Copilot — 모두 토큰 소진 시 Gemini 3.8 Flash가 임시 대행)* | `Reviewer` | `be58faa` ↔ 1단계 Target SHA 정적 리뷰: 1x 합산 불변식, 조합 키 결정성(ID 정렬), 단일/일반 집계 회귀 여부 | Orchestrator(Claude Opus 5.5, Argon 대행) diff 간이 검수(로직·인코딩 확인, expenses 테스트 17/17 재실행 PASS). 정식 review.json은 토큰 회복 후 권장 |
-| **3** | `✅ DONE` | ~~Gemini 4 Argon~~ ➡️ **Gemini 3.8 Flash** *(대행, 대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 최종 검수 및 `docs/handoff.md`·`progress.md`·`changelog.md`·`to-do.md` 마감 | 문서 마감: Gemini 3.8 Flash 대행 (`docs/handoff.md`, `progress.md`, `changelog.md`, `to-do.md` 동기화) |
+| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GitHub Copilot / Gemini 4 Argon)* | `Maker (Fast UI)` | 새 게임 등록 모달 및 아이콘 URL 입력창 `truncate` 및 모달 가로 팽창 방지 (`src/components/ui/input.tsx`, `src/app/admin/page.tsx`, `src/app/admin/requests/page.tsx`) | `Input` 기본 `min-w-0` 보강, 모달 `overflow-hidden` 및 `truncate` 적용, vitest 42개 파일 258개 테스트 100% PASS, tsc 0 errors |
+| **2** | `✅ DONE` | **Gemini 3.8 Flash** *(대행, 대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 최종 검수 및 `docs/handoff.md`·`progress.md`·`changelog.md`·`to-do.md` 마감 | 문서 4종 최신화 동기화 완료 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
-- **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+- **현재 기록된 중단 체크포인트 없음**
+
+---
+
+## 배포 플랫폼 Cloudflare Pages 단일 확정 및 Netlify 배포 폐기 (2026-10-19)
+
+- **사용자 결정**: 기존 Netlify 웹 호스팅 배포 방식을 완전히 폐기하고, **Cloudflare Pages** 단일 호스팅으로 배포 파이프라인 확정.
+- **아키텍처 영향**:
+  - Netlify Functions 및 Netlify CLI 전면 배제.
+  - Supabase 내부 완결 RPC + `pg_cron` 백그라운드 스케줄러 사용.
+  - Next.js 정적 export(`out/`), Node.js 20 LTS([`.nvmrc`](.nvmrc)), [`public/_headers`](public/_headers), [`public/_redirects`](public/_redirects) 기반 Cloudflare Pages 호스팅 확정.
+  - 문서 동기화: `docs/architecture.md`, `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md` 반영 완료.
+
+---
+
+## 관리자 새 게임 등록 모달 이미지 URL 입력창 말줄임(truncate) 및 가로 팽창 방지 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  - 관리자 페이지의 새 게임 등록 모달에서 긴 이미지 주소(CDN/외부 호스팅 URL) 입력 시, 모달 대화상자가 가로로 무한정 늘어나 화면 바깥으로 삐져나가고 하단에 가로 스크롤바가 생기는 레이아웃 깨짐 현상 발생.
+  - 기본 UI 형태를 유지하되, 이미지 주소가 길어지면 입력칸 내에 일부만 표시(`truncate`)되도록 개선 요구.
+- **원인 분석**:
+  - CSS Grid 컨테이너(`DialogContent`) 내부의 `<form>` 및 `<input>` 태그에 `min-w-0`이 없어, 공백 없는 초장문 텍스트 입력 시 Grid item의 `min-width: auto` 규칙으로 인해 모달 너비가 콘텐츠 길이에 맞춰 강제 팽창함.
+  - `<Input>` 요소에 `truncate`가 누락되어 텍스트 오버플로우 시 말줄임표 처리가 되지 않음.
+- **수정 파일 및 내역**:
+  - `src/components/ui/input.tsx`: 기본 클래스에 `min-w-0` 추가.
+  - `src/app/admin/page.tsx`:
+    - 게임 모달 `DialogContent`에 `w-full overflow-hidden`, `<form>` 및 필드 래퍼에 `w-full min-w-0` 적용.
+    - 게임 이름 및 아이콘 URL 입력칸에 `truncate` 적용.
+    - 실시간 아이콘 미리보기 컨테이너에 `w-full min-w-0 overflow-hidden` 적용.
+  - `src/app/admin/requests/page.tsx`: 데이터 요청 관리 페이지의 아이콘 URL 입력칸에도 `truncate` 적용.
+- **검증 결과**:
+  - Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS).
+  - TypeScript 타입 체크(`npx tsc --noEmit`) 에러 0건.
+
+---
+
+## 구글 로그인 버튼 공식 로고 SVG 삽입 및 우측 사이드바 내부 스크롤·높이 제약 개선 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  1. **구글 로그인 버튼 공식 로고 누락 해결**:
+     - 기존 `/auth` 페이지의 Google 계정 로그인 버튼에 브랜드 로고가 없어 텍스트만 렌더링되던 시각적 결함을 해결하기 위해 공식 4색 "G" 로고 SVG 삽입.
+  2. **우측 사이드바 및 선택일 상세 영역 높이 제약 & 스크롤 지원**:
+     - 여러 게임 일정이 겹치거나 지출 내역이 많아질 때 데스크톱 우측 사이드바의 "선택일 상세 카드"가 화면을 벗어날 정도로 길어져 하단의 "스토어 포인트 카드"가 잘리고 화면 전체 스크롤 균형이 깨지던 문제 개선.
+     - `SCHEDULE`, `EXPENSE`, `MEMO` 목록 섹션에 `max-h-[380px] overflow-y-auto pr-1`을 적용하여 상세 카드 내부에서만 스크롤되도록 제약.
+     - 데스크톱 `<aside>` 자체에도 `lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto pr-1`를 부여하여 저해상도 모니터나 창 축소 환경에서도 사이드바가 뷰포트 바깥으로 잘리지 않도록 2중 안전장치 마련.
+
+- **수정 파일**:
+  - `src/app/auth/page.tsx`: Google 공식 4색 SVG 로고 및 `flex items-center justify-center gap-2` 레이아웃 적용.
+  - `src/components/calendar/hero-sidebar.tsx`: `HeroSidebar` aside 및 `HeroSidebarContent` 내 3개 탭(`SCHEDULE`, `EXPENSE`, `MEMO`) 컨테이너에 `max-h-[380px] overflow-y-auto pr-1` 적용.
+- **검증 결과**:
+  - Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS).
 
 ---
 

@@ -17,11 +17,10 @@ Next.js App Router
 Supabase
 ├── Auth: 이메일 및 Google OAuth
 ├── PostgreSQL: RLS 격리, 원자적 RPC, 일정 동기화 트리거
-└── Storage: 소유자 전용 비공개 커스텀 아이콘
-Netlify Functions (계정 삭제 전용 서버 경계)
-├── 요청 인증/확인 및 상태 조회
-├── 예약 worker: queue claim, Storage/개인 데이터 정리, Resend 알림, Auth 최종 삭제
-└── Supabase service-role 비밀값은 server environment에서만 사용
+├── Storage: 소유자 전용 비공개 커스텀 아이콘
+└── pg_cron & 원자적 RPC (계정 삭제 전용 내부 스케줄러):
+    ├── purge_expired_account_deletion_requests: 5분 주기 자동 정리
+    └── request_account_deletion, get_account_deletion_status: SECURITY DEFINER RPC
 ```
 
 ## 2. 데이터 및 권한 경계
@@ -49,13 +48,13 @@ Netlify Functions (계정 삭제 전용 서버 경계)
 - `src/components/ui/`: 공통 Button, Card, Input, Dialog, Select, Progress, Drawer UI 컴포넌트. Progress는 Radix UI, Drawer는 Vaul 기반이며 alias는 `components.json`에 정의한다.
 - Web/PWA 앱의 `public/fonts/a2z/`: 자체 호스팅하는 A2Z WOFF2 9개 굵기 및 SIL OFL 1.1 고지.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
-- `netlify/functions/`: 계정 삭제 요청·상태 endpoint와 예약 정리 worker. 이 경계만 service-role key를 사용하며, 일반 앱은 기존 정적 export/Supabase browser client 구조를 유지한다.
+- `(구) netlify/functions/`: Netlify 배포 방식 폐기로 인해 더 이상 사용되지 않으며, Supabase RPC(`request_account_deletion` 등) 및 PostgreSQL `pg_cron` 내부 스케줄러(`MIGRATION_PG_CRON.sql`)로 완전 이관 완료됨.
 - `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.
 - `docs/`: 진행 현황, 아키텍처, 인수인계, 구현 체크리스트, 변경 이력, 주의사항.
 - `docs/ai-collaboration-usage.md`, `docs/ChronoLedger_collaboration_guide.md`: 기존 수동 절차와 초보자를 위한 최소 개입 협업 흐름 및 사용자 개입 안내.
 - `.github/copilot-instructions.md`, `.github/agents/`, `.agents/rules/`, `.agents/skills/`: VS Code 및 다중 AI 에이전트(Gemini 4 Argon, GPT Codex, Claude Opus 5.5, GitHub Copilot, Gemini 3.8 Flash) 지침과 ChronoLedger Orchestrator/Maker/Reviewer 스킬 프로필. 루트 `docs/handoff.md` 최상단의 `Active AI Collaboration Dispatch Queue`를 단일 진실 공급원(Blackboard)으로 삼아, 사용자가 `"인수인계 문서를 확인해"`를 입력하면 각 모델이 할당된 역할(`▶ READY`) 또는 토큰 소진 비상 인계(`⚠️ HANDOVER_NEEDED` 및 `git diff` 자동 스캔 복구) 과제를 즉시 수행하고 다음 단계로 배턴을 넘긴다.
 - `md/ChronoLedger_UI_Design_Sheet.md`, `docs/design-v1-ko.html`, `docs/design-preview-ko.html`: SRS에 근거한 UI 설계 참조 및 정적 목업. 반응형 시안은 자체 호스팅 폰트 자산을 `docs/assets/fonts/a2z/`에서 가져온다. 실제 제품 UI 구현은 별도다.
-- `docs/Netlify_Web_Architecture_Proposal.md`: Netlify/Web·Desktop 빌드 분리 제안. 아직 승인되지 않아 런타임 결정으로 적용하지 않는다.
+- `docs/Netlify_Web_Architecture_Proposal.md`: 이전 Netlify 플랫폼 제약 검토 문서. Netlify 배포 방식 폐기 및 Cloudflare Pages 단일 호스팅 확정으로 폐기됨.
 - `artifacts/`: run manifest, 반복별 정적 리뷰/테스트 JSON, 민감정보를 제거한 종료 보고서 및 JSON Schema.
 - `scripts/collaboration/`: 깨끗한 저장소 상태를 확인하고 실행 전용 Git worktree를 만드는 스크립트, collaboration artifact JSON Schema 검증기 및 승인된 단일 run/SHA의 Gemini Reviewer 초안을 만드는 제한 PoC.
 - `.worktrees/`: run별 격리 작업 트리 위치이며 Git에서 제외한다. Orchestrator가 먼저 `New-CollaborationRun.ps1`로 `.worktrees/<run_id>`를 생성한 뒤 루트 `docs/handoff.md` 큐에 대상 경로를 기록하며, 자동 강제 초기화는 사용하지 않는다.
@@ -71,7 +70,7 @@ Netlify Functions (계정 삭제 전용 서버 경계)
 ## 5. 배포 및 미검증 사항
 
 - SRS는 Android PWA와 Windows Tauri v2, 단일 Next.js 코드베이스 및 Tauri 정적 export 방향을 정한다. Android PWA 실기기 검증은 웹사이트 우선 요청에 따라 보류됐으나 제품 범위는 유지한다. 앱 릴리스 버전은 미결정이다.
-- 사용자는 Netlify를 웹 호스팅 후보로 고려한다. 우선 기존 `output: 'export'` 산출물을 Deploy Preview에서 검증하고, 서버 기능 요구 증거 없이 Web/Desktop 빌드를 분리하지 않는다. Netlify 채택은 preview 검증 전까지 미확정이며 체크 항목은 [to-do.md](to-do.md)에 둔다.
+- 웹 호스팅 플랫폼은 **Cloudflare Pages**로 최종 확정되었으며, 이전 Netlify 배포 방식은 완전히 폐기되었다. Next.js 단일 정적 export(`output: 'export'` -> `out/`) 산출물을 Cloudflare Pages에 배포하며(트래픽 무제한, 월 500회 빌드), 불변 캐시/보안 헤더(`public/_headers`) 및 SPA 라우팅(`public/_redirects`)을 통해 호스팅된다.
 - UI 설계는 [UI Design Sheet](../md/ChronoLedger_UI_Design_Sheet.md)를 따른다. 이는 SRS가 정한 동작을 보존하며, `[PROPOSED]`로 표시된 시각/배치 선택은 구현 전에 확정한다. [한국어 HTML 목업](design-v1-ko.html)은 단일 대시보드의 정적 시각 참고 자료다.
 - DDL/RPC/RLS는 [SCHEMA.sql](../md/SCHEMA.sql)에 둔다. 사용자는 전용 테스트 프로젝트에서 rollback-only smoke suite의 최종 PASS 및 fixture 롤백을 확인했다. 이는 전체 SRS 수용 기준 또는 Production 배포 검증을 뜻하지 않는다.
-- 계정 삭제 worker는 Supabase의 `account_deletion_requests` queue에서 job을 claim하고 Storage → 개인 행 → Resend 안내 → Auth 순서로 처리한다. `MANUAL_REVIEW`는 Resend 멱등성 안전 기간을 넘긴 불명확한 메일 결과의 보류 상태다. Supabase migration 적용, Netlify 예약 실행 및 provider 환경 설정은 배포 전 검증이 필요하다.
+- 계정 삭제 처리는 Supabase의 원자적 RPC(`request_account_deletion`, `get_account_deletion_status`)와 `pg_cron` 스케줄러(`purge_expired_account_deletion_requests`)를 통해 데이터베이스 내부에서 완전히 처리된다.

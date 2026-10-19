@@ -1,5 +1,36 @@
 # 변경 이력
 
+## 2026-10-19 (배포 플랫폼 Cloudflare Pages 단일 확정 및 Netlify 배포 폐기)
+
+- **배포 플랫폼 아키텍처 공식 일원화 (`docs/architecture.md`, `docs/to-do.md`, `docs/progress.md`)**:
+  - Netlify 무료 플랜 제약(월 300분 빌드, 월 100GB 대역폭 하드 리미트)으로 인한 서비스 중단 리스크를 원천 해소하기 위해 사용자 결정에 따라 Netlify 배포 방식을 완전히 공식 폐기하고 **Cloudflare Pages** 단일 호스팅으로 확정.
+  - Next.js 정적 export(`out/`), Node 20 LTS([`.nvmrc`](.nvmrc)), 불변 캐시/보안 헤더([`public/_headers`](public/_headers)), SPA 라우팅 리디렉션([`public/_redirects`](public/_redirects)) 기반 Cloudflare Pages 파이프라인 공식화.
+  - 백그라운드 계정 탈퇴 워커 및 스케줄러를 Netlify Functions 대신 Supabase 내부 완결 원자적 RPC 및 `pg_cron`([`md/MIGRATION_PG_CRON.sql`](md/MIGRATION_PG_CRON.sql))으로 이관 확정.
+
+## 2026-10-19 (관리자 새 게임 등록 모달 이미지 URL 입력창 말줄임 및 모달 팽창 방지)
+
+- **새 게임 등록 모달 이미지 URL 입력창 말줄임(`truncate`) 및 모달 가로 팽창 방지 (`src/app/admin/page.tsx`, `src/components/ui/input.tsx`)**:
+  - `Input` 기본 스타일 클래스에 `min-w-0`을 추가하여 flex/grid 컨테이너 내에서 자식 인풋의 최소 너비 팽창을 원천 차단.
+  - 관리자 새 게임 등록/수정 모달의 `DialogContent`에 `w-full max-w-md overflow-hidden`, `<form>` 및 필드 래퍼에 `w-full min-w-0`을 적용하여 가로 스크롤바 발생 방지.
+  - 게임 이름(`game-form-name`) 및 기본 아이콘 URL(`game-form-icon-url`) 입력칸에 `truncate` 클래스를 추가하여 긴 URL 입력 시 입력창 내부에서 말줄임표(`...`)로 일부만 표시되도록 개선.
+  - 실시간 아이콘 미리보기 컨테이너에 `w-full min-w-0 overflow-hidden`을 부여하여 초장문 텍스트로 인한 레이아웃 깨짐 현상 완전 해결.
+- **데이터 요청 관리 페이지 아이콘 URL 입력창 말줄임 적용 (`src/app/admin/requests/page.tsx`)**:
+  - 요청 관리 화면의 직접 게임 생성 아이콘 URL 및 큐 승인 기본 아이콘 URL 입력칸에도 동일하게 `truncate` 적용.
+- **단위 테스트 ESLint 규칙 준수 수정 (`src/app/dashboard/expenses/page.test.tsx`)**:
+  - 옵셔널 체이닝 연산자 뒤에 불필요하게 부착되어 빌드 린트 실패를 유발하던 non-null 단언(`parentElement?.parentElement!`)을 제거하여 `@typescript-eslint/no-non-null-asserted-optional-chain` 규칙 통과 (`next lint` 0 errors).
+- **검증 완료**:
+  - Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS), `next lint` 에러 0건, `npx tsc --noEmit` 에러 0건.
+
+## 2026-10-19 (구글 로그인 버튼 공식 로고 SVG 삽입 및 우측 사이드바 스크롤 제약 개선)
+
+- **구글 로그인 버튼 공식 브랜드 4색 로고 SVG 삽입 (`src/app/auth/page.tsx`)**:
+  - `/auth` 페이지의 Google 계정 로그인 버튼에 공식 4색 "G" 로고 SVG 아이콘을 추가하고 수평 중앙 정렬 레이아웃(`flex items-center justify-center gap-2`)을 적용하여 시각적 완성도 및 브랜드 가이드라인 준수.
+- **우측 사이드바 및 선택일 상세 목록 세로 스크롤·높이 제약 개선 (`src/components/calendar/hero-sidebar.tsx`)**:
+  - `HeroSidebarContent` 내의 "선택일 상세 카드" 3개 탭(`SCHEDULE`, `EXPENSE`, `MEMO`) 컨테이너에 `max-h-[380px] overflow-y-auto pr-1`을 적용하여, 복수 게임 일정이 겹치거나 지출 내역이 많아질 때 카드가 무한정 길어지지 않고 카드 내부에서 독립 스크롤되도록 개선.
+  - 데스크톱 `HeroSidebar` `<aside>`에 `lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto pr-1`를 부여하여 화면 높이가 낮은 환경에서도 하단 스토어 포인트 카드가 잘리지 않고 사이드바 전체가 안전하게 스크롤될 수 있도록 2중 안전장치 마련.
+- **검증 완료**:
+  - Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS).
+
 ## 2026-10-19 (메모 도트 중심 정렬·가시성 개선 및 복수 픽업 합동 항목 집계)
 
 - **데스크톱 캘린더 메모 도트 게임 아이콘 열 중심 정렬 및 가시성 개선 (`src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`)**:
