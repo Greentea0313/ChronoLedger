@@ -1,5 +1,36 @@
 # 프로젝트 진행 현황
 
+## 관리자 페이지 중복 네비게이션 정리 및 [지난 일정] 조회·관리 모달(Past Schedules Dialog) 신규 구현 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  1. **/admin 및 /admin/requests 중복 네비게이션 정리**:
+     - `AdminLayout`에서 상단 헤더 탭([일정 관리] / [요청 관리])을 이미 전역으로 제공하므로 각 페이지 내부의 중복 상단 배너 박스(데이터 제안 대기열/관리자 콘솔 바로가기) 제거하여 UI 레이아웃 정돈.
+  2. **/admin [지난 일정] 버튼 및 중앙 팝업 다이얼로그(Past Schedules Dialog) 신규 구현**:
+     - 공식 일정 관리 툴바에 [지난 일정] 버튼(`History` 아이콘) 추가.
+     - 클릭 시 중앙 팝업 다이얼로그(`Dialog`)가 열리며 `end_date < today`인 과거 일정 목록을 Supabase `.lt("end_date", today)` 쿼리로 로드.
+     - 다이얼로그 내에서 게임별 필터링, 검색, 페이지네이션(8개/페이지) 지원.
+     - 각 지난 일정 카드에서 [수정], [삭제] 가능하며, 기존 수정 폼 모달 및 삭제 확인 모달과 완벽히 연동(수정/삭제 후 지난 일정 모달로 안전하게 복귀 및 목록 자동 갱신).
+
+- **수행 내역**:
+  1. **`src/app/admin/requests/page.tsx` & `src/app/admin/page.tsx`**:
+     - `AdminLayout` 전역 탭과 중복되던 각 페이지 본문 상단 배너 박스 제거 및 불필요해진 `Link`, `ArrowLeft`, `ArrowRight` 임포트 정리.
+  2. **`src/app/admin/page.tsx`**:
+     - 툴바에 [지난 일정] 버튼(`History` 아이콘) 추가.
+     - `isPastModalOpen`, `pastSchedules`, `isLoadingPastSchedules`, `pastGameFilter`, `pastSearchQuery`, `currentPastPage`, `returnToPastModal` 상태 및 `PAST_SCHEDULES_PER_PAGE = 8` 정의.
+     - `fetchPastSchedules`: KST 오늘(`getKstToday()`) 기준 `.lt("end_date", today).order("end_date", { ascending: false })`로 만료된 일정 목록 비동기 조회.
+     - 게임 필터 및 검색어 필터링(`filteredPastSchedules`), 페이지네이션(`paginatedPastSchedules`) 연동.
+     - 지난 일정 모달 내 카드별 [수정](`handleEditFromPast`), [삭제](`handleDeleteFromPast`) 핸들러 구현 및 `returnToPastModal` 플래그를 통한 모달 상호작용(수정/삭제 취소나 완료 시 지난 일정 모달 자동 복귀 및 목록 갱신) 확립.
+     - 지난 일정 전용 다이얼로그(`DialogContent className="max-w-3xl"`) 렌더링.
+  3. **`src/app/admin/page.test.tsx`**:
+     - `createQueryBuilder`에 `lt` 모의 메서드 지원 추가.
+     - [지난 일정] 모달 오픈 및 `.lt("end_date", today)` 쿼리 호출, 게임/검색 필터링 검증 단위 테스트 추가.
+     - 지난 일정 모달 내 [수정] 클릭 시 수정 폼 모달 오픈 및 저장 시 업데이트 검증 단위 테스트 추가.
+     - 지난 일정 모달 내 [삭제] 클릭 시 삭제 확인 모달 오픈 및 삭제 실행 검증 단위 테스트 추가.
+  4. **전체 검증 완료**:
+     - `src/app/admin/page.test.tsx` 15개 단위 테스트 통과.
+     - Vitest 42개 파일, 256개 테스트 전체 통과 (에러 0건, 100% PASS).
+     - `npm run build` Next.js 14 정적 15개 페이지 export 빌드 성공.
+
 ## 관리자 공식 일정 목록 만료 일정(end_date < today) 표시 제외 및 필터링 강화 (2026-10-19)
 
 - **배경 및 사용자 요구사항**:

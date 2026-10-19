@@ -21,6 +21,7 @@ function createQueryBuilder() {
     delete: vi.fn(),
     eq: vi.fn(),
     gte: vi.fn(),
+    lt: vi.fn(),
   }
   query.select.mockReturnValue(query)
   query.order.mockReturnValue(query)
@@ -29,6 +30,7 @@ function createQueryBuilder() {
   query.delete.mockReturnValue(query)
   query.eq.mockReturnValue(query)
   query.gte.mockReturnValue(query)
+  query.lt.mockReturnValue(query)
   return query
 }
 
@@ -392,6 +394,152 @@ describe("AdminPage - 일정 관리", () => {
           status: "APPROVED",
         })
       )
+    })
+  })
+
+  it("[지난 일정] 버튼을 클릭하면 지난 일정 모달이 열리고 lt(end_date, today) 조건으로 이전 일정을 조회한다", async () => {
+    const mockPastSchedules = [
+      {
+        id: "past-schedule-1",
+        game_id: "game-1",
+        schedule_type: "VERSION" as const,
+        title: "4.8 여름 이벤트",
+        start_date: "2026-07-17",
+        end_date: "2026-08-27",
+        memo: "시뮬랑카 바다",
+        games: { id: "game-1", name: "원신" },
+      },
+      {
+        id: "past-schedule-2",
+        game_id: "game-2",
+        schedule_type: "PICKUP" as const,
+        title: "은랑 픽업",
+        start_date: "2026-06-01",
+        end_date: "2026-06-21",
+        memo: null,
+        games: { id: "game-2", name: "붕괴: 스타레일" },
+      },
+    ]
+
+    schedulesBuilder.order.mockResolvedValue({ data: mockPastSchedules, error: null })
+
+    render(<AdminPage />)
+    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+
+    // 지난 일정 버튼 클릭
+    const pastBtn = screen.getByRole("button", { name: "지난 일정 모아보기" })
+    fireEvent.click(pastBtn)
+
+    expect(await screen.findByText("지난 일정 모아보기")).toBeTruthy()
+    expect(schedulesBuilder.lt).toHaveBeenCalledWith("end_date", "2026-09-01")
+    expect(screen.getByText("4.8 여름 이벤트")).toBeTruthy()
+    expect(screen.getByText("은랑 픽업")).toBeTruthy()
+    expect(screen.getByText(/시뮬랑카 바다/)).toBeTruthy()
+
+    // 지난 일정 모달 내 게임 필터링
+    const pastFilterSelect = screen.getByLabelText("지난 일정 게임 필터 선택")
+    fireEvent.change(pastFilterSelect, { target: { value: "game-1" } })
+
+    expect(screen.getByText("4.8 여름 이벤트")).toBeTruthy()
+    expect(screen.queryByText("은랑 픽업")).toBeNull()
+
+    // 지난 일정 모달 내 검색
+    fireEvent.change(pastFilterSelect, { target: { value: "" } })
+    const pastSearchInput = screen.getByLabelText("지난 일정 검색")
+    fireEvent.change(pastSearchInput, { target: { value: "은랑" } })
+
+    expect(screen.getByText("은랑 픽업")).toBeTruthy()
+    expect(screen.queryByText("4.8 여름 이벤트")).toBeNull()
+  })
+
+  it("지난 일정 모달에서 [수정]을 클릭하면 수정 모달이 열리고 저장 시 갱신된다", async () => {
+    const mockPastSchedules = [
+      {
+        id: "past-schedule-1",
+        game_id: "game-1",
+        schedule_type: "VERSION" as const,
+        title: "4.8 여름 이벤트",
+        start_date: "2026-07-17",
+        end_date: "2026-08-27",
+        memo: "시뮬랑카 바다",
+        games: { id: "game-1", name: "원신" },
+      },
+    ]
+
+    schedulesBuilder.order.mockResolvedValue({ data: mockPastSchedules, error: null })
+    schedulesBuilder.update.mockReturnValue(schedulesBuilder)
+    schedulesBuilder.eq.mockResolvedValue({ error: null })
+
+    render(<AdminPage />)
+    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+
+    // 지난 일정 버튼 클릭
+    fireEvent.click(screen.getByRole("button", { name: "지난 일정 모아보기" }))
+    expect(await screen.findByText("4.8 여름 이벤트")).toBeTruthy()
+
+    // 지난 일정 행의 수정 버튼 클릭
+    const editBtn = screen.getByRole("button", { name: "지난 일정 수정: 4.8 여름 이벤트" })
+    fireEvent.click(editBtn)
+
+    // 수정 모달 열림 확인
+    expect(screen.getByRole("heading", { name: "일정 수정" })).toBeTruthy()
+
+    const titleInput = screen.getByPlaceholderText("일정 제목을 입력하세요") as HTMLInputElement
+    expect(titleInput.value).toBe("4.8 여름 이벤트")
+    fireEvent.change(titleInput, { target: { value: "4.8 여름 바캉스 대작전" } })
+
+    // 수정 저장 클릭
+    fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+    await waitFor(() => {
+      expect(schedulesBuilder.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "4.8 여름 바캉스 대작전",
+        })
+      )
+      expect(schedulesBuilder.eq).toHaveBeenCalledWith("id", "past-schedule-1")
+    })
+  })
+
+  it("지난 일정 모달에서 [삭제]를 클릭하면 삭제 확인 모달이 열리고 삭제된다", async () => {
+    const mockPastSchedules = [
+      {
+        id: "past-schedule-1",
+        game_id: "game-1",
+        schedule_type: "VERSION" as const,
+        title: "4.8 여름 이벤트",
+        start_date: "2026-07-17",
+        end_date: "2026-08-27",
+        memo: null,
+        games: { id: "game-1", name: "원신" },
+      },
+    ]
+
+    schedulesBuilder.order.mockResolvedValue({ data: mockPastSchedules, error: null })
+    schedulesBuilder.delete.mockReturnValue(schedulesBuilder)
+    schedulesBuilder.eq.mockResolvedValue({ error: null })
+
+    render(<AdminPage />)
+    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+
+    // 지난 일정 버튼 클릭
+    fireEvent.click(screen.getByRole("button", { name: "지난 일정 모아보기" }))
+    expect(await screen.findByText("4.8 여름 이벤트")).toBeTruthy()
+
+    // 지난 일정 행의 삭제 버튼 클릭
+    const deleteBtn = screen.getByRole("button", { name: "지난 일정 삭제: 4.8 여름 이벤트" })
+    fireEvent.click(deleteBtn)
+
+    // 삭제 확인 모달
+    expect(screen.getByRole("heading", { name: "일정 삭제 확인" })).toBeTruthy()
+    expect(screen.getByText(/'4.8 여름 이벤트'/)).toBeTruthy()
+
+    // 삭제 버튼 클릭
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }))
+
+    await waitFor(() => {
+      expect(schedulesBuilder.delete).toHaveBeenCalled()
+      expect(schedulesBuilder.eq).toHaveBeenCalledWith("id", "past-schedule-1")
     })
   })
 })

@@ -39,6 +39,30 @@
 
 ---
 
+## 관리자 페이지 중복 네비게이션 정리 및 [지난 일정] 조회·관리 모달(Past Schedules Dialog) 신규 구현 (2026-10-19)
+
+- **결정 및 배경**:
+  - **중복 네비게이션 정리**:
+    - `AdminLayout` 상단 헤더에서 이미 `[일정 관리]` / `[요청 관리]` 탭을 전역으로 제공하므로, `/admin` 및 `/admin/requests` 본문 상단에 별도로 존재하던 바로가기 배너 박스(데이터 제안 대기열/관리자 콘솔 이동 링크)를 제거하여 여백 낭비를 줄이고 정돈된 관리자 UI 레이아웃 확보.
+  - **[지난 일정] 조회 및 관리 모달(`Dialog`) 신설**:
+    - 활성 공식 일정 목록에서 만료 일정(`end_date < today`)이 제외됨에 따라, 과거에 종료된 일정 데이터를 확인·수정·삭제할 수 있는 전용 모달 창 구현.
+    - 공식 일정 관리 툴바에 [지난 일정] 버튼(`History` 아이콘)을 배치하고, 클릭 시 Supabase `.lt("end_date", today).order("end_date", { ascending: false })` 쿼리로 과거 일정 목록을 비동기 조회.
+    - 다이얼로그 내부에서 게임별 필터링(`<select>`), 검색어 필터링(`<input>`), 8개 단위 페이지네이션(`PAST_SCHEDULES_PER_PAGE = 8`) 지원.
+    - 각 지난 일정 카드에서 [수정] 및 [삭제]가 가능하도록 연동하고, `returnToPastModal` 플래그를 통해 수정/삭제 완료 또는 취소 시 안전하게 지난 일정 모달로 복귀하고 목록을 즉시 재조회(동기화)하도록 상태 제어 체계 확립.
+- **수행 내역 및 검증**:
+  - `src/app/admin/requests/page.tsx`: 상단 `데이터 제안 대기열` 중복 배너 박스 및 미사용 `Link`, `ArrowLeft` 임포트 제거.
+  - `src/app/admin/page.tsx`:
+    - 상단 `공식 일정 관리 콘솔` 중복 배너 박스 및 `Link`, `ArrowRight` 임포트 제거.
+    - 툴바에 [지난 일정] 버튼 추가 및 `isPastModalOpen`, `pastSchedules`, `isLoadingPastSchedules`, `pastGameFilter`, `pastSearchQuery`, `currentPastPage`, `returnToPastModal` 상태 추가.
+    - `fetchPastSchedules` (`.lt("end_date", today)`), `handleEditFromPast`, `handleDeleteFromPast`, `handleCloseScheduleModal`, `handleCancelDelete` 핸들러 구현.
+    - 지난 일정 모달(`DialogContent className="max-w-3xl"`) 마크업: 게임 필터, 검색 인풋, 일정 카드 목록(게임 배지, 유형 배지, 제목, 기간, 메모, 수정/삭제 버튼), 하단 페이지네이션 및 닫기 버튼 구성.
+  - `src/app/admin/page.test.tsx`:
+    - `createQueryBuilder`에 `lt` 모의 메서드 지원 추가.
+    - 지난 일정 모달 열기 및 `lt("end_date", "2026-09-01")` 쿼리 검증, 모달 내 게임 필터 및 검색어 필터링 검증 테스트 추가.
+    - 지난 일정 모달 내 [수정] 클릭 후 수정 폼 모달 연동 및 업데이트 저장 검증 테스트 추가.
+    - 지난 일정 모달 내 [삭제] 클릭 후 삭제 확인 모달 연동 및 삭제 실행 검증 테스트 추가.
+  - 검증: `src/app/admin/page.test.tsx` (15개 테스트 통과), 전체 Vitest (42개 파일, 256개 테스트 전체 통과), `npm run build` Next.js 14 프로덕션 빌드 성공.
+
 ## 관리자 공식 일정 목록 만료 일정(end_date < today) 표시 제외 및 필터링 강화 (2026-10-19)
 
 - **결정 및 배경**:

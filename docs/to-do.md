@@ -404,6 +404,14 @@
     2. 응답 데이터에 대해 클라이언트 측 `.filter((s) => s.end_date >= today)` 방어 로직을 적용하여 공식 일정 목록, 탭 배지 카운트, 게임 필터 카운트, 페이지네이션에서 만료된 일정 제외.
     3. `src/app/admin/page.test.tsx`에 `gte` 모의 메서드 지원 및 만료 일정 제외/카운트 단위 테스트 추가.
   - verify: `src/app/admin/page.test.tsx` 단위 테스트(12개) 통과, `npx tsc --noEmit` 0 에러, Vitest 42개 파일 253개 테스트 100% 통과.
+- [x] 12.8 관리자 페이지 중복 네비게이션 정리 및 [지난 일정] 조회·관리 모달 구현 (2026-10-19)
+  - 대상 파일: `src/app/admin/page.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/page.test.tsx`
+  - 작업:
+    1. **중복 네비게이션 배너 정리**: `AdminLayout` 상단 헤더 탭([일정 관리] / [요청 관리])과의 중복을 해소하기 위해 `/admin` 및 `/admin/requests` 본문 상단 배너 박스(데이터 제안 대기열/관리자 콘솔 바로가기) 제거.
+    2. **[지난 일정] 조회 및 관리 모달(`Dialog`) 신설**: 공식 일정 관리 툴바에 [지난 일정] 버튼(`History` 아이콘)을 추가하고, 클릭 시 Supabase `.lt("end_date", today)` 쿼리로 만료된 과거 일정 목록 로드.
+    3. **다이얼로그 내 탐색 및 관리 연동**: 게임별 필터링, 검색, 8개 단위 페이지네이션(`PAST_SCHEDULES_PER_PAGE = 8`) 지원 및 카드별 [수정]·[삭제] 버튼을 기존 수정 폼 모달 및 삭제 확인 모달과 안전하게 연동(`returnToPastModal` 플래그로 완료/취소 시 지난 일정 모달 복귀 및 목록 자동 갱신).
+    4. **테스트 및 검증**: `src/app/admin/page.test.tsx`에 `lt` 쿼리 모킹 및 지난 일정 모달 오픈/필터링/수정/삭제 단위 테스트 추가.
+  - verify: `src/app/admin/page.test.tsx` 15개 단위 테스트 통과, Vitest 42개 파일 / 256개 테스트 전체 통과 (100% PASS), `npm run build` 정적 15개 페이지 export 빌드 성공.
 
 ---
 

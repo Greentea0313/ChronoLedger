@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { getKstToday } from "@/lib/dashboard-date"
@@ -32,11 +31,12 @@ import {
   ChevronRight,
   Gamepad2,
   Search,
-  ArrowRight,
+  History,
 } from "lucide-react"
 
 const SCHEDULES_PER_PAGE = 10
 const GAMES_PER_PAGE = 10
+const PAST_SCHEDULES_PER_PAGE = 8
 
 function getPaginationRange(current: number, total: number): (number | "...")[] {
   if (total <= 7) {
@@ -143,8 +143,43 @@ export default function AdminPage() {
   const [deletingSchedule, setDeletingSchedule] = useState<ScheduleItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // 지난 일정 모달 상태
+  const [isPastModalOpen, setIsPastModalOpen] = useState(false)
+  const [pastSchedules, setPastSchedules] = useState<ScheduleItem[]>([])
+  const [isLoadingPastSchedules, setIsLoadingPastSchedules] = useState(false)
+  const [pastGameFilter, setPastGameFilter] = useState<string>("")
+  const [pastSearchQuery, setPastSearchQuery] = useState("")
+  const [currentPastPage, setCurrentPastPage] = useState(1)
+  const [returnToPastModal, setReturnToPastModal] = useState(false)
+
   // 전역 알림 메시지
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null)
+
+  const filteredPastSchedules = useMemo(() => {
+    return pastSchedules.filter((schedule) => {
+      if (pastGameFilter && schedule.game_id !== pastGameFilter) return false
+      if (pastSearchQuery.trim()) {
+        const query = pastSearchQuery.trim().toLowerCase()
+        const titleMatch = schedule.title.toLowerCase().includes(query)
+        const memoMatch = schedule.memo?.toLowerCase().includes(query) ?? false
+        if (!titleMatch && !memoMatch) return false
+      }
+      return true
+    })
+  }, [pastSchedules, pastGameFilter, pastSearchQuery])
+
+  const totalPastPages = Math.max(1, Math.ceil(filteredPastSchedules.length / PAST_SCHEDULES_PER_PAGE))
+
+  useEffect(() => {
+    if (currentPastPage > totalPastPages) {
+      setCurrentPastPage(totalPastPages)
+    }
+  }, [currentPastPage, totalPastPages])
+
+  const paginatedPastSchedules = useMemo(() => {
+    const start = (currentPastPage - 1) * PAST_SCHEDULES_PER_PAGE
+    return filteredPastSchedules.slice(start, start + PAST_SCHEDULES_PER_PAGE)
+  }, [filteredPastSchedules, currentPastPage])
 
   const fetchGames = useCallback(async () => {
     setIsLoadingGames(true)
@@ -183,6 +218,23 @@ export default function AdminPage() {
     setIsLoadingSchedules(false)
   }, [])
 
+  const fetchPastSchedules = useCallback(async () => {
+    setIsLoadingPastSchedules(true)
+    const today = getKstToday()
+    const { data, error } = await supabase
+      .from("game_schedules")
+      .select("id, game_id, schedule_type, title, start_date, end_date, memo, games(id, name, default_icon_url)")
+      .lt("end_date", today)
+      .order("end_date", { ascending: false })
+
+    if (error) {
+      setMessage({ type: "error", text: "지난 일정 목록을 불러오지 못했습니다: " + error.message })
+    } else if (data) {
+      setPastSchedules(data as unknown as ScheduleItem[])
+    }
+    setIsLoadingPastSchedules(false)
+  }, [])
+
   useEffect(() => {
     if (role === "admin") {
       void fetchGames()
@@ -193,6 +245,12 @@ export default function AdminPage() {
   if (authLoading) return <div className="p-6">불러오는 중...</div>
   if (!user || role !== "admin") {
     return <div className="p-6 text-red-500">접근 권한이 없습니다. 관리자만 이용 가능합니다.</div>
+  }
+
+  const handleOpenPastSchedules = () => {
+    setIsPastModalOpen(true)
+    setCurrentPastPage(1)
+    void fetchPastSchedules()
   }
 
   const openAddModal = () => {
@@ -238,6 +296,34 @@ export default function AdminPage() {
     setIsModalOpen(true)
   }
 
+  const handleEditFromPast = (schedule: ScheduleItem) => {
+    setReturnToPastModal(true)
+    setIsPastModalOpen(false)
+    openEditModal(schedule)
+  }
+
+  const handleDeleteFromPast = (schedule: ScheduleItem) => {
+    setReturnToPastModal(true)
+    setIsPastModalOpen(false)
+    setDeletingSchedule(schedule)
+  }
+
+  const handleCloseScheduleModal = () => {
+    setIsModalOpen(false)
+    if (returnToPastModal) {
+      setIsPastModalOpen(true)
+      setReturnToPastModal(false)
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setDeletingSchedule(null)
+    if (returnToPastModal) {
+      setIsPastModalOpen(true)
+      setReturnToPastModal(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const finalEndDate = isSingleDate ? startDate : endDate
@@ -277,6 +363,11 @@ export default function AdminPage() {
         setMessage({ type: "success", text: "일정이 성공적으로 수정되었습니다." })
         setIsModalOpen(false)
         void fetchSchedules()
+        void fetchPastSchedules()
+        if (returnToPastModal) {
+          setIsPastModalOpen(true)
+          setReturnToPastModal(false)
+        }
       }
     } else {
       // 새 일정 등록
@@ -297,6 +388,11 @@ export default function AdminPage() {
         setMessage({ type: "success", text: "일정이 성공적으로 추가되었습니다." })
         setIsModalOpen(false)
         void fetchSchedules()
+        void fetchPastSchedules()
+        if (returnToPastModal) {
+          setIsPastModalOpen(true)
+          setReturnToPastModal(false)
+        }
       }
     }
   }
@@ -318,6 +414,11 @@ export default function AdminPage() {
       setMessage({ type: "success", text: "일정이 삭제되었습니다." })
       setDeletingSchedule(null)
       void fetchSchedules()
+      void fetchPastSchedules()
+      if (returnToPastModal) {
+        setIsPastModalOpen(true)
+        setReturnToPastModal(false)
+      }
     }
   }
 
@@ -430,6 +531,7 @@ export default function AdminPage() {
       setDeletingGame(null)
       void fetchGames()
       void fetchSchedules()
+      void fetchPastSchedules()
     }
   }
 
@@ -457,21 +559,6 @@ export default function AdminPage() {
           </button>
         </div>
       )}
-
-      {/* 상단 관리자 타이틀 및 요청 대기열 링크 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-4 rounded-xl border border-line">
-        <div>
-          <h1 className="text-xl font-bold text-content">관리자 콘솔</h1>
-          <p className="text-xs text-content-secondary mt-0.5">공식 게임 일정 및 마스터 게임 카탈로그를 관리합니다.</p>
-        </div>
-        <Link
-          href="/admin/requests"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-line-control bg-surface text-content hover:bg-surface-2 self-start sm:self-center transition-colors"
-        >
-          <span>데이터 제안 대기열</span>
-          <ArrowRight className="h-3.5 w-3.5 text-primary" />
-        </Link>
-      </div>
 
       <Tabs
         value={adminTab}
@@ -522,10 +609,22 @@ export default function AdminPage() {
               </select>
             </div>
 
-            <Button onClick={openAddModal} className="flex items-center gap-1.5">
-              <Plus className="h-4 w-4" />
-              새 일정 등록
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleOpenPastSchedules}
+                className="flex items-center gap-1.5"
+                aria-label="지난 일정 모아보기"
+              >
+                <History className="h-4 w-4" />
+                지난 일정
+              </Button>
+              <Button onClick={openAddModal} className="flex items-center gap-1.5">
+                <Plus className="h-4 w-4" />
+                새 일정 등록
+              </Button>
+            </div>
           </div>
 
           {/* 일정 목록 카드 */}
@@ -886,8 +985,204 @@ export default function AdminPage() {
         </TabsContent>
       </Tabs>
 
+      {/* 지난 일정 모아보기 모달 다이얼로그 */}
+      <Dialog open={isPastModalOpen} onOpenChange={setIsPastModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              <DialogTitle>지난 일정 모아보기</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-content-secondary">
+              종료일이 지난 이전 공식 일정을 확인하고 수정하거나 삭제할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* 지난 일정 필터 컨트롤 바 */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-content-secondary shrink-0" />
+              <select
+                className="bg-surface-2 border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary text-content"
+                value={pastGameFilter}
+                onChange={(e) => {
+                  setPastGameFilter(e.target.value)
+                  setCurrentPastPage(1)
+                }}
+                aria-label="지난 일정 게임 필터 선택"
+              >
+                <option value="">전체 게임 ({pastSchedules.length})</option>
+                {games.map((g) => {
+                  const count = pastSchedules.filter((s) => s.game_id === g.id).length
+                  return (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({count})
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+
+            <div className="relative flex-1 sm:max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-content-muted" />
+              <Input
+                type="text"
+                placeholder="일정 제목 또는 메모 검색..."
+                value={pastSearchQuery}
+                onChange={(e) => {
+                  setPastSearchQuery(e.target.value)
+                  setCurrentPastPage(1)
+                }}
+                className="pl-8 h-8 text-xs bg-surface-2 border-line text-content"
+                aria-label="지난 일정 검색"
+              />
+            </div>
+          </div>
+
+          {/* 지난 일정 목록 컨테이너 */}
+          <div className="flex-1 overflow-y-auto min-h-[220px] max-h-[400px] divide-y divide-line pr-1 my-2">
+            {isLoadingPastSchedules ? (
+              <div className="flex items-center justify-center py-16 text-content-secondary">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                지난 일정 목록을 불러오는 중...
+              </div>
+            ) : filteredPastSchedules.length === 0 ? (
+              <div className="text-center py-16 text-content-secondary text-sm">
+                {pastSearchQuery || pastGameFilter
+                  ? "검색 조건과 일치하는 지난 일정이 없습니다."
+                  : "기록된 지난 일정이 없습니다."}
+              </div>
+            ) : (
+              paginatedPastSchedules.map((schedule) => {
+                const matchedGame = games.find((g) => g.id === schedule.game_id)
+                const gameName = schedule.games?.name || matchedGame?.name || "게임"
+                const iconUrl = schedule.games?.default_icon_url || matchedGame?.default_icon_url
+                const isVersion = schedule.schedule_type === "VERSION"
+                const isPickup = schedule.schedule_type === "PICKUP"
+                const isSingleDateItem = schedule.start_date === schedule.end_date
+
+                return (
+                  <div
+                    key={schedule.id}
+                    className="relative overflow-hidden py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-2/40 px-3 rounded-lg transition-colors border border-transparent hover:border-line"
+                  >
+                    {iconUrl && (
+                      <div className="absolute left-0 top-0 bottom-0 w-24 overflow-hidden z-0 pointer-events-none opacity-20">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={iconUrl}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover object-left select-none"
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-1 min-w-0 z-10 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
+                          {gameName}
+                        </span>
+                        <span
+                          className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                            isVersion
+                              ? "bg-primary/20 text-primary border border-primary/30"
+                              : isPickup
+                                ? "bg-warning/20 text-warning border border-warning/30"
+                                : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
+                          }`}
+                        >
+                          {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
+                        </span>
+                        <div className="font-medium text-sm text-content flex items-center gap-1.5 flex-wrap">
+                          <ScheduleTitleBadges title={schedule.title} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-content-secondary flex-wrap">
+                        <span className="text-content-muted">
+                          {isSingleDateItem ? `${schedule.start_date} (종료)` : `${schedule.start_date} ~ ${schedule.end_date}`}
+                        </span>
+                        {schedule.memo && (
+                          <span className="truncate max-w-xs text-content-muted">· {schedule.memo}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0 z-10">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditFromPast(schedule)}
+                        className="h-7 px-2 text-xs flex items-center gap-1"
+                        aria-label={`지난 일정 수정: ${schedule.title}`}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        수정
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteFromPast(schedule)}
+                        className="h-7 px-2 text-xs flex items-center gap-1"
+                        aria-label={`지난 일정 삭제: ${schedule.title}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        삭제
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          {/* 지난 일정 하단 페이지네이션 및 닫기 */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-line mt-auto">
+            <span className="text-xs text-content-secondary">
+              전체 {filteredPastSchedules.length}개의 지난 일정
+              {totalPastPages > 1 && ` (${currentPastPage} / ${totalPastPages} 페이지)`}
+            </span>
+
+            <div className="flex items-center gap-2">
+              {totalPastPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentPastPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPastPage === 1}
+                    aria-label="지난 일정 이전 페이지"
+                    className="h-7 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentPastPage((p) => Math.min(totalPastPages, p + 1))}
+                    disabled={currentPastPage === totalPastPages}
+                    aria-label="지난 일정 다음 페이지"
+                    className="h-7 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPastModalOpen(false)}
+                className="h-7 px-3 text-xs"
+              >
+                닫기
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* 일정 등록 및 수정 모달 다이얼로그 */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCloseScheduleModal()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -1018,7 +1313,7 @@ export default function AdminPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsModalOpen(false)}
+                onClick={handleCloseScheduleModal}
                 disabled={isSubmitting}
               >
                 취소
@@ -1041,7 +1336,7 @@ export default function AdminPage() {
       </Dialog>
 
       {/* 삭제 확인 모달 다이얼로그 */}
-      <Dialog open={deletingSchedule !== null} onOpenChange={(open) => !open && setDeletingSchedule(null)}>
+      <Dialog open={deletingSchedule !== null} onOpenChange={(open) => !open && handleCancelDelete()}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>일정 삭제 확인</DialogTitle>
@@ -1057,7 +1352,7 @@ export default function AdminPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setDeletingSchedule(null)}
+                onClick={handleCancelDelete}
                 disabled={isDeleting}
               >
                 취소
