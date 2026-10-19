@@ -19,6 +19,7 @@ interface MobileDrawerProps {
   totalAsset: number | null
   budgetAmount: number
   expectedExpense: number
+  confirmedExpense?: number
   wallets: HeroWalletItem[]
   schedules?: HeroScheduleItem[]
   expenses: HeroExpenseItem[]
@@ -28,6 +29,7 @@ interface MobileDrawerProps {
   onRegisterExpense?: () => void
   onSaveMemo?: (content: string) => Promise<void>
   registerDisabled?: boolean
+  onIncomeAdded?: () => void
 }
 
 export function MobileDrawer({
@@ -35,6 +37,7 @@ export function MobileDrawer({
   totalAsset,
   budgetAmount,
   expectedExpense,
+  confirmedExpense,
   wallets,
   schedules,
   expenses,
@@ -44,6 +47,7 @@ export function MobileDrawer({
   onRegisterExpense,
   onSaveMemo,
   registerDisabled,
+  onIncomeAdded,
 }: MobileDrawerProps) {
   return (
     <div className="lg:hidden">
@@ -64,6 +68,7 @@ export function MobileDrawer({
               totalAsset={totalAsset}
               budgetAmount={budgetAmount}
               expectedExpense={expectedExpense}
+              confirmedExpense={confirmedExpense}
               wallets={wallets}
               schedules={schedules}
               expenses={expenses}
@@ -73,6 +78,7 @@ export function MobileDrawer({
               onRegisterExpense={onRegisterExpense}
               onSaveMemo={onSaveMemo}
               registerDisabled={registerDisabled}
+              onIncomeAdded={onIncomeAdded}
             />
           </div>
         </DrawerContent>

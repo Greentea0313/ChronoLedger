@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { HeroSidebarContent, type HeroScheduleItem } from "./hero-sidebar"
 
@@ -127,5 +127,120 @@ describe("HeroSidebarContent", () => {
     expect(screen.getByText("켈시")).toBeTruthy()
     expect(screen.getByText("클로저")).toBeTruthy()
     expect(screen.queryByText(/^• /)).toBeNull()
+  })
+
+  it("요약 카드의 진행률 n%와 (예상 지출 - 확정 지출) 잔여 금액을 올바르게 표시한다", () => {
+    render(
+      <HeroSidebarContent
+        selectedDateLabel="2026-10-14"
+        totalAsset={1000000}
+        budgetAmount={500000}
+        expectedExpense={200000}
+        confirmedExpense={50000}
+        wallets={[]}
+        schedules={[]}
+        expenses={[]}
+        memos={[]}
+      />,
+    )
+
+    // 진행률 = (50,000 / 200,000) * 100 = 25%
+    expect(screen.getByText("진행률 25%")).toBeTruthy()
+    // 잔여 예정 지출 = 200,000 - 50,000 = 150,000 원
+    expect(screen.getByText("150,000 원")).toBeTruthy()
+    expect(screen.getByText("총 자산: 1,000,000 원")).toBeTruthy()
+    expect(screen.getByText("예상 지출: 200,000 원")).toBeTruthy()
+  })
+
+  it("사이드바 카드 순서가 요약 -> 선택일 -> 스토어 포인트 순으로 배치된다", () => {
+    const { container } = render(
+      <HeroSidebarContent
+        selectedDateLabel="2026-10-14"
+        totalAsset={0}
+        budgetAmount={0}
+        expectedExpense={0}
+        wallets={[{ platform: "GOOGLE_PLAY", current_balance: 1000 }]}
+        schedules={[]}
+        expenses={[]}
+        memos={[]}
+      />,
+    )
+
+    const cardTitles = container.querySelectorAll(".font-semibold.tracking-tight, h3, h4")
+    const titles = Array.from(cardTitles).map((el) => el.textContent?.trim()).filter(Boolean)
+    // 요약이 가장 먼저, 선택일 상세가 두 번째, 스토어 포인트가 세 번째
+    const summaryIndex = titles.findIndex((t) => t === "요약")
+    const dateIndex = titles.findIndex((t) => t === "2026-10-14")
+    const pointIndex = titles.findIndex((t) => t === "스토어 포인트")
+
+    expect(summaryIndex).toBeGreaterThanOrEqual(0)
+    expect(dateIndex).toBeGreaterThan(summaryIndex)
+    expect(pointIndex).toBeGreaterThan(dateIndex)
+  })
+
+  it("선택일 카드에서 드롭다운(게임 일정 / 지출 내역 / 메모) 전환 및 메모 작성/저장이 정상 동작한다", async () => {
+    const onSaveMemo = vi.fn().mockResolvedValue(undefined)
+    render(
+      <HeroSidebarContent
+        selectedDateLabel="2026-10-14"
+        totalAsset={0}
+        budgetAmount={0}
+        expectedExpense={10000}
+        wallets={[]}
+        schedules={[{ id: "s1", title: "특별 일정", schedule_type: "CONTENTS", start_date: "2026-10-14", end_date: "2026-10-14" }]}
+        expenses={[{ id: "e1", title: "패키지 구매", final_amount: 10000, status: "CONFIRMED", gameName: "명일방주" }]}
+        memos={["기존 메모 내용"]}
+        onSaveMemo={onSaveMemo}
+      />,
+    )
+
+    const dropdown = screen.getByLabelText("선택일 상세 항목 선택") as HTMLSelectElement
+    expect(dropdown.value).toBe("SCHEDULE")
+    expect(screen.getByText("특별 일정")).toBeTruthy()
+
+    // 지출 내역 탭으로 전환
+    fireEvent.change(dropdown, { target: { value: "EXPENSE" } })
+    expect(dropdown.value).toBe("EXPENSE")
+    expect(screen.getByText("패키지 구매")).toBeTruthy()
+    expect(screen.queryByText("특별 일정")).toBeNull()
+
+    // 메모 탭으로 전환
+    fireEvent.change(dropdown, { target: { value: "MEMO" } })
+    expect(dropdown.value).toBe("MEMO")
+    expect(screen.getByText("기존 메모 내용")).toBeTruthy()
+    expect(screen.queryByText("패키지 구매")).toBeNull()
+
+    // 메모 수정 클릭
+    const editButton = screen.getByRole("button", { name: "수정" })
+    fireEvent.click(editButton)
+
+    const textarea = screen.getByPlaceholderText("메모를 입력하세요 (최대 200자)") as HTMLTextAreaElement
+    expect(textarea.value).toBe("기존 메모 내용")
+
+    fireEvent.change(textarea, { target: { value: "수정된 새 메모" } })
+    const saveButton = screen.getByRole("button", { name: "저장" })
+    fireEvent.click(saveButton)
+
+    await waitFor(() => expect(onSaveMemo).toHaveBeenCalledWith("수정된 새 메모"))
+  })
+
+  it("바텀시트 제스처 간섭 방지를 위해 인터랙티브 요소에 data-vaul-no-drag가 부여되어 있다", () => {
+    const { container } = render(
+      <HeroSidebarContent
+        selectedDateLabel="2026-10-14"
+        totalAsset={0}
+        budgetAmount={0}
+        expectedExpense={0}
+        wallets={[]}
+        schedules={[]}
+        expenses={[{ id: "e1", title: "항목", final_amount: 1000, status: "CONFIRMED", gameName: "게임" }]}
+        memos={[]}
+        onRegisterExpense={vi.fn()}
+        onSelectExpense={vi.fn()}
+      />,
+    )
+
+    const noDragElements = container.querySelectorAll("[data-vaul-no-drag]")
+    expect(noDragElements.length).toBeGreaterThanOrEqual(3)
   })
 })

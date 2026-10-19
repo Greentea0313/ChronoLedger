@@ -1,10 +1,70 @@
 # 프로젝트 진행 현황
 
+## 대시보드 요약 카드 진행률, 100% 포인트 할인, 사이드바 드롭다운 탭 및 모바일 터치 개선 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  1. **요약 카드 UI 및 진행률 계산식 변경**:
+     - 기존 월 예산 대비 진행률 대신, 당월 전체 예상 지출 중 이미 결제 확정한 지출 비율(`confirmedExpense / expectedExpense * 100`)로 진행률을 산출하고, 우측 하단에 잔여 예정 지출 금액(`Math.max(0, expectedExpense - confirmedExpense)`) 표시.
+     - `src/lib/budget-calculations.ts`에 `calculateConfirmedExpense` 추가.
+  2. **포인트 할인 100% 허용(방식 A) 및 결제 플랫폼별 포인트 차감 동기화**:
+     - `uiDiscount`를 총 원화 할인액으로 취급하고 `uPoints`는 순수 차감 포인트 수량으로 취급하여 100% 포인트 할인(실결제액 0원) 허용 및 중복 차감 방지.
+     - 결제 플랫폼(`GOOGLE_PLAY`, `GALAXY_STORE`)과 포인트 지갑을 1:1 강제 동기화하고, `OTHER` 선택 시 포인트 사용 비활성화 및 초기화.
+  3. **사이드바 배치 순서 및 선택일 카드 드롭다운 탭 추가**:
+     - 사이드바 카드 순서를 `1) 요약` $\to$ `2) 선택일 상세` $\to$ `3) 스토어 포인트`로 재배치.
+     - 선택일 카드 헤더 바로 아래에 `게임 일정` / `지출 내역` / `메모`를 선택할 수 있는 `<select aria-label="선택일 상세 항목 선택">` 드롭다운을 배치하여 선택된 항목 1개만 본문에 렌더링.
+  4. **모바일 바텀시트(`MobileDrawer`) 메모 미동작 해결 및 모바일 최적화**:
+     - 바텀시트 제스처 간섭을 차단하기 위해 인터랙티브 요소에 `data-vaul-no-drag` 부여.
+     - 메모 작성/수정 버튼 터치 영역 개선, 저장/취소 버튼에 `onPointerDown`/`onMouseDown` 이벤트 전파 방지 적용.
+     - `MobileDrawer`와 `HeroSidebar`에 props 동기화 (`confirmedExpense`, `onIncomeAdded`).
+     - `CalendarBgCustomizer` 모바일 팝오버 최대 너비(`max-w-[calc(100vw-2rem)]`) 및 슬라이더 터치 영역 개선.
+
+- **수행 내역**:
+  1. **`src/lib/budget-calculations.ts` & `src/lib/budget-calculations.test.ts`**:
+     - `calculateConfirmedExpense(expenses, month)` 함수 추가 및 단위 테스트 추가.
+  2. **`src/app/dashboard/page.tsx` & `src/app/dashboard/page.test.tsx`**:
+     - `confirmedExpense` useMemo 계산 및 `HeroSidebar`, `MobileDrawer`에 전달.
+     - 드롭다운 전환 기반 지출/메모 테스트 갱신 및 정상 통과.
+  3. **`src/components/calendar/hero-sidebar.tsx` & `src/components/calendar/hero-sidebar.test.tsx`**:
+     - 요약 카드 프로그레스 바 영역 구조 수정 (`진행률 n%` / `남은 예정 지출 원`).
+     - 사이드바 카드 순서 `요약` $\to$ `선택일 상세` $\to$ `스토어 포인트`로 변경.
+     - 선택일 카드에 `게임 일정` / `지출 내역` / `메모` 드롭다운 탭 추가 및 메모 수정/저장 기능 연결.
+     - 바텀시트 제스처 간섭 방지를 위해 `data-vaul-no-drag`, 터치 타깃 개선 및 버튼 포인터 다운 이벤트 핸들러 추가.
+  4. **`src/components/calendar/mobile-drawer.tsx`**:
+     - `confirmedExpense`, `onIncomeAdded` props 추가 및 `HeroSidebarContent` 완전 동기화.
+  5. **`src/components/calendar/calendar-bg-customizer.tsx`**:
+     - 모바일 뷰포트 대응 `max-w-[calc(100vw-2rem)]` 및 슬라이더 터치 영역 개선.
+  6. **`src/components/expense/expense-modal.tsx`, `src/lib/payment-calculations.ts`, `expense-modal.test.tsx`**:
+     - 정가 100% 포인트 할인 허용 (방식 A 매핑 및 실결제액 0원).
+     - 결제 플랫폼 변경 시 포인트 지갑 자동 동기화 (`GOOGLE_PLAY`, `GALAXY_STORE`).
+     - `OTHER` 선택 시 포인트 입력 비활성화 및 즉시 리셋.
+  7. **전체 검증 완료**:
+     - `npx tsc --noEmit`: 무결점 통과 (0 errors).
+     - `npx vitest run`: 42개 파일, 251개 테스트 전체 통과 (100% PASS).
+     - `npm run build`: 15개 정적 페이지 빌드 및 Next.js export 성공.
+
+## 5대 AI 모델 역할 분배 및 인수인계 문서 기반 자동 과제 실행·비상 인계(Fallback) 아키텍처 구축 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  1. 주축 모델인 **Gemini 4 Argon**을 중심으로 하위/협업 에이전트 모델인 **GPT Codex**, **Claude Opus 5.5**, **GitHub Copilot**, **Gemini 3.8 Flash**의 5대 AI 모델을 ChronoLedger 파이프라인(`Orchestrator` $\to$ `Maker` $\to$ `Reviewer`) 역할에 대입.
+  2. 사용자가 어떤 AI 모델에서든 **`"인수인계 문서를 확인해"`**라고 입력하면, 각 AI 모델이 자신에게 할당된 과제를 스스로 찾아서 실행하고 다음 모델로 배턴을 넘기는 아키텍처 구현.
+  3. 작업 도중 특정 모델의 토큰이나 컨텍스트가 소진될 경우, 대체(Fallback) 모델이 이어서 완수할 수 있도록 인수인계 문서에 상태와 체크포인트를 남기는 보완 체계 구축.
+- **수행 내역**:
+  1. **루트 `docs/handoff.md` 최상단 `Active AI Collaboration Dispatch Queue` 신설**:
+     - 모든 모델이 공통으로 참조하는 머신 리더블(Machine-Readable) 작업 할당표, 5대 AI 역할 및 1·2순위 대체(Fallback) 매트릭스, 중단 체크포인트(`### 📌 중단 체크포인트`) 섹션을 `docs/handoff.md` 최상단에 고정 배치.
+     - `.worktrees/<run_id>` 격리 실행 시 `New-CollaborationRun.ps1`을 먼저 실행해 Worktree를 만든 뒤 루트 `docs/handoff.md`에 작업 큐와 대상 경로를 기록하도록 순서 규격화.
+  2. **`"인수인계 문서를 확인해"` 단일 프롬프트 트리거 및 2중 토큰 소진 복구 프로토콜 명문화**:
+     - `.agents/rules/handoff.md`, `.agents/skills/handoff/SKILL.md`, `md/SKILL.md`, `.github/copilot-instructions.md`에 5단계 자동 실행 프로토콜 반영.
+     - **사전 감지 인계(Soft Checkpoint)**: 토큰 부족 감지 시 상태를 `⚠️ HANDOVER_NEEDED`로 전환하고 담당 모델 칸에 대체 모델을 표시한 뒤 완료/미완료 체크포인트를 기록.
+     - **강제 중단 자동 복구(Hard Cutoff Auto-Recovery)**: API 쿼터 한도로 문서를 미처 수정하지 못하고 끊긴 경우에도, 대체 모델에서 `"인수인계 문서를 확인해"`를 입력하면 대상 Worktree의 `git status --short`와 `git diff`를 먼저 스캔해 미커밋 변경사항을 파악하고 남은 작업을 이어받도록 설계.
+  3. **Orchestrator / Maker / Reviewer 스킬 프로필 동기화**:
+     - `.agents/skills/chronoledger-orchestrator/SKILL.md`, `chronoledger-maker/SKILL.md`, `chronoledger-reviewer/SKILL.md`에 5대 모델 라우팅 규칙 및 Dispatch Queue 상태 전이(`▶ READY` $\to$ `✅ DONE` / `⚠️ HANDOVER_NEEDED`) 연동.
+
 ## 캘린더 날짜별 개인 메모 저장 실패 결함 해결 및 UNIQUE 제약조건 마이그레이션 (2026-10-19)
 
 - **배경 및 사용자 요구사항**:
   1. 날짜 타일 클릭 후 사이드바(데스크톱) 또는 모바일 드로어에서 작성한 메모가 저장되지 않는 문제 제기.
   2. 메모 저장/수정/삭제 시 DB 오류 없이 신뢰성 있게 저장되고, 캘린더 타일 인디케이터 도트와 사이드바에 즉각 반영될 것.
+
 - **원인 분석**:
   - `personal_memos` 테이블 스키마에 `(user_id, memo_date)`에 대한 `UNIQUE` 제약조건이 누락되어 있었음.
   - `src/app/dashboard/page.tsx`의 `handleSaveMemo`에서 `.upsert(..., { onConflict: "user_id,memo_date" })`를 호출할 때 PostgreSQL이 `42P10 (there is no unique or exclusion constraint matching the ON CONFLICT specification)` 예외를 발생시키며 저장이 거부됨.

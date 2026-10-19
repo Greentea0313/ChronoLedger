@@ -32,11 +32,27 @@ describe("payment calculations", () => {
   })
 
   it("resolves the point platform from the payment platform or legacy method", () => {
+    expect(resolvePointPlatform("GOOGLE_PLAY", null, 250)).toBe("GOOGLE_PLAY")
     expect(resolvePointPlatform("GALAXY_STORE", "GOOGLE_PLAY", 0)).toBe("GALAXY_STORE")
     expect(resolvePointPlatform("OTHER", "GOOGLE_PLAY", 0)).toBeNull()
-    expect(resolvePointPlatform("OTHER", "GALAXY_STORE", 10)).toBe("GALAXY_STORE")
+    expect(resolvePointPlatform("OTHER", "GALAXY_STORE", 10)).toBeNull()
     expect(resolvePointPlatform("WALLET", "GOOGLE_PLAY", 0)).toBeNull()
     expect(resolvePointPlatform("WALLET", "GALAXY_STORE", 10)).toBe("GALAXY_STORE")
+  })
+
+  it("allows 100% point discount (originalPrice = 5000, discountAmount = 0, pointDiscountAmount = 5000, usedPoints = 250 -> finalAmount = 0)", () => {
+    const fullPointDiscount: PaymentInput = {
+      originalPrice: 5000,
+      discountAmount: 0,
+      pointDiscountAmount: 5000,
+      usedPoints: 250,
+      paymentMethod: "WALLET",
+      paymentPlatform: "GOOGLE_PLAY",
+      pointPlatform: "GOOGLE_PLAY",
+      paymentDate: "2026-10-08",
+    }
+    expect(calculateFinalAmount(fullPointDiscount)).toBe(0)
+    expect(validatePayment(fullPointDiscount, "2026-10-08", 300)).toBeNull()
   })
 
   it("estimates earned points based on payment platform regardless of payment method", () => {

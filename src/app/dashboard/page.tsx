@@ -19,7 +19,7 @@ import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, par
 import { ExpenseModal } from "@/components/expense/expense-modal"
 import { ExpenseDetailModal } from "@/components/expense/expense-detail-modal"
 import { OverduePlannedModal, type OverduePlannedExpense } from "@/components/expense/overdue-planned-modal"
-import { calculateExpectedExpense, findOverduePlannedExpenses } from "@/lib/budget-calculations"
+import { calculateConfirmedExpense, calculateExpectedExpense, findOverduePlannedExpenses } from "@/lib/budget-calculations"
 import { getKstToday } from "@/lib/dashboard-date"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { isOffline } from "@/lib/offline-guard"
@@ -531,6 +531,10 @@ export default function DashboardPage() {
     () => (ready ? calculateExpectedExpense(expenses, { year, month }) : 0),
     [expenses, month, ready, year],
   )
+  const confirmedExpense = useMemo(
+    () => (ready ? calculateConfirmedExpense(expenses, { year, month }) : 0),
+    [expenses, month, ready, year],
+  )
 
   const scheduleDates = useMemo(() => {
     const map = new Map<string, ScheduleRow[]>()
@@ -670,6 +674,7 @@ export default function DashboardPage() {
             totalAsset={totalAsset}
             budgetAmount={budgetAmount}
             expectedExpense={expectedExpense}
+            confirmedExpense={confirmedExpense}
             wallets={wallets}
             schedules={daySchedules}
             expenses={dayExpenses}
@@ -679,6 +684,7 @@ export default function DashboardPage() {
             onRegisterExpense={() => setIsExpenseModalOpen(true)}
             onSaveMemo={handleSaveMemo}
             registerDisabled={!isOnline}
+            onIncomeAdded={() => void load()}
           />
         </div>
         <HeroSidebar
@@ -686,6 +692,7 @@ export default function DashboardPage() {
           totalAsset={totalAsset}
           budgetAmount={budgetAmount}
           expectedExpense={expectedExpense}
+          confirmedExpense={confirmedExpense}
           wallets={wallets}
           schedules={daySchedules}
           expenses={dayExpenses}
@@ -695,6 +702,7 @@ export default function DashboardPage() {
           onRegisterExpense={() => setIsExpenseModalOpen(true)}
           onSaveMemo={handleSaveMemo}
           registerDisabled={!isOnline}
+          onIncomeAdded={() => void load()}
         />
       </div>
     </div>

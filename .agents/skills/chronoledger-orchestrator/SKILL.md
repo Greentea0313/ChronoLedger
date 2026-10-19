@@ -31,3 +31,17 @@ Gemini is an optional external reviewer, not an automatic default. Its API sends
 
 Continue without asking when the request is clear, the repository is clean, all steps remain within scope, and the checks are safe. Ask one focused question only when blocked by a decision the approved documents do not settle, a destructive or externally visible action, explicit Gemini data-transfer consent, an unresolvable high-severity finding, or a choice to accept/merge the result. State what is blocked, why the choice matters, and the smallest options. Do not ask the user to choose Maker or Reviewer; route those roles yourself.
 
+## Multi-Model Dispatch Queue & 5-AI Role Routing
+
+When operating as the Chief Orchestrator (**Gemini 4 Argon**) across multi-model sessions (`Gemini 4 Argon`, `GPT Codex`, `Claude Opus 5.5`, `GitHub Copilot`, `Gemini 3.8 Flash`), maintain the **`## 🎯 Active AI Collaboration Dispatch Queue`** at the top of the root `docs/handoff.md`:
+
+1. **Worktree First, Queue Second**: When using `scripts/collaboration/New-CollaborationRun.ps1`, run the script first while the root working tree is clean so `.worktrees/<run_id>` is created cleanly. Immediately afterward, populate the Dispatch Queue in the root `docs/handoff.md` specifying `.worktrees/<run_id>` as the target workspace.
+2. **Role Assignment & Fallback Specification**: Assign each step to the optimal model and always list its Fallback chain (`주력 모델 (대체: 1순위 / 2순위)`) in the table so the user can seamlessly switch models if tokens run out:
+   - **Gemini 4 Argon (Orchestrator & Architect)**: Task decomposition, acceptance criteria, worktree setup, final verification, and `docs/` closeout. *(Fallback: Claude Opus 5.5 / GitHub Copilot)*
+   - **GPT Codex (Maker - Core & Test)**: Ledger/payment/refund math (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase SQL/RPC, and Vitest unit tests. *(Fallback: Claude Opus 5.5 / GitHub Copilot)*
+   - **Claude Opus 5.5 (Reviewer & Maker - Complex)**: Static code review (`review.json`) comparing Base SHA $\leftrightarrow$ Target SHA, security/RLS/ledger integrity auditing, and complex multi-component state refactoring. *(Fallback: Gemini 4 Argon / GitHub Copilot)*
+   - **GitHub Copilot (Maker - General & Fallback Hub)**: Standard workspace features (`src/app/`, `src/components/`) and primary all-rounder backup when any other model exhausts its token budget. *(Fallback: Gemini 3.8 Flash / GPT Codex)*
+   - **Gemini 3.8 Flash (Maker - Fast UI & Subagent)**: Tailwind CSS styling, badges/modals/drawers UI markup, fast codebase research via `invoke_subagent`, and documentation formatting. *(Fallback: GitHub Copilot / Gemini 4 Argon)*
+3. **Single Active Pointer (`▶ READY`)**: Mark only the current executable step as `▶ READY` (or `⚠️ HANDOVER_NEEDED` on token exhaustion) and subsequent dependent steps as `⏳ WAITING`, ensuring any model triggered by `"인수인계 문서를 확인해"` unambiguously picks up the right task.
+
+

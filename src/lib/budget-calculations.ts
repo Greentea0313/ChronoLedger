@@ -47,6 +47,15 @@ export function calculateExpectedExpense(expenses: BudgetExpense[], month: Month
     .reduce((sum, expense) => sum + expense.final_amount, 0)
 }
 
+/**
+ * 해당 월 확정 소비액 (status === "CONFIRMED").
+ */
+export function calculateConfirmedExpense(expenses: BudgetExpense[], month: MonthKey): number {
+  return expenses
+    .filter((expense) => expense.status === "CONFIRMED" && sameMonth(getBudgetDate(expense), month))
+    .reduce((sum, expense) => sum + expense.final_amount, 0)
+}
+
 export function calculateRemainingBudget(budgetAmount: number, expectedExpense: number): number {
   return budgetAmount - expectedExpense
 }

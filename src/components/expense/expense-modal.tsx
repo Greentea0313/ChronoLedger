@@ -14,7 +14,6 @@ import {
   calculateStoreEventEarn,
   mapPaymentError,
   mergeEventMemo,
-  resolvePointPlatform,
   validatePayment,
   type PaymentMethod,
   type PointPlatform,
@@ -127,7 +126,6 @@ export function ExpenseModal({
   const [usedPoints, setUsedPoints] = useState("")
   const [paymentPlatform, setPaymentPlatform] = useState<PaymentPlatform>("GOOGLE_PLAY")
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("WALLET")
-  const [selectedPointPlatform, setSelectedPointPlatform] = useState<PointPlatform>("GOOGLE_PLAY")
   const [totalAsset, setTotalAsset] = useState(0)
   const [finalAmountInput, setFinalAmountInput] = useState("")
   const [deductAsset, setDeductAsset] = useState(true)
@@ -198,10 +196,8 @@ export function ExpenseModal({
         }
         if (method === "GALAXY_STORE") {
           setPaymentPlatform("GALAXY_STORE")
-          setSelectedPointPlatform("GALAXY_STORE")
         } else if (method === "GOOGLE_PLAY") {
           setPaymentPlatform("GOOGLE_PLAY")
-          setSelectedPointPlatform("GOOGLE_PLAY")
         } else {
           setPaymentPlatform("GOOGLE_PLAY")
         }
@@ -220,10 +216,8 @@ export function ExpenseModal({
         }
         if (method === "GALAXY_STORE") {
           setPaymentPlatform("GALAXY_STORE")
-          setSelectedPointPlatform("GALAXY_STORE")
         } else if (method === "GOOGLE_PLAY") {
           setPaymentPlatform("GOOGLE_PLAY")
-          setSelectedPointPlatform("GOOGLE_PLAY")
         } else {
           setPaymentPlatform("GOOGLE_PLAY")
         }
@@ -340,7 +334,8 @@ export function ExpenseModal({
   }, [availablePickups, isVersionPass])
 
   const updateCalculatedFinal = (orig: number, disc: number, pts: number) => {
-    const calculated = Math.max(0, orig - disc - pts)
+    const effectiveDisc = disc > 0 ? disc : pts
+    const calculated = Math.max(0, orig - effectiveDisc)
     setFinalAmountInput(String(calculated))
   }
 
@@ -385,35 +380,54 @@ export function ExpenseModal({
     setFinalAmountInput(val)
     const targetFinal = toAmount(val)
     const orig = toAmount(originalPrice)
-    const pts = toAmount(usedPoints)
-    if (orig - pts >= targetFinal) {
-      setDiscountAmount(String(orig - pts - targetFinal))
+    if (orig >= targetFinal) {
+      setDiscountAmount(String(orig - targetFinal))
       setCouponPercent("")
     } else {
-      setOriginalPrice(String(targetFinal + pts))
+      setOriginalPrice(String(targetFinal))
       setDiscountAmount("0")
       setCouponPercent("")
     }
   }
 
-  const input = useMemo(
-    () => {
-      const uPoints = toAmount(usedPoints)
+  const activePointPlatform =
+    paymentPlatform === "GOOGLE_PLAY" || paymentPlatform === "GALAXY_STORE"
+      ? paymentPlatform
+      : null
+
+  const input = useMemo(() => {
+    const orig = toAmount(originalPrice)
+    const uiDiscount = toAmount(discountAmount)
+    const uPoints = toAmount(usedPoints)
+    const effectiveDiscount = uiDiscount > 0 ? uiDiscount : uPoints
+
+    if (uPoints > 0) {
       return {
-        originalPrice: toAmount(originalPrice),
-        discountAmount: toAmount(discountAmount),
-        pointDiscountAmount: uPoints,
+        originalPrice: orig,
+        discountAmount: 0,
+        pointDiscountAmount: effectiveDiscount,
         usedPoints: uPoints,
         paymentMethod,
         paymentPlatform,
-        pointPlatform: resolvePointPlatform(paymentPlatform, selectedPointPlatform, uPoints),
+        pointPlatform: activePointPlatform,
         paymentDate,
       }
-    },
-    [discountAmount, originalPrice, paymentDate, paymentMethod, paymentPlatform, selectedPointPlatform, usedPoints],
-  )
+    }
+
+    return {
+      originalPrice: orig,
+      discountAmount: uiDiscount,
+      pointDiscountAmount: 0,
+      usedPoints: 0,
+      paymentMethod,
+      paymentPlatform,
+      pointPlatform: null,
+      paymentDate,
+    }
+  }, [discountAmount, originalPrice, paymentDate, paymentMethod, paymentPlatform, activePointPlatform, usedPoints])
+
   const finalAmount = calculateFinalAmount(input)
-  const pointWallet = wallets.find((wallet) => wallet.platform === input.pointPlatform)
+  const pointWallet = wallets.find((wallet) => wallet.platform === activePointPlatform)
   const earnWallet = wallets.find((wallet) => wallet.platform === paymentPlatform)
   const baseEarnRate = earnWallet?.earn_rate ?? 0
 
@@ -666,6 +680,8 @@ export function ExpenseModal({
                       setPickupSchedules([])
                       setPickupScheduleId("")
                       setPaymentPlatform("OTHER")
+                      setUsedPoints("")
+                      updateCalculatedFinal(toAmount(originalPrice), toAmount(discountAmount), 0)
                     } else {
                       setPaymentPlatform("GOOGLE_PLAY")
                     }
@@ -830,6 +846,8 @@ export function ExpenseModal({
                 min={0}
                 step={1}
                 value={usedPoints}
+                disabled={paymentPlatform === "OTHER"}
+                placeholder={paymentPlatform === "OTHER" ? "스토어 외 포인트 사용 불가" : undefined}
                 onChange={(event) => handleUsedPointsChange(event.target.value)}
                 className={inputClassName}
               />
@@ -863,8 +881,9 @@ export function ExpenseModal({
                 onChange={(event) => {
                   const nextPlatform = event.target.value as PaymentPlatform
                   setPaymentPlatform(nextPlatform)
-                  if (nextPlatform === "GOOGLE_PLAY" || nextPlatform === "GALAXY_STORE") {
-                    setSelectedPointPlatform(nextPlatform)
+                  if (nextPlatform === "OTHER") {
+                    setUsedPoints("")
+                    updateCalculatedFinal(toAmount(originalPrice), toAmount(discountAmount), 0)
                   }
                 }}
               >
@@ -1057,7 +1076,12 @@ export function ExpenseModal({
           {input.usedPoints > 0 && (
             <div>
               <label htmlFor="expense-point-platform" className={labelClassName}>포인트 사용 지갑</label>
-              <select id="expense-point-platform" className={selectClassName} value={selectedPointPlatform} onChange={(event) => setSelectedPointPlatform(event.target.value as PointPlatform)}>
+              <select
+                id="expense-point-platform"
+                className={`${selectClassName} opacity-60 cursor-not-allowed`}
+                value={activePointPlatform ?? "GOOGLE_PLAY"}
+                disabled
+              >
                 <option value="GOOGLE_PLAY">Google Play</option>
                 <option value="GALAXY_STORE">Galaxy Store</option>
               </select>

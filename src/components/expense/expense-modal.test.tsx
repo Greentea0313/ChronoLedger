@@ -624,5 +624,74 @@ describe("ExpenseModal", () => {
       status: "PLANNED",
     }))
   })
+
+  it("정가 100% 포인트 할인(정가 5,000원, 할인 5,000원, 사용 포인트 250P) 시 0원 결제가 정상 통과된다", async () => {
+    rpc.mockResolvedValue({ error: null })
+    const onCompleted = vi.fn()
+    const today = getKstToday()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} initialDate={today} />)
+
+    await screen.findByRole("option", { name: "Sample RPG" })
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "100% 할인 패키지" } })
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "5000" } })
+    fireEvent.change(screen.getByLabelText("할인 (원)"), { target: { value: "5000" } })
+    fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "250" } })
+
+    expect(screen.getByText("실결제액: 0 원")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "결제 확정" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(rpc).toHaveBeenCalledWith("process_expense_payment", expect.objectContaining({
+      p_original_price: 5000,
+      p_discount_amount: 0,
+      p_point_discount_amount: 5000,
+      p_used_points: 250,
+      p_point_platform: "GOOGLE_PLAY",
+    }))
+  })
+
+  it("결제 플랫폼(GOOGLE_PLAY, GALAXY_STORE) 변경 시 포인트 지갑이 자동 동기화된다", async () => {
+    rpc.mockResolvedValue({ error: null })
+    const onCompleted = vi.fn()
+    const today = getKstToday()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} initialDate={today} />)
+
+    await screen.findByRole("option", { name: "Sample RPG" })
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "갤스 결제" } })
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "10000" } })
+    fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "1000" } })
+    fireEvent.change(screen.getByLabelText("결제 플랫폼"), { target: { value: "GALAXY_STORE" } })
+
+    const pointSelect = screen.getByLabelText("포인트 사용 지갑") as HTMLSelectElement
+    expect(pointSelect.value).toBe("GALAXY_STORE")
+    expect(pointSelect.disabled).toBe(true)
+
+    fireEvent.click(screen.getByRole("button", { name: "결제 확정" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(rpc).toHaveBeenCalledWith("process_expense_payment", expect.objectContaining({
+      p_point_platform: "GALAXY_STORE",
+      p_used_points: 1000,
+    }))
+  })
+
+  it("결제 플랫폼 OTHER 선택 시 사용 포인트가 비활성화되고 0으로 초기화된다", async () => {
+    render(<ExpenseModal open onOpenChange={vi.fn()} />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "10000" } })
+    fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "1000" } })
+    expect(screen.getByText("실결제액: 9,000 원")).toBeTruthy()
+
+    // 결제 플랫폼을 OTHER로 변경
+    fireEvent.change(screen.getByLabelText("결제 플랫폼"), { target: { value: "OTHER" } })
+
+    const pointInput = screen.getByLabelText("사용 포인트 (P)") as HTMLInputElement
+    expect(pointInput.disabled).toBe(true)
+    expect(pointInput.value).toBe("")
+    expect(screen.getByText("실결제액: 10,000 원")).toBeTruthy()
+  })
 })
 

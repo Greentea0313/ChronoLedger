@@ -69,6 +69,7 @@ export interface HeroSidebarProps {
   totalAsset: number | null
   budgetAmount: number
   expectedExpense: number
+  confirmedExpense?: number
   wallets: HeroWalletItem[]
   schedules?: HeroScheduleItem[]
   expenses: HeroExpenseItem[]
@@ -106,8 +107,8 @@ export function ScheduleTitleBadges({ title }: { title: string }) {
 export function HeroSidebarContent({
   selectedDateLabel,
   totalAsset,
-  budgetAmount,
   expectedExpense,
+  confirmedExpense,
   wallets,
   schedules = [],
   expenses,
@@ -119,11 +120,12 @@ export function HeroSidebarContent({
   registerDisabled,
   onIncomeAdded,
 }: HeroSidebarProps) {
-  const budgetProgress =
-    budgetAmount > 0 ? Math.min(100, Math.round((expectedExpense / budgetAmount) * 100)) : 0
-  const budgetRatio = budgetAmount > 0 ? expectedExpense / budgetAmount : 0
-  const budgetTone = budgetRatio > 1 ? "bg-danger" : budgetRatio >= 0.8 ? "bg-warning" : "bg-primary"
+  const confirmed = confirmedExpense ?? 0
+  const progress =
+    expectedExpense > 0 ? Math.min(100, Math.round((confirmed / expectedExpense) * 100)) : 0
+  const remainingExpected = Math.max(0, expectedExpense - confirmed)
 
+  const [selectedDetailTab, setSelectedDetailTab] = useState<"SCHEDULE" | "EXPENSE" | "MEMO">("SCHEDULE")
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
   const [isEditingMemo, setIsEditingMemo] = useState(false)
   const currentMemoText = memoContent !== undefined ? memoContent : (memos[0] || "")
@@ -187,6 +189,7 @@ export function HeroSidebarContent({
 
   return (
     <div className="space-y-4">
+      {/* 1) 요약 카드 */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle>요약</CardTitle>
@@ -194,6 +197,7 @@ export function HeroSidebarContent({
             type="button"
             size="sm"
             variant="outline"
+            data-vaul-no-drag
             className="h-7 px-2 text-xs text-success border-success/40 hover:bg-success/10"
             onClick={() => setIsIncomeModalOpen(true)}
           >
@@ -203,14 +207,262 @@ export function HeroSidebarContent({
         <CardContent className="space-y-3 text-sm">
           <p>{`총 자산: ${totalAsset?.toLocaleString() ?? "-"} 원`}</p>
           <p>{`예상 지출: ${expectedExpense.toLocaleString()} 원`}</p>
-          <Progress value={budgetProgress} indicatorClassName={budgetTone} />
+          <Progress value={progress} />
           <div className="flex justify-between text-xs text-content-muted">
-            <span>{`예산 진행률 ${budgetProgress}%`}</span>
-            <span>{`${expectedExpense.toLocaleString()} 원`}</span>
+            <span>{`진행률 ${progress}%`}</span>
+            <span>{`${remainingExpected.toLocaleString()} 원`}</span>
           </div>
         </CardContent>
       </Card>
 
+      {/* 2) 선택일 상세 카드 */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle>{selectedDateLabel}</CardTitle>
+          {onRegisterExpense && (
+            <Button
+              type="button"
+              size="sm"
+              disabled={registerDisabled}
+              onClick={onRegisterExpense}
+              data-vaul-no-drag
+            >
+              + 지출 추가
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <select
+              aria-label="선택일 상세 항목 선택"
+              value={selectedDetailTab}
+              onChange={(e) => setSelectedDetailTab(e.target.value as "SCHEDULE" | "EXPENSE" | "MEMO")}
+              className="h-8 rounded-md border border-line-control bg-surface-2 px-2.5 text-xs text-content focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              data-vaul-no-drag
+            >
+              <option value="SCHEDULE">게임 일정</option>
+              <option value="EXPENSE">지출 내역</option>
+              <option value="MEMO">메모</option>
+            </select>
+            {selectedDetailTab === "MEMO" && !isEditingMemo && onSaveMemo && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-vaul-no-drag
+                onClick={() => setIsEditingMemo(true)}
+                className="min-h-[32px] px-2.5 py-1 text-xs rounded-md border border-line-control bg-surface-2 hover:bg-surface text-content flex items-center gap-1.5"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                {currentMemoText ? "수정" : "작성"}
+              </Button>
+            )}
+          </div>
+
+          {selectedDetailTab === "SCHEDULE" && (
+            <section className="space-y-2">
+              {filteredSchedules.length === 0 ? (
+                <EmptyState message="해당 일자의 일정이 없습니다." />
+              ) : (
+                scheduleGroups.map((group) => {
+                  const isVersion = group.schedule_type === "VERSION"
+                  const isPickup = group.schedule_type === "PICKUP"
+                  const isSingle = group.start_date === group.end_date
+                  const isGrouped = group.items.length > 1
+                  return (
+                    <div
+                      key={group.key}
+                      className="relative overflow-hidden rounded-md border border-line bg-surface-2 p-3 text-sm flex flex-col gap-1 transition-colors hover:border-line-control"
+                    >
+                      {group.iconUrl && (
+                        <div className="absolute right-0 top-0 bottom-0 w-28 overflow-hidden z-0 pointer-events-none">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={group.iconUrl}
+                            alt=""
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover object-right select-none"
+                            style={{
+                              maskImage: "linear-gradient(to right, transparent 0%, black 80%)",
+                              WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 80%)",
+                              opacity: 0.45,
+                            }}
+                          />
+                        </div>
+                      )}
+                      {/* Line 1: [픽업] 명일방주 */}
+                      <div className="relative z-10 flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
+                            isVersion
+                              ? "bg-primary/20 text-primary border-primary/30"
+                              : isPickup
+                                ? "bg-warning/20 text-warning border-warning/30"
+                                : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                          }`}
+                        >
+                          {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
+                        </span>
+                        <span className="text-xs font-semibold text-content">
+                          {group.gameName ?? "게임"}
+                        </span>
+                      </div>
+
+                      {/* Line 2: 2026-10-14 ~ 2026-10-28 */}
+                      <div className="relative z-10 text-xs text-content-muted">
+                        {isSingle ? `${group.start_date} (단일)` : `${group.start_date} ~ ${group.end_date}`}
+                      </div>
+
+                      {/* Line 3: 켈시 에스페란타/클로저 (Title) — 묶인 일정은 목록으로 표시 */}
+                      {isGrouped ? (
+                        <ul className="relative z-10 flex flex-col gap-0.5">
+                          {group.items.map((item) => (
+                            <li key={item.id} className="leading-snug">
+                              <div className="font-bold text-sm text-content">
+                                {item.title.includes("/") ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <span>•</span>
+                                    <ScheduleTitleBadges title={item.title} />
+                                  </span>
+                                ) : (
+                                  `• ${item.title}`
+                                )}
+                              </div>
+                              {item.memo && (
+                                <p className="pl-3 text-[11px] text-content-secondary whitespace-pre-wrap">
+                                  {item.memo}
+                                </p>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <>
+                          <div className="relative z-10 font-bold text-sm text-content leading-snug">
+                            <ScheduleTitleBadges title={group.items[0].title} />
+                          </div>
+
+                          {/* Line 4: 메모 (있는 경우) */}
+                          {group.items[0].memo && (
+                            <p className="relative z-10 text-[11px] text-content-secondary mt-0.5 whitespace-pre-wrap">
+                              {group.items[0].memo}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </section>
+          )}
+
+          {selectedDetailTab === "EXPENSE" && (
+            <section className="space-y-2">
+              {expenses.length === 0 ? (
+                <EmptyState message="해당 일자의 지출이 없습니다." hint="등록 버튼으로 추가할 수 있습니다." />
+              ) : (
+                expenses.map((expense) => {
+                  const statusLabel = expense.status === "CONFIRMED" ? "확정" : expense.status === "PLANNED" ? "예정" : "취소"
+                  const statusTone = expense.status === "CONFIRMED" ? "text-success" : expense.status === "PLANNED" ? "text-info" : "text-danger"
+                  return (
+                    <div
+                      key={expense.id}
+                      data-vaul-no-drag
+                      className={`relative overflow-hidden flex justify-between items-center min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm transition-colors duration-fast${onSelectExpense ? " cursor-pointer hover:border-line-control" : ""}`}
+                      role={onSelectExpense ? "button" : undefined}
+                      tabIndex={onSelectExpense ? 0 : undefined}
+                      aria-label={onSelectExpense ? `${expense.title} 상세` : undefined}
+                      onClick={onSelectExpense ? () => onSelectExpense(expense.id) : undefined}
+                      onKeyDown={onSelectExpense ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectExpense(expense.id) } } : undefined}
+                    >
+                      {expense.iconUrl && (
+                        <div
+                          className="absolute right-0 top-0 bottom-0 w-32 bg-no-repeat bg-right bg-cover z-0"
+                          style={{
+                            backgroundImage: `url(${expense.iconUrl})`,
+                            maskImage: "linear-gradient(to right, transparent, black)",
+                            WebkitMaskImage: "linear-gradient(to right, transparent, black)",
+                            opacity: 0.3
+                          }}
+                        />
+                      )}
+                      <div className="relative z-10">
+                        <p className="font-medium">{expense.title}</p>
+                        <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"} · {METHOD_LABELS[expense.payment_method || ""] ?? (expense.payment_method || "내 지갑")}</p>
+                      </div>
+                      <div className="text-right relative z-10">
+                        <p className="font-semibold text-info">{expense.final_amount.toLocaleString()} 원</p>
+                        <p className={`text-xs mt-0.5 ${statusTone}`}>{statusLabel}</p>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </section>
+          )}
+
+          {selectedDetailTab === "MEMO" && (
+            <section className="space-y-2" data-vaul-no-drag>
+              {isEditingMemo ? (
+                <div className="space-y-2" data-vaul-no-drag>
+                  <textarea
+                    value={memoInput}
+                    onChange={(e) => setMemoInput(e.target.value)}
+                    maxLength={200}
+                    placeholder="메모를 입력하세요 (최대 200자)"
+                    className="w-full h-20 rounded-md border border-line-control bg-surface-2 p-2.5 text-sm text-content focus:outline-none focus:ring-1 focus:ring-primary"
+                    data-vaul-no-drag
+                  />
+                  <div className="flex items-center justify-between text-xs text-content-secondary">
+                    <span>{memoInput.length} / 200자</span>
+                    <div className="flex gap-1.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        data-vaul-no-drag
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setMemoInput(currentMemoText)
+                          setIsEditingMemo(false)
+                        }}
+                        className="h-7 px-2 text-xs"
+                        disabled={isSavingMemo}
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        취소
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        data-vaul-no-drag
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => void handleSave()}
+                        className="h-7 px-2 text-xs bg-primary hover:bg-primary-hover text-primary-foreground"
+                        disabled={isSavingMemo}
+                      >
+                        <Check className="w-3 h-3 mr-1" />
+                        {isSavingMemo ? "저장 중..." : "저장"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : currentMemoText ? (
+                <p className="rounded-md border border-line bg-surface-2 p-3 text-sm whitespace-pre-wrap">
+                  {currentMemoText}
+                </p>
+              ) : (
+                <EmptyState message="메모가 없습니다." />
+              )}
+            </section>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 3) 스토어 포인트 카드 */}
       <Card>
         <CardHeader>
           <CardTitle>스토어 포인트</CardTitle>
@@ -228,222 +480,6 @@ export function HeroSidebarContent({
                 </p>
               ))
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle>{selectedDateLabel}</CardTitle>
-          {onRegisterExpense && (
-            <Button type="button" size="sm" disabled={registerDisabled} onClick={onRegisterExpense}>
-              + 지출 추가
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">게임 일정</h3>
-            {filteredSchedules.length === 0 ? (
-              <EmptyState message="해당 일자의 일정이 없습니다." />
-            ) : (
-              scheduleGroups.map((group) => {
-                const isVersion = group.schedule_type === "VERSION"
-                const isPickup = group.schedule_type === "PICKUP"
-                const isSingle = group.start_date === group.end_date
-                const isGrouped = group.items.length > 1
-                return (
-                  <div
-                    key={group.key}
-                    className="relative overflow-hidden rounded-md border border-line bg-surface-2 p-3 text-sm flex flex-col gap-1 transition-colors hover:border-line-control"
-                  >
-                    {group.iconUrl && (
-                      <div className="absolute right-0 top-0 bottom-0 w-28 overflow-hidden z-0 pointer-events-none">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={group.iconUrl}
-                          alt=""
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover object-right select-none"
-                          style={{
-                            maskImage: "linear-gradient(to right, transparent 0%, black 80%)",
-                            WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 80%)",
-                            opacity: 0.45,
-                          }}
-                        />
-                      </div>
-                    )}
-                    {/* Line 1: [픽업] 명일방주 */}
-                    <div className="relative z-10 flex items-center gap-1.5 flex-wrap">
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
-                          isVersion
-                            ? "bg-primary/20 text-primary border-primary/30"
-                            : isPickup
-                              ? "bg-warning/20 text-warning border-warning/30"
-                              : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
-                        }`}
-                      >
-                        {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
-                      </span>
-                      <span className="text-xs font-semibold text-content">
-                        {group.gameName ?? "게임"}
-                      </span>
-                    </div>
-
-                    {/* Line 2: 2026-10-14 ~ 2026-10-28 */}
-                    <div className="relative z-10 text-xs text-content-muted">
-                      {isSingle ? `${group.start_date} (단일)` : `${group.start_date} ~ ${group.end_date}`}
-                    </div>
-
-                    {/* Line 3: 켈시 에스페란타/클로저 (Title) — 묶인 일정은 목록으로 표시 */}
-                    {isGrouped ? (
-                      <ul className="relative z-10 flex flex-col gap-0.5">
-                        {group.items.map((item) => (
-                          <li key={item.id} className="leading-snug">
-                            <div className="font-bold text-sm text-content">
-                              {item.title.includes("/") ? (
-                                <span className="inline-flex items-center gap-1">
-                                  <span>•</span>
-                                  <ScheduleTitleBadges title={item.title} />
-                                </span>
-                              ) : (
-                                `• ${item.title}`
-                              )}
-                            </div>
-                            {item.memo && (
-                              <p className="pl-3 text-[11px] text-content-secondary whitespace-pre-wrap">
-                                {item.memo}
-                              </p>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <>
-                        <div className="relative z-10 font-bold text-sm text-content leading-snug">
-                          <ScheduleTitleBadges title={group.items[0].title} />
-                        </div>
-
-                        {/* Line 4: 메모 (있는 경우) */}
-                        {group.items[0].memo && (
-                          <p className="relative z-10 text-[11px] text-content-secondary mt-0.5 whitespace-pre-wrap">
-                            {group.items[0].memo}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">지출 내역</h3>
-            {expenses.length === 0 ? (
-              <EmptyState message="해당 일자의 지출이 없습니다." hint="등록 버튼으로 추가할 수 있습니다." />
-            ) : (
-              expenses.map((expense) => {
-                const statusLabel = expense.status === "CONFIRMED" ? "확정" : expense.status === "PLANNED" ? "예정" : "취소"
-                const statusTone = expense.status === "CONFIRMED" ? "text-success" : expense.status === "PLANNED" ? "text-info" : "text-danger"
-                return (
-                  <div
-                    key={expense.id}
-                    className={`relative overflow-hidden flex justify-between items-center min-h-[44px] rounded-md border border-line bg-surface-2 p-3 text-sm transition-colors duration-fast${onSelectExpense ? " cursor-pointer hover:border-line-control" : ""}`}
-                    role={onSelectExpense ? "button" : undefined}
-                    tabIndex={onSelectExpense ? 0 : undefined}
-                    aria-label={onSelectExpense ? `${expense.title} 상세` : undefined}
-                    onClick={onSelectExpense ? () => onSelectExpense(expense.id) : undefined}
-                    onKeyDown={onSelectExpense ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectExpense(expense.id) } } : undefined}
-                  >
-                    {expense.iconUrl && (
-                      <div
-                        className="absolute right-0 top-0 bottom-0 w-32 bg-no-repeat bg-right bg-cover z-0"
-                        style={{
-                          backgroundImage: `url(${expense.iconUrl})`,
-                          maskImage: "linear-gradient(to right, transparent, black)",
-                          WebkitMaskImage: "linear-gradient(to right, transparent, black)",
-                          opacity: 0.3
-                        }}
-                      />
-                    )}
-                    <div className="relative z-10">
-                      <p className="font-medium">{expense.title}</p>
-                      <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"} · {METHOD_LABELS[expense.payment_method || ""] ?? (expense.payment_method || "내 지갑")}</p>
-                    </div>
-                    <div className="text-right relative z-10">
-                      <p className="font-semibold text-info">{expense.final_amount.toLocaleString()} 원</p>
-                      <p className={`text-xs mt-0.5 ${statusTone}`}>{statusLabel}</p>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </section>
-
-          <section className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">메모</h3>
-              {!isEditingMemo && onSaveMemo && (
-                <button
-                  type="button"
-                  onClick={() => setIsEditingMemo(true)}
-                  className="text-xs text-content-secondary hover:text-content flex items-center gap-1"
-                >
-                  <Pencil className="w-3 h-3" />
-                  {currentMemoText ? "수정" : "작성"}
-                </button>
-              )}
-            </div>
-
-            {isEditingMemo ? (
-              <div className="space-y-2">
-                <textarea
-                  value={memoInput}
-                  onChange={(e) => setMemoInput(e.target.value)}
-                  maxLength={200}
-                  placeholder="메모를 입력하세요 (최대 200자)"
-                  className="w-full h-20 rounded-md border border-line-control bg-surface-2 p-2.5 text-sm text-content focus:outline-none focus:ring-1 focus:ring-primary"
-                  autoFocus
-                />
-                <div className="flex items-center justify-between text-xs text-content-secondary">
-                  <span>{memoInput.length} / 200자</span>
-                  <div className="flex gap-1.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setMemoInput(currentMemoText)
-                        setIsEditingMemo(false)
-                      }}
-                      className="h-7 px-2 text-xs"
-                      disabled={isSavingMemo}
-                    >
-                      <X className="w-3 h-3 mr-1" />
-                      취소
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => void handleSave()}
-                      className="h-7 px-2 text-xs bg-primary hover:bg-primary-hover text-primary-foreground"
-                      disabled={isSavingMemo}
-                    >
-                      <Check className="w-3 h-3 mr-1" />
-                      {isSavingMemo ? "저장 중..." : "저장"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : currentMemoText ? (
-              <p className="rounded-md border border-line bg-surface-2 p-3 text-sm whitespace-pre-wrap">
-                {currentMemoText}
-              </p>
-            ) : (
-              <EmptyState message="메모가 없습니다." />
-            )}
-          </section>
         </CardContent>
       </Card>
 

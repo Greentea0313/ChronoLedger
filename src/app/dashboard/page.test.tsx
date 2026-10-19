@@ -144,12 +144,20 @@ describe("DashboardPage", () => {
     expect(screen.getAllByText("PICKUP").length).toBeGreaterThan(0)
     expect(screen.getByText(/100,000/)).toBeTruthy()
 
-    // 날짜 타일 클릭 시 HeroSidebar에 메모와 지출이 표시됨
+    // 날짜 타일 클릭 시 HeroSidebar에서 드롭다운 전환을 통해 지출과 메모 확인 가능
     const dateCell = screen.getByLabelText(new RegExp(selectedDate))
     fireEvent.click(dateCell)
 
+    // 선택일 드롭다운으로 지출 내역 전환
+    const dropdowns = screen.getAllByLabelText("선택일 상세 항목 선택")
+    expect(dropdowns.length).toBeGreaterThan(0)
+    fireEvent.change(dropdowns[0], { target: { value: "EXPENSE" } })
+    expect(await screen.findByText("패키지")).toBeTruthy()
+
+    // 선택일 드롭다운으로 메모 전환
+    fireEvent.change(dropdowns[0], { target: { value: "MEMO" } })
     expect(await screen.findByText("메모 1")).toBeTruthy()
-    expect(screen.getByText("패키지")).toBeTruthy()
+
     expect(expenses.gte).toHaveBeenCalledWith("target_date", getGridRange(now.getFullYear(), now.getMonth() + 1).startDate)
     expect(expenses.lt).toHaveBeenCalledWith("target_date", getGridRange(now.getFullYear(), now.getMonth() + 1).endDateExclusive)
     expect(screen.getAllByText(/30,000/).length).toBeGreaterThan(0)

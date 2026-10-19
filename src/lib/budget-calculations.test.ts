@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  calculateConfirmedExpense,
   calculateExpectedExpense,
   calculateRemainingBudget,
   findOverduePlannedExpenses,
@@ -57,6 +58,37 @@ describe("budget-calculations", () => {
   it("남은 예산을 계산한다", () => {
     expect(calculateRemainingBudget(100000, 35000)).toBe(65000)
     expect(calculateRemainingBudget(10000, 15000)).toBe(-5000)
+  })
+
+  it("당월 확정 지출(status === 'CONFIRMED')만 합산한다", () => {
+    const list: BudgetExpense[] = [
+      pickup({ status: "CONFIRMED", target_date: "2026-10-10", final_amount: 15000 }),
+      pickup({ status: "CONFIRMED", target_date: "2026-10-20", final_amount: 25000 }),
+      pickup({ status: "PLANNED", target_date: "2026-10-25", final_amount: 10000 }),
+      pickup({ status: "CANCELLED", target_date: "2026-10-15", final_amount: 5000 }),
+      pickup({ status: "CONFIRMED", target_date: "2026-11-01", final_amount: 30000 }),
+    ]
+    expect(calculateConfirmedExpense(list, { year: 2026, month: 10 })).toBe(40000)
+    expect(calculateConfirmedExpense(list, { year: 2026, month: 11 })).toBe(30000)
+  })
+
+  it("진행률 및 남은 예정 지출 금액 계산식을 검증한다", () => {
+    const expectedExpense = 50000
+    const confirmedExpense = 20000
+    const progress = expectedExpense > 0 ? Math.min(100, Math.round((confirmedExpense / expectedExpense) * 100)) : 0
+    const remainingExpected = Math.max(0, expectedExpense - confirmedExpense)
+
+    expect(progress).toBe(40)
+    expect(remainingExpected).toBe(30000)
+
+    // 확정 지출이 예상 지출을 초과하거나 같은 경우
+    const overConfirmed = 60000
+    const overProgress = expectedExpense > 0 ? Math.min(100, Math.round((overConfirmed / expectedExpense) * 100)) : 0
+    expect(overProgress).toBe(100)
+    expect(Math.max(0, expectedExpense - overConfirmed)).toBe(0)
+
+    // 예상 지출이 0인 경우
+    expect(0 > 0 ? Math.min(100, Math.round((0 / 0) * 100)) : 0).toBe(0)
   })
 
   it("종료일이 오늘 이전인 PLANNED만 만료 항목으로 오래된 순 정렬한다", () => {

@@ -54,6 +54,7 @@ export function resolvePointPlatform(
   usedPoints: number,
 ): PointPlatform | null {
   if (platformOrMethod === "GOOGLE_PLAY" || platformOrMethod === "GALAXY_STORE") return platformOrMethod
+  if (platformOrMethod === "OTHER") return null
   return usedPoints > 0 ? selected : null
 }
 

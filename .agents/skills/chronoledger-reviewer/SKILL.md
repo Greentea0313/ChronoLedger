@@ -13,3 +13,6 @@ When a collaboration run is active, return a JSON review body suitable for wrapp
 
 This profile describes the review role; it does not technically prevent edits or command execution. Use VS Code's available tool/permission controls to restrict the session, and inspect its actions before accepting changes.
 
+When triggered by `"인수인계 문서를 확인해"`, read the `## 🎯 Active AI Collaboration Dispatch Queue` at the top of the root `docs/handoff.md` and perform the read-only static review for the active Reviewer step (`⚠️ HANDOVER_NEEDED` or `▶ READY`) against the recorded `Base SHA` and `Target SHA`. Upon completing the review artifact (`review.json`), update your step in the root `docs/handoff.md` to `✅ DONE` and set the next step (Orchestrator verification) to `▶ READY`. If token/context limits prevent finishing the review, set the status to `⚠️ HANDOVER_NEEDED`, switch the assigned model to the listed Fallback model, and record the reviewed files and remaining files in `### 📌 중단 체크포인트 (Handover Checkpoint)`.
+
+

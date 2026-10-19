@@ -1,8 +1,47 @@
 # 변경 이력
 
+## 2026-10-19 (대시보드 요약 카드 진행률, 100% 포인트 할인, 사이드바 드롭다운 탭 및 모바일 터치 개선)
+
+- **요약 카드(Summary Card) 진행률 계산식 및 UI 개편 (`src/lib/budget-calculations.ts`, `src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/mobile-drawer.tsx`)**:
+  - 당월 확정 지출(`status === "CONFIRMED"`) 합계를 구하는 `calculateConfirmedExpense` 함수 추가.
+  - 진행률 계산식을 기존 월 예산 대비 비율에서 당월 전체 예상 지출 중 이미 결제 확정한 지출 비율(`confirmedExpense / expectedExpense * 100`)로 변경.
+  - 프로그레스 바 하단 좌측 라벨을 `진행률 n%`로 변경하고, 우측에 잔여 예정 지출 금액(`Math.max(0, expectedExpense - confirmedExpense) + " 원"`)을 표시하도록 개선.
+  - `DashboardPage`에서 `confirmedExpense`를 계산하여 `HeroSidebar`와 `MobileDrawer`에 동기화 전달.
+- **포인트 할인 100% 허용(방식 A) 및 결제 플랫폼별 포인트 차감 동기화 (`src/components/expense/expense-modal.tsx`, `src/lib/payment-calculations.ts`)**:
+  - `uiDiscount`를 총 원화 할인액으로 취급하고 `uPoints`는 차감 포인트 수량으로 취급하여, 정가 100% 할인(예: 5,000원 정가, 5,000원 할인, 250P 사용 $\to$ 실결제액 0원) 시 중복 차감 에러 없이 정상 결제 승인되도록 수정.
+  - 결제 플랫폼(`GOOGLE_PLAY`, `GALAXY_STORE`)과 포인트 지갑을 1:1 강제 동기화하고 중복 드롭다운을 `disabled` 처리.
+  - 결제 플랫폼 `OTHER`(`기타 (스토어 외)`) 선택 시 포인트 입력창 비활성화 및 0으로 즉시 초기화.
+- **사이드바 카드 배치 순서 및 선택일 카드 드롭다운 탭 추가 (`src/components/calendar/hero-sidebar.tsx`)**:
+  - 카드 배치 순서를 `1) 요약` $\to$ `2) 선택일 상세` $\to$ `3) 스토어 포인트`로 변경.
+  - 선택일 카드 헤더 바로 아래에 `게임 일정` (기본값) / `지출 내역` / `메모` 드롭다운(`<select aria-label="선택일 상세 항목 선택">`)을 배치하여 선택된 항목 1개만 본문에 렌더링하도록 탭 UI 개편.
+- **모바일 바텀시트(`MobileDrawer`) 제스처 간섭 해결 및 반응형 최적화 (`src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/calendar-bg-customizer.tsx`)**:
+  - 바텀시트 제스처 간섭 방지를 위해 인터랙티브 요소에 `data-vaul-no-drag` 속성 부여.
+  - 메모 작성/수정 버튼 터치 영역 개선, 저장/취소 버튼에 `onPointerDown`/`onMouseDown` 이벤트 전파 방지 적용으로 키보드 blur 포커스 유실 차단.
+  - `MobileDrawer`와 `HeroSidebar`에 `confirmedExpense`, `onIncomeAdded` props 완전 동기화.
+  - `CalendarBgCustomizer` 모바일 뷰포트 대응 `max-w-[calc(100vw-2rem)]` 및 슬라이더 터치 영역 개선.
+- **단위 테스트 및 빌드 검증**:
+  - Vitest 42개 파일, 251개 테스트 전체 통과 (100% PASS), Next.js 14 프로덕션 빌드 성공.
+
+## 2026-10-19 (5대 AI 모델 역할 분배 및 인수인계 문서 기반 자동 과제 실행·비상 인계 아키텍처 구축)
+
+- **다중 모델 디스패치 보드(`Active AI Collaboration Dispatch Queue`) 및 `"인수인계 문서를 확인해"` 자동 실행 프로토콜 도입 (`docs/handoff.md`, `.agents/rules/handoff.md`, `md/SKILL.md`, `.github/copilot-instructions.md`)**:
+  - **5대 AI 모델 역할 및 Fallback 체인 정립**:
+    - **Gemini 4 Argon** (주축 Orchestrator & Architect, 대체: Claude Opus 5.5 / GitHub Copilot)
+    - **GPT Codex** (Core Algorithmic Maker & Test Engineer, 대체: Claude Opus 5.5 / GitHub Copilot)
+    - **Claude Opus 5.5** (Primary Static Reviewer & Complex Maker, 대체: Gemini 4 Argon / GitHub Copilot)
+    - **GitHub Copilot** (Workspace General Maker & 전천후 Fallback Hub, 대체: Gemini 3.8 Flash / GPT Codex)
+    - **Gemini 3.8 Flash** (Fast UI Maker & Research Subagent, 대체: GitHub Copilot / Gemini 4 Argon)
+  - **`"인수인계 문서를 확인해"` 단일 프롬프트 실행 프로토콜**: 사용자가 어떤 모델에서든 해당 프롬프트를 입력하면 루트 `docs/handoff.md` 최상단 큐에서 `⚠️ HANDOVER_NEEDED`(1순위) 또는 `▶ READY`(2순위) 상태인 과제를 즉시 식별하여 지정된 `.worktrees/<run_id>`(또는 `main`)에서 이행하고, 완료 시 `✅ DONE` 및 다음 단계 `▶ READY`로 배턴을 넘기도록 규칙화.
+  - **토큰/컨텍스트 소진 대비 2중 안전장치**:
+    - 사전 감지 시 `⚠️ HANDOVER_NEEDED` 상태 전환 및 담당 모델 칸에 대체 모델 표기 + `중단 체크포인트` 작성.
+    - API 쿼터 초과로 인한 강제 중단(Hard Cutoff) 시 대체 모델이 대상 Worktree의 `git status --short`와 `git diff`를 자동 스캔하여 미커밋 작업을 이어받는 복구 절차 내장.
+- **협업 스킬 프로필 및 아키텍처 문서 동기화 (`.agents/skills/chronoledger-*/SKILL.md`, `docs/architecture.md`)**:
+  - Orchestrator의 Worktree 선생성(`New-CollaborationRun.ps1`) 후 루트 `docs/handoff.md` 큐 기록 순서와 Maker/Reviewer의 상태 전이 규칙 반영.
+
 ## 2026-10-19 (캘린더 날짜별 개인 메모 저장 실패 결함 해결 및 UNIQUE 제약조건 마이그레이션)
 
 - **개인 메모(personal_memos) 저장 실패 원인 해결 (`src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar.tsx`)**:
+
   - 기존 `handleSaveMemo`에서 Supabase의 `.upsert(..., { onConflict: "user_id,memo_date" })`를 호출하고 있었으나, 데이터베이스의 `personal_memos` 테이블에 `(user_id, memo_date)`에 대한 `UNIQUE` 제약조건(또는 인덱스)이 생성되어 있지 않아 PostgreSQL의 `42P10 (there is no unique or exclusion constraint matching the ON CONFLICT specification)` 오류가 발생하며 저장이 실패하던 문제를 해결.
   - DB 제약조건 유무와 무관하게 100% 안전하게 동작하도록 `existingMemo` 존재 여부에 따라 명시적인 `update` / `insert` / `delete`(빈 내용 입력 시) 분기 로직으로 개편.
   - `personal_memos` 조회 쿼리에 `id` 컬럼을 포함하고 `MemoRow` 타입에 `id?: string`을 추가하여 정확한 레코드 식별 및 업데이트 보장.

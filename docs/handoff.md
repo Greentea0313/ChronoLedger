@@ -1,11 +1,95 @@
 # 프로젝트 인수인계 문서 (handoff.md)
 
+## 🎯 Active AI Collaboration Dispatch Queue (현재 활성 협업 과제)
+
+> **🤖 AI 에이전트 자동 실행 지침 (`"인수인계 문서를 확인해"`)**
+> 1. 사용자가 **`"인수인계 문서를 확인해"`**라고 입력하면, 아래 **Active Dispatch Table**에서 상태가 **`⚠️ HANDOVER_NEEDED`**(1순위) 또는 **`▶ READY`**(2순위)인 과제를 찾아 즉시 수행하십시오.
+> 2. **강제 중단 자동 복구**: 만약 이전 모델이 토큰/쿼터 초과로 문서를 갱신하지 못한 채 중단되어 상태가 `▶ READY`이거나 `🔄 IN_PROGRESS`인 경우, 새로 호출된 대체(Fallback) 모델은 즉시 대상 Worktree의 `git status --short`와 `git diff`를 스캔하여 이전 모델이 작성하다 멈춘 미커밋 변경사항을 파악한 뒤 이어서 완수하십시오.
+> 3. **토큰 부족 시 비상 인계**: 작업 도중 보유 토큰/컨텍스트 내에서 완수가 불가능하다고 판단되면, 무리하게 축약하지 말고 현재까지의 파일 수정을 안전하게 저장한 뒤:
+>    - 해당 행의 상태를 **`⚠️ HANDOVER_NEEDED`**로 변경하고, `담당 모델` 칸을 **`~~기존 모델~~ ➡️ [대체 모델명]`**으로 갱신하십시오.
+>    - 하단 **`### 📌 중단 체크포인트 (Handover Checkpoint)`**에 **① 완료된 파일/작업, ② 남은 구체적 작업, ③ 가정/결정 사항, ④ 테스트 실행 여부**를 기록하고, 사용자에게 대체 모델로 전환해 `"인수인계 문서를 확인해"`를 입력하도록 안내하십시오.
+> 4. **완료 및 배턴 터치**: 자신의 단계를 완수(Maker의 경우 Worktree 내 커밋 생성)하면 상태를 `✅ DONE (SHA: <커밋해시>)`으로 바꾸고, 다음 순서 행의 상태를 `▶ READY`로 변경하십시오.
+
+### 📋 5대 AI 모델 기본 역할 및 토큰 소진 시 대체(Fallback) 체인
+| 주력 모델 / 에이전트 | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
+| :--- | :--- | :--- | :--- | :--- |
+| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude Opus 5.5** | **GitHub Copilot** |
+| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude Opus 5.5** | **GitHub Copilot** |
+| **Claude Opus 5.5** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
+| **GitHub Copilot** | `Maker (General) & Fallback Hub` | VS Code 밀착형 일반 기능·컴포넌트·라우팅(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 3.8 Flash** | **GPT Codex** |
+| **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 마크업, Argon 직속 고속 탐색 서브에이전트, `docs/` 문서 동기화 보조 | **GitHub Copilot** | **Gemini 4 Argon** |
+
+### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
+- **Run ID**: `idle` *(새 작업 시작 시 Gemini 4 Argon이 `New-CollaborationRun.ps1` 실행 후 갱신)*
+- **Worktree 경로**: `N/A` *(격리 실행 시 `.worktrees/<run_id>`, 일반 실행 시 `main`)*
+- **Base SHA**: `-` | **Target SHA**: `-`
+- **수용 기준 (Acceptance Criteria)**:
+  - 현재 대기 중인 활성 협업 과제가 없습니다. 주축 모델(**Gemini 4 Argon**)에게 새 작업을 요청하거나 [`docs/to-do.md`](to-do.md)의 다음 백로그 항목(예: `Phase 12.4 모바일 뷰포트 및 반응형 인터랙션 고도화`)을 시작하도록 지시하십시오.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **-** | `💤 IDLE` | **Gemini 4 Argon** *(대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 사용자 신규 작업 요청 시 수용 기준 도출, Worktree 생성 및 하위 모델별 과제 할당 | 대기 중 |
+
+### 📌 중단 체크포인트 (Handover Checkpoint)
+- **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## 대시보드 요약 카드 진행률, 100% 포인트 할인, 사이드바 드롭다운 탭 및 모바일 터치 개선 (2026-10-19)
+
+- **결정 및 배경**:
+  - **요약 카드(Summary Card) 진행률 계산식 및 UI 개편**:
+    - 기존의 월 예산 대비 비율 대신, 당월 전체 예상 지출(`expectedExpense`) 중 이미 결제 확정한 지출(`confirmedExpense`)의 비율(`(confirmedExpense / expectedExpense) * 100`)로 진행률을 산출하도록 변경.
+    - 우측 하단에는 당월 예상 지출에서 확정 지출을 뺀 잔여 예정 지출 금액(`expectedExpense - confirmedExpense`)을 표시하고, 좌측 라벨은 `진행률 n%`로 간결화함.
+    - `src/lib/budget-calculations.ts`에 당월 확정 지출 합계를 구하는 `calculateConfirmedExpense` 함수를 추가하고 `DashboardPage`에서 `confirmedExpense`를 useMemo로 계산하여 `HeroSidebar`와 `MobileDrawer`에 동일하게 전달함.
+  - **포인트 할인 100% 허용(방식 A) 및 결제 플랫폼별 포인트 차감 동기화**:
+    - `uiDiscount`를 총 원화 할인액으로 취급하고 `uPoints`는 순수 차감 포인트 수량으로 취급하여, 정가의 100% 포인트 할인(예: 정가 5,000원, 할인 5,000원, 포인트 250P 사용 $\to$ 실결제액 0원) 시 중복 차감 에러 없이 클라이언트 검증과 RPC 호출이 모두 통과되도록 함.
+    - `process_expense_payment` RPC 검증을 만족하도록 `uPoints > 0`일 때 `discountAmount = 0`, `pointDiscountAmount = effectiveDiscount`, `usedPoints = uPoints`로 매핑.
+    - 결제 플랫폼(`GOOGLE_PLAY`, `GALAXY_STORE`)과 포인트 지갑을 1:1 강제 동기화하고 중복 선택 드롭다운(`#expense-point-platform`)을 `disabled`로 고정.
+    - 결제 플랫폼 `OTHER` 선택 시 `usedPoints`를 즉시 `""`로 초기화하고 입력 필드를 `disabled` 처리(스토어 외 포인트 사용 불가).
+  - **사이드바 카드 배치 순서 및 선택일 카드 드롭다운 탭 추가**:
+    - 사이드바 카드 순서를 `1) 요약` $\to$ `2) 선택일 상세` $\to$ `3) 스토어 포인트`로 변경.
+    - 선택일 카드 헤더 바로 아래에 `게임 일정` (기본값) / `지출 내역` / `메모` 드롭다운(`<select aria-label="선택일 상세 항목 선택">`)을 배치하여 선택된 항목 1개만 본문에 렌더링.
+    - 메모 탭 선택 시 비편집 상태에서 `[작성]` / `[수정]` 버튼이 표시되며 편집 상태 시 `<textarea>` 및 `[취소]` / `[저장]` 제공.
+  - **모바일 바텀시트(`MobileDrawer`) 제스처 간섭 해결 및 반응형 최적화**:
+    - 바텀시트 제스처 간섭 방지를 위해 인터랙티브 요소에 `data-vaul-no-drag` 속성 부여.
+    - 메모 작성/수정 버튼 터치 영역 개선, 저장/취소 버튼에 `onPointerDown`/`onMouseDown` 이벤트 전파 방지 적용으로 키보드 blur 포커스 유실 차단.
+    - `MobileDrawer`와 `HeroSidebar`에 `confirmedExpense`, `onIncomeAdded` props 완전 동기화.
+    - `CalendarBgCustomizer` 모바일 뷰포트 대응 `max-w-[calc(100vw-2rem)]` 및 슬라이더 터치 영역 개선.
+- **수행 내역 및 검증**:
+  - `src/lib/budget-calculations.ts` / `budget-calculations.test.ts`: 확정 지출 계산 함수 및 테스트 추가.
+  - `src/lib/payment-calculations.ts` / `payment-calculations.test.ts`: 100% 포인트 할인 및 플랫폼 해석 검증.
+  - `src/components/expense/expense-modal.tsx` / `expense-modal.test.tsx`: 100% 포인트 할인 결제 및 플랫폼 동기화/비활성화 검증.
+  - `src/components/calendar/hero-sidebar.tsx` / `hero-sidebar.test.tsx`: 카드 순서, 요약 카드 진행률, 드롭다운 탭 전환 및 메모 편집/저장, `data-vaul-no-drag` 검증.
+  - `src/components/calendar/mobile-drawer.tsx`: props 완전 동기화.
+  - `src/components/calendar/calendar-bg-customizer.tsx`: 모바일 뷰포트 반응형 보강.
+  - `src/app/dashboard/page.tsx` / `page.test.tsx`: props 연동 및 캘린더 타일 클릭 테스트 갱신.
+  - 검증: `tsc --noEmit` (통과), `vitest run` (42개 파일, 251개 테스트 전체 통과), `npm run build` (Next.js 15개 정적 페이지 빌드 성공).
+
+## 5대 AI 모델 역할 분배 및 인수인계 문서 기반 자동 과제 실행·비상 인계(Fallback) 아키텍처 구축 (2026-10-19)
+
+- **결정 및 배경**:
+  - **다중 모델 협업 및 단일 프롬프트 디스패치(`"인수인계 문서를 확인해"`) 체계 도입**:
+    - 주축 모델인 **Gemini 4 Argon**을 중심으로 **GPT Codex**, **Claude Opus 5.5**, **GitHub Copilot**, **Gemini 3.8 Flash**의 5대 AI 모델이 ChronoLedger 파이프라인(`Orchestrator` $\to$ `Maker` $\to$ `Reviewer`)에서 각자의 강점에 맞는 역할을 분담하고, 사용자가 어느 모델에서든 `"인수인계 문서를 확인해"`라고 입력하면 `docs/handoff.md` 최상단의 **Active AI Collaboration Dispatch Queue**에서 즉시 자신의 활성 과제를 찾아 이행하는 Blackboard 아키텍처를 수립함.
+  - **`.worktrees/<run_id>` 격리 실행과 루트 `docs/handoff.md` 단일 진실 공급원(SSOT) 연동**:
+    - `scripts/collaboration/New-CollaborationRun.ps1`은 루트 작업 트리가 깨끗할 때만 실행되므로, Orchestrator가 먼저 격리 Worktree(`.worktrees/<run_id>`)를 생성한 직후 루트 `docs/handoff.md`의 Dispatch Queue에 대상 Worktree 경로와 과제를 기록하도록 순서를 규정함.
+  - **토큰/컨텍스트 소진 대비 2중 안전장치 (Soft Checkpoint + Hard Cutoff Auto-Recovery)**:
+    - **시나리오 A (사전 감지 인계)**: 작업 중 토큰 부족 감지 시 상태를 `⚠️ HANDOVER_NEEDED`로 변경하고, 담당 모델 칸에 대체 모델(`➡️ 대체 모델명`)을 표시한 뒤 `중단 체크포인트`에 완료/미완료 내역을 기록함.
+    - **시나리오 B (강제 중단 자동 복구)**: 플랫폼 쿼터 초과로 문서를 미처 수정하지 못하고 강제 종료된 경우에도, 사전에 병기된 대체(Fallback) 모델에서 `"인수인계 문서를 확인해"`를 입력하면 해당 Worktree의 `git status --short` 및 `git diff`를 자동 스캔하여 이전 모델이 작성하다 멈춘 미커밋 코드를 이어받아 완수하도록 프로토콜화함.
+- **수행 내역**:
+  - `.agents/rules/handoff.md`, `.agents/skills/handoff/SKILL.md`, `md/SKILL.md`: `"인수인계 문서를 확인해"` 5단계 실행 프로토콜, 5대 AI 모델 역할 및 Fallback 매트릭스, 토큰 소진 시 비상 인계 규칙 명문화.
+  - `.github/copilot-instructions.md`: GitHub Copilot 세션에서 `"인수인계 문서를 확인해"` 수신 시 Dispatch Queue 즉시 실행 및 `git diff` 기반 강제 중단 복구 규칙 추가.
+  - `.agents/skills/chronoledger-orchestrator/SKILL.md`, `chronoledger-maker/SKILL.md`, `chronoledger-reviewer/SKILL.md`: Orchestrator의 5대 모델 라우팅/Worktree 생성 순서 및 Maker/Reviewer의 Dispatch Queue 상태 전이·체크포인트 작성 규칙 반영.
+  - `docs/handoff.md`: 최상단에 `## 🎯 Active AI Collaboration Dispatch Queue` 상설 보드 신설.
+  - `docs/architecture.md`: 5대 AI 다중 에이전트 디스패치 및 Fallback 인계 아키텍처 책임 구조 반영.
+
 ## 캘린더 날짜별 개인 메모 저장 실패 결함 해결 및 UNIQUE 제약조건 마이그레이션 (2026-10-19)
 
 - **결정 및 배경**:
   - **Supabase upsert onConflict 실패 문제**:
     - PostgreSQL의 `ON CONFLICT (user_id, memo_date)` 구문은 해당 컬럼들에 대한 `UNIQUE` 제약조건 또는 `UNIQUE` 인덱스가 데이터베이스에 물리적으로 생성되어 있어야만 실행이 가능함.
     - 기존 `md/SCHEMA.sql` 및 실제 DB에 이 제약조건이 없어 `42P10 (there is no unique or exclusion constraint matching the ON CONFLICT specification)` 에러로 인해 메모 작성이 저장되지 않는 현상이 발생함.
+
   - **방어적 클라이언트 분기 로직 적용**:
     - DB 스키마 수정 마이그레이션이 즉시 반영되지 않은 환경에서도 메모 저장이 100% 보장되도록 `src/app/dashboard/page.tsx`의 `handleSaveMemo`를 `upsert` 의존에서 벗어나 `existingMemo` 존재 여부에 따른 명시적 `update` / `insert` / `delete` 분기 구조로 개편.
     - 또한 저장이 진행되는 동안 사용자 인터페이스가 멈추거나 튕기지 않고 타일의 점(`day.hasMemo`)과 사이드바에 즉각 변경사항이 표시되도록 낙관적 상태 갱신(`setMemos`)을 적용함.
