@@ -397,6 +397,13 @@
     3. **모바일 달력 날짜 타일 터치 시 바텀시트(`MobileDrawer`) 즉시 오픈**: 모바일 뷰포트(`< 900px`)에서 달력 날짜 타일을 터치/클릭하면 해당 날짜 선택과 동시에 `'선택일 상세'` 바텀시트(`MobileDrawer`)가 즉시 열리도록 `open`/`onOpenChange` 제어 상태 연동(하단 `'선택일 상세'` 버튼도 함께 유지).
     4. **초소형 뷰포트 팝오버 가로 넘침 방지**: `CalendarGameFilter` 드롭다운 팝오버에 `max-w-[calc(100vw-2rem)]`을 적용하여 320px~360px 화면에서 좌우 넘침 차단.
   - verify: 모바일 일정 유형별 도트/오늘 금색 테두리/데스크톱 전용 배지 단위 테스트(`desktop-calendar.test.tsx`) 및 모바일(360px) 날짜 타일 클릭 시 바텀시트 오픈 테스트(`dashboard/page.test.tsx`) 통과, Vitest 42개 파일 252개 테스트 100% 통과, Next.js 14 정적 export 빌드 성공. *(남은 실기기 점검은 Phase 7.4 Android PWA 실기기 검증과 함께 수행)*
+- [x] 12.7 관리자 공식 일정 목록 만료 일정(`end_date < today`) 표시 제외 및 필터링 강화 (2026-10-19)
+  - 대상 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`
+  - 작업:
+    1. `fetchSchedules`에서 `getKstToday`로 KST 오늘 날짜를 구하고 Supabase 조회에 `.gte("end_date", today)` 필터 적용.
+    2. 응답 데이터에 대해 클라이언트 측 `.filter((s) => s.end_date >= today)` 방어 로직을 적용하여 공식 일정 목록, 탭 배지 카운트, 게임 필터 카운트, 페이지네이션에서 만료된 일정 제외.
+    3. `src/app/admin/page.test.tsx`에 `gte` 모의 메서드 지원 및 만료 일정 제외/카운트 단위 테스트 추가.
+  - verify: `src/app/admin/page.test.tsx` 단위 테스트(12개) 통과, `npx tsc --noEmit` 0 에러, Vitest 42개 파일 253개 테스트 100% 통과.
 
 ---
 

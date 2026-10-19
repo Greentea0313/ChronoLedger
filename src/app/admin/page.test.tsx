@@ -2,13 +2,15 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import AdminPage from "./page"
 
-const { from, useAuth } = vi.hoisted(() => ({
+const { from, useAuth, mockGetKstToday } = vi.hoisted(() => ({
   from: vi.fn(),
   useAuth: vi.fn(),
+  mockGetKstToday: vi.fn(() => "2026-09-01"),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
+vi.mock("@/lib/dashboard-date", () => ({ getKstToday: mockGetKstToday }))
 
 function createQueryBuilder() {
   const query = {
@@ -18,6 +20,7 @@ function createQueryBuilder() {
     update: vi.fn(),
     delete: vi.fn(),
     eq: vi.fn(),
+    gte: vi.fn(),
   }
   query.select.mockReturnValue(query)
   query.order.mockReturnValue(query)
@@ -25,6 +28,7 @@ function createQueryBuilder() {
   query.update.mockReturnValue(query)
   query.delete.mockReturnValue(query)
   query.eq.mockReturnValue(query)
+  query.gte.mockReturnValue(query)
   return query
 }
 
@@ -62,6 +66,7 @@ describe("AdminPage - 일정 관리", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetKstToday.mockReturnValue("2026-09-01")
     useAuth.mockReturnValue({
       user: { id: "admin-1", app_metadata: { role: "admin" } },
       role: "admin",
@@ -106,6 +111,19 @@ describe("AdminPage - 일정 관리", () => {
 
     expect(screen.getByText("5.0 버전 업데이트")).toBeTruthy()
     expect(screen.queryByText("아케론 복각")).toBeNull()
+  })
+
+  it("end_date가 오늘(today)보다 이전(end_date < today)인 만료된 공식 일정은 목록 및 카운트에서 제외된다", async () => {
+    mockGetKstToday.mockReturnValue("2026-10-01")
+
+    render(<AdminPage />)
+
+    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(schedulesBuilder.gte).toHaveBeenCalledWith("end_date", "2026-10-01")
+    expect(screen.getByText("5.0 버전 업데이트")).toBeTruthy()
+    expect(screen.queryByText("아케론 복각")).toBeNull()
+    expect(screen.getByText("공식 일정 관리 (1)")).toBeTruthy()
+    expect(screen.getByText("1개의 일정")).toBeTruthy()
   })
 
   it("새 일정 등록 모달을 열고 일정을 추가할 수 있다", async () => {

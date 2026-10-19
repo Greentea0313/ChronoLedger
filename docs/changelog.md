@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-19 (관리자 공식 일정 목록 만료 일정 표시 제외 및 필터링 강화)
+
+- **공식 일정 관리 목록 KST 오늘 기준 만료 일정(`end_date < today`) 제외 (`src/app/admin/page.tsx`)**:
+  - `fetchSchedules`에서 `getKstToday`를 사용해 Supabase 쿼리에 `.gte("end_date", today)` 조건을 적용.
+  - 응답 데이터에 대해 클라이언트 측 방어 필터(`.filter((s) => s.end_date >= today)`)를 적용하여 탭 배지 카운트, 게임 필터 카운트, 페이지네이션 및 목록에서 만료된 일정이 완전히 제외되도록 처리.
+- **관리자 페이지 단위 테스트 갱신 및 검증 (`src/app/admin/page.test.tsx`)**:
+  - `createQueryBuilder`에 `gte` 모킹 메서드 추가 및 `@/lib/dashboard-date`의 `getKstToday` 모킹 구성.
+  - `end_date < today`인 만료 일정이 목록 및 카운트에서 제외되고 활성 일정만 표시되는지 검증하는 신규 단위 테스트 추가.
+- **단위 테스트 및 타입 검증**:
+  - TypeScript 컴파일 검증(`npx tsc --noEmit`) 0 errors, Vitest 42개 파일 253개 테스트 전체 통과 (100% PASS).
+
 ## 2026-10-19 (모바일 초소형 뷰포트(360px 이하) 달력 타일·배지 최적화 및 날짜 타일 터치 시 바텀시트 즉시 연동)
 
 - **모바일 달력 타일 일정 유형별 컬러 도트 분리 표시 (`src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`)**:

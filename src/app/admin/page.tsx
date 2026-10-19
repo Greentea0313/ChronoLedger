@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
+import { getKstToday } from "@/lib/dashboard-date"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -161,19 +162,23 @@ export default function AdminPage() {
 
   const fetchSchedules = useCallback(async () => {
     setIsLoadingSchedules(true)
+    const today = getKstToday()
     const { data, error } = await supabase
       .from("game_schedules")
       .select("id, game_id, schedule_type, title, start_date, end_date, memo, games(id, name)")
+      .gte("end_date", today)
       .order("start_date", { ascending: true })
 
     if (error) {
       setMessage({ type: "error", text: "일정 목록을 불러오지 못했습니다: " + error.message })
     } else if (data) {
-      const sorted = (data as unknown as ScheduleItem[]).sort((a, b) => {
-        if (a.start_date !== b.start_date) return a.start_date.localeCompare(b.start_date)
-        return a.end_date.localeCompare(b.end_date)
-      })
-      setSchedules(sorted)
+      const activeSchedules = (data as unknown as ScheduleItem[])
+        .filter((s) => s.end_date >= today)
+        .sort((a, b) => {
+          if (a.start_date !== b.start_date) return a.start_date.localeCompare(b.start_date)
+          return a.end_date.localeCompare(b.end_date)
+        })
+      setSchedules(activeSchedules)
     }
     setIsLoadingSchedules(false)
   }, [])

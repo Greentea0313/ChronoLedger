@@ -1,5 +1,21 @@
 # 프로젝트 진행 현황
 
+## 관리자 공식 일정 목록 만료 일정(end_date < today) 표시 제외 및 필터링 강화 (2026-10-19)
+
+- **배경 및 사용자 요구사항**:
+  1. `/admin` 페이지에서 등록된 공식 일정 목록 조회 시, KST 오늘 날짜 기준으로 이미 종료된(`end_date < today`) 일정이 목록에 함께 표시되어 진행 중이거나 예정된 공식 일정을 관리하기 불편한 문제 개선.
+  2. Supabase 쿼리에서 `.gte("end_date", today)` 조건을 적용하고, 클라이언트 상태 저장 전 방어적 필터(`s.end_date >= today`)를 추가하여 목록·탭 배지·필터 카운트·페이지네이션에서 만료 일정을 완전히 제외.
+
+- **수행 내역**:
+  1. **`src/app/admin/page.tsx`**:
+     - `@/lib/dashboard-date`의 `getKstToday`를 임포트하여 `fetchSchedules`에서 `today` 날짜 획득.
+     - Supabase `game_schedules` 조회 쿼리에 `.gte("end_date", today)` 적용.
+     - 클라이언트 측에서 `filter((s) => s.end_date >= today)` 방어 필터를 적용하여 `schedules` 상태에 만료 일정이 포함되지 않도록 보장.
+  2. **`src/app/admin/page.test.tsx`**:
+     - `createQueryBuilder`에 `gte` 모의 메서드 추가.
+     - `@/lib/dashboard-date`의 `getKstToday`를 모킹(기본값 `"2026-09-01"`).
+     - `end_date < today`인 만료 일정("아케론 복각")이 목록 및 카운트에서 제외되고, `end_date >= today`인 일정만 정상 노출되며 `gte("end_date", today)`가 호출되는지 검증하는 신규 단위 테스트 추가.
+
 ## 모바일 초소형 뷰포트(360px 이하) 달력 타일·배지 최적화 및 날짜 타일 터치 시 바텀시트 즉시 연동 (2026-10-19)
 
 - **배경 및 사용자 요구사항**:
