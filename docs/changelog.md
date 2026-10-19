@@ -393,7 +393,6 @@
 - **단위 테스트 무결성 갱신 (`src/lib/subscription-sync.test.ts`, `src/app/dashboard/expenses/page.test.tsx`)**:
   - `MONTHLY_DAY` 및 `VERSION_PASS` 테스트 mock을 `insert` 및 버전 시작일(`target_date: "2026-10-09"`) 기준으로 갱신 (Vitest 37개 파일 / 158개 테스트 100% PASS, Next.js 빌드 성공).
 
-
 ## 2026-10-13 (Alt+Tab/창 전환 시 모달 입력값 초기화 방지 및 백그라운드 재조회 스켈레톤 언마운트 차단)
 
 - **소비 및 게임 페이지 백그라운드 재조회 시 스켈레톤 언마운트 차단 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/games/page.tsx`)**:
@@ -479,6 +478,7 @@
 - **검증 무결성**:
   - Vitest 34개 파일 / 143개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공.
 
+## 2026-10-12 (Phase 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현)
 
 - **네이버페이 충전 및 결제 계산 엔진 모듈화 (`src/lib/naver-pay-calculations.ts`)**:
   - 부족액 발생 시 10,000원 단위 올림 충전액($R$) 계산, 총 자산 검증 및 잔액 차감을 순수 함수 `calculateNaverPayPayment`로 분리.
@@ -497,6 +497,7 @@
 - **검증 무결성**:
   - Vitest 34개 파일 / 138개 테스트 전체 통과 (100% PASS), `tsc --noEmit` 0 에러, Next.js 15개 정적 페이지 빌드 성공.
 
+## 2026-10-12 (회원가입 페이지 분리 및 닉네임 입력 지원)
 
 - **회원가입 라우팅 분리 (`src/app/auth/signup/page.tsx`)**:
   - 기존 `/auth`에서 단일 폼으로 처리되던 회원가입 로직을 별도 전용 페이지로 분리.
@@ -615,6 +616,8 @@
   - Vitest 30개 파일 / 106개 테스트 100% 통과 (PASS).
   - Next.js 정적 export (`npm run build`) 13개 페이지 최적화 빌드 성공.
 
+## 2026-10-09 (Phase 9 Iteration 01)
+
 - 레이아웃 정리: 좌측 사이드바를 제거하고 상단바(`components/layout/topbar.tsx`)로 이동(홈·소비·게임, 로고 확대, 테마 토글, 프로필 드롭다운의 계정/로그아웃). 기본 테마는 저장값이 없으면 OS 설정을 따르고 토글은 유지. 빈 상태의 □ 제거, 스토어 포인트 표기를 Google/Galaxy로 변경, "지출 등록"을 "등록"으로 바꿔 일자 상세 패널(히어로 사이드바·모바일 드로어) 날짜 줄 우측으로 이동.
 
 - 프로필: 상단바 프로필 버튼에 사용자 이름과 사진(직접 업로드 > Google 사진 > 이니셜) 표시. 계정 설정(`/dashboard/settings`)에 `ProfileAvatarCard` 추가(256x256 WebP를 비공개 `user-icons/{uid}/profile.webp`에 업로드/삭제, 오프라인 시 비활성). 계정 삭제 워커가 `{uid}` 폴더를 지워 별도 정리 불필요.
@@ -653,7 +656,8 @@
 - Gemini Phase 4.4 검토를 위한 수동 패킷(승인 기준 요약, 프롬프트, Base/Target 정보)과 40,198-byte exact diff를 준비했다. 사용자가 수동 방식을 선택해 Gemini API run은 호출 전에 abandoned 처리했으며 어떤 diff도 외부로 전송하지 않았다.
 - 사용자가 동일 Base/Target의 Gemini 수동 정적 리뷰 결과를 전달했다. Gemini는 clean/발견 없음으로 판정했으며, 별도 결과 파일에 기록해 기존 ChronoLedger review.json은 보존했다. 실제 Supabase RLS/RPC 원자성은 미검증으로 유지한다.
 
-## 2026-10-07
+## 2026-10-07 (Phase 4.4 및 협업 파이프라인)
+
 - Phase 4.4 협업 run에서 사용자 게임 제안 및 일정 추가/수정 요청 UI를 추가하고 입력 검증, 요청 목록, 회귀 테스트를 구현했다. 동일 Target SHA 리뷰는 clean이고 Vitest 21개, lint, dummy 환경의 정적 build 및 run 결과 Schema 검증이 통과했다. 실제 Supabase 연동과 격리 sandbox 검증은 남아 있다.
 - 협업 파이프라인 변경을 main `f163157`, Phase 4 초기 구현을 `collab/phase1-setup` `674f741`에 분리 커밋했다. Target SHA와 범위가 어긋난 기존 `phase1-setup` run은 review/test가 없음을 기록하고 `abandoned`로 종료했다.
 - Local harness용 ChronoLedger Orchestrator와 Maker/Reviewer 자동 위임 절차, 사용자 개입 지점 가이드, 협업 JSON Schema validator 및 테스트를 추가했다. VS Code 실제 위임 흐름은 검증 전이다.
@@ -683,6 +687,7 @@
 - 로컬 Supabase URL과 Legacy anon 키가 형식상 서로 맞고 실제 대시보드 값과 동일함을 확인했다. Draft OAuth allowlist 추가는 미실행이며, 사용자가 오늘 작업을 마치기로 해 다음 세션으로 넘겼다.
 
 ## 2026-10-06
+
 - 로컬 브라우저 Google OAuth를 실제 검증하고 중복 code 교환 및 React Strict Mode cleanup 문제를 수정했다. 로그인 UI를 `/auth`로 단일화하고 dashboard layout 인증 gate를 추가했으며 root 이동과 비로그인 직접 접근 차단을 확인했다. Android PWA 실기기 검증은 남아 있다.
 - Web/PWA 작업 체크리스트를 실제 상태에 맞게 동기화했다. Phase 1 run은 target SHA 및 동일-SHA review/test 산출물이 없어 미완료 상태를 유지한다.
 - 사용자가 ChronoLedger를 과제 제출물이 아닌 개인 프로젝트로 진행하기로 결정했다. 과제 조건(SQLite, 별도 Node.js 웹서버, 게시판)은 제외하고 기존 승인 기술·기능 기준(Supabase PostgreSQL, Next.js 정적 export, 회원 기능 및 사용자/관리자 구분)을 유지하도록 기획·상세 설계·진행/인수인계 문서를 갱신했다.
@@ -719,6 +724,7 @@
 - 사용자가 `md/TESTS.sql` rollback-only smoke suite를 `ON_ERROR_STOP=1`로 실행했다. 최종 `PASS: all smoke-test fixtures and mutations rolled back` 출력으로 선행 검증 통과와 fixture 롤백을 확인했다.
 - `docs/to-do.md`의 Phase 0.6을 완료하고 설계 단계 진입을 승인했다. 전체 SRS 수용 기준의 상세 테스트 케이스와 성능 목표는 설계 단계에서 정한다.
 - 갱신된 Gemini 진행표를 작업 트리와 재검토했다. Tauri v2와 shadcn 설정은 반영됐지만 OAuth callback 화면, PKCE 교환 및 Windows 딥링크 수신에 누락이 있어 인증 완료 판정을 보류하고 관련 과제를 `docs/to-do.md`에 기록했다.
+
 ## 2026-10-02
 
 - `docs/to-do_Gemini.md`와 `phase1-setup` 작업 트리를 대조해 구현 초안, 미확인된 DB 배포 주장, 미완료 리뷰/테스트 증거, 계획의 Tauri v2와 작업 트리 v3 alpha 불일치를 `docs/to-do.md`에 기록했다. 후속 검증 항목을 추가했다.

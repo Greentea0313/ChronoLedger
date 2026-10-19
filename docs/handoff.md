@@ -11,6 +11,7 @@
 > 4. **완료 및 배턴 터치**: 자신의 단계를 완수(Maker의 경우 Worktree 내 커밋 생성)하면 상태를 `✅ DONE (SHA: <커밋해시>)`으로 바꾸고, 다음 순서 행의 상태를 `▶ READY`로 변경하십시오.
 
 ### 📋 5대 AI 모델 기본 역할 및 토큰 소진 시 대체(Fallback) 체인
+
 | 주력 모델 / 에이전트 | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
 | :--- | :--- | :--- | :--- | :--- |
 | **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude Opus 5.5** | **GitHub Copilot** |
@@ -20,6 +21,7 @@
 | **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 마크업, Argon 직속 고속 탐색 서브에이전트, `docs/` 문서 동기화 보조 | **GitHub Copilot** | **Gemini 4 Argon** |
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
+
 - **Run ID**: `idle` *(새 작업 시작 시 Gemini 4 Argon이 `New-CollaborationRun.ps1` 실행 후 갱신)*
 - **Worktree 경로**: `N/A` *(격리 실행 시 `.worktrees/<run_id>`, 일반 실행 시 `main`)*
 - **Base SHA**: `-` | **Target SHA**: `-`
@@ -31,6 +33,7 @@
 | **-** | `💤 IDLE` | **Gemini 4 Argon** *(대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 사용자 신규 작업 요청 시 수용 기준 도출, Worktree 생성 및 하위 모델별 과제 할당 | 대기 중 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
+
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 
 ---
@@ -343,6 +346,8 @@
   - `npx tsc --noEmit`: TypeScript 검증 에러 0건 (완전 무결).
   - `npm run build`: Next.js 14 정적 15개 페이지 export 빌드 성공.
 
+## 정기 구독 템플릿 정렬 및 구독 게임 가나다순 정렬·12개 단위 페이지네이션 구현 (2026-10-13)
+
 - **결정 및 배경**:
   - `/dashboard/expenses` 정기 구독 탭: 사용자 요청에 따라 정기 구독 템플릿 목록의 정렬 순서를 `[게임]` 그룹(게임별 묶음, 가나다순) $\to$ `[정기 구독]` 그룹(고정 결제일 오름차순 $\to$ 누적 충전형)으로 일원화.
   - `/dashboard/games` 구독 게임 탭: 내 구독 게임 카드들을 게임 이름 기준 가나다순으로 정렬하고, 12개 단위 페이지네이션을 적용하여 대량의 게임 구독 시에도 쾌적한 탐색 UI 제공.
@@ -557,6 +562,7 @@
 - **다음 추천 구현 단계**:
   - Phase 11.4: 픽업별 지출 바인딩 및 가챠 소비 통계/분석 구현 (`expenses.pickup_schedule_id` 컬럼 추가, 지출 모달 내 픽업 선택 드롭다운, 소비 화면 픽업별 과금 가로 막대 차트 및 픽업 비중 계산).
 
+## Phase 11.2 네이버페이 지갑 모델 및 10,000원 단위 충전 엔진 구현 완료 (2026-10-12)
 
 - **결정 및 배경**:
   - 현금성 간편결제 수단인 네이버페이(`NAVER_PAY`)의 잔액 부족 시 자동 올림 충전($R = \lceil S / 10,000 \rceil \times 10,000$) 및 총 자산 연동 모델 확정.
@@ -578,6 +584,7 @@
   - Phase 11.3: 결제 선택 2단계 계층 구조 및 게이트웨이 충전 UI 연동 (`[결제 플랫폼] -> [결제 수단]`, 네이버페이 충전 프리뷰 인라인 카드, `[충전 후 결제]` 원클릭 버튼).
   - Phase 11.4: 픽업별 지출 바인딩 및 가챠 소비 통계 구현 (`pickup_schedule_id` 컬럼, 픽업 가로 막대 차트, 픽업 비중 계산).
 
+## 정식 아이콘 1A 확정 및 적용 (2026-10-12)
 
 - **선정**: `docs/icon-concepts-v2-preview.html`(3종) → `docs/icon-concepts-v3-c-variants-preview.html`(시안1 기반 1A/1B/1C) 중 **1A(C-Chrono + 메모 도트)** 확정.
 - **생성**: `scripts/generate_icons.py`를 1A 스펙으로 교체(바탕 `#0F1115`, C `#F5B942`, 바늘 `#7C8CFF`, 도트 `#4CD6A5`, SVG round-cap 재현용 끝점 디스크).
@@ -733,6 +740,8 @@
   - Vitest 30개 파일 / 106개 테스트 전체 통과 (100% PASS).
   - Next.js 정적 export (`npm run build`) 13개 페이지 빌드 성공.
 
+## Phase 9 Iteration 01 (2026-10-09)
+
 - 상단바는 `src/components/layout/topbar.tsx`. 탭 이름은 홈/소비/게임이다. 내비 링크 `/dashboard/expenses`, `/dashboard/calendar` 페이지는 아직 없어 이동 시 404이며 후속 구현이 필요하다. 설정 링크는 프로필 드롭다운의 "계정" 항목(`/dashboard/settings`)으로 이동했다.
 - 프로필 버튼은 사용자 이름(`full_name` > `name` > 이메일 앞부분)과 사진(직접 업로드 > Google `avatar_url`/`picture`)을 표시하고, 사진이 없거나 로드 실패 시 이름 첫 글자 원형 아바타를 쓴다. 직접 업로드는 계정 설정(`/dashboard/settings`)의 `ProfileAvatarCard`에서 하며 비공개 `user-icons/{uid}/profile.webp`(256x256 WebP)에 저장된다. 계정 삭제 워커가 `{uid}` 폴더를 통째로 지우므로 별도 정리가 필요 없다. 표시 이름 편집은 미구현(결정 필요).
 - `docs/design-topbar-spec.md`(탭명 홈/기록/게임, 별도 ⚙️ 설정, 드롭다운에 로그아웃만)와 이번 요청(홈/소비/게임, 드롭다운에 계정+로그아웃)이 달라 요청을 따랐다.
@@ -847,7 +856,7 @@
 - 앱 전체 Vitest 5개 파일·15개 테스트, ESLint, dummy Supabase 환경변수로 실행한 정적 빌드가 통과했다. 실제 Supabase/RLS/Storage 통합과 브라우저 이미지 흐름은 확인하지 않았다.
 - Phase 4.4 요청 제출 UI는 `phase4-request-submission` run에서 구현 완료되어 기존 ChronoLedger Reviewer 검토 및 테스트를 통과했다. 실제 Supabase/RLS/RPC는 미검증이다.
 
-## 다음 작업
+## 다음 작업 (2026-10-08)
 
 - 다음에는 격리된 Supabase 프로젝트에서 RLS 소유자 격리와 관리자 승인/반려 RPC 원자성을 확인한다. npm ci 실행 시 `@types/node`와 Vitest peer 제약이 다시 바뀌지 않는지 의존성 업데이트 때 재확인한다.
 - Gemini API PoC의 일반적인 도입 여부는 미결정이며, 이번 작업에서는 API 연결을 하지 않았다.
@@ -936,6 +945,7 @@
 - 상세 설계 미결정 사항과 후속 문서 작업은 [to-do.md](to-do.md)에 추적한다.
 - Netlify 플랫폼 및 Web/Desktop 이중 빌드 결정은 Deploy Preview 검증 전까지 대기 중이다. 정적 export가 충족하지 못하는 구체 요구가 확인되면 그때 서버 runtime을 재평가한다.
 - 측정 환경과 함께 성능 목표를 확정한다. 상세 순서는 [to-do.md](to-do.md)를 따른다.
+
 ## 멀티 에이전트 협업 검토
 
 - 설계안과 검토 의견은 각각 [협업 아키텍처](../md/multi_agent_collaboration_architecture.md), [검토 문서](../md/multi_agent_collaboration_architecture_review.md)에 기록했다.
