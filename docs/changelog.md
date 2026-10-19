@@ -1,5 +1,21 @@
 # 변경 이력
 
+## 2026-10-19 (메모 도트 중심 정렬·가시성 개선 및 복수 픽업 합동 항목 집계)
+
+- **데스크톱 캘린더 메모 도트 게임 아이콘 열 중심 정렬 및 가시성 개선 (`src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`)**:
+  - 데스크톱 캘린더 타일에서 메모 도트를 게임 아이콘 열 너비(`w-4 md:w-5`)의 중심(`flex justify-center`)에 정렬하고 기존 우측 마진(`mr-0.5`)을 제거하여 대칭 정렬 확보.
+  - 메모 도트 기본 색상을 `bg-content-muted`에서 `bg-content-secondary`로 변경.
+  - 기본 배경에서 `ring-1 ring-surface shadow-[0_0_0_1px_rgba(0,0,0,0.25)]`, 커스텀 배경에서 `ring-[1.5px] ring-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.6)]`을 적용하고 데스크톱 크기 `md:h-2.5 md:w-2.5`로 확대하여 라이트/다크/투명/커스텀 배경 전반에서 도트 시인성을 대폭 강화.
+- **소비 페이지 복수 픽업 동시 연계 지출 'A + B' 합동 항목 1회 집계 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`)**:
+  - 동일 기간 복수 픽업에 동시 연계된 지출(`[PICKUPS:id1,id2]`)에 대해 각 배너별 전액 중복 노출하던 기존 방식을 정렬된 ID 조합 키(`COMBO:<ids>`)의 'A + B' 합동 항목 1개로 1회만 누적 합산(`isCombined: true`)하도록 집계 로직 개편.
+  - 픽업 순위 목록 및 Recharts 툴팁에 `동시 픽업` 배지/라벨 표시 및 차트 하단 안내 문구를 `※ 동일 기간 복수 픽업에 동시 연계된 지출은 'A + B' 합동 항목으로 1회만 집계됩니다.`로 갱신.
+  - 모든 항목 `amount`의 합 = 게임 총 과금액(`totalGameSpent`, 1x 원칙) 및 실제 비중(`percent`) 불변식을 완벽히 보장.
+  - 저장 데이터(지출 메모 메타데이터, `pickup_schedule_id`)와 지출 등록 모달 UX는 변경하지 않고 표시/집계 레이어만 수정.
+- **단위 테스트 보강 및 검증**:
+  - `src/components/calendar/desktop-calendar.test.tsx`: 데스크톱/모바일 메모 도트 가시성 및 중심 래퍼 구조 검증 단위 테스트 보강.
+  - `src/app/dashboard/expenses/page.test.tsx`: 복수 배너 지출 합동 항목 1개 표시 및 단일+합동 픽업 공존 시 합계 = 게임 총 과금액 검증 단위 테스트 추가.
+  - Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS), `npx tsc --noEmit` 에러 0건. Orchestrator(Claude Opus 5.5, Argon 대행) diff 간이 검수 완료.
+
 ## 2026-10-19 (관리자 페이지 중복 네비게이션 정리 및 [지난 일정] 조회·관리 모달 구현)
 
 - **관리자 페이지 중복 네비게이션 배너 박스 제거 (`src/app/admin/page.tsx`, `src/app/admin/requests/page.tsx`)**:

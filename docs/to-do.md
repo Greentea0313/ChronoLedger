@@ -412,6 +412,15 @@
     3. **다이얼로그 내 탐색 및 관리 연동**: 게임별 필터링, 검색, 8개 단위 페이지네이션(`PAST_SCHEDULES_PER_PAGE = 8`) 지원 및 카드별 [수정]·[삭제] 버튼을 기존 수정 폼 모달 및 삭제 확인 모달과 안전하게 연동(`returnToPastModal` 플래그로 완료/취소 시 지난 일정 모달 복귀 및 목록 자동 갱신).
     4. **테스트 및 검증**: `src/app/admin/page.test.tsx`에 `lt` 쿼리 모킹 및 지난 일정 모달 오픈/필터링/수정/삭제 단위 테스트 추가.
   - verify: `src/app/admin/page.test.tsx` 15개 단위 테스트 통과, Vitest 42개 파일 / 256개 테스트 전체 통과 (100% PASS), `npm run build` 정적 15개 페이지 export 빌드 성공.
+- [x] 12.9 캘린더 메모 도트 중심 정렬·가시성 강화 및 복수 픽업 동시 연계 지출 합동 항목 집계 (2026-10-19)
+  - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`
+  - 작업:
+    1. **데스크톱 메모 도트 중심 정렬 및 전 테마 가시성 강화 (`2ec6b18`)**: 데스크톱 달력 타일에서 메모 도트를 게임 아이콘 열 너비(`w-4 md:w-5`)의 중심(`flex justify-center`)에 배치하고 불필요한 마진(`mr-0.5`)을 제거. 기본 색상을 `bg-content-secondary`로 상향하고, 기본 배경(`ring-1 ring-surface shadow-[0_0_0_1px_rgba(0,0,0,0.25)]`) 및 커스텀 배경(`ring-[1.5px] ring-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.6)]`) 대비 링/섀도우와 데스크톱 크기 `md:h-2.5 md:w-2.5`를 적용하여 시인성 개선.
+    2. **복수 픽업 동시 연계 지출 합동 항목 1회 집계 (`4b55c2a`)**: 동일 기간 복수 픽업 지출(`[PICKUPS:id1,id2]`)에 대해 기존 배너별 전액 중복 노출을 대체하여, 정렬된 ID 조합 키(`COMBO:<ids>`)의 'A + B' 합동 항목 1개로 1회만 누적 합산(`isCombined: true`). 항목 합계 = 게임 총 과금액(1x 원칙) 보장, 순위 목록 및 Recharts 툴팁에 `동시 픽업` 배지/라벨 노출, 차트 안내 문구 갱신.
+  - verify: `desktop-calendar.test.tsx`, `expenses/page.test.tsx` 단위 테스트 통과, Vitest 42개 파일 / 258개 테스트 전체 통과 (100% PASS), `npx tsc --noEmit` 무결점 (0 errors). Orchestrator diff 간이 검수 완료.
+- [ ] 12.10 합동 픽업 집계 및 메모 도트 변경(`2ec6b18`, `4b55c2a`) 정식 독립 리뷰
+  - 대상: `be58faa` $\leftrightarrow$ `4b55c2a` 변경분 전체
+  - 작업: 독립 Reviewer 모델을 통한 `review.json` 생성, 1x 합산 불변식, 조합 키 결정성(ID 정렬) 및 단일/일반 집계 회귀 정적 검증 (토큰 회복 후 권장).
 
 ---
 

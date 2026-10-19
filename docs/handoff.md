@@ -23,21 +23,56 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `idle` *(새 작업 시작 시 Gemini 4 Argon이 `New-CollaborationRun.ps1` 실행 후 갱신)*
-- **Worktree 경로**: `N/A` *(격리 실행 시 `.worktrees/<run_id>`, 일반 실행 시 `main`)*
-- **Base SHA**: `-` | **Target SHA**: `-`
+- **Run ID**: `combined-pickup-stats` *(2026-10-19, Gemini 4 Argon 토큰 소진으로 1순위 대체 **Claude Opus 5.5**가 Orchestrator 대행)*
+- **Worktree 경로**: `main` *(메모 도트 UI 변경이 Flash 서브에이전트에 의해 `main`에서 동시 진행되어 루트 트리가 깨끗하지 않으므로 격리 Worktree 대신 `main`에서 수행)*
+- **Base SHA**: `be58faa` | **Target SHA**: `4b55c2a`
+- **사용자 결정 (2026-10-19)**: 동일 기간 복수 픽업 동시 연계 지출(`[PICKUPS:id1,id2,...]`)은 소비 페이지 **픽업별 과금 분석**에서 배너마다 전액 중복 표시하지 않고, **`A + B 동시 픽업` 합동 항목 1개로 묶어 1회만 집계**한다. 저장 데이터(메모 메타데이터·`pickup_schedule_id`)와 지출 등록 UX는 변경하지 않고 **표시/집계 레이어만** 바꾼다.
 - **수용 기준 (Acceptance Criteria)**:
-  - 현재 대기 중인 활성 협업 과제가 없습니다. 주축 모델(**Gemini 4 Argon**)에게 새 작업을 요청하거나 [`docs/to-do.md`](to-do.md)의 다음 백로그 항목(예: Cloudflare Pages 배포 검증 또는 Phase 7.4 Web/PWA MVP 회귀 검증)을 시작하도록 지시하십시오.
+  1. `src/app/dashboard/expenses/page.tsx`의 `pickupStatsData`에서 연계 픽업 ID가 2개 이상인 지출은 정렬된 ID 조합 키(예: `COMBO:<id1>,<id2>`)로 하나의 항목에 합산하며, 이름은 배너 제목을 ` + `로 연결(예: `A 픽업 + B 픽업`)한다. 같은 조합의 지출은 같은 항목에 누적된다.
+  2. 단일 픽업 지출 및 `일반`(픽업 없음) 집계 동작은 기존과 동일하다.
+  3. 모든 항목 `amount`의 합 = `totalGameSpent`(1x 원칙)이고, `percent`의 의미가 실제 비중과 일치한다(중복 합산 없음).
+  4. 합동 항목은 목록/차트 툴팁에서 `동시 픽업` 뱃지 또는 라벨로 단일 픽업과 구분되며, 기존 팔레트 색 배정 규칙을 따른다.
+  5. 차트 하단 안내 문구(현재 약 1077행 `※ 동일 기간 복수 픽업 진행 지출은 각 배너에 동시 연계...`)를 `※ 동일 기간 복수 픽업에 동시 연계된 지출은 'A + B' 합동 항목으로 1회만 집계됩니다.` 취지로 갱신한다.
+  6. `src/app/dashboard/expenses/page.test.tsx`의 복수 배너 테스트(약 522행)를 새 동작에 맞게 갱신하고, (a) 2배너 연계 지출이 합동 항목 1개로만 표시, (b) 단일 픽업 지출과 합동 지출이 공존할 때 항목 합계 = 게임 총 과금액을 검증하는 케이스를 추가한다.
+  7. `npx vitest run` 전체 및 `npx tsc --noEmit` 통과. 지출 모달(`expense-modal.tsx`)·지출 목록 뱃지·DB 스키마는 범위 밖.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **-** | `💤 IDLE` | **Gemini 4 Argon** *(대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 사용자 신규 작업 요청 시 수용 기준 도출, Worktree 생성 및 하위 모델별 과제 할당 | 대기 중 |
+| **0** | `✅ DONE` | **Claude Opus 5.5** *(Argon 대행)* | `Orchestrator` | 요구사항 분해, 사용자 결정(합동 항목 방식) 확정, 수용 기준 수립, 과제 할당 | 본 Dispatch Table |
+| **0-1** | `✅ DONE (SHA: 2ec6b18)` | **Gemini 3.8 Flash** *(내부 서브에이전트, 대체: GitHub Copilot / Gemini 4 Argon)* | `Maker (Fast UI)` | 데스크톱 메모 도트를 게임 아이콘 열 중심에 정렬하고 라이트/다크/커스텀 배경 가시성 강화(`desktop-calendar.tsx`, `desktop-calendar.test.tsx`) | `w-4 md:w-5 flex justify-center` 래퍼, `bg-content-secondary` + 대비 링/그림자. vitest 42파일/257테스트 PASS, tsc 0 errors. Orchestrator(Claude 대행) diff 검수 완료 |
+| **1** | `✅ DONE (SHA: 4b55c2a)` | ~~GitHub Copilot~~ ➡️ **Gemini 3.8 Flash** *(Copilot 토큰 소진으로 1순위 대체, 내부 서브에이전트로 실행 / 2순위: GPT Codex)* | `Maker (General)` | 위 수용 기준 1~7 구현. 허용 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`. 완료 후 `main`에 커밋 | `4b55c2a` (동일 기간 복수 픽업 동시 연계 지출을 `COMBO:<ids>` 합동 항목 1개로 집계, 안내 문구 및 툴팁/목록 '동시 픽업' 배지, vitest 42파일/258테스트 PASS, tsc 0 errors) |
+| **2** | `✅ DONE (Orchestrator 간이 검수 — 정식 독립 리뷰는 토큰 회복 후 권장)` | **Claude Opus 5.5** *(대체: Gemini 4 Argon / GitHub Copilot — 모두 토큰 소진 시 Gemini 3.8 Flash가 임시 대행)* | `Reviewer` | `be58faa` ↔ 1단계 Target SHA 정적 리뷰: 1x 합산 불변식, 조합 키 결정성(ID 정렬), 단일/일반 집계 회귀 여부 | Orchestrator(Claude Opus 5.5, Argon 대행) diff 간이 검수(로직·인코딩 확인, expenses 테스트 17/17 재실행 PASS). 정식 review.json은 토큰 회복 후 권장 |
+| **3** | `✅ DONE` | ~~Gemini 4 Argon~~ ➡️ **Gemini 3.8 Flash** *(대행, 대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 최종 검수 및 `docs/handoff.md`·`progress.md`·`changelog.md`·`to-do.md` 마감 | 문서 마감: Gemini 3.8 Flash 대행 (`docs/handoff.md`, `progress.md`, `changelog.md`, `to-do.md` 동기화) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 
 ---
+
+## 메모 도트 중심 정렬·가시성 개선 및 복수 픽업 합동 항목 집계 (2026-10-19)
+
+- **결정 및 배경**:
+  - **데스크톱 캘린더 메모 도트 중심 정렬 및 가시성 개선 (`2ec6b18`)**:
+    - 데스크톱 캘린더 타일에서 메모 인디케이터 도트가 게임 아이콘 오른쪽 끝 아래에 위치할 때 좌우 비대칭으로 보이던 문제를 해결하기 위해, 게임 아이콘 열 너비(`w-4 md:w-5`)의 중심(`flex justify-center`)에 정렬하고 불필요한 마진(`mr-0.5`)을 제거.
+    - 라이트 모드, 다크 모드, 그리고 투명/커스텀 배경 캘린더 환경에서 메모 도트가 흐릿하게 묻히지 않도록 기본 색상을 `bg-content-muted`에서 보다 또렷한 `bg-content-secondary`로 상향.
+    - 기본 배경에서는 `ring-1 ring-surface shadow-[0_0_0_1px_rgba(0,0,0,0.25)]`, 커스텀 배경에서는 `ring-[1.5px] ring-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.6)]`의 이중 대비 링/섀도우를 적용하고, 데스크톱 크기를 `md:h-2.5 md:w-2.5`로 확대하여 뛰어난 시인성 확보.
+  - **복수 픽업 동시 연계 지출 합동 항목 집계 (`4b55c2a`)**:
+    - 동일 기간 복수 픽업이 동시 진행될 때 등록된 다중 픽업 지출(`[PICKUPS:id1,id2,...]`)에 대해 기존에는 각 배너 항목마다 결제액 전액을 중복 노출하여 픽업별 과금 순위 합계가 실제 게임 과금액보다 커 보이는 시각적 왜곡이 발생함.
+    - 사용자 결정(2026-10-19)에 따라 2026-10-13의 "각 배너에 동시 연계 표시" 방식을 대체하여, 저장 데이터(메타데이터 및 DB 스키마)와 지출 등록 UX는 일절 변경하지 않고, 소비 페이지의 **픽업별 과금 분석** 집계 레이어에서만 정렬된 ID 조합 키(`COMBO:<ids>`)를 부여하여 하나의 **'A + B' 합동 항목 1개로 1회만 집계**하도록 개편.
+    - 모든 항목 `amount`의 합 = 게임 총 과금액(`totalGameSpent`, 1x 원칙)을 엄격히 보장하며, 비중(`percent`) 역시 실제 비중과 정확히 일치.
+    - 픽업 순위 목록과 Recharts 커스텀 툴팁에 `동시 픽업` 배지/라벨을 제공하고, 차트 하단 안내 문구를 합동 항목 집계 취지에 맞추어 갱신.
+- **수행 내역 및 검증**:
+  - `src/components/calendar/desktop-calendar.tsx`: 데스크톱 메모 도트 컨테이너를 `w-4 md:w-5 flex justify-center`로 감싸고 `mr-0.5` 제거, `bg-content-secondary` 및 테마/배경별 대비 링·그림자 스타일 적용, 모바일 도트 가시성 강화.
+  - `src/components/calendar/desktop-calendar.test.tsx`: 데스크톱/모바일 메모 도트 클래스 및 중심 정렬 구조 검증 단위 테스트 보강.
+  - `src/app/dashboard/expenses/page.tsx`:
+    - `pickupStatsData` 계산 로직 개편: 연계 픽업 ID가 2개 이상인 경우 정렬된 키 `COMBO:<ids>`를 생성하고 `isCombined: true`, 결합 제목(`titleA + titleB`)으로 1회만 누적 합산.
+    - 픽업 순위 리스트 및 차트 툴팁에 `동시 픽업` 배지/라벨 노출 및 팔레트 순환 색상 유지.
+    - 차트 하단 안내 문구를 `※ 동일 기간 복수 픽업에 동시 연계된 지출은 'A + B' 합동 항목으로 1회만 집계됩니다.`로 갱신.
+  - `src/app/dashboard/expenses/page.test.tsx`:
+    - 복수 픽업 지출이 배너별 중복 없이 'A + B' 합동 항목 1개로 합산되는지 검증.
+    - 단일 픽업 지출과 합동 픽업 지출이 공존할 때 항목 합계가 게임 총 과금액(1x)과 정확히 일치하는지 검증.
+  - 검증: 전체 Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS), `npx tsc --noEmit` 무결점 (0 errors). Orchestrator(Claude Opus 5.5, Argon 대행) diff 간이 검수 통과 (로직·인코딩 확인, expenses 테스트 17/17 재실행 PASS). 정식 독립 리뷰(review.json)는 토큰 회복 후 권장.
 
 ## 관리자 페이지 중복 네비게이션 정리 및 [지난 일정] 조회·관리 모달(Past Schedules Dialog) 신규 구현 (2026-10-19)
 
@@ -367,7 +402,7 @@
   - **1x 회계 정합성 방어 & 복수 픽업 바인딩**:
     - 동일 기간 내 동일 게임에 2개 이상의 픽업 배너가 열려 있는 경우, 지출 등록 시 `[진행 중인 모든 배너에 동시 연계]`를 지원.
     - 단일 지출 레코드(실제 결제액 1건)를 기반으로 하여 총 자산 차감(-1x), 게임 총 과금액(+1x), 카테고리 지출액(+1x)이 절대 2배(2x) 중복 계산되지 않도록 엄격히 방어.
-    - 지출 목록 및 픽업 통계 차트에서는 각 픽업 배너에 동시 연계 뱃지 및 통계를 표시하고 명확한 안내 문구(`※ 동일 기간 복수 배너 지출은 각 배너 항목에 동시 연계되며, 게임 전체 과금액 및 총 자산 차감은 1회(1x)만 정상 합산됩니다`) 제공.
+    - 지출 목록 및 픽업 통계 차트에서는 각 픽업 배너에 동시 연계 뱃지 및 통계를 표시하고 명확한 안내 문구(`※ 동일 기간 복수 배너 지출은 각 배너 항목에 동시 연계되며, 게임 전체 과금액 및 총 자산 차감은 1회(1x)만 정상 합산됩니다`) 제공. *(2026-10-19 픽업 통계는 합동 항목 집계로 대체)*
     - 진행 중인 픽업이 없을 때는 자동으로 `[일반]` 지출로 처리되어 `[버전 일반]` $\to$ `[일반]` 라벨 일원화.
   - **수익(급여, 용돈 등) 추가 기능 신설**:
     - `IncomeModal` 컴포넌트(`src/components/finance/income-modal.tsx`) 생성.
