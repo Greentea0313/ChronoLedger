@@ -450,7 +450,10 @@ export default function ExpensesPage() {
       return true
     })
 
-    const groupMap = new Map<string, { key: string; name: string; amount: number; count: number; isPickup: boolean }>()
+    const groupMap = new Map<
+      string,
+      { key: string; name: string; amount: number; count: number; isPickup: boolean; isCombined: boolean }
+    >()
     let totalGameSpent = 0
 
     for (const exp of targetExpenses) {
@@ -458,7 +461,8 @@ export default function ExpensesPage() {
       totalGameSpent += exp.final_amount
 
       const pickupIds = getExpensePickupIds(exp)
-      if (pickupIds.length === 0) {
+      const uniqueIds = Array.from(new Set(pickupIds))
+      if (uniqueIds.length === 0) {
         const existing = groupMap.get("GENERAL")
         if (existing) {
           existing.amount += exp.final_amount
@@ -470,27 +474,48 @@ export default function ExpensesPage() {
             amount: exp.final_amount,
             count: 1,
             isPickup: false,
+            isCombined: false,
+          })
+        }
+      } else if (uniqueIds.length === 1) {
+        const pId = uniqueIds[0]
+        const sched = schedulesMap.get(pId)
+        const key = pId
+        const name = sched?.title || "픽업"
+        const existing = groupMap.get(key)
+        if (existing) {
+          existing.amount += exp.final_amount
+          existing.count += 1
+        } else {
+          groupMap.set(key, {
+            key,
+            name,
+            amount: exp.final_amount,
+            count: 1,
+            isPickup: true,
+            isCombined: false,
           })
         }
       } else {
-        // 복수 배너가 존재하는 경우 모든 해당 배너 항목에 지출을 연계 반영
-        for (const pId of pickupIds) {
-          const sched = schedulesMap.get(pId)
-          const key = pId
-          const name = sched?.title || "픽업"
-          const existing = groupMap.get(key)
-          if (existing) {
-            existing.amount += exp.final_amount
-            existing.count += 1
-          } else {
-            groupMap.set(key, {
-              key,
-              name,
-              amount: exp.final_amount,
-              count: 1,
-              isPickup: true,
-            })
-          }
+        // 복수 배너 연계 지출: ID를 정렬하여 COMBO 키 생성 및 합동 항목 1개로만 1회 합산
+        const sortedIds = [...uniqueIds].sort((a, b) => a.localeCompare(b))
+        const key = `COMBO:${sortedIds.join(",")}`
+        const name = sortedIds
+          .map((id) => schedulesMap.get(id)?.title || "픽업")
+          .join(" + ")
+        const existing = groupMap.get(key)
+        if (existing) {
+          existing.amount += exp.final_amount
+          existing.count += 1
+        } else {
+          groupMap.set(key, {
+            key,
+            name,
+            amount: exp.final_amount,
+            count: 1,
+            isPickup: true,
+            isCombined: true,
+          })
         }
       }
     }
@@ -1074,7 +1099,7 @@ export default function ExpensesPage() {
                   확정 결제 기준 픽업별 소비액과 비중을 분석합니다. 미지정 지출은 &apos;일반&apos;으로 집계됩니다.
                 </p>
                 <p className="text-[11px] text-info/90 mt-0.5">
-                  ※ 동일 기간 복수 픽업 진행 지출은 각 배너에 동시 연계되며, 게임 전체 과금액 및 총 자산에는 1회(1x)만 정상 합산됩니다.
+                  ※ 동일 기간 복수 픽업에 동시 연계된 지출은 &apos;A + B&apos; 합동 항목으로 1회만 집계됩니다.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1143,7 +1168,11 @@ export default function ExpensesPage() {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={(value: any, _name: any, props: any) => [
                               `${Number(value).toLocaleString()} 원 (${props.payload.percent}%)`,
-                              props.payload.isPickup ? "픽업 과금액" : "일반 지출",
+                              props.payload.isCombined
+                                ? "동시 픽업"
+                                : props.payload.isPickup
+                                ? "픽업 과금액"
+                                : "일반 지출",
                             ]}
                           />
                           <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={24}>
@@ -1216,6 +1245,11 @@ export default function ExpensesPage() {
                               <span className={`font-medium truncate ${isHovered ? "text-primary" : "text-content"}`} title={item.name}>
                                 {item.name}
                               </span>
+                              {item.isCombined && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-primary/15 text-primary border border-primary/30 shrink-0">
+                                  동시 픽업
+                                </span>
+                              )}
                             </div>
                             <div className="text-right shrink-0 ml-3">
                               <span className={`font-semibold block ${isHovered ? "text-primary" : "text-content"}`}>
