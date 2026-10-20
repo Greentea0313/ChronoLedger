@@ -42,25 +42,26 @@
 - [x] A2z 제작자 페이지의 SIL OFL 1.1 및 눈누의 상업 사용/수정/재배포 허용 안내를 확인했다. 재배포 시 저작권 고지와 OFL 전문이 필요하며, 폰트 자체 단독 판매는 허용되지 않는다.
 - [x] A2Z의 내장 저작권 표기와 SIL OFL 1.1을 확인하고 9개 WOFF2 굵기를 시안 및 웹 앱에서 자체 호스팅한다. 두 배포 위치에 OFL 전문을 동봉한다.
 - [x] 업데이트된 시안을 양 테마와 390/900/1280px에서 재검증해 가로 넘침과 주요 반응형 패널 위치를 확인했다.
-- [x] 관리자 새 게임 등록 모달 이미지 URL 입력창 말줄임(`truncate`) 및 모달 가로 팽창 방지 완료 (2026-10-19):
-  - `src/components/ui/input.tsx` 기본 스타일 클래스에 `min-w-0` 추가.
-  - `src/app/admin/page.tsx` 새 게임 등록/수정 모달 `DialogContent`에 `w-full max-w-md overflow-hidden`, `<form>` 및 필드 래퍼에 `w-full min-w-0` 적용.
-  - 게임 이름 및 기본 아이콘 URL 입력칸에 `truncate` 클래스를 적용하여 긴 URL 입력 시 말줄임표(`...`)로 일부만 표시되도록 개선.
-  - 실시간 아이콘 미리보기 컨테이너에 `w-full min-w-0 overflow-hidden` 적용하여 긴 URL 입력 시 모달 팽창 및 가로 스크롤 완전 해결.
-- [x] 구글 로그인 버튼 공식 로고 SVG 삽입 및 우측 사이드바 세로 스크롤·높이 제약 개선 완료 (2026-10-19):
-  - `/auth` 페이지 Google 계정 로그인 버튼에 공식 4색 "G" 로고 SVG 삽입 및 `flex items-center justify-center gap-2` 레이아웃 적용 완료.
-  - 우측 사이드바 `HeroSidebar` `<aside>`에 `lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto pr-1` 적용 및 `HeroSidebarContent` 내 `SCHEDULE`, `EXPENSE`, `MEMO` 섹션에 `max-h-[380px] overflow-y-auto pr-1`을 적용하여 복수 게임 일정 겹침 시 내부 스크롤로 깔끔히 확인 가능하도록 개선 완료.
+- [x] Google OAuth 로그인 UI 피드백 및 콜백(/auth/callback) 페이지 다크 테마 카드 레이아웃 개선 완료 (2026-10-20):
+  - Google 로그인 버튼 로딩 상태(`loading === true`) 시 `Loader2` 회전 스피너(`animate-spin`) 및 "Google 연결 중..." 텍스트 노출 및 버튼 `disabled` 비활성화 유지 (`src/app/auth/page.tsx`).
+  - `/auth/callback` 컨테이너에 `data-theme="dark"`, `bg-app`, `text-content` 스타일 적용 및 `Card` 중앙 레이아웃 일원화 (`src/app/auth/callback/page.tsx`).
+  - 인증 진행 중 `CardHeader` 브랜드 타이틀/서브카피 렌더링, `CardContent` `Loader2` 회전 스피너 + `role="status"` ("Google 인증을 확인하고 있습니다...") + "잠시 후 대시보드로 이동합니다." 보조 문구 노출.
+  - 에러 시 `AlertCircle` 아이콘, `role="alert"` 에러 메시지, `<Button variant="outline" asChild><a href="/auth">로그인 화면으로 돌아가기</a></Button>` 구성 (기존 셀렉터 100% 호환).
+  - 단위 테스트 보강(`src/app/auth/page.test.tsx`, `src/app/auth/callback/page.test.tsx`), Vitest 42개 파일 260개 테스트 및 `npm run build` 정적 빌드 통과.
 - [ ] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
   - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했다.
   - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
 - [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](Netlify_Web_Architecture_Proposal.md)에 반영했다.
-- [ ] 배포 플랫폼 Cloudflare Pages 단일 확정 (Netlify 완전 폐기) 및 배포 검증:
-  - [x] **배포 플랫폼 결정 확정 (2026-10-19)**: 사용자 결정에 따라 이전 Netlify 배포 방식을 완전히 폐기하고 **Cloudflare Pages** 단일 호스팅으로 확정.
+- [ ] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
   - [x] **Cloudflare Pages 호스팅 환경 구성**: [`.nvmrc`](../.nvmrc) (Node.js 20 LTS), [`public/_headers`](../public/_headers) (불변 캐싱 및 보안 헤더), [`public/_redirects`](../public/_redirects) 설정 완료.
   - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`md/MIGRATION_PG_CRON.sql`](../md/MIGRATION_PG_CRON.sql)) 작성 완료.
   - [x] **탈퇴 API Supabase RPC 완전 통합**: Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` `SECURITY DEFINER` RPC 함수로 프론트엔드 직접 연동 완료 ([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts)).
-  - [ ] **웹 정적 호스팅 배포 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
-- [x] [폐기됨] (구) Netlify 배포 후보 및 제약 사항: 사용자 결정(2026-10-19)으로 Netlify 배포 방식 및 관련 기능은 완전히 폐기되었으며 Cloudflare Pages로 일원화됨.
+  - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
+- [ ] (보류/대안) Netlify 후보 유지 시 점검 사항:
+  - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 통과.
+  - 원격 정적 경로 검증: `chronoledger-validation-20261007` Draft Deploy(Production 아님)에서 로그인 화면, `/auth`, callback 안내, 보호 동작 확인 완료.
+  - [x] Supabase Authentication → URL Configuration → Redirect URLs에 원격 배포 도메인의 `/auth/callback` 등록 완료 (2026-10-13 사용자 확인 완료).
+  - Netlify Git 자동 배포 연결 시 월 300분 빌드 한도 모니터링 및 PR 프리뷰 빌드 비활성화 등 크레딧 절약 설정 필요.
 
 ## Gemini 진행 문서 대조 기록 (2026-10-03)
 
@@ -187,6 +188,8 @@
   - 대상 파일: `src/app/auth/page.tsx` 또는 통합 로그인 경로, `src/app/auth/callback/page.tsx`, `src/lib/auth-context.tsx`
   - 작업: 이메일 가입/로그인, Google OAuth/PKCE callback, 세션 상태 및 protected routes를 Web/PWA 기준으로 연결했다. 별도 callback route는 기존 공유 callback 흐름을 재사용한다.
   - [x] 로그인 화면을 기존 앱과 맞는 다크 테마로 정리하고, 레이블이 있는 입력과 이메일 로그인/가입/Google 액션을 배치했다. 320/390/768/1280px 화면에서 넘침이 없고 입력 높이가 44px 이상임을 확인했다.
+  - [x] Google OAuth 로그인 버튼 공식 4색 SVG 아이콘 및 로딩 스피너 피드백 적용, OAuth 콜백(`/auth/callback`) 화면 앱 전역 다크 테마 및 Card 디자인 시스템 통일 완료 (2026-10-19).
+  - [x] 구글 OAuth 로그인 UI 로딩 피드백(버튼 내 `Loader2` 회전 스피너 및 "Google 연결 중..." 문구) 및 콜백(/auth/callback) 페이지 다크 테마 `Card` 레이아웃/스피너/안내 문구/에러 UI 일원화 완료 (2026-10-20).
   - 후속: 앱 전체 테마 전환은 보호 화면과 함께 적용한다. 키보드/스크린리더 심화 검증은 별도로 수행한다.
   - verify: 인증 화면/상태 단위 테스트로 검증한다. 실환경 OAuth 왕복과 Android PWA 실기기 검증은 아직 수행하지 않았다.
 - [x] 3.2 사용자 계정 삭제 및 개인 데이터/Storage 정리 흐름
@@ -417,15 +420,12 @@
     3. **다이얼로그 내 탐색 및 관리 연동**: 게임별 필터링, 검색, 8개 단위 페이지네이션(`PAST_SCHEDULES_PER_PAGE = 8`) 지원 및 카드별 [수정]·[삭제] 버튼을 기존 수정 폼 모달 및 삭제 확인 모달과 안전하게 연동(`returnToPastModal` 플래그로 완료/취소 시 지난 일정 모달 복귀 및 목록 자동 갱신).
     4. **테스트 및 검증**: `src/app/admin/page.test.tsx`에 `lt` 쿼리 모킹 및 지난 일정 모달 오픈/필터링/수정/삭제 단위 테스트 추가.
   - verify: `src/app/admin/page.test.tsx` 15개 단위 테스트 통과, Vitest 42개 파일 / 256개 테스트 전체 통과 (100% PASS), `npm run build` 정적 15개 페이지 export 빌드 성공.
-- [x] 12.9 캘린더 메모 도트 중심 정렬·가시성 강화 및 복수 픽업 동시 연계 지출 합동 항목 집계 (2026-10-19)
-  - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`
+- [x] 12.9 Google OAuth 로그인 버튼 디자인 개선 및 OAuth 콜백 화면 디자인 시스템 통일 (2026-10-19)
+  - 대상 파일: `src/app/auth/page.tsx`, `src/app/auth/callback/page.tsx`, `src/app/auth/page.test.tsx`, `src/app/auth/callback/page.test.tsx`
   - 작업:
-    1. **데스크톱 메모 도트 중심 정렬 및 전 테마 가시성 강화 (`2ec6b18`)**: 데스크톱 달력 타일에서 메모 도트를 게임 아이콘 열 너비(`w-4 md:w-5`)의 중심(`flex justify-center`)에 배치하고 불필요한 마진(`mr-0.5`)을 제거. 기본 색상을 `bg-content-secondary`로 상향하고, 기본 배경(`ring-1 ring-surface shadow-[0_0_0_1px_rgba(0,0,0,0.25)]`) 및 커스텀 배경(`ring-[1.5px] ring-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.6)]`) 대비 링/섀도우와 데스크톱 크기 `md:h-2.5 md:w-2.5`를 적용하여 시인성 개선.
-    2. **복수 픽업 동시 연계 지출 합동 항목 1회 집계 (`4b55c2a`)**: 동일 기간 복수 픽업 지출(`[PICKUPS:id1,id2]`)에 대해 기존 배너별 전액 중복 노출을 대체하여, 정렬된 ID 조합 키(`COMBO:<ids>`)의 'A + B' 합동 항목 1개로 1회만 누적 합산(`isCombined: true`). 항목 합계 = 게임 총 과금액(1x 원칙) 보장, 순위 목록 및 Recharts 툴팁에 `동시 픽업` 배지/라벨 노출, 차트 안내 문구 갱신.
-  - verify: `desktop-calendar.test.tsx`, `expenses/page.test.tsx` 단위 테스트 통과, Vitest 42개 파일 / 258개 테스트 전체 통과 (100% PASS), `npx tsc --noEmit` 무결점 (0 errors). Orchestrator diff 간이 검수 완료.
-- [ ] 12.10 합동 픽업 집계 및 메모 도트 변경(`2ec6b18`, `4b55c2a`) 정식 독립 리뷰
-  - 대상: `be58faa` $\leftrightarrow$ `4b55c2a` 변경분 전체
-  - 작업: 독립 Reviewer 모델을 통한 `review.json` 생성, 1x 합산 불변식, 조합 키 결정성(ID 정렬) 및 단일/일반 집계 회귀 정적 검증 (토큰 회복 후 권장).
+    1. **Google OAuth 로그인 버튼 디자인 개선**: Google 공식 브랜드 가이드라인에 부합하는 4색(Blue, Green, Yellow, Red) 'G' 멀티컬러 SVG 아이콘 적용, 로그인 진행 시 회전 스피너(`Loader2 animate-spin`) 및 `"Google 연결 중..."` 텍스트 노출과 `disabled` 처리로 중복 클릭 방지.
+    2. **OAuth 콜백 화면 디자인 시스템 통일**: `/auth/callback` 페이지를 앱 전역 다크 테마(`data-theme="dark"`, `bg-app`) 및 `Card` 컴포넌트 기반으로 리팩토링. "ChronoLedger" 브랜드 타이틀, 로딩 스피너, 진행 안내 문구(`role="status"`), 에러 발생 시 경고 카드(`role="alert"`, `AlertCircle`) 및 [로그인 화면으로 돌아가기] 버튼 제공.
+  - verify: 단위 테스트 보강 (`auth/page.test.tsx`, `auth/callback/page.test.tsx`), Vitest 42개 파일 / 259개 테스트 전체 통과 (100% PASS), `npm run build` 정적 15개 페이지 export 빌드 성공.
 
 ---
 

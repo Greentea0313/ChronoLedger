@@ -25,6 +25,8 @@ describe('AuthCallbackPage', () => {
   let root: Root
 
   beforeEach(() => {
+    // @ts-expect-error React act environment flag
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
     exchangeCodeForSession.mockReset()
     replace.mockReset()
     container = document.createElement('div')
@@ -36,6 +38,21 @@ describe('AuthCallbackPage', () => {
   afterEach(async () => {
     await act(async () => root.unmount())
     container.remove()
+  })
+
+  it('renders loading spinner, brand title, and status text while authenticating', async () => {
+    window.history.replaceState({}, '', '/auth/callback?code=pkce-code')
+    exchangeCodeForSession.mockImplementation(() => new Promise(() => {}))
+
+    await act(async () => {
+      root.render(<AuthCallbackPage />)
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.animate-spin')).not.toBeNull()
+    expect(container.textContent).toContain('ChronoLedger')
+    expect(container.textContent).toContain('게임 일정과 지출을 한 곳에서 관리하세요.')
+    expect(container.querySelector('[role="status"]')?.textContent).toContain('Google 인증을 확인하고 있습니다...')
   })
 
   it('exchanges the authorization code and navigates to the dashboard', async () => {

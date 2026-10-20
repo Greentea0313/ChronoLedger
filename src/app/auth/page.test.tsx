@@ -92,4 +92,31 @@ describe("AuthPage", () => {
       },
     })
   })
+
+  it("shows loading spinner and text, and disables the button when Google login is clicked", async () => {
+    let resolveOAuth!: (value: unknown) => void
+    signInWithOAuth.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveOAuth = resolve
+        }),
+    )
+    render(<AuthPage />)
+
+    const googleButton = screen.getByRole("button", { name: "Google 계정으로 로그인" })
+
+    await act(async () => {
+      fireEvent.click(googleButton)
+    })
+
+    expect(screen.getByText("Google 연결 중...")).toBeDefined()
+    expect(googleButton.querySelector(".animate-spin")).not.toBeNull()
+    expect((googleButton as HTMLButtonElement).disabled).toBe(true)
+
+    await act(async () => {
+      resolveOAuth({ data: { url: "https://provider.invalid" }, error: null })
+      await Promise.resolve()
+    })
+  })
 })
+

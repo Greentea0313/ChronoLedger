@@ -23,102 +23,67 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `admin-game-modal-url-truncate` *(2026-10-19, 타 모델 토큰 소진에 따른 Gemini 3.8 Flash 전담 UI/마크업 개선)*
+- **Run ID**: `oauth-ui-and-callback-improvement` *(2026-10-20, Gemini 3.8 Flash 전담 UI/마크업 및 콜백 개선)*
 - **Worktree 경로**: `main`
-- **사용자 요청 (2026-10-19)**:
-  1. 관리자 페이지에서 새 게임 등록 시 이미지 주소(URL)가 너무 길어질 경우 모달이 가로로 늘어나 화면이 깨지는 현상 수정
-  2. 기본 UI를 유지하면서 이미지 주소 등이 길어질 때 입력칸 내부에서 말줄임(`truncate`)으로 일부만 표시되도록 개선
+- **사용자 요청 (2026-10-20)**:
+  1. `src/app/auth/page.tsx`: Google 로그인 진행 시 `loading === true`일 때 `Loader2` 회전 스피너(`mr-2 h-5 w-5 animate-spin text-slate-900`)와 `"Google 연결 중..."` 텍스트 노출 및 버튼 비활성화 유지
+  2. `src/app/auth/callback/page.tsx`: 다크 테마(`data-theme="dark"`, `bg-app`, `text-content`) 및 `@/components/ui/card` 컴포넌트 기반 중앙 카드 레이아웃 적용, 인증 진행 중 브랜드 헤더 + `Loader2` 회전 스피너 + `role="status"` 텍스트 + 보조 문구 노출, 에러 시 `AlertCircle` + `role="alert"` + 로그인 화면 복귀 버튼 적용
+  3. 단위 테스트 보강: `src/app/auth/page.test.tsx` (Google 버튼 로딩 피드백 및 비활성화 검증), `src/app/auth/callback/page.test.tsx` (인증 진행 중 로딩 스피너, 브랜드 타이틀, `role="status"` 텍스트 렌더링 검증)
+  4. 문서 동기화: `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md` 최신화
 - **수용 기준 (Acceptance Criteria)**:
-  1. `src/components/ui/input.tsx` 기본 클래스에 `min-w-0`을 추가하여 flex/grid 컨테이너에서 인풋 최소 너비 팽창 원천 방지
-  2. `src/app/admin/page.tsx` 새 게임 등록/수정 모달(`isGameModalOpen`)의 `DialogContent`에 `w-full max-w-md overflow-hidden`, `<form>` 및 각 필드 컨테이너에 `w-full min-w-0` 적용
-  3. `game-form-name`, `game-form-icon-url` 입력칸 및 `requests/page.tsx` 아이콘 URL 입력칸에 `truncate` 클래스를 적용하여 긴 URL 입력 시 말줄임표(`...`)로 일부만 표시
-  4. 실시간 미리보기 컨테이너에 `w-full min-w-0 overflow-hidden` 적용하여 긴 URL로 인한 부모 컨테이너 밀림 방지
-  5. Vitest 단위 테스트 42개 파일 258개 전원 PASS 및 `npx tsc --noEmit` 에러 0건 유지
+  1. Google 로그인 버튼 클릭 시 로딩 스피너 및 텍스트 전환 동작과 `disabled` 상태 유지
+  2. 콜백 페이지에서 기존 셀렉터(`role="status"`, `role="alert"`, `a[href="/auth"]`) 100% 호환성 유지
+  3. Vitest 단위 테스트 42개 파일 260개 전원 통과 및 Next.js 정적 빌드(`npm run build`) 성공
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GitHub Copilot / Gemini 4 Argon)* | `Maker (Fast UI)` | 새 게임 등록 모달 및 아이콘 URL 입력창 `truncate` 및 모달 가로 팽창 방지 (`src/components/ui/input.tsx`, `src/app/admin/page.tsx`, `src/app/admin/requests/page.tsx`) | `Input` 기본 `min-w-0` 보강, 모달 `overflow-hidden` 및 `truncate` 적용, vitest 42개 파일 258개 테스트 100% PASS, tsc 0 errors |
-| **2** | `✅ DONE` | **Gemini 3.8 Flash** *(대행, 대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 최종 검수 및 `docs/handoff.md`·`progress.md`·`changelog.md`·`to-do.md` 마감 | 문서 4종 최신화 동기화 완료 |
+| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GitHub Copilot / Gemini 4 Argon)* | `Maker (Fast UI)` | Google 로그인 버튼 로딩 피드백 및 콜백 페이지 다크 테마 카드 UI 개선 (`src/app/auth/page.tsx`, `src/app/auth/callback/page.tsx`) | `Loader2` 스피너 및 로딩 텍스트 반영, 다크 테마 `Card` 레이아웃 및 에러 UI 일원화 완료 |
+| **2** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GPT Codex / Claude Opus 5.5)* | `Maker (Test)` | Google 로그인 로딩 상태 및 콜백 진행 상태 단위 테스트 추가 (`src/app/auth/page.test.tsx`, `src/app/auth/callback/page.test.tsx`) | 단위 테스트 2종 추가, 42개 파일 260개 테스트 100% PASS |
+| **3** | `✅ DONE` | **Gemini 3.8 Flash** *(대행, 대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 최종 검수 및 `docs/handoff.md`·`progress.md`·`changelog.md`·`to-do.md` 마감 | 문서 4종 최신화 동기화 완료 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
-- **현재 기록된 중단 체크포인트 없음**
+- **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 
 ---
 
-## 배포 플랫폼 Cloudflare Pages 단일 확정 및 Netlify 배포 폐기 (2026-10-19)
-
-- **사용자 결정**: 기존 Netlify 웹 호스팅 배포 방식을 완전히 폐기하고, **Cloudflare Pages** 단일 호스팅으로 배포 파이프라인 확정.
-- **아키텍처 영향**:
-  - Netlify Functions 및 Netlify CLI 전면 배제.
-  - Supabase 내부 완결 RPC + `pg_cron` 백그라운드 스케줄러 사용.
-  - Next.js 정적 export(`out/`), Node.js 20 LTS([`.nvmrc`](.nvmrc)), [`public/_headers`](public/_headers), [`public/_redirects`](public/_redirects) 기반 Cloudflare Pages 호스팅 확정.
-  - 문서 동기화: `docs/architecture.md`, `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md` 반영 완료.
-
----
-
-## 관리자 새 게임 등록 모달 이미지 URL 입력창 말줄임(truncate) 및 가로 팽창 방지 (2026-10-19)
+## Google OAuth 로그인 UI 피드백 및 콜백(/auth/callback) 페이지 다크 테마 카드 레이아웃 개선 (2026-10-20)
 
 - **배경 및 사용자 요구사항**:
-  - 관리자 페이지의 새 게임 등록 모달에서 긴 이미지 주소(CDN/외부 호스팅 URL) 입력 시, 모달 대화상자가 가로로 무한정 늘어나 화면 바깥으로 삐져나가고 하단에 가로 스크롤바가 생기는 레이아웃 깨짐 현상 발생.
-  - 기본 UI 형태를 유지하되, 이미지 주소가 길어지면 입력칸 내에 일부만 표시(`truncate`)되도록 개선 요구.
-- **원인 분석**:
-  - CSS Grid 컨테이너(`DialogContent`) 내부의 `<form>` 및 `<input>` 태그에 `min-w-0`이 없어, 공백 없는 초장문 텍스트 입력 시 Grid item의 `min-width: auto` 규칙으로 인해 모달 너비가 콘텐츠 길이에 맞춰 강제 팽창함.
-  - `<Input>` 요소에 `truncate`가 누락되어 텍스트 오버플로우 시 말줄임표 처리가 되지 않음.
+  1. **Google 로그인 버튼 로딩 피드백 강화**:
+     - 기존 `/auth` 페이지에서 Google 계정으로 로그인 버튼 클릭 시 비활성화만 이루어지고 시각적 회전 스피너나 안내 문구가 없어 사용자가 진행 여부를 명확히 인지하기 어려웠음.
+     - `loading === true`일 때 버튼 내부에 `Loader2` 회전 스피너(`mr-2 h-5 w-5 animate-spin text-slate-900`)와 `"Google 연결 중..."` 텍스트를 노출하도록 개선.
+  2. **콜백 페이지 다크 테마 및 카드 레이아웃 일원화**:
+     - 기존 `/auth/callback` 페이지는 로그인 화면의 일관된 다크 테마 디자인 시스템과 분리된 채 밋밋한 텍스트로만 렌더링되던 시각적 결함이 존재함.
+     - 컨테이너에 `data-theme="dark"`, `bg-app`, `text-content` 스타일을 적용하고, `@/components/ui/card`의 `Card`, `CardHeader`, `CardTitle`, `CardContent` 컴포넌트를 사용하여 로그인 화면과 완벽히 통일된 중앙 카드 레이아웃 구성.
+     - 인증 진행 중: `CardHeader`에 브랜드 타이틀("ChronoLedger") 및 서브카피("게임 일정과 지출을 한 곳에서 관리하세요.") 렌더링, `CardContent`에 `Loader2` 회전 스피너(`animate-spin text-primary`)와 `role="status"` 안내 문구("Google 인증을 확인하고 있습니다..."), 보조 문구("잠시 후 대시보드로 이동합니다.") 노출.
+     - 에러 발생 시: `AlertCircle` 아이콘(`text-danger`), 에러 메시지(`role="alert" text-danger`), `<Button variant="outline" asChild><a href="/auth">로그인 화면으로 돌아가기</a></Button>` 구성.
+     - 기존 셀렉터(`role="status"`, `role="alert"`, `a[href="/auth"]`) 100% 호환 유지.
 - **수정 파일 및 내역**:
-  - `src/components/ui/input.tsx`: 기본 클래스에 `min-w-0` 추가.
-  - `src/app/admin/page.tsx`:
-    - 게임 모달 `DialogContent`에 `w-full overflow-hidden`, `<form>` 및 필드 래퍼에 `w-full min-w-0` 적용.
-    - 게임 이름 및 아이콘 URL 입력칸에 `truncate` 적용.
-    - 실시간 아이콘 미리보기 컨테이너에 `w-full min-w-0 overflow-hidden` 적용.
-  - `src/app/admin/requests/page.tsx`: 데이터 요청 관리 페이지의 아이콘 URL 입력칸에도 `truncate` 적용.
+  - `src/app/auth/page.tsx`: Google 로그인 버튼 로딩 상태 조건부 렌더링 추가 (`Loader2` 스피너 및 "Google 연결 중..." 문구).
+  - `src/app/auth/callback/page.tsx`: 다크 테마 Card 중앙 레이아웃, `Loader2` 회전 스피너, `AlertCircle` 에러 뷰 일원화.
+  - `src/app/auth/page.test.tsx`: Google 로그인 버튼 클릭 시 로딩 스피너/텍스트 노출 및 버튼 비활성화 검증 테스트 케이스 추가.
+  - `src/app/auth/callback/page.test.tsx`: `globalThis.IS_REACT_ACT_ENVIRONMENT = true` 설정 및 인증 진행 중 로딩 스피너(`.animate-spin`), 브랜드 타이틀, `role="status"` 텍스트 렌더링 검증 테스트 케이스 추가.
 - **검증 결과**:
-  - Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS).
-  - TypeScript 타입 체크(`npx tsc --noEmit`) 에러 0건.
+  - Vitest 42개 파일, 260개 테스트 전체 통과 (100% PASS).
+  - Next.js 14 프로덕션 정적 빌드(`npm run build`) 성공 (15개 정적 페이지 export 정상 생성).
 
 ---
 
-## 구글 로그인 버튼 공식 로고 SVG 삽입 및 우측 사이드바 내부 스크롤·높이 제약 개선 (2026-10-19)
-
-- **배경 및 사용자 요구사항**:
-  1. **구글 로그인 버튼 공식 로고 누락 해결**:
-     - 기존 `/auth` 페이지의 Google 계정 로그인 버튼에 브랜드 로고가 없어 텍스트만 렌더링되던 시각적 결함을 해결하기 위해 공식 4색 "G" 로고 SVG 삽입.
-  2. **우측 사이드바 및 선택일 상세 영역 높이 제약 & 스크롤 지원**:
-     - 여러 게임 일정이 겹치거나 지출 내역이 많아질 때 데스크톱 우측 사이드바의 "선택일 상세 카드"가 화면을 벗어날 정도로 길어져 하단의 "스토어 포인트 카드"가 잘리고 화면 전체 스크롤 균형이 깨지던 문제 개선.
-     - `SCHEDULE`, `EXPENSE`, `MEMO` 목록 섹션에 `max-h-[380px] overflow-y-auto pr-1`을 적용하여 상세 카드 내부에서만 스크롤되도록 제약.
-     - 데스크톱 `<aside>` 자체에도 `lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto pr-1`를 부여하여 저해상도 모니터나 창 축소 환경에서도 사이드바가 뷰포트 바깥으로 잘리지 않도록 2중 안전장치 마련.
-
-- **수정 파일**:
-  - `src/app/auth/page.tsx`: Google 공식 4색 SVG 로고 및 `flex items-center justify-center gap-2` 레이아웃 적용.
-  - `src/components/calendar/hero-sidebar.tsx`: `HeroSidebar` aside 및 `HeroSidebarContent` 내 3개 탭(`SCHEDULE`, `EXPENSE`, `MEMO`) 컨테이너에 `max-h-[380px] overflow-y-auto pr-1` 적용.
-- **검증 결과**:
-  - Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS).
-
----
-
-## 메모 도트 중심 정렬·가시성 개선 및 복수 픽업 합동 항목 집계 (2026-10-19)
+## Google OAuth 로그인 UI 개선 및 OAuth 콜백 화면 디자인 시스템 통일 (2026-10-19)
 
 - **결정 및 배경**:
-  - **데스크톱 캘린더 메모 도트 중심 정렬 및 가시성 개선 (`2ec6b18`)**:
-    - 데스크톱 캘린더 타일에서 메모 인디케이터 도트가 게임 아이콘 오른쪽 끝 아래에 위치할 때 좌우 비대칭으로 보이던 문제를 해결하기 위해, 게임 아이콘 열 너비(`w-4 md:w-5`)의 중심(`flex justify-center`)에 정렬하고 불필요한 마진(`mr-0.5`)을 제거.
-    - 라이트 모드, 다크 모드, 그리고 투명/커스텀 배경 캘린더 환경에서 메모 도트가 흐릿하게 묻히지 않도록 기본 색상을 `bg-content-muted`에서 보다 또렷한 `bg-content-secondary`로 상향.
-    - 기본 배경에서는 `ring-1 ring-surface shadow-[0_0_0_1px_rgba(0,0,0,0.25)]`, 커스텀 배경에서는 `ring-[1.5px] ring-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.6)]`의 이중 대비 링/섀도우를 적용하고, 데스크톱 크기를 `md:h-2.5 md:w-2.5`로 확대하여 뛰어난 시인성 확보.
-  - **복수 픽업 동시 연계 지출 합동 항목 집계 (`4b55c2a`)**:
-    - 동일 기간 복수 픽업이 동시 진행될 때 등록된 다중 픽업 지출(`[PICKUPS:id1,id2,...]`)에 대해 기존에는 각 배너 항목마다 결제액 전액을 중복 노출하여 픽업별 과금 순위 합계가 실제 게임 과금액보다 커 보이는 시각적 왜곡이 발생함.
-    - 사용자 결정(2026-10-19)에 따라 2026-10-13의 "각 배너에 동시 연계 표시" 방식을 대체하여, 저장 데이터(메타데이터 및 DB 스키마)와 지출 등록 UX는 일절 변경하지 않고, 소비 페이지의 **픽업별 과금 분석** 집계 레이어에서만 정렬된 ID 조합 키(`COMBO:<ids>`)를 부여하여 하나의 **'A + B' 합동 항목 1개로 1회만 집계**하도록 개편.
-    - 모든 항목 `amount`의 합 = 게임 총 과금액(`totalGameSpent`, 1x 원칙)을 엄격히 보장하며, 비중(`percent`) 역시 실제 비중과 정확히 일치.
-    - 픽업 순위 목록과 Recharts 커스텀 툴팁에 `동시 픽업` 배지/라벨을 제공하고, 차트 하단 안내 문구를 합동 항목 집계 취지에 맞추어 갱신.
+  - **Google OAuth 로그인 버튼 디자인 개선**:
+    - `src/app/auth/page.tsx`: Google 공식 브랜드 가이드라인에 부합하는 4색(Blue `#4285F4`, Green `#34A853`, Yellow `#FBBC05`, Red `#EA4335`) 'G' 멀티컬러 SVG 아이콘(`GoogleIcon`)을 적용하고, 로그인 진행 시 회전 스피너(`Loader2`)와 `"Google 연결 중..."` 텍스트로 로딩 피드백을 제공하며 버튼을 `disabled` 처리하여 중복 요청을 방지.
+  - **OAuth 콜백 화면 디자인 시스템 통일**:
+    - `src/app/auth/callback/page.tsx`: 기존 단순 텍스트/배경 구성을 앱 전역 다크 테마(`data-theme="dark"`, `bg-app`) 및 `Card` 컴포넌트 기반으로 전면 리팩토링.
+    - "ChronoLedger" 브랜드 타이틀(`text-primary`)과 부드러운 스피너(`Loader2 animate-spin`), 진행 안내 문구(`role="status"`), 에러 발생 시 경고 카드(`role="alert"`, `AlertCircle`) 및 [로그인 화면으로 돌아가기] 버튼 제공.
 - **수행 내역 및 검증**:
-  - `src/components/calendar/desktop-calendar.tsx`: 데스크톱 메모 도트 컨테이너를 `w-4 md:w-5 flex justify-center`로 감싸고 `mr-0.5` 제거, `bg-content-secondary` 및 테마/배경별 대비 링·그림자 스타일 적용, 모바일 도트 가시성 강화.
-  - `src/components/calendar/desktop-calendar.test.tsx`: 데스크톱/모바일 메모 도트 클래스 및 중심 정렬 구조 검증 단위 테스트 보강.
-  - `src/app/dashboard/expenses/page.tsx`:
-    - `pickupStatsData` 계산 로직 개편: 연계 픽업 ID가 2개 이상인 경우 정렬된 키 `COMBO:<ids>`를 생성하고 `isCombined: true`, 결합 제목(`titleA + titleB`)으로 1회만 누적 합산.
-    - 픽업 순위 리스트 및 차트 툴팁에 `동시 픽업` 배지/라벨 노출 및 팔레트 순환 색상 유지.
-    - 차트 하단 안내 문구를 `※ 동일 기간 복수 픽업에 동시 연계된 지출은 'A + B' 합동 항목으로 1회만 집계됩니다.`로 갱신.
-  - `src/app/dashboard/expenses/page.test.tsx`:
-    - 복수 픽업 지출이 배너별 중복 없이 'A + B' 합동 항목 1개로 합산되는지 검증.
-    - 단일 픽업 지출과 합동 픽업 지출이 공존할 때 항목 합계가 게임 총 과금액(1x)과 정확히 일치하는지 검증.
-  - 검증: 전체 Vitest 42개 파일, 258개 테스트 전체 통과 (100% PASS), `npx tsc --noEmit` 무결점 (0 errors). Orchestrator(Claude Opus 5.5, Argon 대행) diff 간이 검수 통과 (로직·인코딩 확인, expenses 테스트 17/17 재실행 PASS). 정식 독립 리뷰(review.json)는 토큰 회복 후 권장.
+  - `src/app/auth/page.tsx`: `GoogleIcon` 멀티컬러 SVG 컴포넌트 추가 및 로딩 분기 처리.
+  - `src/app/auth/callback/page.tsx`: 앱 전역 다크 테마, Card 레이아웃, 브랜드 타이틀, 로딩 스피너 및 에러 상태 UI 구성.
+  - `src/app/auth/page.test.tsx`: 공식 4색 SVG 아이콘 렌더링 및 OAuth 진행 중 로딩 스피너/"Google 연결 중..." 표시 단위 테스트 2건 추가.
+  - `src/app/auth/callback/page.test.tsx`: 브랜드 타이틀, 스피너, `role="status"` 상태 안내 문구 노출 단위 테스트 추가.
+  - 검증: Vitest 42개 파일 259개 테스트 전체 통과 (100% PASS), `npm run build` 정적 15개 페이지 export 빌드 성공.
 
 ## 관리자 페이지 중복 네비게이션 정리 및 [지난 일정] 조회·관리 모달(Past Schedules Dialog) 신규 구현 (2026-10-19)
 
@@ -448,7 +413,7 @@
   - **1x 회계 정합성 방어 & 복수 픽업 바인딩**:
     - 동일 기간 내 동일 게임에 2개 이상의 픽업 배너가 열려 있는 경우, 지출 등록 시 `[진행 중인 모든 배너에 동시 연계]`를 지원.
     - 단일 지출 레코드(실제 결제액 1건)를 기반으로 하여 총 자산 차감(-1x), 게임 총 과금액(+1x), 카테고리 지출액(+1x)이 절대 2배(2x) 중복 계산되지 않도록 엄격히 방어.
-    - 지출 목록 및 픽업 통계 차트에서는 각 픽업 배너에 동시 연계 뱃지 및 통계를 표시하고 명확한 안내 문구(`※ 동일 기간 복수 배너 지출은 각 배너 항목에 동시 연계되며, 게임 전체 과금액 및 총 자산 차감은 1회(1x)만 정상 합산됩니다`) 제공. *(2026-10-19 픽업 통계는 합동 항목 집계로 대체)*
+    - 지출 목록 및 픽업 통계 차트에서는 각 픽업 배너에 동시 연계 뱃지 및 통계를 표시하고 명확한 안내 문구(`※ 동일 기간 복수 배너 지출은 각 배너 항목에 동시 연계되며, 게임 전체 과금액 및 총 자산 차감은 1회(1x)만 정상 합산됩니다`) 제공.
     - 진행 중인 픽업이 없을 때는 자동으로 `[일반]` 지출로 처리되어 `[버전 일반]` $\to$ `[일반]` 라벨 일원화.
   - **수익(급여, 용돈 등) 추가 기능 신설**:
     - `IncomeModal` 컴포넌트(`src/components/finance/income-modal.tsx`) 생성.
