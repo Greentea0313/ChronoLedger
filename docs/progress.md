@@ -923,16 +923,16 @@
      - `src/components/wallet/store-wallet-widget.tsx`: 구버전 원격 DB RPC 호환을 위해 `p_tier: galaxyTier` 호출 실패 시 `p_tier: null`로 안전하게 폴백 재시도하여 등급/적립률이 정상 저장되도록 보완.
      - `md/MIGRATION_PHASE10.sql`: 최신 `update_store_wallet_settings` RPC DDL을 마이그레이션 스크립트에 포함하여 사용자 SQL Editor 적용 지원.
   10. **미구독 게임의 캘린더 일정 노출 차단**:
-     - `src/app/dashboard/page.tsx`: `user_games` 구독 게임 목록을 기준으로 캘린더 일정을 필터링(`subscribedSchedules`)하여, 구독하지 않은 게임(예: 명일방주: 엔드필드)의 공용 버전/픽업 일정이 캘린더에 노출되지 않도록 해결.
+      - `src/app/dashboard/page.tsx`: `user_games` 구독 게임 목록을 기준으로 캘린더 일정을 필터링(`subscribedSchedules`)하여, 구독하지 않은 게임(예: 명일방주: 엔드필드)의 공용 버전/픽업 일정이 캘린더에 노출되지 않도록 해결.
   11. **관리자 센터 상단 서브 탭 내비게이션 구축**:
-     - `src/app/admin/layout.tsx`: 관리자 페이지(`/admin`)와 유저 요청 관리(`/admin/requests`) 간을 자유롭게 오갈 수 있는 상단 탭 내비게이션 바(`[일정 관리]`, `[요청 관리]`) 추가.
+      - `src/app/admin/layout.tsx`: 관리자 페이지(`/admin`)와 유저 요청 관리(`/admin/requests`) 간을 자유롭게 오갈 수 있는 상단 탭 내비게이션 바(`[일정 관리]`, `[요청 관리]`) 추가.
   12. **관리자 공식 일정 목록 조회 / 수정 / 삭제 기능 전면 구현**:
-     - `src/app/admin/page.tsx`: 등록된 게임 일정 전체 목록 카드 및 게임별 필터링 기능 추가. 각 일정별 `[수정]` 모달(타이틀, 유형, 기간, 메모 수정 및 연결 지출 자동 동기화) 및 `[삭제]` 확인 다이얼로그 추가.
-     13. **요청 관리(`/admin/requests`) 관리자 권한 판정 일원화 및 레이아웃 정리**:
+      - `src/app/admin/page.tsx`: 등록된 게임 일정 전체 목록 카드 및 게임별 필터링 기능 추가. 각 일정별 `[수정]` 모달(타이틀, 유형, 기간, 메모 수정 및 연결 지출 자동 동기화) 및 `[삭제]` 확인 다이얼로그 추가.
+  13. **요청 관리(`/admin/requests`) 관리자 권한 판정 일원화 및 레이아웃 정리**:
       - `src/app/admin/requests/page.tsx`: 기존 `user.app_metadata.role === 'admin'` 단독 검사로 인해 DB 프로필(`public.users.role`)로 관리자 권한을 부여받은 계정에서 "관리자 권한이 필요합니다." 에러가 발생하던 결함 해결. `const isAdmin = role === "admin" || user?.app_metadata?.role === "admin"`으로 판정 기준을 통일하여 `AdminLayout`, `AdminPage`, `Topbar`와 일관성 확보.
       - `AdminLayout`과 중복되던 불필요한 `min-h-screen bg-gray-900` 래퍼 및 중복 헤더를 정리하고 테마 시스템(`bg-surface`, `border-line`, `text-content`)으로 통일.
       - `src/app/admin/requests/page.test.tsx`: auth context의 `role === 'admin'` 기반 조회 지원 테스트 추가.
-   14. **소비/게임/관리자 헤더 높이 통일, 중복 버튼 정리 및 관리자 화면 요청 기능 은닉**:
+  14. **소비/게임/관리자 헤더 높이 통일, 중복 버튼 정리 및 관리자 화면 요청 기능 은닉**:
       - `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/admin/layout.tsx`: 좌상단 타이틀(소비, 게임, 관리자 센터)의 Y축 높이와 `border-b border-line pb-4` 스타일을 일치시키고, 우측 액션 버튼(`[+ 지출 추가]`, `[+ 구독 추가]`, `[+ 추가 요청]`) 및 관리자 탭 링크의 높이를 `h-10`(40px)으로 완전 통일.
       - 소비 화면: 정기 구독 탭 본문 영역에 존재하던 중복 `+ 구독 추가` 버튼 제거 (상단 헤더에 1개만 단일 배치).
       - 게임 화면: 하단 카드에 중복 노출되던 버튼 제거 (헤더에 1개씩만 단일 배치).

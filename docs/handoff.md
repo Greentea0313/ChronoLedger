@@ -4,6 +4,7 @@
 
 > **🤖 AI 에이전트 자동 실행 지침 (`"인수인계 문서를 확인해"` 및 하이브리드 위임 원칙)**
 > 0. **주축 모델(Gemini 4 Argon) 직접 구현 금지 및 하이브리드 위임**: `Gemini 4 Argon`(`Orchestrator & Architect`)은 절대 직접 제품 소스 코드(`src/**`)를 수정하지 않습니다. **Gemini 3.8 Flash** 담당 과제(UI/Tailwind, 배지·모달·드로어 마크업, 고속 탐색, `docs/` 동기화)는 내부 서브에이전트(`define_subagent` + `invoke_subagent` `Model: "flash"`)로 즉시 호출해 위임하고, **GPT Codex** / **Claude Opus 5.5** / **GitHub Copilot** 담당 과제는 아래 **Active Dispatch Table**에 `▶ READY`로 등록한 뒤 멈추고 사용자에게 해당 모델로 전환해 `"인수인계 문서를 확인해"`를 입력하도록 안내합니다.
+>
 > 1. 사용자가 **`"인수인계 문서를 확인해"`**라고 입력하면, 아래 **Active Dispatch Table**에서 상태가 **`⚠️ HANDOVER_NEEDED`**(1순위) 또는 **`▶ READY`**(2순위)인 과제를 찾아 즉시 수행하십시오.
 > 2. **강제 중단 자동 복구**: 만약 이전 모델이 토큰/쿼터 초과로 문서를 갱신하지 못한 채 중단되어 상태가 `▶ READY`이거나 `🔄 IN_PROGRESS`인 경우, 새로 호출된 대체(Fallback) 모델은 즉시 대상 Worktree의 `git status --short`와 `git diff`를 스캔하여 이전 모델이 작성하다 멈춘 미커밋 변경사항을 파악한 뒤 이어서 완수하십시오.
 > 3. **토큰 부족 시 비상 인계**: 작업 도중 보유 토큰/컨텍스트 내에서 완수가 불가능하다고 판단되면, 무리하게 축약하지 말고 현재까지의 파일 수정을 안전하게 저장한 뒤:
