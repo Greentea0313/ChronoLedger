@@ -91,7 +91,16 @@
   - 보존: 현재 체크리스트/인수인계에서 참조하는 SRS 준비도 및 차단 항목 검토 이력
 - [x] SKILL에서 지정한 개발 운영 문서를 `docs/`로 이동하고 문서 링크를 갱신
   - 완료 파일: `docs/architecture.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/known-pitfalls.md`, `docs/progress.md`, `docs/changelog.md`
-  - 기획 기준 문서와 SQL은 `md/`에 유지
+  - 기획 기준 문서는 `docs/spec/`으로 이관하고, SQL은 `sql/`로 분리하여 `md/` 폴더 완전 정리 완료
+- [x] 중구난방으로 파편화된 프로젝트 전체 문서 체계 전면 통합 및 정리
+  - **불필요/중복 파일 삭제 (4종)**: `docs/develop_task_backlog.md`(Phase 12에 흡수 완료), `docs/to-do_Gemini.md`(과거 보존본), `md/agent_rules.md`(중복), `md/SKILL.md`(구버전) 영구 삭제
+  - **비(非)문서 파일 전용 디렉터리 분리**:
+    - `md/*.sql` (15종: SCHEMA, MIGRATION_*, TESTS, SEED 등) -> `sql/`로 이관하여 문서와 코드/DB 스크립트 격리
+    - `docs/*.html` (8종: 디자인 프리뷰, 아이콘 목업) -> `docs/design-previews/`로 이동하여 `docs/` 루트 정리
+  - **기획 기준 문서 일원화**: `md/SRS.md`, `md/SPEC.md`, `md/revisions_and_decisions.md`, `md/ChronoLedger_UI_Design_Sheet.md`, `docs/design-topbar-spec.md` -> `docs/spec/`으로 이관하고 `md/` 폴더 완전 삭제
+  - **과거 검토/구버전 계획 문서 아카이빙 (14종)**: `docs/archive/` 생성 후 1회성 마일스톤 리뷰, 차단 항목 검토, 구버전 계획서(v1/v2) 등 이관 보존
+  - **AI 협업 가이드 단일화**: 파편화된 4개 협업 문서(`ai-collaboration-usage.md`, `ChronoLedger_collaboration_guide.md`, `ChronoLedger_multi_agent_pipeline_v2.md`, `ChronoLedger_pipeline_auto.md`)를 5대 모델 파이프라인 최신 규약에 맞추어 `docs/collaboration-guide.md`로 단일 통합하고 구버전 문서는 아카이브 이관
+  - **최종 `docs/` 최상위 구조 (8대 핵심 운영 문서)**: `architecture.md`, `changelog.md`, `collaboration-guide.md`, `detailed-design.md`, `handoff.md`, `known-pitfalls.md`, `progress.md`, `to-do.md`
 - [x] 멀티 에이전트 협업 아키텍처 검토 의견을 별도 문서로 작성
   - 결과: `md/multi_agent_collaboration_architecture_review.md` (§8에 최종 보완안 재검토 추가)
   - 검토만 완료했으며 파이프라인 채택이나 구현은 결정하지 않음
