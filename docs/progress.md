@@ -1,5 +1,19 @@
 # 프로젝트 진행 현황
 
+## 모바일 달력 타일 도트 아이콘 우측 상단 세로 정렬 개선 (2026-10-20)
+
+- **배경 및 사용자 요구사항**:
+  - 모바일 달력 타일에서 우측 상단에 노출되는 게임 일정(버전, 픽업, 콘텐츠) 및 메모 도트의 정렬 방식을 기존 가로 정렬(`flex items-center`)에서 데스크톱과 일치하는 세로 정렬(`flex flex-col items-end`)로 변경.
+  - 모바일 뷰포트에서 날짜 숫자 및 배지와의 레이아웃 간섭을 방지하고 우측 상단에 도트들이 세로로 정돈되어 표시되도록 최적화.
+- **수행 내역**:
+  1. **`src/components/calendar/desktop-calendar.tsx`**:
+     - 모바일 도트 컨테이너 클래스를 `flex md:hidden items-center gap-0.5 sm:gap-1 shrink-0 pt-0.5`에서 `flex md:hidden flex-col items-end gap-1 shrink-0 pt-0.5`로 변경하여 수직 나열 및 우측 정렬 적용.
+  2. **단위 테스트 검증 보강 (`src/components/calendar/desktop-calendar.test.tsx`)**:
+     - 모바일 도트 렌더링 검증 테스트 케이스에 부모 컨테이너의 세로 정렬 클래스(`flex-col`, `items-end`, `gap-1`) 존재 여부 단언 추가.
+  3. **검증 완료**:
+     - Vitest 42개 파일, 260개 테스트 전체 통과 (100% PASS).
+     - Next.js 14 정적 빌드(`npm run build`) 성공 (15개 정적 페이지 export 정상 생성).
+
 ## Google OAuth 로그인 UI 피드백 및 콜백(/auth/callback) 페이지 다크 테마 카드 레이아웃 개선 (2026-10-20)
 
 - **배경 및 사용자 요구사항**:

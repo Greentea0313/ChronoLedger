@@ -144,6 +144,11 @@ describe("DesktopCalendar", () => {
     const memoDots = screen.getAllByTitle("메모 있음")
     expect(memoDots).toHaveLength(1)
     expect(memoDots[0].className).toContain("bg-content-secondary")
+
+    const mobileDotContainer = versionDots[0].parentElement
+    expect(mobileDotContainer?.className).toContain("flex-col")
+    expect(mobileDotContainer?.className).toContain("items-end")
+    expect(mobileDotContainer?.className).toContain("gap-1")
   })
 
   it("backgroundConfig에 커스텀 배경 이미지가 설정되면 object-fit: cover 배경 레이어, 가독성 보호 오버레이 및 날짜 타일 투명도를 렌더링한다", () => {

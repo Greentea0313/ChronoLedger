@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-20 (모바일 달력 타일 도트 아이콘 우측 상단 세로 정렬 개선)
+
+- **모바일 달력 타일 도트 컨테이너 세로 정렬 일원화 (`src/components/calendar/desktop-calendar.tsx`)**:
+  - 모바일 도트 컨테이너 클래스를 기존 가로 정렬(`flex md:hidden items-center gap-0.5 sm:gap-1 shrink-0 pt-0.5`)에서 데스크톱과 일치하는 세로 정렬(`flex md:hidden flex-col items-end gap-1 shrink-0 pt-0.5`)로 변경.
+  - 모바일 타일 우측 상단에 버전(초록), 픽업(파랑), 콘텐츠(보라) 및 메모 도트가 수직 세로 방향으로 깔끔하게 배치되도록 최적화.
+- **모바일 도트 컨테이너 단위 테스트 검증 보강 (`src/components/calendar/desktop-calendar.test.tsx`)**:
+  - 모바일 도트 렌더링 단위 테스트에 도트 부모 컨테이너가 `flex-col`, `items-end`, `gap-1` 스타일 클래스를 정상적으로 보유하고 있는지 검증 단언문 추가.
+- **검증 완료**:
+  - Vitest 42개 파일, 260개 테스트 전체 통과 (100% PASS).
+  - Next.js 14 프로덕션 정적 빌드(`npm run build`) 성공 (15개 정적 페이지 export).
+
 ## 2026-10-20 (Google OAuth UI 피드백 및 콜백 페이지 다크 테마 카드 레이아웃 개선)
 
 - **Google 로그인 버튼 로딩 피드백 강화 (`src/app/auth/page.tsx`, `src/app/auth/page.test.tsx`)**:

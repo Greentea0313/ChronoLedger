@@ -426,6 +426,14 @@
     1. **Google OAuth 로그인 버튼 디자인 개선**: Google 공식 브랜드 가이드라인에 부합하는 4색(Blue, Green, Yellow, Red) 'G' 멀티컬러 SVG 아이콘 적용, 로그인 진행 시 회전 스피너(`Loader2 animate-spin`) 및 `"Google 연결 중..."` 텍스트 노출과 `disabled` 처리로 중복 클릭 방지.
     2. **OAuth 콜백 화면 디자인 시스템 통일**: `/auth/callback` 페이지를 앱 전역 다크 테마(`data-theme="dark"`, `bg-app`) 및 `Card` 컴포넌트 기반으로 리팩토링. "ChronoLedger" 브랜드 타이틀, 로딩 스피너, 진행 안내 문구(`role="status"`), 에러 발생 시 경고 카드(`role="alert"`, `AlertCircle`) 및 [로그인 화면으로 돌아가기] 버튼 제공.
   - verify: 단위 테스트 보강 (`auth/page.test.tsx`, `auth/callback/page.test.tsx`), Vitest 42개 파일 / 259개 테스트 전체 통과 (100% PASS), `npm run build` 정적 15개 페이지 export 빌드 성공.
+- [x] 12.10 Google OAuth 로그인 UI 피드백 및 콜백 페이지 다크 테마 카드 레이아웃 개선 (2026-10-20)
+  - 대상 파일: `src/app/auth/page.tsx`, `src/app/auth/callback/page.tsx`, `src/app/auth/page.test.tsx`, `src/app/auth/callback/page.test.tsx`
+  - 작업: Google 로그인 진행 시 `Loader2` 회전 스피너 및 `"Google 연결 중..."` 텍스트 노출과 버튼 `disabled` 비활성화 유지, `/auth/callback` 화면 다크 테마(`data-theme="dark"`, `bg-app`) 및 `Card` 중앙 레이아웃 일원화 (`Loader2` 스피너, `role="status"` 상태 문구, `AlertCircle` 에러 뷰 및 로그인 화면 복귀 버튼 적용).
+  - verify: 단위 테스트 보강, Vitest 42개 파일 260개 테스트 전체 통과 (100% PASS), `npm run build` 정적 빌드 성공.
+- [x] 12.11 모바일 달력 타일 도트 아이콘 우측 상단 세로 정렬 개선 (2026-10-20)
+  - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`
+  - 작업: 모바일 달력 타일 우측 상단 도트 컨테이너 클래스를 기존 가로 정렬(`flex md:hidden items-center gap-0.5 sm:gap-1 shrink-0 pt-0.5`)에서 데스크톱과 일치하는 세로 정렬(`flex md:hidden flex-col items-end gap-1 shrink-0 pt-0.5`)로 변경하여 버전/픽업/콘텐츠/메모 도트가 우측 상단에 수직으로 깔끔하게 나열되도록 설정.
+  - verify: 모바일 도트 컨테이너 클래스(`flex-col`, `items-end`, `gap-1`) 단위 테스트 보강(`desktop-calendar.test.tsx`), Vitest 42개 파일 260개 테스트 100% PASS, Next.js 14 정적 빌드(`npm run build`) 성공.
 
 ---
 

@@ -241,7 +241,7 @@ export function DesktopCalendar({
                 </div>
 
                 {/* Mobile only: Small dots for game schedules (by schedule_type) and memo in top right */}
-                <div className="flex md:hidden items-center gap-0.5 sm:gap-1 shrink-0 pt-0.5">
+                <div className="flex md:hidden flex-col items-end gap-1 shrink-0 pt-0.5">
                   {hasVersion && (
                     <span
                       data-testid="mobile-dot-version"

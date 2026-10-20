@@ -24,27 +24,41 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `oauth-ui-and-callback-improvement` *(2026-10-20, Gemini 3.8 Flash 전담 UI/마크업 및 콜백 개선)*
+- **Run ID**: `mobile-calendar-dot-alignment` *(2026-10-20, Gemini 3.8 Flash 전담 UI/마크업 개선)*
 - **Worktree 경로**: `main`
 - **사용자 요청 (2026-10-20)**:
-  1. `src/app/auth/page.tsx`: Google 로그인 진행 시 `loading === true`일 때 `Loader2` 회전 스피너(`mr-2 h-5 w-5 animate-spin text-slate-900`)와 `"Google 연결 중..."` 텍스트 노출 및 버튼 비활성화 유지
-  2. `src/app/auth/callback/page.tsx`: 다크 테마(`data-theme="dark"`, `bg-app`, `text-content`) 및 `@/components/ui/card` 컴포넌트 기반 중앙 카드 레이아웃 적용, 인증 진행 중 브랜드 헤더 + `Loader2` 회전 스피너 + `role="status"` 텍스트 + 보조 문구 노출, 에러 시 `AlertCircle` + `role="alert"` + 로그인 화면 복귀 버튼 적용
-  3. 단위 테스트 보강: `src/app/auth/page.test.tsx` (Google 버튼 로딩 피드백 및 비활성화 검증), `src/app/auth/callback/page.test.tsx` (인증 진행 중 로딩 스피너, 브랜드 타이틀, `role="status"` 텍스트 렌더링 검증)
+  1. `src/components/calendar/desktop-calendar.tsx`: 모바일 달력 타일 우측 상단 도트 아이콘 정렬 방식을 가로 정렬(`flex md:hidden items-center gap-0.5 sm:gap-1 shrink-0 pt-0.5`)에서 데스크톱과 일치하는 세로 정렬(`flex md:hidden flex-col items-end gap-1 shrink-0 pt-0.5`)로 변경하여 깔끔한 수직 나열 구현
+  2. `src/components/calendar/desktop-calendar.test.tsx`: 모바일 도트 컨테이너의 세로 정렬(`flex-col`, `items-end`, `gap-1`) 클래스 검증 단위 테스트 보강
+  3. 전체 단위 테스트(`npm run test`) 및 빌드(`npm run build`) 무결성 검증
   4. 문서 동기화: `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md` 최신화
 - **수용 기준 (Acceptance Criteria)**:
-  1. Google 로그인 버튼 클릭 시 로딩 스피너 및 텍스트 전환 동작과 `disabled` 상태 유지
-  2. 콜백 페이지에서 기존 셀렉터(`role="status"`, `role="alert"`, `a[href="/auth"]`) 100% 호환성 유지
-  3. Vitest 단위 테스트 42개 파일 260개 전원 통과 및 Next.js 정적 빌드(`npm run build`) 성공
+  1. 모바일 뷰포트에서 버전/픽업/콘텐츠/메모 도트가 우측 상단에서 세로(`flex-col items-end gap-1`)로 렌더링
+  2. Vitest 42개 파일 260개 테스트 전체 통과 (100% PASS)
+  3. Next.js 정적 빌드(`npm run build`) 에러 없음
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GitHub Copilot / Gemini 4 Argon)* | `Maker (Fast UI)` | Google 로그인 버튼 로딩 피드백 및 콜백 페이지 다크 테마 카드 UI 개선 (`src/app/auth/page.tsx`, `src/app/auth/callback/page.tsx`) | `Loader2` 스피너 및 로딩 텍스트 반영, 다크 테마 `Card` 레이아웃 및 에러 UI 일원화 완료 |
-| **2** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GPT Codex / Claude Opus 5.5)* | `Maker (Test)` | Google 로그인 로딩 상태 및 콜백 진행 상태 단위 테스트 추가 (`src/app/auth/page.test.tsx`, `src/app/auth/callback/page.test.tsx`) | 단위 테스트 2종 추가, 42개 파일 260개 테스트 100% PASS |
-| **3** | `✅ DONE` | **Gemini 3.8 Flash** *(대행, 대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 최종 검수 및 `docs/handoff.md`·`progress.md`·`changelog.md`·`to-do.md` 마감 | 문서 4종 최신화 동기화 완료 |
+| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GitHub Copilot / Gemini 4 Argon)* | `Maker (Fast UI)` | 모바일 달력 타일 도트 세로 정렬(`flex-col items-end gap-1`) 변경 (`src/components/calendar/desktop-calendar.tsx`) | 모바일 도트 컨테이너 세로 정렬 클래스 교체 완료 |
+| **2** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GPT Codex / Claude Opus 5.5)* | `Maker (Test)` | 모바일 도트 세로 정렬 단위 테스트 검증 보강 (`src/components/calendar/desktop-calendar.test.tsx`) | `flex-col items-end gap-1` 검증 추가, 42개 파일 260개 테스트 100% PASS |
+| **3** | `✅ DONE` | **Gemini 3.8 Flash** *(대행, 대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 전체 빌드 검증 및 문서 4종(`handoff`, `progress`, `changelog`, `to-do`) 동기화 | 빌드 성공 및 문서 최신화 완료 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## 모바일 달력 타일 도트 아이콘 우측 상단 세로 정렬 개선 (2026-10-20)
+
+- **배경 및 사용자 요구사항**:
+  - 모바일 달력 타일에서 우측 상단에 표시되는 일정 도트(버전 초록, 픽업 파랑, 콘텐츠 보라) 및 메모 도트의 정렬 방식을 기존 가로 정렬(`flex items-center`)에서 데스크톱 아이콘 정렬 방식과 일치하는 세로 정렬(`flex flex-col items-end`)로 변경.
+  - 타일 내 날짜 숫자 및 배지와의 겹침을 방지하고 우측 상단에 세로로 단정하게 배치되도록 개선.
+- **수정 파일 및 내역**:
+  - `src/components/calendar/desktop-calendar.tsx`: 모바일 도트 컨테이너 클래스를 `flex md:hidden flex-col items-end gap-1 shrink-0 pt-0.5`로 변경.
+  - `src/components/calendar/desktop-calendar.test.tsx`: 모바일 도트 부모 컨테이너가 `flex-col`, `items-end`, `gap-1`을 포함하는지 검증하는 단위 테스트 단언문 추가.
+- **검증 결과**:
+  - Vitest 42개 파일, 260개 테스트 전체 통과 (100% PASS).
+  - Next.js 14 프로덕션 정적 빌드(`npm run build`) 성공 (15개 정적 페이지 정상 export).
 
 ---
 
