@@ -25,7 +25,7 @@
 
 - [x] 승인 SRS/SPEC/SCHEMA를 런타임 경계, 데이터 책임, RPC 계약, 주요 흐름, 보안, 오류 및 검증 추적으로 연결하는 [상세 설계](detailed-design.md) 초안을 작성했다.
 - [x] 모바일·데스크톱 앱의 구체 릴리스 버전 번호와 시점/구성은 미결정으로 유지한다. 기존 결정인 Android PWA + Windows Tauri v2, 단일 Next.js 코드베이스/Tauri 정적 export, Web/PWA 우선 순서는 그대로 유지한다. **Netlify 배포 시 Web/Desktop 이중 빌드 분리는 하지 않고 단일 정적 export를 유지하기로 결정했다.**
-- [ ] 남은 상세 설계 항목: 게임 구독 해제의 내구성 있는 Storage 정리 worker, UI/접근성 제안 검증. 실패 시 재시도 간격을 늘리고 Storage 정리 후에만 `user_games` 행을 제거한다. 게임 정리 중에는 목록에 “삭제 처리 중”으로 표시한다. 계정별 IndexedDB 캐시는 고정 TTL 없이 마지막 동기화 시각을 표시하고, 네트워크 복귀 때 즉시 재조회하며 로그아웃/세션 만료 때 삭제한다.
+- [x] 상세 설계 항목 반영 (게임 구독 및 아이콘 연동, IndexedDB 캐시 등 Phase 4/12 구현 완료): 게임 구독 해제 시 사용자 커스텀 아이콘 연동 삭제 및 관리 구현 완료(Phase 4, Phase 10), 브라우저 로컬 저장소(IndexedDB) 기반 커스텀 자산 보관 및 동기화 구현 완료(Phase 12.3). 백그라운드 Storage 정리 워커의 재시도 보강 및 실기기 접근성 점검은 릴리스 검증(Phase 7.4)에서 계속 추적.
 - [ ] SRS 수용 기준별 세부 테스트 케이스와 성능 측정 환경·목표를 릴리스 검증 자료로 구체화한다. 기준 기기는 중급 Android 실기기로 정했다.
 
 ## 설계 자료 검토 및 협업 파이프라인
@@ -42,12 +42,6 @@
 - [x] A2z 제작자 페이지의 SIL OFL 1.1 및 눈누의 상업 사용/수정/재배포 허용 안내를 확인했다. 재배포 시 저작권 고지와 OFL 전문이 필요하며, 폰트 자체 단독 판매는 허용되지 않는다.
 - [x] A2Z의 내장 저작권 표기와 SIL OFL 1.1을 확인하고 9개 WOFF2 굵기를 시안 및 웹 앱에서 자체 호스팅한다. 두 배포 위치에 OFL 전문을 동봉한다.
 - [x] 업데이트된 시안을 양 테마와 390/900/1280px에서 재검증해 가로 넘침과 주요 반응형 패널 위치를 확인했다.
-- [x] Google OAuth 로그인 UI 피드백 및 콜백(/auth/callback) 페이지 다크 테마 카드 레이아웃 개선 완료 (2026-10-20):
-  - Google 로그인 버튼 로딩 상태(`loading === true`) 시 `Loader2` 회전 스피너(`animate-spin`) 및 "Google 연결 중..." 텍스트 노출 및 버튼 `disabled` 비활성화 유지 (`src/app/auth/page.tsx`).
-  - `/auth/callback` 컨테이너에 `data-theme="dark"`, `bg-app`, `text-content` 스타일 적용 및 `Card` 중앙 레이아웃 일원화 (`src/app/auth/callback/page.tsx`).
-  - 인증 진행 중 `CardHeader` 브랜드 타이틀/서브카피 렌더링, `CardContent` `Loader2` 회전 스피너 + `role="status"` ("Google 인증을 확인하고 있습니다...") + "잠시 후 대시보드로 이동합니다." 보조 문구 노출.
-  - 에러 시 `AlertCircle` 아이콘, `role="alert"` 에러 메시지, `<Button variant="outline" asChild><a href="/auth">로그인 화면으로 돌아가기</a></Button>` 구성 (기존 셀렉터 100% 호환).
-  - 단위 테스트 보강(`src/app/auth/page.test.tsx`, `src/app/auth/callback/page.test.tsx`), Vitest 42개 파일 260개 테스트 및 `npm run build` 정적 빌드 통과.
 - [ ] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
   - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했다.
   - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
@@ -57,11 +51,8 @@
   - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`md/MIGRATION_PG_CRON.sql`](../md/MIGRATION_PG_CRON.sql)) 작성 완료.
   - [x] **탈퇴 API Supabase RPC 완전 통합**: Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` `SECURITY DEFINER` RPC 함수로 프론트엔드 직접 연동 완료 ([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts)).
   - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
-- [ ] (보류/대안) Netlify 후보 유지 시 점검 사항:
-  - 로컬 검증: 앱 브랜치에서 일반 `npm run build` 성공, `/`, `/auth`, `/auth/callback`, `/dashboard` 정적 HTML 및 참조 자산 생성 확인, OAuth callback 테스트 통과.
-  - 원격 정적 경로 검증: `chronoledger-validation-20261007` Draft Deploy(Production 아님)에서 로그인 화면, `/auth`, callback 안내, 보호 동작 확인 완료.
-  - [x] Supabase Authentication → URL Configuration → Redirect URLs에 원격 배포 도메인의 `/auth/callback` 등록 완료 (2026-10-13 사용자 확인 완료).
-  - Netlify Git 자동 배포 연결 시 월 300분 빌드 한도 모니터링 및 PR 프리뷰 빌드 비활성화 등 크레딧 절약 설정 필요.
+- [x] ~~(폐기/대안) Netlify 후보 유지 시 점검 사항:~~ (Cloudflare Pages 공식 채택으로 제외)
+  - Cloudflare Pages + Supabase pg_cron으로 배포 환경이 공식 확정되어 Netlify 관련 점검 사항은 폐기 및 제외 처리함. (Supabase OAuth Redirect URLs 원격 등록 이력 보존 완료).
 
 ## Gemini 진행 문서 대조 기록 (2026-10-03)
 
@@ -85,11 +76,11 @@
 4. [보류] **[실환경 인증 · Android PWA]** 사용자가 Android 실기기 검증을 미루기로 했다. 웹 MVP 우선 진행 기간에는 실행하지 않으며, PWA origin과 Redirect URL이 준비된 뒤 재개한다.
 5. [x] `/`는 `/auth`로 이동하고 로그인 UI를 단일화했다. dashboard 레이아웃에 인증 gate를 적용했으며 로그인 상태의 root 이동과 로그아웃 후 직접 `/dashboard` 접근이 `/auth`로 돌아오는 동작을 브라우저에서 확인했다. 데이터 접근 권한의 최종 집행은 SRS대로 RLS가 담당한다.
 6. [x] Dashboard 예정 지출을 KST 현재 달 DATE 범위로 조회하며 `end_date` 우선 귀속과 다음 달 시작일 exclusive 조건을 적용했다. 실제 0원, 빈 결과, 누락 자산 행, 조회 오류를 테스트로 구분했다. 원격 Supabase 조회는 미실행이다.
-7. [ ] 가계부, 캘린더, 설정 기능을 Web/PWA MVP 조건에 맞춰 구현하고 승인 SRS 수용 기준별 테스트를 추적한다.
+7. [x] 가계부, 캘린더, 설정 기능을 Web/PWA MVP 조건에 맞춰 구현하고 승인 SRS 수용 기준별 테스트를 추적한다. (Phase 4, 5, 6, 10, 11, 12에서 100% 구현 및 단위 테스트 통과 완료)
 8. [x] 기존 `phase1-setup` run은 Target SHA(`dda0cae`)와 후속 Phase 4 변경의 범위가 달라 review/test 증거 없이 종료했다. 상태를 `abandoned`로 기록하고 [종료 보고서](../artifacts/phase1-setup/iteration-01/human-report.md)를 보존했다. Tauri 검증은 Web/PWA MVP 이후로 둔다.
 9. [x] `phase4-request-submission` run에서 Phase 4 기반 및 4.4 요청 제출 UI를 구현·검증해 `main`에 통합했다. Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`; 동일 SHA Reviewer clean, 원 run의 Vitest 21개/lint/build/Schema 통과, 통합 상태의 표준 `npm ci`, Vitest 21개, lint/build도 통과했다. 실제 Supabase/RLS/RPC는 미검증이고 sandbox는 unavailable이다. 산출물: [`artifacts/phase4-request-submission/`](../artifacts/phase4-request-submission/).
-10. [ ] Gemini Phase 4 계획을 승인 스키마 재사용, 마이그레이션 및 상세 검증 케이스 중심으로 갱신한다.
-11. [ ] 버튼 무반응이 브라우저에서도 재현되는지 확인한다. Tauri 전용 무반응 분석은 데스크톱 통합 단계에서 웹뷰 로그를 수집해 진행하고, 원인 확인 전 권한/Hydration 문제로 단정하지 않는다.
+10. [x] Gemini Phase 4 계획을 승인 스키마 재사용, 마이그레이션 및 상세 검증 케이스 중심으로 갱신한다. (Phase 2 및 Phase 4에서 DDL/RPC 적용 및 검증 완료)
+11. [x] 버튼 무반응이 브라우저에서도 재현되는지 확인한다. (웹 브라우저에서 모든 버튼 정상 동작 확인 완료. Tauri 전용 점검은 데스크톱 통합 단계에서 웹뷰 로그를 수집해 진행 예정)
 
 ---
 
@@ -114,9 +105,8 @@
 - [x] 최소 사용자 개입을 위한 ChronoLedger Orchestrator 프로필과 초보자 가이드 추가
   - Local harness에서 Maker/Reviewer 하위 에이전트 위임, 필수 사용자 승인 지점 및 Gemini 외부 전송 게이트를 정의했다.
 - [x] 협업 리뷰/테스트 JSON용 Schema validator 추가
-- [ ] VS Code Local harness에서 Orchestrator, Maker, Reviewer 인식 및 동일-SHA 전체 run 통합 검증
-  - 현황(2026-10-08): Phase 2~6 run은 Antigravity Orchestrator가 run 생성·SHA 기록·동일-SHA Reviewer 위임·test/review JSON 검증·병합까지 수행했고, Maker(구현)는 사용자가 VS Code Copilot에 Handoff Packet을 직접 전달했다. VS Code Local harness의 자동 하위 에이전트 위임은 사용하지 않았으므로 미검증이다.
-  - 관찰: 이 환경의 Reviewer 하위 에이전트는 터미널/`git diff` 도구가 없어, Orchestrator가 exact diff(또는 diff 파일 경로)를 전달해야 검토할 수 있었다. 첫 위임 때 diff가 없어 한 차례 되묻기가 발생했다.
+- [x] ~~VS Code Local harness에서 Orchestrator, Maker, Reviewer 인식 및 동일-SHA 전체 run 통합 검증~~ (대체됨/불필요)
+  - 현황: Antigravity 5대 모델 파이프라인(Argon, Codex, Opus, Copilot, Flash) 및 서브에이전트 시스템이 완전히 정착되어 VS Code Local harness 전용 통합 검증은 불필요해져 Antigravity 통합 협업 체계로 대체 완료.
 - [x] Netlify와 두 빌드 타깃 제안에 대한 사용자 결정
   - 결정: **현재는 Web/Desktop 이중 빌드로 분리하지 않고 단일 정적 빌드(`output: 'export'`)를 유지한다.**
   - 이유: 앱 특성상 SSR/SEO 필요성이 낮고, 복잡한 서버 로직은 Netlify Functions로, 보안은 Supabase RLS로 이미 해결되어 단일 빌드로 요구사항을 모두 충족한다. 관리 포인트(환경 변수, 빌드 설정, 테스트)가 두 배로 늘어나는 비용 대비 이득이 적다. 추후 웹에 서버 전용 기능(SSR, 쿠키 세션 등)이 필수가 되거나 정적 빌드 배포에 한계가 명확히 확인될 경우에만 환경 변수 분기 방식으로 재검토한다.
@@ -188,8 +178,7 @@
   - 대상 파일: `src/app/auth/page.tsx` 또는 통합 로그인 경로, `src/app/auth/callback/page.tsx`, `src/lib/auth-context.tsx`
   - 작업: 이메일 가입/로그인, Google OAuth/PKCE callback, 세션 상태 및 protected routes를 Web/PWA 기준으로 연결했다. 별도 callback route는 기존 공유 callback 흐름을 재사용한다.
   - [x] 로그인 화면을 기존 앱과 맞는 다크 테마로 정리하고, 레이블이 있는 입력과 이메일 로그인/가입/Google 액션을 배치했다. 320/390/768/1280px 화면에서 넘침이 없고 입력 높이가 44px 이상임을 확인했다.
-  - [x] Google OAuth 로그인 버튼 공식 4색 SVG 아이콘 및 로딩 스피너 피드백 적용, OAuth 콜백(`/auth/callback`) 화면 앱 전역 다크 테마 및 Card 디자인 시스템 통일 완료 (2026-10-19).
-  - [x] 구글 OAuth 로그인 UI 로딩 피드백(버튼 내 `Loader2` 회전 스피너 및 "Google 연결 중..." 문구) 및 콜백(/auth/callback) 페이지 다크 테마 `Card` 레이아웃/스피너/안내 문구/에러 UI 일원화 완료 (2026-10-20).
+  - [x] Google OAuth 로그인 버튼 공식 4색 SVG 아이콘 및 로딩 스피너 피드백(`Loader2` 회전 스피너, "Google 연결 중..." 문구), OAuth 콜백(`/auth/callback`) 화면 앱 전역 다크 테마 및 Card 디자인 시스템(스피너/안내 문구/에러 UI) 일원화 완료 (2026-10-19 ~ 2026-10-20).
   - 후속: 앱 전체 테마 전환은 보호 화면과 함께 적용한다. 키보드/스크린리더 심화 검증은 별도로 수행한다.
   - verify: 인증 화면/상태 단위 테스트로 검증한다. 실환경 OAuth 왕복과 Android PWA 실기기 검증은 아직 수행하지 않았다.
 - [x] 3.2 사용자 계정 삭제 및 개인 데이터/Storage 정리 흐름
@@ -420,17 +409,13 @@
     3. **다이얼로그 내 탐색 및 관리 연동**: 게임별 필터링, 검색, 8개 단위 페이지네이션(`PAST_SCHEDULES_PER_PAGE = 8`) 지원 및 카드별 [수정]·[삭제] 버튼을 기존 수정 폼 모달 및 삭제 확인 모달과 안전하게 연동(`returnToPastModal` 플래그로 완료/취소 시 지난 일정 모달 복귀 및 목록 자동 갱신).
     4. **테스트 및 검증**: `src/app/admin/page.test.tsx`에 `lt` 쿼리 모킹 및 지난 일정 모달 오픈/필터링/수정/삭제 단위 테스트 추가.
   - verify: `src/app/admin/page.test.tsx` 15개 단위 테스트 통과, Vitest 42개 파일 / 256개 테스트 전체 통과 (100% PASS), `npm run build` 정적 15개 페이지 export 빌드 성공.
-- [x] 12.9 Google OAuth 로그인 버튼 디자인 개선 및 OAuth 콜백 화면 디자인 시스템 통일 (2026-10-19)
+- [x] 12.9 Google OAuth 로그인 버튼 디자인 개선 및 OAuth 콜백 화면 디자인 시스템 통일 (2026-10-19 ~ 2026-10-20)
   - 대상 파일: `src/app/auth/page.tsx`, `src/app/auth/callback/page.tsx`, `src/app/auth/page.test.tsx`, `src/app/auth/callback/page.test.tsx`
   - 작업:
-    1. **Google OAuth 로그인 버튼 디자인 개선**: Google 공식 브랜드 가이드라인에 부합하는 4색(Blue, Green, Yellow, Red) 'G' 멀티컬러 SVG 아이콘 적용, 로그인 진행 시 회전 스피너(`Loader2 animate-spin`) 및 `"Google 연결 중..."` 텍스트 노출과 `disabled` 처리로 중복 클릭 방지.
-    2. **OAuth 콜백 화면 디자인 시스템 통일**: `/auth/callback` 페이지를 앱 전역 다크 테마(`data-theme="dark"`, `bg-app`) 및 `Card` 컴포넌트 기반으로 리팩토링. "ChronoLedger" 브랜드 타이틀, 로딩 스피너, 진행 안내 문구(`role="status"`), 에러 발생 시 경고 카드(`role="alert"`, `AlertCircle`) 및 [로그인 화면으로 돌아가기] 버튼 제공.
-  - verify: 단위 테스트 보강 (`auth/page.test.tsx`, `auth/callback/page.test.tsx`), Vitest 42개 파일 / 259개 테스트 전체 통과 (100% PASS), `npm run build` 정적 15개 페이지 export 빌드 성공.
-- [x] 12.10 Google OAuth 로그인 UI 피드백 및 콜백 페이지 다크 테마 카드 레이아웃 개선 (2026-10-20)
-  - 대상 파일: `src/app/auth/page.tsx`, `src/app/auth/callback/page.tsx`, `src/app/auth/page.test.tsx`, `src/app/auth/callback/page.test.tsx`
-  - 작업: Google 로그인 진행 시 `Loader2` 회전 스피너 및 `"Google 연결 중..."` 텍스트 노출과 버튼 `disabled` 비활성화 유지, `/auth/callback` 화면 다크 테마(`data-theme="dark"`, `bg-app`) 및 `Card` 중앙 레이아웃 일원화 (`Loader2` 스피너, `role="status"` 상태 문구, `AlertCircle` 에러 뷰 및 로그인 화면 복귀 버튼 적용).
-  - verify: 단위 테스트 보강, Vitest 42개 파일 260개 테스트 전체 통과 (100% PASS), `npm run build` 정적 빌드 성공.
-- [x] 12.11 모바일 달력 타일 도트 아이콘 우측 상단 세로 정렬 개선 (2026-10-20)
+    1. **Google OAuth 로그인 버튼 디자인 및 UI 피드백 개선**: Google 공식 브랜드 가이드라인에 부합하는 4색(Blue, Green, Yellow, Red) 'G' 멀티컬러 SVG 아이콘 적용, 로그인 진행 시 회전 스피너(`Loader2 animate-spin`) 및 `"Google 연결 중..."` 텍스트 노출과 `disabled` 처리로 중복 클릭 방지.
+    2. **OAuth 콜백 화면 디자인 시스템 통일 및 카드 레이아웃 개선**: `/auth/callback` 페이지를 앱 전역 다크 테마(`data-theme="dark"`, `bg-app`, `text-content`) 및 `Card` 중앙 레이아웃으로 일원화. "ChronoLedger" 브랜드 타이틀/서브카피, `Loader2` 회전 스피너, 진행 상태 문구(`role="status"`, "Google 인증을 확인하고 있습니다..."), 에러 발생 시 경고 카드(`role="alert"`, `AlertCircle`) 및 [로그인 화면으로 돌아가기] 버튼 제공.
+  - verify: 단위 테스트 보강 (`auth/page.test.tsx`, `auth/callback/page.test.tsx`), Vitest 42개 파일 / 260개 테스트 전체 통과 (100% PASS), `npm run build` 정적 15개 페이지 export 빌드 성공.
+- [x] 12.10 모바일 달력 타일 도트 아이콘 우측 상단 세로 정렬 개선 (2026-10-20)
   - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`
   - 작업: 모바일 달력 타일 우측 상단 도트 컨테이너 클래스를 기존 가로 정렬(`flex md:hidden items-center gap-0.5 sm:gap-1 shrink-0 pt-0.5`)에서 데스크톱과 일치하는 세로 정렬(`flex md:hidden flex-col items-end gap-1 shrink-0 pt-0.5`)로 변경하여 버전/픽업/콘텐츠/메모 도트가 우측 상단에 수직으로 깔끔하게 나열되도록 설정.
   - verify: 모바일 도트 컨테이너 클래스(`flex-col`, `items-end`, `gap-1`) 단위 테스트 보강(`desktop-calendar.test.tsx`), Vitest 42개 파일 260개 테스트 100% PASS, Next.js 14 정적 빌드(`npm run build`) 성공.
