@@ -953,7 +953,7 @@
 - 대시보드 자산 행이 없을 때는 0원으로 처리하지 않고 별도 오류로 표시한다. KST 월간 예정 지출 범위는 유지한다.
 - 표준 `npm ci`, Vitest 6개 파일/21개 테스트, `npm run lint`, 더미 Supabase 설정의 `npm run build`가 통과했다. 실제 Supabase RLS/RPC 및 sandbox 격리는 미검증이다.
 - 중첩 `.worktrees/`의 테스트 중복 검색을 막도록 Vitest 제외 규칙을 추가했다. `@types/node`/Vitest peer 불일치를 해결하고 lockfile을 갱신해 `npm ci`를 통과시켰다.
-- 사용자는 Gemini와의 이번 리뷰는 API 키 연결이 아니라 승인 기준/프롬프트를 직접 입력하는 수동 방식으로 진행했다. [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)과 exact diff `artifacts/gemini-phase4-connection/phase4-request-submission.diff`로 Gemini 수동 정적 리뷰를 받았다.
+- 사용자는 Gemini와의 이번 리뷰는 API 키 연결이 아니라 승인 기준/프롬프트를 직접 입력하는 수동 방식으로 진행했다. [Gemini 수동 리뷰 패킷](archive/Gemini_phase4_manual_review.md)과 exact diff `artifacts/gemini-phase4-connection/phase4-request-submission.diff`로 Gemini 수동 정적 리뷰를 받았다.
 - API 전송 검증용 `gemini-phase4-connection` run은 dry-run만 수행했다. API 키가 없어 호출·네트워크 전송은 없었으며, 사용자 선택에 따라 `abandoned` 처리했다. 종료 기록은 `artifacts/gemini-phase4-connection/iteration-01/human-report.md`에 있다.
 - 참조 Base/Target은 `674f741ee52d45bb96db3431521101a5aa01341f` → `5f7cf557844f64d77e90eb67c09974bf6aab81a0`이다. Gemini는 `clean`/발견 없음으로 판정했다. 결과는 `artifacts/phase4-request-submission/iteration-01/gemini-manual-review.md` 및 `gemini-review.json`에 기록했으며 기존 ChronoLedger `review.json`은 변경하지 않았다.
 - Gemini는 실제 Supabase RLS 격리와 승인/반려 RPC 원자성을 미검증 항목으로 남겼다. 당시 `npm ci` 재현성 문제는 이 통합에서 의존성 범위와 lockfile을 갱신해 표준 clean install로 검증했다.
@@ -962,11 +962,11 @@
 - Phase 4.4 run `phase4-request-submission`은 Base `674f741...`, Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`이다. 요청 제출 UI(게임 제안, 일정 추가/수정), 입력 검증, 소유자 요청 목록과 회귀 테스트를 추가했다.
 - 같은 Target SHA의 Reviewer는 `clean`/0 findings다. Vitest 21개, ESLint, dummy Supabase 환경변수의 정적 build 및 세 run artifact Schema가 통과했다. sandbox unavailable; 실제 Supabase/RLS/RPC 및 사용자 인증 DB 동작은 미검증이다.
 - `npm ci`는 기존 manifest/lock 충돌로 실패했으며, 검증은 `npm install --no-package-lock --legacy-peer-deps`로 설치한 로컬 의존성을 사용했다. lockfile은 이 run에서 변경하지 않았다.
-- 최소 개입 협업을 위해 [ChronoLedger Orchestrator](../.github/agents/chronoledger-orchestrator.agent.md), [초보자 가이드](ChronoLedger_collaboration_guide.md), 협업 artifact Schema 검증기를 추가했다. Local harness 기반이며 실제 에이전트 인식/통합 실행은 아직 검증 전이다.
+- 최소 개입 협업을 위해 [ChronoLedger Orchestrator](../.agents/skills/chronoledger-orchestrator/SKILL.md), [초보자 가이드](collaboration-guide.md), 협업 artifact Schema 검증기를 추가했다. Local harness 기반이며 실제 에이전트 인식/통합 실행은 아직 검증 전이다.
 - Gemini Reviewer는 선택형 외부 리뷰로 둔다. 전체 diff에 대한 사용자 승인 없이 외부 API를 호출하지 않는다.
-- Gemini Reviewer 제한 PoC를 [구현 문서](ChronoLedger_pipeline_auto.md)에 따라 추가했다. 단일 run/SHA 검증, 전체 diff의 사용자 승인, JSON Schema 검증과 no-overwrite 결과 저장이 적용됐고 오프라인 테스트 12개가 통과했다. 실제 Gemini API 실행·외부 전송·품질/비용 평가는 하지 않았으므로 도입 결정은 보류 상태다.
-- 제안서의 독립 검토 의견은 [전달용 문서](ChronoLedger_pipeline_auto_review.md)에 정리했다.
-- 체크리스트 기준: 현재 작업 우선순위와 상태는 [공용 `to-do.md`](to-do.md)가 단일 기준이다. [Gemini 진행 기록](to-do_Gemini.md)은 보존용 별도 이력이며, 상충하는 상태나 검증 주장은 증거 대조 전까지 기준으로 사용하지 않는다.
+- Gemini Reviewer 제한 PoC를 [구현 문서](archive/ChronoLedger_pipeline_auto.md)에 따라 추가했다. 단일 run/SHA 검증, 전체 diff의 사용자 승인, JSON Schema 검증과 no-overwrite 결과 저장이 적용됐고 오프라인 테스트 12개가 통과했다. 실제 Gemini API 실행·외부 전송·품질/비용 평가는 하지 않았으므로 도입 결정은 보류 상태다.
+- 제안서의 독립 검토 의견은 [전달용 문서](archive/ChronoLedger_pipeline_auto_review.md)에 정리했다.
+- 체크리스트 기준: 현재 작업 우선순위와 상태는 [공용 `to-do.md`](to-do.md)가 단일 기준이다. Gemini 진행 기록(구 to-do_Gemini 이력, 정리됨)은 보존용 별도 이력이며, 상충하는 상태나 검증 주장은 증거 대조 전까지 기준으로 사용하지 않는다.
 - Phase 4 초기 구현은 `.worktrees/phase1-setup`에서 검증한 뒤 요청 제출 UI와 함께 현재 `main` 작업 트리에 통합했다.
 - 관리자 요청 페이지와 게임 선택 모달의 DB 필드/RPC 인자 불일치를 해당 worktree에서 수정했다. 관리자 역할 gate, 게임 기본 아이콘 URL 입력, RPC 실패 시 비원자적 직접 갱신 제거를 반영했다.
 - 앱 전체 Vitest 5개 파일·15개 테스트, ESLint, dummy Supabase 환경변수로 실행한 정적 빌드가 통과했다. 실제 Supabase/RLS/Storage 통합과 브라우저 이미지 흐름은 확인하지 않았다.
@@ -989,8 +989,8 @@
 - `CardTitle`을 H2로 맞췄고 dashboard 로딩 live status, 데이터 오류 alert, 명명된 내비게이션 landmark 및 장식용 이모지 숨김을 추가했다. 보호된 dashboard 런타임과 실제 스크린리더 검증은 하지 않았다.
 - 앱 worktree의 `.eslintrc.json`에 `root: true`를 설정해 상위 저장소 설정의 잘못된 해석을 막았다. `npm run lint`는 경고/오류 없이 통과했고 `npm run build`는 ESLint·타입 검사를 포함해 네 정적 경로를 생성했다.
 - 앱 전체 테마 전환은 추후 모든 보호 화면과 함께 적용한다. 로그인 화면은 현재 다크 전용으로 유지한다.
-- UI 디자인 제안 결정에 따라 [디자인 시안](design-preview-ko.html)을 추가했다. 기존 정적 참고 목업 [design-v1-ko.html](design-v1-ko.html)은 수정하지 않았다.
-- 사용자 결정은 [상세 설계](detailed-design.md) 및 [UI Design Sheet](../md/ChronoLedger_UI_Design_Sheet.md)에 기록했다: 화면 구성에 더해 글자 크기, 쿨 뉴트럴 라이트/기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 정했다.
+- UI 디자인 제안 결정에 따라 [디자인 시안](design-previews/design-preview-ko.html)을 추가했다. 기존 정적 참고 목업 [design-v1-ko.html](design-previews/design-v1-ko.html)은 수정하지 않았다.
+- 사용자 결정은 [상세 설계](detailed-design.md) 및 [UI Design Sheet](spec/ChronoLedger_UI_Design_Sheet.md)에 기록했다: 화면 구성에 더해 글자 크기, 쿨 뉴트럴 라이트/기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 정했다.
 - 브라우저에서 대시보드·지출·통계와 반응형 390/900/1280px를 확인했다. 모바일 지출 카드와 하단 내비게이션, 768–1099px 상세 바텀시트, 저장되는 테마 전환이 동작하며 가로 넘침은 없었다.
 - 선택된 타이포그래피·팔레트·그림자를 정적 시안에 반영했다. 대비 계산에서 라이트 본문/보조/약한 텍스트 17.41:1/7.85:1/5.80:1, 기본 버튼 흰 라벨 5.02:1, 라이트 상태 라벨 5.03:1 이상, 다크 상태 라벨 5.57:1 이상을 확인했다.
 - 브라우저에서 다크/라이트 각 390/900/1280px를 재검증해 가로 넘침이 없음을 확인했다. 390px 바텀시트, 900px 중간 폭 상세 패널, 1280px 우측 상세 패널이 유지된다.
@@ -1007,21 +1007,21 @@
 
 ## 현재 상태
 
-- 프로젝트 목적 결정: ChronoLedger는 과제 제출물이 아닌 개인 프로젝트다. 과제 조건(SQLite, 별도 Node.js 웹서버, 게시판)은 제품 범위에 추가하지 않는다. 기존 승인된 Supabase PostgreSQL/Next.js 정적 export, 이메일·Google 회원 기능, 사용자/관리자 구분을 유지한다. Netlify 또는 상시 Node.js 서버를 채택한 것은 아니다. 세부 결정은 [revisions_and_decisions.md](../md/revisions_and_decisions.md)에 기록했다.
-- 통합 기획 및 결정 문서: [revisions_and_decisions.md](../md/revisions_and_decisions.md)
-- 기능별 화면 요구사항: [SPEC.md](../md/SPEC.md)
-- 소프트웨어 요구사항 명세 초안: [SRS.md](../md/SRS.md)
-- DB DDL/RPC/RLS 초안: [SCHEMA.sql](../md/SCHEMA.sql)
-- 이전 SRS 준비도 검토(당시 상태 기록): [srs-readiness-review.md](../md/srs-readiness-review.md)
-- 결정안 검토: [resolved-blockers-review.md](../md/resolved-blockers-review.md)
-- 주요 차단 항목 설명: [planning-blockers.md](../md/planning-blockers.md)
+- 프로젝트 목적 결정: ChronoLedger는 과제 제출물이 아닌 개인 프로젝트다. 과제 조건(SQLite, 별도 Node.js 웹서버, 게시판)은 제품 범위에 추가하지 않는다. 기존 승인된 Supabase PostgreSQL/Next.js 정적 export, 이메일·Google 회원 기능, 사용자/관리자 구분을 유지한다. Netlify 또는 상시 Node.js 서버를 채택한 것은 아니다. 세부 결정은 [revisions_and_decisions.md](spec/revisions_and_decisions.md)에 기록했다.
+- 통합 기획 및 결정 문서: [revisions_and_decisions.md](spec/revisions_and_decisions.md)
+- 기능별 화면 요구사항: [SPEC.md](spec/SPEC.md)
+- 소프트웨어 요구사항 명세 초안: [SRS.md](spec/SRS.md)
+- DB DDL/RPC/RLS 초안: [SCHEMA.sql](../sql/SCHEMA.sql)
+- 이전 SRS 준비도 검토(당시 상태 기록): [srs-readiness-review.md](archive/srs-readiness-review.md)
+- 결정안 검토: [resolved-blockers-review.md](archive/resolved-blockers-review.md)
+- 주요 차단 항목 설명: [planning-blockers.md](archive/planning-blockers.md)
 - 진행 현황: [progress.md](progress.md)
 - 구현 순서와 검증 목록: [to-do.md](to-do.md)
-- Gemini 작업 진행 기록: [to-do_Gemini.md](to-do_Gemini.md) (외부 배포 완료 표시는 로컬 증거와 별도로 확인 필요)
-- AI 협업 초보자용 사용법: [ai-collaboration-usage.md](ai-collaboration-usage.md)
-- UI 시트: [ChronoLedger_UI_Design_Sheet.md](../md/ChronoLedger_UI_Design_Sheet.md); 참고 목업 [design-v1-ko.html](design-v1-ko.html); 사용자 결정 반영 중인 반응형 시안 [design-preview-ko.html](design-preview-ko.html). 새 시안은 정적 예시이며 제품 UI 구현을 뜻하지 않는다.
-- Netlify 웹 배포 제안: [Netlify_Web_Architecture_Proposal.md](Netlify_Web_Architecture_Proposal.md). 상태는 Decision Proposal이며 사용자가 승인하기 전에는 플랫폼/빌드 타깃 변경을 적용하지 않는다.
-- SRS 검토/검증 체크포인트: [srs-review-checkpoint.md](srs-review-checkpoint.md). SRS 승인 및 테스트 프로젝트 rollback-only SQL 스모크 테스트가 완료되어 설계 단계 진입이 승인됐다.
+- Gemini 작업 진행 기록: to-do_Gemini.md (구 이력, 정리됨, 외부 배포 완료 표시는 로컬 증거와 별도로 확인 필요)
+- AI 협업 초보자용 사용법: [ai-collaboration-usage.md](archive/ai-collaboration-usage.md)
+- UI 시트: [ChronoLedger_UI_Design_Sheet.md](spec/ChronoLedger_UI_Design_Sheet.md); 참고 목업 [design-v1-ko.html](design-previews/design-v1-ko.html); 사용자 결정 반영 중인 반응형 시안 [design-preview-ko.html](design-previews/design-preview-ko.html). 새 시안은 정적 예시이며 제품 UI 구현을 뜻하지 않는다.
+- Netlify 웹 배포 제안: [Netlify_Web_Architecture_Proposal.md](archive/Netlify_Web_Architecture_Proposal.md). 상태는 Decision Proposal이며 사용자가 승인하기 전에는 플랫폼/빌드 타깃 변경을 적용하지 않는다.
+- SRS 검토/검증 체크포인트: [srs-review-checkpoint.md](archive/srs-review-checkpoint.md). SRS 승인 및 테스트 프로젝트 rollback-only SQL 스모크 테스트가 완료되어 설계 단계 진입이 승인됐다.
 - 오래된 검토 문서 정리: 미사용 상태이며 구식 입력 파일을 참조하던 `md/fix-proposals.md`, `md/revisions_and_decisions_review.md`는 삭제했다. 명시적으로 과거 이력으로 링크된 SRS/차단 항목 검토 문서는 보존했다.
 - SRS 요구사항 검토·승인과 테스트 프로젝트의 SQL 스모크 테스트가 완료되어 설계 단계 진입이 승인됐다.
 - `SRS.md` v1.0 요구사항은 사용자 승인됐고, `md/TESTS.sql`의 rollback-only smoke suite도 최종 PASS를 확인했다. Phase 0.6 완료 및 설계 진입이 승인됐다.
@@ -1040,7 +1040,7 @@
 
 ## 설계 진입 게이트 (완료)
 
-- 승인된 [SRS.md](../md/SRS.md) 요구사항과 테스트 프로젝트 rollback-only SQL 스모크 검증을 완료했다.
+- 승인된 [SRS.md](spec/SRS.md) 요구사항과 테스트 프로젝트 rollback-only SQL 스모크 검증을 완료했다.
 - `md/TESTS.sql`의 핵심 DDL/RPC/RLS 동작 점검은 `ON_ERROR_STOP=1`에서 최종 PASS를 확인했다.
 - Phase 0.6 완료 및 설계 단계 진입을 승인했다. 전체 SRS 수용 기준 테스트는 설계/테스트 계획에서 상세화한다.
 
@@ -1064,10 +1064,10 @@
 
 ## 멀티 에이전트 협업 검토
 
-- 설계안과 검토 의견은 각각 [협업 아키텍처](../md/multi_agent_collaboration_architecture.md), [검토 문서](../md/multi_agent_collaboration_architecture_review.md)에 기록했다.
+- 설계안과 검토 의견은 각각 [협업 아키텍처](archive/multi_agent_collaboration_architecture.md), [검토 문서](archive/multi_agent_collaboration_architecture_review.md)에 기록했다.
 - 최종 설계안 재검토에서 SHA/읽기 전용 리뷰/원자적 파일 교환/샌드박스/수정 상한/사용자 리포트 보완을 확인했다. 공유 작업 트리에서 실행하는 `git reset --hard`는 미커밋 사용자 작업을 삭제할 수 있어 차단 위험으로 기록했다.
 - 아티팩트 JSON Schema, run별 산출물 규약, 사용자 보고서 템플릿과 전용 worktree 생성 스크립트를 준비했다. 상세 사용법은 [artifacts 안내](../artifacts/README.md)를 따른다.
-- Maker/Reviewer/Orchestrator에게 작업을 전달하고 동일 Target SHA의 결과를 수동으로 모으는 초보자용 절차를 [AI 협업 사용 안내](ai-collaboration-usage.md)에 작성했다.
+- Maker/Reviewer/Orchestrator에게 작업을 전달하고 동일 Target SHA의 결과를 수동으로 모으는 초보자용 절차를 [AI 협업 사용 안내](archive/ai-collaboration-usage.md)에 작성했다.
 - JSON 파일 문법, PowerShell 스크립트 구문, 상대 Markdown 링크의 정적 확인은 통과했다. 스크립트의 실제 worktree 생성/manifest 동작은 아직 실행 검증하지 않았다.
 - 협업 아키텍처 §5.2의 자동 `git reset --hard`를 제거하고 실패 worktree/브랜치 보존 규칙으로 바꿨다.
 - 실제 run은 만들지 않았다. 현재 작업 트리가 깨끗하지 않아 생성 스크립트가 중단되며, Docker도 설치/경로 확인이 되지 않아 동적 테스트 샌드박스를 실행할 수 없다. Gemini 에이전트 자동 연동도 미설정이다.

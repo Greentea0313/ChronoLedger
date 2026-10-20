@@ -3,7 +3,7 @@
 - 버전: 1.0
 - 작성일: 2026-10-02
 - 상태: 사용자 요구사항 승인 및 SQL 스모크 검증 완료, 설계 단계 진입 승인
-- 기준 문서: [통합 기획 및 결정](revisions_and_decisions.md), [기능 명세](SPEC.md), [차단 항목 결정](resolved-blockers.md), [DB 스키마 초안](SCHEMA.sql)
+- 기준 문서: [통합 기획 및 결정](revisions_and_decisions.md), [기능 명세](SPEC.md), [차단 항목 결정](../archive/resolved-blockers.md), [DB 스키마 초안](../../sql/SCHEMA.sql)
 
 ## 1. 목적과 범위
 

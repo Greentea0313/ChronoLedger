@@ -83,7 +83,7 @@
      - `isPastModalOpen`, `pastSchedules`, `isLoadingPastSchedules`, `pastGameFilter`, `pastSearchQuery`, `currentPastPage`, `returnToPastModal` 상태 및 `PAST_SCHEDULES_PER_PAGE = 8` 정의.
      - `fetchPastSchedules`: KST 오늘(`getKstToday()`) 기준 `.lt("end_date", today).order("end_date", { ascending: false })`로 만료된 일정 목록 비동기 조회.
      - 게임 필터 및 검색어 필터링(`filteredPastSchedules`), 페이지네이션(`paginatedPastSchedules`) 연동.
-     - 지난 일정 모달 내 카드별 [수정](`handleEditFromPast`), [삭제](`handleDeleteFromPast`) 핸들러 구현 및 `returnToPastModal` 플래그를 통한 모달 상호작용(수정/삭제 취소나 완료 시 지난 일정 모달 자동 복귀 및 목록 갱신) 확립.
+     - 지난 일정 모달 내 카드별 [수정] (`handleEditFromPast`), [삭제] (`handleDeleteFromPast`) 핸들러 구현 및 `returnToPastModal` 플래그를 통한 모달 상호작용(수정/삭제 취소나 완료 시 지난 일정 모달 자동 복귀 및 목록 갱신) 확립.
      - 지난 일정 전용 다이얼로그(`DialogContent className="max-w-3xl"`) 렌더링.
   3. **`src/app/admin/page.test.tsx`**:
      - `createQueryBuilder`에 `lt` 모의 메서드 지원 추가.
@@ -1102,7 +1102,7 @@
 
 ## 다중 에이전트 파이프라인 보완 및 이식 검토 (2026-10-08)
 
-- 사용자 초안(5단계)을 `md/SKILL.md`, `md/agent_rules.md` 기준으로 보완한 [ChronoLedger_multi_agent_pipeline_v2.md](ChronoLedger_multi_agent_pipeline_v2.md)와 이식 검토 [ChronoLedger_pipeline_v2_porting_review.md](ChronoLedger_pipeline_v2_porting_review.md)를 작성했다.
+- 사용자 초안(5단계)을 `md/SKILL.md`, `md/agent_rules.md` 기준으로 보완한 [ChronoLedger_multi_agent_pipeline_v2.md](archive/ChronoLedger_multi_agent_pipeline_v2.md)와 이식 검토 [ChronoLedger_pipeline_v2_porting_review.md](archive/ChronoLedger_pipeline_v2_porting_review.md)를 작성했다.
 - Antigravity 시험을 위해 `.agents/rules/language.md`와 Maker/Reviewer/Orchestrator skill 정의를 추가하고 기존 `.github/agents/*.agent.md` 프로필은 `.bak`으로 보존한 채 제거했다. 실제 확장 프로그램에서 규칙·skill 인식 여부와 자동 위임은 검증 필요다. Antigravity/Codex/OpenCode 연동은 아직 검증하지 않았다.
 
 ## Phase 4 변경 통합 완료 (2026-10-08)
@@ -1118,7 +1118,7 @@
 ## Gemini 수동 리뷰 완료 (2026-10-08)
 
 - 사용자가 Gemini API 호출보다 참조 기준과 prompt를 Gemini에 직접 제공하는 방식을 선택했고, 같은 Target SHA의 수동 정적 리뷰 결과를 전달했다.
-- Phase 4.4 변경(Base `674f741ee52d45bb96db3431521101a5aa01341f`, Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`)의 기준 요약과 검토 프롬프트를 [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)에 작성하고, 40,198-byte 전체 diff를 `artifacts/gemini-phase4-connection/phase4-request-submission.diff`에 생성했다.
+- Phase 4.4 변경(Base `674f741ee52d45bb96db3431521101a5aa01341f`, Target `5f7cf557844f64d77e90eb67c09974bf6aab81a0`)의 기준 요약과 검토 프롬프트를 [Gemini 수동 리뷰 패킷](archive/Gemini_phase4_manual_review.md)에 작성하고, 40,198-byte 전체 diff를 `artifacts/gemini-phase4-connection/phase4-request-submission.diff`에 생성했다.
 - API 연결 run `gemini-phase4-connection`은 dry-run에서 Base/Target 및 12개 파일을 확인한 뒤 사용자의 수동 전달 선택에 따라 `abandoned` 처리했다. GEMINI_API_KEY 미설정, API 호출·네트워크 요청·외부 전송 모두 없음. 종료 기록은 해당 run의 `iteration-01/human-report.md`에 있다.
 - Gemini는 `clean`/발견 없음으로 판정했다. 응답은 [`gemini-manual-review.md`](../artifacts/phase4-request-submission/iteration-01/gemini-manual-review.md)와 Schema 형식의 [`gemini-review.json`](../artifacts/phase4-request-submission/iteration-01/gemini-review.json)에 기존 ChronoLedger Reviewer 결과와 분리해 기록했다. 실제 Supabase RLS 및 관리자 RPC 원자성은 후속 검증으로 남아 있다.
 - Gemini 전체 API 도입 결정은 별도 미결정이며, 이번 수동 리뷰에는 API 호출이나 전송이 없었다.
@@ -1135,7 +1135,7 @@
 
 ## 최소 개입 협업 Orchestrator 준비 (2026-10-07)
 
-- VS Code Local harness에서 Maker/Reviewer를 위임하는 `ChronoLedger Orchestrator` 프로필과 초보자용 [협업 가이드](ChronoLedger_collaboration_guide.md)를 추가했다.
+- VS Code Local harness에서 Maker/Reviewer를 위임하는 `ChronoLedger Orchestrator` 프로필과 초보자용 [협업 가이드](collaboration-guide.md)를 추가했다.
 - `New-CollaborationRun.ps1` 실행, manifest/Target SHA 관리, 리뷰·테스트 Schema 검증, 제한 반복, 사용자 개입 조건을 Orchestrator 지침에 명시했다. Gemini 외부 전송과 최종 통합은 사용자 승인 사항으로 유지한다.
 - 협업 JSON Schema 검증 CLI와 오프라인 테스트를 추가했다. PowerShell 5의 UTF-8 BOM run manifest를 Gemini Reviewer가 읽도록 JSON 로더 호환성을 보완했다.
 - VS Code Agent 발견, Local subagent 호출, clean run 생성 및 전체 협업 통합은 아직 실제 환경에서 확인하지 않았다.
@@ -1177,14 +1177,14 @@
 
 ## UI 디자인 시안 및 시각 토큰 결정 (2026-10-07)
 
-- 대시보드·지출·통계의 별도 반응형 시안 [design-preview-ko.html](design-preview-ko.html)을 만들었다. 기존 [design-v1-ko.html](design-v1-ko.html)은 참고용으로 보존했다.
+- 대시보드·지출·통계의 별도 반응형 시안 [design-preview-ko.html](design-previews/design-preview-ko.html)을 만들었다. 기존 [design-v1-ko.html](design-previews/design-v1-ko.html)은 참고용으로 보존했다.
 - 사용자 결정: 대시보드 미니 그래프 제외, 데스크톱 지출 표/모바일 날짜별 카드, 캘린더 아이콘 전체 표시, 통계 월별 세로 막대와 분류별 가로 막대. 기존 결정인 상단 데스크톱 내비게이션, 반응형 폭, 간격/컨트롤 기준도 시안에 반영했다.
 - 브라우저에서 대시보드·지출·통계 탭을 확인했고, 390/900/1280px에서 가로 넘침이 없으며 모바일 카드/하단 내비게이션과 중간 폭·모바일 바텀시트가 표시되는 것을 확인했다. 테마 전환 및 새로고침 후 저장도 확인했다.
 - 추가 사용자 결정: 본문 15px/보조 12px/섹션 17px/페이지 제목 22px/주요 숫자 20–28px. 라이트는 쿨 뉴트럴 바탕·흰 표면·남색 글자·인디고 액션, 다크는 기존 팔레트 유지.
 - A2Z 제작자 안내에서 SIL OFL 1.1을, 눈누 사용 FAQ에서 상업적 사용·수정·재배포 허용을 확인했다. 원본 WOFF2 글꼴의 내장 저작권 표기(`Copyright © 2026 PT&`)를 사용해 OFL 전문을 폰트와 함께 제공하고, 9개 굵기를 시안과 웹 앱에서 자체 호스팅한다. 제작자 배포 ZIP에 라이선스 파일이 없어 프로젝트에 OFL을 동봉했다. 폰트 자체 단독 판매는 금지된다.
 - 라이선스 출처: [A2Z 제작자 안내](https://freesentation.blog/a2z), [눈누 사용 FAQ](https://noonnu.cc/font_page/1778), [SIL OFL 1.1 본문](https://openfontlicense.org/documents/OFL.txt).
 - 추가 사용자 결정: 카드는 은은한 그림자, 모달은 강조된 그림자. 빈 상태는 간결한 상황 설명과 관련 행동 버튼을 두고, 보조 피드백은 중립적이고 다음 행동을 안내한다.
-- 라이트 팔레트의 본문/보조 텍스트, 주요 액션 라벨, 상태 라벨 대비를 계산해 WCAG AA 텍스트 기준(4.5:1 이상)을 충족하도록 시안 토큰을 조정했다. 다크 상태 라벨과 두 테마의 기본 컨트롤 외곽선도 확인했다. 세부 ratio와 값은 [UI Design Sheet](../md/ChronoLedger_UI_Design_Sheet.md)에 기록했다.
+- 라이트 팔레트의 본문/보조 텍스트, 주요 액션 라벨, 상태 라벨 대비를 계산해 WCAG AA 텍스트 기준(4.5:1 이상)을 충족하도록 시안 토큰을 조정했다. 다크 상태 라벨과 두 테마의 기본 컨트롤 외곽선도 확인했다. 세부 ratio와 값은 [UI Design Sheet](spec/ChronoLedger_UI_Design_Sheet.md)에 기록했다.
 - 수정 시안을 브라우저에서 다크/라이트 각각 390/900/1280px로 확인했다. 페이지 가로 넘침이 없고 390px에서는 고정 상세 바텀시트, 900px에서는 중간 폭 상세 패널, 1280px에서는 우측 패널이 표시된다. 페이지 제목 22px, 주요 숫자 20–24px 적용을 확인했다.
 - 시안은 제품 UI 구현이 아니다. 제품 구현 시 키보드/스크린리더 검증 및 컴포넌트별 대비 검증이 남아 있다.
 - 브라우저에서 정적 시안과 웹 앱의 로컬 폰트를 확인해 A2Z 100–900의 9개 굵기가 모두 로드되는 것을 확인했다. 앱 정적 export에도 9개 파일과 CSS 참조가 포함된다. ESLint 설정 오류는 앱 worktree 설정의 `root: true`로 해결했다.
@@ -1315,5 +1315,5 @@
 
 - SRS §5~§10을 기준 문서 및 현재 구현 체크리스트와 대조했다. 상태 전이 표의 템플릿 비활성화 문구, 구현 현황 설명, 추적성 및 원자성 수용 기준을 보정했다.
 - Windows용 Tauri v2 데스크톱 실행 파일과 Android PWA만 지원하고 iOS PWA는 제외하기로 결정했다. 성능 수치 목표는 설계 단계에서 측정 환경과 함께 정하기로 했다.
-- 사용자가 검토 반영된 SRS 요구사항을 승인했다. [SRS](../md/SRS.md) 상태와 체크포인트에 승인 사실을 기록했다.
+- 사용자가 검토 반영된 SRS 요구사항을 승인했다. [SRS](spec/SRS.md) 상태와 체크포인트에 승인 사실을 기록했다.
 - (당시 체크포인트 기록, 2026-10-03 스모크 실행 전) SQL 검증은 미수행 상태였고 `public.expenses` 존재 때문에 DDL 적용을 보류했다. 이후 사용자가 rollback-only 스모크 검증을 완료해 최신 상태는 위의 설계 진입 승인으로 갱신됐다.

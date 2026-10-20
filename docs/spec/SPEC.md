@@ -1,6 +1,6 @@
 # 기능 및 화면 명세서 (SPEC.md)
 
-이 문서는 기능 동작과 사용자 인터페이스 요구사항을 정의한다. 통합 배경과 정합성 결정을 포함한 기준 문서는 [revisions_and_decisions.md](revisions_and_decisions.md)이며, 구현 세부 작업은 [to-do.md](../docs/to-do.md)를 따른다.
+이 문서는 기능 동작과 사용자 인터페이스 요구사항을 정의한다. 통합 배경과 정합성 결정을 포함한 기준 문서는 [revisions_and_decisions.md](revisions_and_decisions.md)이며, 구현 세부 작업은 [to-do.md](../to-do.md)를 따른다.
 
 ## 1. 제품 범위
 

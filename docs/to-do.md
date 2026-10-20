@@ -1,6 +1,6 @@
 # 구현 체크리스트 (to-do.md)
 
-현재 작업 우선순위와 완료 상태의 단일 기준 문서다. [Gemini 진행 기록](to-do_Gemini.md)은 별도 작성 이력으로 보존하며, 이 체크리스트와 상태가 다르면 이 문서 및 검증 가능한 구현/테스트 증거를 우선한다.
+현재 작업 우선순위와 완료 상태의 단일 기준 문서다. Gemini 진행 기록(구 to-do_Gemini 이력, 정리됨)은 별도 작성 이력으로 보존하며, 이 체크리스트와 상태가 다르면 이 문서 및 검증 가능한 구현/테스트 증거를 우선한다.
 
 ## Phase 0. SRS 및 설계 진입 게이트
 
@@ -10,8 +10,8 @@
 - [x] 0.4 만료 예정 지출과 온라인 강제 처리, 오프라인 캐시 읽기 선택을 명세했다.
 - [x] 0.5 가입 시 초기 재무/지갑 기본값과 멱등 초기화 트리거 초안을 추가했다.
 - [x] 0.6 SRS 작성·사용자 승인 및 SQL 실행 검증 완료. 설계 단계 진입을 승인한다.
-  - 참고: [SRS 초안](../md/SRS.md), [이전 준비도 검토](../md/srs-readiness-review.md), [차단 항목 설명](../md/planning-blockers.md), [결정안 검토](../md/resolved-blockers-review.md). 검토 기록은 당시 상태의 이력이며 최신 기준은 SRS/결정 보완이다.
-  - 현황: SRS 검토와 사용자 승인은 완료됐다. 사용자가 확인한 전용 테스트 프로젝트의 스키마 메타데이터를 대조했고, 승인한 `user-icons` 버킷(private, 102,400 bytes, `image/webp`) 설정도 검증했다. 사용자는 [`md/TESTS.sql`](../md/TESTS.sql)을 `ON_ERROR_STOP=1`로 실행해 `PASS: all smoke-test fixtures and mutations rolled back` 최종 메시지를 확인했다. 따라서 스크립트의 선행 스모크 검증이 오류 없이 완료되고 테스트 변경이 롤백된 것으로 판정한다. Phase 0 게이트를 통과해 설계 단계 진입을 승인한다. 이 스모크 테스트는 전체 SRS 수용 기준을 모두 망라하지 않으므로 상세 케이스는 설계/테스트 계획에서 추적한다. 전체 DDL은 재실행하지 않는다.
+  - 참고: [SRS 초안](spec/SRS.md), [이전 준비도 검토](archive/srs-readiness-review.md), [차단 항목 설명](archive/planning-blockers.md), [결정안 검토](archive/resolved-blockers-review.md). 검토 기록은 당시 상태의 이력이며 최신 기준은 SRS/결정 보완이다.
+  - 현황: SRS 검토와 사용자 승인은 완료됐다. 사용자가 확인한 전용 테스트 프로젝트의 스키마 메타데이터를 대조했고, 승인한 `user-icons` 버킷(private, 102,400 bytes, `image/webp`) 설정도 검증했다. 사용자는 [`sql/TESTS.sql`](../sql/TESTS.sql)을 `ON_ERROR_STOP=1`로 실행해 `PASS: all smoke-test fixtures and mutations rolled back` 최종 메시지를 확인했다. 따라서 스크립트의 선행 스모크 검증이 오류 없이 완료되고 테스트 변경이 롤백된 것으로 판정한다. Phase 0 게이트를 통과해 설계 단계 진입을 승인한다. 이 스모크 테스트는 전체 SRS 수용 기준을 모두 망라하지 않으므로 상세 케이스는 설계/테스트 계획에서 추적한다. 전체 DDL은 재실행하지 않는다.
 
 ## 구현 우선순위: Web/PWA 먼저
 
@@ -45,10 +45,10 @@
 - [ ] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
   - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했다.
   - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
-- [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](Netlify_Web_Architecture_Proposal.md)에 반영했다.
+- [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](archive/Netlify_Web_Architecture_Proposal.md)에 반영했다.
 - [ ] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
   - [x] **Cloudflare Pages 호스팅 환경 구성**: [`.nvmrc`](../.nvmrc) (Node.js 20 LTS), [`public/_headers`](../public/_headers) (불변 캐싱 및 보안 헤더), [`public/_redirects`](../public/_redirects) 설정 완료.
-  - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`md/MIGRATION_PG_CRON.sql`](../md/MIGRATION_PG_CRON.sql)) 작성 완료.
+  - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`sql/MIGRATION_PG_CRON.sql`](../sql/MIGRATION_PG_CRON.sql)) 작성 완료.
   - [x] **탈퇴 API Supabase RPC 완전 통합**: Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` `SECURITY DEFINER` RPC 함수로 프론트엔드 직접 연동 완료 ([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts)).
   - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
 - [x] ~~(폐기/대안) Netlify 후보 유지 시 점검 사항:~~ (Cloudflare Pages 공식 채택으로 제외)
@@ -56,7 +56,7 @@
 
 ## Gemini 진행 문서 대조 기록 (2026-10-03)
 
-당시 검토 대상: [`to-do_Gemini.md`](to-do_Gemini.md). 아래는 2026-10-03 당시 Gemini 진행 보고와 구현 상태를 대조한 기록이다. 현재 우선순위와 완료 상태는 이 문서 상단의 공용 체크리스트를 따른다.
+당시 검토 대상: `to-do_Gemini.md` (구 이력, 정리됨). 아래는 2026-10-03 당시 Gemini 진행 보고와 구현 상태를 대조한 기록이다. 현재 우선순위와 완료 상태는 이 문서 상단의 공용 체크리스트를 따른다.
 
 - **환경 골격 확인:** 작업 트리에 Next.js 정적 export, Tailwind/shadcn UI, Supabase 브라우저 클라이언트, Vitest 샘플, Tauri v2 설정, 로그인 화면과 dashboard 코드가 있다. Tauri CLI/Rust 의존성은 v2 계열이고 앱 식별자는 `com.chronoledger.app`이다. Gemini가 기록한 `npx tauri dev` 성공은 보고된 결과이며 이 리뷰에서 재실행하지 않았다.
 - **Phase 1 run은 미종료:** `artifacts/phase1-setup/run.json`은 `target_sha: null`, `status: in_progress`이고 `iteration-01/review.json`/`test.json`이 없다. Maker의 Phase 1 커밋 `ccfbca5` 이후 Tauri 플러그인·인증 변경이 미커밋 상태로 남아 있다. 생성된 `.next`/`out` 폴더는 변경 이후 동일 SHA의 검증 결과를 대신하지 않는다.
@@ -131,7 +131,7 @@
   - 현황: Antigravity(AGY) 도입으로 인해 다중 에이전트(Orchestrator, Maker, Reviewer) 파이프라인이 자동화되었으므로 개별 수동 연결 확인은 불필요해짐.
 - [x] Gemini Reviewer 제한 PoC 구현 및 오프라인 회귀 테스트
   - 단일 run/SHA 고정, 외부 전송 전 전체 diff의 인터랙티브 승인, 기존 리뷰 JSON Schema 검증 및 결과 no-overwrite 저장을 구현했다. `scripts/collaboration`의 오프라인 테스트 12개 통과.
-- [x] Phase 4.4 변경에 대해 [Gemini 수동 리뷰 패킷](Gemini_phase4_manual_review.md)과 exact Target diff를 Gemini에 직접 제공하고 결과를 기존 Copilot 리뷰와 분리해 기록했다. Gemini 판정은 `clean`/발견 없음이며, 실제 Supabase RLS·관리자 RPC 원자성은 미검증이다. API 호출은 하지 않았다.
+- [x] Phase 4.4 변경에 대해 [Gemini 수동 리뷰 패킷](archive/Gemini_phase4_manual_review.md)과 exact Target diff를 Gemini에 직접 제공하고 결과를 기존 Copilot 리뷰와 분리해 기록했다. Gemini 판정은 `clean`/발견 없음이며, 실제 Supabase RLS·관리자 RPC 원자성은 미검증이다. API 호출은 하지 않았다.
 - [x] ~~Gemini Reviewer PoC 외부 API 사용 및 도입 여부 결정~~ (대체됨)
   - 현황: Antigravity 시스템 내장 서브에이전트(chronoledger-reviewer)로 리뷰 과정이 성공적으로 대체되어 기존 수동 PoC 및 단일 API 스크립트 도입은 폐기함.
 

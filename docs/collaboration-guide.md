@@ -15,6 +15,7 @@
 | **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 마크업, Argon 직속 고속 탐색 서브에이전트, `docs/` 문서 동기화 | **GitHub Copilot** | **Gemini 4 Argon** |
 
 ### 주축 모델(Argon) 직접 구현 금지 원칙
+
 1. **Orchestrator 직접 구현 금지**: Argon은 제품 소스 코드(`src/**`)를 직접 수정하지 않으며, 요구사항 정의, Worktree 생성, 과제 분배 및 최종 검증만 담당합니다.
 2. **하이브리드 위임 프로토콜**:
    - **경량 UI/문서 동기화**: `Gemini 3.8 Flash` 서브에이전트(`Model: "flash"`)를 내부 호출하여 즉시 위임.
@@ -26,7 +27,7 @@
 
 모든 프로젝트 문서는 `docs/` 하위 체계로 일원화되어 관리됩니다.
 
-```
+```text
 c:\Projects\ChronoLedger\
 ├── docs/
 │   ├── to-do.md               # [SSOT] 전체 개발 백로그 및 작업 상태
@@ -72,4 +73,3 @@ c:\Projects\ChronoLedger\
 3. **토큰 소진 시 인계 기록**:
    - 상태를 `⚠️ HANDOVER_NEEDED`로 변경하고 대체 모델 체인 지정.
    - `### 📌 중단 체크포인트`에 ① 완료된 파일, ② 남은 작업, ③ 결정 사항, ④ 테스트 여부를 명확히 기재.
-
