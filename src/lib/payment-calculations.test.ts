@@ -85,14 +85,28 @@ describe("payment calculations", () => {
   })
 
   it("calculates Google Play boost multiplier earnings and generates memo tags", () => {
-    // 100,000원 결제, 기본 1.3% 적립률, 4배 부스트 적용 시: 5.2% 적립 (5,200P)
+    // 100,000원 결제, 4배 부스트: 등급 적립률(1.3%)과 무관하게 0.1% × 4 = 0.4% 고정 (400P)
     const result = calculateStoreEventEarn(100000, 1.3, "GOOGLE_PLAY", {
       isGoogleBoost: true,
       googleMultiplier: 4,
     })
-    expect(result.effectiveRate).toBe(5.2)
-    expect(result.earnedPoints).toBe(5200)
+    expect(result.effectiveRate).toBe(0.4)
+    expect(result.earnedPoints).toBe(400)
     expect(result.eventTag).toBe("[구글 부스트: 4배]")
+
+    // 5,900원 × 0.4% = 23.6 → 23P (내림)
+    expect(calculateStoreEventEarn(5900, 1.3, "GOOGLE_PLAY", { isGoogleBoost: true, googleMultiplier: 4 }).earnedPoints).toBe(23)
+
+    // 등급(기본 적립률)이 달라도 부스트 적립은 동일
+    const bronze = calculateStoreEventEarn(100000, 0.1, "GOOGLE_PLAY", { isGoogleBoost: true, googleMultiplier: 4 })
+    const diamond = calculateStoreEventEarn(100000, 0.2, "GOOGLE_PLAY", { isGoogleBoost: true, googleMultiplier: 4 })
+    expect(bronze).toEqual(diamond)
+    expect(bronze.earnedPoints).toBe(400)
+
+    // 3배 부스트: 0.3% 고정
+    const triple = calculateStoreEventEarn(100000, 0.13, "GOOGLE_PLAY", { isGoogleBoost: true, googleMultiplier: 3 })
+    expect(triple.effectiveRate).toBe(0.3)
+    expect(triple.earnedPoints).toBe(300)
 
     // 부스트 미적용 시 기본 적립
     const normal = calculateStoreEventEarn(100000, 1.3, "GOOGLE_PLAY", {

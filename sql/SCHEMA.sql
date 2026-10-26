@@ -412,6 +412,18 @@ BEGIN
         END IF;
     END IF;
 
+    -- 1-1. 포인트 미사용 스토어 결제: 지갑 행이 아직 없으면 기본 등급으로 자동 생성하여 적립 누락/지갑 미생성 오류 방지
+    IF v_store_platform IN ('GOOGLE_PLAY', 'GALAXY_STORE') AND p_used_points = 0 THEN
+        INSERT INTO public.store_wallets(user_id, platform, user_tier, earn_rate)
+        VALUES (
+            v_user_id,
+            v_store_platform,
+            CASE WHEN v_store_platform = 'GOOGLE_PLAY' THEN 'BRONZE' ELSE 'GENERAL' END,
+            0.10
+        )
+        ON CONFLICT (user_id, platform) DO NOTHING;
+    END IF;
+
     -- 2. 사용 포인트 차감 및 스토어 적립률 잠금 조회
     IF v_store_platform IS NOT NULL THEN
         SELECT current_balance, earn_rate INTO v_wallet_balance, v_earn_rate

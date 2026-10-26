@@ -83,6 +83,9 @@ export interface StoreEventConfig {
   galaxyPaybackRate?: number
 }
 
+/** Google Play 부스트 이벤트의 고정 기준 적립률(%) — 1,000원당 1P */
+export const GOOGLE_BOOST_BASE_RATE = 0.1
+
 export interface StoreEventEarnResult {
   effectiveRate: number
   earnedPoints: number
@@ -115,7 +118,8 @@ export function calculateStoreEventEarn(
   if (platform === "GOOGLE_PLAY" && eventConfig?.isGoogleBoost) {
     const mult = eventConfig.googleMultiplier ?? 1
     if (mult > 0) {
-      effectiveRate = Number((baseEarnRate * mult).toFixed(4))
+      // Google Play 부스트는 등급별 기본 적립률과 무관하게 기본 1포인트(0.1%, 1,000원당 1P) × n배로 고정 적립된다.
+      effectiveRate = Number((GOOGLE_BOOST_BASE_RATE * mult).toFixed(4))
       eventTag = `[구글 부스트: ${mult}배]`
     }
   } else if (platform === "GALAXY_STORE" && eventConfig?.isGalaxyPayback) {

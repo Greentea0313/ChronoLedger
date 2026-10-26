@@ -34,6 +34,7 @@ export interface PlannedExpenseInput {
   start_date?: string | null
   end_date?: string | null
   template_id?: string | null
+  point_platform?: string | null
 }
 
 export interface PlannedExpenseEditInput {
@@ -48,6 +49,17 @@ export interface PlannedExpenseEditInput {
   game_id?: string | null
   pickup_schedule_id?: string | null
   memo?: string | null
+  point_platform?: string | null
+}
+
+/** 저장된 결제수단(구버전 스토어 값 포함)과 point_platform으로 모달의 스토어 플랫폼을 복원한다. */
+function resolveStorePlatform(
+  method: string | null | undefined,
+  pointPlatform: string | null | undefined,
+): "GOOGLE_PLAY" | "GALAXY_STORE" {
+  if (method === "GALAXY_STORE" || method === "GOOGLE_PLAY") return method
+  if (pointPlatform === "GALAXY_STORE" || pointPlatform === "GOOGLE_PLAY") return pointPlatform
+  return "GOOGLE_PLAY"
 }
 
 interface ExpenseModalProps {
@@ -189,12 +201,13 @@ export function ExpenseModal({
         setManualPickupId(editingExpense.pickup_schedule_id ?? "")
 
         const method = editingExpense.payment_method
+        const restoredPlatform = resolveStorePlatform(method, editingExpense.point_platform)
         if (method === "NAVER_PAY") {
           setPaymentMethod("NAVER_PAY")
         } else {
           setPaymentMethod("WALLET")
         }
-        if (method === "GALAXY_STORE") {
+        if (restoredPlatform === "GALAXY_STORE") {
           setPaymentPlatform("GALAXY_STORE")
         } else if (method === "GOOGLE_PLAY") {
           setPaymentPlatform("GOOGLE_PLAY")
@@ -209,12 +222,13 @@ export function ExpenseModal({
         setFinalAmountInput(origStr)
 
         const method = plannedExpense?.payment_method
+        const restoredPlatform = resolveStorePlatform(method, plannedExpense?.point_platform)
         if (method === "NAVER_PAY") {
           setPaymentMethod("NAVER_PAY")
         } else {
           setPaymentMethod("WALLET")
         }
-        if (method === "GALAXY_STORE") {
+        if (restoredPlatform === "GALAXY_STORE") {
           setPaymentPlatform("GALAXY_STORE")
         } else if (method === "GOOGLE_PLAY") {
           setPaymentPlatform("GOOGLE_PLAY")
@@ -421,7 +435,8 @@ export function ExpenseModal({
       usedPoints: 0,
       paymentMethod,
       paymentPlatform,
-      pointPlatform: null,
+      // 포인트를 사용하지 않아도 스토어 결제라면 적립 대상 플랫폼을 RPC에 전달해야 적립이 누락되지 않는다.
+      pointPlatform: activePointPlatform,
       paymentDate,
     }
   }, [discountAmount, originalPrice, paymentDate, paymentMethod, paymentPlatform, activePointPlatform, usedPoints])
@@ -557,6 +572,7 @@ export function ExpenseModal({
             original_price: input.originalPrice,
             final_amount: input.originalPrice,
             payment_method: paymentMethod,
+            point_platform: activePointPlatform,
             deduct_from_asset: effectiveDeductAsset,
             game_id: isGameCategory && gameId ? gameId : null,
             schedule_id: isGameCategory ? (schedule?.id ?? null) : null,
@@ -589,6 +605,7 @@ export function ExpenseModal({
             original_price: input.originalPrice,
             final_amount: input.originalPrice,
             payment_method: paymentMethod,
+            point_platform: activePointPlatform,
             deduct_from_asset: effectiveDeductAsset,
             memo: finalMemo,
           })
@@ -975,8 +992,8 @@ export function ExpenseModal({
                         </div>
                       </div>
                       <p className="text-[11px] text-primary">
-                        적립률: 기본 {baseEarnRate}% × {googleBoostMultiplier || 1}배 ={" "}
-                        {(baseEarnRate * (Number(googleBoostMultiplier) || 1)).toFixed(2)}%
+                        이벤트 고정: 1,000원당 {Number(googleBoostMultiplier) || 1}P ({storeEventResult.effectiveRate}%)
+                        <span className="block text-content-secondary">등급별 기본 적립률과 무관하게 기본 1P(0.1%) × 부스트 배율로 적립됩니다.</span>
                       </p>
                     </div>
                   )}

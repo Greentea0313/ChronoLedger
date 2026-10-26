@@ -388,15 +388,18 @@ describe("ExpenseModal", () => {
     const multiplierInput = screen.getByLabelText("부스트 배율:")
     fireEvent.change(multiplierInput, { target: { value: "3" } })
 
-    // 기본 0.2% × 3배 = 0.6% -> 100,000 * 0.6% = 600P
+    // 등급 적립률(0.2%)과 무관하게 0.1% × 3배 = 0.3% 고정 -> 100,000 * 0.3% = 300P
+    expect(screen.getByText(/이벤트 고정: 1,000원당 3P \(0\.3%\)/)).toBeTruthy()
     const earnedInput = screen.getByLabelText("예상 적립 포인트 (P):") as HTMLInputElement
-    expect(earnedInput.value).toBe("600")
+    expect(earnedInput.value).toBe("300")
 
     fireEvent.click(screen.getByRole("button", { name: "결제 확정" }))
 
     await waitFor(() => expect(onCompleted).toHaveBeenCalled())
     expect(rpc).toHaveBeenCalledWith("process_expense_payment", expect.objectContaining({
-      p_custom_earned_points: 600,
+      p_custom_earned_points: 300,
+      p_point_platform: "GOOGLE_PLAY",
+      p_used_points: 0,
       p_memo: "[구글 부스트: 3배]",
     }))
   })
@@ -433,6 +436,51 @@ describe("ExpenseModal", () => {
       p_custom_earned_points: 15200,
       p_memo: "[갤스 페이백: 30%]",
     }))
+  })
+
+  it("passes the store point platform to the RPC even when no points are used so earning is not skipped", async () => {
+    rpc.mockResolvedValue({ error: null })
+    const onCompleted = vi.fn()
+    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "월정액" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "5900" } })
+    fireEvent.click(screen.getByRole("button", { name: "결제 확정" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ point_platform: "GOOGLE_PLAY" }))
+    expect(rpc).toHaveBeenCalledWith("process_expense_payment", expect.objectContaining({
+      p_used_points: 0,
+      p_point_discount_amount: 0,
+      p_point_platform: "GOOGLE_PLAY",
+    }))
+  })
+
+  it("restores point_platform when reopening a planned expense and keeps it on save", async () => {
+    const onCompleted = vi.fn()
+    render(
+      <ExpenseModal
+        open
+        onOpenChange={vi.fn()}
+        onCompleted={onCompleted}
+        editingExpense={{
+          id: "exp-plan-galaxy",
+          title: "갤스 예정 패키지",
+          original_price: 11000,
+          category: "식비",
+          target_date: "2026-10-20",
+          payment_method: "WALLET",
+          point_platform: "GALAXY_STORE",
+        }}
+      />
+    )
+
+    expect((screen.getByLabelText("결제 플랫폼") as HTMLSelectElement).value).toBe("GALAXY_STORE")
+    fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ point_platform: "GALAXY_STORE" }))
   })
 
   it("updates a planned expense with new values when editingExpense is provided", async () => {

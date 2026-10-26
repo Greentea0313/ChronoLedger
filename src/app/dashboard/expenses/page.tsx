@@ -636,6 +636,7 @@ export default function ExpensesPage() {
       original_price: expense.original_price,
       payment_method: expense.payment_method,
       pickup_schedule_id: expense.pickup_schedule_id ?? null,
+      point_platform: expense.point_platform ?? null,
       category: expense.category,
       game_id: expense.game_id ?? null,
       target_date: expense.target_date,
@@ -659,6 +660,7 @@ export default function ExpensesPage() {
       payment_method: expense.payment_method,
       game_id: expense.game_id ?? null,
       pickup_schedule_id: expense.pickup_schedule_id ?? null,
+      point_platform: expense.point_platform ?? null,
       memo: expense.memo ?? null,
     })
     setIsExpenseModalOpen(true)
