@@ -24,30 +24,50 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `google-point-earn-and-boost-redesign` *(2026-10-26, 구글 포인트 적립 누락 버그 수정 및 1포인트당 n배 고정 부스트 수식 재설계)*
+- **Run ID**: `user-game-memo-feature` *(2026-10-26, 게임별 상시 메모 기능 추가 — `/dashboard/games` 구독 게임 카드 연동 및 `user_games.memo` 확장)*
 - **Worktree 경로**: `main`
-- **배경 및 문제 원인**:
-  1. **포인트 미사용 결제 시 구글/갤스 포인트 적립 누락 버그**: `src/components/expense/expense-modal.tsx`의 `input` useMemo에서 `usedPoints === 0`일 때 `pointPlatform: null`을 반환하여 `process_expense_payment` RPC 호출 시 `p_point_platform: null`이 전달됨. 이로 인해 `payment_method`가 'WALLET' 또는 'NAVER_PAY'일 때 RPC 내부 `v_store_platform`이 `NULL`이 되어 스토어 포인트 적립이 0P로 무시됨.
-  2. **구글 플레이 부스트 이벤트 수식 오류**: 기존 `calculateStoreEventEarn`(`src/lib/payment-calculations.ts`)은 등급별 기본 적립률(`baseEarnRate`, 예: 골드 0.13%)에 `mult`를 곱했으나, 실제 구글 플레이 부스트는 등급과 무관하게 **기본 1포인트(`0.1%`, 1,000원당 1P)당 `n`배 (`effectiveRate = 0.1 * mult %`)**로 고정 적립됨.
+- **배경 및 사용자 요구사항**:
+  - 특정 일정(`game_schedules`)에 연동되지 않더라도 해당 게임 자체(`user_games`)에 귀속되는 개인 상시 메모 기능이 필요함.
+  - `/dashboard/games` (내 게임 관리) 페이지의 각 구독 게임 카드에서 바로 게임별 메모를 작성·열람·수정·삭제할 수 있어야 함.
 - **수용 기준 (Acceptance Criteria)**:
-  1. `src/lib/payment-calculations.ts`: `calculateStoreEventEarn`에서 `GOOGLE_PLAY` 부스트 활성화 시 등급별 `baseEarnRate`와 무관하게 `effectiveRate = Number((0.1 * mult).toFixed(4))`로 고정 계산하고 `Math.floor((finalAmount * effectiveRate) / 100)`를 반환할 것 (예: 4배 부스트 시 5,900원 결제 $\to$ `23P`, 100,000원 결제 $\to$ `400P`).
-  2. `src/components/expense/expense-modal.tsx`:
-     - 포인트를 사용하지 않은 결제(`usedPoints === 0`)에서도 `input.pointPlatform`이 `activePointPlatform`('GOOGLE_PLAY' | 'GALAXY_STORE' | null)으로 설정되어 `process_expense_payment` RPC에 `p_point_platform`이 정상 전달될 것.
-     - 예정 지출(`PLANNED`) 등록/수정 시에도 `point_platform: activePointPlatform`을 저장하고, 모달 재오픈 시 `point_platform`을 복원할 것.
-     - 구글 부스트 UI 안내 문구를 "이벤트 고정: 1,000원당 {n}P ({effectiveRate}%)" 형태로 명확히 표시할 것.
-  3. `sql/SCHEMA.sql` & `sql/MIGRATION_STORE_EVENT_EARN.sql`: `process_expense_payment` RPC에서 `v_store_platform IN ('GOOGLE_PLAY', 'GALAXY_STORE')`이고 `p_used_points = 0`일 때 해당 스토어 지갑 행이 아직 없으면 기본 등급(`GOOGLE_PLAY`는 'BRONZE'/`0.10`, `GALAXY_STORE`는 'GENERAL'/`0.10`)으로 자동 생성(`ON CONFLICT DO NOTHING`)하여 지갑 미생성 에러 없이 적립되게 보강할 것.
-  4. `src/lib/payment-calculations.test.ts` & `src/components/expense/expense-modal.test.tsx`: 변경된 부스트 고정 적립 수식 및 포인트 미사용 결제 시 `p_point_platform` 전달 검증 테스트를 업데이트/추가하고, 전체 Vitest 테스트(`npx vitest run`) 및 정적 빌드(`npm run build`) 100% 통과할 것.
+  1. `sql/SCHEMA.sql` & 신규 `sql/MIGRATION_USER_GAME_MEMO.sql`: `public.user_games` 테이블에 `memo TEXT` 컬럼을 추가(멱등성 보장 `ALTER TABLE public.user_games ADD COLUMN IF NOT EXISTS memo TEXT;`).
+  2. `src/app/dashboard/games/page.tsx`:
+     - `UserGameRow` 인터페이스 및 `user_games` 조회(`select`) 쿼리에 `memo` 포함.
+     - 각 구독 게임 카드 내에 게임별 상시 메모 표시 영역 및 인라인 편집 UI(`Textarea` 또는 입력창, `[메모 작성]`/`[메모 수정]`, `[저장]`, `[취소]` 버튼) 구현.
+     - 저장 시 `supabase.from("user_games").update({ memo: trimmed || null }).eq("id", ug.id).eq("user_id", user.id)`를 호출하고 로컬 상태(`userGames`)를 즉시 갱신할 것.
+     - 모바일 화면 안전성을 위해 구독 게임 목록 하단 페이지네이션에도 `flex-wrap justify-center` 적용.
+  3. `src/app/dashboard/games/page.test.tsx`: 구독 게임 카드에서 게임별 메모 렌더링 및 작성/수정/저장 동작을 검증하는 단위 테스트 추가.
+  4. 전체 단위 테스트(`npx vitest run`) 및 정적 빌드(`npm run build`) 100% 통과.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `🔄 IN_PROGRESS` | ~~GPT Codex~~ ➡️ **Claude Opus 5.5** *(1순위 대체 수행 / 2순위: GitHub Copilot)* | `Maker (Core) & Test` | 구글 포인트 적립 누락 버그 수정, `0.1% × n배` 고정 부스트 수식 재설계, SQL RPC 보강 및 단위 테스트 (`src/lib/payment-calculations.ts`, `src/lib/payment-calculations.test.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `sql/SCHEMA.sql`, `sql/MIGRATION_STORE_EVENT_EARN.sql`) | `▶ READY` (대기 중) |
-| **2** | `⏳ PENDING` | **Claude Opus 5.5** *(대체: Gemini 4 Argon / GitHub Copilot)* | `Reviewer & Maker (Complex)` | 포인트 원장 적립/환불 정합성 코드 리뷰 및 최종 빌드·문서 마감 검증 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | 1단계 완료 후 진행 |
+| **1** | `▶ READY` | **GitHub Copilot** *(1순위 대체: Gemini 3.8 Flash / 2순위 대체: GPT Codex)* | `Maker (General)` | `user_games.memo` 스키마/마이그레이션 SQL 추가 및 `/dashboard/games` 게임 카드 내 상시 메모 작성·열람·수정 UI 구현 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`, `src/app/dashboard/games/page.tsx`) | `▶ READY` (대기 중) |
+| **2** | `⏳ PENDING` | **GPT Codex** *(1순위 대체: Claude Opus 5.5 / 2순위 대체: GitHub Copilot)* | `Maker (Test)` | `/dashboard/games` 게임별 상시 메모 렌더링 및 저장 단위 테스트 보강 (`src/app/dashboard/games/page.test.tsx`) | 1단계 완료 후 진행 |
+| **3** | `⏳ PENDING` | **Claude Opus 5.5** *(1순위 대체: Gemini 4 Argon / 2순위 대체: GitHub Copilot)* | `Reviewer & Orchestrator` | 코드 리뷰, 전체 빌드 검증 및 문서 4종(`handoff`, `progress`, `changelog`, `to-do`) 동기화 | 2단계 완료 후 진행 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 
 ---
+
+## 구글 플레이 포인트 적립 누락 버그 해결 및 1포인트당 n배(0.1% × n) 고정 부스트 수식 재설계 (2026-10-26)
+
+- **수행 주체**: Claude Opus 5.5 (Maker - Core & Test, GPT Codex 1순위 대체) / Gemini 4 Argon (Reviewer & Architect)
+- **구현 커밋**: `7307b99` (Base: `cc9889a`)
+- **수행 내역**:
+  1. `src/lib/payment-calculations.ts`: `GOOGLE_BOOST_BASE_RATE = 0.1` 상수 도입, 등급별 `baseEarnRate`와 무관하게 `effectiveRate = 0.1 * mult %` 고정 계산 및 `Math.floor((finalAmount * effectiveRate) / 100)` 적립식 재설계.
+  2. `src/components/expense/expense-modal.tsx`: 포인트 미사용 결제(`usedPoints === 0`) 시에도 `pointPlatform: activePointPlatform`을 정상 전달하여 RPC에 스토어 플랫폼 누락 방지. 예정 지출 등록/수정 시 `point_platform` 보존 및 `resolveStorePlatform` 복원. 부스트 UI 안내 문구 직관화(`"이벤트 고정: 1,000원당 {n}P ({effectiveRate}%)"`).
+  3. `src/app/dashboard/expenses/page.tsx`: 예정 지출 확인/수정 핸들러(`handleConfirmPlanned`, `handleEditPlanned`)에 `point_platform` 전달 연동.
+  4. `sql/SCHEMA.sql` & `sql/MIGRATION_STORE_EVENT_EARN.sql`: `process_expense_payment` RPC에서 스토어 결제 시 `store_wallets` 레코드가 없으면 기본 등급(`GOOGLE_PLAY`: `'BRONZE'`/`0.10`, `GALAXY_STORE`: `'GENERAL'`/`0.10`)으로 자동 삽입(`ON CONFLICT DO NOTHING`) 안전망 추가.
+  5. `src/lib/payment-calculations.test.ts` & `src/components/expense/expense-modal.test.tsx`: 고정 부스트 계산식 및 포인트 미사용 결제 시 `p_point_platform` 전달 검증 테스트 반영.
+- **검증 결과**:
+  - Vitest 42개 파일, 262개 단위 테스트 100% 통과 (PASS).
+  - Next.js 14 프로덕션 정적 빌드(`npm run build`) 15개 정적 페이지 export 성공.
+  - Gemini 4 Argon 정적 코드 리뷰 완료 (원장 정합성 및 수용 기준 PASS).
+- **⚠️ 운영 배포 주의사항**:
+  - Supabase 실제 데이터베이스 운영 환경에 신규 마이그레이션 반영을 위해 Supabase 대시보드 SQL Editor에서 `sql/MIGRATION_STORE_EVENT_EARN.sql` 스크립트를 1회 직접 실행해야 합니다.
+
 
 ## 모바일 화면 UI 오버플로우 3건 해결 및 향후 과제 4종 로드맵 수립 (2026-10-26)
 

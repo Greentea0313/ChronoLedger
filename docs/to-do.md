@@ -446,14 +446,23 @@
        - 지출 내역 및 구독 탭 하단 페이지네이션 컨테이너에 `flex-wrap justify-center` 추가.
   - verify: 단위 테스트(`store-wallet-adjust-history-modal.test.tsx`, `dashboard/expenses/page.test.tsx`) 통과.
 
+- [x] 12.12 구글 플레이 포인트 적립 누락 해결 및 1포인트당 n배(0.1% × n) 고정 부스트 수식 재설계 (2026-10-26)
+  - 대상 파일: `src/lib/payment-calculations.ts`, `src/lib/payment-calculations.test.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `sql/SCHEMA.sql`, `sql/MIGRATION_STORE_EVENT_EARN.sql`
+  - 작업:
+    1. **포인트 미사용 결제 시 스토어 포인트 적립 누락 버그 해결**: `ExpenseModal`에서 `usedPoints === 0`일 때도 `pointPlatform: activePointPlatform`을 정상 전달하여 `process_expense_payment` RPC 적립 누락 차단. 예정 지출 등록/수정 시 `point_platform` 보존 및 모달 재오픈 복원 연동.
+    2. **구글 플레이 부스트 고정 적립률(`0.1% × n배`) 재설계**: 등급 무관 기본 1,000원당 `n`P(`0.1% × n배`)로 고정 계산하도록 `calculateStoreEventEarn` 수식 재설계 및 안내 UI 문구 명확화.
+    3. **스토어 지갑 미생성 안전망 보강**: `process_expense_payment` RPC에서 스토어 지갑 미생성 시 기본 등급(`BRONZE` / `GENERAL`)으로 자동 생성(`ON CONFLICT DO NOTHING`) 후 적립 처리.
+    4. **단위 테스트 및 빌드 검증**: 변경 수식 및 모달 전달 파라미터 단위 테스트 보강.
+  - verify: Vitest 42개 파일 262개 테스트 통과, 정적 빌드(`npm run build`) 성공 (커밋 `7307b99`, Gemini 4 Argon 코드 리뷰 통과).
+
 ---
 
 ## 향후 / 진행 로드맵 (Active & Planned Roadmap)
 
 - [x] R1. 모바일 화면 UI 오버플로우(수동 보정 내역 모달, 관리자 페이지네이션, 소비 페이지 픽업 과금 분석 카드) 해결 (`완료` - Gemini 3.8 Flash 완료)
-- [ ] R2. 구글 플레이 포인트 적립 누락 버그 해결 및 이벤트 부스트 수식(`1,000원당 n포인트 = 0.1% × n배 고정`) 재설계 (`진행 예정 - GPT Codex 할당`)
+- [x] R2. 구글 플레이 포인트 적립 누락 버그 해결 및 이벤트 부스트 수식(`1,000원당 n포인트 = 0.1% × n배 고정`) 재설계 (`완료` - 커밋 `7307b99`, Gemini 4 Argon 리뷰 완료)
   - 지출 등록 및 결제 계산 모듈(`src/lib/payment-calculations.ts`)에서 구글 플레이 포인트 적립식 보정 및 단위 테스트 작성
-- [ ] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`대기`)
+- [ ] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`진행 준비 (Active Dispatch Queue 등록)`)
 - [ ] R4. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (`장기 백로그 / 기획 검토`)
 
 ---

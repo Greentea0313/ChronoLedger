@@ -1,5 +1,27 @@
 # 프로젝트 진행 현황
 
+## 구글 플레이 포인트 적립 누락 버그 해결 및 1포인트당 n배(0.1% × n) 고정 부스트 수식 재설계 (2026-10-26)
+
+- **배경 및 사용자 요구사항**:
+  1. **포인트 미사용 결제 시 스토어 포인트 적립 누락 버그 해결**: 기존 `ExpenseModal`에서 포인트를 사용하지 않고 결제할 때(`usedPoints === 0`) `pointPlatform: null`이 전달되어 `process_expense_payment` RPC에서 적립 대상 스토어 플랫폼을 판별하지 못하고 적립이 0P로 누락되던 결함 수정.
+  2. **구글 플레이 부스트 이벤트 고정 수식 재설계**: 기존 수식이 등급별 적립률(`baseEarnRate`)의 배수로 동작하던 문제를 바로잡고, 실제 구글 플레이 부스트 규칙에 맞춰 등급과 무관하게 **1,000원당 `n`포인트(`0.1% × n배`)**로 고정 적립률을 계산하도록 재설계.
+  3. **스토어 지갑 미생성 안전망 보강**: 첫 결제 시 `store_wallets` 행이 존재하지 않아도 기본 등급(`BRONZE` / `GENERAL`)으로 자동 생성하여 예외 없이 적립이 진행되도록 RPC 보강.
+- **수행 내역**:
+  1. **포인트 미사용 결제 시 스토어 플랫폼 전달 및 예정 지출 복원 보강 (`src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`)**:
+     - `ExpenseModal`의 `input` 계산 시 `usedPoints === 0`인 경우에도 `pointPlatform: activePointPlatform`을 정상 전달하여 `process_expense_payment` RPC에 `p_point_platform`이 누락되지 않도록 수정.
+     - 예정 지출(`PLANNED`) 생성 및 수정 시 `point_platform: activePointPlatform`을 저장하고, 모달 재오픈 시 `resolveStorePlatform`을 통해 선택된 스토어 플랫폼이 정확히 복원되도록 보완 (`page.tsx` 연동 보강).
+     - 구글 플레이 부스트 안내 문구를 `"이벤트 고정: 1,000원당 {n}P ({effectiveRate}%)"`로 직관적으로 개편.
+  2. **구글 플레이 부스트 이벤트 고정 적립률(`0.1% × n배`) 재설계 (`src/lib/payment-calculations.ts`)**:
+     - `GOOGLE_BOOST_BASE_RATE = 0.1` 상수를 정의하고, `calculateStoreEventEarn`에서 `GOOGLE_PLAY` 부스트 시 등급별 `baseEarnRate`와 무관하게 `effectiveRate = Number((0.1 * mult).toFixed(4))`로 고정 계산하고 `Math.floor((finalAmount * effectiveRate) / 100)`를 반환하도록 수식 변경 (예: 4배 부스트 시 5,900원 결제 $\to$ `23P`, 100,000원 결제 $\to$ `400P`).
+  3. **DB RPC 지갑 자동 생성 안전망 보강 (`sql/SCHEMA.sql`, `sql/MIGRATION_STORE_EVENT_EARN.sql`)**:
+     - `process_expense_payment` RPC에서 `p_used_points = 0`이고 `v_store_platform IN ('GOOGLE_PLAY', 'GALAXY_STORE')`일 때 대상 `store_wallets` 레코드가 없으면 기본 등급(`GOOGLE_PLAY`: `'BRONZE'`/`0.10`, `GALAXY_STORE`: `'GENERAL'`/`0.10`)으로 자동 삽입(`ON CONFLICT DO NOTHING`)한 후 적립하도록 안전망 구축.
+  4. **단위 테스트 업데이트 및 검증 (`src/lib/payment-calculations.test.ts`, `src/components/expense/expense-modal.test.tsx`)**:
+     - 변경된 부스트 고정 계산식 단위 테스트 갱신 (10개 PASS) 및 포인트 미사용 결제 시 `p_point_platform` 전달 검증 케이스 보강 (24개 PASS).
+- **검증 완료**:
+  - Vitest 42개 파일, 262개 단위 테스트 100% 통과 (PASS).
+  - Next.js 14 프로덕션 정적 빌드(`npm run build`) 15개 정적 페이지 export 성공.
+  - 커밋 `7307b99` (Claude Opus 5.5 구현), Gemini 4 Argon 독립 정적 코드 리뷰 완료 (정합성 및 수용 기준 PASS).
+
 ## 모바일 화면 UI 오버플로우 3건 해결 및 향후 과제 4종 로드맵 수립 (2026-10-26)
 
 - **배경 및 사용자 요구사항**:

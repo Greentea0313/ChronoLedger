@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-26 (구글 플레이 포인트 적립 누락 버그 해결 및 1포인트당 n배(0.1% × n) 고정 부스트 수식 재설계)
+
+- **포인트 미사용 결제 시 스토어 포인트 적립 누락 버그 해결 (`src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`)**:
+  - 기존 `ExpenseModal`의 `input` 계산 시 `usedPoints === 0`이면 `pointPlatform: null`을 반환하여 `process_expense_payment` RPC에서 적립이 0P로 누락되던 결함을 해결 (`pointPlatform: activePointPlatform` 전달).
+  - 예정 지출(`PLANNED`) 등록 및 수정 시에도 `point_platform`을 저장하고, 모달 재오픈 시 `resolveStorePlatform`을 통해 선택한 스토어 플랫폼을 복원하도록 개선.
+- **구글 플레이 부스트 이벤트 고정 적립률(`0.1% × n배`) 재설계 (`src/lib/payment-calculations.ts`, `src/components/expense/expense-modal.tsx`)**:
+  - `GOOGLE_BOOST_BASE_RATE = 0.1` 상수를 도입하여 구글 플레이 부스트 활성화 시 등급별 기본 적립률(`baseEarnRate`)과 무관하게 **1,000원당 `n`포인트(`0.1% × n배`)**로 고정 적립률을 계산하도록 변경.
+  - 부스트 안내 UI 문구를 `"이벤트 고정: 1,000원당 {n}P ({effectiveRate}%)"`로 직관화.
+- **DB RPC 지갑 자동 생성 안전망 보강 (`sql/SCHEMA.sql`, `sql/MIGRATION_STORE_EVENT_EARN.sql`)**:
+  - `process_expense_payment` RPC에서 포인트 미사용 스토어 결제(`p_used_points = 0`) 시 해당 스토어의 `store_wallets` 행이 아직 없으면 기본 등급(`GOOGLE_PLAY`: `'BRONZE'`/`0.10`, `GALAXY_STORE`: `'GENERAL'`/`0.10`)으로 자동 생성(`ON CONFLICT DO NOTHING`)한 뒤 적립을 수행하도록 보강.
+- **단위 테스트 및 리뷰/빌드 검증**:
+  - `src/lib/payment-calculations.test.ts` (10개 PASS), `src/components/expense/expense-modal.test.tsx` (24개 PASS), 전체 42개 파일 262개 테스트 100% 통과 및 정적 빌드 성공 (커밋 `7307b99`, Gemini 4 Argon 정적 리뷰 PASS).
+
 ## 2026-10-26 (모바일 화면 UI 오버플로우 3건 해결 및 향후 과제 4종 로드맵 수립)
 
 - **공통 다이얼로그 및 수동 보정 내역 모달 모바일 화면 이탈 방지 (`src/components/ui/dialog.tsx`, `src/components/wallet/store-wallet-adjust-history-modal.tsx`)**:
