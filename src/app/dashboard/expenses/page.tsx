@@ -874,7 +874,7 @@ export default function ExpensesPage() {
   if (!user) return <div className="p-6 text-content">로그인이 필요합니다.</div>
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="w-full overflow-x-hidden space-y-6 animate-fade-in">
       {/* 헤더 */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>
@@ -1130,7 +1130,7 @@ export default function ExpensesPage() {
               ) : (
                 <div className="grid gap-6 lg:grid-cols-12 items-start">
                   {/* 가로 막대 차트 (좌측 7컬럼) */}
-                  <div className="lg:col-span-7 space-y-2">
+                  <div className="lg:col-span-7 space-y-2 min-w-0 w-full overflow-hidden">
                     <p className="text-xs font-medium text-content-secondary">픽업별 과금액 (원)</p>
                     <div style={{ height: Math.max(220, pickupStatsData.list.length * 42) }} className="w-full">
                       <ResponsiveContainer width="100%" height="100%">
@@ -1202,7 +1202,7 @@ export default function ExpensesPage() {
                   </div>
 
                   {/* 픽업 랭킹 및 비중 카드 (우측 5컬럼) */}
-                  <div className="lg:col-span-5 space-y-3 bg-surface-2/60 p-4 rounded-lg border border-line">
+                  <div className="lg:col-span-5 space-y-3 bg-surface-2/60 p-4 rounded-lg border border-line min-w-0 w-full overflow-hidden">
                     <div className="flex items-center justify-between border-b border-line pb-2.5">
                       <span className="text-xs font-semibold text-content">픽업 과금 순위</span>
                       <span className="text-xs text-content-secondary">
@@ -1223,7 +1223,7 @@ export default function ExpensesPage() {
                             onMouseEnter={() => setActivePickupIndex(index)}
                             onMouseLeave={() => setActivePickupIndex(null)}
                           >
-                            <div className="flex items-center gap-2 truncate">
+                            <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
                               <span
                                 className={`w-5 h-5 flex items-center justify-center rounded text-[11px] font-bold shrink-0 ${
                                   index === 0
@@ -1581,7 +1581,7 @@ export default function ExpensesPage() {
                     </div>
 
                     {totalExpensePages > 1 && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex flex-wrap items-center justify-center gap-1">
                         <Button
                           size="sm"
                           variant="outline"
@@ -1821,7 +1821,7 @@ export default function ExpensesPage() {
                     </span>{" "}
                     페이지
                   </p>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5">
                     <Button
                       size="sm"
                       variant="outline"

@@ -1,5 +1,29 @@
 # 변경 이력
 
+## 2026-10-26 (모바일 화면 UI 오버플로우 3건 해결 및 향후 과제 4종 로드맵 수립)
+
+- **공통 다이얼로그 및 수동 보정 내역 모달 모바일 화면 이탈 방지 (`src/components/ui/dialog.tsx`, `src/components/wallet/store-wallet-adjust-history-modal.tsx`)**:
+  - `DialogContent` 기본 스타일에 `grid-cols-1 overflow-x-hidden p-4 sm:p-6`을 적용하여 CSS Grid 직계 자식의 `min-width: auto` 팽창 현상 차단 및 모바일 내부 패딩 최적화.
+  - `StoreWalletAdjustHistoryModal`에 `w-[calc(100%-1.5rem)] sm:max-w-2xl overflow-x-hidden` 보강, 헤더 타이틀 컨테이너에 `pr-7 min-w-0` 및 `break-words` 적용으로 우측 상단 닫기(`X`) 버튼과 제목 겹침/이탈 방지.
+  - 플랫폼 필터 바에 `flex-wrap min-w-0`을 적용하여 모바일에서 '네이버페이' 캡슐 버튼이 우측으로 잘리지 않고 자연스럽게 줄바꿈되도록 개선.
+  - 내역 리스트 컨테이너 및 레코드 카드에 `min-w-0`, 사유 텍스트 `break-words`, 보정 후 잔액 영역 `shrink-0` 적용.
+- **관리자 페이지 및 소비 페이지 페이지네이션 모바일 반응형 개선 (`src/app/admin/page.tsx`, `src/app/dashboard/expenses/page.tsx`)**:
+  - `/admin` 공식 일정 및 게임 목록 페이지네이션 컨테이너를 `flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 max-w-full`로 변경.
+  - 내부 번호 버튼 크기를 모바일 `h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs`, 이전/다음 버튼을 `h-7 sm:h-8 px-1.5 sm:px-2 text-xs`로 축소 최적화하여 좁은 모바일 화면에서도 좌우 여백을 벗어나지 않도록 처리.
+  - `/dashboard/expenses` 지출 내역 탭 및 구독 탭 하단 페이지네이션 컨테이너에도 `flex-wrap justify-center` 적용.
+- **소비 페이지 픽업별 과금 분석 & 순위 카드 모바일 우측 잘림 해결 (`src/app/dashboard/expenses/page.tsx`)**:
+  - 페이지 최상위 컨테이너에 `w-full overflow-x-hidden`을 적용하여 모바일 가로 스크롤 및 쏠림 현상 원천 차단.
+  - `게임 픽업별 과금 분석` 카드 내부 좌측 차트 영역(`lg:col-span-7`) 및 우측 순위 카드 영역(`lg:col-span-5`)에 `min-w-0 w-full overflow-hidden` 적용.
+  - 픽업 순위 리스트 각 행 좌측 컨테이너를 `flex items-center gap-2 min-w-0 flex-1 overflow-hidden`으로 수정하여 긴 픽업 이름(예: "치사 + 유노 + 여우의 별자리") 및 `동시 픽업` 배지가 카드 우측 금액/비중 영역을 밀어내지 않고 자연스럽게 말줄임(`truncate`)되도록 개선.
+- **지출 내역 테스트 KST 기준일 모킹 보강 (`src/app/dashboard/expenses/page.test.tsx`)**:
+  - `sampleExpenses` 기준일(`2026-10-15`)로부터 7일 경과 시(`today > 2026-10-22`) 모든 항목이 과거 지출(`pastExpenses`)로 분류되어 테스트가 실패하던 현상을 해결하기 위해 `mockGetKstToday: vi.fn(() => "2026-10-15")` 고정 모킹 추가.
+- **로드맵 문서 동기화 (`docs/to-do.md`)**:
+  - Phase 12 하단 `12.11 모바일 화면 UI 오버플로우 해결` 완료 기록.
+  - `## 향후 / 진행 로드맵 (Active & Planned Roadmap)` 섹션에 과제 4종(R1 완료, R2 GPT Codex 할당 예정, R3 대기, R4 장기 백로그) 신설.
+- **검증 완료**:
+  - Vitest 42개 파일, 260개 단위 테스트 100% 통과 (PASS).
+  - Next.js 14 프로덕션 정적 빌드(`npm run build`) 15개 페이지 export 성공.
+
 ## 2026-10-20 (모바일 달력 타일 도트 아이콘 우측 상단 세로 정렬 개선)
 
 - **모바일 달력 타일 도트 컨테이너 세로 정렬 일원화 (`src/components/calendar/desktop-calendar.tsx`)**:

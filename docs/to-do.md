@@ -428,6 +428,33 @@
   - 대상 파일: `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`
   - 작업: 모바일 달력 타일 우측 상단 도트 컨테이너 클래스를 기존 가로 정렬(`flex md:hidden items-center gap-0.5 sm:gap-1 shrink-0 pt-0.5`)에서 데스크톱과 일치하는 세로 정렬(`flex md:hidden flex-col items-end gap-1 shrink-0 pt-0.5`)로 변경하여 버전/픽업/콘텐츠/메모 도트가 우측 상단에 수직으로 깔끔하게 나열되도록 설정.
   - verify: 모바일 도트 컨테이너 클래스(`flex-col`, `items-end`, `gap-1`) 단위 테스트 보강(`desktop-calendar.test.tsx`), Vitest 42개 파일 260개 테스트 100% PASS, Next.js 14 정적 빌드(`npm run build`) 성공.
+- [x] 12.11 모바일 화면 UI 오버플로우 해결 (수동 보정 내역 모달, 관리자 페이지네이션, 소비 페이지 픽업 과금 분석 카드) (2026-10-26)
+  - 대상 파일: `src/components/ui/dialog.tsx`, `src/components/wallet/store-wallet-adjust-history-modal.tsx`, `src/app/admin/page.tsx`, `src/app/dashboard/expenses/page.tsx`
+  - 작업:
+    1. **모달(`DialogContent` & `StoreWalletAdjustHistoryModal`) 모바일 화면 이탈 해결**:
+       - `DialogContent`의 grid 직계 자식 `min-width: auto` 팽창 방지를 위해 `grid-cols-1 overflow-x-hidden p-4 sm:p-6` 적용.
+       - `StoreWalletAdjustHistoryModal`의 `DialogContent`에 `w-[calc(100%-1.5rem)] sm:max-w-2xl overflow-x-hidden` 보강, 헤더 텍스트 래퍼에 `pr-7 min-w-0` 및 `break-words` 적용으로 우측 상단 닫기(`X`) 버튼 겹침 방지.
+       - 플랫폼 필터 바 컨테이너를 `flex-wrap min-w-0`으로 변경하여 모바일에서 '네이버페이' 버튼 잘림 해결.
+       - 내역 리스트 영역과 개별 레코드 카드에 `min-w-0`, 사유 텍스트 `break-words`, 보정 후 잔액 영역 `shrink-0` 적용.
+    2. **관리자 페이지(`/admin`) 공식 일정 및 게임 목록 페이지네이션 반응형 개선**:
+       - 페이지네이션 래퍼를 `flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 max-w-full`로 변경.
+       - 페이지 번호 버튼 컨테이너를 `flex flex-wrap items-center justify-center gap-1`로 변경하고, 번호 버튼 크기를 모바일 `h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs`, 이전/다음 버튼을 `h-7 sm:h-8 px-1.5 sm:px-2 text-xs`로 최적화.
+    3. **소비 페이지(`/dashboard/expenses`) 픽업별 과금 분석 & 순위 카드 반응형 개선**:
+       - 페이지 최상위 컨테이너에 `w-full overflow-x-hidden` 추가로 모바일 가로 스크롤/쏠림 원천 차단.
+       - `게임 픽업별 과금 분석` 카드 내부 좌측 차트 영역(`lg:col-span-7`) 및 우측 순위 카드 영역(`lg:col-span-5`)에 `min-w-0 w-full overflow-hidden` 적용.
+       - 픽업 순위 리스트 행 좌측 영역을 `flex items-center gap-2 min-w-0 flex-1 overflow-hidden`으로 수정하여 긴 픽업 이름과 `동시 픽업` 배지가 카드 우측을 밀어내지 않고 말줄임(`truncate`)되도록 보완.
+       - 지출 내역 및 구독 탭 하단 페이지네이션 컨테이너에 `flex-wrap justify-center` 추가.
+  - verify: 단위 테스트(`store-wallet-adjust-history-modal.test.tsx`, `dashboard/expenses/page.test.tsx`) 통과.
+
+---
+
+## 향후 / 진행 로드맵 (Active & Planned Roadmap)
+
+- [x] R1. 모바일 화면 UI 오버플로우(수동 보정 내역 모달, 관리자 페이지네이션, 소비 페이지 픽업 과금 분석 카드) 해결 (`완료` - Gemini 3.8 Flash 완료)
+- [ ] R2. 구글 플레이 포인트 적립 누락 버그 해결 및 이벤트 부스트 수식(`1,000원당 n포인트 = 0.1% × n배 고정`) 재설계 (`진행 예정 - GPT Codex 할당`)
+  - 지출 등록 및 결제 계산 모듈(`src/lib/payment-calculations.ts`)에서 구글 플레이 포인트 적립식 보정 및 단위 테스트 작성
+- [ ] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`대기`)
+- [ ] R4. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (`장기 백로그 / 기획 검토`)
 
 ---
 

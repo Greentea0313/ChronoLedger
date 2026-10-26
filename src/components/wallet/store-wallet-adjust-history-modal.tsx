@@ -158,17 +158,17 @@ export function StoreWalletAdjustHistoryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-surface border-line text-content">
+      <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-2xl overflow-x-hidden bg-surface border-line text-content">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-surface-2 text-primary">
+          <div className="flex items-center gap-2 pr-7 min-w-0">
+            <div className="p-2 rounded-lg bg-surface-2 text-primary shrink-0">
               <History className="h-5 w-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <DialogTitle className="text-lg font-bold text-content">
                 포인트/페이 수동 보정 내역
               </DialogTitle>
-              <DialogDescription className="text-xs text-content-secondary mt-0.5">
+              <DialogDescription className="text-xs text-content-secondary mt-0.5 break-words">
                 지갑 잔액 수동 보정에서 사용자가 직접 조정한 내역을 확인합니다. (5개 단위 페이지)
               </DialogDescription>
             </div>
@@ -177,7 +177,7 @@ export function StoreWalletAdjustHistoryModal({
 
         {/* 필터 및 새로고침 바 */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-line">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             {(
               [
                 { id: "ALL", label: "전체" },
@@ -215,7 +215,7 @@ export function StoreWalletAdjustHistoryModal({
         </div>
 
         {/* 내역 리스트 영역 (5개 고정 슬롯 느낌으로 스크롤 최소화) */}
-        <div className="min-h-[260px] space-y-2 pr-1">
+        <div className="min-h-[260px] space-y-2 pr-1 min-w-0">
           {isLoading && records.length === 0 ? (
             <div className="flex items-center justify-center h-48 text-sm text-content-secondary">
               불러오는 중...
@@ -242,7 +242,7 @@ export function StoreWalletAdjustHistoryModal({
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               {paginatedRecords.map((record) => {
                 const meta = PLATFORM_LABELS[record.platform] ?? {
                   label: record.platform,
@@ -258,10 +258,10 @@ export function StoreWalletAdjustHistoryModal({
                 return (
                   <div
                     key={record.id}
-                    className="p-3 rounded-lg border border-line bg-surface-2/60 hover:bg-surface-2 transition-colors text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                    className="p-3 rounded-lg border border-line bg-surface-2/60 hover:bg-surface-2 transition-colors text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span
                           className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${meta.badgeClass}`}
                         >
@@ -271,13 +271,13 @@ export function StoreWalletAdjustHistoryModal({
                           {formatDate(record.created_at)}
                         </span>
                       </div>
-                      <div className="text-content text-xs font-normal">
+                      <div className="text-content text-xs font-normal break-words">
                         <span className="text-content-secondary mr-1">사유:</span>
                         {record.memo || "수동 잔액 보정"}
                       </div>
                     </div>
 
-                    <div className="text-left sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-line/60">
+                    <div className="text-left sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-line/60 shrink-0">
                       <div
                         className={`text-sm font-bold ${
                           isPositive

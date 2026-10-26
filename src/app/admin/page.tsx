@@ -755,20 +755,20 @@ export default function AdminPage() {
                         </span>{" "}
                         페이지
                       </p>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 max-w-full">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => setCurrentSchedulePage((p) => Math.max(1, p - 1))}
                           disabled={currentSchedulePage === 1}
                           aria-label="이전 페이지"
-                          className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                          className="h-7 sm:h-8 px-1.5 sm:px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
                         >
                           <ChevronLeft className="h-4 w-4" />
                           <span className="ml-1">이전</span>
                         </Button>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex flex-wrap items-center justify-center gap-1">
                           {getPaginationRange(currentSchedulePage, totalSchedulePages).map((p, idx) =>
                             p === "..." ? (
                               <span key={`schedule-ellipsis-${idx}`} className="px-1.5 py-1 text-content-muted select-none">
@@ -782,7 +782,7 @@ export default function AdminPage() {
                                 onClick={() => setCurrentSchedulePage(p as number)}
                                 aria-label={`${p} 페이지로 이동`}
                                 aria-current={p === currentSchedulePage ? "page" : undefined}
-                                className={`h-8 w-8 p-0 text-xs ${
+                                className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs ${
                                   p === currentSchedulePage
                                     ? "bg-primary text-primary-foreground font-semibold hover:bg-primary-hover"
                                     : "bg-surface border-line-control text-content hover:bg-surface-2"
@@ -800,7 +800,7 @@ export default function AdminPage() {
                           onClick={() => setCurrentSchedulePage((p) => Math.min(totalSchedulePages, p + 1))}
                           disabled={currentSchedulePage === totalSchedulePages}
                           aria-label="다음 페이지"
-                          className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                          className="h-7 sm:h-8 px-1.5 sm:px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
                         >
                           <span className="mr-1">다음</span>
                           <ChevronRight className="h-4 w-4" />
@@ -925,20 +925,20 @@ export default function AdminPage() {
                         </span>{" "}
                         페이지
                       </p>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 max-w-full">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => setCurrentGamePage((p) => Math.max(1, p - 1))}
                           disabled={currentGamePage === 1}
                           aria-label="이전 페이지"
-                          className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                          className="h-7 sm:h-8 px-1.5 sm:px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
                         >
                           <ChevronLeft className="h-4 w-4" />
                           <span className="ml-1">이전</span>
                         </Button>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex flex-wrap items-center justify-center gap-1">
                           {getPaginationRange(currentGamePage, totalGamePages).map((p, idx) =>
                             p === "..." ? (
                               <span key={`game-ellipsis-${idx}`} className="px-1.5 py-1 text-content-muted select-none">
@@ -952,7 +952,7 @@ export default function AdminPage() {
                                 onClick={() => setCurrentGamePage(p as number)}
                                 aria-label={`${p} 페이지로 이동`}
                                 aria-current={p === currentGamePage ? "page" : undefined}
-                                className={`h-8 w-8 p-0 text-xs ${
+                                className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs ${
                                   p === currentGamePage
                                     ? "bg-primary text-primary-foreground font-semibold hover:bg-primary-hover"
                                     : "bg-surface border-line-control text-content hover:bg-surface-2"
@@ -970,7 +970,7 @@ export default function AdminPage() {
                           onClick={() => setCurrentGamePage((p) => Math.min(totalGamePages, p + 1))}
                           disabled={currentGamePage === totalGamePages}
                           aria-label="다음 페이지"
-                          className="h-8 px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                          className="h-7 sm:h-8 px-1.5 sm:px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
                         >
                           <span className="mr-1">다음</span>
                           <ChevronRight className="h-4 w-4" />

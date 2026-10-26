@@ -2,15 +2,17 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { describe, expect, it, vi } from "vitest"
 import ExpensesPage from "./page"
 
-const { from, rpc, useAuth, downloadUserIcon } = vi.hoisted(() => ({
+const { from, rpc, useAuth, downloadUserIcon, mockGetKstToday } = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
   useAuth: vi.fn(),
   downloadUserIcon: vi.fn().mockResolvedValue(null),
+  mockGetKstToday: vi.fn(() => "2026-10-15"),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/storage-upload", () => ({ downloadUserIcon }))
+vi.mock("@/lib/dashboard-date", () => ({ getKstToday: mockGetKstToday }))
 vi.mock("@/lib/supabase/client", () => ({
   supabase: {
     from,

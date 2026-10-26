@@ -24,27 +24,44 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `mobile-calendar-dot-alignment` *(2026-10-20, Gemini 3.8 Flash 전담 UI/마크업 개선)*
+- **Run ID**: `google-point-earn-and-boost-redesign` *(2026-10-26, 구글 포인트 적립 누락 버그 수정 및 1포인트당 n배 고정 부스트 수식 재설계)*
 - **Worktree 경로**: `main`
-- **사용자 요청 (2026-10-20)**:
-  1. `src/components/calendar/desktop-calendar.tsx`: 모바일 달력 타일 우측 상단 도트 아이콘 정렬 방식을 가로 정렬(`flex md:hidden items-center gap-0.5 sm:gap-1 shrink-0 pt-0.5`)에서 데스크톱과 일치하는 세로 정렬(`flex md:hidden flex-col items-end gap-1 shrink-0 pt-0.5`)로 변경하여 깔끔한 수직 나열 구현
-  2. `src/components/calendar/desktop-calendar.test.tsx`: 모바일 도트 컨테이너의 세로 정렬(`flex-col`, `items-end`, `gap-1`) 클래스 검증 단위 테스트 보강
-  3. 전체 단위 테스트(`npm run test`) 및 빌드(`npm run build`) 무결성 검증
-  4. 문서 동기화: `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md` 최신화
+- **배경 및 문제 원인**:
+  1. **포인트 미사용 결제 시 구글/갤스 포인트 적립 누락 버그**: `src/components/expense/expense-modal.tsx`의 `input` useMemo에서 `usedPoints === 0`일 때 `pointPlatform: null`을 반환하여 `process_expense_payment` RPC 호출 시 `p_point_platform: null`이 전달됨. 이로 인해 `payment_method`가 'WALLET' 또는 'NAVER_PAY'일 때 RPC 내부 `v_store_platform`이 `NULL`이 되어 스토어 포인트 적립이 0P로 무시됨.
+  2. **구글 플레이 부스트 이벤트 수식 오류**: 기존 `calculateStoreEventEarn`(`src/lib/payment-calculations.ts`)은 등급별 기본 적립률(`baseEarnRate`, 예: 골드 0.13%)에 `mult`를 곱했으나, 실제 구글 플레이 부스트는 등급과 무관하게 **기본 1포인트(`0.1%`, 1,000원당 1P)당 `n`배 (`effectiveRate = 0.1 * mult %`)**로 고정 적립됨.
 - **수용 기준 (Acceptance Criteria)**:
-  1. 모바일 뷰포트에서 버전/픽업/콘텐츠/메모 도트가 우측 상단에서 세로(`flex-col items-end gap-1`)로 렌더링
-  2. Vitest 42개 파일 260개 테스트 전체 통과 (100% PASS)
-  3. Next.js 정적 빌드(`npm run build`) 에러 없음
+  1. `src/lib/payment-calculations.ts`: `calculateStoreEventEarn`에서 `GOOGLE_PLAY` 부스트 활성화 시 등급별 `baseEarnRate`와 무관하게 `effectiveRate = Number((0.1 * mult).toFixed(4))`로 고정 계산하고 `Math.floor((finalAmount * effectiveRate) / 100)`를 반환할 것 (예: 4배 부스트 시 5,900원 결제 $\to$ `23P`, 100,000원 결제 $\to$ `400P`).
+  2. `src/components/expense/expense-modal.tsx`:
+     - 포인트를 사용하지 않은 결제(`usedPoints === 0`)에서도 `input.pointPlatform`이 `activePointPlatform`('GOOGLE_PLAY' | 'GALAXY_STORE' | null)으로 설정되어 `process_expense_payment` RPC에 `p_point_platform`이 정상 전달될 것.
+     - 예정 지출(`PLANNED`) 등록/수정 시에도 `point_platform: activePointPlatform`을 저장하고, 모달 재오픈 시 `point_platform`을 복원할 것.
+     - 구글 부스트 UI 안내 문구를 "이벤트 고정: 1,000원당 {n}P ({effectiveRate}%)" 형태로 명확히 표시할 것.
+  3. `sql/SCHEMA.sql` & `sql/MIGRATION_STORE_EVENT_EARN.sql`: `process_expense_payment` RPC에서 `v_store_platform IN ('GOOGLE_PLAY', 'GALAXY_STORE')`이고 `p_used_points = 0`일 때 해당 스토어 지갑 행이 아직 없으면 기본 등급(`GOOGLE_PLAY`는 'BRONZE'/`0.10`, `GALAXY_STORE`는 'GENERAL'/`0.10`)으로 자동 생성(`ON CONFLICT DO NOTHING`)하여 지갑 미생성 에러 없이 적립되게 보강할 것.
+  4. `src/lib/payment-calculations.test.ts` & `src/components/expense/expense-modal.test.tsx`: 변경된 부스트 고정 적립 수식 및 포인트 미사용 결제 시 `p_point_platform` 전달 검증 테스트를 업데이트/추가하고, 전체 Vitest 테스트(`npx vitest run`) 및 정적 빌드(`npm run build`) 100% 통과할 것.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GitHub Copilot / Gemini 4 Argon)* | `Maker (Fast UI)` | 모바일 달력 타일 도트 세로 정렬(`flex-col items-end gap-1`) 변경 (`src/components/calendar/desktop-calendar.tsx`) | 모바일 도트 컨테이너 세로 정렬 클래스 교체 완료 |
-| **2** | `✅ DONE` | **Gemini 3.8 Flash** *(대체: GPT Codex / Claude Opus 5.5)* | `Maker (Test)` | 모바일 도트 세로 정렬 단위 테스트 검증 보강 (`src/components/calendar/desktop-calendar.test.tsx`) | `flex-col items-end gap-1` 검증 추가, 42개 파일 260개 테스트 100% PASS |
-| **3** | `✅ DONE` | **Gemini 3.8 Flash** *(대행, 대체: Claude Opus 5.5 / GitHub Copilot)* | `Orchestrator` | 전체 빌드 검증 및 문서 4종(`handoff`, `progress`, `changelog`, `to-do`) 동기화 | 빌드 성공 및 문서 최신화 완료 |
+| **1** | `🔄 IN_PROGRESS` | ~~GPT Codex~~ ➡️ **Claude Opus 5.5** *(1순위 대체 수행 / 2순위: GitHub Copilot)* | `Maker (Core) & Test` | 구글 포인트 적립 누락 버그 수정, `0.1% × n배` 고정 부스트 수식 재설계, SQL RPC 보강 및 단위 테스트 (`src/lib/payment-calculations.ts`, `src/lib/payment-calculations.test.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `sql/SCHEMA.sql`, `sql/MIGRATION_STORE_EVENT_EARN.sql`) | `▶ READY` (대기 중) |
+| **2** | `⏳ PENDING` | **Claude Opus 5.5** *(대체: Gemini 4 Argon / GitHub Copilot)* | `Reviewer & Maker (Complex)` | 포인트 원장 적립/환불 정합성 코드 리뷰 및 최종 빌드·문서 마감 검증 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | 1단계 완료 후 진행 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## 모바일 화면 UI 오버플로우 3건 해결 및 향후 과제 4종 로드맵 수립 (2026-10-26)
+
+- **수행 주체**: Gemini 3.8 Flash (Maker - Fast UI & Subagent)
+- **수행 내역**:
+  1. `DialogContent`(`src/components/ui/dialog.tsx`): `grid-cols-1 overflow-x-hidden p-4 sm:p-6` 적용으로 직계 자식 `min-width: auto` 팽창 원천 차단.
+  2. `StoreWalletAdjustHistoryModal`(`src/components/wallet/store-wallet-adjust-history-modal.tsx`): `w-[calc(100%-1.5rem)] sm:max-w-2xl overflow-x-hidden` 보강, 헤더 `pr-7 min-w-0 break-words`, 필터 바 `flex-wrap min-w-0`, 레코드 카드 `min-w-0`, 사유 텍스트 `break-words`, 보정 후 잔액 `shrink-0` 적용.
+  3. 관리자 페이지(`/admin` `src/app/admin/page.tsx`): 공식 일정 및 게임 목록 페이지네이션 `flex-wrap items-center justify-center gap-1 sm:gap-1.5`, 번호 버튼 모바일 `h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs`, 이전/다음 버튼 `h-7 sm:h-8 px-1.5 sm:px-2 text-xs` 반응형 축소 최적화.
+  4. 소비 페이지(`/dashboard/expenses` `src/app/dashboard/expenses/page.tsx`): 최상위 컨테이너 `w-full overflow-x-hidden`, 차트 영역 `min-w-0 w-full overflow-hidden`, 순위 카드 영역 `min-w-0 w-full overflow-hidden`, 픽업 순위 리스트 좌측 행 `min-w-0 flex-1 overflow-hidden` 말줄임(`truncate`) 개선, 페이지네이션 `flex-wrap justify-center` 적용.
+  5. 단위 테스트(`src/app/dashboard/expenses/page.test.tsx`): KST 기준일 모킹(`mockGetKstToday: vi.fn(() => "2026-10-15")`) 보강으로 날짜 경과 비결정론적 실패 방지.
+  6. 로드맵 동기화(`docs/to-do.md`): 12.11 완료 기록 및 향후 로드맵 4종(R1~R4) 신설.
+- **검증 결과**:
+  - Vitest 42개 파일, 260개 단위 테스트 100% 통과 (PASS).
+  - Next.js 14 프로덕션 정적 빌드(`npm run build`) 15개 정적 페이지 export 성공.
 
 ---
 
