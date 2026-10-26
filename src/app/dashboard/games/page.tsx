@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GameSelectModal } from "@/components/game/game-select-modal"
@@ -15,7 +16,7 @@ import { getKstToday } from "@/lib/dashboard-date"
 import { GameIcon } from "@/components/ui/game-icon"
 import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
-import { Calendar, ChevronLeft, ChevronRight, Gamepad2, ImagePlus, Loader2, Trash2 } from "lucide-react"
+import { Calendar, Check, ChevronLeft, ChevronRight, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
 
 const GAMES_PER_PAGE = 12
 
@@ -36,6 +37,7 @@ interface UserGameRow {
   id: string
   game_id: string
   custom_icon_path: string | null
+  memo?: string | null
   games: {
     id: string
     name: string
@@ -61,6 +63,9 @@ export default function GamesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [uploadingGameId, setUploadingGameId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [editingGameId, setEditingGameId] = useState<string | null>(null)
+  const [memoInput, setMemoInput] = useState("")
+  const [isSavingMemo, setIsSavingMemo] = useState(false)
 
   const [selectedGame, setSelectedGame] = useState<{ id: string; name: string } | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -100,7 +105,7 @@ export default function GamesPage() {
     }
     const { data } = await supabase
       .from("user_games")
-      .select("id, game_id, custom_icon_path, games(id, name, default_icon_url)")
+      .select("id, game_id, custom_icon_path, memo, games(id, name, default_icon_url)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
 
@@ -195,6 +200,43 @@ export default function GamesPage() {
     }
   }
 
+  const handleStartEditMemo = (ug: UserGameRow) => {
+    setEditingGameId(ug.id)
+    setMemoInput(ug.memo || "")
+  }
+
+  const handleCancelEditMemo = () => {
+    setEditingGameId(null)
+    setMemoInput("")
+  }
+
+  const handleSaveMemo = async (ug: UserGameRow) => {
+    if (!user) return
+    const trimmed = memoInput.trim()
+    const nextMemo = trimmed ? trimmed : null
+    setIsSavingMemo(true)
+    try {
+      const { error } = await supabase
+        .from("user_games")
+        .update({ memo: nextMemo })
+        .eq("id", ug.id)
+        .eq("user_id", user.id)
+
+      if (error) throw error
+
+      setUserGames((prev) =>
+        prev.map((item) => (item.id === ug.id ? { ...item, memo: nextMemo } : item))
+      )
+      setEditingGameId(null)
+      setMemoInput("")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "알 수 없는 오류"
+      alert(`메모 저장에 실패했습니다: ${message}`)
+    } finally {
+      setIsSavingMemo(false)
+    }
+  }
+
   if (isLoading && !hasLoadedInitialRef.current) return <GamesPageSkeleton />
   if (!user) return <div className="p-6 text-content">로그인이 필요합니다.</div>
 
@@ -248,7 +290,8 @@ export default function GamesPage() {
                       key={ug.id}
                       className="flex flex-col justify-between p-4 rounded-lg border border-line bg-surface-2 hover:border-line-control transition-all"
                     >
-                      <div className="flex items-start gap-3">
+                      <div>
+                        <div className="flex items-start gap-3">
                         {/* 게임 아이콘 */}
                         <div className="relative w-14 h-14 rounded-lg border border-line bg-surface-3 flex items-center justify-center overflow-hidden shrink-0">
                           <GameIcon
@@ -268,6 +311,81 @@ export default function GamesPage() {
                         <div className="min-w-0 flex-1">
                           <h3 className="font-semibold text-content text-base truncate">{gameName}</h3>
                           <p className="text-xs text-content-secondary mt-0.5">공용 일정 연동 중</p>
+                        </div>
+                      </div>
+
+                        {/* 게임별 상시 메모 영역 */}
+                        <div className="mt-3 pt-3 border-t border-line/60">
+                          {editingGameId === ug.id ? (
+                            <div className="space-y-2">
+                              <Textarea
+                                value={memoInput}
+                                onChange={(e) => setMemoInput(e.target.value)}
+                                placeholder="상시 메모를 입력하세요 (예: 육성 목표, 과금 계획 등)"
+                                className="text-xs min-h-[64px] bg-surface border-line-control resize-none"
+                                autoFocus
+                                aria-label={`${gameName} 메모 입력`}
+                              />
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-xs border-line-control hover:bg-surface-3 text-content"
+                                  onClick={handleCancelEditMemo}
+                                  disabled={isSavingMemo}
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  취소
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="h-7 px-2.5 text-xs bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
+                                  onClick={() => void handleSaveMemo(ug)}
+                                  disabled={isSavingMemo}
+                                >
+                                  {isSavingMemo ? (
+                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <Check className="w-3 h-3 mr-1" />
+                                  )}
+                                  저장
+                                </Button>
+                              </div>
+                            </div>
+                          ) : ug.memo ? (
+                            <div className="rounded-md bg-surface/60 border border-line/70 p-2.5 relative">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary shrink-0">
+                                  <FileText className="w-3 h-3" />
+                                  <span>상시 메모</span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 px-1.5 text-[11px] text-content-secondary hover:text-content hover:bg-surface-3 -mr-1 -mt-0.5"
+                                  onClick={() => handleStartEditMemo(ug)}
+                                  title="메모 수정"
+                                >
+                                  <Edit3 className="w-3 h-3 mr-1" />
+                                  메모 수정
+                                </Button>
+                              </div>
+                              <p className="mt-1 text-xs text-content break-words whitespace-pre-wrap leading-relaxed">
+                                {ug.memo}
+                              </p>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleStartEditMemo(ug)}
+                              className="w-full h-8 text-xs border-dashed border-line/80 text-content-muted hover:text-content-secondary hover:border-line-control hover:bg-surface/50 font-normal"
+                            >
+                              <FileText className="w-3.5 h-3.5 mr-1" />
+                              메모 작성
+                            </Button>
+                          )}
                         </div>
                       </div>
 
@@ -338,7 +456,7 @@ export default function GamesPage() {
                 </div>
 
                 {totalGamePages > 1 && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-wrap justify-center">
                     <Button
                       size="sm"
                       variant="outline"
@@ -351,7 +469,7 @@ export default function GamesPage() {
                       <span className="hidden sm:inline ml-1">이전</span>
                     </Button>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-wrap justify-center">
                       {getPaginationRange(currentPage, totalGamePages).map((p, idx) =>
                         p === "..." ? (
                           <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-content-muted select-none">

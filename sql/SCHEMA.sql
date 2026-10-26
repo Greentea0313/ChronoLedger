@@ -72,6 +72,7 @@ CREATE TABLE public.user_games (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     custom_icon_path TEXT,
+    memo TEXT,
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id, game_id)
