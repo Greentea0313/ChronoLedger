@@ -11,6 +11,14 @@
   - 구독 게임 목록 하단 페이지네이션 컨테이너에 `flex-wrap justify-center`를 적용하여 모바일 화면 이탈 방지.
 - **단위 테스트 및 리뷰/빌드 검증 (`src/app/dashboard/games/page.test.tsx`)**:
   - 게임별 상시 메모 표시, 신규 작성 및 trim 저장, 기존 메모 비우기(`null` 저장), 취소 시 미호출, 저장 실패 시 `alert` 안내 및 편집 유지 등 5개 단위 테스트 케이스 추가 (`games/page.test.tsx` 12개 PASS, 전체 42개 파일 267개 테스트 100% PASS, Next.js 정적 빌드 성공).
+- **ESLint 빌드 에러 해결 및 Service Worker 캐시 범프 (`src/app/dashboard/games/page.tsx`, `public/sw.js`)**:
+  - `/dashboard/games` `loadGames` 내 `let` 변수를 `const`로 수정하여 `prefer-const` ESLint 빌드 에러 해결.
+  - PWA Service Worker `SHELL_CACHE` 버전을 `v4`(`chronoledger-shell-v4`)로 범프하여 신규 정적 자산 즉시 갱신 및 Cloudflare Pages 배포 정상화.
+- **일정·상태 배지 줄바꿈 잘림 방지 및 모달 레이아웃 개선 (`src/app/dashboard/games/page.tsx` 등)**:
+  - 공식 일정 모달 및 대시보드/관리자/요청 내역의 일정·상태 배지에 `shrink-0 whitespace-nowrap`을 적용하고 제목에 `min-w-0 flex-1 break-words`를 적용하여 긴 일정 제목에서도 배지가 세로로 분리되거나 줄바꿈되는 현상 해결.
+- **소비 페이지 과거 지출 내림차순 정렬 개선 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`)**:
+  - `/dashboard/expenses`의 `과거 기록`(`pastExpenses`)을 날짜 내림차순(최신 과거 $\to$ 오래된 과거)으로 정렬하도록 수정.
+  - `src/app/dashboard/expenses/page.test.tsx`에 과거 지출 내림차순 정렬 단위 테스트 추가 (18개 테스트 PASS).
 
 ## 2026-10-26 (구글 플레이 포인트 적립 누락 버그 해결 및 1포인트당 n배(0.1% × n) 고정 부스트 수식 재설계)
 

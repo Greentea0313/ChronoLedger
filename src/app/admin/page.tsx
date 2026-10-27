@@ -681,11 +681,11 @@ export default function AdminPage() {
                           )}
                           <div className="space-y-1 min-w-0 z-10">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
+                              <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
                                 {gameName}
                               </span>
                               <span
-                                className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                                className={`shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded ${
                                   isVersion
                                     ? "bg-primary/20 text-primary border border-primary/30"
                                     : isPickup
@@ -1079,11 +1079,11 @@ export default function AdminPage() {
                     )}
                     <div className="space-y-1 min-w-0 z-10 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
+                        <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
                           {gameName}
                         </span>
                         <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                          className={`shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded ${
                             isVersion
                               ? "bg-primary/20 text-primary border border-primary/30"
                               : isPickup

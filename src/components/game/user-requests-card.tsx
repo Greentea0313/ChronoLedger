@@ -157,13 +157,13 @@ export function UserRequestsCard() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                      <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
                         게임 요청
                       </span>
                       <h4 className="font-semibold text-content text-base">{req.name}</h4>
                     </div>
                     <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded border ${
+                      className={`shrink-0 whitespace-nowrap text-xs font-medium px-2 py-0.5 rounded border ${
                         statusBadgeStyles[req.request_status]
                       }`}
                     >
@@ -197,13 +197,13 @@ export function UserRequestsCard() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-info/10 text-info border border-info/20">
+                      <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-info/10 text-info border border-info/20">
                         일정 {req.target_schedule_id ? "수정" : "추가"}
                       </span>
                       <h4 className="font-semibold text-content text-base">{req.title}</h4>
                     </div>
                     <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded border ${
+                      className={`shrink-0 whitespace-nowrap text-xs font-medium px-2 py-0.5 rounded border ${
                         statusBadgeStyles[req.request_status]
                       }`}
                     >

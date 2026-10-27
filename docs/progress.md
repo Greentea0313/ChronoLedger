@@ -16,9 +16,16 @@
      - 구독 게임 목록 하단 페이지네이션 컨테이너에 `flex-wrap justify-center` 적용으로 모바일 뷰포트 가로 스크롤 방지.
   3. **단위 테스트 작성 (`src/app/dashboard/games/page.test.tsx`)**:
      - 상시 메모 렌더링, 신규 작성 및 저장 시 `id`/`user_id` 스코프와 `trim` 검증, 기존 메모 삭제 시 `null` 저장 검증, 취소 시 미호출, 저장 실패 시 `alert` 노출 및 편집창 유지 등 5개 단위 테스트 케이스 추가.
+  4. **ESLint 빌드 에러 해결 및 Service Worker 캐시 범프 (`src/app/dashboard/games/page.tsx`, `public/sw.js`)**:
+     - `/dashboard/games` `loadGames` 내 `let` 변수를 `const`로 수정하여 `prefer-const` ESLint 빌드 에러 해결.
+     - PWA Service Worker `SHELL_CACHE` 버전을 `v4`(`chronoledger-shell-v4`)로 범프하여 신규 정적 자산 즉시 갱신 및 Cloudflare Pages 배포 정상화.
+  5. **일정·상태 배지 줄바꿈 잘림 해결 (`src/app/dashboard/games/page.tsx` 등)**:
+     - 공식 일정 모달 및 일정/상태 배지에 `shrink-0 whitespace-nowrap`, 제목 컨테이너에 `min-w-0 flex-1 break-words`를 적용하여 긴 일정 제목에서도 배지가 세로로 분리되거나 줄바꿈되는 현상 해결.
+  6. **소비 페이지 과거 기록 내림차순 정렬 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`)**:
+     - `pastExpenses`를 최신 과거 일자 순(내림차순)으로 정렬하여 사용자 탐색성 개선 및 단위 테스트(18개 PASS) 보강.
 - **검증 완료**:
-  - 커밋 `53fbd26` (Gemini 3.8 Flash 스키마 및 UI 구현), `d75310d` (Claude Opus 5.5 단위 테스트 보강).
-  - Vitest 42개 파일, 267개 단위 테스트 100% 통과 (PASS, `src/app/dashboard/games/page.test.tsx` 12개 테스트 PASS).
+  - 커밋 `53fbd26` (Gemini 3.8 Flash 스키마 및 UI 구현), `d75310d` (Claude Opus 5.5 단위 테스트 보강) 및 후속 보완 커밋 완료.
+  - Vitest 42개 파일, 267개 단위 테스트 100% 통과 (PASS, `src/app/dashboard/games/page.test.tsx` 12개, `src/app/dashboard/expenses/page.test.tsx` 18개 PASS).
   - TypeScript 타입 검사(`npx tsc --noEmit`) 0 에러.
   - Next.js 14 프로덕션 정적 빌드(`npm run build`) 15개 정적 페이지 export 성공.
   - Gemini 4 Argon 독립 정적 코드 리뷰 완료 (`c60c91d..d75310d`, 수용 기준 및 정합성 PASS).

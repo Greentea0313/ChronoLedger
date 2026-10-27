@@ -293,7 +293,7 @@ export function HeroSidebarContent({
                       {/* Line 1: [픽업] 명일방주 */}
                       <div className="relative z-10 flex items-center gap-1.5 flex-wrap">
                         <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
+                          className={`shrink-0 whitespace-nowrap text-[10px] px-1.5 py-0.5 rounded font-bold border ${
                             isVersion
                               ? "bg-primary/20 text-primary border-primary/30"
                               : isPickup

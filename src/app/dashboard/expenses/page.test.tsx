@@ -898,5 +898,75 @@ describe("ExpensesPage", () => {
     expect(dot2.style.backgroundColor).toBeTruthy()
     expect(dot1.style.backgroundColor).not.toBe(dot2.style.backgroundColor)
   })
-})
 
+  it("과거 기록 전환 시 과거 지출 내역이 날짜 내림차순(최신순)으로 정렬되어 표시된다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const pastExpensesList = [
+      {
+        id: "past-1",
+        title: "오래된 과거 지출 A",
+        category: "기타",
+        status: "CONFIRMED",
+        target_date: "2026-09-10",
+        end_date: null,
+        game_id: null,
+        original_price: 10000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 10000,
+        payment_method: "WALLET",
+        games: null,
+      },
+      {
+        id: "past-2",
+        title: "최신 과거 지출 B",
+        category: "기타",
+        status: "CONFIRMED",
+        target_date: "2026-10-01",
+        end_date: null,
+        game_id: null,
+        original_price: 20000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 20000,
+        payment_method: "WALLET",
+        games: null,
+      },
+      {
+        id: "past-3",
+        title: "중간 과거 지출 C",
+        category: "기타",
+        status: "CONFIRMED",
+        target_date: "2026-09-25",
+        end_date: null,
+        game_id: null,
+        original_price: 30000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 30000,
+        payment_method: "WALLET",
+        games: null,
+      },
+    ]
+
+    const expenseBuilder = createExpenseQueryBuilder(pastExpensesList)
+    from.mockReturnValue(expenseBuilder)
+
+    render(<ExpensesPage />)
+
+    const pastBtn = await screen.findByRole("button", { name: /과거 기록/ })
+    fireEvent.click(pastBtn)
+
+    const rows = await screen.findAllByRole("row")
+    expect(rows.length).toBe(4)
+    expect(within(rows[1]).getByText("최신 과거 지출 B")).toBeTruthy()
+    expect(within(rows[2]).getByText("중간 과거 지출 C")).toBeTruthy()
+    expect(within(rows[3]).getByText("오래된 과거 지출 A")).toBeTruthy()
+  })
+});

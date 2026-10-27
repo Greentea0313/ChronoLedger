@@ -103,14 +103,15 @@ export default function GamesPage() {
     if (!hasLoadedInitialRef.current) {
       setIsLoading(true)
     }
-    let { data, error } = await supabase
+    const initialResult = await supabase
       .from("user_games")
       .select("id, game_id, custom_icon_path, memo, games(id, name, default_icon_url)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
+    let data = initialResult.data
 
     // DB에 아직 memo 컬럼 마이그레이션이 적용되지 않은 경우 기본 컬럼으로 폴백 조회하여 카드와 UI가 정상 노출되게 보장
-    if (error) {
+    if (initialResult.error) {
       const fallback = await supabase
         .from("user_games")
         .select("id, game_id, custom_icon_path, games(id, name, default_icon_url)")
@@ -569,10 +570,10 @@ export default function GamesPage() {
                 const isSingle = sch.start_date === sch.end_date
                 return (
                   <div key={sch.id} className="p-3 border border-line rounded-lg bg-surface-2 space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-sm text-content">{sch.title}</span>
+                    <div className="flex justify-between items-start gap-2.5">
+                      <span className="font-semibold text-sm text-content min-w-0 flex-1 break-words">{sch.title}</span>
                       <span
-                        className={`text-xs px-2 py-0.5 rounded font-medium ${
+                        className={`shrink-0 whitespace-nowrap text-xs px-2 py-0.5 rounded font-medium ${
                           sch.schedule_type === "VERSION"
                             ? "bg-primary/15 text-primary"
                             : sch.schedule_type === "PICKUP"

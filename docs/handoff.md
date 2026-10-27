@@ -64,8 +64,11 @@
      - 구독 게임 목록 하단 페이지네이션 컨테이너에 `flex-wrap justify-center` 적용으로 모바일 뷰포트 이탈 방지.
   3. `src/app/dashboard/games/page.test.tsx`:
      - 게임별 상시 메모 표시, 신규 작성 및 trim 저장, 기존 메모 비우기(`null` 저장), 취소 시 미호출, 저장 실패 시 `alert` 안내 및 편집 유지 등 5개 단위 테스트 케이스 추가.
+  4. ESLint `prefer-const` 빌드 에러 해결 및 Service Worker `SHELL_CACHE` 버전 `v4` 범프(`public/sw.js`)로 Cloudflare Pages 배포 정상화.
+  5. 공식 일정 모달(`src/app/dashboard/games/page.tsx`) 및 일정·상태 배지에 `shrink-0 whitespace-nowrap`, 제목에 `min-w-0 flex-1 break-words` 적용하여 긴 일정 제목에서도 배지가 세로로 분리되거나 잘리는 현상 해결.
+  6. 소비 페이지(`/dashboard/expenses`)의 `과거 기록`(`pastExpenses`)을 날짜 내림차순(최신 과거 $\to$ 오래된 과거)으로 정렬하도록 개선 및 단위 테스트(`expenses/page.test.tsx` 18개 PASS) 추가.
 - **검증 결과**:
-  - Vitest 42개 파일, 267개 단위 테스트 100% 통과 (PASS, `games/page.test.tsx` 12개 테스트 PASS).
+  - Vitest 42개 파일, 267개 단위 테스트 100% 통과 (PASS, `games/page.test.tsx` 12개, `expenses/page.test.tsx` 18개 PASS).
   - TypeScript 타입 검사(`npx tsc --noEmit`) 0 에러.
   - Next.js 14 프로덕션 정적 빌드(`npm run build`) 15개 정적 페이지 export 성공.
   - Gemini 4 Argon 정적 코드 리뷰 완료 (`c60c91d..d75310d`, 수용 기준 및 정합성 PASS).

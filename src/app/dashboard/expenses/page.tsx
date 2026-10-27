@@ -589,6 +589,14 @@ export default function ExpensesPage() {
       }
     }
 
+    // 과거 기록은 최신 과거일수록 먼저 보이도록 내림차순 정렬
+    past.sort((a, b) => {
+      const dateA = getExpenseEffectiveDate(a)
+      const dateB = getExpenseEffectiveDate(b)
+      if (dateA !== dateB) return dateB.localeCompare(dateA)
+      return 0
+    })
+
     return { activeExpenses: active, pastExpenses: past }
   }, [sortedExpenses])
 
