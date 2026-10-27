@@ -103,11 +103,21 @@ export default function GamesPage() {
     if (!hasLoadedInitialRef.current) {
       setIsLoading(true)
     }
-    const { data } = await supabase
+    let { data, error } = await supabase
       .from("user_games")
       .select("id, game_id, custom_icon_path, memo, games(id, name, default_icon_url)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
+
+    // DB에 아직 memo 컬럼 마이그레이션이 적용되지 않은 경우 기본 컬럼으로 폴백 조회하여 카드와 UI가 정상 노출되게 보장
+    if (error) {
+      const fallback = await supabase
+        .from("user_games")
+        .select("id, game_id, custom_icon_path, games(id, name, default_icon_url)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+      data = fallback.data as typeof data
+    }
 
     const rows = (data as unknown as UserGameRow[]) || []
     setUserGames(rows)
@@ -230,8 +240,26 @@ export default function GamesPage() {
       setEditingGameId(null)
       setMemoInput("")
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "알 수 없는 오류"
-      alert(`메모 저장에 실패했습니다: ${message}`)
+      const errObj = err as Record<string, unknown> | null
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof errObj?.message === "string"
+          ? errObj.message
+          : "알 수 없는 오류"
+      const code = typeof errObj?.code === "string" ? errObj.code : ""
+      const fullErrorText = `${code} ${message} ${typeof errObj?.details === "string" ? errObj.details : ""}`.toLowerCase()
+
+      const isMemoColumnMissing =
+        fullErrorText.includes("pgrst204") ||
+        (fullErrorText.includes("column") && fullErrorText.includes("does not exist")) ||
+        (fullErrorText.includes("memo") && (fullErrorText.includes("column") || fullErrorText.includes("does not exist")))
+
+      if (isMemoColumnMissing) {
+        alert("DB에 memo 컬럼이 아직 추가되지 않았습니다. Supabase SQL Editor에서 sql/MIGRATION_USER_GAME_MEMO.sql을 실행해 주세요.")
+      } else {
+        alert(`메모 저장에 실패했습니다: ${message}`)
+      }
     } finally {
       setIsSavingMemo(false)
     }
