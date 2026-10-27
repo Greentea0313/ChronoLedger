@@ -4,9 +4,11 @@
 
 - **게임별 상시 메모 스키마 확장 및 마이그레이션 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`)**:
   - `public.user_games` 테이블에 특정 일정과 무관하게 게임 단위로 상시 기록할 수 있는 `memo TEXT` 컬럼 추가 (`ALTER TABLE public.user_games ADD COLUMN IF NOT EXISTS memo TEXT;`).
-- **`/dashboard/games` 구독 게임 카드 내 상시 메모 열람·작성·수정·삭제 UI 구현 (`src/app/dashboard/games/page.tsx`)**:
+- **`/dashboard/games` 구독 게임 상시 메모 중앙 팝업 다이얼로그(`Dialog`) 전환 및 카드 높이 균일화 (`src/app/dashboard/games/page.tsx`)**:
   - `UserGameRow` 인터페이스 및 `user_games` 조회(`select`) 쿼리에 `memo` 포함.
-  - 각 구독 게임 카드 내부에 `상시 메모` 표시 영역과 `[메모 작성]` / `[메모 수정]` 인라인 편집 UI(`Textarea`, `[저장]`, `[취소]`) 구현.
+  - 상시 메모 작성/수정 방식을 기존 카드 내부 인라인 편집에서 `[일정 보기]`와 통일된 **중앙 팝업 다이얼로그(`Dialog`)**로 개편하여 카드 레이아웃 흔들림 방지.
+  - 다이얼로그 내부 `Textarea`를 `h-56 max-h-56 resize-none overflow-y-auto` 고정 높이로 지정하여 긴 메모 작성 시 안정적인 세로 스크롤 제공.
+  - 구독 게임 카드 내부의 메모 표시 영역 및 미작성 안내 버튼에 `h-20` 고정 높이와 `overflow-y-auto`를 적용하여 그리드 내 모든 카드의 높이를 균일하게 유지.
   - 저장 시 앞뒤 공백을 제거(`trim`)하여 빈 문자열이면 `null`로 초기화하고, `.eq("id", ug.id).eq("user_id", user.id)`로 본인 소유 행만 안전하게 갱신한 뒤 로컬 상태를 즉시 반영.
   - 구독 게임 목록 하단 페이지네이션 컨테이너에 `flex-wrap justify-center`를 적용하여 모바일 화면 이탈 방지.
 - **단위 테스트 및 리뷰/빌드 검증 (`src/app/dashboard/games/page.test.tsx`)**:

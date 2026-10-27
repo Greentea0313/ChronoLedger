@@ -8,10 +8,11 @@
 - **수행 내역**:
   1. **스키마 확장 및 마이그레이션 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`)**:
      - `public.user_games` 테이블에 `memo TEXT` 컬럼 추가 (`ALTER TABLE public.user_games ADD COLUMN IF NOT EXISTS memo TEXT;`).
-  2. **`/dashboard/games` 카드 내 상시 메모 UI 연동 (`src/app/dashboard/games/page.tsx`)**:
+  2. **`/dashboard/games` 상시 메모 팝업 다이얼로그(`Dialog`) 전환 및 카드 높이 균일화 (`src/app/dashboard/games/page.tsx`)**:
      - `UserGameRow` 타입 및 `supabase.from("user_games").select(...)` 쿼리에 `memo` 추가.
-     - 구독 게임 카드 하단에 상시 메모 표시 영역 구현 (미작성 시 "등록된 상시 메모가 없습니다." 회색 안내, 작성 시 줄바꿈(`whitespace-pre-wrap`) 보존 렌더링).
-     - `[메모 작성]` / `[메모 수정]` 클릭 시 인라인 `Textarea`와 `[저장]`, `[취소]` 버튼 활성화.
+     - 상시 메모 작성/수정 방식을 카드 내부 인라인 편집에서 `[일정 보기]`와 일관된 **중앙 팝업 다이얼로그(`Dialog`)**로 전환하여 작성 편의성 향상 및 카드 찌그러짐 원천 방지.
+     - 팝업 내부 입력 필드(`Textarea`) 크기를 `h-56 max-h-56 resize-none overflow-y-auto`로 고정하여 내용 초과 시 내부 세로 스크롤로 깔끔하게 처리.
+     - 구독 게임 카드 내부의 메모 표시 영역 및 미작성 안내 버튼에 `h-20` 고정 높이와 `overflow-y-auto`를 부여하여 그리드 내 모든 카드의 세로 크기를 균일하게 정돈.
      - 저장 핸들러에서 앞뒤 공백 제거(`trim`) 후 빈 문자열은 `null`로 처리하여 Supabase `.update({ memo: trimmed || null }).eq("id", ug.id).eq("user_id", user.id)`로 본인 소유 행만 안전하게 갱신하고, 성공 시 로컬 상태(`userGames`) 즉시 동기화.
      - 구독 게임 목록 하단 페이지네이션 컨테이너에 `flex-wrap justify-center` 적용으로 모바일 뷰포트 가로 스크롤 방지.
   3. **단위 테스트 작성 (`src/app/dashboard/games/page.test.tsx`)**:

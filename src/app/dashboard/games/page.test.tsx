@@ -94,6 +94,7 @@ describe("GamesPage", () => {
   afterEach(async () => {
     await act(async () => root.unmount())
     container.remove()
+    document.body.querySelectorAll('[role="dialog"]').forEach((el) => el.remove())
     vi.clearAllMocks()
   })
 
@@ -257,7 +258,7 @@ describe("GamesPage", () => {
     }
 
     const buttonsByText = (text: string) =>
-      Array.from(container.querySelectorAll("button")).filter((b) => b.textContent?.trim() === text)
+      Array.from(document.body.querySelectorAll("button")).filter((b) => b.textContent?.trim() === text)
 
     async function click(el: Element) {
       await act(async () => {
@@ -267,7 +268,7 @@ describe("GamesPage", () => {
     }
 
     async function typeMemo(gameName: string, value: string) {
-      const textarea = container.querySelector(`textarea[aria-label="${gameName} 메모 입력"]`) as HTMLTextAreaElement
+      const textarea = (document.body.querySelector(`textarea[aria-label="${gameName} 메모 입력"]`) || container.querySelector(`textarea[aria-label="${gameName} 메모 입력"]`)) as HTMLTextAreaElement
       expect(textarea).not.toBeNull()
       await act(async () => {
         Simulate.change(textarea, { target: { value } as unknown as EventTarget })
@@ -296,7 +297,7 @@ describe("GamesPage", () => {
       expect(update).toHaveBeenCalledWith({ memo: "주간 보스 파밍" })
       expect(firstEq).toHaveBeenCalledWith("id", "user-game-2")
       expect(secondEq).toHaveBeenCalledWith("user_id", "test-user-id")
-      expect(container.querySelector("textarea")).toBeNull()
+      expect(document.body.querySelector("textarea")).toBeNull()
       expect(container.textContent).toContain("주간 보스 파밍")
       expect(buttonsByText("메모 수정")).toHaveLength(2)
       expect(buttonsByText("메모 작성")).toHaveLength(0)
@@ -307,7 +308,7 @@ describe("GamesPage", () => {
       await act(async () => root.render(<GamesPage />))
 
       await click(buttonsByText("메모 수정")[0])
-      const textarea = container.querySelector('textarea[aria-label="원신 메모 입력"]') as HTMLTextAreaElement
+      const textarea = (document.body.querySelector('textarea[aria-label="원신 메모 입력"]') || container.querySelector('textarea[aria-label="원신 메모 입력"]')) as HTMLTextAreaElement
       expect(textarea.value).toBe("40연차 모으는 중")
 
       await typeMemo("원신", "   ")
@@ -328,7 +329,7 @@ describe("GamesPage", () => {
       await click(buttonsByText("취소")[0])
 
       expect(update).not.toHaveBeenCalled()
-      expect(container.querySelector("textarea")).toBeNull()
+      expect(document.body.querySelector("textarea")).toBeNull()
       expect(container.textContent).toContain("40연차 모으는 중")
       expect(container.textContent).not.toContain("바뀐 내용")
     })
@@ -343,7 +344,7 @@ describe("GamesPage", () => {
       await click(buttonsByText("저장")[0])
 
       expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("메모 저장에 실패했습니다"))
-      expect(container.querySelector('textarea[aria-label="붕괴: 스타레일 메모 입력"]')).not.toBeNull()
+      expect(document.body.querySelector('textarea[aria-label="붕괴: 스타레일 메모 입력"]')).not.toBeNull()
       expect(buttonsByText("메모 수정")).toHaveLength(1)
       alertSpy.mockRestore()
     })

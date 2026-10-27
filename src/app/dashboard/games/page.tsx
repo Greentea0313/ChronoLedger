@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GameSelectModal } from "@/components/game/game-select-modal"
 import { RequestSubmissionModal } from "@/components/game/request-submission-modal"
 import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-upload"
@@ -66,6 +66,11 @@ export default function GamesPage() {
   const [editingGameId, setEditingGameId] = useState<string | null>(null)
   const [memoInput, setMemoInput] = useState("")
   const [isSavingMemo, setIsSavingMemo] = useState(false)
+
+  const memoEditingGame = useMemo(
+    () => userGames.find((g) => g.id === editingGameId) ?? null,
+    [userGames, editingGameId]
+  )
 
   const [selectedGame, setSelectedGame] = useState<{ id: string; name: string } | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -343,47 +348,11 @@ export default function GamesPage() {
                         </div>
                       </div>
 
-                        {/* 게임별 상시 메모 영역 */}
+                        {/* 게임별 상시 메모 영역 (고정 높이 h-20 + 스크롤) */}
                         <div className="mt-3 pt-3 border-t border-line/60">
-                          {editingGameId === ug.id ? (
-                            <div className="space-y-2">
-                              <Textarea
-                                value={memoInput}
-                                onChange={(e) => setMemoInput(e.target.value)}
-                                placeholder="상시 메모를 입력하세요 (예: 육성 목표, 과금 계획 등)"
-                                className="text-xs min-h-[64px] bg-surface border-line-control resize-none"
-                                autoFocus
-                                aria-label={`${gameName} 메모 입력`}
-                              />
-                              <div className="flex items-center justify-end gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 px-2 text-xs border-line-control hover:bg-surface-3 text-content"
-                                  onClick={handleCancelEditMemo}
-                                  disabled={isSavingMemo}
-                                >
-                                  <X className="w-3 h-3 mr-1" />
-                                  취소
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="h-7 px-2.5 text-xs bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
-                                  onClick={() => void handleSaveMemo(ug)}
-                                  disabled={isSavingMemo}
-                                >
-                                  {isSavingMemo ? (
-                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                  ) : (
-                                    <Check className="w-3 h-3 mr-1" />
-                                  )}
-                                  저장
-                                </Button>
-                              </div>
-                            </div>
-                          ) : ug.memo ? (
-                            <div className="rounded-md bg-surface/60 border border-line/70 p-2.5 relative">
-                              <div className="flex items-start justify-between gap-2">
+                          {ug.memo ? (
+                            <div className="rounded-md bg-surface/60 border border-line/70 p-2.5 h-20 flex flex-col">
+                              <div className="flex items-start justify-between gap-2 shrink-0">
                                 <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary shrink-0">
                                   <FileText className="w-3 h-3" />
                                   <span>상시 메모</span>
@@ -391,7 +360,7 @@ export default function GamesPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-5 px-1.5 text-[11px] text-content-secondary hover:text-content hover:bg-surface-3 -mr-1 -mt-0.5"
+                                  className="h-5 px-1.5 text-[11px] text-content-secondary hover:text-content hover:bg-surface-3 -mr-1 -mt-0.5 shrink-0"
                                   onClick={() => handleStartEditMemo(ug)}
                                   title="메모 수정"
                                 >
@@ -399,7 +368,7 @@ export default function GamesPage() {
                                   메모 수정
                                 </Button>
                               </div>
-                              <p className="mt-1 text-xs text-content break-words whitespace-pre-wrap leading-relaxed">
+                              <p className="mt-1 text-xs text-content break-words whitespace-pre-wrap leading-relaxed overflow-y-auto flex-1 pr-1">
                                 {ug.memo}
                               </p>
                             </div>
@@ -409,10 +378,10 @@ export default function GamesPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleStartEditMemo(ug)}
-                              className="w-full h-8 text-xs border-dashed border-line/80 text-content-muted hover:text-content-secondary hover:border-line-control hover:bg-surface/50 font-normal"
+                              className="w-full h-20 text-xs border-dashed border-line/80 text-content-muted hover:text-content-secondary hover:border-line-control hover:bg-surface/50 font-normal flex flex-col items-center justify-center gap-1.5"
                             >
-                              <FileText className="w-3.5 h-3.5 mr-1" />
-                              메모 작성
+                              <FileText className="w-4 h-4 text-content-muted" />
+                              <span>메모 작성</span>
                             </Button>
                           )}
                         </div>
@@ -593,6 +562,68 @@ export default function GamesPage() {
               })
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+      {/* 게임별 상시 메모 작성/수정 중앙 팝업 모달 */}
+      <Dialog
+        open={editingGameId !== null}
+        onOpenChange={(open) => {
+          if (!open) handleCancelEditMemo()
+        }}
+      >
+        <DialogContent className="max-w-md bg-surface text-content border-line">
+          <DialogHeader>
+            <DialogTitle className="text-content">
+              {memoEditingGame?.games?.name || "게임"} 상시 메모
+            </DialogTitle>
+            <DialogDescription className="text-content-secondary">
+              특정 일정과 무관하게 해당 게임의 육성 목표, 과금 계획 등을 자유롭게 기록합니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-3 space-y-2">
+            <Textarea
+              value={memoInput}
+              onChange={(e) => setMemoInput(e.target.value)}
+              placeholder="상시 메모를 입력하세요 (예: 육성 목표, 과금 계획 등)"
+              maxLength={1000}
+              className="w-full h-56 max-h-56 resize-none overflow-y-auto text-xs leading-relaxed bg-surface-2 border-line-control p-3 text-content placeholder:text-content-muted"
+              autoFocus
+              aria-label={`${memoEditingGame?.games?.name || "게임"} 메모 입력`}
+            />
+            <div className="flex items-center justify-between text-[11px] text-content-muted px-0.5">
+              <span>최대 1,000자</span>
+              <span>{memoInput.length} / 1,000</span>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 flex flex-row items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCancelEditMemo}
+              disabled={isSavingMemo}
+              className="text-xs border-line-control hover:bg-surface-3 text-content"
+            >
+              <X className="w-3.5 h-3.5 mr-1" />
+              취소
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => memoEditingGame && void handleSaveMemo(memoEditingGame)}
+              disabled={isSavingMemo}
+              className="text-xs bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
+            >
+              {isSavingMemo ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5 mr-1" />
+              )}
+              저장
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

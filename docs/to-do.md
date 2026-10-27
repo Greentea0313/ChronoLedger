@@ -459,7 +459,7 @@
   - 대상 파일: `sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`
   - 작업:
     1. **DB 스키마 확장 및 마이그레이션**: `user_games` 테이블에 `memo TEXT` 컬럼 추가 (`sql/MIGRATION_USER_GAME_MEMO.sql` 및 `sql/SCHEMA.sql` 반영).
-    2. **구독 게임 카드 내 상시 메모 UI 구현**: `UserGameRow`에 `memo` 필드 추가, 카드 내 상시 메모 표시 및 인라인 편집(`Textarea`, `[메모 작성/수정]`, `[저장]`, `[취소]`) 구현, `trim` 후 빈 문자열은 `null` 저장, 본인 소유(`eq("id", ug.id).eq("user_id", user.id)`) 안전 갱신 및 로컬 상태 동기화.
+    2. **구독 게임 상시 메모 다이얼로그(`Dialog`) UI 구현 및 카드 높이 균일화**: `UserGameRow`에 `memo` 필드 추가, 상시 메모 작성/수정 방식을 `[일정 보기]`와 일관된 중앙 팝업 다이얼로그로 개편(`h-56` 세로 스크롤 `Textarea`), 카드 내부 메모 영역 `h-20 overflow-y-auto` 적용으로 그리드 카드 높이 균일 유지, `trim` 후 빈 문자열은 `null` 저장, 본인 소유(`eq("id", ug.id).eq("user_id", user.id)`) 안전 갱신 및 로컬 상태 동기화.
     3. **모바일 반응형 보강**: 구독 게임 목록 하단 페이지네이션에 `flex-wrap justify-center` 적용.
     4. **단위 테스트 보강**: 상시 메모 표시, 신규 작성 및 trim 저장, 비우기(null) 저장, 취소 시 미호출, 저장 실패 시 안내 및 편집 유지 등 5개 단위 테스트 케이스 추가.
   - verify: Vitest 42개 파일 267개 테스트 100% 통과, 정적 빌드(`npm run build`) 성공 (커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 코드 리뷰 통과).
