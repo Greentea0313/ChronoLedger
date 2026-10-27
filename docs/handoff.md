@@ -41,9 +41,9 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `▶ READY` | **GitHub Copilot** *(1순위 대체: Gemini 3.8 Flash / 2순위 대체: GPT Codex)* | `Maker (General)` | `user_games.memo` 스키마/마이그레이션 SQL 추가 및 `/dashboard/games` 게임 카드 내 상시 메모 작성·열람·수정 UI 구현 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`, `src/app/dashboard/games/page.tsx`) | `▶ READY` (대기 중) |
-| **2** | `⏳ PENDING` | **GPT Codex** *(1순위 대체: Claude Opus 5.5 / 2순위 대체: GitHub Copilot)* | `Maker (Test)` | `/dashboard/games` 게임별 상시 메모 렌더링 및 저장 단위 테스트 보강 (`src/app/dashboard/games/page.test.tsx`) | 1단계 완료 후 진행 |
-| **3** | `⏳ PENDING` | **Claude Opus 5.5** *(1순위 대체: Gemini 4 Argon / 2순위 대체: GitHub Copilot)* | `Reviewer & Orchestrator` | 코드 리뷰, 전체 빌드 검증 및 문서 4종(`handoff`, `progress`, `changelog`, `to-do`) 동기화 | 2단계 완료 후 진행 |
+| **1** | `✅ DONE (SHA: 53fbd26)` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체)* | `Maker (General)` | `user_games.memo` 스키마/마이그레이션 SQL 추가 및 `/dashboard/games` 게임 카드 내 상시 메모 작성·열람·수정 UI 구현 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`, `src/app/dashboard/games/page.tsx`) | `✅ DONE (SHA: 53fbd26)` (`sql/MIGRATION_USER_GAME_MEMO.sql` 추가, `sql/SCHEMA.sql` 반영, `/dashboard/games` 인라인 메모 편집 UI 및 페이지네이션 `flex-wrap` 적용) |
+| **2** | `✅ DONE (SHA: d75310d)` | ~~GPT Codex~~ ➡️ **Claude Opus 5.5** *(1순위 대체 수행 / 2순위: GitHub Copilot)* | `Maker (Test)` | `/dashboard/games` 게임별 상시 메모 렌더링 및 저장 단위 테스트 보강 (`src/app/dashboard/games/page.test.tsx`) | `✅ DONE (SHA: d75310d)` 신규 5케이스(표시·작성 저장(trim, `id`/`user_id` 스코프)·비우면 `null` 저장·취소 시 미호출·저장 실패 시 alert+편집 유지). vitest 42파일/267테스트 PASS, tsc 0 errors, build 성공 |
+| **3** | `▶ READY` | **Claude Opus 5.5** *(1순위 대체: Gemini 4 Argon / 2순위 대체: GitHub Copilot)* | `Reviewer & Orchestrator` | 코드 리뷰, 전체 빌드 검증 및 문서 4종(`handoff`, `progress`, `changelog`, `to-do`) 동기화 | 2단계 완료 후 진행 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
