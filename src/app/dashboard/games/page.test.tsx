@@ -231,5 +231,122 @@ describe("GamesPage", () => {
     const headingsPage2 = Array.from(container.querySelectorAll("h3"))
     expect(headingsPage2.length).toBe(3)
   })
+
+  describe("게임별 상시 메모", () => {
+    const gamesWithMemo = [
+      { ...mockUserGames[0], memo: "40연차 모으는 중" },
+      { ...mockUserGames[1], memo: null },
+    ]
+
+    function mockUserGamesWithUpdate(updateResult: { error: unknown } = { error: null }) {
+      const secondEq = vi.fn().mockResolvedValue(updateResult)
+      const firstEq = vi.fn().mockReturnValue({ eq: secondEq })
+      const update = vi.fn().mockReturnValue({ eq: firstEq })
+      from.mockImplementation((table: string) => {
+        if (table === "user_games") {
+          const query = createQuery("user_games") as ReturnType<typeof createQuery> & { update?: typeof update }
+          query.then = vi.fn((resolve: (val: unknown) => unknown) =>
+            Promise.resolve({ data: gamesWithMemo, error: null }).then(resolve)
+          )
+          query.update = update
+          return query
+        }
+        return createQuery(table)
+      })
+      return { update, firstEq, secondEq }
+    }
+
+    const buttonsByText = (text: string) =>
+      Array.from(container.querySelectorAll("button")).filter((b) => b.textContent?.trim() === text)
+
+    async function click(el: Element) {
+      await act(async () => {
+        Simulate.click(el)
+        await Promise.resolve()
+      })
+    }
+
+    async function typeMemo(gameName: string, value: string) {
+      const textarea = container.querySelector(`textarea[aria-label="${gameName} 메모 입력"]`) as HTMLTextAreaElement
+      expect(textarea).not.toBeNull()
+      await act(async () => {
+        Simulate.change(textarea, { target: { value } as unknown as EventTarget })
+      })
+      return textarea
+    }
+
+    it("renders the saved memo with an edit button and a write button for games without a memo", async () => {
+      mockUserGamesWithUpdate()
+      await act(async () => root.render(<GamesPage />))
+
+      expect(container.textContent).toContain("40연차 모으는 중")
+      expect(container.textContent).toContain("상시 메모")
+      expect(buttonsByText("메모 수정")).toHaveLength(1)
+      expect(buttonsByText("메모 작성")).toHaveLength(1)
+    })
+
+    it("saves a trimmed new memo scoped to the user's row and updates the card immediately", async () => {
+      const { update, firstEq, secondEq } = mockUserGamesWithUpdate()
+      await act(async () => root.render(<GamesPage />))
+
+      await click(buttonsByText("메모 작성")[0])
+      await typeMemo("붕괴: 스타레일", "  주간 보스 파밍  ")
+      await click(buttonsByText("저장")[0])
+
+      expect(update).toHaveBeenCalledWith({ memo: "주간 보스 파밍" })
+      expect(firstEq).toHaveBeenCalledWith("id", "user-game-2")
+      expect(secondEq).toHaveBeenCalledWith("user_id", "test-user-id")
+      expect(container.querySelector("textarea")).toBeNull()
+      expect(container.textContent).toContain("주간 보스 파밍")
+      expect(buttonsByText("메모 수정")).toHaveLength(2)
+      expect(buttonsByText("메모 작성")).toHaveLength(0)
+    })
+
+    it("prefills the existing memo on edit and stores null when the memo is cleared", async () => {
+      const { update, firstEq } = mockUserGamesWithUpdate()
+      await act(async () => root.render(<GamesPage />))
+
+      await click(buttonsByText("메모 수정")[0])
+      const textarea = container.querySelector('textarea[aria-label="원신 메모 입력"]') as HTMLTextAreaElement
+      expect(textarea.value).toBe("40연차 모으는 중")
+
+      await typeMemo("원신", "   ")
+      await click(buttonsByText("저장")[0])
+
+      expect(update).toHaveBeenCalledWith({ memo: null })
+      expect(firstEq).toHaveBeenCalledWith("id", "user-game-1")
+      expect(container.textContent).not.toContain("40연차 모으는 중")
+      expect(buttonsByText("메모 작성")).toHaveLength(2)
+    })
+
+    it("discards edits on cancel without calling the server", async () => {
+      const { update } = mockUserGamesWithUpdate()
+      await act(async () => root.render(<GamesPage />))
+
+      await click(buttonsByText("메모 수정")[0])
+      await typeMemo("원신", "바뀐 내용")
+      await click(buttonsByText("취소")[0])
+
+      expect(update).not.toHaveBeenCalled()
+      expect(container.querySelector("textarea")).toBeNull()
+      expect(container.textContent).toContain("40연차 모으는 중")
+      expect(container.textContent).not.toContain("바뀐 내용")
+    })
+
+    it("alerts and keeps the editor open when saving fails", async () => {
+      const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined)
+      mockUserGamesWithUpdate({ error: new Error("network down") })
+      await act(async () => root.render(<GamesPage />))
+
+      await click(buttonsByText("메모 작성")[0])
+      await typeMemo("붕괴: 스타레일", "저장 실패 테스트")
+      await click(buttonsByText("저장")[0])
+
+      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("메모 저장에 실패했습니다"))
+      expect(container.querySelector('textarea[aria-label="붕괴: 스타레일 메모 입력"]')).not.toBeNull()
+      expect(buttonsByText("메모 수정")).toHaveLength(1)
+      alertSpy.mockRestore()
+    })
+  })
 })
 
