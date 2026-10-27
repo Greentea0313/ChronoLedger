@@ -1,5 +1,17 @@
 # 변경 이력
 
+## 2026-10-27 (게임별 상시 메모 기능 추가: user_games.memo 확장 및 /dashboard/games 카드 연동)
+
+- **게임별 상시 메모 스키마 확장 및 마이그레이션 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`)**:
+  - `public.user_games` 테이블에 특정 일정과 무관하게 게임 단위로 상시 기록할 수 있는 `memo TEXT` 컬럼 추가 (`ALTER TABLE public.user_games ADD COLUMN IF NOT EXISTS memo TEXT;`).
+- **`/dashboard/games` 구독 게임 카드 내 상시 메모 열람·작성·수정·삭제 UI 구현 (`src/app/dashboard/games/page.tsx`)**:
+  - `UserGameRow` 인터페이스 및 `user_games` 조회(`select`) 쿼리에 `memo` 포함.
+  - 각 구독 게임 카드 내부에 `상시 메모` 표시 영역과 `[메모 작성]` / `[메모 수정]` 인라인 편집 UI(`Textarea`, `[저장]`, `[취소]`) 구현.
+  - 저장 시 앞뒤 공백을 제거(`trim`)하여 빈 문자열이면 `null`로 초기화하고, `.eq("id", ug.id).eq("user_id", user.id)`로 본인 소유 행만 안전하게 갱신한 뒤 로컬 상태를 즉시 반영.
+  - 구독 게임 목록 하단 페이지네이션 컨테이너에 `flex-wrap justify-center`를 적용하여 모바일 화면 이탈 방지.
+- **단위 테스트 및 리뷰/빌드 검증 (`src/app/dashboard/games/page.test.tsx`)**:
+  - 게임별 상시 메모 표시, 신규 작성 및 trim 저장, 기존 메모 비우기(`null` 저장), 취소 시 미호출, 저장 실패 시 `alert` 안내 및 편집 유지 등 5개 단위 테스트 케이스 추가 (`games/page.test.tsx` 12개 PASS, 전체 42개 파일 267개 테스트 100% PASS, Next.js 정적 빌드 성공).
+
 ## 2026-10-26 (구글 플레이 포인트 적립 누락 버그 해결 및 1포인트당 n배(0.1% × n) 고정 부스트 수식 재설계)
 
 - **포인트 미사용 결제 시 스토어 포인트 적립 누락 버그 해결 (`src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`)**:

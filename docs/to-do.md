@@ -455,6 +455,15 @@
     4. **단위 테스트 및 빌드 검증**: 변경 수식 및 모달 전달 파라미터 단위 테스트 보강.
   - verify: Vitest 42개 파일 262개 테스트 통과, 정적 빌드(`npm run build`) 성공 (커밋 `7307b99`, Gemini 4 Argon 코드 리뷰 통과).
 
+- [x] 12.13 게임별 상시 메모 기능 추가 (/dashboard/games 구독 게임 카드 연동 및 user_games.memo 확장) (2026-10-27)
+  - 대상 파일: `sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`
+  - 작업:
+    1. **DB 스키마 확장 및 마이그레이션**: `user_games` 테이블에 `memo TEXT` 컬럼 추가 (`sql/MIGRATION_USER_GAME_MEMO.sql` 및 `sql/SCHEMA.sql` 반영).
+    2. **구독 게임 카드 내 상시 메모 UI 구현**: `UserGameRow`에 `memo` 필드 추가, 카드 내 상시 메모 표시 및 인라인 편집(`Textarea`, `[메모 작성/수정]`, `[저장]`, `[취소]`) 구현, `trim` 후 빈 문자열은 `null` 저장, 본인 소유(`eq("id", ug.id).eq("user_id", user.id)`) 안전 갱신 및 로컬 상태 동기화.
+    3. **모바일 반응형 보강**: 구독 게임 목록 하단 페이지네이션에 `flex-wrap justify-center` 적용.
+    4. **단위 테스트 보강**: 상시 메모 표시, 신규 작성 및 trim 저장, 비우기(null) 저장, 취소 시 미호출, 저장 실패 시 안내 및 편집 유지 등 5개 단위 테스트 케이스 추가.
+  - verify: Vitest 42개 파일 267개 테스트 100% 통과, 정적 빌드(`npm run build`) 성공 (커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 코드 리뷰 통과).
+
 ---
 
 ## 향후 / 진행 로드맵 (Active & Planned Roadmap)
@@ -462,7 +471,7 @@
 - [x] R1. 모바일 화면 UI 오버플로우(수동 보정 내역 모달, 관리자 페이지네이션, 소비 페이지 픽업 과금 분석 카드) 해결 (`완료` - Gemini 3.8 Flash 완료)
 - [x] R2. 구글 플레이 포인트 적립 누락 버그 해결 및 이벤트 부스트 수식(`1,000원당 n포인트 = 0.1% × n배 고정`) 재설계 (`완료` - 커밋 `7307b99`, Gemini 4 Argon 리뷰 완료)
   - 지출 등록 및 결제 계산 모듈(`src/lib/payment-calculations.ts`)에서 구글 플레이 포인트 적립식 보정 및 단위 테스트 작성
-- [ ] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`진행 준비 (Active Dispatch Queue 등록)`)
+- [x] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`완료` - 커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 리뷰 완료)
 - [ ] R4. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (`장기 백로그 / 기획 검토`)
 
 ---

@@ -1,5 +1,28 @@
 # 프로젝트 진행 현황
 
+## 게임별 상시 메모 기능 추가: user_games.memo 확장 및 /dashboard/games 카드 연동 (2026-10-27)
+
+- **배경 및 사용자 요구사항**:
+  1. **게임 단위 상시 메모 필요성**: 특정 일정(`game_schedules`)에 종속되지 않고 구독 게임 자체(`user_games`)에 대해 상시 메모(예: 계정 정보, 파밍 목표, 특이사항 등)를 자유롭게 남길 수 있는 기능 요구.
+  2. **구독 게임 카드 직관적 편집**: `/dashboard/games` (내 게임 관리) 페이지의 각 구독 게임 카드에서 별도 페이지 이동 없이 바로 상시 메모를 열람하고 인라인으로 작성·수정·삭제할 수 있는 UI 구현.
+- **수행 내역**:
+  1. **스키마 확장 및 마이그레이션 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`)**:
+     - `public.user_games` 테이블에 `memo TEXT` 컬럼 추가 (`ALTER TABLE public.user_games ADD COLUMN IF NOT EXISTS memo TEXT;`).
+  2. **`/dashboard/games` 카드 내 상시 메모 UI 연동 (`src/app/dashboard/games/page.tsx`)**:
+     - `UserGameRow` 타입 및 `supabase.from("user_games").select(...)` 쿼리에 `memo` 추가.
+     - 구독 게임 카드 하단에 상시 메모 표시 영역 구현 (미작성 시 "등록된 상시 메모가 없습니다." 회색 안내, 작성 시 줄바꿈(`whitespace-pre-wrap`) 보존 렌더링).
+     - `[메모 작성]` / `[메모 수정]` 클릭 시 인라인 `Textarea`와 `[저장]`, `[취소]` 버튼 활성화.
+     - 저장 핸들러에서 앞뒤 공백 제거(`trim`) 후 빈 문자열은 `null`로 처리하여 Supabase `.update({ memo: trimmed || null }).eq("id", ug.id).eq("user_id", user.id)`로 본인 소유 행만 안전하게 갱신하고, 성공 시 로컬 상태(`userGames`) 즉시 동기화.
+     - 구독 게임 목록 하단 페이지네이션 컨테이너에 `flex-wrap justify-center` 적용으로 모바일 뷰포트 가로 스크롤 방지.
+  3. **단위 테스트 작성 (`src/app/dashboard/games/page.test.tsx`)**:
+     - 상시 메모 렌더링, 신규 작성 및 저장 시 `id`/`user_id` 스코프와 `trim` 검증, 기존 메모 삭제 시 `null` 저장 검증, 취소 시 미호출, 저장 실패 시 `alert` 노출 및 편집창 유지 등 5개 단위 테스트 케이스 추가.
+- **검증 완료**:
+  - 커밋 `53fbd26` (Gemini 3.8 Flash 스키마 및 UI 구현), `d75310d` (Claude Opus 5.5 단위 테스트 보강).
+  - Vitest 42개 파일, 267개 단위 테스트 100% 통과 (PASS, `src/app/dashboard/games/page.test.tsx` 12개 테스트 PASS).
+  - TypeScript 타입 검사(`npx tsc --noEmit`) 0 에러.
+  - Next.js 14 프로덕션 정적 빌드(`npm run build`) 15개 정적 페이지 export 성공.
+  - Gemini 4 Argon 독립 정적 코드 리뷰 완료 (`c60c91d..d75310d`, 수용 기준 및 정합성 PASS).
+
 ## 구글 플레이 포인트 적립 누락 버그 해결 및 1포인트당 n배(0.1% × n) 고정 부스트 수식 재설계 (2026-10-26)
 
 - **배경 및 사용자 요구사항**:

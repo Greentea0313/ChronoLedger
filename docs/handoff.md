@@ -43,11 +43,34 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: 53fbd26)` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체)* | `Maker (General)` | `user_games.memo` 스키마/마이그레이션 SQL 추가 및 `/dashboard/games` 게임 카드 내 상시 메모 작성·열람·수정 UI 구현 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`, `src/app/dashboard/games/page.tsx`) | `✅ DONE (SHA: 53fbd26)` (`sql/MIGRATION_USER_GAME_MEMO.sql` 추가, `sql/SCHEMA.sql` 반영, `/dashboard/games` 인라인 메모 편집 UI 및 페이지네이션 `flex-wrap` 적용) |
 | **2** | `✅ DONE (SHA: d75310d)` | ~~GPT Codex~~ ➡️ **Claude Opus 5.5** *(1순위 대체 수행 / 2순위: GitHub Copilot)* | `Maker (Test)` | `/dashboard/games` 게임별 상시 메모 렌더링 및 저장 단위 테스트 보강 (`src/app/dashboard/games/page.test.tsx`) | `✅ DONE (SHA: d75310d)` 신규 5케이스(표시·작성 저장(trim, `id`/`user_id` 스코프)·비우면 `null` 저장·취소 시 미호출·저장 실패 시 alert+편집 유지). vitest 42파일/267테스트 PASS, tsc 0 errors, build 성공 |
-| **3** | `▶ READY` | **Claude Opus 5.5** *(1순위 대체: Gemini 4 Argon / 2순위 대체: GitHub Copilot)* | `Reviewer & Orchestrator` | 코드 리뷰, 전체 빌드 검증 및 문서 4종(`handoff`, `progress`, `changelog`, `to-do`) 동기화 | 2단계 완료 후 진행 |
+| **3** | `✅ DONE` | ~~Claude Opus 5.5~~ ➡️ **Gemini 4 Argon** *(Claude 토큰 소진으로 1순위 대체 수행 / 2순위: GitHub Copilot)* | `Reviewer & Orchestrator` | 코드 리뷰, 전체 빌드 검증 및 문서 4종(`handoff`, `progress`, `changelog`, `to-do`) 동기화 | `✅ DONE (c60c91d..d75310d 정적 코드 리뷰 PASS, Vitest 42파일/267테스트 PASS, 문서 4종 마감 완료)` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## 게임별 상시 메모 기능 추가: user_games.memo 확장 및 /dashboard/games 카드 연동 (2026-10-27)
+
+- **수행 주체**: Gemini 3.8 Flash (Maker - General, UI & SQL 구현) / Claude Opus 5.5 (Maker - Test, 단위 테스트 작성) / Gemini 4 Argon (Reviewer & Architect, Claude 토큰 소진으로 1순위 대체 코드 리뷰 및 최종 문서 마감)
+- **구현 커밋**: `53fbd26` (스키마 및 UI 구현), `d75310d` (단위 테스트 보강) (Base: `c60c91d`)
+- **수행 내역**:
+  1. `sql/SCHEMA.sql` & `sql/MIGRATION_USER_GAME_MEMO.sql`: `public.user_games` 테이블에 `memo TEXT` 컬럼 추가 (`ALTER TABLE public.user_games ADD COLUMN IF NOT EXISTS memo TEXT;`).
+  2. `src/app/dashboard/games/page.tsx`:
+     - `UserGameRow` 타입 및 `supabase.from("user_games").select(...)` 쿼리에 `memo` 추가.
+     - 구독 게임 카드 내부 상시 메모 표시 영역(미작성 시 안내 문구, 작성 시 `whitespace-pre-wrap` 텍스트) 및 인라인 편집 UI(`Textarea`, `[메모 작성/수정]`, `[저장]`, `[취소]`) 구현.
+     - 저장 시 앞뒤 공백 제거(`trim`) 후 빈 문자열은 `null`로 처리하여 Supabase `.update({ memo: trimmed || null }).eq("id", ug.id).eq("user_id", user.id)`로 본인 소유 행만 안전하게 갱신하고, 성공 시 로컬 상태(`userGames`) 즉시 동기화.
+     - 구독 게임 목록 하단 페이지네이션 컨테이너에 `flex-wrap justify-center` 적용으로 모바일 뷰포트 이탈 방지.
+  3. `src/app/dashboard/games/page.test.tsx`:
+     - 게임별 상시 메모 표시, 신규 작성 및 trim 저장, 기존 메모 비우기(`null` 저장), 취소 시 미호출, 저장 실패 시 `alert` 안내 및 편집 유지 등 5개 단위 테스트 케이스 추가.
+- **검증 결과**:
+  - Vitest 42개 파일, 267개 단위 테스트 100% 통과 (PASS, `games/page.test.tsx` 12개 테스트 PASS).
+  - TypeScript 타입 검사(`npx tsc --noEmit`) 0 에러.
+  - Next.js 14 프로덕션 정적 빌드(`npm run build`) 15개 정적 페이지 export 성공.
+  - Gemini 4 Argon 정적 코드 리뷰 완료 (`c60c91d..d75310d`, 수용 기준 및 정합성 PASS).
+- **⚠️ 운영 배포 주의사항**:
+  - Supabase 실제 데이터베이스 운영 환경에 신규 마이그레이션 반영을 위해 Supabase 대시보드 SQL Editor에서 `sql/MIGRATION_USER_GAME_MEMO.sql` 스크립트를 1회 직접 실행해야 합니다.
 
 ---
 
