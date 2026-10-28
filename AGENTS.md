@@ -6,15 +6,15 @@
 
 모든 에이전트는 작업을 시작하기 전 아래 규칙 파일과 스킬 가이드를 필히 참조해야 합니다:
 
-- [.agents/rules/language.md](file:///c:/Projects/ChronoLedger/.agents/rules/language.md) — 항상 한국어로 소통하며 질의/안내를 작성합니다.
-- [.agents/rules/collaboration.md](file:///c:/Projects/ChronoLedger/.agents/rules/collaboration.md) — 5대 AI 모델 역할 분배, 하이브리드 위임 및 비상 인계 원칙을 규정합니다.
-- [.agents/rules/handoff.md](file:///c:/Projects/ChronoLedger/.agents/rules/handoff.md) — `"인수인계 문서를 확인해"` 디스패치 프로토콜 및 문서 갱신 수칙을 정의합니다.
-- [.agents/rules/agent_rules.md](file:///c:/Projects/ChronoLedger/.agents/rules/agent_rules.md) — 생각 우선, 단순성 추구, 최소 침습 편집(Surgical Changes) 등 코딩 행동 수칙입니다.
-- [.agents/rules/document_location.md](file:///c:/Projects/ChronoLedger/.agents/rules/document_location.md) — 문서는 외부 임시 디렉터리가 아닌 프로젝트 내부(`docs/`)에 기록합니다.
-- [.agents/skills/chronoledger-orchestrator/SKILL.md](file:///c:/Projects/ChronoLedger/.agents/skills/chronoledger-orchestrator/SKILL.md) — 조율자 워크플로우 및 Worktree 오케스트레이션 지침.
-- [.agents/skills/chronoledger-maker/SKILL.md](file:///c:/Projects/ChronoLedger/.agents/skills/chronoledger-maker/SKILL.md) — 구현자 작업 지침 및 Worktree 격리 구현 수칙.
-- [.agents/skills/chronoledger-reviewer/SKILL.md](file:///c:/Projects/ChronoLedger/.agents/skills/chronoledger-reviewer/SKILL.md) — 읽기 전용 정적 코드 리뷰 및 `review.json` 생성 지침.
-- [.agents/skills/handoff/SKILL.md](file:///c:/Projects/ChronoLedger/.agents/skills/handoff/SKILL.md) — 멀티 에이전트 인수인계 및 디스패치 큐 스킬 가이드.
+- [.agents/rules/language.md](.agents/rules/language.md) — 항상 한국어로 소통하며 질의/안내를 작성합니다.
+- [.agents/rules/collaboration.md](.agents/rules/collaboration.md) — 5대 AI 모델 역할 분배, 하이브리드 위임 및 비상 인계 원칙을 규정합니다.
+- [.agents/rules/handoff.md](.agents/rules/handoff.md) — `"인수인계 문서를 확인해"` 디스패치 프로토콜 및 문서 갱신 수칙을 정의합니다.
+- [.agents/rules/agent_rules.md](.agents/rules/agent_rules.md) — 생각 우선, 단순성 추구, 최소 침습 편집(Surgical Changes) 등 코딩 행동 수칙입니다.
+- [.agents/rules/document_location.md](.agents/rules/document_location.md) — 문서는 외부 임시 디렉터리가 아닌 프로젝트 내부(`docs/`)에 기록합니다.
+- [.agents/skills/chronoledger-orchestrator/SKILL.md](.agents/skills/chronoledger-orchestrator/SKILL.md) — 조율자 워크플로우 및 Worktree 오케스트레이션 지침.
+- [.agents/skills/chronoledger-maker/SKILL.md](.agents/skills/chronoledger-maker/SKILL.md) — 구현자 작업 지침 및 Worktree 격리 구현 수칙.
+- [.agents/skills/chronoledger-reviewer/SKILL.md](.agents/skills/chronoledger-reviewer/SKILL.md) — 읽기 전용 정적 코드 리뷰 및 `review.json` 생성 지침.
+- [.agents/skills/handoff/SKILL.md](.agents/skills/handoff/SKILL.md) — 멀티 에이전트 인수인계 및 디스패치 큐 스킬 가이드.
 
 ## 2. 5대 AI 모델 역할 분배 및 Fallback 매트릭스
 

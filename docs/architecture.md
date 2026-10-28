@@ -48,7 +48,7 @@ Supabase
 - `src/components/ui/`: 공통 Button, Card, Input, Dialog, Select, Progress, Drawer UI 컴포넌트. Progress는 Radix UI, Drawer는 Vaul 기반이며 alias는 `components.json`에 정의한다.
 - Web/PWA 앱의 `public/fonts/a2z/`: 자체 호스팅하는 A2Z WOFF2 9개 굵기 및 SIL OFL 1.1 고지.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
-- `(구) netlify/functions/`: Netlify 배포 방식 폐기로 인해 더 이상 사용되지 않으며, Supabase RPC(`request_account_deletion` 등) 및 PostgreSQL `pg_cron` 내부 스케줄러(`MIGRATION_PG_CRON.sql`)로 완전 이관 완료됨.
+- `(구) netlify/functions/`: Netlify 배포 방식 폐기에 따라 저장소에서 제거됨(`netlify.toml`, `@netlify/functions` 의존성 포함). 계정 삭제는 Supabase RPC(`request_account_deletion` 등) 및 PostgreSQL `pg_cron` 내부 스케줄러(`MIGRATION_PG_CRON.sql`)가 담당한다.
 - `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.
 - `docs/`: 진행 현황, 아키텍처, 인수인계, 구현 체크리스트, 변경 이력, 주의사항.
 - `docs/ai-collaboration-usage.md`, `docs/ChronoLedger_collaboration_guide.md`: 기존 수동 절차와 초보자를 위한 최소 개입 협업 흐름 및 사용자 개입 안내.

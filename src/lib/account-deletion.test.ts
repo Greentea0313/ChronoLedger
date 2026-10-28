@@ -3,7 +3,6 @@ import {
   fetchAccountDeletionStatus,
   requestAccountDeletion,
 } from "./account-deletion"
-import { retryDelayMs } from "../../netlify/functions-lib/account-deletion"
 
 const { getSession, rpc } = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -73,13 +72,5 @@ describe("account deletion client", () => {
       error: null,
     })
     await expect(fetchAccountDeletionStatus("not-found-token")).resolves.toBeNull()
-  })
-})
-
-describe("account deletion retry delay", () => {
-  it("increases retry delay and caps it", () => {
-    expect(retryDelayMs(1)).toBe(60_000)
-    expect(retryDelayMs(2)).toBe(120_000)
-    expect(retryDelayMs(20)).toBe(6 * 60 * 60 * 1000)
   })
 })
