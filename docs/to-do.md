@@ -468,12 +468,13 @@
     4. **단위 테스트 보강**: 상시 메모 표시, 신규 작성 및 trim 저장, 비우기(null) 저장, 취소 시 미호출, 저장 실패 시 안내 및 편집 유지 등 5개 단위 테스트 케이스 추가.
   - verify: Vitest 42개 파일 267개 테스트 100% 통과, 정적 빌드(`npm run build`) 성공 (커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 코드 리뷰 통과).
 
-- [ ] 12.14 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결 및 모바일 배경 이미지 리사이징 최적화
+- [x] 12.14 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결 및 모바일 배경 이미지 리사이징 최적화 (2026-10-28, `f272bfd`)
   - 대상 파일: `src/components/calendar/calendar-bg-customizer.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/lib/calendar-bg-storage.ts`
   - 작업:
     1. 모바일에서 캘린더 헤더 줄바꿈(flex-wrap) 시 좌측 끝에 위치한 [배경 설정] 버튼의 팝오버(absolute right-0)가 화면 좌측 바깥으로 잘리는(overflow-hidden 클리핑) 문제를 해결 (모바일 좌측 기준 정렬 left-0 sm:left-auto sm:right-0 또는 모바일 중앙 모달/고정 위치 적용).
     2. 현재 데스크톱 가로형 고정 해상도(1920×1080)로만 동작하는 compressCalendarBgImage / calculateScaledDimensions 리사이징 로직을 점검하여, 모바일 뷰포트 및 세로형 이미지 비율에 맞춘 리사이징·표시 최적화 적용.
   - verify: 모바일(360px~412px) 및 데스크톱 뷰포트에서 배경 설정 패널 위치·리사이징 단위 테스트 통과.
+  - 결과: 팝오버 `left-0 sm:left-auto sm:right-0` 적용, `calculateScaledDimensions`가 세로형 이미지는 1080×1920 상자로 축소(예: 1080×1920 원본 유지, 1440×3200 → 864×1920). 팝오버 정렬·리사이징 단위 테스트 추가. 실기기 시각 확인은 미수행.
 
 - [ ] 12.15 Supabase SQL Editor 실행용 SQL 문서(sql/*.sql) 분류 및 통합·정리
   - 대상 파일: `sql/*.sql` (현재 `SCHEMA.sql`, `MIGRATION_*.sql` 등 16개 파일), `supabase/migrations/`
@@ -490,10 +491,11 @@
   - 작업: 모바일 Chrome을 통해 홈 화면에 PWA 앱 설치 시 `ChronoLedger`가 `ChronoLe...`로 끊어지는 문제를 해결하기 위해 전체 앱 명칭(`manifest.json`의 `name: "ChronoLedger"`)은 유지하고 모바일 홈 화면 아이콘 라벨에 표시되는 `short_name` 및 `layout.tsx`의 `appleWebApp.title`을 `"ChroLog"`로 단축 적용.
   - verify: `public/manifest.json` 및 `src/app/layout.tsx` 메타데이터 검증 및 정적 빌드/타입 검사 통과.
 
-- [ ] 12.18 모바일 대시보드(`/dashboard`) 선택일 상세 드로어(`MobileDrawer`) 오픈 시 스마트폰 내장 뒤로 가기 연동
+- [x] 12.18 모바일 대시보드(`/dashboard`) 선택일 상세 드로어(`MobileDrawer`) 오픈 시 스마트폰 내장 뒤로 가기 연동 (2026-10-28, `f272bfd`)
   - 대상 파일: `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/mobile-drawer.test.tsx`
   - 작업: 모바일 환경에서 선택일 상세 드로어(`MobileDrawer`)가 열린 상태에서 스마트폰 내장(하드웨어/제스처) 뒤로 가기 실행 시, 이전 페이지(소비, 게임, 관리자 등)로 라우트가 이탈하지 않고 선택일 상세 드로어만 닫혀 달력 타일 화면으로 돌아가도록 브라우저 History API(`window.history.pushState` 및 `popstate` 이벤트) 연동. 사용자가 드로어를 딤 클릭/스와이프로 직접 닫을 때는 푸시된 히스토리 엔트리를 정리(`history.back()`)하여 히스토리 정합성 보장.
   - verify: 드로어 오픈 후 `popstate` 발생 시 페이지 이동 없이 드로어 닫힘 동작 단위 테스트 통과.
+  - 결과: `mobile-drawer.tsx`에 `useDrawerHistory` 훅 추가(`dashboard/page.tsx` 변경 불필요). Next.js App Router `history.state`(`__NA`) 보존, 직접 닫기 시 `history.back()` 후 popstate 1회 무시, back 처리 중 재오픈 시 popstate 도착 후 push. 단위 테스트 5건 추가. 실기기 Android 뒤로 가기 확인은 미수행.
 
 - [ ] 12.19 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시
   - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`

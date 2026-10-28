@@ -59,14 +59,30 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체 / Gemini 4 Argon 2순위)* | `Maker (Fast UI)` | `Phase 12.16 (R6)` 공식 일정 보기 `"/"` 자동 줄바꿈 & `Phase 12.17 (R7)` 모바일 PWA `short_name` `"ChroLog"` 단축 (`public/manifest.json`, `src/app/layout.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`) | `✅ DONE` (`public/manifest.json` short_name "ChroLog" 단축, `layout.tsx` appleWebApp 메타데이터 추가, `games/page.tsx` "/" 줄바꿈 블록 렌더링, `games/page.test.tsx` 신규 단위 테스트 PASS) |
-| **2** | **`▶ READY`** | **Claude Fable (또는 Claude Opus)** *(GitHub Copilot 1순위 대체 / GPT Codex 2순위)* | `Maker (Complex)` | `Phase 12.14 (R4)` 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결·모바일 리사이징 최적화 & `Phase 12.18 (R8)` 모바일 선택일 상세 드로어(`MobileDrawer`) 스마트폰 내장 뒤로 가기(History API / `popstate` / `history.back()`) 연동 (`src/components/calendar/calendar-bg-customizer.tsx`, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, 단위 테스트) | 대기 중 (Claude Fable/Opus 전환 후 `"인수인계 문서를 확인해"` 입력 시 즉시 착수) |
-| **3** | `⏳ PENDING` | **Claude Sonnet (또는 Claude Fable)** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위)* | `Maker (Complex)` | `Phase 12.19 (R9)` 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정(`CONFIRMED`) 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`) | Step 2 완료 후 착수 예정 (구체화 명세 확정) |
+| **2** | `✅ DONE (SHA: f272bfd)` | **Claude Fable (또는 Claude Opus)** *(GitHub Copilot 1순위 대체 / GPT Codex 2순위)* | `Maker (Complex)` | `Phase 12.14 (R4)` 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결·모바일 리사이징 최적화 & `Phase 12.18 (R8)` 모바일 선택일 상세 드로어(`MobileDrawer`) 스마트폰 내장 뒤로 가기(History API / `popstate` / `history.back()`) 연동 (`src/components/calendar/calendar-bg-customizer.tsx`, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, 단위 테스트) | `✅ DONE` (Claude Opus 5.5: 팝오버 `left-0 sm:left-auto sm:right-0`, 세로형 배경 1080×1920 상자 리사이징, `useDrawerHistory` 훅으로 `pushState`/`popstate`/`history.back()` 연동 및 Next.js `history.state` 보존, 단위 테스트 7건 추가 / 전체 41파일 268테스트·tsc·lint·build PASS) |
+| **3** | **`▶ READY`** | **Claude Sonnet (또는 Claude Fable)** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위)* | `Maker (Complex)` | `Phase 12.19 (R9)` 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정(`CONFIRMED`) 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`) | 대기 중 (Claude Sonnet/Fable 전환 후 `"인수인계 문서를 확인해"` 입력 시 즉시 착수) |
 | **4** | `⏳ PENDING` | **GPT Codex** *(Claude Fable / Sonnet 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL)` | `Phase 12.15 (R5)` Supabase SQL Editor 실행용 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 순서 가이드 작성 (`sql/*.sql`, `sql/README.md`) | Step 3 완료 후 착수 예정 |
 | **5** | `⏳ PENDING` | **Claude Fable (또는 Claude Opus)** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.14 ~ 12.19 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | Step 4 완료 후 착수 예정 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## Phase 12.14 & 12.18 모바일 배경 팝오버·리사이징 및 드로어 뒤로 가기 연동, CLAUDE.md 문서화 및 Netlify 잔재 제거 (2026-10-28)
+
+- **수행 주체**: Claude Opus 5.5 (Maker - Complex)
+- **커밋**: `ac58a1b` (CLAUDE.md 문서화·Netlify 제거), `f272bfd` (Phase 12.14 / 12.18)
+- **수행 내역**:
+  1. `CLAUDE.md`에 개발 명령어, 아키텍처 개요, 데이터 계층·UI 규칙 섹션 추가. `CLAUDE.md`/`AGENTS.md`의 깨진 절대 경로 링크(`file:///c:/Projects/...`)를 상대 경로로 수정.
+  2. 폐기된 `netlify/`, `netlify.toml`, `src/__tests__/functions/*`, `@netlify/functions` 의존성 제거(계정 삭제는 Supabase RPC + `pg_cron`이 담당). `docs/architecture.md` 반영.
+  3. Phase 12.14: `calendar-bg-customizer.tsx` 팝오버 모바일 좌측 기준 정렬, `calendar-bg-storage.ts` 세로형 이미지 1080×1920 상자 리사이징.
+  4. Phase 12.18: `mobile-drawer.tsx`에 `useDrawerHistory` 훅 추가. 드로어 오픈 시 Next.js `history.state`를 보존한 엔트리 push, 뒤로 가기(popstate) 시 드로어만 닫힘, 직접 닫기 시 `history.back()`으로 정리.
+- **검증**: `npx tsc --noEmit` 0 에러, Vitest 41개 파일 268개 테스트 PASS, `npm run lint` 0건, `npm run build` 정적 export 성공.
+- **미검증 / 후속 확인 필요**:
+  - Android/iOS 실기기에서 하드웨어·제스처 뒤로 가기 및 팝오버 위치 시각 확인.
+  - 드로어 위에 `ExpenseDetailModal`/지출 등록 모달이 열린 상태에서 뒤로 가기를 누르면 모달이 아닌 드로어가 닫힘(이번 범위 외).
 
 ---
 

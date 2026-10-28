@@ -1,5 +1,13 @@
 # 변경 이력
 
+## 2026-10-28 (Phase 12.14 / 12.18 모바일 UX, CLAUDE.md 문서화, Netlify 잔재 제거)
+
+- **배경 설정 팝오버 모바일 화면 이탈 수정 (`src/components/calendar/calendar-bg-customizer.tsx`)**: 팝오버 정렬을 `left-0 sm:left-auto sm:right-0`으로 변경.
+- **세로형 배경 이미지 리사이징 최적화 (`src/lib/calendar-bg-storage.ts`)**: `calculateScaledDimensions`가 세로형 원본에는 1080×1920 경계 상자를 적용.
+- **모바일 선택일 드로어 뒤로 가기 연동 (`src/components/calendar/mobile-drawer.tsx`)**: `useDrawerHistory` 훅으로 `pushState`/`popstate`/`history.back()` 동기화. 테스트 `mobile-drawer.test.tsx` 신규.
+- **CLAUDE.md / AGENTS.md**: 개발 명령어·아키텍처·데이터/UI 규칙 문서화, 깨진 절대 경로 링크 수정.
+- **Netlify 잔재 제거**: `netlify/`, `netlify.toml`, `src/__tests__/functions/*`, `@netlify/functions` 의존성 삭제. `docs/architecture.md` 갱신.
+
 ## 2026-10-28 (모바일 UX 개선 구현, Active Dispatch Queue 과제 배정, Claude Code/AGENTS 설정 및 경로 최신화)
 
 - **공식 일정 보기 "/" 자동 줄바꿈 구현 (`src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`)**:

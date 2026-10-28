@@ -1,5 +1,15 @@
 # 프로젝트 진행 현황
 
+## Phase 12.14 & 12.18 모바일 배경 팝오버·리사이징 및 드로어 뒤로 가기 연동 (2026-10-28)
+
+- **수행 주체**: Claude Opus 5.5 (Maker - Complex)
+- **수행 내역**:
+  1. **Phase 12.14 / R4**: 모바일 헤더 줄바꿈 시 [배경 설정] 팝오버가 화면 좌측 밖으로 잘리던 문제를 `left-0 sm:left-auto sm:right-0`으로 해결. 배경 리사이징을 방향 인식형으로 변경해 세로형 이미지는 1080×1920 상자 기준으로 축소(기존 1080×1920 → 608×1080 과축소 해소).
+  2. **Phase 12.18 / R8**: `MobileDrawer`에 `useDrawerHistory` 훅을 추가해 스마트폰 뒤로 가기 시 라우트 이탈 없이 드로어만 닫히도록 History API 연동. 직접 닫기 시 `history.back()`으로 엔트리 정리, Next.js App Router `history.state` 보존, back 처리 중 재오픈 레이스 가드.
+  3. **CLAUDE.md 코드베이스 문서화 및 Netlify 잔재 제거**: 개발 명령어·아키텍처·규칙 섹션 추가, 깨진 링크 수정, 폐기된 Netlify Functions 코드·테스트·의존성 제거.
+- **검증 완료**: tsc 0 에러, Vitest 41개 파일 268개 테스트 PASS, lint 0건, 정적 빌드 성공. 실기기 확인은 미수행.
+- **다음 단계**: Dispatch Queue Step 3 (Phase 12.19, Claude Sonnet/Fable) `▶ READY`.
+
 ## 모바일 UX 개선(일정 자동 줄바꿈, PWA short_name) 구현 및 Active Dispatch Queue 신규 과제 배정 (2026-10-28)
 
 - **수행 주체**: Gemini 3.8 Flash (Maker - Fast UI) / Gemini 4 Argon (Orchestrator)
