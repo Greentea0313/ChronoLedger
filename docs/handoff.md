@@ -96,7 +96,6 @@
 - **⚠️ 운영 배포 주의사항**:
   - Supabase 실제 데이터베이스 운영 환경에 신규 마이그레이션 반영을 위해 Supabase 대시보드 SQL Editor에서 `sql/MIGRATION_STORE_EVENT_EARN.sql` 스크립트를 1회 직접 실행해야 합니다.
 
-
 ## 모바일 화면 UI 오버플로우 3건 해결 및 향후 과제 4종 로드맵 수립 (2026-10-26)
 
 - **수행 주체**: Gemini 3.8 Flash (Maker - Fast UI & Subagent)

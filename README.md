@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**게임 일정과 소비를 한눈에, 스마트하게 관리하는 서브컬처 게이머를 위한 일정 연동 가계부**
+<p><strong>게임 일정과 소비를 한눈에, 스마트하게 관리하는 서브컬처 게이머를 위한 일정 연동 가계부</strong></p>
 
 [![Deployment](https://img.shields.io/badge/Deploy-Cloudflare_Pages-F38020?style=for-the-badge&logo=cloudflarepages&logoColor=white)](https://chronoledger.pages.dev/)
 [![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)

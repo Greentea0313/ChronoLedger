@@ -11,6 +11,7 @@ After each meaningful development session, update the relevant documentation in 
 ## 0. 신규 요구사항 입력 시 주축 모델(Gemini 4 Argon) 기본 동작 (Orchestrator Intake — Hybrid Delegation)
 
 사용자가 주축 모델(**Gemini 4 Argon**)에게 프로젝트 관련 새로운 기능/수정 요구사항을 입력하면(단, 사용자가 *"직접 바로 구현해"*라고 명시한 경우 제외), Argon은 **절대 직접 제품 소스 코드(`src/**`)를 수정하지 않고** **Chief Orchestrator**로서 다음 **하이브리드 위임(Hybrid Delegation)** 절차를 수행합니다:
+
 1. 요구사항과 관련 코드를 분석하여 명확한 **수용 기준(Acceptance Criteria)**과 **도메인별 하위 과제**를 설계합니다.
 2. **Gemini 3.8 Flash 담당 도메인 (UI/Tailwind 스타일링, 배지·모달·드로어 마크업, 고속 탐색, `docs/` 문서 동기화)**:
    - Antigravity 내부에서 `define_subagent`(쓰기 필요 시 `enable_write_tools: true`) 및 `invoke_subagent`(`Model: "flash"` — 사용자 명시 지정 티어)를 사용해 **Gemini 3.8 Flash 서브에이전트**를 즉시 호출하여 위임합니다.
@@ -49,42 +50,40 @@ Orchestrator(주축 모델)가 과제를 분해하여 Dispatch Queue에 할당�
 
 ## 3. 토큰/컨텍스트 소진 시 비상 인계 (Limited Context or Token Budget)
 
-* Keep track of whether the remaining context or token budget is likely to be insufficient to finish the requested work reliably. Do not claim an exact remaining amount unless the environment provides it.
-* If completion is at risk, tell the user promptly before running out of context. Save current file edits safely, then update the task row in `docs/handoff.md` Dispatch Queue:
+- Keep track of whether the remaining context or token budget is likely to be insufficient to finish the requested work reliably. Do not claim an exact remaining amount unless the environment provides it.
+- If completion is at risk, tell the user promptly before running out of context. Save current file edits safely, then update the task row in `docs/handoff.md` Dispatch Queue:
   1. 상태를 **`⚠️ HANDOVER_NEEDED`**로 변경합니다.
   2. `담당 모델` 칸을 `~~기존 모델~~ ➡️ 대체 모델명`으로 업데이트합니다.
   3. 큐 하단의 `### 📌 중단 체크포인트 (Handover Checkpoint)` 및 `docs/progress.md`에 **① 완료된 작업(수정된 파일/함수), ② 남은 작업(대체 모델이 바로 이어서 해야 할 구체적 단계), ③ 결정/가정 사항, ④ 테스트 실행 여부**를 기록합니다.
-* Save current project-file edits and preserve unfinished work. Do not leave the user with only a chat summary when a durable project checkpoint can be written.
-* 마지막 응답에서 사용자에게 *"토큰/컨텍스트 한도로 체크포인트를 남겼습니다. **[대체 모델명]**으로 전환하여 `'인수인계 문서를 확인해'`라고 입력해 주세요."*라고 안내합니다.
+- Save current project-file edits and preserve unfinished work. Do not leave the user with only a chat summary when a durable project checkpoint can be written.
+- 마지막 응답에서 사용자에게 *"토큰/컨텍스트 한도로 체크포인트를 남겼습니다. **[대체 모델명]**으로 전환하여 `'인수인계 문서를 확인해'`라고 입력해 주세요."*라고 안내합니다.
 
 ## 4. Required Updates (세션 및 파이프라인 마감 시 필수 갱신)
 
-* Update `docs/progress.md` after every meaningful session with the current project state, work completed, active or blocked work, and the next concrete steps. Keep it concise and current so another session can resume without reconstructing the conversation.
-* Update `docs/architecture.md` when files, folders, modules, responsibilities, or project structure change.
-* Update `docs/handoff.md` with what was done, why it was done, current state, and recommended next steps (and update the top Dispatch Queue state).
-* Update `docs/changelog.md` when behavior, features, fixes, refactors, or documentation meaningfully changed.
-* Update `docs/to-do.md` by marking completed work and adding remaining tasks as clear, actionable items.
-* Update `docs/known-pitfalls.md` when a repeated failure pattern, fragile behavior, blocker, or useful workaround is discovered.
+- Update `docs/progress.md` after every meaningful session with the current project state, work completed, active or blocked work, and the next concrete steps. Keep it concise and current so another session can resume without reconstructing the conversation.
+- Update `docs/architecture.md` when files, folders, modules, responsibilities, or project structure change.
+- Update `docs/handoff.md` with what was done, why it was done, current state, and recommended next steps (and update the top Dispatch Queue state).
+- Update `docs/changelog.md` when behavior, features, fixes, refactors, or documentation meaningfully changed.
+- Update `docs/to-do.md` by marking completed work and adding remaining tasks as clear, actionable items.
+- Update `docs/known-pitfalls.md` when a repeated failure pattern, fragile behavior, blocker, or useful workaround is discovered.
 
 ## 5. Rules
 
-* Keep entries concise, factual, and useful for the next AI agent or developer.
-* Preserve the existing format of each documentation file.
-* Do not rewrite entire documents unless the current content is outdated or misleading.
-* Do not claim work is complete unless it was actually completed.
-* If something is uncertain, mark it as needing verification.
-* Avoid duplicate information across files unless each file needs different context.
+- Keep entries concise, factual, and useful for the next AI agent or developer.
+- Preserve the existing format of each documentation file.
+- Do not rewrite entire documents unless the current content is outdated or misleading.
+- Do not claim work is complete unless it was actually completed.
+- If something is uncertain, mark it as needing verification.
+- Avoid duplicate information across files unless each file needs different context.
 
 ## 6. Completion Summary
 
 Before finishing, report:
 
-* The current project state, Dispatch Queue status, and the checkpoint location (if a handover checkpoint was needed).
-* Which next AI model should be invoked with `"인수인계 문서를 확인해"` (if steps remain in the queue).
-* Which documentation files were updated.
-* What major changes were recorded.
-* What remaining tasks were added.
-* What pitfalls or blockers were documented.
-* Which expected files were not updated, and why.
-
-
+- The current project state, Dispatch Queue status, and the checkpoint location (if a handover checkpoint was needed).
+- Which next AI model should be invoked with `"인수인계 문서를 확인해"` (if steps remain in the queue).
+- Which documentation files were updated.
+- What major changes were recorded.
+- What remaining tasks were added.
+- What pitfalls or blockers were documented.
+- Which expected files were not updated, and why.

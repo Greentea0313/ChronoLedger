@@ -464,6 +464,23 @@
     4. **단위 테스트 보강**: 상시 메모 표시, 신규 작성 및 trim 저장, 비우기(null) 저장, 취소 시 미호출, 저장 실패 시 안내 및 편집 유지 등 5개 단위 테스트 케이스 추가.
   - verify: Vitest 42개 파일 267개 테스트 100% 통과, 정적 빌드(`npm run build`) 성공 (커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 코드 리뷰 통과).
 
+- [ ] 12.14 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결 및 모바일 배경 이미지 리사이징 최적화
+  - 대상 파일: `src/components/calendar/calendar-bg-customizer.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/lib/calendar-bg-storage.ts`
+  - 작업:
+    1. 모바일에서 캘린더 헤더 줄바꿈(flex-wrap) 시 좌측 끝에 위치한 [배경 설정] 버튼의 팝오버(absolute right-0)가 화면 좌측 바깥으로 잘리는(overflow-hidden 클리핑) 문제를 해결 (모바일 좌측 기준 정렬 left-0 sm:left-auto sm:right-0 또는 모바일 중앙 모달/고정 위치 적용).
+    2. 현재 데스크톱 가로형 고정 해상도(1920×1080)로만 동작하는 compressCalendarBgImage / calculateScaledDimensions 리사이징 로직을 점검하여, 모바일 뷰포트 및 세로형 이미지 비율에 맞춘 리사이징·표시 최적화 적용.
+  - verify: 모바일(360px~412px) 및 데스크톱 뷰포트에서 배경 설정 패널 위치·리사이징 단위 테스트 통과.
+
+- [ ] 12.15 Supabase SQL Editor 실행용 SQL 문서(sql/*.sql) 분류 및 통합·정리
+  - 대상 파일: `sql/*.sql` (현재 `SCHEMA.sql`, `MIGRATION_*.sql` 등 16개 파일), `supabase/migrations/`
+  - 작업: SQL Editor 입력을 위해 생성했던 산재된 마이그레이션·패치·시드·더미·테스트 SQL 문서들을 역할별(① 최신 통합 마스터 스키마, ② 미적용/운영 마이그레이션, ③ 시드·더미·스모크 테스트, ④ 아카이브)로 분류·통합하고 실행 순서 가이드를 정리.
+  - verify: 통합된 SQL 스크립트의 문법·멱등성 점검 및 문서 참조 경로 동기화.
+
+- [ ] 12.16 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시
+  - 대상 파일: `src/app/dashboard/games/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/app/admin/page.tsx`
+  - 작업: 게임 페이지([일정 보기] 공식 일정 모달) 및 대시보드/관리자 공식 일정 표시 영역에서 일정 제목(title 등)에 "/"가 포함된 경우 "/" 기준으로 자동 줄바꿈(줄 단위 분리 렌더링)하여 가독성을 높이도록 개선.
+  - verify: "/" 포함 공식 일정 제목의 줄바꿈 렌더링 단위 테스트 통과.
+
 ---
 
 ## 향후 / 진행 로드맵 (Active & Planned Roadmap)
@@ -472,7 +489,10 @@
 - [x] R2. 구글 플레이 포인트 적립 누락 버그 해결 및 이벤트 부스트 수식(`1,000원당 n포인트 = 0.1% × n배 고정`) 재설계 (`완료` - 커밋 `7307b99`, Gemini 4 Argon 리뷰 완료)
   - 지출 등록 및 결제 계산 모듈(`src/lib/payment-calculations.ts`)에서 구글 플레이 포인트 적립식 보정 및 단위 테스트 작성
 - [x] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`완료` - 커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 리뷰 완료)
-- [ ] R4. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (`장기 백로그 / 기획 검토`)
+- [ ] R4. 모바일 캘린더 배경 커스터마이징 UI 화면 이탈 해결 및 모바일 버전 배경 리사이징 기준 최적화
+- [ ] R5. Supabase SQL Editor용 SQL 문서(sql/*.sql) 분류 및 통합·정리
+- [ ] R6. 공식 일정 보기에서 "/" 입력 시 자동 줄바꿈 표시
+- [ ] R7. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---
 

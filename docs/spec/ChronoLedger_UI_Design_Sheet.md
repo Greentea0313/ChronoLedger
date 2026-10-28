@@ -93,7 +93,7 @@ CONFIRMED
 
 ---
 
-# 2. Global Layout System
+## 2. Global Layout System
 
 ## 2.1 Desktop shell `[PROPOSED]`
 
@@ -171,7 +171,7 @@ The selected-date desktop sidebar maps to a mobile bottom sheet. (FR-020)
 
 ---
 
-# 3. Design Tokens
+## 3. Design Tokens
 
 > All values in this section are `[PROPOSED]` unless explicitly noted otherwise. SRS defines semantic states such as budget warning/risk and spending statuses, but does not prescribe visual tokens.
 
@@ -316,7 +316,7 @@ Avoid decorative animation that competes with calendar information.
 
 ---
 
-# 4. Core Components
+## 4. Core Components
 
 ## 4.1 Calendar Tile
 
@@ -466,7 +466,7 @@ For blocked business rules, prefer inline or modal error explanation rather than
 
 ---
 
-# 5. Dashboard
+## 5. Dashboard
 
 ## 5.1 Purpose
 
@@ -582,7 +582,7 @@ Apply the state based on monthly expected consumption and applied budget.
 
 ---
 
-# 6. Spending
+## 6. Spending
 
 ## 6.1 Purpose
 
@@ -702,7 +702,7 @@ Reason: PAYMENT_REFUND
 
 ---
 
-# 7. Statistics
+## 7. Statistics
 
 ## 7.1 Purpose
 
@@ -763,7 +763,7 @@ The UI must not imply a percentage warning when applied budget is zero. (FR-022)
 
 ---
 
-# 8. Games
+## 8. Games
 
 ## 8.1 Purpose
 
@@ -856,7 +856,7 @@ Public catalog update (if approved)
 
 ---
 
-# 9. Subscriptions
+## 9. Subscriptions
 
 ## 9.1 Purpose
 
@@ -929,7 +929,7 @@ Physical deletion is disallowed. (FR-053)
 
 ---
 
-# 10. Wallets
+## 10. Wallets
 
 ## 10.1 Purpose
 
@@ -998,7 +998,7 @@ The UI should frame this as **target balance**, not arbitrary ledger editing. Se
 
 ---
 
-# 11. Settings
+## 11. Settings
 
 ## 11.1 Purpose
 
@@ -1078,7 +1078,7 @@ No personal data or cached personal data is shown in the signed-out state. (FR-0
 
 ---
 
-# 12. Admin
+## 12. Admin
 
 ## 12.1 Access model `[SRS]`
 
@@ -1183,7 +1183,7 @@ Approval should visually communicate that the state transition and public data u
 
 ---
 
-# 13. Cross-page State UI Matrix
+## 13. Cross-page State UI Matrix
 
 | State | Dashboard | Spending | Statistics | Games | Subscriptions | Wallets | Settings | Admin |
 |---|---|---|---|---|---|---|---|---|
@@ -1196,7 +1196,7 @@ Approval should visually communicate that the state transition and public data u
 
 ---
 
-# 14. Interaction Rules
+## 14. Interaction Rules
 
 ## 14.1 Focus and keyboard
 
@@ -1238,7 +1238,7 @@ The UI should avoid presenting ambiguous date/time strings around payment valida
 
 ---
 
-# 15. Dashboard-to-Action Flow Map
+## 15. Dashboard-to-Action Flow Map
 
 ```text
 Calendar day
@@ -1264,7 +1264,7 @@ Expired planned spending inserts a mandatory gate before normal calendar interac
 
 ---
 
-# 16. Responsive Mapping
+## 16. Responsive Mapping
 
 | Desktop | Mobile |
 |---|---|
@@ -1280,7 +1280,7 @@ The underlying information model should remain the same; only the container/pres
 
 ---
 
-# 17. Accessibility / Usability Baseline
+## 17. Accessibility / Usability Baseline
 
 `[PROPOSED]`
 
@@ -1294,7 +1294,7 @@ The underlying information model should remain the same; only the container/pres
 
 ---
 
-# 18. UI Requirements Traceability Matrix
+## 18. UI Requirements Traceability Matrix
 
 | UI area | SRS requirement(s) | UI consequence |
 |---|---|---|
@@ -1317,7 +1317,7 @@ The underlying information model should remain the same; only the container/pres
 
 ---
 
-# 19. Design QA Checklist
+## 19. Design QA Checklist
 
 ## Dashboard
 
@@ -1380,7 +1380,7 @@ The underlying information model should remain the same; only the container/pres
 
 ---
 
-# 20. Open Design Decisions
+## 20. Open Design Decisions
 
 The following presentation decisions have been made without changing SRS behavior:
 
@@ -1410,7 +1410,7 @@ Preserve the functional requirements and business rules already fixed in SRS v1.
 
 ---
 
-# 21. Recommended Screen Inventory
+## 21. Recommended Screen Inventory
 
 | Screen ID | Screen | Primary purpose |
 |---|---|---|
@@ -1437,7 +1437,7 @@ Preserve the functional requirements and business rules already fixed in SRS v1.
 
 ---
 
-# 22. Final UI Architecture Summary
+## 22. Final UI Architecture Summary
 
 ```text
                            CHRONOLEDGER
