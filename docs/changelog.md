@@ -1,5 +1,13 @@
 # 변경 이력
 
+## 2026-10-29 (Phase 12.15 SQL 문서 분류·통합·정리)
+
+- **`sql/` 재구성**: `SCHEMA.sql`(신규 설치용 마스터), `migrations/`(기존 DB 동기화·재실행 안전 5개), `seed/`(3), `tests/TESTS.sql`, `archive/`(대체된 6개, 재실행 금지 주석). `sql/README.md`에 설치 순서·반영 확인 쿼리·신규 변경 규칙 정리.
+- **`SCHEMA.sql` 신규 설치 수정**: `public.users` 테이블·RLS·가입 트리거·백필 추가, 중복 `idx_expenses_pickup_schedule_id` 및 존재하지 않는 9개 인자 `process_expense_payment` GRANT 제거, `pg_cron` 탈퇴 정리 스케줄 통합.
+- **`MIGRATION_STORE_EVENT_EARN.sql`**: 9개 인자 구버전 결제 RPC 오버로드를 먼저 `DROP`.
+- **`TESTS.sql`**: 두 번째 사용자 Galaxy Store 초기 등급 단언이 `GENERAL`을 허용하도록 정정. 헤더 실행 경로 `sql/tests/TESTS.sql`로 갱신.
+- 경로 참조 갱신(`games/page.tsx` 안내 문구, `CLAUDE.md`, `README.md`, `architecture.md`, `detailed-design.md`, `known-pitfalls.md` 27번 신규).
+
 ## 2026-10-28 (Phase 12.19 카테고리별 지출 내역 아코디언)
 
 - **소비 페이지 카테고리 아코디언 (`src/app/dashboard/expenses/page.tsx`)**: 원그래프 조각/범례 버튼 클릭 시 카드 하단에 해당 카테고리 확정(`CONFIRMED`) 지출을 최신순으로 펼침. 재클릭·닫기로 접힘, 항목 클릭 시 `ExpenseDetailModal` 열림. 범례를 `<button>`으로 변경해 키보드 접근 지원.

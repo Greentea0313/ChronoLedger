@@ -69,12 +69,31 @@
 | **2** | `✅ DONE (SHA: f272bfd)` | **Claude Opus** *(GitHub Copilot 1순위 대체 / GPT Codex 2순위)* | `Maker (Complex)` | `Phase 12.14 (R4)` 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결·모바일 리사이징 최적화 & `Phase 12.18 (R8)` 모바일 선택일 상세 드로어(`MobileDrawer`) 스마트폰 내장 뒤로 가기(History API / `popstate` / `history.back()`) 연동 (`src/components/calendar/calendar-bg-customizer.tsx`, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, 단위 테스트) | `✅ DONE` (Claude Opus 5.5: 팝오버 `left-0 sm:left-auto sm:right-0`, 세로형 배경 1080×1920 상자 리사이징, `useDrawerHistory` 훅으로 `pushState`/`popstate`/`history.back()` 연동 및 Next.js `history.state` 보존, 단위 테스트 7건 추가 / 전체 41파일 268테스트·tsc·lint·build PASS) |
 | **3** | `✅ DONE (SHA: 6015399)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체)* | `Architect & Rule Designer` | `Claude Pro 2종 모델(Sonnet / Opus) 토큰 최소화 작업 분배 기준 수립` (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md`) | `✅ DONE` (Claude Opus 5.5: Sonnet 기본 배정 + Opus 승격 조건 4개 정의, `collaboration.md`/`CLAUDE.md`/`AGENTS.md`/`handoff.md` 일관 반영, 후속 순서 4~6 담당 재지정) |
 | **4** | `✅ DONE (SHA: dd01401)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Complex)` | `Phase 12.19 (R9)` 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정(`CONFIRMED`) 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`) | `✅ DONE` (Claude Sonnet 5.5: `selectedCategory` 상태, 원그래프 `Cell`/범례 버튼 클릭 토글, 카드 하단 아코디언(헤더 건수·합계·닫기, `max-h-60` 스크롤 리스트, CONFIRMED만 최신순), 항목 클릭 시 `ExpenseDetailModal` 연동, 테스트 2건 추가 / 전체 270테스트·tsc·lint PASS) |
-| **5** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 — SQL/RPC 정합성은 승격 조건 ① / GitHub Copilot 2순위)* | `Maker (Core & SQL)` | `Phase 12.15 (R5)` Supabase SQL Editor 실행용 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 순서 가이드 작성 (`sql/*.sql`, `sql/README.md`) | 대기 중 (GPT Codex 전환 후 `"인수인계 문서를 확인해"` 입력 시 착수. SQL/RPC 정합성 필요 시 Claude Opus 승계) |
-| **6** | `⏳ PENDING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.14 ~ 12.19 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | Step 5 완료 후 착수 예정 |
+| **5** | `✅ DONE (SHA: cee2b76)` | ~~GPT Codex~~ ➡️ **Claude Opus** *(GPT Codex 토큰 소진으로 1순위 대체 승계 / GitHub Copilot 2순위)* | `Maker (Core & SQL)` | `Phase 12.15 (R5)` Supabase SQL Editor 실행용 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 순서 가이드 작성 (`sql/*.sql`, `sql/README.md`) | `✅ DONE` (Claude Opus 5.5: `SCHEMA.sql`/`migrations/`(5)/`seed/`(3)/`tests/`(1)/`archive/`(6) 분류, `sql/README.md` 실행 가이드·확인 쿼리, SCHEMA 신규 설치 결함 3건 수정(`users` 누락·중복 인덱스·없는 함수 GRANT), 9개 인자 결제 RPC 오버로드 제거. PGlite 검증: SCHEMA 적용·migrations 2회 멱등·seed PASS, `TESTS.sql`은 WAL-01 기존 단언 불일치로 중단(후속 과제)) |
+| **6** | **`▶ READY`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.14 ~ 12.19 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | 대기 중 (Base `619f24f`(12.14/12.18 마감) 이후 `dd01401`·`cee2b76` 포함. SQL 변경은 원장 RPC 관련이라 Opus 리뷰 권장) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## Phase 12.15 Supabase SQL 문서 분류·통합·정리 (2026-10-29)
+
+- **수행 주체**: Claude Opus 5.5 (Maker - Core & SQL, GPT Codex 토큰 소진으로 1순위 대체)
+- **커밋**: `cee2b76`
+- **수행 내역**:
+  1. 16개 파일의 함수·정책·트리거·제약을 `SCHEMA.sql`과 기계 대조하고 git 이력으로 적용 순서를 확정한 뒤 분류: `SCHEMA.sql`(마스터, 경로 유지) / `migrations/`(PG_CRON·STORE_EVENT_EARN·EXPENSE_EDIT·MEMO_UNIQUE·USER_GAME_MEMO, 모두 최신판) / `seed/` / `tests/` / `archive/`(PHASE9·FIX_USERS_RLS·UPDATE_CATEGORIES·PHASE10·PHASE11·PAYMENT_REFINEMENT, 구버전 RPC 포함, 상단에 재실행 금지 주석).
+  2. `SCHEMA.sql` 신규 설치 결함 수정: `public.users` 테이블·최종 RLS·`handle_new_user` 트리거·백필 추가(관리자 RLS가 참조하는데 누락), 중복 `idx_expenses_pickup_schedule_id` 제거(배포판인 부분 인덱스 유지), 존재하지 않는 9개 인자 `process_expense_payment` GRANT 제거, `pg_cron` 정리 스케줄 추가.
+  3. `MIGRATION_STORE_EVENT_EARN.sql`에 9개 인자 구버전 `DROP FUNCTION IF EXISTS` 추가. 오버로드로 남으면 이벤트 적립을 우회하는 금전 RPC 경로가 됨.
+  4. `sql/README.md`(신규 설치 순서, migrations별 반영 확인 쿼리, 아카이브 대체 관계, 신규 변경 규칙) 작성. `supabase/migrations/`는 CLI 적용 이력과 맞물려 이동하지 않고 레거시로 명시.
+  5. 경로 참조 갱신: `games/page.tsx` memo 안내 문구, `CLAUDE.md`, `README.md`, `architecture.md`, `known-pitfalls.md`(27번 신규), `detailed-design.md`, `TESTS.sql` 헤더.
+- **검증**: PGlite(WASM Postgres) + auth/storage/cron 스텁으로 빈 DB 검증. 변경 전 SCHEMA는 실패(중복 인덱스) 재현, 변경 후 SCHEMA 적용 PASS, `migrations/` 5개 각 2회 실행 PASS, 구버전 오버로드 제거 PASS, `SEED_GAMES` 2회 PASS. `games/page.test.tsx` 13 PASS, `npm run lint` 0건, markdownlint 0건.
+- **미검증 / 후속 확인 필요**:
+  - `TESTS.sql`은 SETUP·FIN-01 통과 후 `WAL-01`에서 중단. 테스트는 "WALLET 결제 무적립"을 기대하지만 현행 RPC는 포인트 플랫폼 지정 시 WALLET 결제에도 적립. 적립 규칙 확정 후 테스트 갱신 필요(이번 범위 외, 두 번째 사용자 Galaxy 등급 단언만 `GENERAL` 허용으로 정정).
+  - 원격 DB 상태는 직접 확인하지 않음. 원격에 9개 인자 `process_expense_payment`가 남아 있는지 `sql/README.md` B표 확인 쿼리로 점검 필요. `src/types/database.types.ts`(10-13 생성)도 11개 인자 반영 재생성 필요.
+  - `handle_new_user`는 배포본 그대로 `SET search_path` 없이 옮김(SCHEMA 내 다른 `SECURITY DEFINER` 함수와 불일치). 고정 여부는 리뷰에서 판단.
+  - 원격에 PHASE9의 구 `game_schedules` 정책(`Anyone can view game schedules` 등)이 남아 있을 수 있음. 미확인.
 
 ---
 

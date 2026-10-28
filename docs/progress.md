@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.15 Supabase SQL 문서 분류·통합·정리 (2026-10-29)
+
+- **수행 주체**: Claude Opus 5.5 (GPT Codex 토큰 소진으로 1순위 대체) / 커밋 `cee2b76`
+- **수행 내역**: `sql/`을 `SCHEMA.sql`·`migrations/`·`seed/`·`tests/`·`archive/`로 분류하고 `sql/README.md` 실행 가이드 작성. `SCHEMA.sql` 신규 설치 결함 3건 수정(`users` 누락, 중복 인덱스, 없는 함수 GRANT) 및 `pg_cron` 스케줄 통합. `MIGRATION_STORE_EVENT_EARN.sql`에 구버전 결제 RPC 오버로드 제거 추가.
+- **검증**: PGlite 빈 DB에서 SCHEMA 적용, migrations 2회 멱등, seed PASS. `TESTS.sql`은 WAL-01 기존 단언 불일치로 중단(후속 과제). lint·관련 Vitest PASS.
+- **다음 단계**: Dispatch Queue Step 6 (통합 리뷰, Claude Opus / Gemini 4 Argon) `▶ READY`.
+
 ## Phase 12.19 소비 페이지 카테고리별 지출 내역 아코디언 (2026-10-28)
 
 - **수행 주체**: Claude Sonnet 5.5 (Maker - Complex) / 커밋 `dd01401`

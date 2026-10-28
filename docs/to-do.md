@@ -476,10 +476,14 @@
   - verify: 모바일(360px~412px) 및 데스크톱 뷰포트에서 배경 설정 패널 위치·리사이징 단위 테스트 통과.
   - 결과: 팝오버 `left-0 sm:left-auto sm:right-0` 적용, `calculateScaledDimensions`가 세로형 이미지는 1080×1920 상자로 축소(예: 1080×1920 원본 유지, 1440×3200 → 864×1920). 팝오버 정렬·리사이징 단위 테스트 추가. 실기기 시각 확인은 미수행.
 
-- [ ] 12.15 Supabase SQL Editor 실행용 SQL 문서(sql/*.sql) 분류 및 통합·정리
+- [x] 12.15 Supabase SQL Editor 실행용 SQL 문서(sql/*.sql) 분류 및 통합·정리 (`완료` - 커밋 `cee2b76`, Claude Opus)
   - 대상 파일: `sql/*.sql` (현재 `SCHEMA.sql`, `MIGRATION_*.sql` 등 16개 파일), `supabase/migrations/`
   - 작업: SQL Editor 입력을 위해 생성했던 산재된 마이그레이션·패치·시드·더미·테스트 SQL 문서들을 역할별(① 최신 통합 마스터 스키마, ② 미적용/운영 마이그레이션, ③ 시드·더미·스모크 테스트, ④ 아카이브)로 분류·통합하고 실행 순서 가이드를 정리.
   - verify: 통합된 SQL 스크립트의 문법·멱등성 점검 및 문서 참조 경로 동기화.
+  - 결과: `sql/{migrations,seed,tests,archive}/` 분류, [`sql/README.md`](../sql/README.md) 작성. PGlite 빈 DB에서 SCHEMA 적용·migrations 2회 멱등·seed PASS. SCHEMA 신규 설치 결함 3건 수정. `supabase/migrations/`는 CLI 이력 때문에 유지.
+- [ ] 12.15-F1 `sql/tests/TESTS.sql` WAL-01 이후 단언을 현행 결제/적립 RPC에 맞게 갱신
+  - 현재 WAL-01이 "WALLET 결제 무적립"을 기대하나 현행 `process_expense_payment`는 포인트 플랫폼 지정 시 적립. 적립 규칙(SRS) 확정 후 기대값 수정, 이후 단계도 순차 점검. 담당 후보: GPT Codex (대체: Claude Opus).
+- [ ] 12.15-F2 원격 DB 정합성 점검: `sql/README.md` B표 확인 쿼리 실행(특히 9개 인자 `process_expense_payment` 잔존 여부), 필요 시 `migrations/` 적용 후 `src/types/database.types.ts` 재생성
 
 - [x] 12.16 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시 (2026-10-28)
   - 대상 파일: `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`
@@ -514,7 +518,7 @@
   - 지출 등록 및 결제 계산 모듈(`src/lib/payment-calculations.ts`)에서 구글 플레이 포인트 적립식 보정 및 단위 테스트 작성
 - [x] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`완료` - 커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 리뷰 완료)
 - [ ] R4. 모바일 캘린더 배경 커스터마이징 UI 화면 이탈 해결 및 모바일 버전 배경 리사이징 기준 최적화
-- [ ] R5. Supabase SQL Editor용 SQL 문서(sql/*.sql) 분류 및 통합·정리
+- [x] R5. Supabase SQL Editor용 SQL 문서(sql/*.sql) 분류 및 통합·정리 (`완료` - 커밋 `cee2b76`, Claude Opus)
 - [x] R6. 공식 일정 보기에서 "/" 입력 시 자동 줄바꿈 표시 (`완료` - Gemini 3.8 Flash 완료)
 - [x] R7. 모바일 PWA 설치 시 홈 화면 아이콘 표시 이름(short_name) 'ChroLog' 단축 적용 (`완료` - Gemini 3.8 Flash 완료)
 - [ ] R8. 모바일 대시보드(/dashboard) 선택일 상세 드로어 오픈 시 스마트폰 내장 뒤로 가기 연동 (페이지 이탈 방지)
