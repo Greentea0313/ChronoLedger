@@ -899,6 +899,75 @@ describe("ExpensesPage", () => {
     expect(dot1.style.backgroundColor).not.toBe(dot2.style.backgroundColor)
   })
 
+  describe("카테고리별 지출 비중 아코디언", () => {
+    const mk = (id: string, title: string, category: string, status: string, date: string, amount: number) => ({
+      id,
+      title,
+      category,
+      status,
+      target_date: date,
+      end_date: null,
+      game_id: null,
+      original_price: amount,
+      discount_amount: 0,
+      point_discount_amount: 0,
+      used_points: 0,
+      earned_points: 0,
+      final_amount: amount,
+      payment_method: "WALLET",
+      games: null,
+    })
+    const accordionExpenses = [
+      mk("a1", "오래된 식사", "식비", "CONFIRMED", "2026-09-01", 8000),
+      mk("a2", "최근 식사", "식비", "CONFIRMED", "2026-10-10", 12000),
+      mk("a3", "예정 식사", "식비", "PLANNED", "2026-10-20", 99000),
+      mk("a4", "버스", "교통", "CONFIRMED", "2026-10-05", 3000),
+    ]
+
+    it("범례 클릭 시 해당 카테고리 확정 내역만 최신순으로 펼치고, 재클릭/닫기로 접는다", async () => {
+      useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+      from.mockReturnValue(createExpenseQueryBuilder(accordionExpenses))
+
+      render(<ExpensesPage />)
+
+      expect(await screen.findByText("카테고리별 지출 비중")).toBeTruthy()
+      expect(screen.queryByTestId("category-expense-accordion")).toBeNull()
+
+      const legend = screen.getByRole("button", { name: /^식비\s*\d+%$/ })
+      fireEvent.click(legend)
+
+      const accordion = screen.getByTestId("category-expense-accordion")
+      expect(within(accordion).getByText(/2건 · 20,000 원/)).toBeTruthy()
+      const items = within(accordion).getAllByRole("listitem")
+      expect(items.length).toBe(2)
+      expect(within(items[0]).getByText("최근 식사")).toBeTruthy()
+      expect(within(items[1]).getByText("오래된 식사")).toBeTruthy()
+      expect(within(accordion).queryByText("예정 식사")).toBeNull()
+      expect(within(accordion).queryByText("버스")).toBeNull()
+
+      fireEvent.click(legend)
+      expect(screen.queryByTestId("category-expense-accordion")).toBeNull()
+
+      fireEvent.click(legend)
+      fireEvent.click(screen.getByRole("button", { name: "카테고리 내역 닫기" }))
+      expect(screen.queryByTestId("category-expense-accordion")).toBeNull()
+    })
+
+    it("아코디언 항목 클릭 시 ExpenseDetailModal이 열린다", async () => {
+      useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+      from.mockReturnValue(createExpenseQueryBuilder(accordionExpenses))
+
+      render(<ExpensesPage />)
+
+      fireEvent.click(await screen.findByRole("button", { name: /^교통\s*\d+%$/ }))
+      const accordion = screen.getByTestId("category-expense-accordion")
+      fireEvent.click(within(accordion).getByRole("button", { name: /버스/ }))
+
+      expect(screen.getByRole("dialog")).toBeTruthy()
+      expect(screen.getByRole("button", { name: "정보 수정" })).toBeTruthy()
+    })
+  })
+
   it("과거 기록 전환 시 과거 지출 내역이 날짜 내림차순(최신순)으로 정렬되어 표시된다", async () => {
     useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
     const pastExpensesList = [

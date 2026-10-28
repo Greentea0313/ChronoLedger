@@ -171,6 +171,7 @@ export default function ExpensesPage() {
 
   // 차트 마우스 호버 하이라이트 상태
   const [activeCategoryIndex, setActiveCategoryIndex] = useState<number | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [activeMonthlyIndex, setActiveMonthlyIndex] = useState<number | null>(null)
   const [activePickupIndex, setActivePickupIndex] = useState<number | null>(null)
 
@@ -394,6 +395,23 @@ export default function ExpensesPage() {
       }))
       .sort((a, b) => b.amount - a.amount)
   }, [expenses])
+
+  // 선택된 카테고리의 확정 지출 내역 (원그래프 집계와 동일하게 CONFIRMED만, 최신순).
+  // 환불 등으로 카테고리가 사라지면 자동으로 접힌 상태가 된다.
+  const selectedCategoryExpenses = useMemo(() => {
+    if (!selectedCategory || !categoryData.some((c) => c.category === selectedCategory)) return null
+    const items = expenses
+      .filter((exp) => exp.status === "CONFIRMED" && exp.category === selectedCategory)
+      .sort((a, b) => b.target_date.localeCompare(a.target_date))
+    return {
+      items,
+      total: items.reduce((sum, exp) => sum + exp.final_amount, 0),
+    }
+  }, [expenses, categoryData, selectedCategory])
+
+  const toggleSelectedCategory = (category: string) => {
+    setSelectedCategory((prev) => (prev === category ? null : category))
+  }
 
   // 월별 소비 추이: 오직 CONFIRMED 지출만 집계
   const monthlyData = useMemo(() => {
@@ -970,6 +988,7 @@ export default function ExpensesPage() {
                                   strokeWidth={isHovered ? 3 : 2}
                                   cursor="pointer"
                                   onMouseEnter={() => setActiveCategoryIndex(index)}
+                                  onClick={() => toggleSelectedCategory(entry.category)}
                                   style={{
                                     transition: "all 0.15s ease",
                                     outline: "none",
@@ -999,15 +1018,18 @@ export default function ExpensesPage() {
                       {categoryData.map((item, index) => {
                         const isHovered = activeCategoryIndex === index
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={item.category}
-                            className={`flex items-center gap-2 text-xs p-1.5 rounded-md transition-all cursor-pointer ${
-                              isHovered
+                            aria-expanded={selectedCategory === item.category}
+                            className={`flex items-center gap-2 text-xs p-1.5 rounded-md transition-all cursor-pointer text-left ${
+                              isHovered || selectedCategory === item.category
                                 ? "bg-surface-2 ring-1 ring-primary/50 shadow-sm"
                                 : "hover:bg-surface-2/60"
                             }`}
                             onMouseEnter={() => setActiveCategoryIndex(index)}
                             onMouseLeave={() => setActiveCategoryIndex(null)}
+                            onClick={() => toggleSelectedCategory(item.category)}
                           >
                             <span
                               className="h-2.5 w-2.5 rounded-full shrink-0 transition-all"
@@ -1023,10 +1045,53 @@ export default function ExpensesPage() {
                             <span className={`font-semibold ml-auto transition-colors ${isHovered ? "text-primary" : "text-content"}`}>
                               {item.percent}%
                             </span>
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
+                    {selectedCategory && selectedCategoryExpenses && (
+                      <div
+                        className="mt-3 rounded-md border border-line bg-surface-2/40"
+                        data-testid="category-expense-accordion"
+                      >
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-line">
+                          <div className="min-w-0 text-sm font-semibold text-content truncate">
+                            {selectedCategory}
+                            <span className="ml-2 text-xs font-normal text-content-secondary">
+                              {selectedCategoryExpenses.items.length}건 · {selectedCategoryExpenses.total.toLocaleString()} 원
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-label="카테고리 내역 닫기"
+                            onClick={() => setSelectedCategory(null)}
+                          >
+                            닫기
+                          </Button>
+                        </div>
+                        <ul className="max-h-60 overflow-y-auto divide-y divide-line">
+                          {selectedCategoryExpenses.items.map((exp) => (
+                            <li key={exp.id}>
+                              <button
+                                type="button"
+                                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs hover:bg-surface-2"
+                                onClick={() => handleOpenRefund(exp)}
+                              >
+                                <span className="min-w-0">
+                                  <span className="block truncate text-content">{exp.title}</span>
+                                  <span className="block text-content-secondary">{exp.target_date}</span>
+                                </span>
+                                <span className="shrink-0 font-semibold text-content">
+                                  {exp.final_amount.toLocaleString()} 원
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>
