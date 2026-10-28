@@ -540,7 +540,21 @@ export default function GamesPage() {
                 return (
                   <div key={sch.id} className="p-3 border border-line rounded-lg bg-surface-2 space-y-1.5">
                     <div className="flex justify-between items-start gap-2.5">
-                      <span className="font-semibold text-sm text-content min-w-0 flex-1 break-words">{sch.title}</span>
+                      <span className="font-semibold text-sm text-content min-w-0 flex-1 break-words">
+                        {sch.title.includes("/") ? (
+                          sch.title
+                            .split("/")
+                            .map((part) => part.trim())
+                            .filter(Boolean)
+                            .map((part, idx) => (
+                              <span key={idx} className="block">
+                                {part}
+                              </span>
+                            ))
+                        ) : (
+                          sch.title
+                        )}
+                      </span>
                       <span
                         className={`shrink-0 whitespace-nowrap text-xs px-2 py-0.5 rounded font-medium ${
                           sch.schedule_type === "VERSION"
@@ -556,7 +570,23 @@ export default function GamesPage() {
                     <p className="text-xs text-content-secondary">
                       {isSingle ? `${sch.start_date} (단일)` : `${sch.start_date} ~ ${sch.end_date}`}
                     </p>
-                    {sch.memo && <p className="text-xs text-content-muted mt-1">{sch.memo}</p>}
+                    {sch.memo && (
+                      <p className="text-xs text-content-muted mt-1 whitespace-pre-line">
+                        {sch.memo.includes("/") ? (
+                          sch.memo
+                            .split("/")
+                            .map((part) => part.trim())
+                            .filter(Boolean)
+                            .map((part, idx) => (
+                              <span key={idx} className="block">
+                                {part}
+                              </span>
+                            ))
+                        ) : (
+                          sch.memo
+                        )}
+                      </p>
+                    )}
                   </div>
                 )
               })

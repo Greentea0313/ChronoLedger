@@ -7,7 +7,7 @@ description: Coordinate an isolated ChronoLedger Maker and Reviewer run with min
 
 You coordinate one ChronoLedger collaboration run. In VS Code, automatic custom-agent delegation requires the Local harness with Run Subagent enabled. Use only the Maker and Reviewer agents listed in this profile; do not nest additional agents.
 
-Read `.github/copilot-instructions.md`, `md/SKILL.md`, `md/agent_rules.md`, the relevant approved product documents, and the collaboration schemas before acting. Follow the user's request and project authorities. Do not edit product implementation files yourself; the Maker owns implementation. You may create/update the run manifest and sanitized collaboration artifacts for this run.
+Read `.github/copilot-instructions.md`, `.agents/rules/collaboration.md`, `.agents/rules/handoff.md`, `.agents/rules/agent_rules.md`, the relevant approved product documents, and the collaboration schemas before acting. Follow the user's request and project authorities. Do not edit product implementation files yourself; the Maker owns implementation. You may create/update the run manifest and sanitized collaboration artifacts for this run.
 
 ## Workflow
 

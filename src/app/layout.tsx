@@ -16,6 +16,11 @@ export const metadata: Metadata = {
     ],
     apple: "/icons/icon-180.png",
   },
+  appleWebApp: {
+    capable: true,
+    title: "ChroLog",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {

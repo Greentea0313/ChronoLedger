@@ -1,5 +1,49 @@
 # 프로젝트 진행 현황
 
+## 모바일 UX 개선(일정 자동 줄바꿈, PWA short_name) 구현 및 Active Dispatch Queue 신규 과제 배정 (2026-10-28)
+
+- **수행 주체**: Gemini 3.8 Flash (Maker - Fast UI) / Gemini 4 Argon (Orchestrator)
+- **배경 및 개요**:
+  - 사용자 요구사항에 따라 Fast UI 과제 2건(`12.16` 공식 일정 줄바꿈, `12.17` PWA `ChroLog` 단축)을 Gemini 3.8 Flash가 즉시 구현 및 단위 테스트 검증 완료.
+  - 사용자의 Claude Pro 구독에 따라 Claude(Fable / Opus / Sonnet)의 토큰 여유 및 모델 선택 폭이 확장되었음을 지침에 반영하고, 모바일 UX 개선 및 소비 아코디언, SQL 문서 정리를 위한 신규 협업 Run(`mobile-ux-and-sql-consolidation`) 5단계 파이프라인을 `docs/handoff.md` 최상단 Dispatch Queue에 정식 배정.
+- **수행 내역**:
+  1. **Phase 12.17 / R7. 모바일 PWA 설치 시 홈 화면 표시 이름 `ChroLog` 단축 적용 (`public/manifest.json`, `src/app/layout.tsx`)**:
+     - `public/manifest.json`: 앱 정식 명칭(`name: "ChronoLedger"`)은 보존하고 `short_name`을 `"ChroLog"`로 변경하여 모바일 Chrome 설치 시 홈 화면 아이콘 라벨 말줄임(`ChronoLe...`) 방지.
+     - `src/app/layout.tsx`: `appleWebApp: { capable: true, title: "ChroLog", statusBarStyle: "black-translucent" }` 메타데이터를 추가하여 iOS/모바일 웹 앱 환경에서도 `"ChroLog"`로 표시되도록 보장.
+  2. **Phase 12.16 / R6. 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시 (`src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`)**:
+     - `/dashboard/games` 내 공식 일정 중앙 팝업 다이얼로그에서 일정 제목(`sch.title`) 및 메모(`sch.memo`)에 `"/"`가 포함된 경우 `split("/").map(p => p.trim()).filter(Boolean)`으로 분리하여 각 줄 단위 블록(`span className="block"`)으로 세로 줄바꿈 렌더링하도록 개선.
+     - `src/app/dashboard/games/page.test.tsx`에 `"/"` 구분자 포함 일정 제목 및 메모가 블록 요소로 분리되어 렌더링되는지 검증하는 단위 테스트 추가 (13개 테스트 PASS).
+  3. **Claude Pro Fable / Opus / Sonnet 구독 반영 및 지침 보완 (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`)**:
+     - 사용자의 Claude Pro 구독으로 Fable, Opus, Sonnet을 난이도와 토큰 효율에 맞춰 운용:
+       - **Claude Fable / Opus**: 고난도 복합 상태·브라우저 생명주기 제어(History API 등), 아키텍처 리팩토링, 심층 정적 코드 리뷰 및 Argon / Codex 1순위 Fallback 전담.
+       - **Claude Sonnet**: 명확히 구체화된 다중 컴포넌트 UI 인터랙션·상태 연동 및 단위 테스트 고속 구현 전담.
+  4. **Active AI Collaboration Dispatch Queue 신규 과제 배정 (`docs/handoff.md`)**:
+     - Run ID `mobile-ux-and-sql-consolidation` (Step 1: Gemini 3.8 Flash `DONE`, Step 2: Claude Fable/Opus `READY`, Step 3: Claude Sonnet/Fable `PENDING`, Step 4: GPT Codex `PENDING`, Step 5: Claude Fable/Opus / Gemini 4 Argon `PENDING`).
+  5. **문서 동기화**: `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md` 갱신.
+- **검증 완료**:
+  - Vitest `src/app/dashboard/games/page.test.tsx` 13개 테스트 통과.
+  - TypeScript 타입 검사(`npx tsc --noEmit`) 0 에러.
+
+## Claude Code 및 범용 에이전트 자동 인식 설정(CLAUDE.md, AGENTS.md) 및 구버전 경로 최신화 (2026-10-28)
+
+- **배경 및 목적**:
+  1. Claude Code(VS Code 확장 및 데스크톱 앱)와 GPT Codex, OpenCode 등 다양한 에이전트가 프로젝트 루트를 열었을 때 `.agents/` 규칙 및 5대 AI 모델 협업/인수인계 아키텍처를 100% 자동 인식하도록 루트 진입점 파일(`CLAUDE.md`, `AGENTS.md`) 구축.
+  2. 과거 `md/` 폴더 정리 이후 남아 있던 지침 및 스킬 파일 내 구버전 경로 참조를 실제 유효 경로(`.agents/rules/`, `docs/spec/`, `sql/`, `docs/design-previews/`, `docs/archive/`)로 일괄 최신화.
+- **수행 내역**:
+  1. **`CLAUDE.md` 신규 생성**:
+     - Claude Code 전용 루트 지침 파일 생성 및 최상단 `@` 문법으로 5개 핵심 규칙 파일(`language.md`, `collaboration.md`, `handoff.md`, `agent_rules.md`, `document_location.md`) 링크 임포트.
+     - Claude(Claude Opus 5.5 / Sonnet)의 기본 역할(`Reviewer & Maker (Complex)`) 및 1순위 대체 역할(Argon 및 Codex 토큰 소진 시 승계) 명시.
+     - `"인수인계 문서를 확인해"` 6단계 자동 실행 프로토콜 및 프로젝트 주요 권위 문서/경로 명시.
+  2. **`AGENTS.md` 신규 생성**:
+     - GPT Codex, OpenCode 등 범용 에이전트 자동 인식을 위해 `.agents/rules/*.md` 및 `.agents/skills/*/SKILL.md` 우선 참조 연결.
+     - 5대 AI 모델 역할 분배표(Role Matrix & Fallback chain), 5단계 실행 프로토콜, 프로젝트 경로 안내 수록.
+  3. **구버전 경로(`md/...`) 최신화**:
+     - `.github/copilot-instructions.md`: `md/` 참조를 `.agents/rules/`, `docs/spec/`, `sql/`, `docs/design-previews/`, `docs/archive/` 경로로 전면 수정.
+     - `.agents/skills/chronoledger-orchestrator/SKILL.md`, `.agents/skills/chronoledger-maker/SKILL.md`, `.agents/skills/chronoledger-reviewer/SKILL.md`: `md/` 참조를 `.agents/rules/collaboration.md`, `.agents/rules/handoff.md`, `.agents/rules/agent_rules.md`로 수정.
+- **검증 완료**:
+  - `markdownlint-cli` 0건 통과 (MD004, MD025, MD022, MD032, MD031, MD058, MD009, MD012, MD047, MD040 전체 오류 0건).
+  - TypeScript 타입 검사(`npx tsc --noEmit`) 0 에러.
+
 ## 게임별 상시 메모 기능 추가: user_games.memo 확장 및 /dashboard/games 카드 연동 (2026-10-27)
 
 - **배경 및 사용자 요구사항**:

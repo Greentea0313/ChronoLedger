@@ -16,38 +16,96 @@
 
 | 주력 모델 / 에이전트 | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude Opus 5.5** | **GitHub Copilot** |
-| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude Opus 5.5** | **GitHub Copilot** |
-| **Claude Opus 5.5** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
+| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude (Fable / Opus)** | **GitHub Copilot** |
+| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude (Fable / Opus)** | **GitHub Copilot** |
+| **Claude (Claude Pro: Fable / Opus / Sonnet)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
 | **GitHub Copilot** | `Maker (General) & Fallback Hub` | VS Code 밀착형 일반 기능·컴포넌트·라우팅(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 3.8 Flash** | **GPT Codex** |
 | **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 마크업, Argon 직속 고속 탐색 서브에이전트, `docs/` 문서 동기화 보조 | **GitHub Copilot** | **Gemini 4 Argon** |
 
+> **💡 Claude Pro Fable / Opus / Sonnet 세부 운용 기준**:
+>
+> - **Claude Fable / Claude Opus**: 고난도 복합 상태·브라우저 생명주기 제어(History API, 비동기 레이스 컨디션 등), 아키텍처 리팩토링, Base $\leftrightarrow$ Target SHA 심층 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증 및 `Gemini 4 Argon` / `GPT Codex` 1순위 대체(Fallback 1) 전담.
+> - **Claude Sonnet**: 명확히 구체화된 다중 컴포넌트 UI 인터랙션·상태 연동 구현 및 단위 테스트 작성 전담 (Fable/Opus 쿼터 절약 및 고속 구현).
+
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `user-game-memo-feature` *(2026-10-26, 게임별 상시 메모 기능 추가 — `/dashboard/games` 구독 게임 카드 연동 및 `user_games.memo` 확장)*
+- **Run ID**: `mobile-ux-and-sql-consolidation` *(2026-10-28, 모바일 UX 개선(PWA 단축명, 일정 줄바꿈, 배경 설정 이탈 방지, 드로어 뒤로가기) 및 소비 아코디언·SQL 문서 정리)*
 - **Worktree 경로**: `main`
 - **배경 및 사용자 요구사항**:
-  - 특정 일정(`game_schedules`)에 연동되지 않더라도 해당 게임 자체(`user_games`)에 귀속되는 개인 상시 메모 기능이 필요함.
-  - `/dashboard/games` (내 게임 관리) 페이지의 각 구독 게임 카드에서 바로 게임별 메모를 작성·열람·수정·삭제할 수 있어야 함.
+  - 모바일 실사용 환경 개선(홈 화면 PWA `ChroLog` 단축 표시, 공식 일정 제목 `/` 자동 줄바꿈, 모바일 캘린더 배경 설정 팝오버 화면 이탈 방지, 선택일 드로어 뒤로 가기 연동).
+  - 소비 페이지 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 아코디언 펼침 표시.
+  - Supabase SQL Editor 실행용 산재된 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 가이드 작성.
 - **수용 기준 (Acceptance Criteria)**:
-  1. `sql/SCHEMA.sql` & 신규 `sql/MIGRATION_USER_GAME_MEMO.sql`: `public.user_games` 테이블에 `memo TEXT` 컬럼을 추가(멱등성 보장 `ALTER TABLE public.user_games ADD COLUMN IF NOT EXISTS memo TEXT;`).
-  2. `src/app/dashboard/games/page.tsx`:
-     - `UserGameRow` 인터페이스 및 `user_games` 조회(`select`) 쿼리에 `memo` 포함.
-     - 각 구독 게임 카드 내에 게임별 상시 메모 표시 영역 및 인라인 편집 UI(`Textarea` 또는 입력창, `[메모 작성]`/`[메모 수정]`, `[저장]`, `[취소]` 버튼) 구현.
-     - 저장 시 `supabase.from("user_games").update({ memo: trimmed || null }).eq("id", ug.id).eq("user_id", user.id)`를 호출하고 로컬 상태(`userGames`)를 즉시 갱신할 것.
-     - 모바일 화면 안전성을 위해 구독 게임 목록 하단 페이지네이션에도 `flex-wrap justify-center` 적용.
-  3. `src/app/dashboard/games/page.test.tsx`: 구독 게임 카드에서 게임별 메모 렌더링 및 작성/수정/저장 동작을 검증하는 단위 테스트 추가.
-  4. 전체 단위 테스트(`npx vitest run`) 및 정적 빌드(`npm run build`) 100% 통과.
+  1. **Phase 12.16 & 12.17 (Gemini 3.8 Flash)**:
+     - `public/manifest.json`: `short_name: "ChroLog"` 적용 (`name: "ChronoLedger"` 유지).
+     - `src/app/layout.tsx`: `appleWebApp: { capable: true, title: "ChroLog", statusBarStyle: "black-translucent" }` 메타데이터 추가.
+     - `src/app/dashboard/games/page.tsx`: 공식 일정 중앙 팝업 다이얼로그에서 `sch.title` 및 `sch.memo`에 `"/"`가 포함된 경우 `split("/").map(part => part.trim()).filter(Boolean)`으로 분리하여 각 줄 단위 블록(`span className="block"`)으로 줄바꿈 렌더링.
+     - `src/app/dashboard/games/page.test.tsx`: 공식 일정 제목 및 메모 `"/"` 구분자 줄바꿈 렌더링 단위 테스트 통과.
+  2. **Phase 12.14 & 12.18 (Claude Fable / Claude Opus)**:
+     - `src/components/calendar/calendar-bg-customizer.tsx`: 모바일 헤더 줄바꿈 시 좌측에 위치한 [배경 설정] 버튼의 팝오버(absolute right-0)가 화면 좌측 바깥으로 잘리는 문제를 해결 (`left-0 sm:left-auto sm:right-0` 등 모바일 반응형 정렬 적용).
+     - `src/lib/calendar-bg-storage.ts`: 현재 데스크톱 1920×1080 고정 리사이징 로직을 점검하여 모바일 뷰포트 및 세로형 비율 이미지 최적화.
+     - `src/components/calendar/mobile-drawer.tsx` & `src/app/dashboard/page.tsx`: 모바일 선택일 상세 드로어 오픈 시 `window.history.pushState` 연동, 스마트폰 내장 뒤로 가기(`popstate`) 시 라우트 이탈 없이 드로어만 닫힘, 딤 클릭/스와이프로 드로어를 직접 닫을 때 `window.history.back()`으로 히스토리 엔트리 정리 (히스토리 스택 정합성 및 엣지 케이스 철저 검증).
+     - 관련 단위 테스트 작성 및 100% 통과.
+  3. **Phase 12.19 (Claude Sonnet / Claude Fable)**:
+     - `src/app/dashboard/expenses/page.tsx`: 원그래프 조각(`Pie` `Cell`) 또는 하단 `["카테고리 이름" n%]` 범례 버튼 클릭 시 `selectedCategory` 상태 활성화 및 재클릭/닫기 버튼 클릭 시 접힘(토글).
+     - `[카테고리별 지출 비중]` 카드 내부 하단(범례 그리드 아래)에 카테고리명, 총 건수·합계 금액 헤더, 닫기 버튼, 내부 스크롤 리스트(`max-h-60 overflow-y-auto`)를 아코디언 형태로 펼쳐서 표시, 항목 클릭 시 `ExpenseDetailModal` 상세 모달 연동.
+     - 원그래프 집계와 일치하도록 최근/과거 구분 없이 `status === "CONFIRMED"`(확정 지출) 상태인 해당 카테고리 내역만 최신순(`target_date` 내림차순)으로 필터링 표시.
+     - 단위 테스트 작성 및 100% 통과.
+  4. **Phase 12.15 (GPT Codex)**:
+     - `sql/*.sql` 16개 파일을 ① 최신 마스터 스키마(`SCHEMA.sql`), ② 미적용/운영 마이그레이션, ③ 시드·더미·스모크 테스트(`TESTS.sql` 등), ④ 아카이브로 분류·통합하고 `sql/README.md`에 SQL Editor 실행 가이드 작성.
+  5. **통합 코드 리뷰 및 검증 (Claude Fable / Opus / Gemini 4 Argon)**:
+     - Phase 12.14 ~ 12.19 정적 코드 리뷰, TypeScript 타입 검사(`npx tsc --noEmit`), 단위 테스트(`npx vitest run`), 린트(`markdownlint`) 무결함 검증.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE (SHA: 53fbd26)` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체)* | `Maker (General)` | `user_games.memo` 스키마/마이그레이션 SQL 추가 및 `/dashboard/games` 게임 카드 내 상시 메모 작성·열람·수정 UI 구현 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`, `src/app/dashboard/games/page.tsx`) | `✅ DONE (SHA: 53fbd26)` (`sql/MIGRATION_USER_GAME_MEMO.sql` 추가, `sql/SCHEMA.sql` 반영, `/dashboard/games` 인라인 메모 편집 UI 및 페이지네이션 `flex-wrap` 적용) |
-| **2** | `✅ DONE (SHA: d75310d)` | ~~GPT Codex~~ ➡️ **Claude Opus 5.5** *(1순위 대체 수행 / 2순위: GitHub Copilot)* | `Maker (Test)` | `/dashboard/games` 게임별 상시 메모 렌더링 및 저장 단위 테스트 보강 (`src/app/dashboard/games/page.test.tsx`) | `✅ DONE (SHA: d75310d)` 신규 5케이스(표시·작성 저장(trim, `id`/`user_id` 스코프)·비우면 `null` 저장·취소 시 미호출·저장 실패 시 alert+편집 유지). vitest 42파일/267테스트 PASS, tsc 0 errors, build 성공 |
-| **3** | `✅ DONE` | ~~Claude Opus 5.5~~ ➡️ **Gemini 4 Argon** *(Claude 토큰 소진으로 1순위 대체 수행 / 2순위: GitHub Copilot)* | `Reviewer & Orchestrator` | 코드 리뷰, 전체 빌드 검증 및 문서 4종(`handoff`, `progress`, `changelog`, `to-do`) 동기화 | `✅ DONE (c60c91d..d75310d 정적 코드 리뷰 PASS, Vitest 42파일/267테스트 PASS, 문서 4종 마감 완료)` |
+| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체 / Gemini 4 Argon 2순위)* | `Maker (Fast UI)` | `Phase 12.16 (R6)` 공식 일정 보기 `"/"` 자동 줄바꿈 & `Phase 12.17 (R7)` 모바일 PWA `short_name` `"ChroLog"` 단축 (`public/manifest.json`, `src/app/layout.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`) | `✅ DONE` (`public/manifest.json` short_name "ChroLog" 단축, `layout.tsx` appleWebApp 메타데이터 추가, `games/page.tsx` "/" 줄바꿈 블록 렌더링, `games/page.test.tsx` 신규 단위 테스트 PASS) |
+| **2** | **`▶ READY`** | **Claude Fable (또는 Claude Opus)** *(GitHub Copilot 1순위 대체 / GPT Codex 2순위)* | `Maker (Complex)` | `Phase 12.14 (R4)` 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결·모바일 리사이징 최적화 & `Phase 12.18 (R8)` 모바일 선택일 상세 드로어(`MobileDrawer`) 스마트폰 내장 뒤로 가기(History API / `popstate` / `history.back()`) 연동 (`src/components/calendar/calendar-bg-customizer.tsx`, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, 단위 테스트) | 대기 중 (Claude Fable/Opus 전환 후 `"인수인계 문서를 확인해"` 입력 시 즉시 착수) |
+| **3** | `⏳ PENDING` | **Claude Sonnet (또는 Claude Fable)** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위)* | `Maker (Complex)` | `Phase 12.19 (R9)` 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정(`CONFIRMED`) 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`) | Step 2 완료 후 착수 예정 (구체화 명세 확정) |
+| **4** | `⏳ PENDING` | **GPT Codex** *(Claude Fable / Sonnet 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL)` | `Phase 12.15 (R5)` Supabase SQL Editor 실행용 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 순서 가이드 작성 (`sql/*.sql`, `sql/README.md`) | Step 3 완료 후 착수 예정 |
+| **5** | `⏳ PENDING` | **Claude Fable (또는 Claude Opus)** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.14 ~ 12.19 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | Step 4 완료 후 착수 예정 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## 신규 모바일·소비 기능 과제 3건 기획 구체화 및 로드맵 반영 (2026-10-28)
+
+- **수행 주체**: Gemini 3.8 Flash (Maker - Subagent) / Gemini 4 Argon (Orchestrator)
+- **배경 및 개요**:
+  - 사용자 피드백에 따른 모바일 사용성 개선 및 지출 분석 고도화 과제 3건(`12.17` ~ `12.19` / `R7` ~ `R9`)을 도출하고, `12.19` 소비 페이지 카테고리 지출 내역 표시의 인터랙션·표시 위치·집계 기준 명세를 최종 확정하여 구현 체크리스트 및 로드맵에 반영.
+- **신규 과제 세부 내용**:
+  1. **12.17 / R7. 모바일 PWA 설치 시 홈 화면 앱 표시 이름(`short_name`) `ChroLog` 단축 적용 (`public/manifest.json`, `src/app/layout.tsx`)**:
+     - Chrome 모바일 PWA 설치 시 `ChronoLedger`가 `ChronoLe...`로 말줄임되는 문제를 해결하기 위해 앱 정식 명칭은 유지하되 홈 화면 아이콘 라벨 표시용 `short_name` 및 `appleWebApp.title`을 `"ChroLog"`로 단축.
+  2. **12.18 / R8. 모바일 대시보드(`/dashboard`) 선택일 상세 드로어(`MobileDrawer`) 오픈 시 스마트폰 내장 뒤로 가기 연동 (`src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/mobile-drawer.test.tsx`)**:
+     - 드로어가 열려 있을 때 스마트폰 하드웨어/제스처 뒤로 가기 클릭 시 이전 라우트로 이탈하지 않고 드로어만 닫혀 달력 타일 화면으로 복귀하도록 브라우저 History API(`pushState` / `popstate`) 연동. 딤 클릭/스와이프로 닫힐 때도 `history.back()`으로 히스토리 엔트리 정합성 보장.
+  3. **12.19 / R9. 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`)**:
+     - **클릭 및 토글 인터랙션**: 원그래프 조각(`Pie` `Cell`) 또는 하단 `["카테고리 이름" n%]` 범례 버튼 클릭 시 `selectedCategory` 상태 활성화 및 재클릭/닫기 시 접힘(토글).
+     - **카드 내부 하단 아코디언 리스트**: `[카테고리별 지출 비중]` 카드 내부 하단(범례 그리드 아래)에 카테고리명, 총 건수·합계 금액 헤더, 닫기 버튼, `max-h-60 overflow-y-auto` 스크롤 리스트 표시, 항목 클릭 시 `ExpenseDetailModal` 상세 모달 연동.
+     - **집계 기준 일치**: 원그래프 통계 집계와 동일하게 최근/과거 7일 구분 없이 `status === "CONFIRMED"`(확정 지출) 상태인 해당 카테고리 내역만 최신순(`target_date` 내림차순) 표시.
+
+---
+
+## Claude Code 및 범용 에이전트 자동 인식 설정(CLAUDE.md, AGENTS.md) 및 구버전 경로 최신화 (2026-10-28)
+
+- **수행 주체**: Gemini 3.8 Flash (Maker - Subagent) / Gemini 4 Argon (Orchestrator)
+- **수행 내역**:
+  1. `CLAUDE.md` 신규 생성:
+     - 루트에 Claude Code(VS Code 확장 및 데스크톱) 전용 지침 파일 생성.
+     - `.agents/rules/` 하위 5개 규칙 파일(`language.md`, `collaboration.md`, `handoff.md`, `agent_rules.md`, `document_location.md`)을 `@` 문법 및 마크다운 링크로 참조.
+     - Claude 모델(Claude Opus 5.5 / Sonnet)의 기본 역할(`Reviewer & Maker (Complex)`) 및 1순위 대체 역할(Argon 및 Codex 토큰 소진 시 승계) 명시.
+     - `"인수인계 문서를 확인해"` 자동 실행 프로토콜 6단계 및 프로젝트 주요 문서/코드 경로 안내 수록.
+  2. `AGENTS.md` 신규 생성:
+     - GPT Codex, OpenCode 등 범용 에이전트 자동 인식을 위한 루트 안내 파일 생성.
+     - `.agents/rules/*.md` 및 `.agents/skills/*/SKILL.md` 우선 참조 연결.
+     - 5대 AI 모델 역할 분배 및 Fallback 매트릭스, `"인수인계 문서를 확인해"` 5단계 실행 프로토콜, 프로젝트 주요 경로 안내 수록.
+  3. 구버전 경로(`md/...`) 최신화:
+     - `.github/copilot-instructions.md`: 구 `md/SKILL.md`, `md/agent_rules.md`, `md/revisions_and_decisions.md`, `md/SRS.md`, `md/SPEC.md`, `md/SCHEMA.sql`, `md/ChronoLedger_UI_Design_Sheet.md`, `docs/design-v1-ko.html`, `docs/Netlify_Web_Architecture_Proposal.md` 참조를 `.agents/rules/`, `docs/spec/`, `sql/`, `docs/design-previews/`, `docs/archive/`의 실제 유효 경로로 수정.
+     - `.agents/skills/chronoledger-orchestrator/SKILL.md`, `.agents/skills/chronoledger-maker/SKILL.md`, `.agents/skills/chronoledger-reviewer/SKILL.md`: `md/` 참조를 `.agents/rules/collaboration.md`, `.agents/rules/handoff.md`, `.agents/rules/agent_rules.md`로 수정.
+- **검증 결과**:
+  - `markdownlint-cli` 검증 0건 통과 (MD004, MD025, MD022, MD032, MD031, MD058, MD009, MD012, MD047, MD040 전체 오류 0건).
+  - TypeScript 타입 검사(`npx tsc --noEmit`) 0 에러.
 
 ---
 

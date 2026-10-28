@@ -178,6 +178,52 @@ describe("GamesPage", () => {
     expect(document.body.textContent).toContain("공식 일정")
   })
 
+  it("renders schedule title and memo with slash separated into block elements for line breaks", async () => {
+    from.mockImplementation((table: string) => {
+      const q = createQuery(table)
+      if (table === "game_schedules") {
+        q.then = vi.fn((resolve: (val: unknown) => unknown) =>
+          Promise.resolve({
+            data: [
+              {
+                id: "sch-slash",
+                game_id: "game-1",
+                title: "전반 픽업 캐릭터 / 후반 픽업 캐릭터",
+                schedule_type: "PICKUP",
+                start_date: "2026-10-09",
+                end_date: "2026-10-29",
+                memo: "전반 메모 / 후반 메모",
+              },
+            ],
+            error: null,
+          }).then(resolve)
+        )
+      }
+      return q
+    })
+
+    await act(async () => root.render(<GamesPage />))
+    const scheduleBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("일정 보기")
+    )
+    expect(scheduleBtn).toBeDefined()
+
+    await act(async () => {
+      Simulate.click(scheduleBtn!)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const blockSpans = Array.from(
+      document.body.querySelectorAll("span.block")
+    ).map((el) => el.textContent)
+
+    expect(blockSpans).toContain("전반 픽업 캐릭터")
+    expect(blockSpans).toContain("후반 픽업 캐릭터")
+    expect(blockSpans).toContain("전반 메모")
+    expect(blockSpans).toContain("후반 메모")
+  })
+
   it("sorts subscribed games in Korean alphabetical order (붕괴: 스타레일 before 원신)", async () => {
     await act(async () => root.render(<GamesPage />))
     const headings = Array.from(container.querySelectorAll("h3")).map((h) => h.textContent)

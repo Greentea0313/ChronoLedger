@@ -36,6 +36,10 @@
 - [x] UI 디자인 시트와 한국어 HTML 목업을 SRS와 대조하고 아키텍처/구현 체크리스트에 참조를 추가했다.
 - [x] VS Code GitHub Copilot 저장소 지침과 Maker/Reviewer 프로필을 추가하고 사용자 안내를 연결했다. 기존 `.github/agents/*.agent.md` 파일은 Antigravity 전환 실험 시 `.bak`으로 보존했다.
 - [x] Antigravity용 `.agents/rules/language.md` 및 `.agents/skills/` (`handoff`, `chronoledger-orchestrator`, `chronoledger-maker`, `chronoledger-reviewer`) 구성을 완료하고 5대 AI 모델 자동 위임/대체 체인과 연동했다.
+- [x] Claude Code 및 범용 에이전트 자동 인식 체계 구축 및 구버전 경로 최신화 완료 (2026-10-28):
+  - Claude Code 전용 루트 지침 [`CLAUDE.md`](../CLAUDE.md) 신규 생성 (`@.agents/rules/*.md` 링크 임포트, Claude Pro Fable / Opus / Sonnet 역할 및 세부 운용 기준, `"인수인계 문서를 확인해"` 자동 실행 프로토콜, 프로젝트 권위 경로 안내).
+  - 범용 에이전트 전용 루트 지침 [`AGENTS.md`](../AGENTS.md) 신규 생성 (GPT Codex, OpenCode 자동 인식, 5대 AI 모델 역할 분배표, Claude Pro Fable/Opus/Sonnet 세부 역할 및 5단계 실행 프로토콜 안내).
+  - 지침 파일 내 구버전 경로 일괄 최신화 (`.github/copilot-instructions.md`, `.agents/skills/chronoledger-orchestrator/SKILL.md`, `.agents/skills/chronoledger-maker/SKILL.md`, `.agents/skills/chronoledger-reviewer/SKILL.md` 내 `md/` 참조를 `.agents/rules/`, `docs/spec/`, `sql/`, `docs/design-previews/`, `docs/archive/`로 변경).
 - [ ] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다.
 - [x] 대시보드·지출·통계 반응형 시안을 만들고 주요 화면 구성과 반응형 동작을 브라우저에서 검증한다. 사용자는 대시보드 그래프 제외, 데스크톱 표/모바일 그룹 카드, 아이콘 전체 표시, 월별 세로 막대/분류별 가로 막대를 결정했다.
 - [x] 시안 검토 후 글자 크기, 쿨 뉴트럴 라이트 팔레트/대비, 기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 확정해 UI 디자인 시트·상세 설계에 기록했다.
@@ -476,10 +480,28 @@
   - 작업: SQL Editor 입력을 위해 생성했던 산재된 마이그레이션·패치·시드·더미·테스트 SQL 문서들을 역할별(① 최신 통합 마스터 스키마, ② 미적용/운영 마이그레이션, ③ 시드·더미·스모크 테스트, ④ 아카이브)로 분류·통합하고 실행 순서 가이드를 정리.
   - verify: 통합된 SQL 스크립트의 문법·멱등성 점검 및 문서 참조 경로 동기화.
 
-- [ ] 12.16 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시
-  - 대상 파일: `src/app/dashboard/games/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/app/admin/page.tsx`
-  - 작업: 게임 페이지([일정 보기] 공식 일정 모달) 및 대시보드/관리자 공식 일정 표시 영역에서 일정 제목(title 등)에 "/"가 포함된 경우 "/" 기준으로 자동 줄바꿈(줄 단위 분리 렌더링)하여 가독성을 높이도록 개선.
-  - verify: "/" 포함 공식 일정 제목의 줄바꿈 렌더링 단위 테스트 통과.
+- [x] 12.16 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시 (2026-10-28)
+  - 대상 파일: `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`
+  - 작업: 게임 페이지([일정 보기] 공식 일정 중앙 팝업 다이얼로그)에서 `sch.title` 및 `sch.memo`에 "/"가 포함된 경우 `split("/").map(part => part.trim()).filter(Boolean)`으로 분리하여 각 줄 단위 블록(`span className="block"`)으로 줄바꿈 렌더링하도록 개선.
+  - verify: `src/app/dashboard/games/page.test.tsx` 단위 테스트 통과 (13개 테스트 PASS).
+
+- [x] 12.17 모바일 PWA 설치 시 홈 화면 앱 표시 이름(`short_name`) `ChroLog` 단축 적용 (2026-10-28)
+  - 대상 파일: `public/manifest.json`, `src/app/layout.tsx`
+  - 작업: 모바일 Chrome을 통해 홈 화면에 PWA 앱 설치 시 `ChronoLedger`가 `ChronoLe...`로 끊어지는 문제를 해결하기 위해 전체 앱 명칭(`manifest.json`의 `name: "ChronoLedger"`)은 유지하고 모바일 홈 화면 아이콘 라벨에 표시되는 `short_name` 및 `layout.tsx`의 `appleWebApp.title`을 `"ChroLog"`로 단축 적용.
+  - verify: `public/manifest.json` 및 `src/app/layout.tsx` 메타데이터 검증 및 정적 빌드/타입 검사 통과.
+
+- [ ] 12.18 모바일 대시보드(`/dashboard`) 선택일 상세 드로어(`MobileDrawer`) 오픈 시 스마트폰 내장 뒤로 가기 연동
+  - 대상 파일: `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/mobile-drawer.test.tsx`
+  - 작업: 모바일 환경에서 선택일 상세 드로어(`MobileDrawer`)가 열린 상태에서 스마트폰 내장(하드웨어/제스처) 뒤로 가기 실행 시, 이전 페이지(소비, 게임, 관리자 등)로 라우트가 이탈하지 않고 선택일 상세 드로어만 닫혀 달력 타일 화면으로 돌아가도록 브라우저 History API(`window.history.pushState` 및 `popstate` 이벤트) 연동. 사용자가 드로어를 딤 클릭/스와이프로 직접 닫을 때는 푸시된 히스토리 엔트리를 정리(`history.back()`)하여 히스토리 정합성 보장.
+  - verify: 드로어 오픈 후 `popstate` 발생 시 페이지 이동 없이 드로어 닫힘 동작 단위 테스트 통과.
+
+- [ ] 12.19 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시
+  - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`
+  - 작업 (구체화 확정안):
+    1. **클릭 및 토글 인터랙션**: `[카테고리별 지출 비중]` 카드 내 원그래프 조각(`Pie` `Cell`) 또는 하단 `["카테고리 이름" n%]` 범례 버튼을 클릭하면 `selectedCategory` 상태가 활성화되며, 선택된 카테고리를 재클릭하거나 닫기 버튼을 누르면 펼쳐진 목록이 접힘(토글).
+    2. **카드 내부 하단 아코디언 리스트 표시**: `[카테고리별 지출 비중]` 카드 내부 하단(`["카테고리 이름" n%]` 그리드 아래)에 선택된 카테고리의 지출 내역 리스트 섹션을 즉시 펼쳐서 표시 (카테고리명, 총 건수·합계 금액 헤더, 닫기 버튼, 내부 스크롤 리스트 `max-h-60 overflow-y-auto`, 개별 항목 클릭 시 `ExpenseDetailModal` 상세 모달 연동).
+    3. **집계 기준 일치**: 원그래프 통계 집계 기준과 동일하게 최근/과거 7일 구분 없이 **`status === "CONFIRMED"`(확정 지출)** 상태인 해당 카테고리 내역만 최신순(`target_date` 내림차순)으로 모아 표시.
+  - verify: 원그래프/범례 버튼 클릭 시 카드 내부 하단에 해당 카테고리의 `CONFIRMED` 지출 내역만 펼쳐지고 재클릭 시 닫히는 단위 테스트 통과.
 
 ---
 
@@ -491,8 +513,11 @@
 - [x] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`완료` - 커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 리뷰 완료)
 - [ ] R4. 모바일 캘린더 배경 커스터마이징 UI 화면 이탈 해결 및 모바일 버전 배경 리사이징 기준 최적화
 - [ ] R5. Supabase SQL Editor용 SQL 문서(sql/*.sql) 분류 및 통합·정리
-- [ ] R6. 공식 일정 보기에서 "/" 입력 시 자동 줄바꿈 표시
-- [ ] R7. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
+- [x] R6. 공식 일정 보기에서 "/" 입력 시 자동 줄바꿈 표시 (`완료` - Gemini 3.8 Flash 완료)
+- [x] R7. 모바일 PWA 설치 시 홈 화면 아이콘 표시 이름(short_name) 'ChroLog' 단축 적용 (`완료` - Gemini 3.8 Flash 완료)
+- [ ] R8. 모바일 대시보드(/dashboard) 선택일 상세 드로어 오픈 시 스마트폰 내장 뒤로 가기 연동 (페이지 이탈 방지)
+- [ ] R9. 소비 페이지(/dashboard/expenses) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시 (구체화 완료)
+- [ ] R10. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---
 

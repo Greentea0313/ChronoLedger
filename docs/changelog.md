@@ -1,5 +1,34 @@
 # 변경 이력
 
+## 2026-10-28 (모바일 UX 개선 구현, Active Dispatch Queue 과제 배정, Claude Code/AGENTS 설정 및 경로 최신화)
+
+- **공식 일정 보기 "/" 자동 줄바꿈 구현 (`src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`)**:
+  - Phase 12.16 (R6): 공식 일정 중앙 팝업 다이얼로그에서 `sch.title` 및 `sch.memo`에 `"/"`가 포함된 경우 `split("/").map(part => part.trim()).filter(Boolean)`으로 분리하여 각 줄 단위 블록(`span className="block"`)으로 줄바꿈 렌더링.
+  - `src/app/dashboard/games/page.test.tsx`에 "/" 포함 일정 제목 및 메모의 블록 줄바꿈 렌더링 단위 테스트 추가 (13개 테스트 PASS).
+- **모바일 PWA 설치 시 홈 화면 표시 이름 `ChroLog` 단축 (`public/manifest.json`, `src/app/layout.tsx`)**:
+  - Phase 12.17 (R7): 모바일 Chrome PWA 설치 시 `ChronoLedger`가 `ChronoLe...`로 말줄임되는 문제를 해결하기 위해 앱 정식 명칭은 유지하고 `manifest.json`의 `short_name` 및 `layout.tsx`의 `appleWebApp.title`을 `"ChroLog"`로 단축 적용.
+- **Claude Pro Fable / Opus / Sonnet 구독 반영 및 Active AI Collaboration Dispatch Queue 배정 (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md`)**:
+  - 사용자의 Claude Pro 구독으로 Fable, Opus, Sonnet을 난이도와 토큰 효율에 맞춰 운용:
+    - `Claude Fable / Opus`: 고난도 복합 상태·브라우저 생명주기 제어(History API 등), 아키텍처 리팩토링, 심층 정적 코드 리뷰 및 Argon / Codex 1순위 Fallback 전담.
+    - `Claude Sonnet`: 명확히 구체화된 다중 컴포넌트 UI 인터랙션·상태 연동 및 단위 테스트 고속 구현 전담.
+  - 신규 협업 Run `mobile-ux-and-sql-consolidation` (Step 1 DONE, Step 2 READY, Step 3~5 PENDING)을 `docs/handoff.md` 최상단에 배정.
+- **신규 모바일·소비 기능 과제 3건 기획 구체화 및 로드맵 반영 (`docs/to-do.md`, `docs/handoff.md`, `docs/progress.md`)**:
+  - `12.17` / `R7`: 모바일 Chrome PWA 설치 시 `ChronoLedger` 명칭 말줄임(`ChronoLe...`) 방지를 위해 홈 화면 앱 아이콘 표시 이름(`short_name`) 및 `appleWebApp.title`을 `"ChroLog"`로 단축 적용하기로 명세 확정.
+  - `12.18` / `R8`: 모바일 대시보드(`/dashboard`) 선택일 상세 드로어(`MobileDrawer`) 오픈 상태에서 스마트폰 뒤로 가기 시 이전 라우트 이탈 없이 드로어만 닫히도록 브라우저 History API 연동 명세 확정.
+  - `12.19` / `R9`: 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 카드 내 원그래프 조각 또는 범례 버튼 클릭 시 카드 내부 하단에 해당 카테고리의 `CONFIRMED` 지출 내역만 최신순으로 펼쳐서 표시하는 아코디언 인터랙션 구체화 명세 확정 (기존 R7은 R10으로 번호 조정).
+- **Claude Code 지침 신규 생성 (`CLAUDE.md`)**:
+  - 프로젝트 루트에 Claude Code(VS Code 확장 및 데스크톱) 전용 지침 파일 `CLAUDE.md` 신규 생성.
+  - `@.agents/rules/` 문법으로 5개 핵심 규칙 파일(`language.md`, `collaboration.md`, `handoff.md`, `agent_rules.md`, `document_location.md`) 링크 임포트.
+  - Claude(Claude Opus 5.5 / Sonnet)의 기본 역할(`Reviewer & Maker (Complex)`) 및 1순위 대체(Fallback 1) 역할(Gemini 4 Argon, GPT Codex 토큰 소진 시 승계) 명시.
+  - `"인수인계 문서를 확인해"` 6단계 자동 실행 프로토콜 및 프로젝트 주요 문서/코드 경로 안내 수록.
+- **범용 코딩 에이전트 지침 신규 생성 (`AGENTS.md`)**:
+  - GPT Codex, OpenCode 등 범용 에이전트 자동 인식을 위해 프로젝트 루트에 `AGENTS.md` 신규 생성.
+  - `.agents/rules/*.md` 및 `.agents/skills/*/SKILL.md` 우선 참조 연결.
+  - 5대 AI 모델 역할 분배표(Role Matrix & Fallback chain), 5단계 실행 프로토콜, 프로젝트 경로 안내 수록.
+- **기존 지침 파일 내 구버전 경로(`md/...`) 최신화**:
+  - `.github/copilot-instructions.md`: 구 `md/SKILL.md`, `md/agent_rules.md`, `md/revisions_and_decisions.md`, `md/SRS.md`, `md/SPEC.md`, `md/SCHEMA.sql`, `md/ChronoLedger_UI_Design_Sheet.md`, `docs/design-v1-ko.html`, `docs/Netlify_Web_Architecture_Proposal.md` 참조를 `.agents/rules/`, `docs/spec/`, `sql/`, `docs/design-previews/`, `docs/archive/`의 실제 유효 경로로 일괄 수정.
+  - `.agents/skills/chronoledger-orchestrator/SKILL.md`, `.agents/skills/chronoledger-maker/SKILL.md`, `.agents/skills/chronoledger-reviewer/SKILL.md`: `md/` 참조를 `.agents/rules/collaboration.md`, `.agents/rules/handoff.md`, `.agents/rules/agent_rules.md`로 수정.
+
 ## 2026-10-27 (게임별 상시 메모 기능 추가: user_games.memo 확장 및 /dashboard/games 카드 연동)
 
 - **게임별 상시 메모 스키마 확장 및 마이그레이션 (`sql/SCHEMA.sql`, `sql/MIGRATION_USER_GAME_MEMO.sql`)**:
