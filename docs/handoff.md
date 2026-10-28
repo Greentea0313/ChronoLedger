@@ -70,11 +70,26 @@
 | **3** | `✅ DONE (SHA: 6015399)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체)* | `Architect & Rule Designer` | `Claude Pro 2종 모델(Sonnet / Opus) 토큰 최소화 작업 분배 기준 수립` (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md`) | `✅ DONE` (Claude Opus 5.5: Sonnet 기본 배정 + Opus 승격 조건 4개 정의, `collaboration.md`/`CLAUDE.md`/`AGENTS.md`/`handoff.md` 일관 반영, 후속 순서 4~6 담당 재지정) |
 | **4** | `✅ DONE (SHA: dd01401)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Complex)` | `Phase 12.19 (R9)` 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정(`CONFIRMED`) 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`) | `✅ DONE` (Claude Sonnet 5.5: `selectedCategory` 상태, 원그래프 `Cell`/범례 버튼 클릭 토글, 카드 하단 아코디언(헤더 건수·합계·닫기, `max-h-60` 스크롤 리스트, CONFIRMED만 최신순), 항목 클릭 시 `ExpenseDetailModal` 연동, 테스트 2건 추가 / 전체 270테스트·tsc·lint PASS) |
 | **5** | `✅ DONE (SHA: cee2b76)` | ~~GPT Codex~~ ➡️ **Claude Opus** *(GPT Codex 토큰 소진으로 1순위 대체 승계 / GitHub Copilot 2순위)* | `Maker (Core & SQL)` | `Phase 12.15 (R5)` Supabase SQL Editor 실행용 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 순서 가이드 작성 (`sql/*.sql`, `sql/README.md`) | `✅ DONE` (Claude Opus 5.5: `SCHEMA.sql`/`migrations/`(5)/`seed/`(3)/`tests/`(1)/`archive/`(6) 분류, `sql/README.md` 실행 가이드·확인 쿼리, SCHEMA 신규 설치 결함 3건 수정(`users` 누락·중복 인덱스·없는 함수 GRANT), 9개 인자 결제 RPC 오버로드 제거. PGlite 검증: SCHEMA 적용·migrations 2회 멱등·seed PASS, `TESTS.sql`은 WAL-01 기존 단언 불일치로 중단(후속 과제)) |
-| **6** | **`▶ READY`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.14 ~ 12.19 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | 대기 중 (Base `619f24f`(12.14/12.18 마감) 이후 `dd01401`·`cee2b76` 포함. SQL 변경은 원장 RPC 관련이라 Opus 리뷰 권장) |
+| **6** | `✅ DONE` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.14 ~ 12.19 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE (Gemini 4 Argon 통합 리뷰 완료: Phase 12.14~12.19 전체 커밋 49cf00a·f272bfd·6015399·dd01401·cee2b76 정적 코드 리뷰 PASS, SCHEMA.sql handle_new_user search_path/ON CONFLICT 보강, tsc·lint·Vitest·markdownlint 통과 및 문서 마감 완료)` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## Phase 12.14 ~ 12.19 통합 정적 코드 리뷰 및 협업 Run 마감 (2026-10-29)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator) / Gemini 3.8 Flash (Docs Sync Subagent)
+- **리뷰 범위**: `49cf00a` (Phase 12.16/12.17), `ac58a1b` & `f272bfd` (Phase 12.14/12.18), `6015399` & `102e89e` (Sonnet/Opus 2단계 기준 수립), `dd01401` (Phase 12.19 소비 카테고리 아코디언), `cee2b76` (Phase 12.15 SQL 분류·정리 및 `SCHEMA.sql` 신규 설치 결함 수정)
+- **리뷰 결과 및 보완 조치**:
+  1. **Phase 12.19 (`src/app/dashboard/expenses/page.tsx`)**: `selectedCategoryExpenses`가 원그래프 집계와 동일하게 `CONFIRMED` 지출만 `target_date` 내림차순으로 정렬하고, 환불 등으로 카테고리가 소멸하면 자동으로 접히며, `ExpenseDetailModal` 연동 및 접근성(`aria-pressed`, `aria-label="카테고리 내역 닫기"`)과 단위 테스트 2건이 완비됨을 확인 (PASS).
+  2. **Phase 12.15 (`sql/` 재구성 및 `SCHEMA.sql`)**: `SCHEMA.sql` / `migrations/`(5) / `seed/`(3) / `tests/`(1) / `archive/`(6) 분류 및 `sql/README.md` 가이드, `MIGRATION_STORE_EVENT_EARN.sql`의 9개 인자 구버전 오버로드 `DROP` 조치 확인 (PASS). 리뷰 판단 항목이었던 `sql/SCHEMA.sql`의 `public.handle_new_user()`에 `ON CONFLICT (id) DO NOTHING` 및 `SET search_path = public`을 추가해 `SECURITY DEFINER` 보안 일관성 확보.
+- **검증 완료**:
+  - TypeScript 타입 검사 (`npx tsc --noEmit`) 0건 오류 통과.
+  - ESLint (`npm run lint`) 0건 경고/오류 통과.
+  - Vitest 전체 단위 테스트 (`npx vitest run`) 42개 파일 270개 테스트 100% 통과.
+  - Markdownlint (`npx markdownlint-cli ...`) 0건 오류 통과.
 
 ---
 

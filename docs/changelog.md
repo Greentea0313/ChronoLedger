@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-10-29 (Phase 12.14 ~ 12.19 통합 정적 코드 리뷰 및 협업 Run 마감)
+
+- **Phase 12.14 ~ 12.19 통합 코드 리뷰 통과**: 커밋 `49cf00a` (Phase 12.16/12.17), `ac58a1b` & `f272bfd` (Phase 12.14/12.18), `6015399` & `102e89e` (Claude Pro Sonnet/Opus 2단계 기준 수립), `dd01401` (Phase 12.19 소비 카테고리 아코디언), `cee2b76` (Phase 12.15 SQL 분류·정리) 전체 변경사항 정적 코드 리뷰 및 무결성 검증 완료.
+- **`sql/SCHEMA.sql` 보안 및 멱등성 보강**: `public.handle_new_user()` 트리거 함수에 `ON CONFLICT (id) DO NOTHING` 및 `SET search_path = public`을 추가하여 `SCHEMA.sql` 내 다른 `SECURITY DEFINER` 함수들과의 보안 일관성 확보.
+- **협업 Run 마감**: `mobile-ux-and-sql-consolidation` Run 전 단계(Step 1~6) 완료 처리 및 `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md` 동기화. 전체 270개 단위 테스트, 타입 검사, 린트 100% 통과 확인.
+
 ## 2026-10-29 (Phase 12.15 SQL 문서 분류·통합·정리)
 
 - **`sql/` 재구성**: `SCHEMA.sql`(신규 설치용 마스터), `migrations/`(기존 DB 동기화·재실행 안전 5개), `seed/`(3), `tests/TESTS.sql`, `archive/`(대체된 6개, 재실행 금지 주석). `sql/README.md`에 설치 순서·반영 확인 쿼리·신규 변경 규칙 정리.

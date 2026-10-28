@@ -1,5 +1,16 @@
 # 프로젝트 진행 현황
 
+## Phase 12.14 ~ 12.19 통합 정적 코드 리뷰 및 협업 Run 마감 (2026-10-29)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator) / Gemini 3.8 Flash (Docs Sync Subagent)
+- **대상 Run**: `mobile-ux-and-sql-consolidation` (Step 1~6 전체 완료)
+- **리뷰 범위**: `49cf00a` (Phase 12.16/12.17), `ac58a1b` & `f272bfd` (Phase 12.14/12.18), `6015399` & `102e89e` (Claude Pro Sonnet/Opus 2단계 기준 수립), `dd01401` (Phase 12.19 소비 카테고리 아코디언), `cee2b76` (Phase 12.15 SQL 분류·정리 및 `SCHEMA.sql` 신규 설치 결함 수정)
+- **리뷰 결과 및 보완 조치**:
+  1. **Phase 12.19 소비 카테고리 아코디언 (`expenses/page.tsx`)**: `selectedCategoryExpenses`가 원그래프 집계와 동일하게 `CONFIRMED` 지출만 `target_date` 내림차순으로 정렬하고, 카테고리 소멸 시 자동 접힘, `ExpenseDetailModal` 연동 및 접근성(`aria-pressed`, `aria-label`)과 단위 테스트 2건 완비 확인 (PASS).
+  2. **Phase 12.15 SQL 문서 분류 및 `SCHEMA.sql`**: `SCHEMA.sql` / `migrations/`(5) / `seed/`(3) / `tests/`(1) / `archive/`(6) 분류 및 `sql/README.md` 가이드, `MIGRATION_STORE_EVENT_EARN.sql`의 9개 인자 구버전 오버로드 제거 확인 (PASS). 리뷰 판단 항목이었던 `sql/SCHEMA.sql`의 `public.handle_new_user()`에 `ON CONFLICT (id) DO NOTHING` 및 `SET search_path = public`을 추가하여 `SECURITY DEFINER` 함수 보안 일관성 확보.
+- **검증 완료**: `tsc --noEmit` 0 에러, Vitest 42개 파일 270개 테스트 전체 PASS, ESLint 0건 경고/오류, 마크다운 린트 통과.
+- **다음 단계**: `mobile-ux-and-sql-consolidation` Run 공식 마감 완료. 차기 기능 로드맵(R10 등) 또는 후속 SQL 검증(TESTS.sql 단언 갱신, 원격 DB 확인) 대기.
+
 ## Phase 12.15 Supabase SQL 문서 분류·통합·정리 (2026-10-29)
 
 - **수행 주체**: Claude Opus 5.5 (GPT Codex 토큰 소진으로 1순위 대체) / 커밋 `cee2b76`

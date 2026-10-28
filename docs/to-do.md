@@ -501,13 +501,14 @@
   - verify: 드로어 오픈 후 `popstate` 발생 시 페이지 이동 없이 드로어 닫힘 동작 단위 테스트 통과.
   - 결과: `mobile-drawer.tsx`에 `useDrawerHistory` 훅 추가(`dashboard/page.tsx` 변경 불필요). Next.js App Router `history.state`(`__NA`) 보존, 직접 닫기 시 `history.back()` 후 popstate 1회 무시, back 처리 중 재오픈 시 popstate 도착 후 push. 단위 테스트 5건 추가. 실기기 Android 뒤로 가기 확인은 미수행.
 
-- [x] 12.19 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시
+- [x] 12.19 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시 (`완료` - 커밋 `dd01401`, Claude Sonnet)
   - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`
   - 작업 (구체화 확정안):
     1. **클릭 및 토글 인터랙션**: `[카테고리별 지출 비중]` 카드 내 원그래프 조각(`Pie` `Cell`) 또는 하단 `["카테고리 이름" n%]` 범례 버튼을 클릭하면 `selectedCategory` 상태가 활성화되며, 선택된 카테고리를 재클릭하거나 닫기 버튼을 누르면 펼쳐진 목록이 접힘(토글).
     2. **카드 내부 하단 아코디언 리스트 표시**: `[카테고리별 지출 비중]` 카드 내부 하단(`["카테고리 이름" n%]` 그리드 아래)에 선택된 카테고리의 지출 내역 리스트 섹션을 즉시 펼쳐서 표시 (카테고리명, 총 건수·합계 금액 헤더, 닫기 버튼, 내부 스크롤 리스트 `max-h-60 overflow-y-auto`, 개별 항목 클릭 시 `ExpenseDetailModal` 상세 모달 연동).
     3. **집계 기준 일치**: 원그래프 통계 집계 기준과 동일하게 최근/과거 7일 구분 없이 **`status === "CONFIRMED"`(확정 지출)** 상태인 해당 카테고리 내역만 최신순(`target_date` 내림차순)으로 모아 표시.
   - verify: 원그래프/범례 버튼 클릭 시 카드 내부 하단에 해당 카테고리의 `CONFIRMED` 지출 내역만 펼쳐지고 재클릭 시 닫히는 단위 테스트 통과.
+  - 결과: `selectedCategory` 상태 관리, 원그래프 조각 및 범례 클릭 토글, 카드 내부 하단 아코디언 내역(헤더 건수/합계/닫기, `max-h-60` 스크롤, `CONFIRMED`만 `target_date` 내림차순), `ExpenseDetailModal` 연동 완료. 접근성(`aria-pressed`, `aria-label`) 적용 및 신규 단위 테스트 2건 추가(`dashboard/expenses/page.test.tsx`, 전체 270개 테스트 통과).
 
 ---
 
@@ -517,12 +518,12 @@
 - [x] R2. 구글 플레이 포인트 적립 누락 버그 해결 및 이벤트 부스트 수식(`1,000원당 n포인트 = 0.1% × n배 고정`) 재설계 (`완료` - 커밋 `7307b99`, Gemini 4 Argon 리뷰 완료)
   - 지출 등록 및 결제 계산 모듈(`src/lib/payment-calculations.ts`)에서 구글 플레이 포인트 적립식 보정 및 단위 테스트 작성
 - [x] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`완료` - 커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 리뷰 완료)
-- [ ] R4. 모바일 캘린더 배경 커스터마이징 UI 화면 이탈 해결 및 모바일 버전 배경 리사이징 기준 최적화
+- [x] R4. 모바일 캘린더 배경 커스터마이징 UI 화면 이탈 해결 및 모바일 버전 배경 리사이징 기준 최적화 (`완료` - 커밋 `f272bfd`, Claude Opus)
 - [x] R5. Supabase SQL Editor용 SQL 문서(sql/*.sql) 분류 및 통합·정리 (`완료` - 커밋 `cee2b76`, Claude Opus)
 - [x] R6. 공식 일정 보기에서 "/" 입력 시 자동 줄바꿈 표시 (`완료` - Gemini 3.8 Flash 완료)
 - [x] R7. 모바일 PWA 설치 시 홈 화면 아이콘 표시 이름(short_name) 'ChroLog' 단축 적용 (`완료` - Gemini 3.8 Flash 완료)
-- [ ] R8. 모바일 대시보드(/dashboard) 선택일 상세 드로어 오픈 시 스마트폰 내장 뒤로 가기 연동 (페이지 이탈 방지)
-- [ ] R9. 소비 페이지(/dashboard/expenses) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시 (구체화 완료)
+- [x] R8. 모바일 대시보드(/dashboard) 선택일 상세 드로어 오픈 시 스마트폰 내장 뒤로 가기 연동 (페이지 이탈 방지) (`완료` - 커밋 `f272bfd`, Claude Opus)
+- [x] R9. 소비 페이지(/dashboard/expenses) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시 (`완료` - 커밋 `dd01401`, Claude Sonnet)
 - [ ] R10. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---
