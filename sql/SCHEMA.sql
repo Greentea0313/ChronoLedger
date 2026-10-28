@@ -1,5 +1,7 @@
 -- ==============================================================================
--- SCHEMA.sql (통합 초안: 12개 핵심 테이블, RPC, 트리거, RLS)
+-- SCHEMA.sql (통합 마스터: 핵심 테이블, RPC, 트리거, RLS, pg_cron 스케줄)
+-- 신규(빈) Supabase 프로젝트 전용. 기존 DB에 재실행하지 말고 sql/migrations/를 사용한다.
+-- 실행 순서와 분류는 sql/README.md 참고.
 -- ==============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -32,6 +34,47 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 CREATE TRIGGER trg_handle_new_user_setup
 AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_setup();
+
+-- 1-1. 사용자 프로필 (역할 및 닉네임). 관리자 RLS 정책이 참조하므로 정책보다 먼저 생성한다.
+-- (출처: archive/PHASE9_ADMIN_AND_USERS.sql + archive/FIX_USERS_RLS.sql 최종 정책)
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  nickname TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- 자기 참조 서브쿼리로 인한 무한 재귀를 피하기 위해 SELECT는 인증 사용자 전체 허용
+CREATE POLICY "Anyone can view user profiles"
+ON public.users FOR SELECT TO authenticated
+USING (true);
+
+CREATE POLICY "Users can update their own profile"
+ON public.users FOR UPDATE TO authenticated
+USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
+
+-- 신규 가입 시 public.users 레코드 자동 생성 (이메일 앞부분을 기본 닉네임으로 사용)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, role, nickname)
+  VALUES (new.id, 'user', split_part(new.email, '@', 1));
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- 스키마 적용 전에 이미 가입된 auth.users 백필
+INSERT INTO public.users (id, role, nickname)
+SELECT id, 'user', split_part(email, '@', 1) FROM auth.users
+ON CONFLICT (id) DO NOTHING;
 
 -- 2. 월별 소비 예산
 CREATE TABLE public.monthly_budgets (
@@ -266,7 +309,6 @@ CREATE TABLE public.store_point_transactions (
 -- 인덱스 보강
 CREATE INDEX idx_expenses_user_target_date ON public.expenses(user_id, target_date);
 CREATE INDEX idx_expenses_schedule_id ON public.expenses(schedule_id);
-CREATE INDEX idx_expenses_pickup_schedule_id ON public.expenses(pickup_schedule_id);
 CREATE INDEX idx_game_schedules_dates ON public.game_schedules(start_date, end_date);
 CREATE INDEX idx_personal_memos_user_date ON public.personal_memos(user_id, memo_date);
 CREATE INDEX idx_store_point_transactions_user_platform ON public.store_point_transactions(user_id, platform);
@@ -1388,7 +1430,6 @@ REVOKE ALL ON FUNCTION public.approve_game_request(UUID, TEXT) FROM PUBLIC, anon
 REVOKE ALL ON FUNCTION public.reject_game_request(UUID, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.admin_create_game(TEXT, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.delete_subscription_template(UUID) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.process_expense_payment(UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.refund_expense_payment(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_confirmed_expense_metadata(UUID, VARCHAR, VARCHAR, TEXT, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_planned_expense(UUID) TO authenticated;
@@ -1402,3 +1443,21 @@ GRANT EXECUTE ON FUNCTION public.approve_game_request(UUID, TEXT) TO authenticat
 GRANT EXECUTE ON FUNCTION public.reject_game_request(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_create_game(TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_subscription_template(UUID) TO authenticated;
+
+-- 계정 탈퇴 만료 요청 5분 주기 정리 (pg_cron). purge 함수는 위 계정 삭제 절에서 정의한다.
+-- (출처: migrations/MIGRATION_PG_CRON.sql)
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'chronoledger-account-purge') THEN
+        PERFORM cron.unschedule('chronoledger-account-purge');
+    END IF;
+
+    PERFORM cron.schedule(
+        'chronoledger-account-purge',
+        '*/5 * * * *',
+        'SELECT public.purge_expired_account_deletion_requests(10);'
+    );
+END;
+$$;

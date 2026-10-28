@@ -30,7 +30,7 @@
    - 권한은 `app_metadata.role=admin`의 JWT 클레임을 사용한다. `user_metadata`나 브라우저 환경변수로 관리자 권한을 결정하지 않는다. 역할 변경 후 기존 세션의 JWT가 갱신되어야 권한이 반영된다.
 
 10. **DB 초안 검증 상태**
-    - 사용자가 테스트 프로젝트에서 `md/TESTS.sql` rollback-only smoke suite를 PASS로 실행했고 테스트 변경이 롤백됐음을 확인했다. 이는 핵심 흐름의 스모크 통과이지 전체 SRS 수용 기준 검증 완료가 아니다. 전체 DDL을 재실행하지 말고 상세 검증은 [to-do.md](to-do.md)의 계획을 따른다.
+    - 사용자가 테스트 프로젝트에서 `sql/tests/TESTS.sql` rollback-only smoke suite를 PASS로 실행했고 테스트 변경이 롤백됐음을 확인했다(Phase 10 이전 스키마 기준). 이는 핵심 흐름의 스모크 통과이지 전체 SRS 수용 기준 검증 완료가 아니다. 2026-10-29 현재 스키마에서는 `WAL-01`(WALLET 결제 무적립) 단언이 현행 적립 RPC와 맞지 않아 실패한다(27번 참고). 전체 DDL을 재실행하지 말고 상세 검증은 [to-do.md](to-do.md)의 계획을 따른다.
 
 11. **문서 이동 후 상대 링크**
     - 운영 문서는 `docs/`, 기획 기준 문서는 `md/`에 둔다. 파일을 이동할 때는 상대 링크와 마스터 문서의 경로 참조도 함께 확인한다.
@@ -85,3 +85,10 @@
      1. 페이지 레벨에서는 최초 로드 여부 플래그(`hasLoadedInitialRef`)를 두어 `if (isLoading && !hasLoadedInitialRef.current) return <Skeleton />` 형태로 최초 진입 시에만 스켈레톤을 렌더링하고, 이후 백그라운드 재조회 시에는 컴포넌트 트리를 절대 언마운트하지 않는다.
      2. 데이터 로드 콜백(`loadExpenses`, `loadSubscriptions`, `loadGames`)의 의존성 배열에 객체 레퍼런스(`user`) 대신 원시 타입(`user?.id`)을 사용하여 토큰 갱신 시 불필요한 재호출을 방지한다.
      3. 모달 내부에서는 `prevOpenRef`를 활용하여 모달이 `false -> true`로 열리는 순간에만 폼을 초기화하고, 열려 있는 도중에는 리렌더링이 발생해도 입력값이 초기화되지 않도록 가드한다.
+
+27. **SQL 마이그레이션의 SCHEMA.sql 미반영·재실행 위험**
+    - 증상: 마이그레이션만 원격에 적용하고 `SCHEMA.sql`에 반영하지 않아 신규 설치가 실패했다(2026-10-29 확인: `public.users` 누락, 중복 `CREATE INDEX`, 존재하지 않는 9개 인자 `process_expense_payment`에 대한 `GRANT`). 또 구버전 RPC 본문을 담은 옛 마이그레이션을 재실행하면 최신 함수를 조용히 되돌린다.
+    - 방어책:
+     1. 변경은 `sql/migrations/`에 재실행 안전하게 작성하고 같은 변경을 `SCHEMA.sql`에 반영한다. 대체된 파일은 `sql/archive/`로 옮기고 재실행하지 않는다([sql/README.md](../sql/README.md)).
+     2. 함수 인자를 추가·변경하면 `CREATE OR REPLACE`만으로는 구 시그니처가 오버로드로 남는다. 먼저 `DROP FUNCTION IF EXISTS <구 시그니처>`로 제거한다. DEFAULT 인자가 붙으면 PostgREST 호출이 모호해지고, 남은 구버전 금전 RPC는 새 검증을 우회하는 경로가 된다.
+     3. 신규 설치 가능 여부는 빈 DB(로컬 PGlite + auth/storage/cron 스텁 등)에서 `SCHEMA.sql` → `migrations/` 2회 실행으로 확인한다.

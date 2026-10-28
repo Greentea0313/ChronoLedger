@@ -1,21 +1,35 @@
+-- ⚠️ ARCHIVE — 재실행 금지. 내용은 sql/SCHEMA.sql 및 sql/migrations/의 최신판으로 대체되었다.
+-- 구버전 RPC/제약을 포함할 수 있어 실행 시 최신 정의를 되돌린다. 이력 참고용 (sql/README.md).
+
 -- ==============================================================================
--- ChronoLedger Migration: 스토어 이벤트 적립 (구글 부스트 n배 / 갤스 페이백 n%) 및 적립 포인트 수동 보정 지원
--- 1. process_expense_payment RPC에 p_custom_earned_points, p_memo 파라미터 추가
--- 2. 이벤트 배율/페이백으로 계산된 적립 포인트 또는 수동 보정 포인트를 DB 원자적 적립 지원
+-- ChronoLedger: 결제 수단 / 결제 플랫폼 / 할인 수단 정합성 개선 마이그레이션
+-- 1. 결제 수단을 실제 결제 자산인 '내 지갑'(WALLET)과 '네이버페이'(NAVER_PAY)로 명확히 정제.
+-- 2. 'Google Play', 'Galaxy Store'는 할인 수단(포인트/쿠폰) 및 적립 플랫폼으로 명확히 분리.
+-- 3. 네이버페이 결제 시에도 스토어 포인트/할인 복합 사용 허용 (남은 차액에 대해서만 네이버페이 처리).
+-- 4. 100% 전액 할인/포인트 결제(실결제액 0원) 처리 지원.
 -- ==============================================================================
 
+-- 1. 기존 데이터 정리 (과거 구버전 payment_method를 WALLET으로 정제하고 point_platform으로 이전)
+UPDATE public.expenses
+SET point_platform = payment_method,
+    payment_method = 'WALLET'
+WHERE payment_method IN ('GOOGLE_PLAY', 'GALAXY_STORE');
+
+UPDATE public.subscription_templates
+SET payment_method = 'WALLET'
+WHERE payment_method IN ('GOOGLE_PLAY', 'GALAXY_STORE');
+
+-- 2. process_expense_payment RPC 갱신
 CREATE OR REPLACE FUNCTION public.process_expense_payment(
     p_expense_id UUID,
     p_original_price BIGINT,
     p_discount_amount BIGINT,
     p_point_discount_amount BIGINT,
     p_used_points BIGINT,
-    p_point_platform VARCHAR(30),
-    p_payment_method VARCHAR(30),
+    p_point_platform VARCHAR,
+    p_payment_method VARCHAR,
     p_deduct_asset BOOLEAN,
-    p_payment_date DATE,
-    p_custom_earned_points BIGINT DEFAULT NULL,
-    p_memo TEXT DEFAULT NULL
+    p_payment_date DATE
 ) RETURNS VOID AS $$
 DECLARE
     v_user_id UUID := auth.uid();
@@ -139,18 +153,6 @@ BEGIN
         END IF;
     END IF;
 
-    -- 1-1. 포인트 미사용 스토어 결제: 지갑 행이 아직 없으면 기본 등급으로 자동 생성하여 적립 누락/지갑 미생성 오류 방지
-    IF v_store_platform IN ('GOOGLE_PLAY', 'GALAXY_STORE') AND p_used_points = 0 THEN
-        INSERT INTO public.store_wallets(user_id, platform, user_tier, earn_rate)
-        VALUES (
-            v_user_id,
-            v_store_platform,
-            CASE WHEN v_store_platform = 'GOOGLE_PLAY' THEN 'BRONZE' ELSE 'GENERAL' END,
-            0.10
-        )
-        ON CONFLICT (user_id, platform) DO NOTHING;
-    END IF;
-
     -- 2. 사용 포인트 차감 및 스토어 적립률 잠금 조회
     IF v_store_platform IS NOT NULL THEN
         SELECT current_balance, earn_rate INTO v_wallet_balance, v_earn_rate
@@ -176,14 +178,9 @@ BEGIN
         v_wallet_balance := v_new_balance;
     END IF;
 
-    -- 3. 포인트 적립: 결제 플랫폼이 스토어이고 실결제액이 있는 경우
-    --    (커스텀 적립 포인트 p_custom_earned_points가 주어지면 해당 값 우선 적용)
+    -- 3. 포인트 적립: 결제 수단과 무관하게 결제 플랫폼이 스토어(Google Play / Galaxy Store)이고 실결제액이 있는 경우 적립
     IF v_store_platform IN ('GOOGLE_PLAY', 'GALAXY_STORE') AND v_final_amount > 0 THEN
-        IF p_custom_earned_points IS NOT NULL AND p_custom_earned_points >= 0 THEN
-            v_earned_points := p_custom_earned_points;
-        ELSE
-            v_earned_points := FLOOR(v_final_amount * coalesce(v_earn_rate, 0) / 100);
-        END IF;
+        v_earned_points := FLOOR(v_final_amount * coalesce(v_earn_rate, 0) / 100);
     END IF;
 
     IF v_earned_points > 0 THEN
@@ -217,12 +214,89 @@ BEGIN
         target_date = p_payment_date,
         point_platform = v_store_platform,
         earned_points = v_earned_points,
-        final_amount = v_final_amount,
-        memo = coalesce(p_memo, memo)
+        final_amount = v_final_amount
     WHERE id = p_expense_id AND user_id = v_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
-REVOKE ALL ON FUNCTION public.process_expense_payment(UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE, BIGINT, TEXT) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.process_expense_payment(UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE, BIGINT, TEXT) TO authenticated;
+-- 3. refund_expense_payment RPC 갱신 (0원 결제 안전성 보강)
+CREATE OR REPLACE FUNCTION public.refund_expense_payment(
+    p_expense_id UUID
+) RETURNS VOID AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_expense public.expenses%ROWTYPE;
+    v_wallet_balance BIGINT;
+    v_np_balance BIGINT;
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION '인증되지 않은 사용자입니다.';
+    END IF;
+
+    SELECT * INTO v_expense FROM public.expenses 
+    WHERE id = p_expense_id AND user_id = v_user_id FOR UPDATE;
+
+    IF v_expense.id IS NULL OR v_expense.status <> 'CONFIRMED' THEN
+        RAISE EXCEPTION '취소할 수 있는 확정 결제 내역이 아닙니다.';
+    END IF;
+
+    -- 네이버페이 환불 처리 (네이버페이 지갑 잔액으로 실결제액 복원)
+    IF v_expense.payment_method = 'NAVER_PAY' AND v_expense.final_amount > 0 THEN
+        SELECT current_balance INTO v_np_balance
+        FROM public.store_wallets
+        WHERE user_id = v_user_id AND platform = 'NAVER_PAY'
+        FOR UPDATE;
+
+        v_np_balance := coalesce(v_np_balance, 0) + v_expense.final_amount;
+        UPDATE public.store_wallets
+        SET current_balance = v_np_balance, updated_at = NOW()
+        WHERE user_id = v_user_id AND platform = 'NAVER_PAY';
+
+        INSERT INTO public.store_point_transactions(user_id, platform, expense_id, transaction_type, amount, balance_after, memo)
+        VALUES (v_user_id, 'NAVER_PAY', p_expense_id, 'REFUND', v_expense.final_amount, v_np_balance, '결제 취소 네이버페이 환불');
+    END IF;
+
+    -- 포인트 롤백 (적립 포인트 기사용 시 취소 거부)
+    IF (v_expense.used_points > 0 OR v_expense.earned_points > 0) AND v_expense.point_platform IS NOT NULL THEN
+        SELECT current_balance INTO v_wallet_balance 
+        FROM public.store_wallets 
+        WHERE user_id = v_user_id AND platform = v_expense.point_platform FOR UPDATE;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION '환불 대상 포인트 지갑이 없습니다.';
+        END IF;
+
+        v_wallet_balance := coalesce(v_wallet_balance, 0);
+        IF v_wallet_balance + v_expense.used_points - v_expense.earned_points < 0 THEN
+            RAISE EXCEPTION '적립 포인트를 이미 사용하여 환불을 진행할 수 없습니다.';
+        END IF;
+
+        IF v_expense.used_points > 0 THEN
+            v_wallet_balance := v_wallet_balance + v_expense.used_points;
+            UPDATE public.store_wallets SET current_balance = v_wallet_balance, updated_at = NOW()
+            WHERE user_id = v_user_id AND platform = v_expense.point_platform;
+            INSERT INTO public.store_point_transactions(user_id, platform, expense_id, transaction_type, amount, balance_after, memo)
+            VALUES (v_user_id, v_expense.point_platform, p_expense_id, 'REFUND', v_expense.used_points, v_wallet_balance, '결제 취소 포인트 반환');
+        END IF;
+
+        IF v_expense.earned_points > 0 THEN
+            v_wallet_balance := v_wallet_balance - v_expense.earned_points;
+            UPDATE public.store_wallets SET current_balance = v_wallet_balance, updated_at = NOW()
+            WHERE user_id = v_user_id AND platform = v_expense.point_platform;
+            INSERT INTO public.store_point_transactions(user_id, platform, expense_id, transaction_type, amount, balance_after, memo)
+            VALUES (v_user_id, v_expense.point_platform, p_expense_id, 'REFUND', -v_expense.earned_points, v_wallet_balance, '결제 취소 적립 포인트 회수');
+        END IF;
+    END IF;
+
+    -- 총 자산 복원 처리 (네이버페이 결제는 네이버페이 잔액으로 복원되므로 총 자산 이중 복원 방지)
+    IF v_expense.deduct_from_asset AND v_expense.payment_method <> 'NAVER_PAY' AND v_expense.final_amount > 0 THEN
+        UPDATE public.user_finances
+        SET total_asset = total_asset + v_expense.final_amount, updated_at = NOW()
+        WHERE user_id = v_user_id;
+        IF NOT FOUND THEN RAISE EXCEPTION '사용자 자산 설정이 없습니다.'; END IF;
+    END IF;
+
+    UPDATE public.expenses SET status = 'CANCELLED', cancellation_kind = 'PAYMENT_REFUND'
+    WHERE id = p_expense_id AND user_id = v_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 

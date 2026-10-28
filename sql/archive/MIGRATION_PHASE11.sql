@@ -1,3 +1,6 @@
+-- ⚠️ ARCHIVE — 재실행 금지. 내용은 sql/SCHEMA.sql 및 sql/migrations/의 최신판으로 대체되었다.
+-- 구버전 RPC/제약을 포함할 수 있어 실행 시 최신 정의를 되돌린다. 이력 참고용 (sql/README.md).
+
 -- ==============================================================================
 -- ChronoLedger Phase 11 Migration
 -- 게임 일정 카테고리 CONTENTS 확장

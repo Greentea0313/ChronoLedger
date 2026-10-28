@@ -262,7 +262,7 @@ export default function GamesPage() {
         (fullErrorText.includes("memo") && (fullErrorText.includes("column") || fullErrorText.includes("does not exist")))
 
       if (isMemoColumnMissing) {
-        alert("DB에 memo 컬럼이 아직 추가되지 않았습니다. Supabase SQL Editor에서 sql/MIGRATION_USER_GAME_MEMO.sql을 실행해 주세요.")
+        alert("DB에 memo 컬럼이 아직 추가되지 않았습니다. Supabase SQL Editor에서 sql/migrations/MIGRATION_USER_GAME_MEMO.sql을 실행해 주세요.")
       } else {
         alert(`메모 저장에 실패했습니다: ${message}`)
       }

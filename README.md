@@ -187,7 +187,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-> **참고**: 데이터베이스 스키마 및 마이그레이션 파일은 `sql/SCHEMA.sql`에 위치하고 있습니다. Supabase 대시보드의 **SQL Editor**에서 실행하여 초기 테이블, 함수, RLS를 설정할 수 있습니다.
+> **참고**: 데이터베이스 마스터 스키마는 `sql/SCHEMA.sql`, 기존 DB 동기화용 마이그레이션은 `sql/migrations/`에 있습니다. Supabase 대시보드의 **SQL Editor**에서 실행하며, 신규 설치 순서와 마이그레이션 확인 쿼리는 [`sql/README.md`](sql/README.md)를 따릅니다.
 
 ### 4. 로컬 개발 서버 실행
 

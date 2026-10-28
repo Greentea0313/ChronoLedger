@@ -10,7 +10,7 @@
 --      있어야 한다. 이 파일은 이미 배포된 스키마를 검증하며 설치하지 않는다.
 --
 -- PowerShell 실행 예:
---   psql "$env:SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f md/TESTS.sql
+--   psql "$env:SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql
 --
 -- 역할/JWT:
 --   DB fixture 역할: 테스트 계정/초기 row를 만들고 검증값을 읽는 privileged
@@ -146,7 +146,7 @@ BEGIN
           AND (
               current_balance <> 0 OR earn_rate <> 0.10 OR
               (platform = 'GOOGLE_PLAY' AND user_tier <> 'BRONZE') OR
-              (platform = 'GALAXY_STORE' AND user_tier IS NOT NULL)
+              (platform = 'GALAXY_STORE' AND coalesce(user_tier, 'GENERAL') <> 'GENERAL')
           )
     ) THEN
         RAISE EXCEPTION 'FAIL: second user initial store wallet values are incorrect';

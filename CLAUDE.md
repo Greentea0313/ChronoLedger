@@ -89,7 +89,7 @@ python scripts/collaboration/validate_collaboration_artifact.py <json>  # 협업
 
 - **Web/PWA**: Cloudflare Pages 호스팅(`public/_headers`, `public/_redirects`). `public/sw.js`가 앱 셸 + 로그인 사용자별 Supabase 읽기 캐시를 담당하며, 로그아웃 시 `CLEAR_CACHES` 메시지로 삭제합니다. 셸 자산이 바뀌면 `SHELL_CACHE` 버전(`chronoledger-shell-vN`)을 올립니다.
 - **Desktop**: `src-tauri/` (Tauri v2, `frontendDist: ../out`). Tauri 런타임에서는 Supabase auth가 `implicit` flow + 딥링크(`src/lib/tauri-auth.ts`), 브라우저에서는 `pkce` flow입니다.
-- **계정 삭제**: 서버 함수 없이 Supabase `SECURITY DEFINER` RPC(`request_account_deletion`, `get_account_deletion_status`) + `pg_cron` 5분 주기 정리(`sql/MIGRATION_PG_CRON.sql`)로 처리합니다. 과거 Netlify Functions 경로는 제거되었습니다.
+- **계정 삭제**: 서버 함수 없이 Supabase `SECURITY DEFINER` RPC(`request_account_deletion`, `get_account_deletion_status`) + `pg_cron` 5분 주기 정리(`sql/SCHEMA.sql`, 기존 DB는 `sql/migrations/MIGRATION_PG_CRON.sql`)로 처리합니다. 과거 Netlify Functions 경로는 제거되었습니다.
 
 ### 코드 구조
 
@@ -105,7 +105,7 @@ python scripts/collaboration/validate_collaboration_artifact.py <json>  # 협업
 
 ### 데이터 계층 규칙
 
-- **스키마 기준**: `sql/SCHEMA.sql`. 변경은 `sql/MIGRATION_*.sql`로 추가하고 SCHEMA.sql에도 반영합니다. 원격 DB에는 Supabase SQL Editor로 수동 적용되므로, 신규 컬럼은 미적용 상태를 견디는 fallback 쿼리가 필요할 수 있습니다(예: `user_games.memo`).
+- **스키마 기준**: `sql/SCHEMA.sql`. 변경은 `sql/migrations/MIGRATION_*.sql`로 추가하고 SCHEMA.sql에도 반영합니다. 분류·실행 순서·확인 쿼리는 `sql/README.md`, `sql/archive/`는 실행 금지입니다. 원격 DB에는 Supabase SQL Editor로 수동 적용되므로, 신규 컬럼은 미적용 상태를 견디는 fallback 쿼리가 필요할 수 있습니다(예: `user_games.memo`).
 - **금전 변경은 반드시 `SECURITY DEFINER` RPC로**: `process_expense_payment`, `refund_expense_payment`, `adjust_wallet_balance`, `update_store_wallet_settings`, `set_user_finance_settings`, `cancel_planned_expense`, `approve_*/reject_*_request` 등. 결제·환불·잔액 보정을 여러 클라이언트 `update`로 쪼개지 않습니다. 최종 금액과 적립 포인트는 RPC가 계산합니다.
 - 금액은 정수 KRW(`BIGINT`), 포인트는 별도 정수. 예산 귀속은 PLANNED=종료일 월, CONFIRMED=결제월이며 일정 날짜 변경 트리거는 PLANNED만 갱신합니다.
 - 관리자 판정은 JWT `app_metadata.role=admin`(DB 측)입니다. `user_metadata`나 클라이언트 값으로 권한을 결정하지 않습니다.

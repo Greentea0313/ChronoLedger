@@ -1,3 +1,6 @@
+-- ⚠️ ARCHIVE — 재실행 금지. 내용은 sql/SCHEMA.sql 및 sql/migrations/의 최신판으로 대체되었다.
+-- 구버전 RPC/제약을 포함할 수 있어 실행 시 최신 정의를 되돌린다. 이력 참고용 (sql/README.md).
+
 -- 1. users 테이블 생성 (역할 및 닉네임 관리)
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,

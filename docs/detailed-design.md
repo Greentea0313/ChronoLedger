@@ -189,7 +189,7 @@ UI는 RPC 호출이 성공하기 전 회계 작업을 완료 상태로 표시하
 | 파일/메모 (FR-070–072, NFR-004) | 아이콘 MIME/크기/변환 경계, 타 사용자 Storage 접근 거부, 게임 제거 시 아이콘 정리, 여러 메모/한 도트 | 변환 단위 + Storage 통합 + 화면 테스트 |
 | 비기능/배포 | 모바일 반응형, 접근성 기본 동작, 느린/끊긴 네트워크, SRS 플랫폼의 설치/패키징 및 성능 측정 | 앱 릴리스 버전/시점 결정 후 실기기 검증; 배포 플랫폼 및 Netlify/Web·Desktop 분리 제안은 별도 결정 |
 
-`md/TESTS.sql`은 이미 배포된 스키마를 대상으로 하는 rollback-only smoke suite다. 전체 SRS 수용 검증의 일부이며 production 배포 증거나 전체 회귀 테스트로 간주하지 않는다. 전체 계정 삭제와 Storage 정리, Android PWA/Windows Tauri v2 주요 흐름 및 성능 수치는 아직 별도 검증이 필요하다.
+`sql/tests/TESTS.sql`은 이미 배포된 스키마를 대상으로 하는 rollback-only smoke suite다. 전체 SRS 수용 검증의 일부이며 production 배포 증거나 전체 회귀 테스트로 간주하지 않는다. 전체 계정 삭제와 Storage 정리, Android PWA/Windows Tauri v2 주요 흐름 및 성능 수치는 아직 별도 검증이 필요하다.
 
 ## 10. 미결정 및 후속 설계 항목
 

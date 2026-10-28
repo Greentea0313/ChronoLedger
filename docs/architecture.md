@@ -48,7 +48,7 @@ Supabase
 - `src/components/ui/`: 공통 Button, Card, Input, Dialog, Select, Progress, Drawer UI 컴포넌트. Progress는 Radix UI, Drawer는 Vaul 기반이며 alias는 `components.json`에 정의한다.
 - Web/PWA 앱의 `public/fonts/a2z/`: 자체 호스팅하는 A2Z WOFF2 9개 굵기 및 SIL OFL 1.1 고지.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.
-- `(구) netlify/functions/`: Netlify 배포 방식 폐기에 따라 저장소에서 제거됨(`netlify.toml`, `@netlify/functions` 의존성 포함). 계정 삭제는 Supabase RPC(`request_account_deletion` 등) 및 PostgreSQL `pg_cron` 내부 스케줄러(`MIGRATION_PG_CRON.sql`)가 담당한다.
+- `(구) netlify/functions/`: Netlify 배포 방식 폐기에 따라 저장소에서 제거됨(`netlify.toml`, `@netlify/functions` 의존성 포함). 계정 삭제는 Supabase RPC(`request_account_deletion` 등) 및 PostgreSQL `pg_cron` 내부 스케줄러(`sql/SCHEMA.sql`, 기존 DB는 `sql/migrations/MIGRATION_PG_CRON.sql`)가 담당한다.
 - `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.
 - `docs/`: 진행 현황, 아키텍처, 인수인계, 구현 체크리스트, 변경 이력, 주의사항.
 - `docs/ai-collaboration-usage.md`, `docs/ChronoLedger_collaboration_guide.md`: 기존 수동 절차와 초보자를 위한 최소 개입 협업 흐름 및 사용자 개입 안내.
@@ -72,5 +72,5 @@ Supabase
 - SRS는 Android PWA와 Windows Tauri v2, 단일 Next.js 코드베이스 및 Tauri 정적 export 방향을 정한다. Android PWA 실기기 검증은 웹사이트 우선 요청에 따라 보류됐으나 제품 범위는 유지한다. 앱 릴리스 버전은 미결정이다.
 - 웹 호스팅 플랫폼은 **Cloudflare Pages**로 최종 확정되었으며, 이전 Netlify 배포 방식은 완전히 폐기되었다. Next.js 단일 정적 export(`output: 'export'` -> `out/`) 산출물을 Cloudflare Pages에 배포하며(트래픽 무제한, 월 500회 빌드), 불변 캐시/보안 헤더(`public/_headers`) 및 SPA 라우팅(`public/_redirects`)을 통해 호스팅된다.
 - UI 설계는 [UI Design Sheet](spec/ChronoLedger_UI_Design_Sheet.md)를 따른다. 이는 SRS가 정한 동작을 보존하며, `[PROPOSED]`로 표시된 시각/배치 선택은 구현 전에 확정한다. [한국어 HTML 목업](design-previews/design-v1-ko.html)은 단일 대시보드의 정적 시각 참고 자료다.
-- DDL/RPC/RLS는 [SCHEMA.sql](../sql/SCHEMA.sql)에 둔다. 사용자는 전용 테스트 프로젝트에서 rollback-only smoke suite의 최종 PASS 및 fixture 롤백을 확인했다. 이는 전체 SRS 수용 기준 또는 Production 배포 검증을 뜻하지 않는다.
+- DDL/RPC/RLS는 [SCHEMA.sql](../sql/SCHEMA.sql)(신규 설치용 통합 마스터)에 둔다. `sql/`은 `migrations/`(기존 DB 동기화, 재실행 안전), `seed/`, `tests/`, `archive/`(실행 금지)로 나뉘며 실행 순서와 반영 확인 쿼리는 [sql/README.md](../sql/README.md)를 따른다. 사용자는 전용 테스트 프로젝트에서 rollback-only smoke suite의 최종 PASS 및 fixture 롤백을 확인했다. 이는 전체 SRS 수용 기준 또는 Production 배포 검증을 뜻하지 않는다.
 - 계정 삭제 처리는 Supabase의 원자적 RPC(`request_account_deletion`, `get_account_deletion_status`)와 `pg_cron` 스케줄러(`purge_expired_account_deletion_requests`)를 통해 데이터베이스 내부에서 완전히 처리된다.

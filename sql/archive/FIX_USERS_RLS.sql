@@ -1,3 +1,6 @@
+-- ⚠️ ARCHIVE — 재실행 금지. 내용은 sql/SCHEMA.sql 및 sql/migrations/의 최신판으로 대체되었다.
+-- 구버전 RPC/제약을 포함할 수 있어 실행 시 최신 정의를 되돌린다. 이력 참고용 (sql/README.md).
+
 -- users 테이블의 기존 SELECT 정책 삭제
 DROP POLICY IF EXISTS "Users can view their own profile and admins can view all" ON public.users;
 DROP POLICY IF EXISTS "Anyone can view user profiles" ON public.users;
