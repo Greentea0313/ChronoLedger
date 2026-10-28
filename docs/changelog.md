@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-10-28 (Claude 모델 표기 정리: 사용 불가 모델 제거, Sonnet / Opus 2단계 기준 문서 간 통일)
+
+- **사용 불가 Claude 모델 표기 제거**: `CLAUDE.md`, `AGENTS.md`, `.agents/rules/collaboration.md`, `docs/handoff.md` 및 이력 문서(`docs/changelog.md`, `docs/progress.md`, `docs/to-do.md`)에서 Sonnet / Opus 외 Claude 모델 선택지·언급 삭제.
+- **옛 단일 `Claude Opus 5.5` 역할 표기를 Sonnet / Opus 2단계 기준으로 통일**: `.agents/rules/handoff.md`, `.agents/skills/handoff/SKILL.md`(역할 표·배정 안내), `.agents/skills/chronoledger-orchestrator/SKILL.md`(Sonnet 기본·Opus 승격 조건), `.github/copilot-instructions.md`, `docs/architecture.md`, `docs/handoff.md` 상단 위임 지침. Argon / Codex 1순위 대체는 `Claude Opus`로 명시.
+- `docs/handoff.md` 수용 기준 3의 "3종 모델" 오기를 "2종 모델"로 수정.
+
 ## 2026-10-28 (Phase 12.14 / 12.18 모바일 UX, CLAUDE.md 문서화, Netlify 잔재 제거)
 
 - **배경 설정 팝오버 모바일 화면 이탈 수정 (`src/components/calendar/calendar-bg-customizer.tsx`)**: 팝오버 정렬을 `left-0 sm:left-auto sm:right-0`으로 변경.
@@ -15,9 +21,9 @@
   - `src/app/dashboard/games/page.test.tsx`에 "/" 포함 일정 제목 및 메모의 블록 줄바꿈 렌더링 단위 테스트 추가 (13개 테스트 PASS).
 - **모바일 PWA 설치 시 홈 화면 표시 이름 `ChroLog` 단축 (`public/manifest.json`, `src/app/layout.tsx`)**:
   - Phase 12.17 (R7): 모바일 Chrome PWA 설치 시 `ChronoLedger`가 `ChronoLe...`로 말줄임되는 문제를 해결하기 위해 앱 정식 명칭은 유지하고 `manifest.json`의 `short_name` 및 `layout.tsx`의 `appleWebApp.title`을 `"ChroLog"`로 단축 적용.
-- **Claude Pro Fable / Opus / Sonnet 구독 반영 및 Active AI Collaboration Dispatch Queue 배정 (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md`)**:
-  - 사용자의 Claude Pro 구독으로 Fable, Opus, Sonnet을 난이도와 토큰 효율에 맞춰 운용:
-    - `Claude Fable / Opus`: 고난도 복합 상태·브라우저 생명주기 제어(History API 등), 아키텍처 리팩토링, 심층 정적 코드 리뷰 및 Argon / Codex 1순위 Fallback 전담.
+- **Claude Pro Opus / Sonnet 구독 반영 및 Active AI Collaboration Dispatch Queue 배정 (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md`)**:
+  - 사용자의 Claude Pro 구독으로 Opus, Sonnet을 난이도와 토큰 효율에 맞춰 운용:
+    - `Claude Opus`: 고난도 복합 상태·브라우저 생명주기 제어(History API 등), 아키텍처 리팩토링, 심층 정적 코드 리뷰 및 Argon / Codex 1순위 Fallback 전담.
     - `Claude Sonnet`: 명확히 구체화된 다중 컴포넌트 UI 인터랙션·상태 연동 및 단위 테스트 고속 구현 전담.
   - 신규 협업 Run `mobile-ux-and-sql-consolidation` (Step 1 DONE, Step 2 READY, Step 3~5 PENDING)을 `docs/handoff.md` 최상단에 배정.
 - **신규 모바일·소비 기능 과제 3건 기획 구체화 및 로드맵 반영 (`docs/to-do.md`, `docs/handoff.md`, `docs/progress.md`)**:

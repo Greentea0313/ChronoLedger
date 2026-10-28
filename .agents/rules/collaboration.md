@@ -17,7 +17,7 @@ description: Enforces ChronoLedger 5-model AI collaboration roles, fallback chai
 
 > **💡 Claude Pro 구독 및 Sonnet / Opus 2단계 운용 기준 (토큰 최소화)**:
 >
-> - 사용자의 Claude Pro 구독 중 **`Claude Sonnet`**과 **`Claude Opus`** 2종을 운용합니다(`Claude Fable`은 사용 불가). 기본은 Sonnet이며, 아래 Opus 승격 조건에 해당할 때만 Opus를 사용해 쿼터를 절약합니다.
+> - 사용자의 Claude Pro 구독 중 **`Claude Sonnet`**과 **`Claude Opus`** 2종을 운용합니다. 기본은 Sonnet이며, 아래 Opus 승격 조건에 해당할 때만 Opus를 사용해 쿼터를 절약합니다.
 > - **Claude Sonnet (기본 Maker · 쿼터 절약)**: 수용 기준과 대상 파일이 명시된 UI 인터랙션·상태 연동 구현(아코디언, 모달, 필터, 토글 등), 기존 패턴을 따르는 페이지/컴포넌트 수정, Vitest 단위 테스트 작성·보강, 저위험 변경의 일반 정적 리뷰, `docs/` 동기화.
 > - **Claude Opus (심층 전담 · 필요 시에만)**: 고난도 복합 상태·브라우저 생명주기 제어(History API, 비동기 레이스 컨디션 등), 아키텍처 리팩토링 및 규칙/협업 설계, 보안/RLS/`SECURITY DEFINER` RPC/원장 무결성 심층 검증, Base $\leftrightarrow$ Target SHA 통합 정적 코드 리뷰(`review.json`), `Gemini 4 Argon` / `GPT Codex` 1순위 대체(Fallback 1).
 > - **Opus 승격 조건** (하나라도 해당하면 Opus 배정): ① 금전·원장·포인트·RLS·SQL/RPC 변경, ② 브라우저 생명주기·비동기 동시성 엣지 케이스, ③ 3개 이상 모듈의 구조 변경 또는 명세 미확정으로 설계 판단 필요, ④ Run 단위 통합 리뷰. Sonnet 작업 중 조건이 드러나면 `⚠️ HANDOVER_NEEDED`로 Opus에 인계합니다.

@@ -33,11 +33,13 @@ Orchestrator(주축 모델)가 과제를 분해하여 Dispatch Queue에 할당�
 
 | 주력 모델 / 에이전트 | 파이프라인 기본 역할 | ChronoLedger 핵심 담당 영역 | 토큰 소진 시 **1순위 대체** | **2순위 대체** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분석, 수용 기준 수립, Worktree/Dispatch Queue 할당, 아키텍처 결정, 최종 검수 및 문서 마감 | **Claude Opus 5.5** | **GitHub Copilot** |
-| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/날짜 계산(`subscription-sync.ts`), Supabase RPC/SQL, Vitest 단위 테스트 작성·실행 | **Claude Opus 5.5** | **GitHub Copilot** |
-| **Claude Opus 5.5** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/원장 무결성 검증, 다중 컴포넌트 복합 상태 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
+| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분석, 수용 기준 수립, Worktree/Dispatch Queue 할당, 아키텍처 결정, 최종 검수 및 문서 마감 | **Claude Opus** | **GitHub Copilot** |
+| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/날짜 계산(`subscription-sync.ts`), Supabase RPC/SQL, Vitest 단위 테스트 작성·실행 | **Claude Opus** | **GitHub Copilot** |
+| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
 | **GitHub Copilot** | `Maker (General) & Fallback Hub` | VS Code 밀착형 표준 기능/라우팅/컴포넌트 구현(`src/app/`, `src/components/`), 타 모델 토큰 소진 시 전천후 백업 수행 | **Gemini 3.8 Flash** | **GPT Codex** |
 | **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 UI 마크업, Argon 직속 고속 탐색 서브에이전트, `docs/` 문서 동기화 보조 | **GitHub Copilot** | **Gemini 4 Argon** |
+
+> Claude 과제는 [`collaboration.md`](collaboration.md)의 **Sonnet / Opus 2단계 운용 기준**에 따라 기본 Sonnet, Opus 승격 조건 해당 시 Opus로 `담당 모델` 칸에 구체 모델명을 명시합니다.
 
 ## 3. 토큰/컨텍스트 소진 시 비상 인계 (Limited Context or Token Budget)
 

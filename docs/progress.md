@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Claude 모델 표기 정리 및 협업 지침 일관화 (2026-10-28)
+
+- **수행 주체**: Claude Opus 5.5 (Architect & Rule Designer)
+- **수행 내역**: 전 문서에서 Sonnet / Opus 외 Claude 모델 언급 삭제. 옛 단일 `Claude Opus 5.5` 역할 표기가 남아 있던 `.agents/rules/handoff.md`, `.agents/skills/handoff/SKILL.md`, `.agents/skills/chronoledger-orchestrator/SKILL.md`, `.github/copilot-instructions.md`, `docs/architecture.md`, `docs/handoff.md` 상단 지침을 `collaboration.md`의 Sonnet / Opus 2단계 기준(기본 Sonnet, 승격 조건 시 Opus, Argon/Codex 대체는 Opus)으로 통일.
+- **검증**: 문서 전용 변경. 해당 모델명 잔여 검색 0건 확인. 코드·테스트 영향 없음.
+- **다음 단계**: Dispatch Queue Step 4 (Phase 12.19, Claude Sonnet) `▶ READY` 유지.
+
 ## Phase 12.14 & 12.18 모바일 배경 팝오버·리사이징 및 드로어 뒤로 가기 연동 (2026-10-28)
 
 - **수행 주체**: Claude Opus 5.5 (Maker - Complex)
@@ -8,14 +15,14 @@
   2. **Phase 12.18 / R8**: `MobileDrawer`에 `useDrawerHistory` 훅을 추가해 스마트폰 뒤로 가기 시 라우트 이탈 없이 드로어만 닫히도록 History API 연동. 직접 닫기 시 `history.back()`으로 엔트리 정리, Next.js App Router `history.state` 보존, back 처리 중 재오픈 레이스 가드.
   3. **CLAUDE.md 코드베이스 문서화 및 Netlify 잔재 제거**: 개발 명령어·아키텍처·규칙 섹션 추가, 깨진 링크 수정, 폐기된 Netlify Functions 코드·테스트·의존성 제거.
 - **검증 완료**: tsc 0 에러, Vitest 41개 파일 268개 테스트 PASS, lint 0건, 정적 빌드 성공. 실기기 확인은 미수행.
-- **다음 단계**: Dispatch Queue Step 3 (Phase 12.19, Claude Sonnet/Fable) `▶ READY`.
+- **다음 단계**: Dispatch Queue Step 3(Claude 모델 분배 기준 수립) 추가 배정 → Step 4 (Phase 12.19, Claude Sonnet).
 
 ## 모바일 UX 개선(일정 자동 줄바꿈, PWA short_name) 구현 및 Active Dispatch Queue 신규 과제 배정 (2026-10-28)
 
 - **수행 주체**: Gemini 3.8 Flash (Maker - Fast UI) / Gemini 4 Argon (Orchestrator)
 - **배경 및 개요**:
   - 사용자 요구사항에 따라 Fast UI 과제 2건(`12.16` 공식 일정 줄바꿈, `12.17` PWA `ChroLog` 단축)을 Gemini 3.8 Flash가 즉시 구현 및 단위 테스트 검증 완료.
-  - 사용자의 Claude Pro 구독에 따라 Claude(Fable / Opus / Sonnet)의 토큰 여유 및 모델 선택 폭이 확장되었음을 지침에 반영하고, 모바일 UX 개선 및 소비 아코디언, SQL 문서 정리를 위한 신규 협업 Run(`mobile-ux-and-sql-consolidation`) 5단계 파이프라인을 `docs/handoff.md` 최상단 Dispatch Queue에 정식 배정.
+  - 사용자의 Claude Pro 구독에 따라 Claude(Opus / Sonnet)의 토큰 여유 및 모델 선택 폭이 확장되었음을 지침에 반영하고, 모바일 UX 개선 및 소비 아코디언, SQL 문서 정리를 위한 신규 협업 Run(`mobile-ux-and-sql-consolidation`) 5단계 파이프라인을 `docs/handoff.md` 최상단 Dispatch Queue에 정식 배정.
 - **수행 내역**:
   1. **Phase 12.17 / R7. 모바일 PWA 설치 시 홈 화면 표시 이름 `ChroLog` 단축 적용 (`public/manifest.json`, `src/app/layout.tsx`)**:
      - `public/manifest.json`: 앱 정식 명칭(`name: "ChronoLedger"`)은 보존하고 `short_name`을 `"ChroLog"`로 변경하여 모바일 Chrome 설치 시 홈 화면 아이콘 라벨 말줄임(`ChronoLe...`) 방지.
@@ -23,12 +30,12 @@
   2. **Phase 12.16 / R6. 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시 (`src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`)**:
      - `/dashboard/games` 내 공식 일정 중앙 팝업 다이얼로그에서 일정 제목(`sch.title`) 및 메모(`sch.memo`)에 `"/"`가 포함된 경우 `split("/").map(p => p.trim()).filter(Boolean)`으로 분리하여 각 줄 단위 블록(`span className="block"`)으로 세로 줄바꿈 렌더링하도록 개선.
      - `src/app/dashboard/games/page.test.tsx`에 `"/"` 구분자 포함 일정 제목 및 메모가 블록 요소로 분리되어 렌더링되는지 검증하는 단위 테스트 추가 (13개 테스트 PASS).
-  3. **Claude Pro Fable / Opus / Sonnet 구독 반영 및 지침 보완 (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`)**:
-     - 사용자의 Claude Pro 구독으로 Fable, Opus, Sonnet을 난이도와 토큰 효율에 맞춰 운용:
-       - **Claude Fable / Opus**: 고난도 복합 상태·브라우저 생명주기 제어(History API 등), 아키텍처 리팩토링, 심층 정적 코드 리뷰 및 Argon / Codex 1순위 Fallback 전담.
+  3. **Claude Pro Opus / Sonnet 구독 반영 및 지침 보완 (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`)**:
+     - 사용자의 Claude Pro 구독으로 Opus, Sonnet을 난이도와 토큰 효율에 맞춰 운용:
+       - **Claude Opus**: 고난도 복합 상태·브라우저 생명주기 제어(History API 등), 아키텍처 리팩토링, 심층 정적 코드 리뷰 및 Argon / Codex 1순위 Fallback 전담.
        - **Claude Sonnet**: 명확히 구체화된 다중 컴포넌트 UI 인터랙션·상태 연동 및 단위 테스트 고속 구현 전담.
   4. **Active AI Collaboration Dispatch Queue 신규 과제 배정 (`docs/handoff.md`)**:
-     - Run ID `mobile-ux-and-sql-consolidation` (Step 1: Gemini 3.8 Flash `DONE`, Step 2: Claude Fable/Opus `READY`, Step 3: Claude Sonnet/Fable `PENDING`, Step 4: GPT Codex `PENDING`, Step 5: Claude Fable/Opus / Gemini 4 Argon `PENDING`).
+     - Run ID `mobile-ux-and-sql-consolidation` (Step 1: Gemini 3.8 Flash `DONE`, Step 2: Claude Opus `READY`, Step 3: Claude Sonnet `PENDING`, Step 4: GPT Codex `PENDING`, Step 5: Claude Opus / Gemini 4 Argon `PENDING`).
   5. **문서 동기화**: `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md` 갱신.
 - **검증 완료**:
   - Vitest `src/app/dashboard/games/page.test.tsx` 13개 테스트 통과.

@@ -52,7 +52,7 @@ Supabase
 - `md/`: 통합 기획 원본, 기능 명세, DB 스키마, 프로젝트 에이전트 지침, 멀티 에이전트 협업 제안과 검토.
 - `docs/`: 진행 현황, 아키텍처, 인수인계, 구현 체크리스트, 변경 이력, 주의사항.
 - `docs/ai-collaboration-usage.md`, `docs/ChronoLedger_collaboration_guide.md`: 기존 수동 절차와 초보자를 위한 최소 개입 협업 흐름 및 사용자 개입 안내.
-- `.github/copilot-instructions.md`, `.github/agents/`, `.agents/rules/`, `.agents/skills/`: VS Code 및 다중 AI 에이전트(Gemini 4 Argon, GPT Codex, Claude Opus 5.5, GitHub Copilot, Gemini 3.8 Flash) 지침과 ChronoLedger Orchestrator/Maker/Reviewer 스킬 프로필. 루트 `docs/handoff.md` 최상단의 `Active AI Collaboration Dispatch Queue`를 단일 진실 공급원(Blackboard)으로 삼아, 사용자가 `"인수인계 문서를 확인해"`를 입력하면 각 모델이 할당된 역할(`▶ READY`) 또는 토큰 소진 비상 인계(`⚠️ HANDOVER_NEEDED` 및 `git diff` 자동 스캔 복구) 과제를 즉시 수행하고 다음 단계로 배턴을 넘긴다.
+- `.github/copilot-instructions.md`, `.github/agents/`, `.agents/rules/`, `.agents/skills/`: VS Code 및 다중 AI 에이전트(Gemini 4 Argon, GPT Codex, Claude Sonnet / Opus, GitHub Copilot, Gemini 3.8 Flash) 지침과 ChronoLedger Orchestrator/Maker/Reviewer 스킬 프로필. 루트 `docs/handoff.md` 최상단의 `Active AI Collaboration Dispatch Queue`를 단일 진실 공급원(Blackboard)으로 삼아, 사용자가 `"인수인계 문서를 확인해"`를 입력하면 각 모델이 할당된 역할(`▶ READY`) 또는 토큰 소진 비상 인계(`⚠️ HANDOVER_NEEDED` 및 `git diff` 자동 스캔 복구) 과제를 즉시 수행하고 다음 단계로 배턴을 넘긴다.
 - `md/ChronoLedger_UI_Design_Sheet.md`, `docs/design-v1-ko.html`, `docs/design-preview-ko.html`: SRS에 근거한 UI 설계 참조 및 정적 목업. 반응형 시안은 자체 호스팅 폰트 자산을 `docs/assets/fonts/a2z/`에서 가져온다. 실제 제품 UI 구현은 별도다.
 - `docs/Netlify_Web_Architecture_Proposal.md`: 이전 Netlify 플랫폼 제약 검토 문서. Netlify 배포 방식 폐기 및 Cloudflare Pages 단일 호스팅 확정으로 폐기됨.
 - `artifacts/`: run manifest, 반복별 정적 리뷰/테스트 JSON, 민감정보를 제거한 종료 보고서 및 JSON Schema.

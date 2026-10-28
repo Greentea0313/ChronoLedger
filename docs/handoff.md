@@ -3,7 +3,7 @@
 ## 🎯 Active AI Collaboration Dispatch Queue (현재 활성 협업 과제)
 
 > **🤖 AI 에이전트 자동 실행 지침 (`"인수인계 문서를 확인해"` 및 하이브리드 위임 원칙)**
-> 0. **주축 모델(Gemini 4 Argon) 직접 구현 금지 및 하이브리드 위임**: `Gemini 4 Argon`(`Orchestrator & Architect`)은 절대 직접 제품 소스 코드(`src/**`)를 수정하지 않습니다. **Gemini 3.8 Flash** 담당 과제(UI/Tailwind, 배지·모달·드로어 마크업, 고속 탐색, `docs/` 동기화)는 내부 서브에이전트(`define_subagent` + `invoke_subagent` `Model: "flash"`)로 즉시 호출해 위임하고, **GPT Codex** / **Claude Opus 5.5** / **GitHub Copilot** 담당 과제는 아래 **Active Dispatch Table**에 `▶ READY`로 등록한 뒤 멈추고 사용자에게 해당 모델로 전환해 `"인수인계 문서를 확인해"`를 입력하도록 안내합니다.
+> 0. **주축 모델(Gemini 4 Argon) 직접 구현 금지 및 하이브리드 위임**: `Gemini 4 Argon`(`Orchestrator & Architect`)은 절대 직접 제품 소스 코드(`src/**`)를 수정하지 않습니다. **Gemini 3.8 Flash** 담당 과제(UI/Tailwind, 배지·모달·드로어 마크업, 고속 탐색, `docs/` 동기화)는 내부 서브에이전트(`define_subagent` + `invoke_subagent` `Model: "flash"`)로 즉시 호출해 위임하고, **GPT Codex** / **Claude Sonnet / Opus**(아래 2단계 운용 기준으로 배정) / **GitHub Copilot** 담당 과제는 아래 **Active Dispatch Table**에 `▶ READY`로 등록한 뒤 멈추고 사용자에게 해당 모델로 전환해 `"인수인계 문서를 확인해"`를 입력하도록 안내합니다.
 >
 > 1. 사용자가 **`"인수인계 문서를 확인해"`**라고 입력하면, 아래 **Active Dispatch Table**에서 상태가 **`⚠️ HANDOVER_NEEDED`**(1순위) 또는 **`▶ READY`**(2순위)인 과제를 찾아 즉시 수행하십시오.
 > 2. **강제 중단 자동 복구**: 만약 이전 모델이 토큰/쿼터 초과로 문서를 갱신하지 못한 채 중단되어 상태가 `▶ READY`이거나 `🔄 IN_PROGRESS`인 경우, 새로 호출된 대체(Fallback) 모델은 즉시 대상 Worktree의 `git status --short`와 `git diff`를 스캔하여 이전 모델이 작성하다 멈춘 미커밋 변경사항을 파악한 뒤 이어서 완수하십시오.
@@ -16,16 +16,18 @@
 
 | 주력 모델 / 에이전트 | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude (Fable / Opus)** | **GitHub Copilot** |
-| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude (Fable / Opus)** | **GitHub Copilot** |
-| **Claude (Claude Pro: Fable / Opus / Sonnet)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
+| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude Opus** | **GitHub Copilot** |
+| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude Opus** | **GitHub Copilot** |
+| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
 | **GitHub Copilot** | `Maker (General) & Fallback Hub` | VS Code 밀착형 일반 기능·컴포넌트·라우팅(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 3.8 Flash** | **GPT Codex** |
 | **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 마크업, Argon 직속 고속 탐색 서브에이전트, `docs/` 문서 동기화 보조 | **GitHub Copilot** | **Gemini 4 Argon** |
 
-> **💡 Claude Pro Fable / Opus / Sonnet 세부 운용 기준**:
+> **💡 Claude Pro Sonnet / Opus 2단계 운용 기준 (토큰 최소화)**:
 >
-> - **Claude Fable / Claude Opus**: 고난도 복합 상태·브라우저 생명주기 제어(History API, 비동기 레이스 컨디션 등), 아키텍처 리팩토링, Base $\leftrightarrow$ Target SHA 심층 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증 및 `Gemini 4 Argon` / `GPT Codex` 1순위 대체(Fallback 1) 전담.
-> - **Claude Sonnet**: 명확히 구체화된 다중 컴포넌트 UI 인터랙션·상태 연동 구현 및 단위 테스트 작성 전담 (Fable/Opus 쿼터 절약 및 고속 구현).
+> - 사용자의 Claude Pro 구독 중 **`Claude Sonnet`**과 **`Claude Opus`** 2종을 운용합니다. 기본은 Sonnet이며, 아래 Opus 승격 조건에 해당할 때만 Opus를 사용해 쿼터를 절약합니다.
+> - **Claude Sonnet (기본 Maker · 쿼터 절약)**: 수용 기준과 대상 파일이 명시된 UI 인터랙션·상태 연동 구현(아코디언, 모달, 필터, 토글 등), 기존 패턴을 따르는 페이지/컴포넌트 수정, Vitest 단위 테스트 작성·보강, 저위험 변경의 일반 정적 리뷰, `docs/` 동기화.
+> - **Claude Opus (심층 전담 · 필요 시에만)**: 고난도 복합 상태·브라우저 생명주기 제어(History API, 비동기 레이스 컨디션 등), 아키텍처 리팩토링 및 규칙/협업 설계, 보안/RLS/`SECURITY DEFINER` RPC/원장 무결성 심층 검증, Base $\leftrightarrow$ Target SHA 통합 정적 코드 리뷰(`review.json`), `Gemini 4 Argon` / `GPT Codex` 1순위 대체(Fallback 1).
+> - **Opus 승격 조건** (하나라도 해당하면 Opus 배정): ① 금전·원장·포인트·RLS·SQL/RPC 변경, ② 브라우저 생명주기·비동기 동시성 엣지 케이스, ③ 3개 이상 모듈의 구조 변경 또는 명세 미확정으로 설계 판단 필요, ④ Run 단위 통합 리뷰. Sonnet 작업 중 조건이 드러나면 `⚠️ HANDOVER_NEEDED`로 Opus에 인계합니다.
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
@@ -35,34 +37,40 @@
   - 모바일 실사용 환경 개선(홈 화면 PWA `ChroLog` 단축 표시, 공식 일정 제목 `/` 자동 줄바꿈, 모바일 캘린더 배경 설정 팝오버 화면 이탈 방지, 선택일 드로어 뒤로 가기 연동).
   - 소비 페이지 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 아코디언 펼침 표시.
   - Supabase SQL Editor 실행용 산재된 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 가이드 작성.
+  - Claude Pro 2종 모델(Sonnet / Opus) 토큰(쿼터) 효율 극대화를 위한 작업 분배 2단계 기준 수립 및 협업 지침 일관 동기화.
 - **수용 기준 (Acceptance Criteria)**:
   1. **Phase 12.16 & 12.17 (Gemini 3.8 Flash)**:
      - `public/manifest.json`: `short_name: "ChroLog"` 적용 (`name: "ChronoLedger"` 유지).
      - `src/app/layout.tsx`: `appleWebApp: { capable: true, title: "ChroLog", statusBarStyle: "black-translucent" }` 메타데이터 추가.
      - `src/app/dashboard/games/page.tsx`: 공식 일정 중앙 팝업 다이얼로그에서 `sch.title` 및 `sch.memo`에 `"/"`가 포함된 경우 `split("/").map(part => part.trim()).filter(Boolean)`으로 분리하여 각 줄 단위 블록(`span className="block"`)으로 줄바꿈 렌더링.
      - `src/app/dashboard/games/page.test.tsx`: 공식 일정 제목 및 메모 `"/"` 구분자 줄바꿈 렌더링 단위 테스트 통과.
-  2. **Phase 12.14 & 12.18 (Claude Fable / Claude Opus)**:
+  2. **Phase 12.14 & 12.18 (Claude Opus)**:
      - `src/components/calendar/calendar-bg-customizer.tsx`: 모바일 헤더 줄바꿈 시 좌측에 위치한 [배경 설정] 버튼의 팝오버(absolute right-0)가 화면 좌측 바깥으로 잘리는 문제를 해결 (`left-0 sm:left-auto sm:right-0` 등 모바일 반응형 정렬 적용).
      - `src/lib/calendar-bg-storage.ts`: 현재 데스크톱 1920×1080 고정 리사이징 로직을 점검하여 모바일 뷰포트 및 세로형 비율 이미지 최적화.
      - `src/components/calendar/mobile-drawer.tsx` & `src/app/dashboard/page.tsx`: 모바일 선택일 상세 드로어 오픈 시 `window.history.pushState` 연동, 스마트폰 내장 뒤로 가기(`popstate`) 시 라우트 이탈 없이 드로어만 닫힘, 딤 클릭/스와이프로 드로어를 직접 닫을 때 `window.history.back()`으로 히스토리 엔트리 정리 (히스토리 스택 정합성 및 엣지 케이스 철저 검증).
      - 관련 단위 테스트 작성 및 100% 통과.
-  3. **Phase 12.19 (Claude Sonnet / Claude Fable)**:
+  3. **Claude Pro 2종 모델(Sonnet / Opus) 토큰 최소화 작업 분배 기준 수립 (Claude Opus)**:
+     - **Claude Sonnet**과 **Claude Opus** 두 모델의 성능·추론 깊이·토큰(쿼터) 소모율 차이에 따라 **토큰 사용량을 최소화**할 수 있도록 각 모델이 전담할 ChronoLedger 작업 영역, 기본 배정(Sonnet) 및 Opus 승격 조건을 2단계로 정의.
+     - 수립된 2종 모델 구분 기준을 `.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md` 상단 모델 역할 표 및 안내 문구에 일관되게 반영.
+     - 정립한 기준에 맞춰 아래 Dispatch Table의 후속 과제(순서 4 `Phase 12.19`, 순서 5 `Phase 12.15`의 대체 체인, 순서 6 통합 리뷰)의 담당 모델을 가장 토큰 효율적인 모델(Sonnet / Opus 중 최적 모델)로 지정하고, 순서 4(`Phase 12.19`)를 `▶ READY`로 전환.
+  4. **Phase 12.19 (Claude Sonnet)**:
      - `src/app/dashboard/expenses/page.tsx`: 원그래프 조각(`Pie` `Cell`) 또는 하단 `["카테고리 이름" n%]` 범례 버튼 클릭 시 `selectedCategory` 상태 활성화 및 재클릭/닫기 버튼 클릭 시 접힘(토글).
      - `[카테고리별 지출 비중]` 카드 내부 하단(범례 그리드 아래)에 카테고리명, 총 건수·합계 금액 헤더, 닫기 버튼, 내부 스크롤 리스트(`max-h-60 overflow-y-auto`)를 아코디언 형태로 펼쳐서 표시, 항목 클릭 시 `ExpenseDetailModal` 상세 모달 연동.
      - 원그래프 집계와 일치하도록 최근/과거 구분 없이 `status === "CONFIRMED"`(확정 지출) 상태인 해당 카테고리 내역만 최신순(`target_date` 내림차순)으로 필터링 표시.
      - 단위 테스트 작성 및 100% 통과.
-  4. **Phase 12.15 (GPT Codex)**:
+  5. **Phase 12.15 (GPT Codex)**:
      - `sql/*.sql` 16개 파일을 ① 최신 마스터 스키마(`SCHEMA.sql`), ② 미적용/운영 마이그레이션, ③ 시드·더미·스모크 테스트(`TESTS.sql` 등), ④ 아카이브로 분류·통합하고 `sql/README.md`에 SQL Editor 실행 가이드 작성.
-  5. **통합 코드 리뷰 및 검증 (Claude Fable / Opus / Gemini 4 Argon)**:
+  6. **통합 코드 리뷰 및 검증 (Claude Opus / Gemini 4 Argon)**:
      - Phase 12.14 ~ 12.19 정적 코드 리뷰, TypeScript 타입 검사(`npx tsc --noEmit`), 단위 테스트(`npx vitest run`), 린트(`markdownlint`) 무결함 검증.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체 / Gemini 4 Argon 2순위)* | `Maker (Fast UI)` | `Phase 12.16 (R6)` 공식 일정 보기 `"/"` 자동 줄바꿈 & `Phase 12.17 (R7)` 모바일 PWA `short_name` `"ChroLog"` 단축 (`public/manifest.json`, `src/app/layout.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`) | `✅ DONE` (`public/manifest.json` short_name "ChroLog" 단축, `layout.tsx` appleWebApp 메타데이터 추가, `games/page.tsx` "/" 줄바꿈 블록 렌더링, `games/page.test.tsx` 신규 단위 테스트 PASS) |
-| **2** | `✅ DONE (SHA: f272bfd)` | **Claude Fable (또는 Claude Opus)** *(GitHub Copilot 1순위 대체 / GPT Codex 2순위)* | `Maker (Complex)` | `Phase 12.14 (R4)` 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결·모바일 리사이징 최적화 & `Phase 12.18 (R8)` 모바일 선택일 상세 드로어(`MobileDrawer`) 스마트폰 내장 뒤로 가기(History API / `popstate` / `history.back()`) 연동 (`src/components/calendar/calendar-bg-customizer.tsx`, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, 단위 테스트) | `✅ DONE` (Claude Opus 5.5: 팝오버 `left-0 sm:left-auto sm:right-0`, 세로형 배경 1080×1920 상자 리사이징, `useDrawerHistory` 훅으로 `pushState`/`popstate`/`history.back()` 연동 및 Next.js `history.state` 보존, 단위 테스트 7건 추가 / 전체 41파일 268테스트·tsc·lint·build PASS) |
-| **3** | **`▶ READY`** | **Claude Sonnet (또는 Claude Fable)** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위)* | `Maker (Complex)` | `Phase 12.19 (R9)` 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정(`CONFIRMED`) 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`) | 대기 중 (Claude Sonnet/Fable 전환 후 `"인수인계 문서를 확인해"` 입력 시 즉시 착수) |
-| **4** | `⏳ PENDING` | **GPT Codex** *(Claude Fable / Sonnet 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL)` | `Phase 12.15 (R5)` Supabase SQL Editor 실행용 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 순서 가이드 작성 (`sql/*.sql`, `sql/README.md`) | Step 3 완료 후 착수 예정 |
-| **5** | `⏳ PENDING` | **Claude Fable (또는 Claude Opus)** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.14 ~ 12.19 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | Step 4 완료 후 착수 예정 |
+| **2** | `✅ DONE (SHA: f272bfd)` | **Claude Opus** *(GitHub Copilot 1순위 대체 / GPT Codex 2순위)* | `Maker (Complex)` | `Phase 12.14 (R4)` 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결·모바일 리사이징 최적화 & `Phase 12.18 (R8)` 모바일 선택일 상세 드로어(`MobileDrawer`) 스마트폰 내장 뒤로 가기(History API / `popstate` / `history.back()`) 연동 (`src/components/calendar/calendar-bg-customizer.tsx`, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, 단위 테스트) | `✅ DONE` (Claude Opus 5.5: 팝오버 `left-0 sm:left-auto sm:right-0`, 세로형 배경 1080×1920 상자 리사이징, `useDrawerHistory` 훅으로 `pushState`/`popstate`/`history.back()` 연동 및 Next.js `history.state` 보존, 단위 테스트 7건 추가 / 전체 41파일 268테스트·tsc·lint·build PASS) |
+| **3** | `✅ DONE (SHA: 6015399)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체)* | `Architect & Rule Designer` | `Claude Pro 2종 모델(Sonnet / Opus) 토큰 최소화 작업 분배 기준 수립` (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md`) | `✅ DONE` (Claude Opus 5.5: Sonnet 기본 배정 + Opus 승격 조건 4개 정의, `collaboration.md`/`CLAUDE.md`/`AGENTS.md`/`handoff.md` 일관 반영, 후속 순서 4~6 담당 재지정) |
+| **4** | **`▶ READY`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Complex)` | `Phase 12.19 (R9)` 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정(`CONFIRMED`) 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`) | 대기 중 (Claude Sonnet 전환 후 `"인수인계 문서를 확인해"` 입력 시 즉시 착수. 기존 패턴 기반 UI 아코디언·테스트로 Opus 승격 조건 비해당) |
+| **5** | `⏳ PENDING` | **GPT Codex** *(Claude Opus 1순위 대체 — SQL/RPC 정합성은 승격 조건 ① / GitHub Copilot 2순위)* | `Maker (Core & SQL)` | `Phase 12.15 (R5)` Supabase SQL Editor 실행용 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 순서 가이드 작성 (`sql/*.sql`, `sql/README.md`) | Step 4 완료 후 착수 예정 |
+| **6** | `⏳ PENDING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.14 ~ 12.19 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | Step 5 완료 후 착수 예정 |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
