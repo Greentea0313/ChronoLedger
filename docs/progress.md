@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.19 소비 페이지 카테고리별 지출 내역 아코디언 (2026-10-28)
+
+- **수행 주체**: Claude Sonnet 5.5 (Maker - Complex) / 커밋 `dd01401`
+- **수행 내역**: `expenses/page.tsx`에 `selectedCategory` 상태 추가. 원그래프 `Cell` 및 범례 버튼 클릭/재클릭/닫기로 토글. 카드 하단에 카테고리명·건수·합계 헤더와 `max-h-60` 스크롤 리스트를 펼치고 CONFIRMED만 `target_date` 내림차순 표시. 항목 클릭 시 기존 `handleOpenRefund`로 `ExpenseDetailModal` 연동. 환불 등으로 카테고리가 사라지면 자동 접힘.
+- **검증**: Vitest 전체 270 PASS(신규 2건), `tsc --noEmit` 0 에러, lint 0건. 실브라우저 시각 확인은 미수행.
+- **다음 단계**: Dispatch Queue Step 5 (Phase 12.15, GPT Codex) `▶ READY`.
+
 ## Claude 모델 표기 정리 및 협업 지침 일관화 (2026-10-28)
 
 - **수행 주체**: Claude Opus 5.5 (Architect & Rule Designer)

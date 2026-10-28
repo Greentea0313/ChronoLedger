@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-10-28 (Phase 12.19 카테고리별 지출 내역 아코디언)
+
+- **소비 페이지 카테고리 아코디언 (`src/app/dashboard/expenses/page.tsx`)**: 원그래프 조각/범례 버튼 클릭 시 카드 하단에 해당 카테고리 확정(`CONFIRMED`) 지출을 최신순으로 펼침. 재클릭·닫기로 접힘, 항목 클릭 시 `ExpenseDetailModal` 열림. 범례를 `<button>`으로 변경해 키보드 접근 지원.
+- 단위 테스트 2건 추가 (`page.test.tsx`).
+
 ## 2026-10-28 (Claude 모델 표기 정리: 사용 불가 모델 제거, Sonnet / Opus 2단계 기준 문서 간 통일)
 
 - **사용 불가 Claude 모델 표기 제거**: `CLAUDE.md`, `AGENTS.md`, `.agents/rules/collaboration.md`, `docs/handoff.md` 및 이력 문서(`docs/changelog.md`, `docs/progress.md`, `docs/to-do.md`)에서 Sonnet / Opus 외 Claude 모델 선택지·언급 삭제.

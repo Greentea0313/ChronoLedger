@@ -497,7 +497,7 @@
   - verify: 드로어 오픈 후 `popstate` 발생 시 페이지 이동 없이 드로어 닫힘 동작 단위 테스트 통과.
   - 결과: `mobile-drawer.tsx`에 `useDrawerHistory` 훅 추가(`dashboard/page.tsx` 변경 불필요). Next.js App Router `history.state`(`__NA`) 보존, 직접 닫기 시 `history.back()` 후 popstate 1회 무시, back 처리 중 재오픈 시 popstate 도착 후 push. 단위 테스트 5건 추가. 실기기 Android 뒤로 가기 확인은 미수행.
 
-- [ ] 12.19 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시
+- [x] 12.19 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시
   - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`
   - 작업 (구체화 확정안):
     1. **클릭 및 토글 인터랙션**: `[카테고리별 지출 비중]` 카드 내 원그래프 조각(`Pie` `Cell`) 또는 하단 `["카테고리 이름" n%]` 범례 버튼을 클릭하면 `selectedCategory` 상태가 활성화되며, 선택된 카테고리를 재클릭하거나 닫기 버튼을 누르면 펼쳐진 목록이 접힘(토글).
