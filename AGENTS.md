@@ -20,16 +20,18 @@
 
 | 주력 모델 / 에이전트 | 파이프라인 기본 역할 | ChronoLedger 핵심 담당 영역 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성, Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude (Fable / Opus)** | **GitHub Copilot** |
-| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/날짜 계산(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude (Fable / Opus)** | **GitHub Copilot** |
-| **Claude (Claude Pro: Fable / Opus / Sonnet)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
+| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성, Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude Opus** | **GitHub Copilot** |
+| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/날짜 계산(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude Opus** | **GitHub Copilot** |
+| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
 | **GitHub Copilot** | `Maker (General) & Fallback Hub` | 표준 기능/라우팅/컴포넌트 구현(`src/app/`, `src/components/`), 타 모델 토큰 소진 시 전천후 백업 | **Gemini 3.8 Flash** | **GPT Codex** |
 | **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 마크업, Argon 직속 고속 탐색 서브에이전트, `docs/` 문서 동기화 | **GitHub Copilot** | **Gemini 4 Argon** |
 
-> **Claude Pro 모델별 세부 운용 기준**:
+> **Claude Pro Sonnet / Opus 2단계 운용 기준 (토큰 최소화)**:
 >
-> - **Claude Fable / Claude Opus**: 고난도 복합 상태·브라우저 생명주기 제어(History API, 비동기 레이스 컨디션 등), 아키텍처 리팩토링, Base $\leftrightarrow$ Target SHA 심층 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증 및 `Gemini 4 Argon` / `GPT Codex` 1순위 대체(Fallback 1) 전담.
-> - **Claude Sonnet**: 명확히 구체화된 다중 컴포넌트 UI 인터랙션·상태 연동 구현 및 단위 테스트 작성 전담 (Fable/Opus 쿼터 절약 및 고속 구현).
+> - 사용자의 Claude Pro 구독 중 **`Claude Sonnet`**과 **`Claude Opus`** 2종을 운용합니다(`Claude Fable`은 사용 불가). 기본은 Sonnet이며, 아래 Opus 승격 조건에 해당할 때만 Opus를 사용해 쿼터를 절약합니다.
+> - **Claude Sonnet (기본 Maker · 쿼터 절약)**: 수용 기준과 대상 파일이 명시된 UI 인터랙션·상태 연동 구현(아코디언, 모달, 필터, 토글 등), 기존 패턴을 따르는 페이지/컴포넌트 수정, Vitest 단위 테스트 작성·보강, 저위험 변경의 일반 정적 리뷰, `docs/` 동기화.
+> - **Claude Opus (심층 전담 · 필요 시에만)**: 고난도 복합 상태·브라우저 생명주기 제어(History API, 비동기 레이스 컨디션 등), 아키텍처 리팩토링 및 규칙/협업 설계, 보안/RLS/`SECURITY DEFINER` RPC/원장 무결성 심층 검증, Base $\leftrightarrow$ Target SHA 통합 정적 코드 리뷰(`review.json`), `Gemini 4 Argon` / `GPT Codex` 1순위 대체(Fallback 1).
+> - **Opus 승격 조건** (하나라도 해당하면 Opus 배정): ① 금전·원장·포인트·RLS·SQL/RPC 변경, ② 브라우저 생명주기·비동기 동시성 엣지 케이스, ③ 3개 이상 모듈의 구조 변경 또는 명세 미확정으로 설계 판단 필요, ④ Run 단위 통합 리뷰. Sonnet 작업 중 조건이 드러나면 `⚠️ HANDOVER_NEEDED`로 Opus에 인계합니다.
 
 ## 3. "인수인계 문서를 확인해" 5단계 실행 프로토콜
 
