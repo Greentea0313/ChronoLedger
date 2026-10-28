@@ -131,7 +131,7 @@ export function CalendarBgCustomizer({
         <div
           role="dialog"
           aria-label="배경 커스텀 설정 패널"
-          className="absolute right-0 top-full mt-1.5 w-64 sm:w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-surface p-3.5 shadow-modal z-50 space-y-3.5 animate-fade-in"
+          className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-64 sm:w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-surface p-3.5 shadow-modal z-50 space-y-3.5 animate-fade-in"
         >
           <div className="flex items-center justify-between border-b border-line pb-2">
             <span className="text-xs font-semibold text-content">캘린더 배경 커스텀 설정</span>

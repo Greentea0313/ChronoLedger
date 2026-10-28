@@ -223,7 +223,7 @@ export async function clearCalendarBgRecord(userId?: string | null): Promise<Cal
 }
 
 /**
- * 업로드된 배경 이미지를 최대 1920x1080 비율 유지 리사이징 후 WebP로 압축합니다.
+ * 업로드된 배경 이미지를 비율 유지 리사이징(가로형 최대 1920x1080, 세로형 최대 1080x1920) 후 WebP로 압축합니다.
  */
 export async function compressCalendarBgImage(file: File): Promise<Blob> {
   if (file.size > MAX_INPUT_FILE_SIZE) {
@@ -274,8 +274,12 @@ export function calculateScaledDimensions(
   if (srcWidth <= 0 || srcHeight <= 0) {
     return { width: maxWidth, height: maxHeight }
   }
-  const widthRatio = maxWidth / srcWidth
-  const heightRatio = maxHeight / srcHeight
+  // 모바일 세로형 이미지는 경계 상자를 세로로 돌려 해상도 손실을 막는다.
+  const rotateBox = srcHeight > srcWidth && maxWidth > maxHeight
+  const boxWidth = rotateBox ? maxHeight : maxWidth
+  const boxHeight = rotateBox ? maxWidth : maxHeight
+  const widthRatio = boxWidth / srcWidth
+  const heightRatio = boxHeight / srcHeight
   const scale = Math.min(1, widthRatio, heightRatio)
   return {
     width: Math.max(1, Math.round(srcWidth * scale)),

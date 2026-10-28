@@ -66,5 +66,30 @@ describe("CalendarBgCustomizer", () => {
     fireEvent.keyDown(document, { key: "Escape" })
     expect(screen.queryByRole("dialog", { name: "배경 커스텀 설정 패널" })).toBeNull()
   })
+
+  it("모바일에서는 패널을 버튼 왼쪽 기준으로 펼쳐 화면 좌측 바깥으로 잘리지 않고, sm 이상에서는 오른쪽 기준으로 정렬한다", () => {
+    render(
+      <CalendarBgCustomizer
+        hasCustomImage={false}
+        opacity={40}
+        tileOpacity={15}
+        blur="OFF"
+        onUploadBlob={vi.fn()}
+        onChangeOpacity={vi.fn()}
+        onChangeTileOpacity={vi.fn()}
+        onChangeBlur={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "배경 커스텀 설정" }))
+    const panel = screen.getByRole("dialog", { name: "배경 커스텀 설정 패널" })
+
+    expect(panel.className).toContain("left-0")
+    expect(panel.className).toContain("sm:left-auto")
+    expect(panel.className).toContain("sm:right-0")
+    expect(panel.className).not.toMatch(/(^|\s)right-0(\s|$)/)
+    expect(panel.className).toContain("max-w-[calc(100vw-2rem)]")
+  })
 })
 

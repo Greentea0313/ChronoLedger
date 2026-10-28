@@ -40,13 +40,17 @@ describe("calendar-bg-storage", () => {
     expect(getBlurFilterCss("MEDIUM")).toBe("blur(8px)")
   })
 
-  it("calculateScaledDimensions는 원본 비율을 유지하면서 최대 1920x1080 이하로 축소한다", () => {
+  it("calculateScaledDimensions는 원본 비율을 유지하면서 가로형은 1920x1080, 세로형은 1080x1920 이하로 축소한다", () => {
     // 4K 해상도(3840x2160) -> 1920x1080
     expect(calculateScaledDimensions(3840, 2160)).toEqual({ width: 1920, height: 1080 })
     // 소형 해상도(1280x720) -> 확대하지 않고 원본 유지
     expect(calculateScaledDimensions(1280, 720)).toEqual({ width: 1280, height: 720 })
-    // 세로형 이미지(1080x1920) -> 높이 1080에 맞춰 축소 (608x1080)
-    expect(calculateScaledDimensions(1080, 1920)).toEqual({ width: 608, height: 1080 })
+    // 세로형 FHD(1080x1920) -> 축소 없이 원본 유지
+    expect(calculateScaledDimensions(1080, 1920)).toEqual({ width: 1080, height: 1920 })
+    // 세로형 스마트폰 스크린샷(1440x3200) -> 1080x1920 상자에 맞춰 축소
+    expect(calculateScaledDimensions(1440, 3200)).toEqual({ width: 864, height: 1920 })
+    // 정사각형(3000x3000) -> 짧은 변 1080 기준
+    expect(calculateScaledDimensions(3000, 3000)).toEqual({ width: 1080, height: 1080 })
   })
 
   it("saveCalendarBgRecord, loadCalendarBgRecord, clearCalendarBgRecord가 사용자별 배경 설정(투명도, 타일 투명도, 블러) 및 Blob을 영구 보존하고 초기화한다", async () => {

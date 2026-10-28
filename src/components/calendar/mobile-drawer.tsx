@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import {
   Drawer,
   DrawerContent,
@@ -34,6 +35,68 @@ interface MobileDrawerProps {
   onIncomeAdded?: () => void
 }
 
+const DRAWER_HISTORY_KEY = "chronoledgerMobileDrawer"
+
+function pushDrawerHistoryEntry() {
+  window.history.pushState({ ...(window.history.state ?? {}), [DRAWER_HISTORY_KEY]: true }, "")
+}
+
+/**
+ * 드로어가 열릴 때 히스토리 엔트리를 하나 쌓아 스마트폰 뒤로 가기(popstate)가 라우트 이탈 대신 드로어만 닫게 한다.
+ * 딤 클릭/스와이프 등으로 직접 닫으면 history.back()으로 쌓았던 엔트리를 정리한다.
+ * Next.js App Router가 popstate 복원에 쓰는 기존 history.state(__NA 등)는 그대로 보존한다.
+ */
+export function useDrawerHistory(open: boolean, onOpenChange?: (open: boolean) => void) {
+  const pushedRef = useRef(false)
+  // 직접 닫으며 호출한 history.back()이 만들 popstate를 한 번 무시한다.
+  const ignorePopRef = useRef(false)
+  // back() 처리 중에 다시 열린 경우 popstate 도착 후 엔트리를 쌓는다.
+  const pendingPushRef = useRef(false)
+  const onOpenChangeRef = useRef(onOpenChange)
+  onOpenChangeRef.current = onOpenChange
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (ignorePopRef.current) {
+        ignorePopRef.current = false
+        if (pendingPushRef.current) {
+          pendingPushRef.current = false
+          pushDrawerHistoryEntry()
+          pushedRef.current = true
+        }
+        return
+      }
+      if (pushedRef.current) {
+        pushedRef.current = false
+        onOpenChangeRef.current?.(false)
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
+
+  useEffect(() => {
+    if (open) {
+      if (pushedRef.current || pendingPushRef.current) return
+      if (ignorePopRef.current) {
+        pendingPushRef.current = true
+        return
+      }
+      pushDrawerHistoryEntry()
+      pushedRef.current = true
+      return
+    }
+
+    pendingPushRef.current = false
+    if (pushedRef.current) {
+      pushedRef.current = false
+      ignorePopRef.current = true
+      window.history.back()
+    }
+  }, [open])
+}
+
 export function MobileDrawer({
   selectedDateLabel,
   totalAsset,
@@ -53,6 +116,8 @@ export function MobileDrawer({
   registerDisabled,
   onIncomeAdded,
 }: MobileDrawerProps) {
+  useDrawerHistory(Boolean(open), onOpenChange)
+
   return (
     <div className="lg:hidden">
       <Drawer open={open} onOpenChange={onOpenChange}>
