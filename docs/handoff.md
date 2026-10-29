@@ -31,28 +31,32 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `expense-memo-preservation-and-sql-smoke-tests` *(2026-10-29, 예정 지출 수정·결제 시 기존 메모 보존(R14) 및 sql/tests/TESTS.sql 현행 RPC 정합성 갱신(12.15-F1))*
+- **Run ID**: `database-types-schema-sync` *(2026-10-29, 운영 DB 마이그레이션 반영 완료에 따른 `src/types/database.types.ts` 최신 스키마·RPC 타입 동기화 (`Phase 12.15-F2`))*
 - **Worktree 경로**: `main`
 - **배경 및 사용자 요구사항**:
-  - `Phase 12.20 ~ 12.22` 통합 리뷰에서 식별된 P3 결함 해소: 예정 지출 수정(`EDIT_PLAN`) 및 예정 지출 결제(`PAY`) 시 모달에서 기존 사용자 메모(`editingExpense.memo` / `plannedExpense.memo`)를 `mergeEventMemo`의 첫 번째 인자로 전달하지 않아 기존 메모가 유실되는 문제를 해결 (`Phase 12.23 / R14`).
-  - 소비 페이지(`src/app/dashboard/expenses/page.tsx`) 내 과거 픽업 통계 관련 잔여 주석 정리.
-  - `sql/tests/TESTS.sql`의 `WAL-01` 단언 불일치(현행 `process_expense_payment`는 포인트 플랫폼 지정 시 `WALLET` 결제에서도 스토어 적립률에 따라 적립) 해소 및 PGlite/PostgreSQL 스모크 테스트 무결함 통과 검증 (`Phase 12.15-F1`).
+  - 사용자가 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql`까지 모든 마이그레이션 적용을 완료함.
+  - 2026-10-13에 생성된 후 갱신되지 않았던 `src/types/database.types.ts`를 현행 `sql/SCHEMA.sql` 기준 테이블 컬럼(`user_games.memo`, `subscription_templates`의 `billing_cycle`/`duration_days`/`start_date`/`end_date`) 및 RPC 시그니처(11개 인자 `process_expense_payment`, 5개 인자 `update_confirmed_expense_metadata`, `delete_subscription_template`, `add_wallet_income`, `request_account_deletion`, `get_account_deletion_status`, `purge_expired_account_deletion_requests`)와 100% 일치하도록 동기화 (`Phase 12.15-F2`).
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Phase 12.23 (Claude Sonnet)**:
-     - `src/components/expense/expense-modal.tsx`: `PlannedExpenseInput`에 `memo?: string | null` 추가, `handleSubmit`에서 `const existingMemo = editingExpense?.memo ?? plannedExpense?.memo ?? null`을 구해 `mergeEventMemo(existingMemo, storeEventResult.eventTag)`로 전달하여 예정 지출 수정 및 결제 시 기존 사용자 메모 보존.
-     - `src/app/dashboard/expenses/page.tsx`: `handleConfirmPlanned`에서 `memo: expense.memo ?? null` 전달, 잔여 픽업 주석(`// 픽업 통계 관련 상태`, `픽업 랭킹 및 비중 카드`)을 게임별 과금 통계 문맥에 맞게 정리 (`src/app/dashboard/page.tsx`의 `OverduePlannedExpense` 결제 연결부도 확인).
-     - `src/components/expense/expense-modal.test.tsx`: 예정 지출 수정(`EDIT_PLAN`) 및 예정 지출 결제(`PAY`) 시 기존 메모 보존 및 이벤트 태그 병합 단위 테스트 추가 및 전체 테스트 100% 통과.
-  2. **Phase 12.15-F1 (GPT Codex)**:
-     - `sql/tests/TESTS.sql`: 현행 `process_expense_payment` RPC(포인트 플랫폼 지정 시 `WALLET` 결제에서도 스토어 적립률에 따라 적립, 10개 인자 시그니처 등)에 맞춰 `WAL-01` 및 후속 잔액/환불 검증 단언 업데이트.
-     - PGlite(또는 로컬 PostgreSQL)에서 `SCHEMA.sql` + `sql/migrations/*.sql` 적용 후 `sql/tests/TESTS.sql` 실행 시 끝까지 오류 없이 `PASS: all smoke-test fixtures and mutations rolled back` 통과 검증.
-  3. **통합 코드 리뷰 및 검증 (Claude Opus / Gemini 4 Argon)**:
-     - `Phase 12.23` 및 `Phase 12.15-F1` 통합 정적 코드 리뷰, TypeScript 타입 검사(`npx tsc --noEmit`), 단위 테스트(`npx vitest run`), 린트(`markdownlint`) 무결함 검증.
+  1. **Phase 12.15-F2 (Claude Sonnet)**:
+     - `src/types/database.types.ts`의 `Tables` 정의 동기화:
+       - `user_games`: `Row`, `Insert`, `Update`에 `"memo": string | null` (`Insert`/`Update`는 `"memo"?: string | null`) 추가.
+       - `subscription_templates`: `Row`, `Insert`, `Update`에 `sql/SCHEMA.sql` 기준 `"billing_cycle": string`, `"duration_days": number | null`, `"start_date": string | null`, `"end_date": string | null` 반영.
+     - `src/types/database.types.ts`의 `Functions` 정의를 `sql/SCHEMA.sql`과 일치하도록 갱신:
+       - `process_expense_payment`: 11개 인자(`p_custom_earned_points?: number | null`, `p_deduct_asset: boolean`, `p_discount_amount: number`, `p_expense_id: string`, `p_memo?: string | null`, `p_original_price: number`, `p_payment_date: string`, `p_payment_method: string`, `p_point_discount_amount: number`, `p_point_platform?: string | null`, `p_used_points: number`) 반영.
+       - `update_confirmed_expense_metadata`: `Args: { p_category: string; p_expense_id: string; p_game_id?: string | null; p_payment_date?: string | null; p_title: string }`, `Returns: undefined` 추가.
+       - `delete_subscription_template`: `Args: { p_template_id: string }`, `Returns: undefined` 추가.
+       - `add_wallet_income`: `Args: { p_amount: number }`, `Returns: number` 추가.
+       - `request_account_deletion`: `Args: { p_confirmation_email: string }`, `Returns: string` 추가.
+       - `get_account_deletion_status`: `Args: { p_status_token: string }`, `Returns: Json` 추가.
+       - `purge_expired_account_deletion_requests`: `Args: { p_batch_size?: number }`, `Returns: number` 추가.
+     - `npx tsc --noEmit`, `npm run lint`, `npx vitest run` 전체 통과 확인.
+  2. **통합 코드 리뷰 및 문서 마감 (Gemini 4 Argon / Claude Opus)**:
+     - `src/types/database.types.ts`와 `sql/SCHEMA.sql` 간 테이블·RPC 시그니처 대조 검수, 전체 테스트·빌드 검증 및 `12.15-F2` 완료 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE (SHA: d5522dc)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.23 (R14)` 지출 모달(`expense-modal.tsx`) 예정 지출 수정·결제 시 기존 사용자 메모 보존 및 `expenses/page.tsx` 잔여 주석 정리 (`src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.test.tsx`) | `✅ DONE` (`PlannedExpenseInput.memo` 추가, 수정·결제 시 기존 메모를 `mergeEventMemo`로 병합 보존, `handleConfirmPlanned`·기한 초과 예정 조회에 memo 전달, 잔여 픽업 주석 정리, 메모 보존 단위 테스트 2건, tsc·eslint·vitest 통과) |
-| **2** | `✅ DONE (SHA: cb0b92c)` | ~~GPT Codex~~ ➡️ **Claude Opus** *(1순위 대체로 수행 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.15-F1` `sql/tests/TESTS.sql`의 `WAL-01` 이후 스모크 테스트 단언을 현행 결제/적립 RPC(`process_expense_payment`) 규격에 맞게 갱신 (`sql/tests/TESTS.sql`) | `✅ DONE` (WAL-01 적립 8·잔액 408로 갱신, 사용자 결정 ③에 따라 `Delete own templates` 정책 제거 마이그레이션·앱 직접 DELETE 폴백 제거·SRS FR-042/FR-053 갱신, 로컬 PostgreSQL 17에서 기존 DB·신규 설치 모두 `PASS: all smoke-test fixtures and mutations rolled back`, tsc·eslint·vitest 271 통과) |
-| **3** | `✅ DONE (Gemini 4 Argon 통합 리뷰 완료)` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.23 & 12.15-F1 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (`d5522dc` Phase 12.23 및 `cb0b92c` Phase 12.15-F1 통합 정적 리뷰 PASS: 차단 결함 0건, tsc 0 에러, eslint 0 경고, vitest 41개 파일 271개 테스트 100% 통과, markdownlint 0건, 문서 마감 완료) |
+| **1** | `✅ DONE (SHA: 38d3f71)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Types & Schema Sync)` | `Phase 12.15-F2: sql/SCHEMA.sql 및 운영 DB 마이그레이션 반영 완료에 따른 src/types/database.types.ts 테이블·RPC 타입 최신화 (src/types/database.types.ts)` | `✅ DONE` (Claude Sonnet 5.5: `database.types.ts`를 `sql/SCHEMA.sql` 기준으로 동기화 — `user_games.memo`, `subscription_templates.cycle_type`/`interval_days`/`billing_day` nullable, RPC 6종 추가(`admin_create_game`, `delete_subscription_template`, `get_account_deletion_status`, `purge_expired_account_deletion_requests`, `request_account_deletion`, `update_confirmed_expense_metadata`) 및 `process_expense_payment` 11개 인자 반영. **수용 기준과 SCHEMA.sql 불일치로 SCHEMA.sql을 우선 적용**: ① `subscription_templates`에 `billing_cycle`/`duration_days`/`start_date`/`end_date` 컬럼은 SCHEMA에 없음(`billing_cycle`은 `expenses` 컬럼) → 미반영, ② `update_confirmed_expense_metadata` 실제 인자는 `p_memo`/`p_target_date`(`p_game_id`/`p_payment_date` 아님), ③ purge 인자는 `p_limit`(`p_batch_size` 아님), ④ `add_wallet_income`은 SCHEMA/코드 어디에도 없어 미추가. tsc·lint·Vitest 271 PASS) |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** / **Claude Opus** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | `Phase 12.15-F2 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (docs/handoff.md, docs/progress.md, docs/changelog.md, docs/to-do.md)` | `Step 1 완료 후 착수 예정` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -81,7 +85,7 @@
   - `npx vitest run` 41개 파일 271개 테스트 100% 통과
   - `markdownlint-cli` 전체 마크다운 파일 0건 오류 통과
 - **후속 안내 (사용자 수동)**:
-  - `12.15-F2`: 운영 Supabase에 `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 적용 및 DB 정합성 점검 (`sql/README.md` B표 확인 쿼리 실행).
+  - `12.15-F2`: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 실행 완료 확인(2026-10-29). 후속 작업으로 `src/types/database.types.ts` 최신 스키마·RPC 타입 동기화(`Phase 12.15-F2`) 및 DB 정합성 점검 진행.
 
 ---
 

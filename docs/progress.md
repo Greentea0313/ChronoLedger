@@ -1,5 +1,23 @@
 # 프로젝트 진행 현황
 
+## Phase 12.15-F2 `database.types.ts` 스키마 동기화 구현 (2026-10-29)
+
+- **수행 주체**: Claude Sonnet 5.5 (Maker) / 커밋 `38d3f71`
+- **수행 내역**: `user_games.memo`, `subscription_templates.cycle_type`/`interval_days`(`billing_day` nullable) 반영, RPC 6종 추가 및 `process_expense_payment` 11개 인자 반영. SCHEMA.sql과 테이블 컬럼을 스크립트로 대조해 나머지 테이블은 일치 확인.
+- **수용 기준 불일치(SCHEMA.sql 우선 적용)**: `subscription_templates`의 `billing_cycle`/`duration_days`/`start_date`/`end_date`는 SCHEMA에 없음(`billing_cycle`은 `expenses` 컬럼), `update_confirmed_expense_metadata` 인자는 `p_memo`/`p_target_date`, purge 인자는 `p_limit`, `add_wallet_income`은 존재하지 않아 미추가. 리뷰어는 이 차이를 확인 요망.
+- **검증**: tsc 0 에러, lint 0건, Vitest 41파일 271 PASS. 빌드는 미실행.
+- **다음 단계**: Dispatch Step 2 (통합 리뷰, Gemini 4 Argon / Claude Opus) `▶ READY`. `12.15-F2-c`(원격 DB 정합성 점검)는 사용자 수동.
+
+## Phase 12.15-F2 운영 DB 마이그레이션 적용 완료 및 `src/types/database.types.ts` 스키마 동기화 착수 (2026-10-29)
+
+- **배경 및 현황**:
+  - 사용자가 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 실행을 완료함.
+  - 이에 따라 `docs/to-do.md`의 `12.15-F2-a` 완료 처리 및 신규 협업 Run `database-types-schema-sync` 발족.
+  - 2026-10-13 생성 이후 변경되지 않았던 `src/types/database.types.ts`를 현행 `sql/SCHEMA.sql`의 테이블 컬럼(`user_games.memo`, `subscription_templates` 4개 필드) 및 RPC 시그니처(11개 인자 `process_expense_payment`, `update_confirmed_expense_metadata`, `delete_subscription_template`, `add_wallet_income`, `request_account_deletion`, `get_account_deletion_status`, `purge_expired_account_deletion_requests` 등)와 100% 일치시키는 과제(`Phase 12.15-F2-b`)를 Active Dispatch Table에 배정.
+- **다음 단계**:
+  - 협업 Dispatch Step 1: `Claude Sonnet`에게 `Phase 12.15-F2` 배정 (`▶ READY`), `"인수인계 문서를 확인해"` 호출 대기.
+  - 협업 Dispatch Step 2: `Gemini 4 Argon` / `Claude Opus` 통합 정적 리뷰 및 문서 마감 (`⏳ PENDING`).
+
 ## Phase 12.23 & 12.15-F1 통합 정적 코드 리뷰 및 협업 Run 마감 (2026-10-29)
 
 - **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator)

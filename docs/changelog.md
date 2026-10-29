@@ -1,5 +1,17 @@
 # 변경 이력
 
+## 2026-10-29 (Phase 12.15-F2 database.types.ts 동기화)
+
+- **`src/types/database.types.ts`**: `user_games.memo`, `subscription_templates.cycle_type`/`interval_days` 추가 및 `billing_day` nullable 처리. RPC `admin_create_game`, `delete_subscription_template`, `get_account_deletion_status`, `purge_expired_account_deletion_requests`, `request_account_deletion`, `update_confirmed_expense_metadata` 추가, `process_expense_payment`에 `p_custom_earned_points`/`p_memo` 반영. `sql/SCHEMA.sql`을 기준으로 삼았으며 handoff 수용 기준과 다른 항목은 handoff.md 순서 1 기록 참조.
+
+## 2026-10-29 (운영 DB 마이그레이션 적용 완료 및 Phase 12.15-F2 타입 동기화 Run 발족)
+
+- **운영 Supabase 마이그레이션 실행 완료**:
+  - 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 적용 완료 (`Phase 12.15-F2-a` 체크 완료).
+- **신규 협업 Run 발족 (`database-types-schema-sync`)**:
+  - `src/types/database.types.ts`를 현행 `sql/SCHEMA.sql` 기준 테이블 컬럼(`user_games.memo`, `subscription_templates`) 및 11개 인자 `process_expense_payment` 등 최신 RPC 시그니처와 100% 일치하도록 동기화하는 과제(`Phase 12.15-F2-b`)를 Active Dispatch Table에 `▶ READY`로 배정 (담당: Claude Sonnet).
+- **운영 문서 동기화**: `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md` 최신화.
+
 ## 2026-10-29 (Phase 12.23 & 12.15-F1 통합 정적 리뷰 및 예정 지출 메모 보존)
 
 - **통합 리뷰 완료 (Gemini 4 Argon)**: `Phase 12.23` (`d5522dc`) 및 `Phase 12.15-F1` (`cb0b92c`) 변경 사항 통합 정적 코드 리뷰 완료. 차단 결함 0건, P3(예정 지출 수정·결제 시 기존 메모 증발 버그) 완전 해결 확인.
