@@ -40,10 +40,11 @@
   - Claude Pro 2종 모델(Sonnet / Opus) 토큰(쿼터) 효율 극대화를 위한 작업 분배 2단계 기준 수립 및 협업 지침 일관 동기화.
 - **수용 기준 (Acceptance Criteria)**:
   1. **Phase 12.16 & 12.17 (Gemini 3.8 Flash)**:
-     - `public/manifest.json`: `short_name: "ChroLog"` 적용 (`name: "ChronoLedger"` 유지).
-     - `src/app/layout.tsx`: `appleWebApp: { capable: true, title: "ChroLog", statusBarStyle: "black-translucent" }` 메타데이터 추가.
+     - `public/manifest.json`: Android WebAPK 설치 창 및 홈 화면 말줄임 방지를 위해 `name: "ChroLog"`, `short_name: "ChroLog"` 동기화 (`description: "ChronoLedger - 게임 일정 및 지출 관리 매니저"`).
+     - `public/sw.js`: 모바일 브라우저 캐시 및 manifest 강제 갱신을 위해 `SHELL_CACHE` 버전을 `chronoledger-shell-v5`로 증가.
+     - `src/app/layout.tsx`: `appleWebApp: { capable: true, title: "ChroLog", statusBarStyle: "black-translucent" }` 메타데이터 유지.
      - `src/app/dashboard/games/page.tsx`: 공식 일정 중앙 팝업 다이얼로그에서 `sch.title` 및 `sch.memo`에 `"/"`가 포함된 경우 `split("/").map(part => part.trim()).filter(Boolean)`으로 분리하여 각 줄 단위 블록(`span className="block"`)으로 줄바꿈 렌더링.
-     - `src/app/dashboard/games/page.test.tsx`: 공식 일정 제목 및 메모 `"/"` 구분자 줄바꿈 렌더링 단위 테스트 통과.
+     - `src/app/dashboard/games/page.test.tsx` & `src/components/pwa/sw.test.ts`: 공식 일정 줄바꿈 렌더링 및 manifest/SW v5 단위 테스트 통과.
   2. **Phase 12.14 & 12.18 (Claude Opus)**:
      - `src/components/calendar/calendar-bg-customizer.tsx`: 모바일 헤더 줄바꿈 시 좌측에 위치한 [배경 설정] 버튼의 팝오버(absolute right-0)가 화면 좌측 바깥으로 잘리는 문제를 해결 (`left-0 sm:left-auto sm:right-0` 등 모바일 반응형 정렬 적용).
      - `src/lib/calendar-bg-storage.ts`: 현재 데스크톱 1920×1080 고정 리사이징 로직을 점검하여 모바일 뷰포트 및 세로형 비율 이미지 최적화.
@@ -65,7 +66,7 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체 / Gemini 4 Argon 2순위)* | `Maker (Fast UI)` | `Phase 12.16 (R6)` 공식 일정 보기 `"/"` 자동 줄바꿈 & `Phase 12.17 (R7)` 모바일 PWA `short_name` `"ChroLog"` 단축 (`public/manifest.json`, `src/app/layout.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`) | `✅ DONE` (`public/manifest.json` short_name "ChroLog" 단축, `layout.tsx` appleWebApp 메타데이터 추가, `games/page.tsx` "/" 줄바꿈 블록 렌더링, `games/page.test.tsx` 신규 단위 테스트 PASS) |
+| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체 / Gemini 4 Argon 2순위)* | `Maker (Fast UI)` | `Phase 12.16 (R6)` 공식 일정 보기 `"/"` 자동 줄바꿈 & `Phase 12.17 (R7)` 모바일 PWA `name`/`short_name` `"ChroLog"` 동기화 및 SW v5 갱신 (`public/manifest.json`, `public/sw.js`, `src/app/layout.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/components/pwa/sw.test.ts`) | `✅ DONE` (`public/manifest.json` name/short_name "ChroLog" 동기화, `public/sw.js` SHELL_CACHE v5 범프, `layout.tsx` appleWebApp 메타데이터 유지, `games/page.tsx` "/" 줄바꿈 블록 렌더링, `sw.test.ts` & `games/page.test.tsx` 단위 테스트 PASS) |
 | **2** | `✅ DONE (SHA: f272bfd)` | **Claude Opus** *(GitHub Copilot 1순위 대체 / GPT Codex 2순위)* | `Maker (Complex)` | `Phase 12.14 (R4)` 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결·모바일 리사이징 최적화 & `Phase 12.18 (R8)` 모바일 선택일 상세 드로어(`MobileDrawer`) 스마트폰 내장 뒤로 가기(History API / `popstate` / `history.back()`) 연동 (`src/components/calendar/calendar-bg-customizer.tsx`, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, 단위 테스트) | `✅ DONE` (Claude Opus 5.5: 팝오버 `left-0 sm:left-auto sm:right-0`, 세로형 배경 1080×1920 상자 리사이징, `useDrawerHistory` 훅으로 `pushState`/`popstate`/`history.back()` 연동 및 Next.js `history.state` 보존, 단위 테스트 7건 추가 / 전체 41파일 268테스트·tsc·lint·build PASS) |
 | **3** | `✅ DONE (SHA: 6015399)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체)* | `Architect & Rule Designer` | `Claude Pro 2종 모델(Sonnet / Opus) 토큰 최소화 작업 분배 기준 수립` (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md`) | `✅ DONE` (Claude Opus 5.5: Sonnet 기본 배정 + Opus 승격 조건 4개 정의, `collaboration.md`/`CLAUDE.md`/`AGENTS.md`/`handoff.md` 일관 반영, 후속 순서 4~6 담당 재지정) |
 | **4** | `✅ DONE (SHA: dd01401)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Complex)` | `Phase 12.19 (R9)` 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정(`CONFIRMED`) 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`) | `✅ DONE` (Claude Sonnet 5.5: `selectedCategory` 상태, 원그래프 `Cell`/범례 버튼 클릭 토글, 카드 하단 아코디언(헤더 건수·합계·닫기, `max-h-60` 스크롤 리스트, CONFIRMED만 최신순), 항목 클릭 시 `ExpenseDetailModal` 연동, 테스트 2건 추가 / 전체 270테스트·tsc·lint PASS) |
@@ -134,8 +135,8 @@
 - **배경 및 개요**:
   - 사용자 피드백에 따른 모바일 사용성 개선 및 지출 분석 고도화 과제 3건(`12.17` ~ `12.19` / `R7` ~ `R9`)을 도출하고, `12.19` 소비 페이지 카테고리 지출 내역 표시의 인터랙션·표시 위치·집계 기준 명세를 최종 확정하여 구현 체크리스트 및 로드맵에 반영.
 - **신규 과제 세부 내용**:
-  1. **12.17 / R7. 모바일 PWA 설치 시 홈 화면 앱 표시 이름(`short_name`) `ChroLog` 단축 적용 (`public/manifest.json`, `src/app/layout.tsx`)**:
-     - Chrome 모바일 PWA 설치 시 `ChronoLedger`가 `ChronoLe...`로 말줄임되는 문제를 해결하기 위해 앱 정식 명칭은 유지하되 홈 화면 아이콘 라벨 표시용 `short_name` 및 `appleWebApp.title`을 `"ChroLog"`로 단축.
+  1. **12.17 / R7. 모바일 PWA 설치 시 홈 화면 및 Android WebAPK 앱 표시 이름 `ChroLog` 단축 및 SW v5 갱신 (`public/manifest.json`, `public/sw.js`, `src/app/layout.tsx`, `src/components/pwa/sw.test.ts`)**:
+     - Chrome 모바일 PWA 및 Android WebAPK 설치 창/홈 화면에서 `ChronoLedger`가 `ChronoLe...`로 말줄임되는 문제를 해결하기 위해 `manifest.json`의 `name`과 `short_name`을 모두 `"ChroLog"`로 동기화 (`appleWebApp.title`도 `"ChroLog"` 유지). 서비스 워커 캐시 및 manifest 즉시 갱신을 위해 `public/sw.js`의 `SHELL_CACHE` 버전을 `chronoledger-shell-v5`로 증가.
   2. **12.18 / R8. 모바일 대시보드(`/dashboard`) 선택일 상세 드로어(`MobileDrawer`) 오픈 시 스마트폰 내장 뒤로 가기 연동 (`src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/mobile-drawer.test.tsx`)**:
      - 드로어가 열려 있을 때 스마트폰 하드웨어/제스처 뒤로 가기 클릭 시 이전 라우트로 이탈하지 않고 드로어만 닫혀 달력 타일 화면으로 복귀하도록 브라우저 History API(`pushState` / `popstate`) 연동. 딤 클릭/스와이프로 닫힐 때도 `history.back()`으로 히스토리 엔트리 정합성 보장.
   3. **12.19 / R9. 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`)**:

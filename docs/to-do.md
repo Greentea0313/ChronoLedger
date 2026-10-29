@@ -490,10 +490,10 @@
   - 작업: 게임 페이지([일정 보기] 공식 일정 중앙 팝업 다이얼로그)에서 `sch.title` 및 `sch.memo`에 "/"가 포함된 경우 `split("/").map(part => part.trim()).filter(Boolean)`으로 분리하여 각 줄 단위 블록(`span className="block"`)으로 줄바꿈 렌더링하도록 개선.
   - verify: `src/app/dashboard/games/page.test.tsx` 단위 테스트 통과 (13개 테스트 PASS).
 
-- [x] 12.17 모바일 PWA 설치 시 홈 화면 앱 표시 이름(`short_name`) `ChroLog` 단축 적용 (2026-10-28)
-  - 대상 파일: `public/manifest.json`, `src/app/layout.tsx`
-  - 작업: 모바일 Chrome을 통해 홈 화면에 PWA 앱 설치 시 `ChronoLedger`가 `ChronoLe...`로 끊어지는 문제를 해결하기 위해 전체 앱 명칭(`manifest.json`의 `name: "ChronoLedger"`)은 유지하고 모바일 홈 화면 아이콘 라벨에 표시되는 `short_name` 및 `layout.tsx`의 `appleWebApp.title`을 `"ChroLog"`로 단축 적용.
-  - verify: `public/manifest.json` 및 `src/app/layout.tsx` 메타데이터 검증 및 정적 빌드/타입 검사 통과.
+- [x] 12.17 모바일 PWA 설치 시 홈 화면 및 Android WebAPK 앱 표시 이름 `ChroLog` 단축 및 SW v5 갱신 (2026-10-28 ~ 2026-10-29)
+  - 대상 파일: `public/manifest.json`, `public/sw.js`, `src/app/layout.tsx`, `src/components/pwa/sw.test.ts`
+  - 작업: 모바일 Chrome 및 Android WebAPK 설치 창/홈 화면에서 `ChronoLedger`가 `ChronoLe...`로 끊어지는 문제를 원천 해결하기 위해 `manifest.json`의 `name`과 `short_name`을 모두 `"ChroLog"`로 동기화하고 `description`은 `"ChronoLedger - 게임 일정 및 지출 관리 매니저"`로 보완. `layout.tsx`의 `appleWebApp.title`도 `"ChroLog"` 유지. 모바일 브라우저의 서비스 워커 및 캐시된 `manifest.json`을 강제 갱신하기 위해 `public/sw.js`의 `SHELL_CACHE` 버전을 `"chronoledger-shell-v5"`로 증가.
+  - verify: `src/components/pwa/sw.test.ts` 단위 테스트(SHELL_CACHE v5 및 manifest name/short_name 단언) 추가 및 통과, 정적 빌드(`npm run build`) 통과.
 
 - [x] 12.18 모바일 대시보드(`/dashboard`) 선택일 상세 드로어(`MobileDrawer`) 오픈 시 스마트폰 내장 뒤로 가기 연동 (2026-10-28, `f272bfd`)
   - 대상 파일: `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/mobile-drawer.test.tsx`

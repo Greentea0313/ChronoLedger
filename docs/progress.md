@@ -1,5 +1,22 @@
 # 프로젝트 진행 현황
 
+## Phase 12.17 Android WebAPK 앱 명칭 `ChroLog` 동기화 및 Service Worker v5 갱신 (2026-10-29)
+
+- **수행 주체**: Gemini 3.8 Flash (Maker - Fast UI)
+- **배경 및 개요**:
+  - Android 모바일 Chrome 및 WebAPK 설치 과정에서 앱 이름이 `ChronoLedger`로 인해 `ChronoLe...`로 말줄임되는 문제를 원천 해결하기 위해 `manifest.json`의 `name`을 `"ChroLog"`로 변경하고, Service Worker 캐시를 v5로 갱신하여 클라이언트 즉시 반영 보장.
+- **수행 내역**:
+  1. **`public/manifest.json` 수정**:
+     - `name`: `"ChronoLedger"` ➡️ `"ChroLog"`로 동기화 (`short_name`도 `"ChroLog"` 유지).
+     - `description`: `"ChronoLedger - 게임 일정 및 지출 관리 매니저"`로 유지/보완.
+  2. **`public/sw.js` 셸 캐시 v5 갱신**:
+     - `SHELL_CACHE` 버전을 `"chronoledger-shell-v4"`에서 `"chronoledger-shell-v5"`로 범프하여 브라우저에 캐시된 이전 셸 자산 및 `manifest.json` 강제 갱신.
+  3. **단위 테스트 추가 (`src/components/pwa/sw.test.ts`)**:
+     - `manifest.json`의 `name`과 `short_name`이 `"ChroLog"`인지, `SHELL_CACHE` 버전이 `"chronoledger-shell-v5"`인지 검증하는 테스트 추가.
+- **검증 완료**:
+  - Vitest 41개 파일 272개 단위 테스트 100% 통과.
+  - Next.js 정적 빌드(`npm run build`) 성공 (15/15 페이지 생성 완료).
+
 ## Phase 12.14 ~ 12.19 통합 정적 코드 리뷰 및 협업 Run 마감 (2026-10-29)
 
 - **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator) / Gemini 3.8 Flash (Docs Sync Subagent)

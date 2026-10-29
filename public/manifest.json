@@ -1,8 +1,8 @@
 {
-  "name": "ChronoLedger",
+  "name": "ChroLog",
   "id": "/dashboard",
   "short_name": "ChroLog",
-  "description": "게임 일정 및 지출 관리 매니저",
+  "description": "ChronoLedger - 게임 일정 및 지출 관리 매니저",
   "lang": "ko",
   "start_url": "/dashboard",
   "scope": "/",

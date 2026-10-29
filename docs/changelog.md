@@ -1,5 +1,14 @@
 # 변경 이력
 
+## 2026-10-29 (Phase 12.17 Android WebAPK 앱 명칭 `ChroLog` 동기화 및 Service Worker v5 갱신)
+
+- **Android WebAPK/설치 창 표시 명칭 `ChroLog` 동기화 (`public/manifest.json`)**:
+  - 모바일 Chrome/Android 환경에서 PWA WebAPK 설치 시 다이얼로그 및 홈 화면/앱 서랍에서 `ChronoLedger`가 말줄임되는 문제를 원천 차단하기 위해 `manifest.json`의 `name`을 `"ChronoLedger"`에서 `"ChroLog"`로 동기화 (`name: "ChroLog"`, `short_name: "ChroLog"`).
+  - 앱 설명은 `"ChronoLedger - 게임 일정 및 지출 관리 매니저"`로 보완.
+- **Service Worker 셸 캐시 v5 갱신 (`public/sw.js`, `src/components/pwa/sw.test.ts`)**:
+  - `manifest.json` 갱신 사항이 모바일 클라이언트 브라우저 캐시에 즉시 반영되도록 `SHELL_CACHE` 버전을 `chronoledger-shell-v4`에서 `chronoledger-shell-v5`로 범프.
+  - `src/components/pwa/sw.test.ts`에 `SHELL_CACHE` 버전 및 `manifest.json` 명칭 검증 테스트 추가 (전체 41개 파일 272개 테스트 통과).
+
 ## 2026-10-29 (Phase 12.14 ~ 12.19 통합 정적 코드 리뷰 및 협업 Run 마감)
 
 - **Phase 12.14 ~ 12.19 통합 코드 리뷰 통과**: 커밋 `49cf00a` (Phase 12.16/12.17), `ac58a1b` & `f272bfd` (Phase 12.14/12.18), `6015399` & `102e89e` (Claude Pro Sonnet/Opus 2단계 기준 수립), `dd01401` (Phase 12.19 소비 카테고리 아코디언), `cee2b76` (Phase 12.15 SQL 분류·정리) 전체 변경사항 정적 코드 리뷰 및 무결성 검증 완료.

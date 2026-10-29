@@ -4,7 +4,7 @@
  *    - 키: 요청 URL + JWT sub. 익명(anon) 토큰·만료 토큰 요청은 저장/제공하지 않는다.
  *    - 로그아웃/세션 없음 시 클라이언트가 CLEAR_CACHES를 보내 전부 삭제한다.
  * 쓰기(비-GET) 요청은 절대 가로채지 않는다. */
-const SHELL_CACHE = "chronoledger-shell-v4"
+const SHELL_CACHE = "chronoledger-shell-v5"
 const DATA_CACHE = "chronoledger-data-v1"
 const PRECACHE_URLS = [
   "/manifest.json",

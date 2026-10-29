@@ -101,3 +101,18 @@ describe("service worker 읽기 API 캐시", () => {
     expect(sw.caches.stores.size).toBe(0)
   })
 })
+
+describe("PWA 정적 매니페스트 및 서비스 워커 셸 캐시 설정", () => {
+  it("SHELL_CACHE 버전이 v5(chronoledger-shell-v5)로 선언되어 있다", () => {
+    expect(source).toContain('const SHELL_CACHE = "chronoledger-shell-v5"')
+  })
+
+  it("manifest.json의 name과 short_name이 모두 ChroLog로 설정되어 Android WebAPK/홈 화면 말줄임을 방지한다", () => {
+    const manifestRaw = readFileSync(join(process.cwd(), "public", "manifest.json"), "utf8")
+    const manifest = JSON.parse(manifestRaw)
+    expect(manifest.name).toBe("ChroLog")
+    expect(manifest.short_name).toBe("ChroLog")
+    expect(manifest.description).toBe("ChronoLedger - 게임 일정 및 지출 관리 매니저")
+    expect(manifest.start_url).toBe("/dashboard")
+  })
+})
