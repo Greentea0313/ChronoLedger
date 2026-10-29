@@ -1,5 +1,22 @@
 # 변경 이력
 
+## 2026-10-29 (Phase 12.22 AI 전용 지침 문서 영문화 및 한국어 원본 아카이빙)
+
+- **AI 전용 지침 영문화 (`CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`)**:
+  - AI 에이전트 자동 로드 지침 8종을 의미 손실 없이 간결한 영문으로 전면 재작성하여 시스템 프롬프트 토큰 소모량 대폭 절감.
+  - `CLAUDE.md` 7~11행 un-backticked `@.agents/rules/...` 임포트 규칙 엄격 준수.
+  - Claude Pro Sonnet / Opus 2단계 운용 기준(기본 Sonnet, 4대 조건 충족 시 Opus 승격) 및 5대 AI 모델 Fallback 매트릭스 영문화 반영.
+- **Phase 12.20 대시보드 선택일 게임 일정 표시 개편 (335e517)**:
+  - `hero-sidebar.tsx`: 기본은 `VERSION` 시작일만, 그 외 일정은 시작/종료일만 노출. `진행 일정 전체 보기` 토글 ON 시 진행 중 일정 전체 노출. 정렬은 `start_date` 내림차순, 동일 시 `end_date` 오름차순 (`dashboard/page.tsx` 정렬 동기화, 단위 테스트 추가).
+- **한국어 지침 원본 분리 아카이빙 (`docs/archive/agent-rules-ko/`)**:
+  - `docs/archive/agent-rules-ko/` 디렉터리를 신규 생성하고 기존 한국어 지침 8종(`CLAUDE-ko.md`, `AGENTS-ko.md`, `language-ko.md`, `collaboration-ko.md`, `handoff-rule-ko.md`, `document_location-ko.md`, `handoff-SKILL-ko.md`, `chronoledger-orchestrator-SKILL-ko.md`)을 원본 대조용으로 분리 보관.
+  - 에이전트 자동 탐색 경로 바깥에 배치하여 중복 프롬프트 주입 차단 및 아카이브 안내 `README.md` 작성.
+- **한국어 소통 원칙 유지 (`.agents/rules/language.md`)**:
+  - 사용자 대면 질의/보고 및 `ask_question` 선택지는 반드시 한국어(`Korean`)로 작성하도록 명시.
+  - 사용자가 열람하는 프로젝트 운영 문서(`docs/handoff.md`, `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md` 등)는 한국어 유지.
+- **신규 협업 Run 등록 (`docs/handoff.md`)**:
+  - `schedule-filter-and-game-spend-stats` Run 등록: Phase 12.22 `✅ DONE`, Phase 12.20 `▶ READY`, Phase 12.21 `⏳ WAITING`, 통합 리뷰 `⏳ WAITING`.
+
 ## 2026-10-29 (Phase 12.17 Android WebAPK 앱 명칭 `ChroLog` 동기화 및 Service Worker v5 갱신)
 
 - **Android WebAPK/설치 창 표시 명칭 `ChroLog` 동기화 (`public/manifest.json`)**:

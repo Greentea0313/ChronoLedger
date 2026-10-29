@@ -510,6 +510,39 @@
   - verify: 원그래프/범례 버튼 클릭 시 카드 내부 하단에 해당 카테고리의 `CONFIRMED` 지출 내역만 펼쳐지고 재클릭 시 닫히는 단위 테스트 통과.
   - 결과: `selectedCategory` 상태 관리, 원그래프 조각 및 범례 클릭 토글, 카드 내부 하단 아코디언 내역(헤더 건수/합계/닫기, `max-h-60` 스크롤, `CONFIRMED`만 `target_date` 내림차순), `ExpenseDetailModal` 연동 완료. 접근성(`aria-pressed`, `aria-label`) 적용 및 신규 단위 테스트 2건 추가(`dashboard/expenses/page.test.tsx`, 전체 270개 테스트 통과).
 
+- [x] 12.20 대시보드 홈(`/dashboard`) 선택일 게임 일정 표시 조건(`start_date`/`end_date` 일치) 및 전체 진행 일정 토글 + 정렬 변경
+  - 대상 파일: `src/components/calendar/hero-sidebar.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar.test.tsx`
+  - 작업 (세부 확정 사양):
+    1. **기본 표시 조건 (토글 OFF)**:
+       - `VERSION` 일정: `s.start_date === selectedDateLabel`일 때만 표시 (`end_date`에는 표시하지 않음).
+       - 그 외 일정(`PICKUP`, `CONTENTS` 등): `s.start_date === selectedDateLabel || s.end_date === selectedDateLabel` (선택일과 시작일 또는 종료일이 일치하는 일정)만 표시.
+    2. **진행 중 전체 보기 토글 (토글 ON)**:
+       - 선택일 상세 카드 내 `게임 일정` 탭 상단에 토글 버튼을 추가하고, 활성화 시 `VERSION` 일정을 포함한 모든 일정(`VERSION`, `PICKUP`, `CONTENTS`)에 대해 `s.start_date <= selectedDateLabel && selectedDateLabel <= s.end_date`인 진행 중 일정을 모두 표시.
+    3. **정렬 기준 변경**:
+       - 기본 1차 정렬을 `start_date` **내림차순**(`b.start_date.localeCompare(a.start_date)`)으로 변경하고, 동일 `start_date` 내에서는 `end_date` **오름차순**(`a.end_date.localeCompare(b.end_date)`)으로 정렬.
+  - verify: `src/components/calendar/hero-sidebar.test.tsx`에 기본 표시(`VERSION` 시작일만, 타 일정 시작/종료일만), 토글 활성화 시 `VERSION` 포함 전체 진행 일정 표시, `start_date DESC` + 동일 시작일 `end_date ASC` 정렬 단위 테스트 통과.
+
+- [ ] 12.21 소비 페이지 `게임 픽업별 과금 분석`을 `게임 카테고리별(게임별) 과금 분석`으로 변경 및 픽업 배너 연결 제거(경량화)
+  - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/expense/expense-modal.test.tsx`
+  - 작업 (세부 확정 사양):
+    1. **지출 모달(`expense-modal.tsx`) 픽업 배너 연결 제거 및 버전 일정 유지**:
+       - `연결된 버전 일정` 및 `버전 패스형(버전 종료일까지 결제 유예)` 기능은 그대로 유지.
+       - `연결된 픽업 일정` UI 및 픽업 배너 연결 관련 상태·로직(`pickupSchedules`, `pickupScheduleId`, `manualPickupId`, `availablePickups`, `versionPickups`, `ALL_CURRENT`, `[PICKUPS:...]` 메모 태그 합성 등)을 전면 제거하고 `pickup_schedule_id`는 `null`로 처리(DB 스키마 하위 호환 유지).
+       - `expense-detail-modal.tsx`에서도 `pickupTitle` 표시 줄 제거.
+    2. **소비 페이지(`expenses/page.tsx`) `게임별 과금 분석` 전환 및 쿼리 경량화**:
+       - 기존 `게임 픽업별 과금 분석` 카드를 `게임별 과금 분석`(게임 카테고리 과금 통계)으로 변경하여, `status === "CONFIRMED"`이고 `category === "게임"`인 확정 지출을 게임별(`game_id` / `games.name`, 미지정 시 `'미지정(기타)'`)로 합산·내림차순 정렬해 가로 막대 차트 및 과금 순위·비중 카드로 표시.
+       - 불필요해진 `loadSchedules()`(`game_schedules` 조회), `schedulesMap`, `getExpensePickupIds` 로직을 제거하여 초기 로딩 경량화.
+  - verify: 지출 모달 및 소비 페이지 단위 테스트(`expense-modal.test.tsx`, `expenses/page.test.tsx`) 갱신 및 100% 통과.
+
+- [x] 12.22 AI 전용 지침 문서 영문화(토큰 절감) 및 한국어 원본(`*-ko.md`) `docs/archive/agent-rules-ko/` 분리 보관 (`완료` - Gemini 3.8 Flash)
+  - 대상 파일: `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.agents/rules/*.md` (5종), `.agents/skills/*/SKILL.md` (4종), `docs/archive/agent-rules-ko/*-ko.md`
+  - 작업 (세부 확정 사양):
+    1. **한국어 원본 아카이빙**: 에이전트 자동 스캔 경로(`.agents/`) 바깥인 `docs/archive/agent-rules-ko/` 폴더를 생성하고, 기존 한국어 지침 문서 8종의 원본을 `*-ko.md` 이름으로 일괄 보관하여 중복 로드를 원천 차단 (`README.md` 작성).
+    2. **AI 전용 지침 영문 재작성**: `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`를 의미 손실 없이 간결한 영문(English)으로 작성하여 매 턴 시스템 프롬프트 토큰 소모량을 절감.
+    3. **사용자 소통 및 운영 문서 한국어 유지**: `.agents/rules/language.md`에 사용자 대면 응답·보고 및 `ask_question` 질의/선택지는 반드시 한국어(`Korean`)로 작성하도록 명시하고, 사용자가 직접 열람하는 `docs/` 운영 문서(`handoff.md`, `to-do.md`, `progress.md`, `changelog.md`, `collaboration-guide.md`, `docs/spec/*`)는 한국어를 유지.
+  - verify: `docs/archive/agent-rules-ko/` 원본 보존 확인, 영문 지침 링크 및 `markdownlint-cli` 0 errors 통과.
+  - 결과: `docs/archive/agent-rules-ko/`에 한국어 원본 8종 및 `README.md` 보관, 활성 지침 영문 전환(`CLAUDE.md` 7~11행 un-backticked `@.agents/rules/...` 임포트 준수), `markdownlint-cli` 0건 통과.
+
 ---
 
 ## 향후 / 진행 로드맵 (Active & Planned Roadmap)
@@ -524,7 +557,10 @@
 - [x] R7. 모바일 PWA 설치 시 홈 화면 아이콘 표시 이름(short_name) 'ChroLog' 단축 적용 (`완료` - Gemini 3.8 Flash 완료)
 - [x] R8. 모바일 대시보드(/dashboard) 선택일 상세 드로어 오픈 시 스마트폰 내장 뒤로 가기 연동 (페이지 이탈 방지) (`완료` - 커밋 `f272bfd`, Claude Opus)
 - [x] R9. 소비 페이지(/dashboard/expenses) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시 (`완료` - 커밋 `dd01401`, Claude Sonnet)
-- [ ] R10. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
+- [ ] R10. 대시보드 홈(/dashboard) 선택일 게임 일정 표시 조건(start_date/end_date 일치, VERSION은 end_date 제외) 및 전체 진행 일정 토글 + 정렬(start_date 내림차순, 동일 시작일 end_date 오름차순) 변경
+- [ ] R11. 소비 페이지 게임 픽업별 과금 분석을 게임별 과금 분석으로 변경 및 지출 모달 내 픽업 배너 연결 제거(버전 일정/패스 유예는 유지)
+- [x] R12. AI 전용 지침 문서(CLAUDE.md, AGENTS.md, .agents/**, .github/**) 영문화 및 한국어 원본(*-ko.md) docs/archive/agent-rules-ko/ 분리 보관 (`완료` - Gemini 3.8 Flash 완료)
+- [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---
 

@@ -1,5 +1,31 @@
 # 프로젝트 진행 현황
 
+## Phase 12.22 AI 전용 지침 문서 영문화 및 한국어 원본 아카이빙 (2026-10-29)
+
+- **수행 주체**: Gemini 3.8 Flash (Maker - Docs & Config)
+- **배경 및 개요**:
+  - AI 에이전트(Claude Code, GPT Codex, GitHub Copilot, Gemini)가 매 턴마다 자동으로 주입받는 시스템 프롬프트 지침 문서의 토큰 소모량을 절감하기 위해 핵심 AI 지침을 영문화하고, 기존 상세 한국어 원본을 `docs/archive/agent-rules-ko/`로 분리 보관.
+- **수행 내역**:
+  1. **한국어 지침 원본 아카이빙 (`docs/archive/agent-rules-ko/`)**:
+     - `docs/archive/agent-rules-ko/` 디렉터리 신규 생성.
+     - 기존 한국어 지침 문서 8종(`CLAUDE-ko.md`, `AGENTS-ko.md`, `language-ko.md`, `collaboration-ko.md`, `handoff-rule-ko.md`, `document_location-ko.md`, `handoff-SKILL-ko.md`, `chronoledger-orchestrator-SKILL-ko.md`)을 원본 대조용으로 이동·보관하고, 깨진 상대 링크를 코드 스팬으로 변환.
+     - 아카이브 안내 및 파일 매핑 표를 담은 `README.md` 작성.
+  2. **AI 전용 지침 문서 간결한 영문 전환**:
+     - `CLAUDE.md`, `AGENTS.md`, `.agents/rules/language.md`, `.agents/rules/document_location.md`, `.agents/rules/collaboration.md`, `.agents/rules/handoff.md`, `.agents/skills/handoff/SKILL.md`, `.agents/skills/chronoledger-orchestrator/SKILL.md`를 의미 손실 없이 간결하고 명확한 영문(English)으로 재작성.
+     - `CLAUDE.md` 7~11행의 un-backticked `@.agents/rules/...` 임포트 규칙을 정확히 준수하여 Claude Code 자동 파일 확장 기능 보존.
+  3. **사용자 소통 및 운영 문서 한국어 원칙 유지**:
+     - `.agents/rules/language.md`에 사용자 대면 질의/보고 및 `ask_question` 선택지는 반드시 한국어(`Korean`)로 작성하도록 엄격히 명시.
+     - 사용자가 직접 열람하는 `docs/` 내 운영 문서(`handoff.md`, `to-do.md`, `progress.md`, `changelog.md` 등)는 한국어 유지.
+  4. **신규 협업 Run `schedule-filter-and-game-spend-stats` 등록**:
+     - `docs/handoff.md` 활성 큐를 신규 런으로 교체하고 Step 1(Phase 12.22) `✅ DONE`, Step 2(Phase 12.20) `▶ READY` 전이.
+- **검증 완료**:
+  - `markdownlint-cli` 전체 마크다운 파일 0건 오류 통과.
+  - TypeScript 타입 검사 (`npx tsc --noEmit`) 0건 오류 통과.
+  - Vitest 전체 단위 테스트 (`npx vitest run`) 42개 파일 270개 테스트 100% 통과.
+- **다음 단계**:
+  - Phase 12.20 (R10) ✅ 완료 (SHA: 335e517, Claude Sonnet): 선택일 게임 일정 필터/`진행 일정 전체 보기` 토글/정렬 개편, tsc·vitest 통과.
+  - 협업 Dispatch Queue Step 3: `Claude Sonnet`에게 `Phase 12.21 (R11)` 소비 페이지 게임별 과금 분석 전환 과제 인계 (`"인수인계 문서를 확인해"` 호출 대기).
+
 ## Phase 12.17 Android WebAPK 앱 명칭 `ChroLog` 동기화 및 Service Worker v5 갱신 (2026-10-29)
 
 - **수행 주체**: Gemini 3.8 Flash (Maker - Fast UI)

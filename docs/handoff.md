@@ -31,51 +31,57 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `mobile-ux-and-sql-consolidation` *(2026-10-28, 모바일 UX 개선(PWA 단축명, 일정 줄바꿈, 배경 설정 이탈 방지, 드로어 뒤로가기) 및 소비 아코디언·SQL 문서 정리)*
+- **Run ID**: `schedule-filter-and-game-spend-stats` *(2026-10-29, 게임 일정 표시 조건·토글·정렬 개편, 소비 페이지 게임별 과금 분석 전환 & 픽업 배너 연결 제거, AI 지침 영문화 및 원본 아카이빙)*
 - **Worktree 경로**: `main`
 - **배경 및 사용자 요구사항**:
-  - 모바일 실사용 환경 개선(홈 화면 PWA `ChroLog` 단축 표시, 공식 일정 제목 `/` 자동 줄바꿈, 모바일 캘린더 배경 설정 팝오버 화면 이탈 방지, 선택일 드로어 뒤로 가기 연동).
-  - 소비 페이지 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 아코디언 펼침 표시.
-  - Supabase SQL Editor 실행용 산재된 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 가이드 작성.
-  - Claude Pro 2종 모델(Sonnet / Opus) 토큰(쿼터) 효율 극대화를 위한 작업 분배 2단계 기준 수립 및 협업 지침 일관 동기화.
+  - 대시보드 홈(`/dashboard`) 선택일 게임 일정의 직관적 표시: 기본 상태에서는 `VERSION` 시작일만 표시(`end_date` 제외)하고 타 일정은 시작/종료일만 표시, 진행 일정 전체 보기 토글 제공, `start_date` 내림차순(동일일 `end_date` 오름차순) 정렬 적용 (`Phase 12.20 / R10`).
+  - 소비 페이지(`/dashboard/expenses`) 복잡도 경량화: 지출 모달 내 픽업 배너 연결을 제거하고 `게임 픽업별 과금 분석`을 `게임별 과금 분석`(게임 카테고리 확정 지출 통계)으로 전환 (`Phase 12.21 / R11`).
+  - AI 에이전트 시스템 프롬프트 토큰 절감: `CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md` 지침을 간결한 영문으로 전환하고, 한국어 원본은 `docs/archive/agent-rules-ko/`에 분리 아카이빙 (`Phase 12.22 / R12`).
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Phase 12.16 & 12.17 (Gemini 3.8 Flash)**:
-     - `public/manifest.json`: Android WebAPK 설치 창 및 홈 화면 말줄임 방지를 위해 `name: "ChroLog"`, `short_name: "ChroLog"` 동기화 (`description: "ChronoLedger - 게임 일정 및 지출 관리 매니저"`).
-     - `public/sw.js`: 모바일 브라우저 캐시 및 manifest 강제 갱신을 위해 `SHELL_CACHE` 버전을 `chronoledger-shell-v5`로 증가.
-     - `src/app/layout.tsx`: `appleWebApp: { capable: true, title: "ChroLog", statusBarStyle: "black-translucent" }` 메타데이터 유지.
-     - `src/app/dashboard/games/page.tsx`: 공식 일정 중앙 팝업 다이얼로그에서 `sch.title` 및 `sch.memo`에 `"/"`가 포함된 경우 `split("/").map(part => part.trim()).filter(Boolean)`으로 분리하여 각 줄 단위 블록(`span className="block"`)으로 줄바꿈 렌더링.
-     - `src/app/dashboard/games/page.test.tsx` & `src/components/pwa/sw.test.ts`: 공식 일정 줄바꿈 렌더링 및 manifest/SW v5 단위 테스트 통과.
-  2. **Phase 12.14 & 12.18 (Claude Opus)**:
-     - `src/components/calendar/calendar-bg-customizer.tsx`: 모바일 헤더 줄바꿈 시 좌측에 위치한 [배경 설정] 버튼의 팝오버(absolute right-0)가 화면 좌측 바깥으로 잘리는 문제를 해결 (`left-0 sm:left-auto sm:right-0` 등 모바일 반응형 정렬 적용).
-     - `src/lib/calendar-bg-storage.ts`: 현재 데스크톱 1920×1080 고정 리사이징 로직을 점검하여 모바일 뷰포트 및 세로형 비율 이미지 최적화.
-     - `src/components/calendar/mobile-drawer.tsx` & `src/app/dashboard/page.tsx`: 모바일 선택일 상세 드로어 오픈 시 `window.history.pushState` 연동, 스마트폰 내장 뒤로 가기(`popstate`) 시 라우트 이탈 없이 드로어만 닫힘, 딤 클릭/스와이프로 드로어를 직접 닫을 때 `window.history.back()`으로 히스토리 엔트리 정리 (히스토리 스택 정합성 및 엣지 케이스 철저 검증).
-     - 관련 단위 테스트 작성 및 100% 통과.
-  3. **Claude Pro 2종 모델(Sonnet / Opus) 토큰 최소화 작업 분배 기준 수립 (Claude Opus)**:
-     - **Claude Sonnet**과 **Claude Opus** 두 모델의 성능·추론 깊이·토큰(쿼터) 소모율 차이에 따라 **토큰 사용량을 최소화**할 수 있도록 각 모델이 전담할 ChronoLedger 작업 영역, 기본 배정(Sonnet) 및 Opus 승격 조건을 2단계로 정의.
-     - 수립된 2종 모델 구분 기준을 `.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md` 상단 모델 역할 표 및 안내 문구에 일관되게 반영.
-     - 정립한 기준에 맞춰 아래 Dispatch Table의 후속 과제(순서 4 `Phase 12.19`, 순서 5 `Phase 12.15`의 대체 체인, 순서 6 통합 리뷰)의 담당 모델을 가장 토큰 효율적인 모델(Sonnet / Opus 중 최적 모델)로 지정하고, 순서 4(`Phase 12.19`)를 `▶ READY`로 전환.
-  4. **Phase 12.19 (Claude Sonnet)**:
-     - `src/app/dashboard/expenses/page.tsx`: 원그래프 조각(`Pie` `Cell`) 또는 하단 `["카테고리 이름" n%]` 범례 버튼 클릭 시 `selectedCategory` 상태 활성화 및 재클릭/닫기 버튼 클릭 시 접힘(토글).
-     - `[카테고리별 지출 비중]` 카드 내부 하단(범례 그리드 아래)에 카테고리명, 총 건수·합계 금액 헤더, 닫기 버튼, 내부 스크롤 리스트(`max-h-60 overflow-y-auto`)를 아코디언 형태로 펼쳐서 표시, 항목 클릭 시 `ExpenseDetailModal` 상세 모달 연동.
-     - 원그래프 집계와 일치하도록 최근/과거 구분 없이 `status === "CONFIRMED"`(확정 지출) 상태인 해당 카테고리 내역만 최신순(`target_date` 내림차순)으로 필터링 표시.
-     - 단위 테스트 작성 및 100% 통과.
-  5. **Phase 12.15 (GPT Codex)**:
-     - `sql/*.sql` 16개 파일을 ① 최신 마스터 스키마(`SCHEMA.sql`), ② 미적용/운영 마이그레이션, ③ 시드·더미·스모크 테스트(`TESTS.sql` 등), ④ 아카이브로 분류·통합하고 `sql/README.md`에 SQL Editor 실행 가이드 작성.
-  6. **통합 코드 리뷰 및 검증 (Claude Opus / Gemini 4 Argon)**:
-     - Phase 12.14 ~ 12.19 정적 코드 리뷰, TypeScript 타입 검사(`npx tsc --noEmit`), 단위 테스트(`npx vitest run`), 린트(`markdownlint`) 무결함 검증.
+  1. **Phase 12.22 (Gemini 3.8 Flash)**:
+     - 한국어 지침 원본 8종(`CLAUDE-ko.md`, `AGENTS-ko.md`, `language-ko.md`, `collaboration-ko.md`, `handoff-rule-ko.md`, `document_location-ko.md`, `handoff-SKILL-ko.md`, `chronoledger-orchestrator-SKILL-ko.md`)을 `docs/archive/agent-rules-ko/`로 분리 보관하고 안내 `README.md` 작성.
+     - `CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`를 간결한 영문으로 재작성하여 토큰 절감 (`CLAUDE.md` 7-11행 un-backticked `@.agents/rules/...` 임포트 준수, 한국어 소통 원칙 유지).
+     - `markdownlint-cli` 0건 오류 통과.
+  2. **Phase 12.20 (Claude Sonnet)**:
+     - `src/components/calendar/hero-sidebar.tsx`, `src/app/dashboard/page.tsx`:
+       - 토글 OFF(기본): `VERSION`은 `s.start_date === selectedDateLabel`만 표시 (`end_date` 제외), 그 외 일정(`PICKUP`, `CONTENTS` 등)은 `s.start_date === selectedDateLabel || s.end_date === selectedDateLabel`만 표시.
+       - 토글 ON: 모든 일정(`VERSION`, `PICKUP`, `CONTENTS`)에 대해 `s.start_date <= selectedDateLabel && selectedDateLabel <= s.end_date` 진행 일정 전체 표시.
+       - 정렬: 1차 `start_date` 내림차순(`b.start_date.localeCompare(a.start_date)`), 2차 동일 `start_date` 시 `end_date` 오름차순(`a.end_date.localeCompare(b.end_date)`).
+     - `src/components/calendar/hero-sidebar.test.tsx` 단위 테스트 작성 및 100% 통과.
+  3. **Phase 12.21 (Claude Sonnet)**:
+     - `src/components/expense/expense-modal.tsx`: `연결된 버전 일정` 및 패스형 유예 기능은 유지하되, `연결된 픽업 일정` UI 및 픽업 상태(`pickupSchedules`, `pickupScheduleId`, `manualPickupId`, `availablePickups`, `versionPickups`, `ALL_CURRENT`, `[PICKUPS:...]` 메모 태그 합성 등) 전면 제거, `pickup_schedule_id`는 `null` 전달.
+     - `src/components/expense/expense-detail-modal.tsx`: `pickupTitle` 표시 줄 제거.
+     - `src/app/dashboard/expenses/page.tsx`: `게임 픽업별 과금 분석` $\to$ `게임별 과금 분석`으로 전환 (`status === "CONFIRMED"` & `category === "게임"` 지출을 게임별로 합산·정렬하여 막대 차트 및 랭킹 표시, 불필요해진 `loadSchedules` 쿼리 제거).
+     - 관련 단위 테스트 갱신 및 100% 통과.
+  4. **통합 코드 리뷰 및 검증 (Claude Opus / Gemini 4 Argon)**:
+     - Phase 12.20 ~ 12.22 정적 코드 리뷰, TypeScript 타입 검사(`npx tsc --noEmit`), 단위 테스트(`npx vitest run`), 린트(`markdownlint`) 무결함 검증.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체 / Gemini 4 Argon 2순위)* | `Maker (Fast UI)` | `Phase 12.16 (R6)` 공식 일정 보기 `"/"` 자동 줄바꿈 & `Phase 12.17 (R7)` 모바일 PWA `name`/`short_name` `"ChroLog"` 동기화 및 SW v5 갱신 (`public/manifest.json`, `public/sw.js`, `src/app/layout.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/components/pwa/sw.test.ts`) | `✅ DONE` (`public/manifest.json` name/short_name "ChroLog" 동기화, `public/sw.js` SHELL_CACHE v5 범프, `layout.tsx` appleWebApp 메타데이터 유지, `games/page.tsx` "/" 줄바꿈 블록 렌더링, `sw.test.ts` & `games/page.test.tsx` 단위 테스트 PASS) |
-| **2** | `✅ DONE (SHA: f272bfd)` | **Claude Opus** *(GitHub Copilot 1순위 대체 / GPT Codex 2순위)* | `Maker (Complex)` | `Phase 12.14 (R4)` 모바일 캘린더 배경 커스터마이징 팝오버 화면 이탈 해결·모바일 리사이징 최적화 & `Phase 12.18 (R8)` 모바일 선택일 상세 드로어(`MobileDrawer`) 스마트폰 내장 뒤로 가기(History API / `popstate` / `history.back()`) 연동 (`src/components/calendar/calendar-bg-customizer.tsx`, `src/lib/calendar-bg-storage.ts`, `src/components/calendar/mobile-drawer.tsx`, `src/app/dashboard/page.tsx`, 단위 테스트) | `✅ DONE` (Claude Opus 5.5: 팝오버 `left-0 sm:left-auto sm:right-0`, 세로형 배경 1080×1920 상자 리사이징, `useDrawerHistory` 훅으로 `pushState`/`popstate`/`history.back()` 연동 및 Next.js `history.state` 보존, 단위 테스트 7건 추가 / 전체 41파일 268테스트·tsc·lint·build PASS) |
-| **3** | `✅ DONE (SHA: 6015399)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체)* | `Architect & Rule Designer` | `Claude Pro 2종 모델(Sonnet / Opus) 토큰 최소화 작업 분배 기준 수립` (`.agents/rules/collaboration.md`, `CLAUDE.md`, `AGENTS.md`, `docs/handoff.md`) | `✅ DONE` (Claude Opus 5.5: Sonnet 기본 배정 + Opus 승격 조건 4개 정의, `collaboration.md`/`CLAUDE.md`/`AGENTS.md`/`handoff.md` 일관 반영, 후속 순서 4~6 담당 재지정) |
-| **4** | `✅ DONE (SHA: dd01401)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Complex)` | `Phase 12.19 (R9)` 소비 페이지(`/dashboard/expenses`) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정(`CONFIRMED`) 지출 내역 펼침 표시 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`) | `✅ DONE` (Claude Sonnet 5.5: `selectedCategory` 상태, 원그래프 `Cell`/범례 버튼 클릭 토글, 카드 하단 아코디언(헤더 건수·합계·닫기, `max-h-60` 스크롤 리스트, CONFIRMED만 최신순), 항목 클릭 시 `ExpenseDetailModal` 연동, 테스트 2건 추가 / 전체 270테스트·tsc·lint PASS) |
-| **5** | `✅ DONE (SHA: cee2b76)` | ~~GPT Codex~~ ➡️ **Claude Opus** *(GPT Codex 토큰 소진으로 1순위 대체 승계 / GitHub Copilot 2순위)* | `Maker (Core & SQL)` | `Phase 12.15 (R5)` Supabase SQL Editor 실행용 SQL 문서(`sql/*.sql` 16개) 역할별 분류·통합·정리 및 실행 순서 가이드 작성 (`sql/*.sql`, `sql/README.md`) | `✅ DONE` (Claude Opus 5.5: `SCHEMA.sql`/`migrations/`(5)/`seed/`(3)/`tests/`(1)/`archive/`(6) 분류, `sql/README.md` 실행 가이드·확인 쿼리, SCHEMA 신규 설치 결함 3건 수정(`users` 누락·중복 인덱스·없는 함수 GRANT), 9개 인자 결제 RPC 오버로드 제거. PGlite 검증: SCHEMA 적용·migrations 2회 멱등·seed PASS, `TESTS.sql`은 WAL-01 기존 단언 불일치로 중단(후속 과제)) |
-| **6** | `✅ DONE` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.14 ~ 12.19 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE (Gemini 4 Argon 통합 리뷰 완료: Phase 12.14~12.19 전체 커밋 49cf00a·f272bfd·6015399·dd01401·cee2b76 정적 코드 리뷰 PASS, SCHEMA.sql handle_new_user search_path/ON CONFLICT 보강, tsc·lint·Vitest·markdownlint 통과 및 문서 마감 완료)` |
+| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체 / Gemini 4 Argon 2순위)* | `Maker (Docs & Config)` | `Phase 12.22 (R12)` AI 전용 지침 문서 영문화(토큰 절감) 및 한국어 원본(`*-ko.md`) `docs/archive/agent-rules-ko/` 분리 아카이빙 (`CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`, `docs/archive/agent-rules-ko/*`) | `✅ DONE` (지침 8종 한국어 원본 아카이브 및 README.md 작성, active 지침 간결 영문 전환, CLAUDE.md 7-11행 un-backticked @ import 준수, markdownlint 0건 통과) |
+| **2** | `✅ DONE (SHA: 335e517)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.20 (R10)` 대시보드 홈(`/dashboard`) 선택일 게임 일정 표시 조건(`VERSION` 시작일만, 타 일정 시작/종료일만) 및 전체 진행 일정 토글 + 정렬(start_date DESC, 동일 시작일 end_date ASC) (`src/components/calendar/hero-sidebar.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar.test.tsx`) | `✅ DONE` (VERSION 시작일만/타 일정 시작·종료일만 기본 노출, `진행 일정 전체 보기` 토글, start_date DESC·end_date ASC 정렬, 단위 테스트 추가, tsc·vitest 통과) |
+| **3** | `▶ READY` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.21 (R11)` 소비 페이지 `게임 픽업별 과금 분석`을 `게임 카테고리별(게임별) 과금 분석`으로 변경 및 지출 모달 내 픽업 배너 연결 제거(버전 일정/패스 유예는 유지) (`src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, 단위 테스트) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 즉시 착수)` |
+| **4** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.20 ~ 12.22 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `⏳ 대기 중 (Phase 12.20 ~ 12.21 완료 후 착수)` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## Phase 12.22 AI 전용 지침 문서 영문화 및 한국어 원본 아카이빙 (2026-10-29)
+
+- **수행 주체**: Gemini 3.8 Flash (Maker - Docs & Config)
+- **수행 내역**:
+  1. `docs/archive/agent-rules-ko/` 디렉터리 신규 생성 및 한국어 원본 지침 8종(`CLAUDE-ko.md`, `AGENTS-ko.md`, `language-ko.md`, `collaboration-ko.md`, `handoff-rule-ko.md`, `document_location-ko.md`, `handoff-SKILL-ko.md`, `chronoledger-orchestrator-SKILL-ko.md`) 분리 보관, 깨진 상대 경로 코드 스팬 변환, 아카이브 안내 `README.md` 작성.
+  2. 에이전트 자동 로드 경로 내 지침 문서(`CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`)를 의미 손실 없이 간결한 영문(English)으로 재작성하여 시스템 프롬프트 토큰 대폭 절감.
+  3. `CLAUDE.md` 7~11행 un-backticked `@.agents/rules/...` 임포트 규칙 완벽 준수 및 Claude Pro Sonnet/Opus 2단계 운용 기준 영문화 반영.
+  4. `.agents/rules/language.md`에 사용자 소통 및 `ask_question` 선택지 한국어 원칙 명시 및 `docs/` 운영 문서 한국어 유지.
+  5. 활성 협업 큐(`docs/handoff.md`)에 신규 Run `schedule-filter-and-game-spend-stats` 등록, 순서 1(Phase 12.22) `✅ DONE`, 순서 2(Phase 12.20) `▶ READY` 전이.
+- **검증**:
+  - `markdownlint-cli` 전체 문서 0건 통과.
+  - TypeScript 타입 검사 (`npx tsc --noEmit`) 0건 통과.
+  - Vitest 전체 단위 테스트 (`npx vitest run`) 42개 파일 270개 테스트 PASS.
 
 ---
 
