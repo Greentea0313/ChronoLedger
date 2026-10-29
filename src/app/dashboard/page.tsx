@@ -444,7 +444,7 @@ export default function DashboardPage() {
       .filter((s) => baseDate >= s.start_date && baseDate <= s.end_date)
       .sort((a, b) => {
         if (a.start_date !== b.start_date) {
-          return a.start_date.localeCompare(b.start_date)
+          return b.start_date.localeCompare(a.start_date)
         }
         return a.end_date.localeCompare(b.end_date)
       })

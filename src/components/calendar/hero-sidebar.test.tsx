@@ -20,7 +20,7 @@ vi.mock("@/lib/auth-context", () => ({
 }))
 
 describe("HeroSidebarContent", () => {
-  it("sorts schedules by start_date ASC then end_date ASC and displays vertical 3-line card format", () => {
+  it("sorts schedules by start_date DESC then end_date ASC and displays vertical 3-line card format", () => {
     const schedules: HeroScheduleItem[] = [
       {
         id: "sch-3",
@@ -69,6 +69,9 @@ describe("HeroSidebarContent", () => {
       />,
     )
 
+    // sch-1은 진행 중(시작/종료일 아님)이므로 전체 보기 토글을 켜야 노출됨
+    fireEvent.click(screen.getByLabelText("진행 일정 전체 보기"))
+
     // Check title order and split badges in the rendered cards
     expect(screen.getByText("켈시 에스페란타")).toBeTruthy()
     expect(screen.getByText("클로저")).toBeTruthy()
@@ -101,6 +104,42 @@ describe("HeroSidebarContent", () => {
         memos={[]}
       />,
     )
+
+  it("기본 상태에서 VERSION은 시작일만, 그 외 일정은 시작/종료일만 노출하고 토글 ON 시 진행 일정을 모두 노출한다", () => {
+    const { container } = render(
+      <HeroSidebarContent
+        selectedDateLabel="2026-10-20"
+        totalAsset={0}
+        budgetAmount={0}
+        expectedExpense={0}
+        wallets={[]}
+        schedules={[
+          { id: "v-start", title: "버전시작", schedule_type: "VERSION", start_date: "2026-10-20", end_date: "2026-11-30" },
+          { id: "v-end", title: "버전종료", schedule_type: "VERSION", start_date: "2026-09-10", end_date: "2026-10-20" },
+          { id: "p-end", title: "픽업종료", schedule_type: "PICKUP", start_date: "2026-10-01", end_date: "2026-10-20" },
+          { id: "c-mid", title: "콘텐츠진행", schedule_type: "CONTENTS", start_date: "2026-10-10", end_date: "2026-10-30" },
+          { id: "p-start", title: "픽업시작", schedule_type: "PICKUP", start_date: "2026-10-20", end_date: "2026-10-25" },
+        ]}
+        expenses={[]}
+        memos={[]}
+      />,
+    )
+
+    expect(screen.getByText("버전시작")).toBeTruthy()
+    expect(screen.getByText("픽업종료")).toBeTruthy()
+    expect(screen.getByText("픽업시작")).toBeTruthy()
+    expect(screen.queryByText("버전종료")).toBeNull()
+    expect(screen.queryByText("콘텐츠진행")).toBeNull()
+
+    fireEvent.click(screen.getByLabelText("진행 일정 전체 보기"))
+
+    expect(screen.getByText("버전종료")).toBeTruthy()
+    expect(screen.getByText("콘텐츠진행")).toBeTruthy()
+
+    // start_date DESC, 동일 시작일은 end_date ASC: 버전시작/픽업시작(10-20) -> 픽업시작(10-25) 먼저 -> 버전시작(11-30)
+    const order = Array.from(container.querySelectorAll(".font-bold.text-sm")).map((el) => el.textContent)
+    expect(order).toEqual(["픽업시작", "버전시작", "콘텐츠진행", "픽업종료", "버전종료"])
+  })
 
   it("groups schedules with the same game, type and period into one card", () => {
     renderWith([

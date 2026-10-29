@@ -126,6 +126,7 @@ export function HeroSidebarContent({
   const remainingExpected = Math.max(0, expectedExpense - confirmed)
 
   const [selectedDetailTab, setSelectedDetailTab] = useState<"SCHEDULE" | "EXPENSE" | "MEMO">("SCHEDULE")
+  const [showAllOngoing, setShowAllOngoing] = useState(false)
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
   const [isEditingMemo, setIsEditingMemo] = useState(false)
   const currentMemoText = memoContent !== undefined ? memoContent : (memos[0] || "")
@@ -137,18 +138,21 @@ export function HeroSidebarContent({
     setIsEditingMemo(false)
   }, [memoContent, memos, selectedDateLabel])
 
-  // VERSION 일정은 start_date가 선택된 날짜와 일치할 때만 노출
-  // 정렬 로직: start_date 오름차순, start_date 일치 시 end_date 오름차순
+  // 기본: VERSION은 시작일만, 그 외 일정은 시작일/종료일만 노출. 토글 ON: 선택일에 진행 중인 모든 일정 노출
+  // 정렬 로직: start_date 내림차순, start_date 일치 시 end_date 오름차순
   const filteredSchedules = (schedules || [])
     .filter((s) => {
+      if (showAllOngoing) {
+        return s.start_date <= selectedDateLabel && selectedDateLabel <= s.end_date
+      }
       if (s.schedule_type === "VERSION") {
         return s.start_date === selectedDateLabel
       }
-      return true
+      return s.start_date === selectedDateLabel || s.end_date === selectedDateLabel
     })
     .sort((a, b) => {
       if (a.start_date !== b.start_date) {
-        return a.start_date.localeCompare(b.start_date)
+        return b.start_date.localeCompare(a.start_date)
       }
       return a.end_date.localeCompare(b.end_date)
     })
@@ -244,6 +248,17 @@ export function HeroSidebarContent({
               <option value="EXPENSE">지출 내역</option>
               <option value="MEMO">메모</option>
             </select>
+            {selectedDetailTab === "SCHEDULE" && (
+              <label className="flex items-center gap-1.5 text-xs text-content-secondary cursor-pointer" data-vaul-no-drag>
+                <input
+                  type="checkbox"
+                  checked={showAllOngoing}
+                  onChange={(e) => setShowAllOngoing(e.target.checked)}
+                  data-vaul-no-drag
+                />
+                진행 일정 전체 보기
+              </label>
+            )}
             {selectedDetailTab === "MEMO" && !isEditingMemo && onSaveMemo && (
               <Button
                 type="button"
