@@ -201,14 +201,14 @@ isOneToOne: false
                   ]
                 },"subscription_templates": {
                   Row: {
-                    "billing_day": number,"category": string,"created_at": string | null,"default_price": number,"game_id": string | null,"id": string,"is_active": boolean,"payment_method": string,"title": string,"user_id": string
+                    "billing_day": number | null,"category": string,"created_at": string | null,"cycle_type": string,"default_price": number,"game_id": string | null,"id": string,"interval_days": number | null,"is_active": boolean,"payment_method": string,"title": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "billing_day": number,"category"?: string,"created_at"?: string | null,"default_price"?: number,"game_id"?: string | null,"id"?: string,"is_active"?: boolean,"payment_method"?: string,"title": string,"user_id": string
+                    "billing_day"?: number | null,"category"?: string,"created_at"?: string | null,"cycle_type"?: string,"default_price"?: number,"game_id"?: string | null,"id"?: string,"interval_days"?: number | null,"is_active"?: boolean,"payment_method"?: string,"title": string,"user_id": string
                   }
                   Update: {
-                    "billing_day"?: number,"category"?: string,"created_at"?: string | null,"default_price"?: number,"game_id"?: string | null,"id"?: string,"is_active"?: boolean,"payment_method"?: string,"title"?: string,"user_id"?: string
+                    "billing_day"?: number | null,"category"?: string,"created_at"?: string | null,"cycle_type"?: string,"default_price"?: number,"game_id"?: string | null,"id"?: string,"interval_days"?: number | null,"is_active"?: boolean,"payment_method"?: string,"title"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -235,14 +235,14 @@ isOneToOne: false
                   ]
                 },"user_games": {
                   Row: {
-                    "created_at": string | null,"custom_icon_path": string | null,"game_id": string,"id": string,"updated_at": string | null,"user_id": string
+                    "created_at": string | null,"custom_icon_path": string | null,"game_id": string,"id": string,"memo": string | null,"updated_at": string | null,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string | null,"custom_icon_path"?: string | null,"game_id": string,"id"?: string,"updated_at"?: string | null,"user_id": string
+                    "created_at"?: string | null,"custom_icon_path"?: string | null,"game_id": string,"id"?: string,"memo"?: string | null,"updated_at"?: string | null,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string | null,"custom_icon_path"?: string | null,"game_id"?: string,"id"?: string,"updated_at"?: string | null,"user_id"?: string
+                    "created_at"?: string | null,"custom_icon_path"?: string | null,"game_id"?: string,"id"?: string,"memo"?: string | null,"updated_at"?: string | null,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -279,6 +279,9 @@ isOneToOne: false
 "adjust_wallet_balance":
 { Args: { "p_memo": string,"p_platform": string,"p_target_balance": number }; Returns: undefined
                            },
+"admin_create_game":
+{ Args: { "p_default_icon_url": string,"p_name": string }; Returns: string
+                           },
 "approve_game_request":
 { Args: { "p_default_icon_url": string,"p_request_id": string }; Returns: string
                            },
@@ -311,8 +314,17 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"delete_subscription_template":
+{ Args: { "p_template_id": string }; Returns: undefined
+                           },
+"get_account_deletion_status":
+{ Args: { "p_status_token": string }; Returns: Json
+                           },
 "process_expense_payment":
-{ Args: { "p_deduct_asset": boolean,"p_discount_amount": number,"p_expense_id": string,"p_original_price": number,"p_payment_date": string,"p_payment_method": string,"p_point_discount_amount": number,"p_point_platform": string,"p_used_points": number }; Returns: undefined
+{ Args: { "p_custom_earned_points"?: number,"p_deduct_asset": boolean,"p_discount_amount": number,"p_expense_id": string,"p_memo"?: string,"p_original_price": number,"p_payment_date": string,"p_payment_method": string,"p_point_discount_amount": number,"p_point_platform": string,"p_used_points": number }; Returns: undefined
+                           },
+"purge_expired_account_deletion_requests":
+{ Args: { "p_limit"?: number }; Returns: number
                            },
 "refund_expense_payment":
 { Args: { "p_expense_id": string }; Returns: undefined
@@ -323,11 +335,17 @@ isOneToOne: false
 "reject_schedule_request":
 { Args: { "p_admin_memo"?: string,"p_request_id": string }; Returns: undefined
                            },
+"request_account_deletion":
+{ Args: { "p_confirmation_email": string }; Returns: string
+                           },
 "restore_cancelled_expense":
 { Args: { "p_expense_id": string }; Returns: undefined
                            },
 "set_user_finance_settings":
 { Args: { "p_default_budget": number,"p_total_asset": number }; Returns: undefined
+                           },
+"update_confirmed_expense_metadata":
+{ Args: { "p_category": string,"p_expense_id": string,"p_memo"?: string,"p_target_date"?: string,"p_title": string }; Returns: undefined
                            },
 "update_store_wallet_settings":
 { Args: { "p_earn_rate": number,"p_platform": string,"p_tier": string }; Returns: undefined
