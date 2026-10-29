@@ -24,7 +24,8 @@
   - Vitest 전체 단위 테스트 (`npx vitest run`) 42개 파일 270개 테스트 100% 통과.
 - **다음 단계**:
   - Phase 12.20 (R10) ✅ 완료 (SHA: 335e517, Claude Sonnet): 선택일 게임 일정 필터/`진행 일정 전체 보기` 토글/정렬 개편, tsc·vitest 통과.
-  - 협업 Dispatch Queue Step 3: `Claude Sonnet`에게 `Phase 12.21 (R11)` 소비 페이지 게임별 과금 분석 전환 과제 인계 (`"인수인계 문서를 확인해"` 호출 대기).
+  - Phase 12.21 (R11) ✅ 완료 (SHA: e9a7017, Claude Sonnet): 소비 페이지 `게임별 과금 분석` 전환, 지출 모달 픽업 연결 제거.
+  - 협업 Dispatch Queue Step 4: `Claude Opus` / `Gemini 4 Argon` 통합 정적 리뷰(Phase 12.20 ~ 12.22) 대기 (`"인수인계 문서를 확인해"` 호출).
 
 ## Phase 12.17 Android WebAPK 앱 명칭 `ChroLog` 동기화 및 Service Worker v5 갱신 (2026-10-29)
 

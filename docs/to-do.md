@@ -522,7 +522,7 @@
        - 기본 1차 정렬을 `start_date` **내림차순**(`b.start_date.localeCompare(a.start_date)`)으로 변경하고, 동일 `start_date` 내에서는 `end_date` **오름차순**(`a.end_date.localeCompare(b.end_date)`)으로 정렬.
   - verify: `src/components/calendar/hero-sidebar.test.tsx`에 기본 표시(`VERSION` 시작일만, 타 일정 시작/종료일만), 토글 활성화 시 `VERSION` 포함 전체 진행 일정 표시, `start_date DESC` + 동일 시작일 `end_date ASC` 정렬 단위 테스트 통과.
 
-- [ ] 12.21 소비 페이지 `게임 픽업별 과금 분석`을 `게임 카테고리별(게임별) 과금 분석`으로 변경 및 픽업 배너 연결 제거(경량화)
+- [x] 12.21 소비 페이지 `게임 픽업별 과금 분석`을 `게임 카테고리별(게임별) 과금 분석`으로 변경 및 픽업 배너 연결 제거(경량화)
   - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/expense/expense-modal.test.tsx`
   - 작업 (세부 확정 사양):
     1. **지출 모달(`expense-modal.tsx`) 픽업 배너 연결 제거 및 버전 일정 유지**:
