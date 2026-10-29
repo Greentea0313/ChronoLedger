@@ -31,37 +31,28 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `schedule-filter-and-game-spend-stats` *(2026-10-29, 게임 일정 표시 조건·토글·정렬 개편, 소비 페이지 게임별 과금 분석 전환 & 픽업 배너 연결 제거, AI 지침 영문화 및 원본 아카이빙)*
+- **Run ID**: `expense-memo-preservation-and-sql-smoke-tests` *(2026-10-29, 예정 지출 수정·결제 시 기존 메모 보존(R14) 및 sql/tests/TESTS.sql 현행 RPC 정합성 갱신(12.15-F1))*
 - **Worktree 경로**: `main`
 - **배경 및 사용자 요구사항**:
-  - 대시보드 홈(`/dashboard`) 선택일 게임 일정의 직관적 표시: 기본 상태에서는 `VERSION` 시작일만 표시(`end_date` 제외)하고 타 일정은 시작/종료일만 표시, 진행 일정 전체 보기 토글 제공, `start_date` 내림차순(동일일 `end_date` 오름차순) 정렬 적용 (`Phase 12.20 / R10`).
-  - 소비 페이지(`/dashboard/expenses`) 복잡도 경량화: 지출 모달 내 픽업 배너 연결을 제거하고 `게임 픽업별 과금 분석`을 `게임별 과금 분석`(게임 카테고리 확정 지출 통계)으로 전환 (`Phase 12.21 / R11`).
-  - AI 에이전트 시스템 프롬프트 토큰 절감: `CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md` 지침을 간결한 영문으로 전환하고, 한국어 원본은 `docs/archive/agent-rules-ko/`에 분리 아카이빙 (`Phase 12.22 / R12`).
+  - `Phase 12.20 ~ 12.22` 통합 리뷰에서 식별된 P3 결함 해소: 예정 지출 수정(`EDIT_PLAN`) 및 예정 지출 결제(`PAY`) 시 모달에서 기존 사용자 메모(`editingExpense.memo` / `plannedExpense.memo`)를 `mergeEventMemo`의 첫 번째 인자로 전달하지 않아 기존 메모가 유실되는 문제를 해결 (`Phase 12.23 / R14`).
+  - 소비 페이지(`src/app/dashboard/expenses/page.tsx`) 내 과거 픽업 통계 관련 잔여 주석 정리.
+  - `sql/tests/TESTS.sql`의 `WAL-01` 단언 불일치(현행 `process_expense_payment`는 포인트 플랫폼 지정 시 `WALLET` 결제에서도 스토어 적립률에 따라 적립) 해소 및 PGlite/PostgreSQL 스모크 테스트 무결함 통과 검증 (`Phase 12.15-F1`).
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Phase 12.22 (Gemini 3.8 Flash)**:
-     - 한국어 지침 원본 8종(`CLAUDE-ko.md`, `AGENTS-ko.md`, `language-ko.md`, `collaboration-ko.md`, `handoff-rule-ko.md`, `document_location-ko.md`, `handoff-SKILL-ko.md`, `chronoledger-orchestrator-SKILL-ko.md`)을 `docs/archive/agent-rules-ko/`로 분리 보관하고 안내 `README.md` 작성.
-     - `CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`를 간결한 영문으로 재작성하여 토큰 절감 (`CLAUDE.md` 7-11행 un-backticked `@.agents/rules/...` 임포트 준수, 한국어 소통 원칙 유지).
-     - `markdownlint-cli` 0건 오류 통과.
-  2. **Phase 12.20 (Claude Sonnet)**:
-     - `src/components/calendar/hero-sidebar.tsx`, `src/app/dashboard/page.tsx`:
-       - 토글 OFF(기본): `VERSION`은 `s.start_date === selectedDateLabel`만 표시 (`end_date` 제외), 그 외 일정(`PICKUP`, `CONTENTS` 등)은 `s.start_date === selectedDateLabel || s.end_date === selectedDateLabel`만 표시.
-       - 토글 ON: 모든 일정(`VERSION`, `PICKUP`, `CONTENTS`)에 대해 `s.start_date <= selectedDateLabel && selectedDateLabel <= s.end_date` 진행 일정 전체 표시.
-       - 정렬: 1차 `start_date` 내림차순(`b.start_date.localeCompare(a.start_date)`), 2차 동일 `start_date` 시 `end_date` 오름차순(`a.end_date.localeCompare(b.end_date)`).
-     - `src/components/calendar/hero-sidebar.test.tsx` 단위 테스트 작성 및 100% 통과.
-  3. **Phase 12.21 (Claude Sonnet)**:
-     - `src/components/expense/expense-modal.tsx`: `연결된 버전 일정` 및 패스형 유예 기능은 유지하되, `연결된 픽업 일정` UI 및 픽업 상태(`pickupSchedules`, `pickupScheduleId`, `manualPickupId`, `availablePickups`, `versionPickups`, `ALL_CURRENT`, `[PICKUPS:...]` 메모 태그 합성 등) 전면 제거, `pickup_schedule_id`는 `null` 전달.
-     - `src/components/expense/expense-detail-modal.tsx`: `pickupTitle` 표시 줄 제거.
-     - `src/app/dashboard/expenses/page.tsx`: `게임 픽업별 과금 분석` $\to$ `게임별 과금 분석`으로 전환 (`status === "CONFIRMED"` & `category === "게임"` 지출을 게임별로 합산·정렬하여 막대 차트 및 랭킹 표시, 불필요해진 `loadSchedules` 쿼리 제거).
-     - 관련 단위 테스트 갱신 및 100% 통과.
-  4. **통합 코드 리뷰 및 검증 (Claude Opus / Gemini 4 Argon)**:
-     - Phase 12.20 ~ 12.22 정적 코드 리뷰, TypeScript 타입 검사(`npx tsc --noEmit`), 단위 테스트(`npx vitest run`), 린트(`markdownlint`) 무결함 검증.
+  1. **Phase 12.23 (Claude Sonnet)**:
+     - `src/components/expense/expense-modal.tsx`: `PlannedExpenseInput`에 `memo?: string | null` 추가, `handleSubmit`에서 `const existingMemo = editingExpense?.memo ?? plannedExpense?.memo ?? null`을 구해 `mergeEventMemo(existingMemo, storeEventResult.eventTag)`로 전달하여 예정 지출 수정 및 결제 시 기존 사용자 메모 보존.
+     - `src/app/dashboard/expenses/page.tsx`: `handleConfirmPlanned`에서 `memo: expense.memo ?? null` 전달, 잔여 픽업 주석(`// 픽업 통계 관련 상태`, `픽업 랭킹 및 비중 카드`)을 게임별 과금 통계 문맥에 맞게 정리 (`src/app/dashboard/page.tsx`의 `OverduePlannedExpense` 결제 연결부도 확인).
+     - `src/components/expense/expense-modal.test.tsx`: 예정 지출 수정(`EDIT_PLAN`) 및 예정 지출 결제(`PAY`) 시 기존 메모 보존 및 이벤트 태그 병합 단위 테스트 추가 및 전체 테스트 100% 통과.
+  2. **Phase 12.15-F1 (GPT Codex)**:
+     - `sql/tests/TESTS.sql`: 현행 `process_expense_payment` RPC(포인트 플랫폼 지정 시 `WALLET` 결제에서도 스토어 적립률에 따라 적립, 10개 인자 시그니처 등)에 맞춰 `WAL-01` 및 후속 잔액/환불 검증 단언 업데이트.
+     - PGlite(또는 로컬 PostgreSQL)에서 `SCHEMA.sql` + `sql/migrations/*.sql` 적용 후 `sql/tests/TESTS.sql` 실행 시 끝까지 오류 없이 `PASS: all smoke-test fixtures and mutations rolled back` 통과 검증.
+  3. **통합 코드 리뷰 및 검증 (Claude Opus / Gemini 4 Argon)**:
+     - `Phase 12.23` 및 `Phase 12.15-F1` 통합 정적 코드 리뷰, TypeScript 타입 검사(`npx tsc --noEmit`), 단위 테스트(`npx vitest run`), 린트(`markdownlint`) 무결함 검증.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체 / Gemini 4 Argon 2순위)* | `Maker (Docs & Config)` | `Phase 12.22 (R12)` AI 전용 지침 문서 영문화(토큰 절감) 및 한국어 원본(`*-ko.md`) `docs/archive/agent-rules-ko/` 분리 아카이빙 (`CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`, `docs/archive/agent-rules-ko/*`) | `✅ DONE` (지침 8종 한국어 원본 아카이브 및 README.md 작성, active 지침 간결 영문 전환, CLAUDE.md 7-11행 un-backticked @ import 준수, markdownlint 0건 통과) |
-| **2** | `✅ DONE (SHA: 335e517)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.20 (R10)` 대시보드 홈(`/dashboard`) 선택일 게임 일정 표시 조건(`VERSION` 시작일만, 타 일정 시작/종료일만) 및 전체 진행 일정 토글 + 정렬(start_date DESC, 동일 시작일 end_date ASC) (`src/components/calendar/hero-sidebar.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar.test.tsx`) | `✅ DONE` (VERSION 시작일만/타 일정 시작·종료일만 기본 노출, `진행 일정 전체 보기` 토글, start_date DESC·end_date ASC 정렬, 단위 테스트 추가, tsc·vitest 통과) |
-| **3** | `✅ DONE (SHA: e9a7017)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.21 (R11)` 소비 페이지 `게임 픽업별 과금 분석`을 `게임 카테고리별(게임별) 과금 분석`으로 변경 및 지출 모달 내 픽업 배너 연결 제거(버전 일정/패스 유예는 유지) (`src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, 단위 테스트) | `✅ DONE` (지출 모달 픽업 연결 UI·상태 제거(pickup_schedule_id=null), 상세 모달 픽업 줄 제거, `게임별 과금 분석`(확정 게임 지출 게임별 합산) 전환, loadSchedules 제거, 단위 테스트 갱신, tsc·eslint·vitest 통과) |
-| **4** | `✅ DONE (리뷰 기준: a688dab)` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.20 ~ 12.22 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (Claude Opus 통합 리뷰: 차단 결함 0건, P3 1건·P4 3건 기록, changelog MD010 하드탭 수정, tsc·eslint·vitest 41파일 268테스트·markdownlint 통과) |
+| **1** | `✅ DONE (SHA: d5522dc)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.23 (R14)` 지출 모달(`expense-modal.tsx`) 예정 지출 수정·결제 시 기존 사용자 메모 보존 및 `expenses/page.tsx` 잔여 주석 정리 (`src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.test.tsx`) | `✅ DONE` (`PlannedExpenseInput.memo` 추가, 수정·결제 시 기존 메모를 `mergeEventMemo`로 병합 보존, `handleConfirmPlanned`·기한 초과 예정 조회에 memo 전달, 잔여 픽업 주석 정리, 메모 보존 단위 테스트 2건, tsc·eslint·vitest 통과) |
+| **2** | `▶ READY` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.15-F1` `sql/tests/TESTS.sql`의 `WAL-01` 이후 스모크 테스트 단언을 현행 결제/적립 RPC(`process_expense_payment`) 규격에 맞게 갱신 (`sql/tests/TESTS.sql`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 즉시 착수)` |
+| **3** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.23 & 12.15-F1 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `⏳ 대기 중 (Phase 12.23 & 12.15-F1 완료 후 착수)` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -84,7 +75,7 @@
   - **P4** 게임 미연결 지출 라벨이 `게임 미연결`로 구현되어 `to-do.md` 12.21 사양(`미지정(기타)`)과 문구가 다름(기능 영향 없음).
 - **보완 조치**: `docs/changelog.md` Phase 12.21 항목에서 LaTeX 화살표 표기가 탭 문자로 변형되어 발생한 markdownlint MD010 오류를 `→`로 수정.
 - **검증 완료**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 41개 파일 268개 테스트 100% 통과, `markdownlint-cli`(지침·아카이브·운영 문서) 0건.
-- **남은 사항**: Phase 12.22 영문 지침 변경(`CLAUDE.md`, `AGENTS.md`, `.agents/**`, `.vscode/settings.json`)은 아직 미커밋 상태로, 사용자 확인 후 커밋 필요.
+- **최종 마감**: Phase 12.22 영문 지침 변경분까지 커밋(`de71051`) 완료 및 Gemini 4 Argon 최종 검수 완료.
 
 ## Phase 12.22 AI 전용 지침 문서 영문화 및 한국어 원본 아카이빙 (2026-10-29)
 

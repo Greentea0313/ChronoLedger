@@ -534,14 +534,22 @@
        - 불필요해진 `loadSchedules()`(`game_schedules` 조회), `schedulesMap`, `getExpensePickupIds` 로직을 제거하여 초기 로딩 경량화.
   - verify: 지출 모달 및 소비 페이지 단위 테스트(`expense-modal.test.tsx`, `expenses/page.test.tsx`) 갱신 및 100% 통과.
 
-- [x] 12.22 AI 전용 지침 문서 영문화(토큰 절감) 및 한국어 원본(`*-ko.md`) `docs/archive/agent-rules-ko/` 분리 보관 (`완료` - Gemini 3.8 Flash)
+- [x] 12.22 AI 전용 지침 문서 영문화(토큰 절감) 및 한국어 원본(`*-ko.md`) `docs/archive/agent-rules-ko/` 분리 보관 (`완료` - 커밋 `de71051`, Gemini 3.8 Flash)
   - 대상 파일: `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.agents/rules/*.md` (5종), `.agents/skills/*/SKILL.md` (4종), `docs/archive/agent-rules-ko/*-ko.md`
   - 작업 (세부 확정 사양):
     1. **한국어 원본 아카이빙**: 에이전트 자동 스캔 경로(`.agents/`) 바깥인 `docs/archive/agent-rules-ko/` 폴더를 생성하고, 기존 한국어 지침 문서 8종의 원본을 `*-ko.md` 이름으로 일괄 보관하여 중복 로드를 원천 차단 (`README.md` 작성).
     2. **AI 전용 지침 영문 재작성**: `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`를 의미 손실 없이 간결한 영문(English)으로 작성하여 매 턴 시스템 프롬프트 토큰 소모량을 절감.
     3. **사용자 소통 및 운영 문서 한국어 유지**: `.agents/rules/language.md`에 사용자 대면 응답·보고 및 `ask_question` 질의/선택지는 반드시 한국어(`Korean`)로 작성하도록 명시하고, 사용자가 직접 열람하는 `docs/` 운영 문서(`handoff.md`, `to-do.md`, `progress.md`, `changelog.md`, `collaboration-guide.md`, `docs/spec/*`)는 한국어를 유지.
   - verify: `docs/archive/agent-rules-ko/` 원본 보존 확인, 영문 지침 링크 및 `markdownlint-cli` 0 errors 통과.
-  - 결과: `docs/archive/agent-rules-ko/`에 한국어 원본 8종 및 `README.md` 보관, 활성 지침 영문 전환(`CLAUDE.md` 7~11행 un-backticked `@.agents/rules/...` 임포트 준수), `markdownlint-cli` 0건 통과.
+  - 결과: `docs/archive/agent-rules-ko/`에 한국어 원본 8종 및 `README.md` 보관, 활성 지침 영문 전환(`CLAUDE.md` 7~11행 un-backticked `@.agents/rules/...` 임포트 준수), `markdownlint-cli` 0건 통과 (커밋 `de71051`).
+
+- [x] 12.23 지출 모달(`expense-modal.tsx`) 예정 지출 수정·결제 시 기존 사용자 메모 보존 및 소비 페이지 잔여 픽업 주석 정리 (R14)
+  - 대상 파일: `src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.test.tsx`
+  - 작업 (세부 확정 사양):
+    1. `PlannedExpenseInput` 인터페이스에 `memo?: string | null`을 추가하고, `src/app/dashboard/expenses/page.tsx`의 `handleConfirmPlanned`에서 `memo: expense.memo ?? null`을 전달하도록 보강.
+    2. `src/components/expense/expense-modal.tsx`의 `handleSubmit` 내 `EDIT_PLAN`(500행) 및 `PAY`(572행)에서 `mergeEventMemo(null, storeEventResult.eventTag)` 대신 기존 메모(`editingExpense?.memo ?? plannedExpense?.memo ?? null`)를 첫 번째 인자로 전달하여 예정 지출 수정·결제 시 기존 사용자 메모가 증발하지 않고 보존(이벤트 태그 활성 시 병합)되도록 수정.
+    3. `src/app/dashboard/expenses/page.tsx`에 남아 있는 구 픽업 관련 주석(`// 픽업 통계 관련 상태`, `픽업 랭킹 및 비중 카드`)을 `게임별 과금 통계` 문맥에 맞게 정리.
+  - verify: `src/components/expense/expense-modal.test.tsx`에 예정 지출 수정(`EDIT_PLAN`) 및 예정 지출 결제(`PAY`) 시 기존 메모 보존 및 이벤트 태그 병합 단위 테스트 추가 및 통과.
 
 ---
 
@@ -559,8 +567,8 @@
 - [x] R9. 소비 페이지(/dashboard/expenses) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시 (`완료` - 커밋 `dd01401`, Claude Sonnet)
 - [x] R10. 대시보드 홈(/dashboard) 선택일 게임 일정 표시 조건(start_date/end_date 일치, VERSION은 end_date 제외) 및 전체 진행 일정 토글 + 정렬(start_date 내림차순, 동일 시작일 end_date 오름차순) 변경 (`완료` - 커밋 `335e517`, Claude Sonnet, Claude Opus 통합 리뷰 완료)
 - [x] R11. 소비 페이지 게임 픽업별 과금 분석을 게임별 과금 분석으로 변경 및 지출 모달 내 픽업 배너 연결 제거(버전 일정/패스 유예는 유지) (`완료` - 커밋 `e9a7017`, Claude Sonnet, Claude Opus 통합 리뷰 완료)
-- [x] R12. AI 전용 지침 문서(CLAUDE.md, AGENTS.md, .agents/**, .github/**) 영문화 및 한국어 원본(*-ko.md) docs/archive/agent-rules-ko/ 분리 보관 (`완료` - Gemini 3.8 Flash 완료)
-- [ ] R14. 지출 모달(`expense-modal.tsx`) 수정·결제 시 기존 사용자 메모(`editingExpense.memo`)가 이벤트 태그로 덮어써지는 기존 결함 보정 (`mergeEventMemo(null, ...)` → 기존 메모 보존, 단위 테스트 추가) (Phase 12.20~12.22 통합 리뷰 P3, Claude Sonnet 권장)
+- [x] R12. AI 전용 지침 문서(CLAUDE.md, AGENTS.md, .agents/**, .github/**) 영문화 및 한국어 원본(*-ko.md) docs/archive/agent-rules-ko/ 분리 보관 (`완료` - 커밋 `de71051`, Gemini 3.8 Flash 완료)
+- [x] R14. 지출 모달(`expense-modal.tsx`) 수정·결제 시 기존 사용자 메모(`editingExpense.memo`)가 이벤트 태그로 덮어써지는 기존 결함 보정 (`mergeEventMemo(null, ...)` → 기존 메모 보존, 단위 테스트 추가) 및 잔여 주석 정리 (`Phase 12.23`, Claude Sonnet 담당)
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---
