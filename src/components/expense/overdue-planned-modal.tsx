@@ -16,6 +16,7 @@ export interface OverduePlannedExpense {
   target_date: string
   end_date?: string | null
   template_id?: string | null
+  memo?: string | null
 }
 
 interface OverduePlannedModalProps {

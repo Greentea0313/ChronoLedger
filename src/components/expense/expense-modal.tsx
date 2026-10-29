@@ -35,6 +35,7 @@ export interface PlannedExpenseInput {
   end_date?: string | null
   template_id?: string | null
   point_platform?: string | null
+  memo?: string | null
 }
 
 export interface PlannedExpenseEditInput {
@@ -497,7 +498,9 @@ export function ExpenseModal({
     const effectiveDeductAsset = paymentMethod === "NAVER_PAY" ? false : deductAsset
     try {
       const schedule = isGameCategory ? (matchingVersion ?? undefined) : undefined
-      const finalMemo = mergeEventMemo(null, storeEventResult.eventTag)
+      // 예정 지출 수정·결제 시 사용자가 남긴 기존 메모를 보존하고 이벤트 태그만 병합
+      const existingMemo = editingExpense?.memo ?? plannedExpense?.memo ?? null
+      const finalMemo = mergeEventMemo(existingMemo, storeEventResult.eventTag)
 
       let effectiveStartDate = input.paymentDate
       let effectiveEndDate = input.paymentDate
@@ -569,7 +572,7 @@ export function ExpenseModal({
 
       if (actionType === "PAY") {
         const customEarnedPoints = toAmount(earnedPointsInput)
-        const finalMemo = mergeEventMemo(null, storeEventResult.eventTag)
+        const finalMemo = mergeEventMemo(existingMemo, storeEventResult.eventTag)
 
         const { error: rpcError } = await supabase.rpc("process_expense_payment", {
           p_expense_id: expenseId,

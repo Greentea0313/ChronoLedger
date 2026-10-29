@@ -152,8 +152,6 @@ export default function ExpensesPage() {
   const [intervalRemainingDays, setIntervalRemainingDays] = useState("30")
   const [isSavingIntervalDays, setIsSavingIntervalDays] = useState(false)
 
-  // 픽업 통계 관련 상태
-
   // 차트 마우스 호버 하이라이트 상태
   const [activeCategoryIndex, setActiveCategoryIndex] = useState<number | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -539,6 +537,7 @@ export default function ExpensesPage() {
       start_date: expense.start_date,
       end_date: expense.end_date,
       template_id: expense.template_id ?? null,
+      memo: expense.memo ?? null,
     })
     setIsExpenseModalOpen(true)
   }
@@ -1120,7 +1119,7 @@ export default function ExpensesPage() {
                     </div>
                   </div>
 
-                  {/* 픽업 랭킹 및 비중 카드 (우측 5컬럼) */}
+                  {/* 게임 랭킹 및 비중 카드 (우측 5컬럼) */}
                   <div className="lg:col-span-5 space-y-3 bg-surface-2/60 p-4 rounded-lg border border-line min-w-0 w-full overflow-hidden">
                     <div className="flex items-center justify-between border-b border-line pb-2.5">
                       <span className="text-xs font-semibold text-content">게임 과금 순위</span>

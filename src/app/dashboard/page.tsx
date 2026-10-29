@@ -266,7 +266,7 @@ export default function DashboardPage() {
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).eq("status", "PLANNED").gte("end_date", startDate).lt("end_date", endDateExclusive),
         supabase.from("user_games").select("game_id, games(name, default_icon_url)").eq("user_id", user.id),
-        supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price, template_id").eq("user_id", user.id).eq("status", "PLANNED"),
+        supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price, template_id, memo").eq("user_id", user.id).eq("status", "PLANNED"),
         supabase.from("games").select("id, name, default_icon_url"),
       ])
 

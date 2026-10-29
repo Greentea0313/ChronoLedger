@@ -442,6 +442,63 @@ describe("ExpenseModal", () => {
     }))
   })
 
+  it("예정 지출 수정 시 기존 사용자 메모를 보존한다", async () => {
+    setup()
+    const onCompleted = vi.fn()
+    render(
+      <ExpenseModal
+        open
+        onOpenChange={vi.fn()}
+        onCompleted={onCompleted}
+        editingExpense={{
+          id: "exp-plan-memo",
+          title: "메모 있는 예정 지출",
+          original_price: 20000,
+          category: "식비",
+          target_date: "2026-10-20",
+          payment_method: "WALLET",
+          memo: "사용자 메모",
+        }}
+      />
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ memo: "사용자 메모" }))
+  })
+
+  it("예정 지출 결제 시 기존 메모를 보존하고 이벤트 태그를 병합해 p_memo로 전달한다", async () => {
+    setup()
+    rpc.mockResolvedValue({ error: null })
+    const onCompleted = vi.fn()
+    render(
+      <ExpenseModal
+        open
+        onOpenChange={vi.fn()}
+        onCompleted={onCompleted}
+        plannedExpense={{
+          id: "exp-plan-pay",
+          title: "결제할 예정 지출",
+          original_price: 100000,
+          payment_method: "WALLET",
+          point_platform: "GOOGLE_PLAY",
+          category: "게임",
+          memo: "사용자 메모",
+        }}
+      />
+    )
+
+    fireEvent.click(screen.getByLabelText("포인트 부스트 이벤트 적용"))
+    fireEvent.change(screen.getByLabelText("부스트 배율:"), { target: { value: "3" } })
+    fireEvent.click(screen.getByRole("button", { name: "결제 확정" }))
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(rpc).toHaveBeenCalledWith("process_expense_payment", expect.objectContaining({
+      p_memo: "[구글 부스트: 3배] 사용자 메모",
+    }))
+  })
+
   it("retains user-modified title when cleared or edited, without bouncing back to schedule title", async () => {
     setup()
     const today = getKstToday()
