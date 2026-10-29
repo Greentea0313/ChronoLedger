@@ -483,7 +483,6 @@
   - 결과: `sql/{migrations,seed,tests,archive}/` 분류, [`sql/README.md`](../sql/README.md) 작성. PGlite 빈 DB에서 SCHEMA 적용·migrations 2회 멱등·seed PASS. SCHEMA 신규 설치 결함 3건 수정. `supabase/migrations/`는 CLI 이력 때문에 유지.
 - [x] 12.15-F1 `sql/tests/TESTS.sql` WAL-01 이후 단언을 현행 결제/적립 RPC에 맞게 갱신 (`완료` - 커밋 `cb0b92c`, Claude Opus. 구독 템플릿 직접 DELETE 정책 제거 포함)
 - [ ] 12.15-F2 운영 Supabase에 `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 적용 및 전용 테스트 프로젝트에서 `TESTS.sql` 실행 확인 (사용자 수동)
-  - 현재 WAL-01이 "WALLET 결제 무적립"을 기대하나 현행 `process_expense_payment`는 포인트 플랫폼 지정 시 적립. 적립 규칙(SRS) 확정 후 기대값 수정, 이후 단계도 순차 점검. 담당 후보: GPT Codex (대체: Claude Opus).
 - [ ] 12.15-F2 원격 DB 정합성 점검: `sql/README.md` B표 확인 쿼리 실행(특히 9개 인자 `process_expense_payment` 잔존 여부), 필요 시 `migrations/` 적용 후 `src/types/database.types.ts` 재생성
 
 - [x] 12.16 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시 (2026-10-28)
@@ -544,13 +543,14 @@
   - verify: `docs/archive/agent-rules-ko/` 원본 보존 확인, 영문 지침 링크 및 `markdownlint-cli` 0 errors 통과.
   - 결과: `docs/archive/agent-rules-ko/`에 한국어 원본 8종 및 `README.md` 보관, 활성 지침 영문 전환(`CLAUDE.md` 7~11행 un-backticked `@.agents/rules/...` 임포트 준수), `markdownlint-cli` 0건 통과 (커밋 `de71051`).
 
-- [x] 12.23 지출 모달(`expense-modal.tsx`) 예정 지출 수정·결제 시 기존 사용자 메모 보존 및 소비 페이지 잔여 픽업 주석 정리 (R14)
+- [x] 12.23 지출 모달(`expense-modal.tsx`) 예정 지출 수정·결제 시 기존 사용자 메모 보존 및 소비 페이지 잔여 픽업 주석 정리 (R14) (`완료` - 커밋 `d5522dc`, Claude Sonnet, Gemini 4 Argon 통합 리뷰 완료)
   - 대상 파일: `src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.test.tsx`
   - 작업 (세부 확정 사양):
     1. `PlannedExpenseInput` 인터페이스에 `memo?: string | null`을 추가하고, `src/app/dashboard/expenses/page.tsx`의 `handleConfirmPlanned`에서 `memo: expense.memo ?? null`을 전달하도록 보강.
     2. `src/components/expense/expense-modal.tsx`의 `handleSubmit` 내 `EDIT_PLAN`(500행) 및 `PAY`(572행)에서 `mergeEventMemo(null, storeEventResult.eventTag)` 대신 기존 메모(`editingExpense?.memo ?? plannedExpense?.memo ?? null`)를 첫 번째 인자로 전달하여 예정 지출 수정·결제 시 기존 사용자 메모가 증발하지 않고 보존(이벤트 태그 활성 시 병합)되도록 수정.
     3. `src/app/dashboard/expenses/page.tsx`에 남아 있는 구 픽업 관련 주석(`// 픽업 통계 관련 상태`, `픽업 랭킹 및 비중 카드`)을 `게임별 과금 통계` 문맥에 맞게 정리.
   - verify: `src/components/expense/expense-modal.test.tsx`에 예정 지출 수정(`EDIT_PLAN`) 및 예정 지출 결제(`PAY`) 시 기존 메모 보존 및 이벤트 태그 병합 단위 테스트 추가 및 통과.
+  - 결과: `PlannedExpenseInput.memo` 추가, `handleSubmit`에서 기존 메모(`editingExpense?.memo ?? plannedExpense?.memo ?? null`)를 추출해 `mergeEventMemo`로 전달하여 수정·결제 시 사용자 메모 보존 및 이벤트 태그 병합, `expenses/page.tsx`에서 예정 메모 전달 및 잔여 구 픽업 주석 정리, 단위 테스트 2건 추가 (커밋 `d5522dc`, 전체 271개 테스트 통과).
 
 ---
 
@@ -569,7 +569,7 @@
 - [x] R10. 대시보드 홈(/dashboard) 선택일 게임 일정 표시 조건(start_date/end_date 일치, VERSION은 end_date 제외) 및 전체 진행 일정 토글 + 정렬(start_date 내림차순, 동일 시작일 end_date 오름차순) 변경 (`완료` - 커밋 `335e517`, Claude Sonnet, Claude Opus 통합 리뷰 완료)
 - [x] R11. 소비 페이지 게임 픽업별 과금 분석을 게임별 과금 분석으로 변경 및 지출 모달 내 픽업 배너 연결 제거(버전 일정/패스 유예는 유지) (`완료` - 커밋 `e9a7017`, Claude Sonnet, Claude Opus 통합 리뷰 완료)
 - [x] R12. AI 전용 지침 문서(CLAUDE.md, AGENTS.md, .agents/**, .github/**) 영문화 및 한국어 원본(*-ko.md) docs/archive/agent-rules-ko/ 분리 보관 (`완료` - 커밋 `de71051`, Gemini 3.8 Flash 완료)
-- [x] R14. 지출 모달(`expense-modal.tsx`) 수정·결제 시 기존 사용자 메모(`editingExpense.memo`)가 이벤트 태그로 덮어써지는 기존 결함 보정 (`mergeEventMemo(null, ...)` → 기존 메모 보존, 단위 테스트 추가) 및 잔여 주석 정리 (`Phase 12.23`, Claude Sonnet 담당)
+- [x] R14. 지출 모달(`expense-modal.tsx`) 수정·결제 시 기존 사용자 메모(`editingExpense.memo`)가 이벤트 태그로 덮어써지는 기존 결함 보정 (`mergeEventMemo(null, ...)` → 기존 메모 보존, 단위 테스트 추가) 및 잔여 주석 정리 (`완료` - 커밋 `d5522dc`, Claude Sonnet, Gemini 4 Argon 통합 리뷰 완료)
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---

@@ -52,11 +52,36 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: d5522dc)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.23 (R14)` 지출 모달(`expense-modal.tsx`) 예정 지출 수정·결제 시 기존 사용자 메모 보존 및 `expenses/page.tsx` 잔여 주석 정리 (`src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.test.tsx`) | `✅ DONE` (`PlannedExpenseInput.memo` 추가, 수정·결제 시 기존 메모를 `mergeEventMemo`로 병합 보존, `handleConfirmPlanned`·기한 초과 예정 조회에 memo 전달, 잔여 픽업 주석 정리, 메모 보존 단위 테스트 2건, tsc·eslint·vitest 통과) |
 | **2** | `✅ DONE (SHA: cb0b92c)` | ~~GPT Codex~~ ➡️ **Claude Opus** *(1순위 대체로 수행 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.15-F1` `sql/tests/TESTS.sql`의 `WAL-01` 이후 스모크 테스트 단언을 현행 결제/적립 RPC(`process_expense_payment`) 규격에 맞게 갱신 (`sql/tests/TESTS.sql`) | `✅ DONE` (WAL-01 적립 8·잔액 408로 갱신, 사용자 결정 ③에 따라 `Delete own templates` 정책 제거 마이그레이션·앱 직접 DELETE 폴백 제거·SRS FR-042/FR-053 갱신, 로컬 PostgreSQL 17에서 기존 DB·신규 설치 모두 `PASS: all smoke-test fixtures and mutations rolled back`, tsc·eslint·vitest 271 통과) |
-| **3** | `▶ READY` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.23 & 12.15-F1 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ 착수 대기` (Step 2를 Claude Opus가 대체 수행했으므로 리뷰 독립성을 위해 **Gemini 4 Argon** 수행 권장) |
+| **3** | `✅ DONE (Gemini 4 Argon 통합 리뷰 완료)` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.23 & 12.15-F1 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (`d5522dc` Phase 12.23 및 `cb0b92c` Phase 12.15-F1 통합 정적 리뷰 PASS: 차단 결함 0건, tsc 0 에러, eslint 0 경고, vitest 41개 파일 271개 테스트 100% 통과, markdownlint 0건, 문서 마감 완료) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## Phase 12.23 & 12.15-F1 통합 정적 코드 리뷰 및 협업 Run 마감 (2026-10-29)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator)
+- **리뷰 범위**:
+  - `Phase 12.23` (커밋 `d5522dc`, Claude Sonnet):
+    - `src/components/expense/expense-modal.tsx`: `PlannedExpenseInput`에 `memo?: string | null` 추가 및 `handleSubmit`에서 `existingMemo = editingExpense?.memo ?? plannedExpense?.memo ?? null`을 구해 `mergeEventMemo(existingMemo, storeEventResult.eventTag)`로 전달하여 예정 지출 수정(`EDIT_PLAN`) 및 결제(`PAY`) 시 기존 메모 보존 및 이벤트 태그 병합.
+    - `src/app/dashboard/expenses/page.tsx`: `handleConfirmPlanned`에서 `memo: expense.memo ?? null` 전달 및 잔여 구 픽업 관련 주석 정리.
+    - `src/components/expense/expense-modal.test.tsx`: 예정 지출 수정 및 결제 시 기존 메모 보존 및 이벤트 태그 병합 단위 테스트 2건 추가.
+  - `Phase 12.15-F1` (커밋 `cb0b92c`, Claude Opus 대체 수행):
+    - `sql/tests/TESTS.sql`: WAL-01을 현행 결제 RPC(`process_expense_payment`)에 맞춰 갱신(포인트 플랫폼 지정 WALLET 결제 적립 8, 구글 잔액 500→400→408), 전체 스모크 테스트 끝까지 PASS.
+    - 구독 템플릿 삭제 RPC 전용화: `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 신규(`DROP POLICY IF EXISTS "Delete own templates"`), `SCHEMA.sql` 동기화, `src/app/dashboard/expenses/page.tsx` 직접 DELETE 폴백 제거 및 오류 알림, `page.test.tsx` 폴백 미호출 테스트 추가, SRS FR-042/FR-053 명세 갱신.
+- **판정**:
+  - 차단(P1/P2) 결함 0건. 수용 기준 100% 충족 (PASS).
+  - P3 (기존 결함이었던 예정 지출 수정·결제 시 메모 덮어쓰기 문제) 완전 해소 확인.
+  - 로컬 PostgreSQL 17 스모크 테스트 및 Vitest 전체 단위 테스트(41개 파일 271개) 100% PASS.
+- **검증 완료**:
+  - `npx tsc --noEmit` 0건 오류
+  - `npm run lint` 0건 경고/오류
+  - `npx vitest run` 41개 파일 271개 테스트 100% 통과
+  - `markdownlint-cli` 전체 마크다운 파일 0건 오류 통과
+- **후속 안내 (사용자 수동)**:
+  - `12.15-F2`: 운영 Supabase에 `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 적용 및 DB 정합성 점검 (`sql/README.md` B표 확인 쿼리 실행).
 
 ---
 

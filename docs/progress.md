@@ -1,5 +1,17 @@
 # 프로젝트 진행 현황
 
+## Phase 12.23 & 12.15-F1 통합 정적 코드 리뷰 및 협업 Run 마감 (2026-10-29)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator)
+- **결과**: Run `expense-memo-preservation-and-sql-smoke-tests` 전 단계 `✅ DONE`.
+  - `Phase 12.23 (R14)` (커밋 `d5522dc`, Claude Sonnet): 예정 지출 수정·결제 시 기존 사용자 메모 보존 및 이벤트 태그 병합, 잔여 픽업 주석 정리, 단위 테스트 2건 추가.
+  - `Phase 12.15-F1` (커밋 `cb0b92c`, Claude Opus 대체 수행): `TESTS.sql` WAL-01 단언을 현행 결제 RPC에 맞게 갱신, 구독 템플릿 직접 삭제 RLS 정책 제거 마이그레이션(`MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql`) 작성 및 앱 폴백 제거, SRS FR-042/FR-053 명세 갱신, 로컬 PostgreSQL 17 스모크 테스트 끝까지 PASS.
+  - 통합 정적 리뷰 통과: 차단(P1/P2) 결함 0건, P3(메모 덮어쓰기 기존 결함) 해결 확인.
+- **검증**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 41개 파일 271개 테스트 100% 통과, `markdownlint-cli` 0건.
+- **다음 단계**:
+  - `12.15-F2`: 운영 Supabase에 `MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 수동 적용 및 DB 정합성 점검 (사용자 수동).
+  - 다음 협업 작업 준비 또는 사용자 피드백 대기.
+
 ## Phase 12.15-F1 스모크 테스트 정합화 및 구독 템플릿 삭제 RPC 전용화 (2026-10-29)
 
 - **수행 주체**: Claude Opus (GPT Codex 1순위 대체)

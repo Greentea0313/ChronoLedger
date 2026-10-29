@@ -1,5 +1,14 @@
 # 변경 이력
 
+## 2026-10-29 (Phase 12.23 & 12.15-F1 통합 정적 리뷰 및 예정 지출 메모 보존)
+
+- **통합 리뷰 완료 (Gemini 4 Argon)**: `Phase 12.23` (`d5522dc`) 및 `Phase 12.15-F1` (`cb0b92c`) 변경 사항 통합 정적 코드 리뷰 완료. 차단 결함 0건, P3(예정 지출 수정·결제 시 기존 메모 증발 버그) 완전 해결 확인.
+- **Phase 12.23 예정 지출 메모 보존 및 잔여 주석 정리 (`d5522dc`, Claude Sonnet)**:
+  - `expense-modal.tsx`: `PlannedExpenseInput`에 `memo?: string | null` 추가 및 `handleSubmit`에서 기존 메모(`editingExpense?.memo ?? plannedExpense?.memo ?? null`)를 추출해 `mergeEventMemo`로 전달하여 수정(`EDIT_PLAN`) 및 결제(`PAY`) 시 메모 보존 및 이벤트 태그 병합.
+  - `expenses/page.tsx`: `handleConfirmPlanned`에서 `memo: expense.memo ?? null` 전달 및 구 픽업 관련 잔여 주석 정리.
+  - `expense-modal.test.tsx`: 예정 지출 수정 및 결제 시 기존 메모 보존 및 이벤트 태그 병합 단위 테스트 2건 추가.
+- **협업 Run 마감**: `expense-memo-preservation-and-sql-smoke-tests` Run 3단계 전체 완료 (`✅ DONE`) 처리 및 프로젝트 운영 문서 동기화.
+
 ## 2026-10-29 (Phase 12.15-F1 스모크 테스트 정합화 및 구독 템플릿 삭제 RPC 전용화)
 
 - **`sql/tests/TESTS.sql` (cb0b92c)**: WAL-01을 현행 결제 RPC에 맞춰 갱신(포인트 플랫폼 지정 WALLET 결제 적립 8, 잔액 408). 전체 스모크 테스트가 끝까지 PASS.
