@@ -1,5 +1,15 @@
 # 프로젝트 진행 현황
 
+## Phase 12.20 ~ 12.22 통합 정적 리뷰 및 Run 마감 (2026-10-29)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)
+- **결과**: Run `schedule-filter-and-game-spend-stats` 4단계 모두 `✅ DONE`. 차단 결함 없음. 상세 내용은 `docs/handoff.md` 통합 리뷰 섹션 참조.
+- **검증**: tsc 0건, eslint 0건, vitest 41개 파일 268개 테스트 통과, markdownlint 0건(changelog MD010 하드탭 수정 후).
+- **다음 단계**:
+  - Phase 12.22 영문 지침 워킹 트리 변경 커밋(사용자 확인 필요).
+  - R14 지출 모달 기존 메모 덮어쓰기 결함 보정(Claude Sonnet 권장).
+  - P4 정리: `expenses/page.tsx`의 잔여 픽업 주석 제거.
+
 ## Phase 12.22 AI 전용 지침 문서 영문화 및 한국어 원본 아카이빙 (2026-10-29)
 
 - **수행 주체**: Gemini 3.8 Flash (Maker - Docs & Config)

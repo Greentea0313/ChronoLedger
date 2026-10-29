@@ -61,13 +61,30 @@
 | **1** | `✅ DONE` | **Gemini 3.8 Flash** *(GitHub Copilot 1순위 대체 / Gemini 4 Argon 2순위)* | `Maker (Docs & Config)` | `Phase 12.22 (R12)` AI 전용 지침 문서 영문화(토큰 절감) 및 한국어 원본(`*-ko.md`) `docs/archive/agent-rules-ko/` 분리 아카이빙 (`CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`, `docs/archive/agent-rules-ko/*`) | `✅ DONE` (지침 8종 한국어 원본 아카이브 및 README.md 작성, active 지침 간결 영문 전환, CLAUDE.md 7-11행 un-backticked @ import 준수, markdownlint 0건 통과) |
 | **2** | `✅ DONE (SHA: 335e517)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.20 (R10)` 대시보드 홈(`/dashboard`) 선택일 게임 일정 표시 조건(`VERSION` 시작일만, 타 일정 시작/종료일만) 및 전체 진행 일정 토글 + 정렬(start_date DESC, 동일 시작일 end_date ASC) (`src/components/calendar/hero-sidebar.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar.test.tsx`) | `✅ DONE` (VERSION 시작일만/타 일정 시작·종료일만 기본 노출, `진행 일정 전체 보기` 토글, start_date DESC·end_date ASC 정렬, 단위 테스트 추가, tsc·vitest 통과) |
 | **3** | `✅ DONE (SHA: e9a7017)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.21 (R11)` 소비 페이지 `게임 픽업별 과금 분석`을 `게임 카테고리별(게임별) 과금 분석`으로 변경 및 지출 모달 내 픽업 배너 연결 제거(버전 일정/패스 유예는 유지) (`src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-detail-modal.tsx`, 단위 테스트) | `✅ DONE` (지출 모달 픽업 연결 UI·상태 제거(pickup_schedule_id=null), 상세 모달 픽업 줄 제거, `게임별 과금 분석`(확정 게임 지출 게임별 합산) 전환, loadSchedules 제거, 단위 테스트 갱신, tsc·eslint·vitest 통과) |
-| **4** | `▶ READY` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.20 ~ 12.22 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
+| **4** | `✅ DONE (리뷰 기준: a688dab)` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.20 ~ 12.22 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (Claude Opus 통합 리뷰: 차단 결함 0건, P3 1건·P4 3건 기록, changelog MD010 하드탭 수정, tsc·eslint·vitest 41파일 268테스트·markdownlint 통과) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 
 ---
+
+## Phase 12.20 ~ 12.22 통합 정적 코드 리뷰 및 협업 Run 마감 (2026-10-29)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)
+- **리뷰 범위**: Base `de373b9` ↔ Target `a688dab` (`335e517` Phase 12.20, `e9a7017` Phase 12.21, 문서 커밋 `558cb63`·`a688dab`) + Phase 12.22 영문 지침 워킹 트리 변경(미커밋)
+- **판정**: 차단(P1/P2) 결함 없음. 수용 기준 충족.
+  1. **Phase 12.20 (PASS)**: `hero-sidebar.tsx` 토글 OFF 시 `VERSION`은 시작일만, 그 외 일정은 시작/종료일만 표시하고, 토글 ON 시 진행 일정 전체를 표시함. `dashboard/page.tsx`가 진행 중 일정 집합을 넘기므로 OFF 필터는 그 부분집합으로 정상 동작. 정렬은 `start_date` DESC, 동일 시 `end_date` ASC.
+  2. **Phase 12.21 (PASS)**: 지출 모달의 픽업 상태·UI·`[PICKUPS:...]` 합성이 제거되었고 insert/update 모두 `pickup_schedule_id: null`. 결제 RPC(`process_expense_payment`) 인자 구조는 변경 없음. `게임별 과금 분석`은 `CONFIRMED` + `게임` 지출만 1회씩 합산. `loadSchedules` 제거 확인.
+  3. **Phase 12.22 (PASS)**: 영문 지침이 `CLAUDE.md` un-backticked `@` 임포트와 한국어 소통 원칙을 유지함. 한국어 원본 8종 아카이브 확인.
+- **기록된 비차단 발견 사항**:
+  - **P3 (기존 결함, 회귀 아님)** `src/components/expense/expense-modal.tsx:500,572`: `mergeEventMemo(null, eventTag)`로 저장해 `editingExpense.memo`(소비 페이지가 전달)를 무시하므로, 예정 지출 수정·결제 시 기존 사용자 메모가 이벤트 태그(또는 `null`)로 덮어써짐. Base에서도 `pickupMeta`만 병합해 동일하게 발생. → `to-do.md` R14로 등록.
+  - **P4** 레거시 데이터: 기존 픽업 연결 지출을 수정하면 `pickup_schedule_id`·`[PICKUPS:...]` 태그가 제거됨(명세상 의도된 동작, 미수정 행은 DB에 그대로 남음).
+  - **P4** `src/app/dashboard/expenses/page.tsx:155` 빈 `// 픽업 통계 관련 상태` 주석과 `:1123` `픽업 랭킹 및 비중 카드` 주석이 남아 있음(정리 권장).
+  - **P4** 게임 미연결 지출 라벨이 `게임 미연결`로 구현되어 `to-do.md` 12.21 사양(`미지정(기타)`)과 문구가 다름(기능 영향 없음).
+- **보완 조치**: `docs/changelog.md` Phase 12.21 항목에서 LaTeX 화살표 표기가 탭 문자로 변형되어 발생한 markdownlint MD010 오류를 `→`로 수정.
+- **검증 완료**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 41개 파일 268개 테스트 100% 통과, `markdownlint-cli`(지침·아카이브·운영 문서) 0건.
+- **남은 사항**: Phase 12.22 영문 지침 변경(`CLAUDE.md`, `AGENTS.md`, `.agents/**`, `.vscode/settings.json`)은 아직 미커밋 상태로, 사용자 확인 후 커밋 필요.
 
 ## Phase 12.22 AI 전용 지침 문서 영문화 및 한국어 원본 아카이빙 (2026-10-29)
 

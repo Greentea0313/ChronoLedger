@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-10-29 (Phase 12.20 ~ 12.22 통합 정적 리뷰)
+
+- **통합 리뷰 완료 (Claude Opus)**: `de373b9` ↔ `a688dab` 범위와 Phase 12.22 지침 변경을 검토함. 차단 결함 0건이며, P3 1건(지출 모달 기존 메모 덮어쓰기, 기존 결함)과 P4 3건을 `docs/handoff.md`에 기록함.
+- **문서 수정**: Phase 12.21 changelog 항목에서 LaTeX 화살표 표기가 탭 문자로 변형되어 생긴 markdownlint MD010 오류를 `→`로 교체해 해소.
+
 ## 2026-10-29 (Phase 12.22 AI 전용 지침 문서 영문화 및 한국어 원본 아카이빙)
 
 - **AI 전용 지침 영문화 (`CLAUDE.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/*/SKILL.md`)**:
@@ -7,7 +12,7 @@
   - `CLAUDE.md` 7~11행 un-backticked `@.agents/rules/...` 임포트 규칙 엄격 준수.
   - Claude Pro Sonnet / Opus 2단계 운용 기준(기본 Sonnet, 4대 조건 충족 시 Opus 승격) 및 5대 AI 모델 Fallback 매트릭스 영문화 반영.
 - **Phase 12.21 게임별 과금 분석 전환 및 픽업 연결 제거 (e9a7017)**:
-  - `expenses/page.tsx`: `게임 픽업별 과금 분석` $	o$ `게임별 과금 분석`(CONFIRMED + 게임 카테고리 지출을 게임별 합산·정렬), 게임 필터·`game_schedules` 조회·목록 픽업 배지 제거.
+  - `expenses/page.tsx`: `게임 픽업별 과금 분석` → `게임별 과금 분석`(CONFIRMED + 게임 카테고리 지출을 게임별 합산·정렬), 게임 필터·`game_schedules` 조회·목록 픽업 배지 제거.
   - `expense-modal.tsx`: `연결된 픽업 일정` UI·픽업 상태·`[PICKUPS:...]` 메모 합성 제거(`pickup_schedule_id`는 `null`), 버전 일정/패스 유예 유지. `expense-detail-modal.tsx`: 픽업 줄 제거. 관련 단위 테스트 갱신.
 - **Phase 12.20 대시보드 선택일 게임 일정 표시 개편 (335e517)**:
   - `hero-sidebar.tsx`: 기본은 `VERSION` 시작일만, 그 외 일정은 시작/종료일만 노출. `진행 일정 전체 보기` 토글 ON 시 진행 중 일정 전체 노출. 정렬은 `start_date` 내림차순, 동일 시 `end_date` 오름차순 (`dashboard/page.tsx` 정렬 동기화, 단위 테스트 추가).
