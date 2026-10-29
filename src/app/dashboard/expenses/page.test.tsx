@@ -269,34 +269,17 @@ describe("ExpensesPage", () => {
     })
   })
 
-  it("게임 픽업별 과금 분석 섹션과 픽업 배지가 정상 렌더링된다", async () => {
+  it("게임별 과금 분석이 확정 게임 지출만 게임 단위로 합산·정렬해 렌더링한다", async () => {
     useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
-    const pickupExpenses = [
+    const rows = [
       {
-        id: "exp-p1",
-        title: "수영복 픽업 10연차",
-        category: "게임",
-        status: "CONFIRMED",
-        target_date: "2026-10-15",
-        end_date: null,
-        game_id: "game-1",
-        pickup_schedule_id: "sched-p1",
-        original_price: 33000,
-        discount_amount: 0,
-        point_discount_amount: 0,
-        used_points: 0,
-        earned_points: 0,
-        final_amount: 33000,
-        payment_method: "GOOGLE_PLAY",
-        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
-      },
-      {
-        id: "exp-p2",
+        id: "g1a",
         title: "월정액 구매",
         category: "게임",
         status: "CONFIRMED",
         target_date: "2026-10-15",
-        end_date: null,
+        start_date: "2026-10-15",
+        end_date: "2026-10-15",
         game_id: "game-1",
         pickup_schedule_id: null,
         original_price: 6000,
@@ -306,36 +289,111 @@ describe("ExpensesPage", () => {
         earned_points: 0,
         final_amount: 6000,
         payment_method: "GOOGLE_PLAY",
-        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+        games: { name: "원신", default_icon_url: "/icons/x.webp" },
+      },
+      {
+        id: "g1b",
+        title: "수영복 10연차",
+        category: "게임",
+        status: "CONFIRMED",
+        target_date: "2026-10-15",
+        start_date: "2026-10-15",
+        end_date: "2026-10-15",
+        game_id: "game-1",
+        pickup_schedule_id: null,
+        original_price: 33000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 33000,
+        payment_method: "GOOGLE_PLAY",
+        games: { name: "원신", default_icon_url: "/icons/x.webp" },
+      },
+      {
+        id: "g2a",
+        title: "패키지",
+        category: "게임",
+        status: "CONFIRMED",
+        target_date: "2026-10-15",
+        start_date: "2026-10-15",
+        end_date: "2026-10-15",
+        game_id: "game-2",
+        pickup_schedule_id: null,
+        original_price: 10000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 10000,
+        payment_method: "GOOGLE_PLAY",
+        games: { name: "명일방주", default_icon_url: "/icons/x.webp" },
+      },
+      {
+        id: "pl",
+        title: "예정 결제",
+        category: "게임",
+        status: "PLANNED",
+        target_date: "2026-10-15",
+        start_date: "2026-10-15",
+        end_date: "2026-10-15",
+        game_id: "game-2",
+        pickup_schedule_id: null,
+        original_price: 99000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 99000,
+        payment_method: "GOOGLE_PLAY",
+        games: { name: "명일방주", default_icon_url: "/icons/x.webp" },
+      },
+      {
+        id: "food",
+        title: "점심",
+        category: "식비",
+        status: "CONFIRMED",
+        target_date: "2026-10-15",
+        start_date: "2026-10-15",
+        end_date: "2026-10-15",
+        game_id: null,
+        pickup_schedule_id: null,
+        original_price: 12000,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: 12000,
+        payment_method: "GOOGLE_PLAY",
+        games: null,
       },
     ]
 
-    const expenseBuilder = createExpenseQueryBuilder(pickupExpenses)
-    const schedulesBuilder = createExpenseQueryBuilder([
-      { id: "sched-p1", title: "수영복 한정 픽업", schedule_type: "PICKUP", game_id: "game-1" },
-    ])
+    const expenseBuilder = createExpenseQueryBuilder(rows)
     const subscriptionBuilder = createExpenseQueryBuilder([])
 
     from.mockImplementation((table: string) => {
-      if (table === "game_schedules") return schedulesBuilder
       if (table === "subscription_templates") return subscriptionBuilder
       return expenseBuilder
     })
 
     render(<ExpensesPage />)
 
-    // 게임 픽업 분석 섹션 확인
-    expect(await screen.findByText("게임 픽업별 과금 분석")).toBeTruthy()
-    expect(screen.getByText("픽업 과금 순위")).toBeTruthy()
-    expect(screen.getByText("총 39,000 원")).toBeTruthy()
+    expect(await screen.findByText("게임별 과금 분석")).toBeTruthy()
+    expect(screen.queryByText("게임 픽업별 과금 분석")).toBeNull()
+    expect(screen.getByText("총 49,000 원")).toBeTruthy()
 
-    // 픽업명 및 '일반' 분리 집계 확인
-    expect(screen.getAllByText("수영복 한정 픽업").length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText("일반")).toBeTruthy()
+    const rankingTitle = screen.getByText("게임 과금 순위")
+    const rankingCard = (rankingTitle.closest(".space-y-3") || rankingTitle.parentElement?.parentElement) as HTMLElement
+    const rankingRows = Array.from(rankingCard.querySelectorAll("[data-testid^='game-color-dot-']"))
+    expect(rankingRows.map((el) => el.getAttribute("data-testid"))).toEqual(["game-color-dot-game-1", "game-color-dot-game-2"])
+    expect(within(rankingCard).getByText("39,000 원")).toBeTruthy()
+    expect(within(rankingCard).getByText("80% (2건)")).toBeTruthy()
+    expect(within(rankingCard).getByText("10,000 원")).toBeTruthy()
+    expect(within(rankingCard).getByText("20% (1건)")).toBeTruthy()
 
-    // 목록 테이블 내 픽업 배지 노출 확인
-    const badges = screen.getAllByText("수영복 한정 픽업")
-    expect(badges.length).toBeGreaterThanOrEqual(1)
+    // 픽업 연결 제거로 game_schedules 조회가 더 이상 발생하지 않음
+    expect(from).not.toHaveBeenCalledWith("game_schedules")
   })
 
   it("지출 내역이 10개를 초과할 경우 10개 단위로 페이지네이션이 동작한다", async () => {
@@ -521,185 +579,6 @@ describe("ExpensesPage", () => {
     expect(screen.queryByText("구독 서비스 #01")).toBeNull()
   })
 
-  it("복수 픽업 배너에 동시 연계된 지출은 픽업 통계에서 합동 항목 1개로만 표시되고 개별 항목이 중복 생성되지 않는다", async () => {
-    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
-    const today = "2026-10-15"
-    const multiPickupExpenses = [
-      {
-        id: "exp-multi-1",
-        title: "동시 픽업 패키지",
-        category: "게임",
-        status: "CONFIRMED",
-        target_date: today,
-        start_date: today,
-        end_date: today,
-        game_id: "game-1",
-        pickup_schedule_id: "sched-p1",
-        original_price: 50000,
-        discount_amount: 0,
-        point_discount_amount: 0,
-        used_points: 0,
-        earned_points: 0,
-        final_amount: 50000,
-        payment_method: "GOOGLE_PLAY",
-        memo: "[PICKUPS:sched-p1,sched-p2]",
-        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
-      },
-    ]
-
-    const expenseBuilder = createExpenseQueryBuilder(multiPickupExpenses)
-    const schedulesBuilder = createExpenseQueryBuilder([
-      { id: "sched-p1", title: "배너 A (픽업 1)", schedule_type: "PICKUP", game_id: "game-1" },
-      { id: "sched-p2", title: "배너 B (픽업 2)", schedule_type: "PICKUP", game_id: "game-1" },
-    ])
-    const subscriptionBuilder = createExpenseQueryBuilder([])
-
-    from.mockImplementation((table: string) => {
-      if (table === "game_schedules") return schedulesBuilder
-      if (table === "subscription_templates") return subscriptionBuilder
-      return expenseBuilder
-    })
-
-    render(<ExpensesPage />)
-
-    // 게임 픽업 분석 섹션 확인: 총 과금액은 50,000원
-    expect(await screen.findByText("게임 픽업별 과금 분석")).toBeTruthy()
-    expect(screen.getByText("총 50,000 원")).toBeTruthy()
-
-    // 픽업 과금 순위 카드 영역
-    const rankingTitle = screen.getByText("픽업 과금 순위")
-    const rankingCard = (rankingTitle.closest(".space-y-3") || rankingTitle.parentElement?.parentElement) as HTMLElement
-
-    // 픽업 통계에 'A + B' 합동 항목 1개로 표시되고 '동시 픽업' 배지가 표시됨
-    expect(within(rankingCard).getByText("배너 A (픽업 1) + 배너 B (픽업 2)")).toBeTruthy()
-    expect(within(rankingCard).getByText("동시 픽업")).toBeTruthy()
-    expect(within(rankingCard).getByText("50,000 원")).toBeTruthy()
-    expect(within(rankingCard).getByText("100% (1건)")).toBeTruthy()
-
-    // 통계 목록 내에는 개별 배너 항목이 중복 생성되지 않음
-    expect(within(rankingCard).queryByText("배너 A (픽업 1)")).toBeNull()
-    expect(within(rankingCard).queryByText("배너 B (픽업 2)")).toBeNull()
-
-    // 안내 문구 갱신 확인
-    expect(
-      screen.getByText("※ 동일 기간 복수 픽업에 동시 연계된 지출은 'A + B' 합동 항목으로 1회만 집계됩니다.")
-    ).toBeTruthy()
-
-    // 수익 추가 버튼 노출 확인
-    expect(screen.getByRole("button", { name: "+ 수익 추가" })).toBeTruthy()
-  })
-
-  it("단일 픽업 지출과 복수 배너 합동 지출이 공존할 때 항목 금액 합 = 게임 총 과금액(1x)을 유지한다", async () => {
-    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
-    const today = "2026-10-15"
-    const mixedExpenses = [
-      {
-        id: "exp-single-1",
-        title: "단일 픽업 트럭",
-        category: "게임",
-        status: "CONFIRMED",
-        target_date: today,
-        start_date: today,
-        end_date: today,
-        game_id: "game-1",
-        pickup_schedule_id: "sched-p3",
-        original_price: 30000,
-        discount_amount: 0,
-        point_discount_amount: 0,
-        used_points: 0,
-        earned_points: 0,
-        final_amount: 30000,
-        payment_method: "CREDIT_CARD",
-        memo: "",
-        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
-      },
-      {
-        id: "exp-multi-1",
-        title: "동시 픽업 패키지",
-        category: "게임",
-        status: "CONFIRMED",
-        target_date: today,
-        start_date: today,
-        end_date: today,
-        game_id: "game-1",
-        pickup_schedule_id: "sched-p1",
-        original_price: 50000,
-        discount_amount: 0,
-        point_discount_amount: 0,
-        used_points: 0,
-        earned_points: 0,
-        final_amount: 50000,
-        payment_method: "GOOGLE_PLAY",
-        memo: "[PICKUPS:sched-p2,sched-p1]", // 역순 정렬 테스트: sched-p1이 먼저 오도록 정렬됨
-        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
-      },
-      {
-        id: "exp-general-1",
-        title: "일반 재화 구매",
-        category: "게임",
-        status: "CONFIRMED",
-        target_date: today,
-        start_date: today,
-        end_date: today,
-        game_id: "game-1",
-        pickup_schedule_id: null,
-        original_price: 20000,
-        discount_amount: 0,
-        point_discount_amount: 0,
-        used_points: 0,
-        earned_points: 0,
-        final_amount: 20000,
-        payment_method: "CREDIT_CARD",
-        memo: "",
-        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
-      },
-    ]
-
-    const expenseBuilder = createExpenseQueryBuilder(mixedExpenses)
-    const schedulesBuilder = createExpenseQueryBuilder([
-      { id: "sched-p1", title: "배너 A (픽업 1)", schedule_type: "PICKUP", game_id: "game-1" },
-      { id: "sched-p2", title: "배너 B (픽업 2)", schedule_type: "PICKUP", game_id: "game-1" },
-      { id: "sched-p3", title: "배너 C (픽업 3)", schedule_type: "PICKUP", game_id: "game-1" },
-    ])
-    const subscriptionBuilder = createExpenseQueryBuilder([])
-
-    from.mockImplementation((table: string) => {
-      if (table === "game_schedules") return schedulesBuilder
-      if (table === "subscription_templates") return subscriptionBuilder
-      return expenseBuilder
-    })
-
-    render(<ExpensesPage />)
-
-    expect(await screen.findByText("게임 픽업별 과금 분석")).toBeTruthy()
-    // 총 과금액 = 30,000 + 50,000 + 20,000 = 100,000원
-    expect(screen.getByText("총 100,000 원")).toBeTruthy()
-
-    // 픽업 과금 순위 카드 영역
-    const rankingTitle = screen.getByText("픽업 과금 순위")
-    const rankingCard = (rankingTitle.closest(".space-y-3") || rankingTitle.parentElement?.parentElement) as HTMLElement
-
-    // 1위: 합동 항목 50,000원 (50%)
-    expect(within(rankingCard).getByText("배너 A (픽업 1) + 배너 B (픽업 2)")).toBeTruthy()
-    expect(within(rankingCard).getByText("50,000 원")).toBeTruthy()
-    expect(within(rankingCard).getByText("50% (1건)")).toBeTruthy()
-    expect(within(rankingCard).getByText("동시 픽업")).toBeTruthy()
-
-    // 2위: 단일 픽업 항목 30,000원 (30%)
-    expect(within(rankingCard).getByText("배너 C (픽업 3)")).toBeTruthy()
-    expect(within(rankingCard).getByText("30,000 원")).toBeTruthy()
-    expect(within(rankingCard).getByText("30% (1건)")).toBeTruthy()
-
-    // 3위: 일반 지출 20,000원 (20%)
-    expect(within(rankingCard).getByText("일반")).toBeTruthy()
-    expect(within(rankingCard).getByText("20,000 원")).toBeTruthy()
-    expect(within(rankingCard).getByText("20% (1건)")).toBeTruthy()
-
-    // 개별 배너 A, B는 순위 카드에 단독 항목으로 생성되지 않음
-    expect(within(rankingCard).queryByText("배너 A (픽업 1)")).toBeNull()
-    expect(within(rankingCard).queryByText("배너 B (픽업 2)")).toBeNull()
-  })
-
   it("PLANNED 항목에서 [수정] 클릭 시 ExpenseModal이 열린다", async () => {
     useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
     const builder = createExpenseQueryBuilder(sampleExpenses)
@@ -831,20 +710,19 @@ describe("ExpensesPage", () => {
     downloadUserIcon.mockResolvedValue(null)
   })
 
-  it("게임 픽업별 과금 분석에서 여러 픽업 배너마다 서로 다른 팔레트 색상이 할당된다", async () => {
+  it("게임별 과금 분석에서 게임마다 서로 다른 팔레트 색상이 할당된다", async () => {
     useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
-    const today = "2026-10-15"
-    const multiPickupExpenses = [
+    const rows = [
       {
-        id: "exp-p1",
-        title: "픽업 1 트럭",
+        id: "p1",
+        title: "트럭",
         category: "게임",
         status: "CONFIRMED",
-        target_date: today,
-        start_date: today,
-        end_date: today,
+        target_date: "2026-10-15",
+        start_date: "2026-10-15",
+        end_date: "2026-10-15",
         game_id: "game-1",
-        pickup_schedule_id: "sched-p1",
+        pickup_schedule_id: null,
         original_price: 119000,
         discount_amount: 0,
         point_discount_amount: 0,
@@ -852,18 +730,18 @@ describe("ExpensesPage", () => {
         earned_points: 0,
         final_amount: 119000,
         payment_method: "GOOGLE_PLAY",
-        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+        games: { name: "원신", default_icon_url: "/icons/x.webp" },
       },
       {
-        id: "exp-p2",
-        title: "픽업 2 패키지",
+        id: "p2",
+        title: "패키지",
         category: "게임",
         status: "CONFIRMED",
-        target_date: today,
-        start_date: today,
-        end_date: today,
-        game_id: "game-1",
-        pickup_schedule_id: "sched-p2",
+        target_date: "2026-10-15",
+        start_date: "2026-10-15",
+        end_date: "2026-10-15",
+        game_id: "game-2",
+        pickup_schedule_id: null,
         original_price: 59000,
         discount_amount: 0,
         point_discount_amount: 0,
@@ -871,29 +749,23 @@ describe("ExpensesPage", () => {
         earned_points: 0,
         final_amount: 59000,
         payment_method: "GOOGLE_PLAY",
-        games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+        games: { name: "명일방주", default_icon_url: "/icons/x.webp" },
       },
     ]
 
-    const expenseBuilder = createExpenseQueryBuilder(multiPickupExpenses)
-    const schedulesBuilder = createExpenseQueryBuilder([
-      { id: "sched-p1", title: "배너 1", schedule_type: "PICKUP", game_id: "game-1" },
-      { id: "sched-p2", title: "배너 2", schedule_type: "PICKUP", game_id: "game-1" },
-    ])
+    const expenseBuilder = createExpenseQueryBuilder(rows)
     const subscriptionBuilder = createExpenseQueryBuilder([])
 
     from.mockImplementation((table: string) => {
-      if (table === "game_schedules") return schedulesBuilder
       if (table === "subscription_templates") return subscriptionBuilder
       return expenseBuilder
     })
 
     render(<ExpensesPage />)
 
-    const dot1 = await screen.findByTestId("pickup-color-dot-sched-p1")
-    const dot2 = await screen.findByTestId("pickup-color-dot-sched-p2")
+    const dot1 = await screen.findByTestId("game-color-dot-game-1")
+    const dot2 = await screen.findByTestId("game-color-dot-game-2")
 
-    // 서로 다른 색상이 부여되었는지 확인 (1위: Indigo #6366F1, 2위: Emerald #10B981)
     expect(dot1.style.backgroundColor).toBeTruthy()
     expect(dot2.style.backgroundColor).toBeTruthy()
     expect(dot1.style.backgroundColor).not.toBe(dot2.style.backgroundColor)

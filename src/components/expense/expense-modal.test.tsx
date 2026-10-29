@@ -273,15 +273,14 @@ describe("ExpenseModal", () => {
     expect(screen.getByText("3,000 원")).toBeTruthy() // 충전 및 결제 후 예상 잔액 (3000 + 10000 - 10000)
   })
 
-  it("게임 선택 시 결제일 기준 진행 중인 픽업 일정이 있으면 필드가 disabled 상태로 자동 바인딩되어 pickup_schedule_id가 저장된다", async () => {
+  it("지출 모달에는 픽업 일정 연결 UI가 없고 pickup_schedule_id는 항상 null로 저장된다", async () => {
     const onCompleted = vi.fn()
     render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} />)
     await screen.findByRole("option", { name: "Sample RPG" })
 
     fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
-    const pickupSelect = await screen.findByLabelText("연결된 픽업 일정")
-    expect(pickupSelect).toHaveProperty("disabled", true)
-    expect(screen.getByText(/신규 캐릭터 픽업/)).toBeTruthy()
+    await screen.findByRole("option", { name: "버전 1.0" })
+    expect(screen.queryByLabelText("연결된 픽업 일정")).toBeNull()
 
     fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "10000" } })
     fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
@@ -290,86 +289,8 @@ describe("ExpenseModal", () => {
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
       game_id: "g1",
       schedule_id: "s1",
-      pickup_schedule_id: "p1",
-      memo: null,
-    }))
-  })
-
-  it("결제일이 픽업 기간 외에 속하면 '진행 중인 픽업 없음 (픽업 외 지출)'로 자동 매핑되고 pickup_schedule_id가 null로 저장된다", async () => {
-    const onCompleted = vi.fn()
-    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} initialDate="2026-01-01" />)
-    await screen.findByRole("option", { name: "Sample RPG" })
-
-    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
-    const pickupSelect = await screen.findByLabelText("연결된 픽업 일정")
-    expect(pickupSelect).toHaveProperty("disabled", true)
-    expect(screen.getByText("진행 중인 픽업 없음 (픽업 외 지출)")).toBeTruthy()
-
-    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "상시 뽑기" } })
-    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "15000" } })
-    fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
-
-    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
-    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
-      game_id: "g1",
-      schedule_id: null,
       pickup_schedule_id: null,
       memo: null,
-    }))
-  })
-
-  it("동일 날짜에 2개 이상의 픽업 배너가 존재하면 진행 중인 모든 배너가 기본 연계되며 단 1회(1x) 지출로 저장된다", async () => {
-    const today = getKstToday()
-    from.mockImplementation((table: string) => {
-      if (table === "games") return query({ data: [{ id: "g1", name: "Sample RPG" }], error: null })
-      if (table === "user_games") {
-        const ug = query(null)
-        ug.eq.mockResolvedValue({ data: [{ game_id: "g1" }], error: null })
-        return ug
-      }
-      if (table === "game_schedules") {
-        return query({
-          data: [
-            { id: "s1", game_id: "g1", title: "버전 1.0", schedule_type: "VERSION", start_date: today, end_date: today },
-            { id: "p1", game_id: "g1", title: "캐릭터 A 픽업", schedule_type: "PICKUP", start_date: today, end_date: today },
-            { id: "p2", game_id: "g1", title: "캐릭터 B 픽업", schedule_type: "PICKUP", start_date: today, end_date: today },
-          ],
-          error: null,
-        })
-      }
-      if (table === "user_finances") {
-        const fin = query(null)
-        fin.eq.mockResolvedValue({ data: [{ total_asset: 50000 }], error: null })
-        return fin
-      }
-      const wallets = query(null)
-      wallets.eq.mockResolvedValue({
-        data: [{ platform: "GOOGLE_PLAY", current_balance: 10000, earn_rate: 0.2 }],
-        error: null,
-      })
-      return wallets
-    })
-
-    const onCompleted = vi.fn()
-    render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} />)
-    await screen.findByRole("option", { name: "Sample RPG" })
-
-    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
-    const pickupSelect = await screen.findByLabelText("연결된 픽업 일정")
-    expect(pickupSelect).toHaveProperty("disabled", true)
-    expect(screen.getByRole("option", { name: /진행 중인 모든 배너에 동시 연계/ })).toBeTruthy()
-
-    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "30000" } })
-    fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
-
-    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
-    // 1건만 등록되며, 복수 픽업 메타데이터가 담김
-    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
-      game_id: "g1",
-      original_price: 30000,
-      final_amount: 30000,
-      pickup_schedule_id: "p1",
-      memo: "[PICKUPS:p1,p2]",
     }))
   })
 
@@ -610,7 +531,7 @@ describe("ExpenseModal", () => {
     }))
   })
 
-  it("버전 패스형 체크박스 선택 시 버전 시작일~종료일 기간이 반영되고, 연계 픽업을 드롭다운에서 선택할 수 있다", async () => {
+  it("버전 패스형 체크박스 선택 시 버전 시작일~종료일 기간이 반영된다", async () => {
     from.mockImplementation((table: string) => {
       if (table === "games") return query({ data: [{ id: "g1", name: "Sample RPG" }], error: null })
       if (table === "user_games") {
@@ -653,11 +574,6 @@ describe("ExpenseModal", () => {
     fireEvent.click(versionPassToggle)
     expect(versionPassToggle.checked).toBe(true)
 
-    // 픽업 드롭다운이 활성화되고 전반 픽업을 선택
-    const pickupSelect = screen.getByLabelText("연결된 픽업 일정") as HTMLSelectElement
-    expect(pickupSelect.disabled).toBe(false)
-    fireEvent.change(pickupSelect, { target: { value: "p1" } })
-
     // 예정 지출로 등록
     fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
 
@@ -665,7 +581,7 @@ describe("ExpenseModal", () => {
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
       game_id: "g1",
       schedule_id: "v1",
-      pickup_schedule_id: "p1",
+      pickup_schedule_id: null,
       start_date: "2026-10-01",
       end_date: "2026-11-15",
       target_date: "2026-11-15",

@@ -126,10 +126,7 @@ export function ExpenseModal({
   const [games, setGames] = useState<GameOption[]>([])
   const [gameId, setGameId] = useState("")
   const [schedules, setSchedules] = useState<ScheduleOption[]>([])
-  const [pickupSchedules, setPickupSchedules] = useState<ScheduleOption[]>([])
-  const [pickupScheduleId, setPickupScheduleId] = useState("")
   const [isVersionPass, setIsVersionPass] = useState(false)
-  const [manualPickupId, setManualPickupId] = useState("")
   const [wallets, setWallets] = useState<WalletInfo[]>([])
   const [title, setTitle] = useState("")
   const [originalPrice, setOriginalPrice] = useState("")
@@ -191,14 +188,12 @@ export function ExpenseModal({
         setCategory(CATEGORIES.includes(cat) ? cat : "게임")
         setGameId(editingExpense.game_id ?? "")
         prevGameIdRef.current = editingExpense.game_id ?? ""
-        setPickupScheduleId(editingExpense.pickup_schedule_id ?? "")
         const isPass = Boolean(
           editingExpense.start_date &&
           editingExpense.end_date &&
           editingExpense.start_date !== editingExpense.end_date
         )
         setIsVersionPass(isPass)
-        setManualPickupId(editingExpense.pickup_schedule_id ?? "")
 
         const method = editingExpense.payment_method
         const restoredPlatform = resolveStorePlatform(method, editingExpense.point_platform)
@@ -240,10 +235,7 @@ export function ExpenseModal({
         setGameId(plannedExpense?.game_id ?? "")
         prevGameIdRef.current = plannedExpense?.game_id ?? ""
         setSchedules([])
-        setPickupSchedules([])
-        setPickupScheduleId(plannedExpense?.pickup_schedule_id ?? "")
         setIsVersionPass(false)
-        setManualPickupId("")
       }
     }
     prevOpenRef.current = open
@@ -280,8 +272,6 @@ export function ExpenseModal({
   useEffect(() => {
     if (!gameId) {
       setSchedules([])
-      setPickupSchedules([])
-      setPickupScheduleId("")
       prevGameIdRef.current = ""
       return
     }
@@ -292,14 +282,11 @@ export function ExpenseModal({
         .from("game_schedules")
         .select("id, game_id, title, schedule_type, start_date, end_date")
         .eq("game_id", gameId)
-        .in("schedule_type", ["VERSION", "PICKUP"])
+        .in("schedule_type", ["VERSION"])
         .order("start_date")
       if (!cancelled) {
-        const all = (data ?? []) as ScheduleOption[]
-        const versionSchedules = all.filter((s) => s.schedule_type === "VERSION")
-        const pickups = all.filter((s) => s.schedule_type === "PICKUP")
+        const versionSchedules = ((data ?? []) as ScheduleOption[]).filter((s) => s.schedule_type === "VERSION")
         setSchedules(versionSchedules)
-        setPickupSchedules(pickups)
         if (isGameChanged && !isEditMode && !isPlannedPayment && paymentDate) {
           const matched = versionSchedules.find(
             (s) => s.start_date <= paymentDate && paymentDate <= s.end_date
@@ -321,31 +308,6 @@ export function ExpenseModal({
     if (!paymentDate) return null
     return schedules.find((s) => s.start_date <= paymentDate && paymentDate <= s.end_date) ?? null
   }, [paymentDate, schedules])
-
-  const versionPickups = useMemo(() => {
-    if (!matchingVersion) return []
-    return pickupSchedules.filter(
-      (p) => p.start_date <= matchingVersion.end_date && p.end_date >= matchingVersion.start_date
-    )
-  }, [matchingVersion, pickupSchedules])
-
-  const availablePickups = useMemo(() => {
-    if (!paymentDate) return []
-    return pickupSchedules.filter(
-      (p) => p.start_date <= paymentDate && paymentDate <= p.end_date
-    )
-  }, [paymentDate, pickupSchedules])
-
-  useEffect(() => {
-    if (isVersionPass) return
-    if (availablePickups.length === 0) {
-      setPickupScheduleId("")
-    } else if (availablePickups.length === 1) {
-      setPickupScheduleId(availablePickups[0].id)
-    } else {
-      setPickupScheduleId("ALL_CURRENT")
-    }
-  }, [availablePickups, isVersionPass])
 
   const updateCalculatedFinal = (orig: number, disc: number, pts: number) => {
     const effectiveDisc = disc > 0 ? disc : pts
@@ -535,18 +497,7 @@ export function ExpenseModal({
     const effectiveDeductAsset = paymentMethod === "NAVER_PAY" ? false : deductAsset
     try {
       const schedule = isGameCategory ? (matchingVersion ?? undefined) : undefined
-      const activePickupId = isVersionPass ? manualPickupId : pickupScheduleId
-      const activePickupsList = isVersionPass ? versionPickups : availablePickups
-
-      const isAllCurrent = activePickupId === "ALL_CURRENT"
-      const effectivePickupId = isAllCurrent
-        ? (activePickupsList[0]?.id ?? null)
-        : (activePickupId || null)
-      const linkedIds = isAllCurrent
-        ? activePickupsList.map((p) => p.id)
-        : (effectivePickupId ? [effectivePickupId] : [])
-      const pickupMeta = linkedIds.length > 1 ? `[PICKUPS:${linkedIds.join(",")}]` : null
-      const finalMemo = mergeEventMemo(pickupMeta, storeEventResult.eventTag)
+      const finalMemo = mergeEventMemo(null, storeEventResult.eventTag)
 
       let effectiveStartDate = input.paymentDate
       let effectiveEndDate = input.paymentDate
@@ -576,7 +527,7 @@ export function ExpenseModal({
             deduct_from_asset: effectiveDeductAsset,
             game_id: isGameCategory && gameId ? gameId : null,
             schedule_id: isGameCategory ? (schedule?.id ?? null) : null,
-            pickup_schedule_id: isGameCategory ? effectivePickupId : null,
+            pickup_schedule_id: null,
             memo: finalMemo,
           })
           .eq("id", editingExpense.id)
@@ -595,7 +546,7 @@ export function ExpenseModal({
             user_id: user.id,
             game_id: isGameCategory && gameId ? gameId : null,
             schedule_id: schedule?.id ?? null,
-            pickup_schedule_id: isGameCategory ? effectivePickupId : null,
+            pickup_schedule_id: null,
             title: title.trim(),
             category,
             status: "PLANNED",
@@ -618,15 +569,7 @@ export function ExpenseModal({
 
       if (actionType === "PAY") {
         const customEarnedPoints = toAmount(earnedPointsInput)
-        const isAllCurrent = pickupScheduleId === "ALL_CURRENT"
-        const effectivePickupId = isAllCurrent
-          ? (availablePickups[0]?.id ?? null)
-          : (pickupScheduleId || null)
-        const linkedIds = isAllCurrent
-          ? availablePickups.map((p) => p.id)
-          : (effectivePickupId ? [effectivePickupId] : [])
-        const pickupMeta = linkedIds.length > 1 ? `[PICKUPS:${linkedIds.join(",")}]` : null
-        const finalMemo = mergeEventMemo(pickupMeta, storeEventResult.eventTag)
+        const finalMemo = mergeEventMemo(null, storeEventResult.eventTag)
 
         const { error: rpcError } = await supabase.rpc("process_expense_payment", {
           p_expense_id: expenseId,
@@ -694,8 +637,6 @@ export function ExpenseModal({
                     if (newCat !== "게임") {
                       setGameId("")
                       setSchedules([])
-                      setPickupSchedules([])
-                      setPickupScheduleId("")
                       setPaymentPlatform("OTHER")
                       setUsedPoints("")
                       updateCalculatedFinal(toAmount(originalPrice), toAmount(discountAmount), 0)
@@ -745,11 +686,7 @@ export function ExpenseModal({
                               id="expense-version-pass-toggle"
                               checked={isVersionPass}
                               onChange={(e) => {
-                                const checked = e.target.checked
-                                setIsVersionPass(checked)
-                                if (checked) {
-                                  setManualPickupId("")
-                                }
+                                setIsVersionPass(e.target.checked)
                               }}
                             />
                             <span className="font-medium text-primary">
@@ -764,69 +701,6 @@ export function ExpenseModal({
                         </div>
                       )}
 
-                      <div>
-                        <label htmlFor="expense-pickup" className={labelClassName}>연결된 픽업 일정</label>
-                        {isVersionPass ? (
-                          <select
-                            id="expense-pickup"
-                            className={selectClassName}
-                            value={manualPickupId}
-                            onChange={(e) => setManualPickupId(e.target.value)}
-                          >
-                            <option value="">선택 안 함 (버전 일반/패스)</option>
-                            {versionPickups.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.title} ({p.start_date} ~ {p.end_date})
-                              </option>
-                            ))}
-                            {versionPickups.length > 1 && (
-                              <option value="ALL_CURRENT">
-                                버전 내 모든 픽업 동시 연계 ({versionPickups.map((p) => p.title).join(", ")})
-                              </option>
-                            )}
-                          </select>
-                        ) : (
-                          <select
-                            id="expense-pickup"
-                            className={`${selectClassName} opacity-60 cursor-not-allowed`}
-                            value={pickupScheduleId}
-                            disabled
-                          >
-                            {availablePickups.length === 0 ? (
-                              <option value="">진행 중인 픽업 없음 (픽업 외 지출)</option>
-                            ) : availablePickups.length === 1 ? (
-                              <option value={availablePickups[0].id}>
-                                {availablePickups[0].title} ({availablePickups[0].start_date} ~ {availablePickups[0].end_date})
-                              </option>
-                            ) : (
-                              <option value="ALL_CURRENT">
-                                진행 중인 모든 배너에 동시 연계 ({availablePickups.map((p) => p.title).join(", ")})
-                              </option>
-                            )}
-                          </select>
-                        )}
-                        {isVersionPass ? (
-                          <p className="text-[11px] text-content-secondary mt-1">
-                            {manualPickupId
-                              ? manualPickupId === "ALL_CURRENT"
-                                ? "※ 버전 내 모든 배너에 동시 연계되며, 자산 차감 및 총 과금액은 1건(1x)만 계산됩니다."
-                                : "※ 선택한 픽업의 과금 분석 통계에 연계됩니다."
-                              : "※ 픽업을 선택하지 않으면 버전 일반 패스 지출로 집계됩니다."}
-                          </p>
-                        ) : availablePickups.length > 1 ? (
-                          <p className="text-[11px] text-info mt-1">
-                            ※ 결제일 기준 진행 중인 모든 배너에 동시 연계되며, 자산 차감 및 총 과금액은 1건(1x)만 계산됩니다.
-                          </p>
-                        ) : availablePickups.length === 1 ? (
-                          <p className="text-[11px] text-info mt-1">
-                            ※ 결제일이 픽업 기간 내에 포함되어 해당 배너로 자동 연계됩니다.
-                          </p>
-                        ) : (
-                          <p className="text-[11px] text-content-secondary mt-1">
-                            ※ 결제일이 픽업 기간 외에 해당하여 픽업 외 지출(일반)로 자동 매핑됩니다.
-                          </p>
-                        )}
-                      </div>
                     </>
                   )}
                 </>

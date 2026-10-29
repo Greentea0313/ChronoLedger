@@ -27,7 +27,6 @@ export interface ExpenseDetail {
   point_platform?: string | null
   deduct_from_asset?: boolean
   gameName?: string | null
-  pickupTitle?: string | null
   memo?: string | null
   template_id?: string | null
 }
@@ -245,7 +244,6 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
             ) : (
               <dl className="grid grid-cols-2 gap-1 text-sm">
                 {expense.gameName && (<><dt className="text-content-secondary">게임</dt><dd>{expense.gameName}</dd></>)}
-                {expense.pickupTitle && (<><dt className="text-content-secondary">픽업</dt><dd>{expense.pickupTitle}</dd></>)}
                 {expense.category && (<><dt className="text-content-secondary">카테고리</dt><dd>{expense.category}</dd></>)}
                 {expense.original_price !== undefined && (<><dt className="text-content-secondary">정가</dt><dd>{won(expense.original_price)}</dd></>)}
                 {expense.discount_amount !== undefined && (<><dt className="text-content-secondary">할인</dt><dd>{won(expense.discount_amount)}</dd></>)}

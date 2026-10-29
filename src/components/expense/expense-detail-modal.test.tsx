@@ -68,16 +68,6 @@ describe("ExpenseDetailModal", () => {
     expect(screen.getByText("결제 금액을 네이버페이 머니 잔액으로 전액 환불합니다. 계속할까요?")).toBeTruthy()
   })
 
-  it("renders pickup title when pickupTitle is provided", () => {
-    const pickupExpense: ExpenseDetail = {
-      ...confirmed,
-      pickupTitle: "2026 수영복 한정 픽업",
-    }
-    render(<ExpenseDetailModal expense={pickupExpense} onOpenChange={vi.fn()} />)
-    expect(screen.getByText("픽업")).toBeTruthy()
-    expect(screen.getByText("2026 수영복 한정 픽업")).toBeTruthy()
-  })
-
   it("allows updating metadata (title, category, memo) for confirmed expenses", async () => {
     rpc.mockResolvedValue({ error: null })
     const onUpdated = vi.fn()
