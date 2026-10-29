@@ -34,12 +34,13 @@
 | `MIGRATION_EXPENSE_EDIT.sql` | 확정 지출 메타데이터 수정 RPC(결제일 포함) | `SELECT oid::regprocedure FROM pg_proc WHERE proname = 'update_confirmed_expense_metadata';` → `date` 포함 5개 인자 1행 |
 | `MIGRATION_MEMO_UNIQUE.sql` | `personal_memos (user_id, memo_date)` 유니크. **중복 메모는 최신 1건만 남기고 삭제** | `SELECT conname FROM pg_constraint WHERE conname = 'uq_personal_memos_user_date';` → 1행 |
 | `MIGRATION_USER_GAME_MEMO.sql` | `user_games.memo` 컬럼 | `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_games' AND column_name = 'memo';` → 1행 |
+| `MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` | `subscription_templates` 직접 DELETE 정책 제거(삭제는 `delete_subscription_template` RPC로만) | `SELECT policyname FROM pg_policies WHERE tablename = 'subscription_templates' AND cmd = 'DELETE';` → 0행 |
 
 ## C. 시드·더미·테스트
 
 - `seed/DUMMY_DATA_USER.sql` / `seed/CLEANUP_DUMMY_DATA_USER.sql`: 하드코딩된 테스트 사용자 ID(`dae6adf8-…`)의 더미 데이터를 생성/정리합니다. 운영 사용자 데이터에는 사용하지 않습니다. 게임 카탈로그(`games`)는 정리 대상이 아닙니다.
 - `tests/TESTS.sql`: 배포된 스키마 대상 DB/RPC/RLS rollback-only 스모크 테스트입니다. 실행 전제와 `psql` 예시는 파일 상단을 따릅니다. 전체 SRS 수용 검증을 대체하지 않습니다.
-  - ⚠️ 2026-10-29 기준 `WAL-01` 단언이 현재 결제 RPC와 맞지 않아 그 지점에서 실패합니다. 테스트는 "WALLET 결제는 적립 0"을 기대하지만, 현재 `process_expense_payment`는 포인트 플랫폼이 지정되면 WALLET 결제에도 적립합니다. 적립 규칙을 확정한 뒤 테스트를 갱신해야 합니다(`docs/to-do.md` 후속 과제).
+  - 2026-10-29 기준 `SCHEMA.sql` + `migrations/` 전체를 적용한 DB에서 끝까지 PASS합니다. `WAL-01`은 포인트 플랫폼을 지정한 WALLET 결제가 스토어 적립률로 적립되는 현행 규칙을 검증합니다.
 
 ## D. 아카이브 (`archive/`, 실행 금지)
 

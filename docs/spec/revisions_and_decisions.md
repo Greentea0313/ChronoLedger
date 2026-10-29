@@ -1059,3 +1059,10 @@ GRANT EXECUTE ON FUNCTION public.reject_game_request(UUID, TEXT) TO authenticate
 - 만료 지출은 자동 취소하지 않는다. 온라인에서 해결 전까지 예정 소비액에 포함한다. 이동 대상은 같은 게임의 가장 가까운 미래 일정이며 예정일은 그 일정의 종료일이다.
 - 실제 DDL에 없었던 `handle_new_user_setup()` 및 `auth.users` 가입 트리거를 `SCHEMA.sql`에 추가했다. 가입 시 재무 및 두 포인트 지갑을 기본값 0으로 멱등 생성하고, 월별 예산 행은 만들지 않으며 `default_budget`을 폴백한다.
 - SRS는 요구사항 초안으로 작성되었으며 사용자 리뷰/승인과 DB 실행 검증 전까지 공식 승인 기준선이 아니다.
+
+## 2026-10-29 결정 갱신 (구독 템플릿 삭제 경로, WALLET 결제 적립)
+
+아래 내용은 2026-10-02 결정 중 해당 항목을 대체한다.
+
+- 사용자는 구독 템플릿 삭제를 허용하되 `delete_subscription_template` RPC로만 수행하도록 결정했다(선택지 ③). 직접 DELETE를 허용하면 RLS로 삭제되지 않은 `PLANNED` 회차가 `template_id = NULL` 상태로 남으므로 `Delete own templates` 정책을 제거한다(`sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql`). 앱의 직접 DELETE/비활성화 폴백도 제거한다.
+- R2(커밋 `7307b99`, 구글 플레이 포인트 적립 누락 수정) 이후 결제 RPC는 포인트 플랫폼이 지정된 WALLET 결제에도 스토어 적립률로 적립한다. 이를 현행 규칙으로 확정하고 SRS FR-042와 `sql/tests/TESTS.sql` WAL-01을 이에 맞췄다.

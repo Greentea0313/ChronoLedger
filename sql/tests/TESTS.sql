@@ -37,8 +37,9 @@
 --   FIN-01 authenticated / A       설정 RPC -> asset=100000, budget=20000.
 --   WAL-00 authenticated / A       수동 보정 -> Google point=500,
 --                                  MANUAL_ADJUST 원장 amount/balance_after=500.
---   WAL-01 authenticated / A       WALLET 결제 -> final=8900, asset=91100,
---                                  Google point=400, earned_points=0.
+--   WAL-01 authenticated / A       WALLET 결제(포인트 플랫폼 GOOGLE_PLAY) -> final=8900,
+--                                  asset=91100, earned=floor(8900*0.10%)=8,
+--                                  Google point=500-100+8=408.
 --   WAL-02 authenticated / A       같은 CONFIRMED 결제 재호출 -> 거부, no mutation.
 --   REF-01 authenticated / A       환불 -> asset/used points 원복, manual adjust 보존.
 --   REF-02 authenticated / A       PAYMENT_REFUND 복구 시도 -> 거부.
@@ -243,9 +244,9 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM public.expenses
         WHERE id = v_expense AND status = 'CONFIRMED'
-          AND final_amount = 8900 AND earned_points = 0
+          AND final_amount = 8900 AND earned_points = 8
     ) THEN
-        RAISE EXCEPTION 'FAIL: WALLET payment values or no-earn rule are incorrect';
+        RAISE EXCEPTION 'FAIL: WALLET payment values or point-platform earn are incorrect';
     END IF;
     IF NOT EXISTS (
         SELECT 1 FROM public.user_finances
@@ -255,13 +256,13 @@ BEGIN
     END IF;
     IF NOT EXISTS (
         SELECT 1 FROM public.store_wallets
-        WHERE user_id = v_user AND platform = 'GOOGLE_PLAY' AND current_balance = 400
+        WHERE user_id = v_user AND platform = 'GOOGLE_PLAY' AND current_balance = 408
     ) THEN
-        RAISE EXCEPTION 'FAIL: payment did not deduct the used points';
+        RAISE EXCEPTION 'FAIL: payment did not deduct used points and credit earned points';
     END IF;
 END;
 $$;
-\echo PASS: WALLET payment with store points deducts points/assets and earns no points
+\echo PASS: WALLET payment with store points deducts points/assets and earns at the point-platform rate
 
 SET LOCAL ROLE authenticated;
 DO $$

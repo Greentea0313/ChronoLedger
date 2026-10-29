@@ -644,30 +644,8 @@ export default function ExpensesPage() {
         p_template_id: deletingTemplate.id,
       })
 
-      if (rpcError) {
-        try {
-          await supabase
-            .from("expenses")
-            .delete()
-            .eq("template_id", deletingTemplate.id)
-            .eq("status", "PLANNED")
-        } catch {
-          // ignore fallback
-        }
-
-        const { error: deleteError } = await supabase
-          .from("subscription_templates")
-          .delete()
-          .eq("id", deletingTemplate.id)
-
-        if (deleteError) {
-          await supabase
-            .from("subscription_templates")
-            .update({ is_active: false })
-            .eq("id", deletingTemplate.id)
-          throw new Error("구독 삭제 권한이 없어 구독이 중지 처리되었습니다. Supabase SQL Editor에서 삭제 정책을 실행해 주세요.")
-        }
-      }
+      // 템플릿 삭제는 예정 회차 정리와 함께 원자적으로 처리되는 RPC로만 수행한다 (직접 DELETE는 RLS로 거부됨)
+      if (rpcError) throw rpcError
 
       setTemplates((prev) => prev.filter((t) => t.id !== deletingTemplate.id))
       setDeletingTemplate(null)

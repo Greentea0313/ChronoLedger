@@ -269,6 +269,52 @@ describe("ExpensesPage", () => {
     })
   })
 
+  it("delete_subscription_template RPC 실패 시 직접 DELETE/비활성화 폴백 없이 오류를 알리고 템플릿을 유지한다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {})
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const expenseBuilder = createExpenseQueryBuilder(sampleExpenses)
+    const subscriptionBuilder = createExpenseQueryBuilder([
+      {
+        id: "tpl-1",
+        title: "넷플릭스",
+        category: "정기 구독",
+        cycle_type: "MONTHLY_DAY",
+        billing_day: 15,
+        default_price: 17000,
+        payment_method: "WALLET",
+        is_active: true,
+        game_id: null,
+        games: null,
+      },
+    ])
+    const deleteSpy = vi.fn()
+    Object.assign(subscriptionBuilder, { delete: deleteSpy })
+    Object.assign(expenseBuilder, { delete: deleteSpy })
+
+    from.mockImplementation((table: string) => {
+      if (table === "subscription_templates") return subscriptionBuilder
+      return expenseBuilder
+    })
+    rpc.mockResolvedValue({ error: new Error("삭제할 수 있는 본인 소유의 구독 템플릿이 아닙니다.") })
+
+    render(<ExpensesPage />)
+
+    fireEvent.click(await screen.findByRole("tab", { name: "정기 구독" }))
+    fireEvent.click(screen.getByRole("button", { name: "넷플릭스 구독 삭제" }))
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }))
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith("삭제할 수 있는 본인 소유의 구독 템플릿이 아닙니다.")
+    })
+    expect(deleteSpy).not.toHaveBeenCalled()
+    expect(subscriptionBuilder.update).not.toHaveBeenCalled()
+    // 삭제 확인 다이얼로그가 열린 채 유지되어 배경이 aria-hidden 처리되므로 hidden 요소까지 조회한다
+    expect(screen.getByRole("button", { name: "넷플릭스 구독 삭제", hidden: true })).toBeTruthy()
+    alertSpy.mockRestore()
+    consoleSpy.mockRestore()
+  })
+
   it("게임별 과금 분석이 확정 게임 지출만 게임 단위로 합산·정렬해 렌더링한다", async () => {
     useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
     const rows = [

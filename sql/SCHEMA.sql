@@ -1400,9 +1400,8 @@ CREATE POLICY "Insert own templates" ON public.subscription_templates FOR INSERT
 CREATE POLICY "Update own templates" ON public.subscription_templates FOR UPDATE TO authenticated
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Delete own templates" ON public.subscription_templates FOR DELETE TO authenticated
-    USING (auth.uid() = user_id);
 -- 구독 종료는 비활성화(is_active=false) 또는 템플릿 삭제로 처리한다.
+-- 템플릿 삭제는 PLANNED 회차를 함께 정리하는 delete_subscription_template RPC로만 허용하며, 직접 DELETE 정책은 두지 않는다.
 CREATE POLICY "Read own expenses" ON public.expenses FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Insert own planned expenses" ON public.expenses FOR INSERT TO authenticated
     WITH CHECK (auth.uid() = user_id AND status = 'PLANNED' AND earned_points = 0 AND used_points = 0);
