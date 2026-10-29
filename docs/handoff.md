@@ -51,12 +51,29 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: d5522dc)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & State)` | `Phase 12.23 (R14)` 지출 모달(`expense-modal.tsx`) 예정 지출 수정·결제 시 기존 사용자 메모 보존 및 `expenses/page.tsx` 잔여 주석 정리 (`src/components/expense/expense-modal.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/components/expense/expense-modal.test.tsx`) | `✅ DONE` (`PlannedExpenseInput.memo` 추가, 수정·결제 시 기존 메모를 `mergeEventMemo`로 병합 보존, `handleConfirmPlanned`·기한 초과 예정 조회에 memo 전달, 잔여 픽업 주석 정리, 메모 보존 단위 테스트 2건, tsc·eslint·vitest 통과) |
-| **2** | `▶ READY` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.15-F1` `sql/tests/TESTS.sql`의 `WAL-01` 이후 스모크 테스트 단언을 현행 결제/적립 RPC(`process_expense_payment`) 규격에 맞게 갱신 (`sql/tests/TESTS.sql`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 즉시 착수)` |
-| **3** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.23 & 12.15-F1 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `⏳ 대기 중 (Phase 12.23 & 12.15-F1 완료 후 착수)` |
+| **2** | `✅ DONE (SHA: cb0b92c)` | ~~GPT Codex~~ ➡️ **Claude Opus** *(1순위 대체로 수행 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.15-F1` `sql/tests/TESTS.sql`의 `WAL-01` 이후 스모크 테스트 단언을 현행 결제/적립 RPC(`process_expense_payment`) 규격에 맞게 갱신 (`sql/tests/TESTS.sql`) | `✅ DONE` (WAL-01 적립 8·잔액 408로 갱신, 사용자 결정 ③에 따라 `Delete own templates` 정책 제거 마이그레이션·앱 직접 DELETE 폴백 제거·SRS FR-042/FR-053 갱신, 로컬 PostgreSQL 17에서 기존 DB·신규 설치 모두 `PASS: all smoke-test fixtures and mutations rolled back`, tsc·eslint·vitest 271 통과) |
+| **3** | `▶ READY` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Phase 12.23 & 12.15-F1 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ 착수 대기` (Step 2를 Claude Opus가 대체 수행했으므로 리뷰 독립성을 위해 **Gemini 4 Argon** 수행 권장) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## Phase 12.15-F1 스모크 테스트 정합화 및 구독 템플릿 삭제 RPC 전용화 (2026-10-29)
+
+- **수행 주체**: Claude Opus (GPT Codex 1순위 대체, Maker - Core & SQL/Test)
+- **커밋**: `cb0b92c`
+- **수행 내역**:
+  1. `sql/tests/TESTS.sql` WAL-01: 포인트 플랫폼(GOOGLE_PLAY)을 지정한 WALLET 결제가 적립률 0.10%로 `earned_points = 8`, Google 잔액 500→400→408이 되도록 단언과 헤더 설명 갱신. 환불(REF-01) 후 잔액은 500으로 기존 단언 그대로 유효.
+  2. WAL-01 수정 후 드러난 REQ-02 실패(본인 템플릿 직접 DELETE 허용)는 SRS FR-053(삭제 금지)과 2026-10-13 구독 삭제 기능의 충돌이었음. 사용자 결정 ③(RPC로만 삭제)에 따라:
+     - `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 신규(`DROP POLICY IF EXISTS "Delete own templates"`), `SCHEMA.sql` 반영, `sql/README.md` B표에 확인 쿼리 추가 및 WAL-01 경고 제거.
+     - `src/app/dashboard/expenses/page.tsx`: RPC 실패 시 직접 DELETE/비활성화 폴백 제거(예정 회차가 주인 없이 남는 경로 차단), 실패 시 오류 알림. `page.test.tsx`에 폴백 미호출 테스트 추가.
+     - SRS FR-042(포인트 플랫폼 지정 WALLET 결제 적립, R2 반영)·FR-053, SPEC, `revisions_and_decisions.md` 결정 갱신.
+- **검증**:
+  - 로컬 PostgreSQL 17 임시 클러스터 + Supabase 스텁(`auth.users`/`auth.uid()`/`auth.jwt()`, `storage.objects`/`foldername`, `cron` 스텁, `anon`/`authenticated` 역할, 기본 권한)에서 ① 기존 DB(SCHEMA + migrations) + 신규 마이그레이션 2회, ② 신규 설치(수정된 SCHEMA만), ③ 신규 설치 + 전체 migrations 모두 TESTS.sql 끝까지 PASS. `pg_cron` 확장 생성문만 스텁 대체를 위해 제외.
+  - `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 41개 파일 271개 테스트 통과.
+- **운영 반영 필요 (사용자 수동)**: Supabase SQL Editor에서 `sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 실행 후 `sql/README.md` B표 확인 쿼리로 0행 확인. 실제 Supabase 테스트 프로젝트에서의 TESTS.sql 실행은 미수행(검증 필요).
 
 ---
 

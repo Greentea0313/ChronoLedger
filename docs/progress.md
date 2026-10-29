@@ -1,5 +1,14 @@
 # 프로젝트 진행 현황
 
+## Phase 12.15-F1 스모크 테스트 정합화 및 구독 템플릿 삭제 RPC 전용화 (2026-10-29)
+
+- **수행 주체**: Claude Opus (GPT Codex 1순위 대체)
+- **결과**: 커밋 `cb0b92c`. `TESTS.sql` WAL-01 갱신, 사용자 결정 ③에 따라 `Delete own templates` 정책 제거 마이그레이션 및 앱 폴백 제거, SRS FR-042/FR-053 갱신.
+- **검증**: 로컬 PostgreSQL 17 + Supabase 스텁에서 기존 DB·신규 설치 모두 TESTS.sql 끝까지 PASS. tsc·eslint 0건, vitest 271개 통과.
+- **다음 단계**:
+  - Dispatch Step 3 통합 리뷰(`▶ READY`, Gemini 4 Argon 권장).
+  - 운영 Supabase에 `MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` 수동 적용(12.15-F2).
+
 ## Phase 12.20 ~ 12.22 통합 정적 리뷰 및 Run 마감 (2026-10-29)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)

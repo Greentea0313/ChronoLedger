@@ -92,3 +92,13 @@
      1. 변경은 `sql/migrations/`에 재실행 안전하게 작성하고 같은 변경을 `SCHEMA.sql`에 반영한다. 대체된 파일은 `sql/archive/`로 옮기고 재실행하지 않는다([sql/README.md](../sql/README.md)).
      2. 함수 인자를 추가·변경하면 `CREATE OR REPLACE`만으로는 구 시그니처가 오버로드로 남는다. 먼저 `DROP FUNCTION IF EXISTS <구 시그니처>`로 제거한다. DEFAULT 인자가 붙으면 PostgREST 호출이 모호해지고, 남은 구버전 금전 RPC는 새 검증을 우회하는 경로가 된다.
      3. 신규 설치 가능 여부는 빈 DB(로컬 PGlite + auth/storage/cron 스텁 등)에서 `SCHEMA.sql` → `migrations/` 2회 실행으로 확인한다.
+
+28. **로컬 SQL 스모크 테스트 실행 시 Supabase 의존성**
+    - 증상: 로컬 PostgreSQL에서 `SCHEMA.sql`/`TESTS.sql`을 그대로 실행하면 `auth`/`storage`/`cron` 스키마와 `anon`/`authenticated` 역할이 없어 실패하고, `CREATE EXTENSION pg_cron`은 확장 미설치로 실패한다. 또 Supabase는 public 객체에 기본 권한을 주므로, 이를 흉내 내지 않으면 RLS/ACL 단언 결과가 달라진다.
+    - 방어책:
+     1. 임시 클러스터(`initdb` + 비표준 포트)에 `auth.users`·`auth.uid()`(`request.jwt.claim.sub`)·`auth.jwt()`(`request.jwt.claims`), `storage.objects`·`storage.foldername()`, `cron.job`·`cron.schedule/unschedule` 스텁과 `ALTER DEFAULT PRIVILEGES ... TO anon, authenticated` 기본 권한을 먼저 만든다.
+     2. `CREATE EXTENSION IF NOT EXISTS pg_cron;` 줄만 제외한 사본으로 `SCHEMA.sql`과 `MIGRATION_PG_CRON.sql`을 적용한다. 역할은 클러스터 전역이므로 두 번째 DB에서는 `CREATE ROLE`을 생략한다.
+     3. 로컬 PASS는 실제 Supabase(Auth/PostgREST) 동작을 보장하지 않으므로 전용 테스트 프로젝트 실행을 별도로 확인한다.
+29. **Radix 다이얼로그가 열린 상태의 테스트 조회**
+    - 증상: 모달 다이얼로그가 열려 있으면 배경이 `aria-hidden` 처리되어 `getByRole`이 배경 요소를 찾지 못한다.
+    - 방어책: 다이얼로그가 열린 채 배경 요소를 확인할 때는 `getByRole(..., { hidden: true })`를 사용한다.

@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-10-29 (Phase 12.15-F1 스모크 테스트 정합화 및 구독 템플릿 삭제 RPC 전용화)
+
+- **`sql/tests/TESTS.sql` (cb0b92c)**: WAL-01을 현행 결제 RPC에 맞춰 갱신(포인트 플랫폼 지정 WALLET 결제 적립 8, 잔액 408). 전체 스모크 테스트가 끝까지 PASS.
+- **구독 템플릿 삭제 RPC 전용화**: `Delete own templates` RLS 정책 제거(`sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql`, `SCHEMA.sql`). 소비 페이지의 RPC 실패 시 직접 DELETE/비활성화 폴백을 제거하고 오류를 알리도록 변경(단위 테스트 추가).
+- **명세 갱신**: SRS FR-042(포인트 플랫폼 지정 WALLET 결제 적립)·FR-053(템플릿 삭제는 RPC로만), SPEC, `revisions_and_decisions.md`.
+
 ## 2026-10-29 (Phase 12.20 ~ 12.22 통합 정적 리뷰)
 
 - **통합 리뷰 완료 (Claude Opus)**: `de373b9` ↔ `a688dab` 범위와 Phase 12.22 지침 변경을 검토함. 차단 결함 0건이며, P3 1건(지출 모달 기존 메모 덮어쓰기, 기존 결함)과 P4 3건을 `docs/handoff.md`에 기록함.
