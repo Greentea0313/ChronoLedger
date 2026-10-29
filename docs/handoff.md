@@ -56,11 +56,26 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: 38d3f71)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Types & Schema Sync)` | `Phase 12.15-F2: sql/SCHEMA.sql 및 운영 DB 마이그레이션 반영 완료에 따른 src/types/database.types.ts 테이블·RPC 타입 최신화 (src/types/database.types.ts)` | `✅ DONE` (Claude Sonnet 5.5: `database.types.ts`를 `sql/SCHEMA.sql` 기준으로 동기화 — `user_games.memo`, `subscription_templates.cycle_type`/`interval_days`/`billing_day` nullable, RPC 6종 추가(`admin_create_game`, `delete_subscription_template`, `get_account_deletion_status`, `purge_expired_account_deletion_requests`, `request_account_deletion`, `update_confirmed_expense_metadata`) 및 `process_expense_payment` 11개 인자 반영. **수용 기준과 SCHEMA.sql 불일치로 SCHEMA.sql을 우선 적용**: ① `subscription_templates`에 `billing_cycle`/`duration_days`/`start_date`/`end_date` 컬럼은 SCHEMA에 없음(`billing_cycle`은 `expenses` 컬럼) → 미반영, ② `update_confirmed_expense_metadata` 실제 인자는 `p_memo`/`p_target_date`(`p_game_id`/`p_payment_date` 아님), ③ purge 인자는 `p_limit`(`p_batch_size` 아님), ④ `add_wallet_income`은 SCHEMA/코드 어디에도 없어 미추가. tsc·lint·Vitest 271 PASS) |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** / **Claude Opus** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | `Phase 12.15-F2 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (docs/handoff.md, docs/progress.md, docs/changelog.md, docs/to-do.md)` | `Step 1 완료 후 착수 예정` |
+| **2** | `✅ DONE (Claude Opus 통합 리뷰 완료)` | **Gemini 4 Argon** / **Claude Opus** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | `Phase 12.15-F2 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (docs/handoff.md, docs/progress.md, docs/changelog.md, docs/to-do.md)` | `✅ DONE` (`38d3f71` 리뷰 PASS: 차단 결함 0건, P3 2건(RPC 인자 DEFAULT 3곳 필수 표기, 타입 파일 미연결). Maker의 수용 기준 이탈 4건은 모두 SCHEMA·호출부 기준으로 타당 확인. tsc 0 에러, lint 0건, vitest 41파일 271 PASS, `npm run build` 성공) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+
+---
+
+## Phase 12.15-F2 `database.types.ts` 동기화 통합 정적 리뷰 및 Run 마감 (2026-10-29)
+
+- **수행 주체**: Claude Opus 5.5 (Reviewer & Orchestrator)
+- **리뷰 범위**: Base `38d3f71^` ↔ Target `38d3f71` (`src/types/database.types.ts` 1개 파일). Target 이후 `src/`·`sql/` 변경 없음.
+- **방법**: `sql/SCHEMA.sql`(Target 시점)의 테이블 컬럼(타입·NOT NULL·DEFAULT)과 함수 시그니처(인자·DEFAULT·반환형)를 스크립트로 파싱해 타입 파일 `Row`/`Insert`/`Update`·`Functions`와 대조. 수용 기준 이탈 항목은 `sql/` 전체와 `src/` 호출부로 교차 확인.
+- **판정**: PASS. 차단(P1/P2) 결함 0건.
+  - 테이블 14개·전 컬럼 일치. 비트리거 함수 19개 전부 존재, 타입 파일에만 있는 함수 없음.
+  - Maker의 수용 기준 이탈 4건 모두 타당: ① `subscription_templates`의 `billing_cycle`/`duration_days`/`start_date`/`end_date`는 `sql/`(운영 적용 `migrations/` 포함)·`src/` 어디에도 없음, ② `update_confirmed_expense_metadata` 인자는 `p_memo`/`p_target_date`(호출부 `expense-detail-modal.tsx:118`과 일치), ③ purge 인자는 `p_limit`, ④ `add_wallet_income`은 SQL·코드에 부재. 수용 기준 작성 단계의 오류로 판단.
+  - **P3-1**: SCHEMA에서 DEFAULT가 있는 RPC 인자 3곳이 타입에서 필수로 표기됨 — `admin_create_game.p_default_icon_url`(이번 커밋 신규), `approve_game_request.p_default_icon_url`·`set_user_finance_settings.p_default_budget`(기존). 현재 호출부는 모두 값을 넘기므로 동작 영향 없음.
+  - **P3-2**: `database.types.ts`는 어디서도 import되지 않고 `src/lib/supabase/client.ts`가 `createClient<Database>` 없이 생성됨. 타입 파일 불일치가 tsc로 잡히지 않으며(예: `p_target_date: editDate || null`이 `?: string` 선언과 다름에도 통과), 사실상 문서 역할만 함. 연결 여부는 별도 설계 판단 필요.
+- **검증**: `npx tsc --noEmit` 0 에러, `npm run lint` 0건, `npx vitest run` 41파일 271 PASS, `npm run build` 정적 export 성공(3000 포트 dev 서버 미실행 확인 후).
+- **후속**: `docs/to-do.md` 12.15-F2-c(사용자 수동 원격 점검) 유지, 12.15-F3(P3 2건) 추가.
 
 ---
 

@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-10-29 (Phase 12.15-F2 통합 리뷰 마감)
+
+- `38d3f71`(`database.types.ts` 동기화) 정적 리뷰 PASS, Run `database-types-schema-sync` 마감. 코드 변경 없음. 리뷰 기록은 `docs/handoff.md`, 비차단 후속 과제는 `docs/to-do.md` 12.15-F3.
+
 ## 2026-10-29 (Phase 12.15-F2 database.types.ts 동기화)
 
 - **`src/types/database.types.ts`**: `user_games.memo`, `subscription_templates.cycle_type`/`interval_days` 추가 및 `billing_day` nullable 처리. RPC `admin_create_game`, `delete_subscription_template`, `get_account_deletion_status`, `purge_expired_account_deletion_requests`, `request_account_deletion`, `update_confirmed_expense_metadata` 추가, `process_expense_payment`에 `p_custom_earned_points`/`p_memo` 반영. `sql/SCHEMA.sql`을 기준으로 삼았으며 handoff 수용 기준과 다른 항목은 handoff.md 순서 1 기록 참조.

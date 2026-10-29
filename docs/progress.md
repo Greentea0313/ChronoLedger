@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.15-F2 통합 정적 리뷰 및 Run `database-types-schema-sync` 마감 (2026-10-29)
+
+- **수행 주체**: Claude Opus 5.5 (Reviewer & Orchestrator)
+- **결과**: `38d3f71` 리뷰 PASS(차단 결함 0건). SCHEMA 대조 스크립트로 테이블 14개·비트리거 RPC 19개 일치 확인, Maker의 수용 기준 이탈 4건 타당 확인. P3 2건(DEFAULT 인자 필수 표기 3곳, 타입 파일이 Supabase 클라이언트에 미연결) 기록.
+- **검증**: tsc 0 에러, lint 0건, Vitest 41파일 271 PASS, `npm run build` 성공.
+- **다음 단계**: Dispatch Queue 활성 과제 없음. 사용자 수동 12.15-F2-c(원격 DB 확인 쿼리·`TESTS.sql`), 선택 과제 12.15-F3.
+
 ## Phase 12.15-F2 `database.types.ts` 스키마 동기화 구현 (2026-10-29)
 
 - **수행 주체**: Claude Sonnet 5.5 (Maker) / 커밋 `38d3f71`
