@@ -484,7 +484,8 @@
 - [x] 12.15-F1 `sql/tests/TESTS.sql` WAL-01 이후 단언을 현행 결제/적립 RPC에 맞게 갱신 (`완료` - 커밋 `cb0b92c`, Claude Opus. 구독 템플릿 직접 DELETE 정책 제거 포함)
 - [x] 12.15-F2-a 운영 Supabase SQL Editor에서 sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql 실행 완료 (2026-10-29 사용자 실행 완료)
 - [x] 12.15-F2-b src/types/database.types.ts를 최신 sql/SCHEMA.sql 테이블(user_games.memo, subscription_templates) 및 11개 인자 process_expense_payment 등 전체 RPC 시그니처에 맞게 동기화 (담당: Claude Sonnet) (`완료` - 커밋 `38d3f71`, Claude Opus 통합 리뷰 PASS)
-- [ ] 12.15-F2-c 원격 DB 정합성 점검: `sql/README.md` B표 확인 쿼리 실행(특히 9개 인자 `process_expense_payment` 잔존 여부) 및 전용 테스트 프로젝트에서 `TESTS.sql` 실행 확인 (사용자 수동)
+- [x] 12.15-F2-c 원격 DB 정합성 점검: `sql/README.md` B표 확인 쿼리 실행(특히 9개 인자 `process_expense_payment` 잔존 여부) 및 전용 테스트 프로젝트에서 `TESTS.sql` 실행 확인 (사용자 수동) (`완료` - 2026-11-02)
+  - 결과: `process_expense_payment` 11개 인자·`update_confirmed_expense_metadata` 5개 인자, pg_cron 작업·`user_games.memo`·`public.users`·가입 트리거 2종 정상, 템플릿 직접 DELETE 정책 0. 운영에 누락돼 있던 `uq_personal_memos_user_date`는 `MIGRATION_MEMO_UNIQUE.sql`로 적용, 구 PHASE9 `game_schedules` 정책 1건 DROP. 신규 테스트 프로젝트(`SCHEMA.sql` 설치)에서 `TESTS.sql` 최종 PASS.
 - [ ] 12.15-F3 `database.types.ts` 리뷰 P3 후속 (비차단, 담당 후보: Claude Sonnet / 연결 여부 결정은 Claude Opus)
   - P3-1: SCHEMA에서 DEFAULT가 있는 RPC 인자를 optional로 표기 (`admin_create_game.p_default_icon_url`, `approve_game_request.p_default_icon_url`, `set_user_finance_settings.p_default_budget`).
   - P3-2: 타입 파일이 import되지 않고 `createClient`에 `Database` 제네릭이 없어 타입 불일치가 tsc로 검출되지 않음. `createClient<Database>` 연결(호출부 타입 오류 정리 포함) 또는 `supabase gen types` 재생성 절차 중 방향 결정 필요.

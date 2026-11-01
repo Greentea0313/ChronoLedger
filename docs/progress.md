@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.15-F2-c 운영 DB 정합성 점검 (2026-11-02, 사용자 수동 실행)
+
+- **운영 DB 확인 쿼리**: 결제 RPC 11개 인자·지출 수정 RPC 5개 인자 단일 시그니처, pg_cron `chronoledger-account-purge`(5분), `user_games.memo`, `public.users`, 가입 트리거 2종, 템플릿 직접 DELETE 정책 0 모두 정상.
+- **조치**: 운영에 `uq_personal_memos_user_date` 제약이 없었음 → `MIGRATION_MEMO_UNIQUE.sql` 실행(중복 메모 사전 조회는 실행 후에 수행해 삭제 건수는 미확인. 앱은 날짜별 기존 메모를 update하므로 중복은 동시 저장 시에만 생길 수 있었음). 구 PHASE9 `game_schedules` 정책 1건 DROP. 재조회로 전 항목 기대값 확인.
+- **스모크 테스트**: 신규 테스트 프로젝트에 `SCHEMA.sql` 설치 후 `TESTS.sql` 실행, `PASS: all smoke-test fixtures and mutations rolled back`.
+- **다음 단계**: Dispatch Queue 활성 과제 없음. 선택 과제 12.15-F3.
+
 ## Phase 12.15-F2 통합 정적 리뷰 및 Run `database-types-schema-sync` 마감 (2026-10-29)
 
 - **수행 주체**: Claude Opus 5.5 (Reviewer & Orchestrator)
