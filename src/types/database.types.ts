@@ -317,6 +317,9 @@ isOneToOne: false
 "delete_subscription_template":
 { Args: { "p_template_id": string }; Returns: undefined
                            },
+"dedupe_monthly_planned_expenses":
+{ Args: { "p_template_id": string }; Returns: number
+                           },
 "get_account_deletion_status":
 { Args: { "p_status_token": string }; Returns: Json
                            },

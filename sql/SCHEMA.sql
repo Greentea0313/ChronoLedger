@@ -1322,6 +1322,47 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+CREATE OR REPLACE FUNCTION public.dedupe_monthly_planned_expenses(p_template_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_deleted_count INTEGER := 0;
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION '인증되지 않은 사용자입니다.';
+    END IF;
+
+    PERFORM 1
+    FROM public.subscription_templates
+    WHERE id = p_template_id
+      AND user_id = v_user_id
+      AND is_active = true
+      AND COALESCE(cycle_type, 'MONTHLY_DAY') = 'MONTHLY_DAY'
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION '정리할 수 있는 본인 소유의 활성 월간 구독 템플릿이 아닙니다.';
+    END IF;
+
+    WITH ranked_planned AS (
+        SELECT e.id,
+               ROW_NUMBER() OVER (ORDER BY e.target_date ASC, e.id ASC) AS rn
+        FROM public.expenses AS e
+        WHERE e.user_id = v_user_id
+          AND e.template_id = p_template_id
+          AND e.status = 'PLANNED'
+    ), deleted AS (
+        DELETE FROM public.expenses AS e
+        USING ranked_planned AS r
+        WHERE e.id = r.id AND r.rn > 1
+        RETURNING e.id
+    )
+    SELECT COUNT(*)::INTEGER INTO v_deleted_count FROM deleted;
+
+    RETURN v_deleted_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- ============================================================================== 
 -- RLS 격리 및 보안 정책
 -- ==============================================================================
@@ -1446,6 +1487,7 @@ REVOKE ALL ON FUNCTION public.approve_game_request(UUID, TEXT) FROM PUBLIC, anon
 REVOKE ALL ON FUNCTION public.reject_game_request(UUID, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.admin_create_game(TEXT, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.delete_subscription_template(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.dedupe_monthly_planned_expenses(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.refund_expense_payment(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_confirmed_expense_metadata(UUID, VARCHAR, VARCHAR, TEXT, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_planned_expense(UUID) TO authenticated;
@@ -1459,6 +1501,7 @@ GRANT EXECUTE ON FUNCTION public.approve_game_request(UUID, TEXT) TO authenticat
 GRANT EXECUTE ON FUNCTION public.reject_game_request(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_create_game(TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_subscription_template(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.dedupe_monthly_planned_expenses(UUID) TO authenticated;
 
 -- 계정 탈퇴 만료 요청 5분 주기 정리 (pg_cron). purge 함수는 위 계정 삭제 절에서 정의한다.
 -- (출처: migrations/MIGRATION_PG_CRON.sql)

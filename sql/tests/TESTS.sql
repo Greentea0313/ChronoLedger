@@ -49,6 +49,8 @@
 --   EXP-01 authenticated / A       예정 취소 후 restore -> PLANNED로 복구.
 --   SUB-01 DB fixture + A JWT       템플릿 비활성화 -> 연결 PLANNED 회차 삭제;
 --                                  재활성화 후 새 회차 INSERT 허용.
+--   SUB-02 authenticated / A       월간 구독 중복 정리 RPC -> 가장 이른 PLANNED 1건 유지;
+--                                  CANCELLED/CONFIRMED 보존, 타인/없는 템플릿 거부.
 --   SCH-01 DB fixture 역할         PICKUP 날짜 변경 -> 연결 PLANNED expense 동기화.
 --   SCH-02 DB fixture 역할         일정 날짜 변경 -> PLANNED만 동기화, CONFIRMED/CANCELLED 보존,
 --                                  날짜 외 컬럼 변경은 동기화 없음.
@@ -503,6 +505,79 @@ BEGIN
 END;
 $$;
 \echo PASS: template pause deletes planned cycle and resume accepts a fresh cycle
+
+WITH target_dates AS (
+    SELECT (date_trunc('month', now() AT TIME ZONE 'Asia/Seoul')::date + INTERVAL '1 month' + INTERVAL '10 days')::date AS target_date
+    UNION ALL
+    SELECT (date_trunc('month', now() AT TIME ZONE 'Asia/Seoul')::date + INTERVAL '1 month' + INTERVAL '45 days')::date
+    UNION ALL
+    SELECT (date_trunc('month', now() AT TIME ZONE 'Asia/Seoul')::date + INTERVAL '1 month' + INTERVAL '80 days')::date
+    UNION ALL
+    SELECT (date_trunc('month', now() AT TIME ZONE 'Asia/Seoul')::date + INTERVAL '1 month' + INTERVAL '110 days')::date
+)
+INSERT INTO public.expenses (
+    user_id, game_id, template_id, billing_cycle, title, category,
+    status, cancellation_kind, target_date, original_price, final_amount
+)
+SELECT
+    :'test_user_id'::uuid, :'test_game_id'::uuid, :'test_template_id'::uuid,
+    to_char(target_date, 'YYYY-MM'), 'Codex SQL test dedupe cycle', '정기 구독',
+    CASE WHEN row_number = 3 THEN 'CANCELLED'
+         WHEN row_number = 4 THEN 'CONFIRMED'
+         ELSE 'PLANNED' END,
+    CASE WHEN row_number = 3 THEN 'PLANNED_CANCEL' ELSE NULL END,
+    target_date, 3000, 3000
+FROM (
+    SELECT target_date, ROW_NUMBER() OVER (ORDER BY target_date) AS row_number
+    FROM target_dates
+) AS candidates;
+
+SET LOCAL ROLE authenticated;
+SELECT public.dedupe_monthly_planned_expenses(:'test_template_id'::uuid);
+RESET ROLE;
+DO $$
+BEGIN
+    IF (SELECT COUNT(*) FROM public.expenses
+        WHERE template_id = current_setting('chronoledger.test_template_id')::uuid
+          AND status = 'PLANNED') <> 1 THEN
+        RAISE EXCEPTION 'FAIL: MONTHLY_DAY dedupe did not retain exactly one planned cycle';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM public.expenses
+        WHERE id = current_setting('chronoledger.template_expense_id')::uuid
+          AND status = 'PLANNED'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: MONTHLY_DAY dedupe did not retain the earliest planned cycle';
+    END IF;
+    IF (SELECT COUNT(*) FROM public.expenses
+        WHERE template_id = current_setting('chronoledger.test_template_id')::uuid
+          AND status = 'CANCELLED' AND cancellation_kind = 'PLANNED_CANCEL') <> 1 THEN
+        RAISE EXCEPTION 'FAIL: MONTHLY_DAY dedupe changed a cancelled cycle';
+    END IF;
+    IF (SELECT COUNT(*) FROM public.expenses
+        WHERE template_id = current_setting('chronoledger.test_template_id')::uuid
+          AND status = 'CONFIRMED') <> 1 THEN
+        RAISE EXCEPTION 'FAIL: MONTHLY_DAY dedupe changed a confirmed cycle';
+    END IF;
+END;
+$$;
+\echo PASS: monthly planned dedupe retains earliest plan and preserves cancelled/confirmed rows
+
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.dedupe_monthly_planned_expenses('00000000-0000-0000-0000-000000000000'::uuid);
+        RAISE EXCEPTION 'FAIL: monthly planned dedupe accepted a template the user does not own';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM <> '정리할 수 있는 본인 소유의 활성 월간 구독 템플릿이 아닙니다.' THEN
+            RAISE;
+        END IF;
+    END;
+END;
+$$;
+RESET ROLE;
+\echo PASS: monthly planned dedupe requires an owned active template
 
 INSERT INTO public.expenses (
     user_id, game_id, schedule_id, title, category, target_date,

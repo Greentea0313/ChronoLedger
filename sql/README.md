@@ -37,6 +37,7 @@
 | `MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql` | `subscription_templates` 직접 DELETE 정책 제거(삭제는 `delete_subscription_template` RPC로만) | `SELECT policyname FROM pg_policies WHERE tablename = 'subscription_templates' AND cmd = 'DELETE';` → 0행 |
 | `MIGRATION_USERS_ROLE_GUARD.sql` | **보안**: 일반 사용자의 `public.users.role` 자기 변경(관리자 자기 승격) 차단 트리거 | `SELECT tgname FROM pg_trigger WHERE tgname = 'trg_prevent_users_role_self_change';` → 1행 |
 | `MIGRATION_UNOFFICIAL_SCHEDULES.sql` | 공식/비공식 일정 분류와 사용자 표시 설정 | `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND ((table_name IN ('game_schedules', 'schedule_requests') AND column_name = 'is_official') OR (table_name = 'users' AND column_name = 'show_unofficial_schedules'));` → 3행 |
+| `MIGRATION_MONTHLY_PLANNED_DEDUPE.sql` | `MONTHLY_DAY` 템플릿별 가장 이른 `PLANNED` 1건을 남기고 나머지 예정 행을 **물리 삭제**; 소유자 검증 `dedupe_monthly_planned_expenses(UUID)` RPC 추가 | `SELECT proname, proargtypes::regtype[] FROM pg_proc WHERE proname = 'dedupe_monthly_planned_expenses';` → UUID 인자 1행; 적용 시 기존 중복 `PLANNED` 행은 되돌릴 수 없으므로 적용 전 대상 행을 확인 |
 
 ## C. 시드·더미·테스트
 

@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-02 (Phase 12.28 월간 구독 중복 정리 및 공식 일정 필터)
+
+- `MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`이 각 월간 템플릿의 가장 이른 `PLANNED` 1건만 남기고 기존 중복을 정리한다. 본인 활성 템플릿 소유를 검사하는 `dedupe_monthly_planned_expenses` RPC로 런타임 정리를 수행하며 `expenses` DELETE 정책은 열지 않는다.
+- `VERSION_PASS` 예정 지출과 지출 모달 버전 연결에서 비공식 일정을 제외한다. `is_official` 컬럼이 없는 기존 DB는 전체 일정을 공식으로 처리한다.
+- SRS·의사결정 기록·SQL README·테스트·타입 정의를 동기화했다. 해당 Vitest 47개, TypeScript, 로컬 PostgreSQL 신규 SCHEMA/전체 migrations/백필/TESTS.sql 및 두 마이그레이션 재실행 검증 통과. 운영 DB에는 미적용.
+
 ## 2026-11-02 (Phase 12.27 `public.users.role` 자기 승격 차단)
 
 - **보안 수정 (361fbbc)**: 일반 사용자가 본인 `public.users.role`을 `admin`으로 바꿔 관리자 RPC를 통과할 수 있던 결함을 `BEFORE UPDATE OF role` 트리거(`prevent_users_role_self_change`)로 차단. `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `SCHEMA.sql`, `sql/README.md` 반영, `TESTS.sql` USR-01 추가.

@@ -37,7 +37,8 @@ function setup() {
       const today = getKstToday()
       return query({
         data: [
-          { id: "s1", game_id: "g1", title: "버전 1.0", schedule_type: "VERSION", start_date: today, end_date: today },
+          { id: "s1", game_id: "g1", title: "버전 1.0", schedule_type: "VERSION", start_date: today, end_date: today, is_official: true },
+          { id: "s2", game_id: "g1", title: "테스트 서버 버전", schedule_type: "VERSION", start_date: today, end_date: today, is_official: false },
           { id: "p1", game_id: "g1", title: "신규 캐릭터 픽업", schedule_type: "PICKUP", start_date: today, end_date: today },
         ],
         error: null,
@@ -83,6 +84,7 @@ describe("ExpenseModal", () => {
     await screen.findByRole("option", { name: "Sample RPG" })
     fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
     await screen.findByRole("option", { name: "버전 1.0" })
+    expect(screen.queryByRole("option", { name: "테스트 서버 버전" })).toBeNull()
     expect(screen.getByLabelText("연결된 버전 일정")).toHaveProperty("disabled", true)
     fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "119000" } })
     fireEvent.change(screen.getByLabelText("사용 포인트 (P)"), { target: { value: "5000" } })
@@ -165,6 +167,31 @@ describe("ExpenseModal", () => {
       expect(scheduleSelect).toHaveProperty("disabled", true)
     })
     expect(screen.getByText("해당 날짜에 진행 중인 버전 일정이 없습니다")).toBeTruthy()
+  })
+
+  it("is_official 컬럼이 없는 이전 DB에서는 조회된 버전을 공식 일정으로 간주한다", async () => {
+    let scheduleQueryCount = 0
+    const defaultFrom = from.getMockImplementation()
+    from.mockImplementation((table: string) => {
+      if (table === "game_schedules") {
+        scheduleQueryCount += 1
+        if (scheduleQueryCount === 1) {
+          return query({ data: null, error: { code: "42703", message: "column game_schedules.is_official does not exist" } })
+        }
+        const today = getKstToday()
+        return query({
+          data: [{ id: "legacy-version", game_id: "g1", title: "구버전 일정", schedule_type: "VERSION", start_date: today, end_date: today }],
+          error: null,
+        })
+      }
+      return defaultFrom?.(table)
+    })
+
+    render(<ExpenseModal open onOpenChange={vi.fn()} initialDate={getKstToday()} />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+
+    expect(await screen.findByRole("option", { name: "구버전 일정" })).toBeTruthy()
   })
 
   it("결제 플랫폼(스토어)과 실제 결제수단(내 지갑, 네이버페이)이 명확히 분리되어 제공된다", async () => {

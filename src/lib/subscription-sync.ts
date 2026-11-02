@@ -17,6 +17,16 @@ export interface SubscriptionTemplate {
   is_active?: boolean
 }
 
+function isMissingIsOfficialColumn(error: unknown): boolean {
+  const value = error as { code?: string; message?: string; details?: string } | null
+  const code = value?.code ?? ""
+  const message = `${value?.message ?? ""} ${value?.details ?? ""}`.toLowerCase()
+  return code === "42703" || code === "PGRST204" || (
+    message.includes("is_official") &&
+    (message.includes("column") || message.includes("schema cache") || message.includes("field"))
+  )
+}
+
 export function toBillingCycle(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`
 }
@@ -261,6 +271,14 @@ export async function ensureMonthlySubscriptionExpenses(
   )
   if (monthlyTemplates.length > 0) {
     for (const template of monthlyTemplates) {
+      const { error: dedupeError } = await supabase.rpc("dedupe_monthly_planned_expenses", {
+        p_template_id: template.id,
+      })
+      if (dedupeError) {
+        console.error("MONTHLY_DAY 중복 예정 회차 정리 실패:", dedupeError)
+        throw new Error("SUBSCRIPTION_LAZY_GENERATION_FAILED")
+      }
+
       const { data: existingExpenses, error: expenseError } = await supabase
         .from("expenses")
         .select("id, billing_cycle, status, target_date")
@@ -281,21 +299,6 @@ export async function ensureMonthlySubscriptionExpenses(
       }[]
       const plannedExpenses = templateExpenses.filter((expense) => expense.status === "PLANNED")
       const nextPlanned = plannedExpenses[0]
-      const duplicatePlanned = plannedExpenses.slice(1)
-
-      if (duplicatePlanned.length > 0) {
-        const { error: deleteError } = await supabase
-          .from("expenses")
-          .delete()
-          .eq("user_id", userId)
-          .in("id", duplicatePlanned.map((expense) => expense.id))
-
-        if (deleteError) {
-          console.error("MONTHLY_DAY 중복 예정 회차 정리 실패:", deleteError)
-          throw new Error("SUBSCRIPTION_LAZY_GENERATION_FAILED")
-        }
-      }
-
       if (nextPlanned) continue
 
       let nextDate = getAdjustedBillingDate(
@@ -412,12 +415,36 @@ export async function ensureMonthlySubscriptionExpenses(
     (t) => t.cycle_type === "VERSION_PASS" && Boolean(t.game_id),
   )
   for (const template of versionPassTemplates) {
-    const { data: schedules, error: scheduleError } = await supabase
+    const { data: officialSchedules, error: officialScheduleError } = await supabase
       .from("game_schedules")
-      .select("id, title, start_date, end_date")
+      .select("id, title, start_date, end_date, is_official")
       .eq("game_id", template.game_id)
       .eq("schedule_type", "VERSION")
       .gte("end_date", today)
+      .eq("is_official", true)
+
+    let schedules = officialSchedules as {
+      id: string
+      title: string
+      start_date: string
+      end_date: string
+      is_official?: boolean
+    }[] | null
+    let scheduleError = officialScheduleError
+
+    if (isMissingIsOfficialColumn(officialScheduleError)) {
+      const legacyResult = await supabase
+        .from("game_schedules")
+        .select("id, title, start_date, end_date")
+        .eq("game_id", template.game_id)
+        .eq("schedule_type", "VERSION")
+        .gte("end_date", today)
+      schedules = (legacyResult.data || []).map((schedule) => ({
+        ...(schedule as { id: string; title: string; start_date: string; end_date: string }),
+        is_official: true,
+      }))
+      scheduleError = legacyResult.error
+    }
 
     if (scheduleError) {
       console.warn("VERSION_PASS 일정 조회 실패:", scheduleError)
@@ -436,8 +463,8 @@ export async function ensureMonthlySubscriptionExpenses(
       ((existingExpenses || []) as { schedule_id: string }[]).map((e) => e.schedule_id),
     )
 
-    const newRows = (schedules as { id: string; title: string; start_date: string; end_date: string }[])
-      .filter((s) => !existingScheduleIds.has(s.id))
+    const newRows = (schedules || [])
+      .filter((s) => s.is_official !== false && !existingScheduleIds.has(s.id))
       .map((s) => ({
         user_id: userId,
         template_id: template.id,

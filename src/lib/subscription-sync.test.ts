@@ -8,12 +8,13 @@ import {
   ensureMonthlySubscriptionExpenses,
 } from "./subscription-sync"
 
-const { from } = vi.hoisted(() => ({
+const { from, rpc } = vi.hoisted(() => ({
   from: vi.fn(),
+  rpc: vi.fn(),
 }))
 
 vi.mock("@/lib/supabase/client", () => ({
-  supabase: { from },
+  supabase: { from, rpc },
 }))
 
 function createTemplateQuery(data: unknown, error: unknown = null) {
@@ -31,6 +32,7 @@ function createTemplateQuery(data: unknown, error: unknown = null) {
 describe("subscription-sync", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    rpc.mockResolvedValue({ data: 0, error: null })
   })
 
   describe("addDays", () => {
@@ -335,7 +337,7 @@ describe("subscription-sync", () => {
       }))
     })
 
-    it("MONTHLY_DAY: 중복 PLANNED 회차는 가장 이른 한 건만 남긴다", async () => {
+    it("MONTHLY_DAY: 중복 PLANNED 정리는 소유권 RPC에 위임한다", async () => {
       const templateQuery = createTemplateQuery([{
         id: "template-monthly",
         title: "정기 구독",
@@ -346,25 +348,46 @@ describe("subscription-sync", () => {
         payment_method: "WALLET",
         game_id: null,
       }])
-      const deleteQuery = { eq: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ error: null }) }
       const expensesQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockResolvedValue({ data: [
           { id: "first", billing_cycle: "2026-02", status: "PLANNED", target_date: "2026-02-15" },
-          { id: "later", billing_cycle: "2026-03", status: "PLANNED", target_date: "2026-03-15" },
         ], error: null }),
-        delete: vi.fn().mockReturnValue(deleteQuery),
       }
       const insert = vi.fn()
+      rpc.mockResolvedValueOnce({ data: 1, error: null })
       from.mockImplementation((table: string) => table === "subscription_templates"
         ? templateQuery
         : { ...expensesQuery, insert })
 
       await ensureMonthlySubscriptionExpenses("user-1", 2026, 12, "2026-02-01")
 
-      expect(expensesQuery.delete).toHaveBeenCalled()
-      expect(deleteQuery.in).toHaveBeenCalledWith("id", ["later"])
+      expect(rpc).toHaveBeenCalledWith("dedupe_monthly_planned_expenses", {
+        p_template_id: "template-monthly",
+      })
+      expect(insert).not.toHaveBeenCalled()
+    })
+
+    it("MONTHLY_DAY: 정리 RPC 오류 시 추가 회차 생성을 중단한다", async () => {
+      const templateQuery = createTemplateQuery([{
+        id: "template-monthly",
+        title: "정기 구독",
+        category: "정기 구독",
+        cycle_type: "MONTHLY_DAY",
+        billing_day: 15,
+        default_price: 10000,
+        payment_method: "WALLET",
+        game_id: null,
+      }])
+      const insert = vi.fn()
+      from.mockImplementation((table: string) => table === "subscription_templates"
+        ? templateQuery
+        : { insert })
+      rpc.mockResolvedValueOnce({ data: null, error: { message: "not authorized" } })
+
+      await expect(ensureMonthlySubscriptionExpenses("user-1", 2026, 10, "2026-10-05"))
+        .rejects.toThrow("SUBSCRIPTION_LAZY_GENERATION_FAILED")
       expect(insert).not.toHaveBeenCalled()
     })
 
@@ -534,15 +557,19 @@ describe("subscription-sync", () => {
 
       const scheduleQuery: Record<string, unknown> = {}
       scheduleQuery.select = vi.fn().mockReturnValue(scheduleQuery)
-      scheduleQuery.eq = vi.fn().mockImplementation(() => {
+      scheduleQuery.eq = vi.fn().mockImplementation((column: string) => {
+        if (column === "is_official") {
+          return Promise.resolve({
+            data: [
+              { id: "ver-5.1", title: "5.1 버전", start_date: "2026-10-09", end_date: "2026-11-19", is_official: true },
+              { id: "unofficial", title: "테스트 버전", start_date: "2026-10-09", end_date: "2026-11-19", is_official: false },
+            ],
+            error: null,
+          })
+        }
         return scheduleQuery
       })
-      scheduleQuery.gte = vi.fn().mockResolvedValue({
-        data: [
-          { id: "ver-5.1", title: "5.1 버전", start_date: "2026-10-09", end_date: "2026-11-19" },
-        ],
-        error: null,
-      })
+      scheduleQuery.gte = vi.fn().mockReturnValue(scheduleQuery)
 
       const expenseQuery: Record<string, unknown> = {}
       expenseQuery.select = vi.fn().mockReturnValue(expenseQuery)
@@ -574,6 +601,7 @@ describe("subscription-sync", () => {
 
       expect(createdCount).toBe(1)
       expect(scheduleQuery.gte).toHaveBeenCalledWith("end_date", "2026-10-05")
+      expect(scheduleQuery.eq).toHaveBeenCalledWith("is_official", true)
       expect(insert).toHaveBeenCalledWith(
         [
           expect.objectContaining({
@@ -588,6 +616,51 @@ describe("subscription-sync", () => {
           }),
         ],
       )
+    })
+
+    it("VERSION_PASS: is_official 컬럼이 아직 없는 DB에서는 조회 일정을 공식으로 간주한다", async () => {
+      const templateQuery = createTemplateQuery([{
+        id: "template-pass",
+        title: "월간 패스",
+        category: "게임",
+        cycle_type: "VERSION_PASS",
+        billing_day: 1,
+        default_price: 12000,
+        payment_method: "WALLET",
+        game_id: "game-1",
+      }])
+      let scheduleQueryCount = 0
+      const insert = vi.fn().mockResolvedValue({ error: null })
+      from.mockImplementation((table: string) => {
+        if (table === "subscription_templates") return templateQuery
+        if (table === "game_schedules") {
+          scheduleQueryCount += 1
+          const query: Record<string, unknown> = {}
+          query.select = vi.fn().mockReturnValue(query)
+          query.eq = vi.fn().mockImplementation((column: string) => column === "is_official"
+            ? Promise.resolve({ data: null, error: { code: "42703", message: "column game_schedules.is_official does not exist" } })
+            : query)
+          query.gte = vi.fn().mockImplementation(() => scheduleQueryCount === 1
+            ? query
+            : Promise.resolve({
+                data: [{ id: "legacy-version", title: "구버전", start_date: "2026-10-10", end_date: "2026-11-10" }],
+                error: null,
+              }))
+          return query
+        }
+        const query: Record<string, unknown> = {}
+        query.select = vi.fn().mockReturnValue(query)
+        query.eq = vi.fn().mockImplementation((column: string) => column === "template_id"
+          ? Promise.resolve({ data: [], error: null })
+          : query)
+        query.insert = insert
+        return query
+      })
+
+      await ensureMonthlySubscriptionExpenses("user-1", 2026, 10, "2026-10-05")
+
+      expect(scheduleQueryCount).toBe(2)
+      expect(insert).toHaveBeenCalledWith([expect.objectContaining({ schedule_id: "legacy-version" })])
     })
 
     it("returns zero when no active templates exist", async () => {

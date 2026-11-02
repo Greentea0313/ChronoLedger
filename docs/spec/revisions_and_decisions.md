@@ -1066,3 +1066,7 @@ GRANT EXECUTE ON FUNCTION public.reject_game_request(UUID, TEXT) TO authenticate
 
 - 사용자는 구독 템플릿 삭제를 허용하되 `delete_subscription_template` RPC로만 수행하도록 결정했다(선택지 ③). 직접 DELETE를 허용하면 RLS로 삭제되지 않은 `PLANNED` 회차가 `template_id = NULL` 상태로 남으므로 `Delete own templates` 정책을 제거한다(`sql/migrations/MIGRATION_TEMPLATE_DELETE_RPC_ONLY.sql`). 앱의 직접 DELETE/비활성화 폴백도 제거한다.
 - R2(커밋 `7307b99`, 구글 플레이 포인트 적립 누락 수정) 이후 결제 RPC는 포인트 플랫폼이 지정된 WALLET 결제에도 스토어 적립률로 적립한다. 이를 현행 규칙으로 확정하고 SRS FR-042와 `sql/tests/TESTS.sql` WAL-01을 이에 맞췄다.
+
+## 2026-11-02 결정 갱신 (비공식 일정의 구독 지출 연결)
+
+- 비공식 일정(`is_official = false`)은 사용자의 화면 표시 토글과 무관하게 `VERSION_PASS` 예정 지출 생성 및 지출 모달의 버전 일정 연결에서 제외한다. `is_official` 컬럼을 아직 적용하지 않은 DB는 모든 조회 일정을 공식으로 간주해 기존 동작을 유지한다.

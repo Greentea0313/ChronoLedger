@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.28 MONTHLY_DAY 중복 정리 및 공식 일정 금전 경로 제한 (2026-11-02)
+
+- `dedupe_monthly_planned_expenses(UUID)` 소유자 검증 RPC를 추가하고, 중복 `MONTHLY_DAY` 예정 회차는 가장 이른 1건만 남기도록 마이그레이션·스키마·스모크 테스트를 동기화했다. 클라이언트 직접 DELETE는 제거했다.
+- `VERSION_PASS` 생성과 지출 모달의 버전 일정 연결은 공식 일정만 사용한다. `is_official` 미적용 DB에서는 전체 일정을 공식으로 간주하는 폴백을 유지한다.
+- 구독 동기화 22개 및 지출 모달 25개 Vitest 통과, `tsc --noEmit` 통과. 로컬 PostgreSQL 17에서 신규 SCHEMA + 전체 migrations + 중복 백필 단언 + TESTS.sql 통과; 새 구독 마이그레이션 2회씩 재실행 통과.
+- 다음 단계: Phase 12.29 문서/UI 보강(Claude Sonnet), 이후 통합 정적 리뷰. 운영 Supabase 마이그레이션 적용은 사용자 수동 작업이다.
+
 ## Phase 12.27 `public.users.role` 자기 승격 차단 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Maker - Security & SQL/RLS)

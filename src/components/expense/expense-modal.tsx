@@ -84,6 +84,17 @@ interface ScheduleOption {
   schedule_type: "VERSION" | "PICKUP"
   start_date: string
   end_date: string
+  is_official?: boolean
+}
+
+function isMissingIsOfficialColumn(error: unknown): boolean {
+  const value = error as { code?: string; message?: string; details?: string } | null
+  const code = value?.code ?? ""
+  const message = `${value?.message ?? ""} ${value?.details ?? ""}`.toLowerCase()
+  return code === "42703" || code === "PGRST204" || (
+    message.includes("is_official") &&
+    (message.includes("column") || message.includes("schema cache") || message.includes("field"))
+  )
 }
 
 interface WalletInfo {
@@ -279,14 +290,31 @@ export function ExpenseModal({
     const isGameChanged = prevGameIdRef.current !== gameId
     let cancelled = false
     void (async () => {
-      const { data } = await supabase
+      const { data: officialData, error: officialError } = await supabase
         .from("game_schedules")
-        .select("id, game_id, title, schedule_type, start_date, end_date")
+        .select("id, game_id, title, schedule_type, start_date, end_date, is_official")
         .eq("game_id", gameId)
         .in("schedule_type", ["VERSION"])
+        .eq("is_official", true)
         .order("start_date")
+
+      let schedules = (officialData ?? []) as ScheduleOption[]
+      if (isMissingIsOfficialColumn(officialError)) {
+        const legacyResult = await supabase
+          .from("game_schedules")
+          .select("id, game_id, title, schedule_type, start_date, end_date")
+          .eq("game_id", gameId)
+          .in("schedule_type", ["VERSION"])
+          .order("start_date")
+        schedules = ((legacyResult.data ?? []) as Omit<ScheduleOption, "is_official">[]).map((schedule) => ({
+          ...schedule,
+          is_official: true,
+        }))
+      }
       if (!cancelled) {
-        const versionSchedules = ((data ?? []) as ScheduleOption[]).filter((s) => s.schedule_type === "VERSION")
+        const versionSchedules = schedules.filter(
+          (schedule) => schedule.schedule_type === "VERSION" && schedule.is_official !== false,
+        )
         setSchedules(versionSchedules)
         if (isGameChanged && !isEditMode && !isPlannedPayment && paymentDate) {
           const matched = versionSchedules.find(
