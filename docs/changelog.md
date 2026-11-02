@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-02 (Phase 12.24 ~ 12.26 통합 정적 리뷰)
+
+- **통합 리뷰 완료 (Claude Opus)**: `d70ec5e` ↔ `ec61251` 범위를 검토함. 조건부 통과이며, P1 1건(기존 `public.users.role` 자기 승격 RLS 결함)·P2 1건(MONTHLY_DAY 중복 PLANNED 정리 무동작)·P3 4건·P4 2건을 `docs/handoff.md`에 기록하고 `docs/to-do.md` R15~R19로 등록함. 코드 변경 없음.
+
 ## 2026-11-02 (Phase 12.26 소비 통계·예산 배지, `6364132`)
 
 - `expenses/page.tsx`: 게임별 과금 분석 Y축을 24px 게임 아이콘으로 교체(이름은 순위 목록에만 표시), 차트 `accessibilityLayer` 비활성화 및 `globals.css` 포커스 외곽선 제거, Tooltip 최대 폭 제한.

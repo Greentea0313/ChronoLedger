@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.24 ~ 12.26 통합 정적 리뷰 (2026-11-02)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)
+- **결과**: 조건부 통과. 12.26 PASS. 기존 P1 보안 결함(`public.users.role` 자기 승격)과 P2(MONTHLY_DAY 중복 PLANNED 정리 무동작)를 로컬 PostgreSQL에서 재현해 기록. 상세 내용은 `docs/handoff.md` 리뷰 섹션 참조.
+- **검증**: tsc·eslint 0건, vitest 42개 파일 281개 통과, markdownlint 0건, 로컬 PG `TESTS.sql` PASS.
+- **다음 단계**: `docs/to-do.md` R15(P1, 최우선)~R19 후속 Run 등록.
+
 ## Phase 12.26 소비 통계·예산 배지 개선 (2026-11-02, 커밋 `6364132`)
 
 - 게임별 과금 분석 Y축을 게임 아이콘으로 교체하고 Recharts 포커스 외곽선 제거·모바일 Tooltip 폭 제한을 적용했다.

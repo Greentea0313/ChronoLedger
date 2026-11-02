@@ -15,7 +15,28 @@
 ### 📋 5대 AI 모델 기본 역할 및 토큰 소진 시 대체(Fallback) 체인
 
 | 주력 모델 / 에이전트 | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
-| :--- | :--- | :--- | :--- | :--- |
+| :---
+
+## Phase 12.24 ~ 12.26 통합 정적 코드 리뷰 (2026-11-02)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)
+- **리뷰 범위**: Base `d70ec5e` ↔ Target `ec61251` (`1bb175b` 12.24, `3c20e70` 12.25, `6364132` 12.26 및 문서 커밋). 워킹 트리의 미커밋 지침 문서(`AGENTS.md`, `.github/copilot-instructions.md`, `docs/collaboration-guide.md`, `.vscode/settings.json`)는 범위 밖.
+- **방법**: diff 정적 검토 + 로컬 PostgreSQL 17(Supabase 스텁, `known-pitfalls.md` #28)에 `SCHEMA.sql` + 전체 `migrations/` 적용 후 `TESTS.sql` 실행, 신규 마이그레이션 2종 재실행, 결함 재현 SQL 실행.
+- **판정**: 조건부 통과. 12.26(UI·통계)은 PASS. 12.24·12.25는 수용 기준 대부분 충족하나 아래 P2 1건 미충족. 별도로 기존 P1 보안 결함 발견.
+- **발견 사항**:
+  - **P1 (기존 결함, 회귀 아님 · 운영 즉시 조치 권장)** `sql/SCHEMA.sql:55` `"Users can update their own profile"` 정책이 컬럼 제한 없이 본인 행 UPDATE를 허용하고 `role` 변경 방지 트리거도 없음. 관리자 판정은 `users.role = 'admin'`도 인정하므로, 일반 사용자가 `supabase.from("users").update({ role: "admin" })`으로 관리자 RPC(일정/게임 승인 등)를 통과함. 로컬 재현: `UPDATE 1`, 이후 `approve_schedule_request`가 권한 오류 대신 "승인 대기 중인 일정 요청이 아닙니다."까지 진행. 12.25가 `public.users` 쓰기 경로(`saveSchedulePreference`)를 추가해 노출면이 커짐. → 권장: `BEFORE UPDATE` 트리거로 `role` 변경 거부(서비스 역할/관리자 JWT 제외) 또는 `REVOKE UPDATE ON public.users FROM authenticated` + `GRANT UPDATE (nickname, show_unofficial_schedules)`. 마이그레이션 + `TESTS.sql` 단언 추가.
+  - **P2** `src/lib/subscription-sync.ts:286` MONTHLY_DAY 중복 `PLANNED` 정리를 클라이언트 `.delete()`로 수행하나 `expenses`에는 DELETE 정책이 없어(FR-030) 실제 DB에서 0행 삭제·오류 없음(로컬 재현: `DELETE 0`, 남은 PLANNED 2건). 단위 테스트는 mock이라 통과. 이미 미래 월(12월·1월 등)로 중복 생성된 회차가 그대로 남아 FR-050·수용 기준("가장 이른 1건만 남기고 정리") 미충족. → 권장: 기존 중복은 일회성 마이그레이션으로 정리(템플릿별 최이른 PLANNED 1건 유지)하고, 런타임 정리가 필요하면 `SECURITY DEFINER` RPC로 이전. 클라이언트 DELETE 호출 제거.
+  - **P3** 비공식 일정이 표시 필터만 적용되고 금전 경로에는 그대로 쓰임: `subscription-sync.ts:419` `VERSION_PASS` 회차 생성과 `expense-modal.tsx:286` 연결 버전 일정 조회가 `is_official`을 거르지 않아, 테섭 `VERSION` 일정으로 예정 지출이 생기거나 연결될 수 있음. 명세 결정 필요.
+  - **P3** `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 행이 없음. 실행 시 기존 `TEMPLATE_DEACTIVATION` 취소 행과 비활성 템플릿의 PLANNED 행을 **물리 삭제**하는 파괴적 마이그레이션이므로 확인 쿼리·주의 문구 필요.
+  - **P3** `src/components/game/game-select-modal.tsx:72,79` `fetchGames`가 `user` 객체에 의존하고 effect가 `resetState()`도 호출해, 모달이 열린 상태에서 세션 갱신으로 `user` 참조가 바뀌면 입력이 초기화됨(UI 규칙: 원시값 `user?.id` 의존).
+  - **P3** `src/app/dashboard/page.tsx:275` `loadSchedulePreference`가 `Promise.all` 안에서 실패(사용자 행 없음·조회 오류)하면 대시보드 전체 로드가 실패함. 설정 조회 실패는 공식 일정만 표시로 폴백하는 편이 안전.
+  - **P4** 게임 아이콘 Data URL(최대 약 133KB)이 `expenses`·`user_games` 조인(`games(default_icon_url)`)에서 행마다 반복 전송되고 SW 읽기 캐시에도 저장되어 페이로드가 커짐. 게임 수·지출 수 증가 시 모니터링 필요.
+  - **P4** `src/app/globals.css:195` `.recharts-wrapper *:focus { outline: none }`와 `accessibilityLayer={false}`로 차트 키보드 포커스 표시가 사라짐(요구사항에 따른 의도된 트레이드오프).
+- **확인된 PASS 항목**: 구독 중지 트리거는 `SECURITY DEFINER`로 PLANNED만 삭제하고 `expenses` DELETE RLS를 열지 않음. `restore_cancelled_expense`는 `PLANNED_CANCEL`만 복구. `approve_schedule_request`의 `is_official` 전달. 신규 마이그레이션 2종 재실행 안전. 예산 배지 경계(80% 이상 주의, 100% 초과 위험). 월 선택 드롭다운·활성 구독 총액·Y축 아이콘.
+- **검증**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 42개 파일 281개 통과, markdownlint 0건, 로컬 PG `TESTS.sql` `PASS: all smoke-test fixtures and mutations rolled back`.
+- **다음 단계 (권장 후속 Run)**: ① P1 `public.users.role` 보호 마이그레이션 + 스모크 테스트(Claude Opus, SQL/RLS), ② P2 MONTHLY_DAY 중복 정리 마이그레이션/RPC 전환 + P3 README 보강(GPT Codex, 대체 Claude Opus), ③ P3 비공식 일정의 금전 경로 제외 여부 사용자 결정 후 반영, ④ P3 UI 2건(Claude Sonnet).
+
+--- | :--- | :--- | :--- | :--- |
 | **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude Opus** | **GitHub Copilot** |
 | **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude Opus** | **GitHub Copilot** |
 | **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
@@ -75,7 +96,7 @@
 | **1** | `✅ DONE (SHA: 1bb175b1742b512217b0c0e18f0e3384b228b833)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.24`: 구독 중지 시 `PLANNED` 완전 삭제 마이그레이션과 SRS/스모크 테스트 정합화, `MONTHLY_DAY` 다음 회차 1건 유지·중복 정리 및 `VERSION_PASS` 종료 일정 제외 | `Vitest 20개, tsc 통과; SQL 스모크 테스트 미실행` |
 | **2** | `✅ DONE (SHA: 3c20e701da0c55f1113d37e66388f0f94c57c690)` | **GitHub Copilot** *(Gemini 3.8 Flash 1순위 대체 / GPT Codex 2순위)* | `Maker (General & Admin/Settings)` | `Phase 12.25`: `/admin/requests` 직접 게임 추가 삭제, `GameSelectModal` 구독 중 게임 제외, 관리자 게임 아이콘 WebP Data URL 저장 및 `GameIcon` 재시도 보강, 비공식 일정(`is_official`) DB 마이그레이션 및 관리자 분류·`/dashboard/settings` 토글·일정 필터 연동 (`sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql`, `src/types/database.types.ts`, `src/lib/schedule-preferences.ts`, `src/app/admin/**`, `src/components/game/**`, `src/components/ui/game-icon.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/settings/page.tsx`, `src/app/dashboard/page.tsx`) | `Vitest 8개 파일 57개 통과, tsc/lint 통과; 운영 DB 마이그레이션 적용 대기` |
 | **3** | `✅ DONE (SHA: 6364132fb120fdccf3711f8e80b3869fe547ba77)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Charts/Stats)` | `Phase 12.26`: `게임별 과금 분석` 좌측 Y축 게임 아이콘 대체, Recharts 외곽 포커스 테두리 제거 및 모바일 `Tooltip` 화면 이탈 교정, `카테고리별 지출 비중`·`게임별 과금 분석` 당월 기준 자동 갱신 및 우측 상단 월별 드롭다운 추가, 정기 구독 탭 활성 구독 총액 요약 표시, 홈 대시보드 요약 카드 `[예상 지출: n원]` 우측 `[주의: 예산 근접]`(80%+) / `[위험: 예산 초과]`(100% 초과) 배지 배치 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/app/globals.css`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`) | `Vitest 42개 파일 281개 통과, tsc/eslint 통과; 모바일 Tooltip 위치·포커스 외곽선은 실기기 확인 필요` |
-| **4** | `▶ READY` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | `Phase 12.24 ~ 12.26` 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
+| **4** | `✅ DONE (리뷰 기준: ec61251, 조건부)` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | `Phase 12.24 ~ 12.26` 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (Claude Opus 통합 리뷰: **P1 1건**(기존 결함, `public.users.role` 자기 승격), **P2 1건**(MONTHLY_DAY 중복 PLANNED 정리가 RLS로 무동작), P3 4건·P4 2건. tsc·eslint·vitest 42파일 281·markdownlint·로컬 PG `TESTS.sql` 통과. 후속 Run 등록 필요) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
