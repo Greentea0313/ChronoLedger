@@ -34,7 +34,7 @@
 - **Run ID**: `require-main-run-sha` *(2026-11-02, R24 main 작업 Base/Target SHA 인계 절차)*
 - **Orchestrator**: GitHub Copilot (현재 환경에서 프로젝트 Local 하위 에이전트 호출 도구를 사용할 수 없어 문서화된 수동 모델 인계 사용)
 - **Worktree 경로**: `.worktrees/require-main-run-sha`
-- **리뷰 비교 범위**: Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target = Step 1 Maker 커밋 SHA (Maker 완료 후 manifest에 기록).
+- **리뷰 비교 범위**: Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `83d2e180ee2871679bb76c15a34a42c596a61ed2` (Step 1 Maker 커밋, `collab/require-main-run-sha` 브랜치). Maker 스킬에 따라 manifest `target_sha`는 Maker가 수정하지 않았으므로 Step 2 Orchestrator가 기록한다.
 - **해결 방향**: `run.schema.json`은 수정하지 않는다. `main` 직접 실행 시 Dispatch Queue에 Base SHA를 등록 시 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하며, 가짜 `branch`/`worktree_path` manifest는 만들지 않는다 (`docs/known-pitfalls.md` #31).
 - **수용 기준**:
   1. `.agents/skills/chronoledger-orchestrator/SKILL.md`에서 표준 격리 worktree + manifest 절차를 유지하면서 `main` 직접 실행의 예외 조건과 Base/Target SHA 필수 기록 위치·시점을 명확히 한다.
@@ -43,8 +43,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Collaboration Docs)` | R24: `.agents/skills/chronoledger-orchestrator/SKILL.md` 및 관련 문서. `run.schema.json`과 표준 격리 manifest 절차는 변경하지 않음. | `▶ 착수 대기; manifest: .worktrees/require-main-run-sha/artifacts/require-main-run-sha/run.json` |
-| **2** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Step 1 Target SHA 정적 리뷰, 문서 검증 및 R24 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`). | `⏳ Step 1 커밋 및 manifest Target SHA 기록 후 착수` |
+| **1** | `✅ DONE (SHA: 83d2e18)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Collaboration Docs)` | R24: `.agents/skills/chronoledger-orchestrator/SKILL.md` 및 관련 문서. `run.schema.json`과 표준 격리 manifest 절차는 변경하지 않음. | `✅ DONE` (Worktree 커밋 `83d2e18`: Orchestrator 스킬에 「Main-worktree fallback runs」 섹션 추가 — `main` 사용 조건·사유 기록, 가짜 manifest 금지, 등록 시 Base SHA·Maker 완료 시 Target SHA 기록 위치, Reviewer 범위 검사(`git diff <Target> HEAD -- src sql`) 실패 시 `🛑 BLOCKED`, Maker 스테이징 범위. 표준 격리 절차·`run.schema.json` 불변. markdownlint 통과. manifest `target_sha`와 R24 to-do/progress/changelog 마감은 Step 2 담당) |
+| **2** | `▶ READY` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Step 1 Target SHA 정적 리뷰, 문서 검증 및 R24 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`). | `⏳ Step 1 커밋 및 manifest Target SHA 기록 후 착수` |
 
 ### 🗂️ 이전 Run 기록 (완료): expense-chart-labels-and-outline
 
