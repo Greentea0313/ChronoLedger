@@ -56,6 +56,8 @@
 --   REQ-01 authenticated / A       본인 game/schedule 요청 INSERT -> PENDING 성공.
 --   REQ-02 authenticated / A       다른 사용자 expense 조회/RPC 결제 및 직접 요청
 --                                  상태 변경 -> 타 사용자 row 은닉/write 거부.
+--   USR-01 authenticated / A       본인 users.role -> admin 변경 거부(role=user 유지),
+--                                  nickname/show_unofficial_schedules 본인 수정은 성공.
 --   ADM-01 authenticated / A       app_metadata.role 없는 승인 RPC -> 관리자 오류,
 --                                  요청 PENDING 유지.
 --   ADM-02 authenticated / A+admin game/schedule 승인·반려 -> 카탈로그/일정 생성,
@@ -878,6 +880,44 @@ $$;
 \echo PASS: RLS isolates users and blocks cross-user RPC/direct wallet/expense/template/request writes
 
 RESET ROLE;
+
+-- 일반 사용자는 본인 users.role을 바꿀 수 없고, 그 외 프로필 컬럼은 수정할 수 있다.
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE v_rows INTEGER;
+BEGIN
+    BEGIN
+        UPDATE public.users SET role = 'admin' WHERE id = auth.uid();
+        RAISE EXCEPTION 'FAIL: user promoted own role to admin';
+    EXCEPTION WHEN insufficient_privilege THEN
+        IF SQLERRM <> '사용자 역할은 변경할 수 없습니다.' THEN
+            RAISE;
+        END IF;
+    END;
+
+    UPDATE public.users
+    SET nickname = 'codex-sqltest-renamed', show_unofficial_schedules = true
+    WHERE id = auth.uid();
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION 'FAIL: user could not update own nickname/schedule preference';
+    END IF;
+END;
+$$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.users
+        WHERE id = current_setting('chronoledger.test_user_id')::uuid
+          AND role = 'user' AND nickname = 'codex-sqltest-renamed'
+          AND show_unofficial_schedules = true
+    ) THEN
+        RAISE EXCEPTION 'FAIL: users role guard or own profile update state is incorrect';
+    END IF;
+END;
+$$;
+\echo PASS: users cannot change own role but can update own profile preferences
 
 -- 일반 사용자 JWT로 관리자 RPC를 호출하면 권한 오류가 나고 상태는 유지된다.
 SET LOCAL ROLE authenticated;

@@ -57,6 +57,23 @@ ON public.users FOR UPDATE TO authenticated
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
+-- 본인 프로필 UPDATE는 role 변경을 허용하지 않는다(관리자 판정이 users.role도 인정하므로 자기 승격 차단).
+-- 컬럼 단위 GRANT 대신 트리거를 쓰면 이후 GRANT ALL ... TO authenticated가 실행되어도 보호가 유지된다.
+CREATE OR REPLACE FUNCTION public.prevent_users_role_self_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.role IS DISTINCT FROM OLD.role AND current_user IN ('authenticated', 'anon') THEN
+        RAISE EXCEPTION '사용자 역할은 변경할 수 없습니다.' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_prevent_users_role_self_change ON public.users;
+CREATE TRIGGER trg_prevent_users_role_self_change
+BEFORE UPDATE OF role ON public.users
+FOR EACH ROW EXECUTE FUNCTION public.prevent_users_role_self_change();
+
 -- 신규 가입 시 public.users 레코드 자동 생성 (이메일 앞부분을 기본 닉네임으로 사용)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
