@@ -11,7 +11,7 @@
 - **수행 주체**: Claude Opus (Claude Sonnet 1순위 대체)
 - **결과**: 커밋 `b820a4e`. README 파괴적 마이그레이션 안내, 게임 등록 모달 `user?.id` 의존, 대시보드 일정 설정 조회 실패 폴백. `70efa54`로 `docs/handoff.md` 상단 표 구조 복구.
 - **검증**: tsc·eslint 0건, vitest 42개 파일 286개 통과(신규 2건은 수정 전 실패 확인), markdownlint 0건.
-- **다음 단계**: 통합 리뷰(Base `0da8eb4` ↔ Target `b820a4e`) `▶ READY`. 상단 기록 참조.
+- **다음 단계**: 없음. Phase 12.27~12.29 통합 리뷰 완료 기록 참조.
 
 ## Phase 12.28 MONTHLY_DAY 중복 정리 및 공식 일정 금전 경로 제한 (2026-11-02, 커밋 `bdb064c`)
 
