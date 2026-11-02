@@ -21,6 +21,17 @@ Read `.github/copilot-instructions.md`, `.agents/rules/collaboration.md`, `.agen
 8. If review findings are clear, within scope, and do not require a product/security decision, pass them to the Maker for a bounded fix in the next iteration. Respect `max_iterations`, create the next iteration directory without overwriting prior artifacts, and repeat with the new committed Target SHA. Stop and ask the user about unresolved P1/security/data-integrity issues, conflicting evidence, ambiguous fixes, out-of-scope changes, or exhausted iterations. For blocked/stopped runs, write a sanitized `human-report.md` using `artifacts/templates/human-report.md`.
 9. Summarize the run ID, worktree, target SHA, files changed, review/test status, remaining risks, and any user decision needed. Never merge, push, deploy, or delete the run worktree/branch automatically.
 
+## Main-worktree fallback runs
+
+The isolated worktree flow above is the default. Run directly on `main` only when an isolated run is not practical, such as when the primary worktree holds out-of-scope uncommitted changes that the user chooses to keep, or when the user explicitly asks for `main`. Record the reason in the Run block of the Dispatch Queue.
+
+A `main` run has no `run.json`. `artifacts/schemas/run.schema.json` only accepts `collab/...` branches and `.worktrees/...` paths, so never fabricate a manifest with placeholder `branch` or `worktree_path` values. The Dispatch Queue in the root `docs/handoff.md` is the record of the review range:
+
+1. **Base SHA (at registration)**: record the full SHA of the root `HEAD` immediately before the registration commit in the Run block's review-range line, in the same commit that registers the run.
+2. **Target SHA (at Maker completion)**: the Maker records the full SHA of its last implementation commit in both the Run block and its `✅ DONE (SHA: ...)` row before setting the Reviewer step to `▶ READY`. Later docs-only commits stay outside the range.
+3. **Range check**: before reviewing, the Reviewer confirms `git diff <Target> HEAD -- src sql` is empty. If Base or Target is missing, or out-of-range code changes exist, set the step to `🛑 BLOCKED` and report instead of inferring a range from the commit history.
+4. **Scope**: each Maker stages and commits only its allowed files, leaving the unrelated uncommitted changes in the primary worktree untouched.
+
 ## Reviewer selection and Gemini PoC
 
 Use exactly one static reviewer per iteration. Default to **ChronoLedger Reviewer**. If the user explicitly chooses Gemini, use the Gemini PoC instead of Copilot for that iteration; the PoC and Copilot both target `review.json` and must not overwrite each other's result.
@@ -38,7 +49,7 @@ When operating as the Chief Orchestrator (**Gemini 4 Argon**) across multi-model
 1. **Internal Subagent Immediate Delegation (`Gemini 3.8 Flash` $\to$ `Model: "flash"`)**:
    - For tasks owned by **Gemini 3.8 Flash** (Tailwind CSS styling, badge/modal/drawer UI markup, fast codebase research, and `docs/` sync), invoke an internal subagent immediately via `define_subagent` (`enable_write_tools: true` when editing files) and `invoke_subagent` with `Model: "flash"` (explicitly specified by the user).
 2. **External Model Dispatch Queue Assignment (`GPT Codex`, `Claude Sonnet / Opus`, `GitHub Copilot`)**:
-   - **Worktree First, Queue Second**: When using `scripts/collaboration/New-CollaborationRun.ps1`, run the script first while the root working tree is clean so `.worktrees/<run_id>` is created cleanly. Immediately afterward, populate the Dispatch Queue in the root `docs/handoff.md` specifying `.worktrees/<run_id>` (or `main`) as the target workspace.
+   - **Worktree First, Queue Second**: When using `scripts/collaboration/New-CollaborationRun.ps1`, run the script first while the root working tree is clean so `.worktrees/<run_id>` is created cleanly. Immediately afterward, populate the Dispatch Queue in the root `docs/handoff.md` specifying `.worktrees/<run_id>` (or `main`, following "Main-worktree fallback runs") as the target workspace.
    - **Role Assignment & Fallback Specification**: Assign each step to the optimal model and always list its Fallback chain (`Primary Model (Fallback: 1st / 2nd)`) in the table, mark the first step as `▶ READY`, stop immediately, and instruct the user to switch to the assigned model and enter `"인수인계 문서를 확인해"`:
      - **Gemini 4 Argon (Orchestrator & Architect)**: Task decomposition, acceptance criteria, worktree setup, final verification, and `docs/` closeout. *(Fallback: Claude Opus / GitHub Copilot)*
      - **GPT Codex (Maker - Core & Test)**: Ledger/payment/refund math (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase SQL/RPC, and Vitest unit tests. *(Fallback: Claude Opus / GitHub Copilot)*
