@@ -105,3 +105,6 @@
 30. **`docs/handoff.md` 스크립트 편집 시 제목 문자열 중복**
     - 증상: `### 📌 중단 체크포인트 (Handover Checkpoint)` 문자열이 큐 상단 안내문(인용문)에도 들어 있어, 첫 일치 위치를 기준으로 섹션을 삽입하면 상단 Fallback 표 중간에 끼어든다(2026-11-02, `002fcb5`). markdownlint는 이를 잡지 못한다.
     - 방어책: 제목은 줄 시작 기준(앞뒤 개행 포함)으로 찾거나 `### 🚦 현재 활성 Run` 제목 이후부터 검색한다. 편집 후 `grep -n "^## \|^### \|^| :---"`로 제목·표 구분 행 순서를 확인한다.
+31. **`main` Run의 리뷰 범위 누락**
+    - 증상: `New-CollaborationRun.ps1` 없이 `main`에서 Run을 등록하면 `artifacts/<run_id>/run.json`이 없어, Reviewer가 Base/Target SHA를 정할 수 없어 리뷰를 `🛑 BLOCKED` 처리한다(2026-11-02).
+    - 방어책: `main` Run을 등록할 때 Dispatch Queue에 Base SHA(등록 시점 HEAD)를 즉시 기록하고, Reviewer 단계를 `▶ READY`로 바꾸는 쪽이 Target SHA(마지막 Maker 코드 커밋)를 적는다. `run.schema.json`은 현재 `main` Run을 표현하지 못하므로 가짜 `branch`/`worktree_path`를 넣지 않는다.

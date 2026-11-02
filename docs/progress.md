@@ -1,17 +1,18 @@
 # 프로젝트 진행 현황
 
-## Phase 12.27~12.29 통합 리뷰 차단 (2026-11-02)
+## Phase 12.27~12.29 통합 리뷰 차단 및 해소 (2026-11-02)
 
-- Dispatch Step 4는 READY였으나, 현재 Run `users-role-guard-and-subscription-dedupe`의 manifest를 `artifacts/`에서 찾지 못했고 큐에도 Base SHA·Target SHA가 없어 정확한 커밋 비교 범위가 정해지지 않았다.
-- Reviewer 지침에 따라 Maker 커밋 목록으로 범위를 추측하지 않았고, 정적 리뷰·전체 검증은 실행하지 않았다. 큐를 `🛑 BLOCKED`로 표시했다.
-- 다음 단계: Orchestrator가 정확한 Base/Target SHA와 manifest/산출 경로를 제공한 뒤 리뷰 및 검증을 재개한다.
+- GitHub Copilot이 Run manifest·Base/Target SHA 미기재로 Step 4를 `🛑 BLOCKED` 처리했다(`f9afbb5`).
+- Claude Opus(Orchestrator 1순위 대체)가 비교 범위를 Base `0da8eb4` ↔ Target `b820a4e`로 확정해 `docs/handoff.md`에 기록하고 Step 4를 `▶ READY`로 되돌렸다. 범위 밖 `src`/`sql` 변경 없음을 `git diff`로 확인.
+- `run.json` manifest는 `run.schema.json`이 `main` Run을 표현하지 못해(격리 Worktree 형식만 허용) 만들지 않았다.
+- 다음 단계: Step 4 통합 리뷰. Step 1·3 구현자가 Claude Opus이므로 Gemini 4 Argon 또는 GitHub Copilot이 수행.
 
 ## Phase 12.29 문서·UI 보강 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Claude Sonnet 1순위 대체)
 - **결과**: 커밋 `b820a4e`. README 파괴적 마이그레이션 안내, 게임 등록 모달 `user?.id` 의존, 대시보드 일정 설정 조회 실패 폴백. `70efa54`로 `docs/handoff.md` 상단 표 구조 복구.
 - **검증**: tsc·eslint 0건, vitest 42개 파일 286개 통과(신규 2건은 수정 전 실패 확인), markdownlint 0건.
-- **다음 단계**: 통합 리뷰는 Run manifest 및 Base/Target SHA 미기재로 차단됨. 상단의 차단 기록 참조.
+- **다음 단계**: 통합 리뷰(Base `0da8eb4` ↔ Target `b820a4e`) `▶ READY`. 상단 기록 참조.
 
 ## Phase 12.28 MONTHLY_DAY 중복 정리 및 공식 일정 금전 경로 제한 (2026-11-02, 커밋 `bdb064c`)
 

@@ -33,6 +33,9 @@
 
 - **Run ID**: `users-role-guard-and-subscription-dedupe` *(2026-11-02, Phase 12.24~12.26 통합 리뷰 후속: P1 `public.users.role` 자기 승격 차단(R18), P2 MONTHLY_DAY 중복 PLANNED 정리(R19), P3 README·UI 보강(R21·R22))*
 - **Worktree 경로**: `main` (루트 작업 트리에 범위 밖 미커밋 지침 문서가 있어 `New-CollaborationRun.ps1` 미사용. 각 Maker는 자기 허용 파일만 스테이징·커밋)
+- **리뷰 비교 범위 (Step 4)**: Base `0da8eb4` (`0da8eb49d4e9d98c4fb080e569860133c8f27636`, Run 등록 커밋) ↔ Target `b820a4e` (`b820a4edff03170f02bb24356caba03163066b38`, 마지막 Maker 코드 커밋). 검증 근거: `git diff ec61251 0da8eb4 -- src sql`과 `git diff b820a4e HEAD -- src sql`이 모두 비어 있어, 범위 밖 코드 변경은 없음(이후 커밋은 문서만).
+  - 범위 내 커밋: `361fbbc`(Step 1, 12.27), `bdb064c`(Step 2, 12.28), `b820a4e`(Step 3, 12.29). 문서 커밋 `290055a`, `13d150b`, `70efa54`, `0a279c5`, `9ac714e`는 리뷰 대상 아님.
+  - Run manifest(`artifacts/<run_id>/run.json`) 미생성 사유: `artifacts/schemas/run.schema.json`이 `branch`(`collab/...`)·`worktree_path`(`.worktrees/...`)를 격리 Worktree 형식으로만 허용해 `main` Run을 표현할 수 없음. 가짜 값을 넣지 않고 이 항목을 범위의 권위 기록으로 삼는다.
 - **배경**: `docs/handoff.md` 「Phase 12.24 ~ 12.26 통합 정적 코드 리뷰」 발견 사항. 로컬 PostgreSQL 17 재현 절차는 `docs/known-pitfalls.md` #28.
 - **사용자 결정 (2026-11-02)**:
   - **R20**: 비공식 일정(`is_official = false`)은 **항상** `VERSION_PASS` 예정 지출 생성과 지출 모달의 연결 버전 일정에서 제외한다. 설정 페이지의 비공식 일정 표시 토글을 켜도 제외하며, 토글은 화면 표시에만 영향을 준다. → Step 2 범위에 포함.
@@ -62,15 +65,12 @@
 | **1** | `✅ DONE (SHA: 361fbbc)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Security & SQL/RLS)` | `Phase 12.27 (R18)` `public.users.role` 자기 승격 차단 마이그레이션 + 스모크 테스트 (`sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`) | `✅ DONE` (`BEFORE UPDATE OF role` 트리거로 `authenticated`/`anon`의 role 변경 거부, 컬럼 GRANT 대신 트리거 선택(이후 `GRANT ALL`에도 보호 유지), `TESTS.sql` USR-01 추가. 로컬 PG: 기존 DB+마이그레이션 2회·신규 설치·신규+전체 migrations 모두 PASS, 자기 승격 재현 SQL 거부 확인, postgres 경로 관리자 지정 정상. 운영 DB 적용 완료 2026-11-02) |
 | **2** | `✅ DONE (SHA: bdb064c)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.28 (R19·R20)` 월간 중복 정리 백필/RPC와 클라이언트 DELETE 제거, 공식 일정만 구독 생성·모달 연결에 사용 및 구형 DB 폴백 (`sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/revisions_and_decisions.md`) | `✅ DONE` (Vitest 47개, tsc, eslint, 로컬 PG 전체 스모크/백필/재실행 통과; 운영 DB 적용 완료 2026-11-02) |
 | **3** | `✅ DONE (SHA: b820a4e)` | ~~Claude Sonnet~~ ➡️ **Claude Opus** *(1순위 대체로 수행 / GitHub Copilot 2순위)* | `Maker (UI & Docs)` | `Phase 12.29 (R21·R22)` README 파괴적 마이그레이션 안내, 게임 등록 모달 의존성, 대시보드 일정 설정 폴백 (`sql/README.md`, `src/components/game/game-select-modal.tsx`, `src/components/game/game-select-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`) | `✅ DONE` (README B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리·물리 삭제 경고 추가, `GameSelectModal` `user?.id` 의존, 대시보드 설정 조회 실패 시 공식 일정만 표시 폴백. 신규 테스트 2건은 수정 전 코드에서 실패 확인. tsc·eslint·vitest 42파일 286·markdownlint 통과) |
-| **4** | `🛑 BLOCKED` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.27 ~ 12.29 통합 정적 코드 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `Run manifest 및 명시된 Base SHA·Target SHA 필요. 정확한 비교 범위를 정할 수 없어 리뷰 미수행.` |
+| **4** | `▶ READY` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.27 ~ 12.29 통합 정적 코드 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ 착수 대기` (차단 해소: 위 「리뷰 비교 범위」 Base `0da8eb4` ↔ Target `b820a4e`. Step 1·3을 Claude Opus가 수행했으므로 Gemini 4 Argon 또는 GitHub Copilot 수행 권장) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
-- **차단 사유 (2026-11-02, Phase 12.27~12.29 통합 리뷰)**:
-  - 완료된 작업: 큐·스키마와 최근 Maker 커밋 기록 확인. `artifacts/`에 `users-role-guard-and-subscription-dedupe` Run manifest가 없고, Step 4에 Base SHA·Target SHA가 기록되지 않았음을 확인했다.
-  - 남은 작업: Orchestrator가 해당 Run manifest(정확한 `base_sha`, `target_sha`, 산출 경로 포함)를 추가·확정한 뒤 동일 범위의 정적 리뷰와 지정 검증을 재개한다. 기록된 Maker 커밋만으로 비교 범위를 추정하지 않는다.
-  - 가정/결정: 없음. Reviewer 지침에 따라 SHA를 추측하지 않았다.
-  - 검증 상태: 리뷰·전체 테스트·빌드·markdownlint 미실행. 요구된 변경 기준점을 특정할 수 없어 결과를 만들지 않았다.
+- **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+- **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
 ---
 
