@@ -252,22 +252,21 @@ CREATE TABLE public.expenses (
 ALTER TABLE public.expenses ADD CONSTRAINT chk_expense_earned_points_platform
     CHECK (earned_points = 0 OR point_platform IS NOT NULL);
 
--- 구독 템플릿 비활성화 시 이미 생성된 미결제 회차를 보존 취소한다.
-CREATE OR REPLACE FUNCTION public.cancel_planned_expenses_on_template_deactivation()
+-- 구독 템플릿 비활성화 시 미결제 예정 회차를 제거한다.
+CREATE OR REPLACE FUNCTION public.delete_planned_expenses_on_template_deactivation()
 RETURNS TRIGGER AS $$
 BEGIN
     IF OLD.is_active = true AND NEW.is_active = false THEN
-        UPDATE public.expenses
-        SET status = 'CANCELLED', cancellation_kind = 'TEMPLATE_DEACTIVATION'
+        DELETE FROM public.expenses
         WHERE template_id = NEW.id AND status = 'PLANNED';
     END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
-CREATE TRIGGER trg_cancel_planned_expenses_on_template_deactivation
+CREATE TRIGGER trg_delete_planned_expenses_on_template_deactivation
 AFTER UPDATE OF is_active ON public.subscription_templates
-FOR EACH ROW EXECUTE FUNCTION public.cancel_planned_expenses_on_template_deactivation();
+FOR EACH ROW EXECUTE FUNCTION public.delete_planned_expenses_on_template_deactivation();
 
 -- 멱등성 보장 인덱스: 동일 구독 템플릿의 같은 월 중복 생성 원천 차단
 CREATE UNIQUE INDEX idx_expenses_template_billing_cycle 
@@ -694,10 +693,6 @@ BEGIN
     WHERE e.id = p_expense_id AND e.user_id = v_user_id AND e.status = 'CANCELLED'
       AND (
           e.cancellation_kind = 'PLANNED_CANCEL'
-          OR (e.cancellation_kind = 'TEMPLATE_DEACTIVATION' AND EXISTS (
-              SELECT 1 FROM public.subscription_templates AS t
-              WHERE t.id = e.template_id AND t.user_id = v_user_id AND t.is_active = true
-          ))
       );
     IF NOT FOUND THEN RAISE EXCEPTION '복구 가능한 예정 취소 항목이 아닙니다.'; END IF;
 END;

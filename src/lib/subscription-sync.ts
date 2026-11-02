@@ -201,8 +201,10 @@ export async function ensureMonthlySubscriptionExpenses(
   month: number,
   todayStr?: string,
 ): Promise<number> {
-  const billingCycle = toBillingCycle(year, month)
   const today = todayStr || getKstToday()
+  // Keep the view-month arguments for callers, but monthly plans follow KST today.
+  void year
+  void month
 
   let templates: SubscriptionTemplate[] = []
   const { data: rawTemplates, error: templateError } = await supabase
@@ -258,50 +260,97 @@ export async function ensureMonthlySubscriptionExpenses(
     (t) => !t.cycle_type || t.cycle_type === "MONTHLY_DAY",
   )
   if (monthlyTemplates.length > 0) {
-    const { data: existingExpenses } = await supabase
-      .from("expenses")
-      .select("template_id")
-      .eq("user_id", userId)
-      .eq("billing_cycle", billingCycle)
+    for (const template of monthlyTemplates) {
+      const { data: existingExpenses, error: expenseError } = await supabase
+        .from("expenses")
+        .select("id, billing_cycle, status, target_date")
+        .eq("user_id", userId)
+        .eq("template_id", template.id)
+        .order("target_date", { ascending: true })
 
+      if (expenseError) {
+        console.error("MONTHLY_DAY 기존 회차 조회 실패:", expenseError)
+        throw new Error("SUBSCRIPTION_LAZY_GENERATION_FAILED")
+      }
 
-    const existingTemplateIds = new Set(
-      ((existingExpenses || []) as { template_id: string }[]).map((e) => e.template_id),
-    )
+      const templateExpenses = (existingExpenses || []) as {
+        id: string
+        billing_cycle: string | null
+        status: string
+        target_date: string
+      }[]
+      const plannedExpenses = templateExpenses.filter((expense) => expense.status === "PLANNED")
+      const nextPlanned = plannedExpenses[0]
+      const duplicatePlanned = plannedExpenses.slice(1)
 
-    const rows = monthlyTemplates
-      .filter((template) => !existingTemplateIds.has(template.id))
-      .map((template) => {
-        const targetDate = getAdjustedBillingDate(year, month, template.billing_day || 1)
-        return {
-          user_id: userId,
-          template_id: template.id,
-          game_id: template.game_id,
-          billing_cycle: billingCycle,
-          title: template.title,
-          category: template.category,
-          status: "PLANNED" as const,
-          target_date: targetDate,
-          original_price: template.default_price,
-          discount_amount: 0,
-          point_discount_amount: 0,
-          used_points: 0,
-          earned_points: 0,
-          final_amount: template.default_price,
-          payment_method: template.payment_method,
-          point_platform: template.payment_method === "WALLET" ? null : template.payment_method,
-          deduct_from_asset: true,
+      if (duplicatePlanned.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("expenses")
+          .delete()
+          .eq("user_id", userId)
+          .in("id", duplicatePlanned.map((expense) => expense.id))
+
+        if (deleteError) {
+          console.error("MONTHLY_DAY 중복 예정 회차 정리 실패:", deleteError)
+          throw new Error("SUBSCRIPTION_LAZY_GENERATION_FAILED")
         }
-      })
+      }
 
-    if (rows.length > 0) {
-      const { error: insertError } = await supabase.from("expenses").insert(rows)
+      if (nextPlanned) continue
+
+      let nextDate = getAdjustedBillingDate(
+        Number(today.slice(0, 4)),
+        Number(today.slice(5, 7)),
+        template.billing_day || 1,
+      )
+      let nextCycle = toBillingCycle(Number(today.slice(0, 4)), Number(today.slice(5, 7)))
+
+      if (nextDate < today) {
+        const nextMonthDate = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 1))
+        nextDate = getAdjustedBillingDate(
+          nextMonthDate.getUTCFullYear(),
+          nextMonthDate.getUTCMonth() + 1,
+          template.billing_day || 1,
+        )
+        nextCycle = toBillingCycle(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth() + 1)
+      }
+
+      while (templateExpenses.some((expense) => expense.billing_cycle === nextCycle)) {
+        const nextMonthDate = new Date(Date.UTC(Number(nextCycle.slice(0, 4)), Number(nextCycle.slice(5, 7)), 1))
+        nextCycle = toBillingCycle(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth() + 1)
+        nextDate = getAdjustedBillingDate(
+          nextMonthDate.getUTCFullYear(),
+          nextMonthDate.getUTCMonth() + 1,
+          template.billing_day || 1,
+        )
+      }
+
+      const row = {
+        user_id: userId,
+        template_id: template.id,
+        game_id: template.game_id,
+        billing_cycle: nextCycle,
+        title: template.title,
+        category: template.category,
+        status: "PLANNED" as const,
+        target_date: nextDate,
+        original_price: template.default_price,
+        discount_amount: 0,
+        point_discount_amount: 0,
+        used_points: 0,
+        earned_points: 0,
+        final_amount: template.default_price,
+        payment_method: template.payment_method,
+        point_platform: template.payment_method === "WALLET" ? null : template.payment_method,
+        deduct_from_asset: true,
+      }
+      const { error: insertError } = await supabase.from("expenses").insert(row)
       if (insertError && insertError.code !== "23505") {
         console.error("MONTHLY_DAY 구독 회차 생성 실패:", insertError)
         throw new Error("SUBSCRIPTION_LAZY_GENERATION_FAILED")
       }
       if (!insertError) {
-        createdCount += rows.length
+        createdCount += 1
       }
     }
   }
@@ -368,6 +417,7 @@ export async function ensureMonthlySubscriptionExpenses(
       .select("id, title, start_date, end_date")
       .eq("game_id", template.game_id)
       .eq("schedule_type", "VERSION")
+      .gte("end_date", today)
 
     if (scheduleError) {
       console.warn("VERSION_PASS 일정 조회 실패:", scheduleError)

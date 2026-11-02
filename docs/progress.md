@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.24 구독 템플릿·다음 회차 동기화 (2026-11-02)
+
+- 구독 비활성화 시 미결제 `PLANNED` 회차를 삭제하고, 기존 `TEMPLATE_DEACTIVATION` 행 정리 및 복구 RPC 허용 제거를 반영했다.
+- `MONTHLY_DAY`는 KST 오늘부터 다음 예정 회차 하나만 유지하며, 중복 예정 행을 정리한다. `VERSION_PASS` 조회는 오늘 이전에 끝난 일정을 제외한다.
+- 단위 테스트와 TypeScript 검사는 통과했다. SQL 스모크 테스트는 데이터베이스 연결 환경에서 아직 실행하지 않았다.
+- 다음 단계: GPT Codex 단계 완료 후 GitHub Copilot의 Phase 12.25를 진행하고, 최종 통합 검토를 수행한다.
+
 ## Phase 12.15-F2-c 운영 DB 정합성 점검 (2026-11-02, 사용자 수동 실행)
 
 - **운영 DB 확인 쿼리**: 결제 RPC 11개 인자·지출 수정 RPC 5개 인자 단일 시그니처, pg_cron `chronoledger-account-purge`(5분), `user_games.memo`, `public.users`, 가입 트리거 2종, 템플릿 직접 DELETE 정책 0 모두 정상.

@@ -47,8 +47,8 @@
 --                                  deduct_from_asset=false는 자산 불변.
 --   ST-02  authenticated / A       환불 -> 적립 9 회수, 자산 불변.
 --   EXP-01 authenticated / A       예정 취소 후 restore -> PLANNED로 복구.
---   SUB-01 DB fixture + A JWT       템플릿 비활성화 -> 연결 PLANNED 회차 취소;
---                                  비활성 템플릿 복구 거부, 재활성 후 복구 성공.
+--   SUB-01 DB fixture + A JWT       템플릿 비활성화 -> 연결 PLANNED 회차 삭제;
+--                                  재활성화 후 새 회차 INSERT 허용.
 --   SCH-01 DB fixture 역할         PICKUP 날짜 변경 -> 연결 PLANNED expense 동기화.
 --   SCH-02 DB fixture 역할         일정 날짜 변경 -> PLANNED만 동기화, CONFIRMED/CANCELLED 보존,
 --                                  날짜 외 컬럼 변경은 동기화 없음.
@@ -466,37 +466,29 @@ SET is_active = false
 WHERE id = :'test_template_id'::uuid;
 DO $$
 BEGIN
-    IF NOT EXISTS (
+    IF EXISTS (
         SELECT 1 FROM public.expenses
         WHERE id = current_setting('chronoledger.template_expense_id')::uuid
-          AND status = 'CANCELLED' AND cancellation_kind = 'TEMPLATE_DEACTIVATION'
     ) THEN
-        RAISE EXCEPTION 'FAIL: template deactivation did not cancel its planned cycle';
+        RAISE EXCEPTION 'FAIL: template deactivation did not delete its planned cycle';
     END IF;
 END;
 $$;
-
-DO $$
-BEGIN
-    BEGIN
-        PERFORM public.restore_cancelled_expense(
-            current_setting('chronoledger.template_expense_id')::uuid
-        );
-        RAISE EXCEPTION 'FAIL: inactive template cycle was restored';
-    EXCEPTION WHEN raise_exception THEN
-        IF SQLERRM <> '복구 가능한 예정 취소 항목이 아닙니다.' THEN
-            RAISE;
-        END IF;
-    END;
-END;
-$$;
-
 UPDATE public.subscription_templates
 SET is_active = true
 WHERE id = :'test_template_id'::uuid;
-SET LOCAL ROLE authenticated;
-SELECT public.restore_cancelled_expense(:'template_expense_id'::uuid);
-RESET ROLE;
+INSERT INTO public.expenses (
+    user_id, game_id, template_id, title, category, target_date,
+    original_price, final_amount
+)
+VALUES (
+    :'test_user_id'::uuid, :'test_game_id'::uuid, :'test_template_id'::uuid,
+    'Codex SQL test resumed subscription cycle', '정기 구독',
+    (now() AT TIME ZONE 'Asia/Seoul')::date + 1,
+    3000, 3000
+)
+RETURNING id AS template_expense_id \gset
+SELECT set_config('chronoledger.template_expense_id', :'template_expense_id', true);
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -504,11 +496,11 @@ BEGIN
         WHERE id = current_setting('chronoledger.template_expense_id')::uuid
           AND status = 'PLANNED' AND cancellation_kind IS NULL
     ) THEN
-        RAISE EXCEPTION 'FAIL: reactivated template cycle was not explicitly restored';
+        RAISE EXCEPTION 'FAIL: reactivated template did not accept a fresh planned cycle';
     END IF;
 END;
 $$;
-\echo PASS: template deactivation cancellation and active-only explicit restoration
+\echo PASS: template pause deletes planned cycle and resume accepts a fresh cycle
 
 INSERT INTO public.expenses (
     user_id, game_id, schedule_id, title, category, target_date,

@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-02 (Phase 12.24 구독 템플릿·다음 회차 동기화)
+
+- 구독 템플릿 비활성화 시 미결제 `PLANNED` 회차를 삭제하도록 스키마와 마이그레이션을 추가하고, 과거 `TEMPLATE_DEACTIVATION` 취소 행을 정리한다. 복구 RPC는 사용자가 직접 취소한 `PLANNED_CANCEL`만 복구한다.
+- `MONTHLY_DAY` 지연 생성은 KST 오늘 기준 다음 한 회차로 제한하고 기존 중복 예정 행을 정리한다. `VERSION_PASS`는 종료일이 오늘 이전인 일정을 제외한다.
+- `TESTS.sql` 및 SRS를 동기화하고 구독 동기화 단위 테스트를 보강했다. Vitest 20개와 `tsc --noEmit` 통과. SQL 스모크 테스트 미실행.
+
 ## 2026-10-29 (Phase 12.15-F2 통합 리뷰 마감)
 
 - `38d3f71`(`database.types.ts` 동기화) 정적 리뷰 PASS, Run `database-types-schema-sync` 마감. 코드 변경 없음. 리뷰 기록은 `docs/handoff.md`, 비차단 후속 과제는 `docs/to-do.md` 12.15-F3.
