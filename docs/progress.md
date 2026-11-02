@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.31 정적 리뷰 및 Run 마감 (2026-11-02)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)
+- **결과**: Run `expense-chart-labels-and-outline` 마감. Base `20e32b5` ↔ Target `fc4ea9d` PASS(P1~P3 0건, P4 2건).
+- **검증**: tsc·eslint 0건, vitest 44개 파일 302개 통과, markdownlint 0건.
+- **다음 단계**: push 및 배포(미완료), 실제 브라우저 확인, 운영 DB R27 적용 여부 확인.
+
 ## Phase 12.31 소비 차트 라벨·외곽선 Run 등록 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 토큰 소진으로 1순위 대체)

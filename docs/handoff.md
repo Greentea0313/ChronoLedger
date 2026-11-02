@@ -51,12 +51,28 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: fc4ea9d)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Charts)` | `Phase 12.31 (R26)` 게임별 과금 툴팁 게임명, 금액 축 눈금 포맷 공용화, 막대 외곽선 테마 대응 가시성 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 신규 포맷터 `src/lib/chart-format.ts`·`src/lib/chart-format.test.ts`, 필요 시 `src/app/globals.css`) | `✅ 게임명 툴팁, 축 포맷터, 테마 대응 외곽선 적용; Vitest 26개·tsc·lint 통과` |
-| **2** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.31 정적 리뷰, 전체 검증, 문서 마감 및 push 여부 확인 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ Step 1 완료; Base 20e32b5 ↔ Target fc4ea9d 리뷰 및 마감 대기` |
+| **2** | `✅ DONE (리뷰: 20e32b5 ↔ fc4ea9d)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.31 정적 리뷰, 전체 검증, 문서 마감 및 push 여부 확인 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (Claude Opus 정적 리뷰: P1~P3 0건, P4 2건. `review.json` 스키마 검증 통과. tsc·eslint·vitest 44파일 302·markdownlint 통과. **push 미완료**(로컬 `main` 3커밋 앞섬) — 사용자 확인 후 push) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
+
+---
+
+## Phase 12.31 소비 차트 라벨·외곽선 정적 리뷰 및 Run 마감 (2026-11-02)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator). Maker는 Claude Sonnet(`fc4ea9d`)이므로 리뷰 독립성 충족.
+- **리뷰 범위**: Base `20e32b5` ↔ Target `fc4ea9d`. 이후 커밋(`d896190`)은 문서만 변경.
+- **판정**: PASS (P1~P3 0건). 수용 기준 충족:
+  - 게임별 과금 툴팁 제목은 `labelFormatter` + `getGameTooltipLabel`로 게임 이름 표시(미연결·미확인 키는 `게임 미연결`), UUID 비노출. Y축 아이콘 유지.
+  - 공용 `formatAmountAxisTick`을 두 막대 차트에 적용: `0`, `4천`, `8천`, `1만`, `1.5만`. 1,000원 단위 눈금은 소수 1자리 만 단위로 서로 다른 라벨이 되어 중복 없음, 그 외 값은 `toLocaleString`.
+  - 막대 외곽선: 평소 `rgb(var(--text-secondary))` 1.5px, hover `rgb(var(--text-primary))` 2.5px로 다크·라이트 테마 모두 대응, 하드코딩 `#FFFFFF` 제거. 원그래프 변경 없음. 같은 `rgb(var(--…))` 방식은 기존 그리드 선에서 이미 동작 중.
+- **발견 사항 (P4)**: ① 월별 차트 Y축 위 사용하지 않는 `eslint-disable-next-line` 주석(`page.tsx:1070`, 기본 lint는 통과) ② 툴팁 `labelFormatter` 연결 자체는 컴포넌트 테스트가 없고 헬퍼만 단위 테스트됨.
+- **산출물**: `artifacts/expense-chart-labels-and-outline/iteration-01/review.json` (스키마 검증 통과).
+- **검증**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 44개 파일 302개 통과, markdownlint 0건.
+- **배포 상태**: **미배포**. 로컬 `main`이 `origin/main`보다 3커밋 앞섬(`0e34d1a`, `fc4ea9d`, `d896190`) + 이 마감 커밋. 사용자 확인 후 push 필요(`known-pitfalls.md` #32).
+- **남은 확인 (사용자)**: ① 운영 DB `MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 여부(R27) ② push·배포 후 실제 브라우저에서 툴팁 게임명·축 눈금·다크/라이트 테마 외곽선 육안 확인.
 
 ---
 

@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-02 (Phase 12.31 정적 리뷰)
+
+- **리뷰 완료 (Claude Opus)**: `20e32b5` ↔ `fc4ea9d` PASS. P4 2건(미사용 eslint-disable 주석, 툴팁 연결 컴포넌트 테스트 부재)을 `docs/handoff.md`에 기록. 코드 변경 없음.
+
 ## 2026-11-02 (배포)
 
 - **운영 배포**: `origin/main`을 `d70ec5e` → `d57b3e2`로 갱신해 Phase 12.24 ~ 12.30 변경을 일괄 배포. 운영 DB 마이그레이션(`MIGRATION_USERS_ROLE_GUARD.sql`, `MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`)은 사전 적용 완료. 메모 Tab 입력 실제 환경 테스트 성공.

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "expense-chart-labels-and-outline",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "20e32b5",
+  "target_sha": "fc4ea9d",
+  "status": "findings",
+  "created_at": "2026-11-02T00:00:00+09:00",
+  "findings": [
+    {
+      "id": "P4-unused-eslint-directive",
+      "severity": "P4",
+      "file": "src/app/dashboard/expenses/page.tsx",
+      "line": 1070,
+      "evidence": "The monthly chart YAxis keeps '// eslint-disable-next-line @typescript-eslint/no-explicit-any' above tickFormatter={formatAmountAxisTick}; eslint --report-unused-disable-directives reports it as unused.",
+      "impact": "No runtime effect; npm run lint passes because unused directives are not reported by default.",
+      "recommendation": "Remove the orphaned directive in the next change touching this file."
+    },
+    {
+      "id": "P4-tooltip-wiring-test",
+      "severity": "P4",
+      "file": "src/app/dashboard/expenses/page.tsx",
+      "line": 1203,
+      "evidence": "getGameTooltipLabel is unit-tested in src/lib/chart-format.test.ts, but no expenses page test asserts that the Recharts Tooltip uses it as labelFormatter.",
+      "impact": "A future edit could drop the labelFormatter prop without a failing test and reintroduce the UUID label.",
+      "recommendation": "Accept for now (Recharts tooltip hover is hard to drive in jsdom); rely on the real-browser check of this run."
+    }
+  ]
+}
