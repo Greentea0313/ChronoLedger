@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-02 (Phase 12.30 메모 입력란 Tab 키, `87cf75e`)
+
+- `src/lib/textarea-tab.ts` 신규: 메모 입력란에서 Tab 키를 `\t` 입력으로 처리(Shift/Ctrl/Alt/Meta 조합·IME 조합 중 제외, `maxLength` 초과 시 미삽입).
+- `hero-sidebar.tsx`, `games/page.tsx`, `expense-detail-modal.tsx`, `request-submission-modal.tsx`의 메모 입력란에 적용. `games/page.tsx` 공식 일정 메모 표시를 `whitespace-pre-line` → `whitespace-pre-wrap`으로 변경.
+- 헬퍼 및 4개 컴포넌트 단위 테스트 추가.
+
 ## 2026-11-02 (Phase 12.27 ~ 12.29 통합 정적 리뷰)
 
 - Base `0da8eb4` ↔ Target `b820a4e` 통합 리뷰 clean, finding 0건. 리뷰 결과 `artifacts/users-role-guard-and-subscription-dedupe/iteration-01/review.json` schema 검증 통과.

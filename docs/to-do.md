@@ -612,7 +612,7 @@
 - [x] R22. [P3] `game-select-modal.tsx` `fetchGames`를 `user?.id` 의존으로 변경, 대시보드 `loadSchedulePreference` 실패 시 공식 일정만 표시로 폴백 (Claude Sonnet) (`완료` - 커밋 `b820a4e`, Claude Opus 대체 수행)
 - [x] R23. 운영 Supabase에 `MIGRATION_USERS_ROLE_GUARD.sql`(R18)·`MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(R19) 적용 (`완료` - 2026-11-02 사용자 실행 확인)
 - [ ] R24. `artifacts/schemas/run.schema.json`이 `main` Worktree Run(`branch`/`worktree_path`)을 표현할 수 있도록 확장하거나, `main` Run의 Base/Target SHA를 Dispatch Queue에 필수 기재하도록 Orchestrator 스킬에 명시 (Gemini 4 Argon)
-- [ ] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
+- [x] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---

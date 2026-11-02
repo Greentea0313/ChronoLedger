@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.30 메모 입력란 Tab 키 `\t` 입력 (2026-11-02, 커밋 `87cf75e`)
+
+- 공용 헬퍼 `src/lib/textarea-tab.ts`(`insertTabOnKeyDown`)를 홈 사이드바 메모, 게임 상시 메모, 지출 상세 메모, 일정 요청 메모에 연결했다. 수식키 없는 Tab은 커서/선택 영역에 `\t`를 삽입하고 포커스를 유지한다.
+- Shift/Ctrl/Alt/Meta+Tab과 IME 조합 중에는 가로채지 않고, `maxLength` 초과 시 삽입하지 않는다. 게임 공식 일정 메모 표시는 탭이 접히지 않도록 `whitespace-pre-wrap`으로 변경했다.
+- 검증: Vitest 43개 파일 298개, `tsc --noEmit`, eslint 통과. 실제 브라우저의 Radix 모달 포커스·한글 IME 동작은 실기기 확인 필요.
+- 다음: 순서 2 Claude Opus 정적 리뷰(Base `7e9a57b` ↔ Target `87cf75e`)와 문서 마감.
+
 ## Phase 12.30 메모 입력란 Tab 키 동작 Run 등록 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 토큰 소진으로 1순위 대체)

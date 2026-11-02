@@ -34,7 +34,7 @@
 - **Run ID**: `memo-textarea-tab-indent` *(2026-11-02, 메모 입력란 Tab 키 동작 교정(R25))*
 - **Orchestrator**: Claude Opus (Gemini 4 Argon 토큰 소진으로 1순위 대체 접수)
 - **Worktree 경로**: `main` (루트 작업 트리에 범위 밖 미커밋 지침 문서가 있어 `New-CollaborationRun.ps1` 미사용. Maker는 허용 파일만 스테이징·커밋)
-- **리뷰 비교 범위**: Base `7e9a57b` (Run 등록 시점 HEAD, 직전 Run 마감 커밋) ↔ Target = Step 1 Maker 커밋(완료 시 Maker가 이 줄과 표에 기록). `known-pitfalls.md` #31.
+- **리뷰 비교 범위**: Base `7e9a57b` (Run 등록 시점 HEAD, 직전 Run 마감 커밋) ↔ Target = `87cf75ebc780c462397a3b33dd01b93e5ab42806` (Step 1 Maker 커밋). `known-pitfalls.md` #31.
 - **사용자 요구사항**: 메모 입력란에서 Tab 키를 누르면 탭 문자(`\t`)가 입력되지 않고 포커스가 다음 버튼(취소)으로 이동함. 메모 입력란에서는 Tab 키가 `\t` 입력으로 동작해야 함.
 - **Orchestrator 결정·가정 (사용자 확인 전 기본값)**:
   - 대상은 앱의 메모 입력란 4곳 전체: 홈 사이드바 개인 메모(`src/components/calendar/hero-sidebar.tsx`), 게임 상시 메모(`src/app/dashboard/games/page.tsx`), 지출 상세 메모 수정(`src/components/expense/expense-detail-modal.tsx`), 일정 요청 메모(`src/components/game/request-submission-modal.tsx`).
@@ -52,8 +52,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `▶ READY` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Interaction)` | `Phase 12.30 (R25)` 메모 입력란 Tab 키 `\t` 입력 (`src/lib/textarea-tab.ts`, `src/lib/textarea-tab.test.ts`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/expense/expense-detail-modal.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
-| **2** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.30 정적 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `⏳ 대기 중 (Step 1 완료 후 착수)` |
+| **1** | `✅ DONE (SHA: 87cf75ebc780c462397a3b33dd01b93e5ab42806)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Interaction)` | `Phase 12.30 (R25)` 메모 입력란 Tab 키 `\t` 입력 (`src/lib/textarea-tab.ts`, `src/lib/textarea-tab.test.ts`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/expense/expense-detail-modal.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`) | `✅ DONE` (공용 헬퍼 `src/lib/textarea-tab.ts`를 사이드바·게임 상시 메모·지출 상세·일정 요청 4곳에 연결, 게임 일정 메모 표시 `whitespace-pre-wrap`. Shift/Ctrl/Alt/Meta+Tab·IME 조합 중은 미처리, maxLength 초과 시 삽입 안 함. 신규 테스트 12건. tsc·eslint·vitest 43파일 298 통과; 실제 브라우저·Radix 모달 포커스와 한글 IME 동작은 jsdom 미검증으로 실기기 확인 필요) |
+| **2** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.30 정적 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
