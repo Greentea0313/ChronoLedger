@@ -12,22 +12,22 @@
 - `dedupe_monthly_planned_expenses(UUID)` 소유자 검증 RPC를 추가하고, 중복 `MONTHLY_DAY` 예정 회차는 가장 이른 1건만 남기도록 마이그레이션·스키마·스모크 테스트를 동기화했다. 클라이언트 직접 DELETE는 제거했다.
 - `VERSION_PASS` 생성과 지출 모달의 버전 일정 연결은 공식 일정만 사용한다. `is_official` 미적용 DB에서는 전체 일정을 공식으로 간주하는 폴백을 유지한다.
 - 구독 동기화 22개 및 지출 모달 25개 Vitest 통과, `tsc --noEmit` 통과. 로컬 PostgreSQL 17에서 신규 SCHEMA + 전체 migrations + 중복 백필 단언 + TESTS.sql 통과; 새 구독 마이그레이션 2회씩 재실행 통과.
-- 다음 단계: Phase 12.29 문서/UI 보강(Claude Sonnet), 이후 통합 정적 리뷰. 운영 Supabase 마이그레이션 적용은 사용자 수동 작업이다.
+- 다음 단계: Phase 12.29 문서/UI 보강(Claude Sonnet), 이후 통합 정적 리뷰. 운영 Supabase 마이그레이션은 2026-11-02 사용자가 적용 완료했다.
 
 ## Phase 12.27 `public.users.role` 자기 승격 차단 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Maker - Security & SQL/RLS)
 - **결과**: 커밋 `361fbbc`. `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`(트리거) 신규, `SCHEMA.sql`·`sql/README.md`·`TESTS.sql`(USR-01) 반영.
 - **검증**: 로컬 PostgreSQL 17에서 기존 DB(+마이그레이션 2회)·신규 설치·신규+전체 migrations 모두 `TESTS.sql` PASS. 자기 승격 재현 SQL이 거부되고, postgres 경로의 관리자 지정은 정상 동작.
-- **사용자 결정 반영**: R17(비공식 일정은 토글과 무관하게 금전 경로에서 항상 제외)을 Step 2 범위에 추가. 운영 DB 관리자 계정은 사용자 본인 1개뿐임을 확인.
-- **다음 단계**: 운영 Supabase에 `MIGRATION_USERS_ROLE_GUARD.sql` 수동 적용(즉시 권장). Dispatch Step 2 `Phase 12.28 (R16·R17)` GPT Codex `▶ READY`.
+- **사용자 결정 반영**: R20(비공식 일정은 토글과 무관하게 금전 경로에서 항상 제외)을 Step 2 범위에 추가. 운영 DB 관리자 계정은 사용자 본인 1개뿐임을 확인.
+- **다음 단계**: 운영 Supabase에 `MIGRATION_USERS_ROLE_GUARD.sql` 적용(2026-11-02 사용자 적용 완료). Dispatch Step 2 `Phase 12.28 (R19·R20)` GPT Codex `▶ READY`.
 
 ## Phase 12.24 ~ 12.26 통합 정적 리뷰 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)
 - **결과**: 조건부 통과. 12.26 PASS. 기존 P1 보안 결함(`public.users.role` 자기 승격)과 P2(MONTHLY_DAY 중복 PLANNED 정리 무동작)를 로컬 PostgreSQL에서 재현해 기록. 상세 내용은 `docs/handoff.md` 리뷰 섹션 참조.
 - **검증**: tsc·eslint 0건, vitest 42개 파일 281개 통과, markdownlint 0건, 로컬 PG `TESTS.sql` PASS.
-- **다음 단계**: 후속 Run `users-role-guard-and-subscription-dedupe` 등록 완료. Step 1 `Phase 12.27 (R15)` Claude Opus `▶ READY` → Step 2 R16(GPT Codex) → Step 3 R18·R19(Claude Sonnet) → Step 4 통합 리뷰(Gemini 4 Argon). R17은 사용자 결정 대기.
+- **다음 단계**: 후속 Run `users-role-guard-and-subscription-dedupe` 등록 완료. Step 1 `Phase 12.27 (R18)` Claude Opus `▶ READY` → Step 2 R19(GPT Codex) → Step 3 R21·R22(Claude Sonnet) → Step 4 통합 리뷰(Gemini 4 Argon). R20은 사용자 결정 대기.
 
 ## Phase 12.26 소비 통계·예산 배지 개선 (2026-11-02, 커밋 `6364132`)
 

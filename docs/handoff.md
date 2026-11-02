@@ -31,38 +31,37 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `users-role-guard-and-subscription-dedupe` *(2026-11-02, Phase 12.24~12.26 통합 리뷰 후속: P1 `public.users.role` 자기 승격 차단(R15), P2 MONTHLY_DAY 중복 PLANNED 정리(R16), P3 README·UI 보강(R18·R19))*
+- **Run ID**: `users-role-guard-and-subscription-dedupe` *(2026-11-02, Phase 12.24~12.26 통합 리뷰 후속: P1 `public.users.role` 자기 승격 차단(R18), P2 MONTHLY_DAY 중복 PLANNED 정리(R19), P3 README·UI 보강(R21·R22))*
 - **Worktree 경로**: `main` (루트 작업 트리에 범위 밖 미커밋 지침 문서가 있어 `New-CollaborationRun.ps1` 미사용. 각 Maker는 자기 허용 파일만 스테이징·커밋)
 - **배경**: `docs/handoff.md` 「Phase 12.24 ~ 12.26 통합 정적 코드 리뷰」 발견 사항. 로컬 PostgreSQL 17 재현 절차는 `docs/known-pitfalls.md` #28.
 - **사용자 결정 (2026-11-02)**:
-  - **R17**: 비공식 일정(`is_official = false`)은 **항상** `VERSION_PASS` 예정 지출 생성과 지출 모달의 연결 버전 일정에서 제외한다. 설정 페이지의 비공식 일정 표시 토글을 켜도 제외하며, 토글은 화면 표시에만 영향을 준다. → Step 2 범위에 포함.
+  - **R20**: 비공식 일정(`is_official = false`)은 **항상** `VERSION_PASS` 예정 지출 생성과 지출 모달의 연결 버전 일정에서 제외한다. 설정 페이지의 비공식 일정 표시 토글을 켜도 제외하며, 토글은 화면 표시에만 영향을 준다. → Step 2 범위에 포함.
   - **운영 DB 관리자 확인**: 현재 `role = 'admin'` 계정은 사용자 본인 계정 1개뿐(의도하지 않은 자기 승격 흔적 없음).
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Phase 12.27 / R15 (Claude Opus)**: `public.users.role` 자기 승격 차단
+  1. **Phase 12.27 / R18 (Claude Opus)**: `public.users.role` 자기 승격 차단
      - `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`(재실행 안전) 신규: 인증 사용자가 본인 행을 수정할 때 `role` 변경을 거부(`BEFORE UPDATE` 트리거 또는 `REVOKE UPDATE` + `GRANT UPDATE (nickname, show_unofficial_schedules)` 중 택1, 선택 근거 기록). `nickname`·`show_unofficial_schedules` 본인 수정과 관리자 경로(서비스 역할/`SECURITY DEFINER` 함수)는 계속 동작.
      - `sql/SCHEMA.sql` 동일 반영, `sql/README.md` B표에 확인 쿼리 추가.
      - `sql/tests/TESTS.sql`: 일반 사용자 `UPDATE public.users SET role = 'admin'` 거부(0행 또는 `insufficient_privilege`) 및 이후 관리자 RPC 권한 오류 단언, 닉네임·일정 설정 본인 수정 성공 단언 추가.
      - 로컬 PG(SCHEMA + 전체 migrations, 신규 설치 둘 다)에서 `TESTS.sql` 끝까지 PASS, 운영 적용 절차를 `docs/handoff.md`에 기록.
-  2. **Phase 12.28 / R16·R17 (GPT Codex)**: MONTHLY_DAY 중복 PLANNED 정리 및 비공식 일정의 금전 경로 제외
+  2. **Phase 12.28 / R19·R20 (GPT Codex)**: MONTHLY_DAY 중복 PLANNED 정리 및 비공식 일정의 금전 경로 제외
      - `sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(재실행 안전) 신규: `MONTHLY_DAY` 템플릿별로 `target_date`가 가장 이른 `PLANNED` 1건만 남기고 나머지 `PLANNED` 삭제(`CONFIRMED`/`CANCELLED` 불변).
      - 런타임 중복 정리가 필요하면 본인 소유 검증을 포함한 `SECURITY DEFINER` RPC(`REVOKE ... FROM PUBLIC, anon` / `GRANT ... TO authenticated`)로 이전하고, `src/lib/subscription-sync.ts`의 클라이언트 `.from("expenses").delete()` 호출 제거. `expenses` DELETE RLS는 열지 않음(FR-030).
      - `SCHEMA.sql`·`sql/README.md` 반영, `subscription-sync.test.ts` 갱신, `TESTS.sql`에 중복 정리 단언 추가 및 로컬 PG PASS.
-     - **R17**: `src/lib/subscription-sync.ts`의 `VERSION_PASS` `VERSION` 일정 조회와 `src/components/expense/expense-modal.tsx`의 연결 버전 일정 조회에서 `is_official = false` 일정을 제외(사용자 토글과 무관). `is_official` 컬럼 미적용 DB에서는 기존처럼 전체를 공식으로 간주하는 폴백 유지(`docs/known-pitfalls.md`의 미적용 컬럼 폴백 패턴). 단위 테스트 추가, `docs/spec/SRS.md` FR-050 및 `docs/spec/revisions_and_decisions.md`에 결정 반영.
-  3. **Phase 12.29 / R18·R19 (Claude Sonnet)**: 문서·UI 보강
+     - **R20**: `src/lib/subscription-sync.ts`의 `VERSION_PASS` `VERSION` 일정 조회와 `src/components/expense/expense-modal.tsx`의 연결 버전 일정 조회에서 `is_official = false` 일정을 제외(사용자 토글과 무관). `is_official` 컬럼 미적용 DB에서는 기존처럼 전체를 공식으로 간주하는 폴백 유지(`docs/known-pitfalls.md`의 미적용 컬럼 폴백 패턴). 단위 테스트 추가, `docs/spec/SRS.md` FR-050 및 `docs/spec/revisions_and_decisions.md`에 결정 반영.
+  3. **Phase 12.29 / R21·R22 (Claude Sonnet)**: 문서·UI 보강
      - `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리와 "기존 `TEMPLATE_DEACTIVATION` 취소 행·비활성 템플릿 PLANNED 행을 물리 삭제" 주의 문구 추가.
      - `src/components/game/game-select-modal.tsx`: `fetchGames`/effect 의존성을 `user?.id`로 바꿔 세션 갱신 시 입력 초기화 방지.
      - `src/app/dashboard/page.tsx`: `loadSchedulePreference` 실패 시 대시보드 전체 실패 대신 공식 일정만 표시로 폴백하고 안내 문구 표시.
      - 관련 단위 테스트 추가·갱신, tsc·eslint·vitest 통과.
-  4. **통합 코드 리뷰 및 검증 (Gemini 4 Argon)**: Phase 12.27 ~ 12.29 정적 리뷰, tsc·eslint·vitest·markdownlint, 로컬 PG `TESTS.sql` 결과 확인 및 문서 마감. Step 1을 Claude Opus가 구현하므로 리뷰 독립성을 위해 Argon 우선.
-- **Step 1 운영 적용 절차 (사용자 수동, 즉시 권장)**: Supabase SQL Editor에서 `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql` 실행 → `sql/README.md` B표 확인 쿼리(`trg_prevent_users_role_self_change` 1행) 확인. 이후 관리자 지정은 SQL Editor 또는 `app_metadata` 방식으로만 가능.
-- **운영 반영 (사용자 수동)**: Step 1 완료 직후 Supabase SQL Editor에서 `MIGRATION_USERS_ROLE_GUARD.sql` 우선 적용, 이어서 Step 2 마이그레이션 적용. 적용 전 운영 DB에서 `SELECT id, role FROM public.users WHERE role = 'admin';`로 의도하지 않은 관리자 행이 없는지 확인.
-- **Step 2 운영 적용 절차 (사용자 수동)**: Step 1 관리자 역할 보호 마이그레이션 적용을 먼저 확인한 뒤 `sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`을 Supabase SQL Editor에서 실행한다. 이 마이그레이션은 월간 템플릿별 가장 이른 `PLANNED`만 남기고 후속 예정 행을 물리 삭제한다. 적용 후 `sql/README.md` B표의 RPC 및 잔여 중복 확인 쿼리를 실행한다.
+  4. **통합 코드 리뷰 및 검증 (Gemini 4 Argon)**: Phase 12.27 ~ 12.29 정적 리뷰, tsc·eslint·vitest·markdownlint, 로컬 PG `TESTS.sql` 결과 확인 및 문서 마감. Step 1·3을 Claude Opus가 구현했으므로 리뷰 독립성을 위해 Argon 우선.
+- **운영 DB 적용 (✅ 완료, 2026-11-02 사용자 실행 확인)**: Supabase SQL Editor에서 `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`(Step 1) → `sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(Step 2) 순서로 적용. 적용 전 관리자 계정은 사용자 본인 1개뿐임을 확인. 확인 쿼리는 `sql/README.md` B표(`trg_prevent_users_role_self_change` 1행, `dedupe_monthly_planned_expenses` RPC 1행, 잔여 중복 0행). 이후 관리자 지정은 SQL Editor 또는 `app_metadata` 방식으로만 가능.
+- **ID 정정 (2026-11-02)**: 이 Run의 to-do ID를 R15~R19 → **R18~R22**로 재번호(기존 R15~R17은 Phase 12.24~12.26이 사용 중이라 충돌). 커밋 `0da8eb4`·`290055a` 메시지의 R15/R16/R18/R19는 각각 R18/R19/R21/R22에 해당.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE (SHA: 361fbbc)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Security & SQL/RLS)` | `Phase 12.27 (R15)` `public.users.role` 자기 승격 차단 마이그레이션 + 스모크 테스트 (`sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`) | `✅ DONE` (`BEFORE UPDATE OF role` 트리거로 `authenticated`/`anon`의 role 변경 거부, 컬럼 GRANT 대신 트리거 선택(이후 `GRANT ALL`에도 보호 유지), `TESTS.sql` USR-01 추가. 로컬 PG: 기존 DB+마이그레이션 2회·신규 설치·신규+전체 migrations 모두 PASS, 자기 승격 재현 SQL 거부 확인, postgres 경로 관리자 지정 정상) |
-| **2** | `✅ DONE (SHA: bdb064c314f79360447237d601d61dfded483c02)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.28 (R16·R17)` 월간 중복 정리 백필/RPC와 클라이언트 DELETE 제거, 공식 일정만 구독 생성·모달 연결에 사용 및 구형 DB 폴백 (`sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/revisions_and_decisions.md`) | `✅ DONE` (Vitest 47개, tsc, eslint, 로컬 PG 전체 스모크/백필/재실행 통과; 운영 DB 적용은 사용자 수동) |
-| **3** | `✅ DONE (SHA: b820a4e)` | ~~Claude Sonnet~~ ➡️ **Claude Opus** *(1순위 대체로 수행 / GitHub Copilot 2순위)* | `Maker (UI & Docs)` | `Phase 12.29 (R18·R19)` README 파괴적 마이그레이션 안내, 게임 등록 모달 의존성, 대시보드 일정 설정 폴백 (`sql/README.md`, `src/components/game/game-select-modal.tsx`, `src/components/game/game-select-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`) | `✅ DONE` (README B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리·물리 삭제 경고 추가, `GameSelectModal` `user?.id` 의존, 대시보드 설정 조회 실패 시 공식 일정만 표시 폴백. 신규 테스트 2건은 수정 전 코드에서 실패 확인. tsc·eslint·vitest 42파일 286·markdownlint 통과) |
+| **1** | `✅ DONE (SHA: 361fbbc)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Security & SQL/RLS)` | `Phase 12.27 (R18)` `public.users.role` 자기 승격 차단 마이그레이션 + 스모크 테스트 (`sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`) | `✅ DONE` (`BEFORE UPDATE OF role` 트리거로 `authenticated`/`anon`의 role 변경 거부, 컬럼 GRANT 대신 트리거 선택(이후 `GRANT ALL`에도 보호 유지), `TESTS.sql` USR-01 추가. 로컬 PG: 기존 DB+마이그레이션 2회·신규 설치·신규+전체 migrations 모두 PASS, 자기 승격 재현 SQL 거부 확인, postgres 경로 관리자 지정 정상. 운영 DB 적용 완료 2026-11-02) |
+| **2** | `✅ DONE (SHA: bdb064c)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.28 (R19·R20)` 월간 중복 정리 백필/RPC와 클라이언트 DELETE 제거, 공식 일정만 구독 생성·모달 연결에 사용 및 구형 DB 폴백 (`sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/revisions_and_decisions.md`) | `✅ DONE` (Vitest 47개, tsc, eslint, 로컬 PG 전체 스모크/백필/재실행 통과; 운영 DB 적용 완료 2026-11-02) |
+| **3** | `✅ DONE (SHA: b820a4e)` | ~~Claude Sonnet~~ ➡️ **Claude Opus** *(1순위 대체로 수행 / GitHub Copilot 2순위)* | `Maker (UI & Docs)` | `Phase 12.29 (R21·R22)` README 파괴적 마이그레이션 안내, 게임 등록 모달 의존성, 대시보드 일정 설정 폴백 (`sql/README.md`, `src/components/game/game-select-modal.tsx`, `src/components/game/game-select-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`) | `✅ DONE` (README B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리·물리 삭제 경고 추가, `GameSelectModal` `user?.id` 의존, 대시보드 설정 조회 실패 시 공식 일정만 표시 폴백. 신규 테스트 2건은 수정 전 코드에서 실패 확인. tsc·eslint·vitest 42파일 286·markdownlint 통과) |
 | **4** | `▶ READY` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.27 ~ 12.29 통합 정적 코드 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ 착수 대기` (Step 1·3을 Claude Opus가 수행했으므로 **Gemini 4 Argon** 수행 필수 권장) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
@@ -71,7 +70,7 @@
 
 ---
 
-## Phase 12.29 문서·UI 보강 (R18·R19) 및 handoff 표 구조 복구 (2026-11-02)
+## Phase 12.29 문서·UI 보강 (R21·R22) 및 handoff 표 구조 복구 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Claude Sonnet 1순위 대체, Maker - UI & Docs)
 - **커밋**: `b820a4e` (기능), `70efa54` (handoff 표 복구)
@@ -82,6 +81,33 @@
   4. 테스트: `game-select-modal.test.tsx`(user 참조 변경 시 재조회·초기화 없음), `dashboard/page.test.tsx`(설정 조회 실패 폴백) 추가. 두 테스트 모두 수정 전 코드에서 실패함을 확인.
   5. `docs/handoff.md`: `002fcb5`에서 12.24~12.26 리뷰 섹션이 상단 Fallback 표 구분 행 중간에 잘못 삽입된 것을 발견해 체크포인트 아래 이력 위치로 이동(원인: 큐 안내문에도 체크포인트 제목 문자열이 있어 첫 일치 위치에 삽입됨).
 - **검증**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 42개 파일 286개 통과, markdownlint 0건. SQL 변경 없음(README 문서만).
+
+---
+
+## Phase 12.28 MONTHLY_DAY 중복 PLANNED 정리 및 비공식 일정 금전 경로 제외 (R19·R20) (2026-11-02)
+
+- **수행 주체**: GPT Codex (Maker - Core & SQL/Test)
+- **커밋**: `bdb064c` (기능), `13d150b` (문서)
+- **수행 내역**:
+  1. `sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`: `MONTHLY_DAY` 템플릿별 가장 이른 `PLANNED` 1건만 남기고 나머지 예정 행 물리 삭제(백필), 소유자 검증 `SECURITY DEFINER` RPC `dedupe_monthly_planned_expenses(UUID)` 추가. `SCHEMA.sql`·`sql/README.md`·`TESTS.sql`·`database.types.ts` 동기화.
+  2. `src/lib/subscription-sync.ts`: 클라이언트 `expenses` 직접 DELETE를 제거하고 RPC 호출로 전환. `VERSION_PASS` 생성은 공식 일정만 사용.
+  3. `src/components/expense/expense-modal.tsx`: 연결 버전 일정은 공식 일정만 사용(사용자 토글과 무관). `is_official` 미적용 DB에서는 전체를 공식으로 간주하는 폴백 유지.
+  4. `docs/spec/SRS.md` FR-050, `docs/spec/revisions_and_decisions.md`에 R20 결정 반영.
+- **검증 (Maker 보고)**: 구독 동기화 22개·지출 모달 25개 Vitest, `tsc --noEmit` 통과. 로컬 PostgreSQL 17 신규 SCHEMA + 전체 migrations + 중복 백필 단언 + `TESTS.sql` 통과, 신규 마이그레이션 2회 재실행 통과.
+- **운영 반영**: 2026-11-02 사용자 적용 완료.
+
+---
+
+## Phase 12.27 `public.users.role` 자기 승격 차단 (R18) (2026-11-02)
+
+- **수행 주체**: Claude Opus (Maker - Security & SQL/RLS)
+- **커밋**: `361fbbc` (기능), `290055a` (문서)
+- **수행 내역**:
+  1. `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`: `BEFORE UPDATE OF role` 트리거 `trg_prevent_users_role_self_change`가 `authenticated`/`anon` 역할의 `role` 변경을 `insufficient_privilege`로 거부. SQL Editor(postgres)·`service_role`·`SECURITY DEFINER` 경로는 허용.
+  2. 설계 결정: 컬럼 단위 GRANT 대신 트리거를 선택. 이후 누군가 `GRANT ALL ... TO authenticated`를 실행해도 보호가 풀리지 않음.
+  3. `SCHEMA.sql` 동일 반영, `sql/README.md` B표 확인 쿼리 추가, `TESTS.sql` USR-01(역할 변경 거부, 닉네임·일정 설정 본인 수정 성공) 추가.
+- **검증**: 로컬 PostgreSQL 17에서 기존 DB + 마이그레이션 2회, 신규 설치, 신규 + 전체 migrations 모두 `TESTS.sql` PASS. 리뷰 때 성공했던 자기 승격 재현 SQL이 거부되고, postgres 경로 관리자 지정은 정상.
+- **운영 반영**: 적용 전 운영 관리자 계정은 사용자 본인 1개뿐임을 확인(자기 승격 흔적 없음). 2026-11-02 사용자 적용 완료.
 
 ---
 

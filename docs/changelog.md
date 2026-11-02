@@ -16,11 +16,11 @@
 ## 2026-11-02 (Phase 12.27 `public.users.role` 자기 승격 차단)
 
 - **보안 수정 (361fbbc)**: 일반 사용자가 본인 `public.users.role`을 `admin`으로 바꿔 관리자 RPC를 통과할 수 있던 결함을 `BEFORE UPDATE OF role` 트리거(`prevent_users_role_self_change`)로 차단. `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `SCHEMA.sql`, `sql/README.md` 반영, `TESTS.sql` USR-01 추가.
-- **결정 기록**: R17 비공식 일정은 사용자 토글과 무관하게 `VERSION_PASS` 생성·지출 모달 버전 연결에서 항상 제외(Phase 12.28에서 구현 예정).
+- **결정 기록**: R20 비공식 일정은 사용자 토글과 무관하게 `VERSION_PASS` 생성·지출 모달 버전 연결에서 항상 제외(Phase 12.28에서 구현 예정).
 
 ## 2026-11-02 (Phase 12.24 ~ 12.26 통합 정적 리뷰)
 
-- **통합 리뷰 완료 (Claude Opus)**: `d70ec5e` ↔ `ec61251` 범위를 검토함. 조건부 통과이며, P1 1건(기존 `public.users.role` 자기 승격 RLS 결함)·P2 1건(MONTHLY_DAY 중복 PLANNED 정리 무동작)·P3 4건·P4 2건을 `docs/handoff.md`에 기록하고 `docs/to-do.md` R15~R19로 등록함. 코드 변경 없음.
+- **통합 리뷰 완료 (Claude Opus)**: `d70ec5e` ↔ `ec61251` 범위를 검토함. 조건부 통과이며, P1 1건(기존 `public.users.role` 자기 승격 RLS 결함)·P2 1건(MONTHLY_DAY 중복 PLANNED 정리 무동작)·P3 4건·P4 2건을 `docs/handoff.md`에 기록하고 `docs/to-do.md` R18~R22로 등록함. 코드 변경 없음.
 
 ## 2026-11-02 (Phase 12.26 소비 통계·예산 배지, `6364132`)
 
