@@ -1,5 +1,13 @@
 # 프로젝트 진행 현황
 
+## Phase 12.27 `public.users.role` 자기 승격 차단 (2026-11-02)
+
+- **수행 주체**: Claude Opus (Maker - Security & SQL/RLS)
+- **결과**: 커밋 `361fbbc`. `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`(트리거) 신규, `SCHEMA.sql`·`sql/README.md`·`TESTS.sql`(USR-01) 반영.
+- **검증**: 로컬 PostgreSQL 17에서 기존 DB(+마이그레이션 2회)·신규 설치·신규+전체 migrations 모두 `TESTS.sql` PASS. 자기 승격 재현 SQL이 거부되고, postgres 경로의 관리자 지정은 정상 동작.
+- **사용자 결정 반영**: R17(비공식 일정은 토글과 무관하게 금전 경로에서 항상 제외)을 Step 2 범위에 추가. 운영 DB 관리자 계정은 사용자 본인 1개뿐임을 확인.
+- **다음 단계**: 운영 Supabase에 `MIGRATION_USERS_ROLE_GUARD.sql` 수동 적용(즉시 권장). Dispatch Step 2 `Phase 12.28 (R16·R17)` GPT Codex `▶ READY`.
+
 ## Phase 12.24 ~ 12.26 통합 정적 리뷰 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)

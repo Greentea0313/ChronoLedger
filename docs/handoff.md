@@ -55,29 +55,33 @@
 - **Run ID**: `users-role-guard-and-subscription-dedupe` *(2026-11-02, Phase 12.24~12.26 통합 리뷰 후속: P1 `public.users.role` 자기 승격 차단(R15), P2 MONTHLY_DAY 중복 PLANNED 정리(R16), P3 README·UI 보강(R18·R19))*
 - **Worktree 경로**: `main` (루트 작업 트리에 범위 밖 미커밋 지침 문서가 있어 `New-CollaborationRun.ps1` 미사용. 각 Maker는 자기 허용 파일만 스테이징·커밋)
 - **배경**: `docs/handoff.md` 「Phase 12.24 ~ 12.26 통합 정적 코드 리뷰」 발견 사항. 로컬 PostgreSQL 17 재현 절차는 `docs/known-pitfalls.md` #28.
-- **보류 (사용자 결정 필요)**: R17 비공식 일정을 `VERSION_PASS` 회차 생성·지출 모달 버전 연결에서 제외할지 여부. 결정 전까지 이번 Run 범위에서 제외.
+- **사용자 결정 (2026-11-02)**:
+  - **R17**: 비공식 일정(`is_official = false`)은 **항상** `VERSION_PASS` 예정 지출 생성과 지출 모달의 연결 버전 일정에서 제외한다. 설정 페이지의 비공식 일정 표시 토글을 켜도 제외하며, 토글은 화면 표시에만 영향을 준다. → Step 2 범위에 포함.
+  - **운영 DB 관리자 확인**: 현재 `role = 'admin'` 계정은 사용자 본인 계정 1개뿐(의도하지 않은 자기 승격 흔적 없음).
 - **수용 기준 (Acceptance Criteria)**:
   1. **Phase 12.27 / R15 (Claude Opus)**: `public.users.role` 자기 승격 차단
      - `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`(재실행 안전) 신규: 인증 사용자가 본인 행을 수정할 때 `role` 변경을 거부(`BEFORE UPDATE` 트리거 또는 `REVOKE UPDATE` + `GRANT UPDATE (nickname, show_unofficial_schedules)` 중 택1, 선택 근거 기록). `nickname`·`show_unofficial_schedules` 본인 수정과 관리자 경로(서비스 역할/`SECURITY DEFINER` 함수)는 계속 동작.
      - `sql/SCHEMA.sql` 동일 반영, `sql/README.md` B표에 확인 쿼리 추가.
      - `sql/tests/TESTS.sql`: 일반 사용자 `UPDATE public.users SET role = 'admin'` 거부(0행 또는 `insufficient_privilege`) 및 이후 관리자 RPC 권한 오류 단언, 닉네임·일정 설정 본인 수정 성공 단언 추가.
      - 로컬 PG(SCHEMA + 전체 migrations, 신규 설치 둘 다)에서 `TESTS.sql` 끝까지 PASS, 운영 적용 절차를 `docs/handoff.md`에 기록.
-  2. **Phase 12.28 / R16 (GPT Codex)**: MONTHLY_DAY 중복 PLANNED 정리
+  2. **Phase 12.28 / R16·R17 (GPT Codex)**: MONTHLY_DAY 중복 PLANNED 정리 및 비공식 일정의 금전 경로 제외
      - `sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(재실행 안전) 신규: `MONTHLY_DAY` 템플릿별로 `target_date`가 가장 이른 `PLANNED` 1건만 남기고 나머지 `PLANNED` 삭제(`CONFIRMED`/`CANCELLED` 불변).
      - 런타임 중복 정리가 필요하면 본인 소유 검증을 포함한 `SECURITY DEFINER` RPC(`REVOKE ... FROM PUBLIC, anon` / `GRANT ... TO authenticated`)로 이전하고, `src/lib/subscription-sync.ts`의 클라이언트 `.from("expenses").delete()` 호출 제거. `expenses` DELETE RLS는 열지 않음(FR-030).
      - `SCHEMA.sql`·`sql/README.md` 반영, `subscription-sync.test.ts` 갱신, `TESTS.sql`에 중복 정리 단언 추가 및 로컬 PG PASS.
+     - **R17**: `src/lib/subscription-sync.ts`의 `VERSION_PASS` `VERSION` 일정 조회와 `src/components/expense/expense-modal.tsx`의 연결 버전 일정 조회에서 `is_official = false` 일정을 제외(사용자 토글과 무관). `is_official` 컬럼 미적용 DB에서는 기존처럼 전체를 공식으로 간주하는 폴백 유지(`docs/known-pitfalls.md`의 미적용 컬럼 폴백 패턴). 단위 테스트 추가, `docs/spec/SRS.md` FR-050 및 `docs/spec/revisions_and_decisions.md`에 결정 반영.
   3. **Phase 12.29 / R18·R19 (Claude Sonnet)**: 문서·UI 보강
      - `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리와 "기존 `TEMPLATE_DEACTIVATION` 취소 행·비활성 템플릿 PLANNED 행을 물리 삭제" 주의 문구 추가.
      - `src/components/game/game-select-modal.tsx`: `fetchGames`/effect 의존성을 `user?.id`로 바꿔 세션 갱신 시 입력 초기화 방지.
      - `src/app/dashboard/page.tsx`: `loadSchedulePreference` 실패 시 대시보드 전체 실패 대신 공식 일정만 표시로 폴백하고 안내 문구 표시.
      - 관련 단위 테스트 추가·갱신, tsc·eslint·vitest 통과.
   4. **통합 코드 리뷰 및 검증 (Gemini 4 Argon)**: Phase 12.27 ~ 12.29 정적 리뷰, tsc·eslint·vitest·markdownlint, 로컬 PG `TESTS.sql` 결과 확인 및 문서 마감. Step 1을 Claude Opus가 구현하므로 리뷰 독립성을 위해 Argon 우선.
+- **Step 1 운영 적용 절차 (사용자 수동, 즉시 권장)**: Supabase SQL Editor에서 `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql` 실행 → `sql/README.md` B표 확인 쿼리(`trg_prevent_users_role_self_change` 1행) 확인. 이후 관리자 지정은 SQL Editor 또는 `app_metadata` 방식으로만 가능.
 - **운영 반영 (사용자 수동)**: Step 1 완료 직후 Supabase SQL Editor에서 `MIGRATION_USERS_ROLE_GUARD.sql` 우선 적용, 이어서 Step 2 마이그레이션 적용. 적용 전 운영 DB에서 `SELECT id, role FROM public.users WHERE role = 'admin';`로 의도하지 않은 관리자 행이 없는지 확인.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Security & SQL/RLS)` | `Phase 12.27 (R15)` `public.users.role` 자기 승격 차단 마이그레이션 + 스모크 테스트 (`sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
-| **2** | `⏳ WAITING` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.28 (R16)` MONTHLY_DAY 중복 PLANNED 정리 마이그레이션/RPC 전환, 클라이언트 DELETE 제거 (`sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/types/database.types.ts`) | `⏳ 대기 중 (Step 1 완료 후 착수)` |
+| **1** | `✅ DONE (SHA: 361fbbc)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Security & SQL/RLS)` | `Phase 12.27 (R15)` `public.users.role` 자기 승격 차단 마이그레이션 + 스모크 테스트 (`sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`) | `✅ DONE` (`BEFORE UPDATE OF role` 트리거로 `authenticated`/`anon`의 role 변경 거부, 컬럼 GRANT 대신 트리거 선택(이후 `GRANT ALL`에도 보호 유지), `TESTS.sql` USR-01 추가. 로컬 PG: 기존 DB+마이그레이션 2회·신규 설치·신규+전체 migrations 모두 PASS, 자기 승격 재현 SQL 거부 확인, postgres 경로 관리자 지정 정상) |
+| **2** | `▶ READY` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.28 (R16·R17)` MONTHLY_DAY 중복 PLANNED 정리 마이그레이션/RPC 전환·클라이언트 DELETE 제거, 비공식 일정의 `VERSION_PASS` 생성·지출 모달 버전 연결 제외 (`sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/revisions_and_decisions.md`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
 | **3** | `⏳ WAITING` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Docs)` | `Phase 12.29 (R18·R19)` README 파괴적 마이그레이션 안내, 게임 등록 모달 의존성, 대시보드 일정 설정 폴백 (`sql/README.md`, `src/components/game/game-select-modal.tsx`, `src/components/game/game-select-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`) | `⏳ 대기 중 (Step 2 완료 후 착수)` |
 | **4** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.27 ~ 12.29 통합 정적 코드 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `⏳ 대기 중 (Step 3 완료 후 착수)` |
 
