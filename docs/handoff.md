@@ -34,7 +34,7 @@
 - **Run ID**: `require-main-run-sha` *(2026-11-02, R24 main 작업 Base/Target SHA 인계 절차)*
 - **Orchestrator**: GitHub Copilot (현재 환경에서 프로젝트 Local 하위 에이전트 호출 도구를 사용할 수 없어 문서화된 수동 모델 인계 사용)
 - **Worktree 경로**: `.worktrees/require-main-run-sha`
-- **리뷰 비교 범위**: Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `83d2e180ee2871679bb76c15a34a42c596a61ed2` (Step 1 Maker 커밋, `collab/require-main-run-sha` 브랜치). Maker 스킬에 따라 manifest `target_sha`는 Maker가 수정하지 않았으므로 Step 2 Orchestrator가 기록한다.
+- **리뷰 비교 범위**: Base ea188c66f534e7adf63c2747769b2fae986c9d25 ↔ Target 14674f014e91003f6ad5ba02ba0c6ac5e44dd4ce (Step 3 Maker 커밋, collab/require-main-run-sha 브랜치)
 - **해결 방향**: `run.schema.json`은 수정하지 않는다. `main` 직접 실행 시 Dispatch Queue에 Base SHA를 등록 시 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하며, 가짜 `branch`/`worktree_path` manifest는 만들지 않는다 (`docs/known-pitfalls.md` #31).
 - **수용 기준**:
   1. `.agents/skills/chronoledger-orchestrator/SKILL.md`에서 표준 격리 worktree + manifest 절차를 유지하면서 `main` 직접 실행의 예외 조건과 Base/Target SHA 필수 기록 위치·시점을 명확히 한다.
@@ -45,8 +45,8 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: 83d2e18)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Collaboration Docs)` | R24: `.agents/skills/chronoledger-orchestrator/SKILL.md` 및 관련 문서. `run.schema.json`과 표준 격리 manifest 절차는 변경하지 않음. | `✅ DONE` (Worktree 커밋 `83d2e18`: Orchestrator 스킬에 「Main-worktree fallback runs」 섹션 추가 — `main` 사용 조건·사유 기록, 가짜 manifest 금지, 등록 시 Base SHA·Maker 완료 시 Target SHA 기록 위치, Reviewer 범위 검사(`git diff <Target> HEAD -- src sql`) 실패 시 `🛑 BLOCKED`, Maker 스테이징 범위. 표준 격리 절차·`run.schema.json` 불변. markdownlint 통과. manifest `target_sha`와 R24 to-do/progress/changelog 마감은 Step 2 담당) |
 | **2** | `✅ DONE (SHA: 12225b2)` | **GitHub Copilot** *(Gemini 4 Argon 1순위 / Claude Opus 2순위 대체)* | `Reviewer` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `83d2e180ee2871679bb76c15a34a42c596a61ed2` 정적 리뷰 및 결과 검증. | `iteration-01/review.json`: P1/P2 0건, P3 1건. README 경로 텍스트의 제어문자로 Markdownlint(MD009/MD010)와 `git diff --check` 실패. 세 JSON Schema 검증 통과. 검증 결과 정정은 `12225b2`. |
-| **3** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 / GitHub Copilot 2순위 대체)* | `Maker (Run Artifact & Docs)` | iteration-02: iteration-01 `README.md`의 손상된 경로 수정 및 생성 원인 조사. 재발 방지는 `scripts/collaboration/` 내 직접 관련 생성 코드로 한정. 기존 iteration-01 `review.json`/`test.json`은 보존. `git diff <Base> HEAD --check` 및 관련 Markdownlint 통과, Maker 커밋 후 새 Target SHA 기록. | `⏳ iteration-01 P3 finding 수정 및 검증 후 커밋` |
-| **4** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Step 3 Maker 커밋 정적 재리뷰, 새 Target SHA 기록, 문서 검증 및 R24 마감. | `⏳ Step 3 커밋 및 Target SHA 기록 대기` |
+| **3** | `✅ DONE (SHA: 14674f0)` | **Claude Opus** *(Gemini 4 Argon 1순위 / GitHub Copilot 2순위 대체)* | `Maker (Run Artifact & Docs)` | iteration-02: iteration-01 `README.md`의 손상된 경로 수정 및 생성 원인 조사. 재발 방지는 `scripts/collaboration/` 내 직접 관련 생성 코드로 한정. 기존 iteration-01 `review.json`/`test.json`은 보존. `git diff <Base> HEAD --check` 및 관련 Markdownlint 통과, Maker 커밋 후 새 Target SHA 기록. | `✅ DONE (Gemini 3.8 Flash Maker: New-CollaborationRun.ps1 리터럴 히어스트링(@'...'@) 및 UTF-8 no-BOM 적용으로 백틱 제어문자 치환(\r, \t, \a) 재발 원천 차단, iteration-01/README.md 복구, git diff --check 및 markdownlint 통과, 기존 iteration-01 review/test 보존)` |
+| **4** | `✅ DONE (리뷰: ea188c6 ↔ 14674f0)` | **Gemini 4 Argon** *(Claude Opus 1순위 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Step 3 Maker 커밋 정적 재리뷰, 새 Target SHA 기록, 문서 검증 및 R24 마감. | `✅ DONE (Gemini 4 Argon 정적 재리뷰 clean: P1~P4 0건, iteration-02/review.json·test.json·run.json 스키마 검증 통과, git diff --check 및 markdownlint 0건, R24 마감 완료)` |
 
 ### 🗂️ 이전 Run 기록 (완료): expense-chart-labels-and-outline
 
@@ -76,6 +76,23 @@
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
+
+## R24 iteration-02 정적 재리뷰 및 Run 마감 (2026-11-02)
+
+- **수행 주체**: Reviewer & Orchestrator: Gemini 4 Argon / Maker: Gemini 3.8 Flash.
+- **리뷰 범위**: Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `14674f014e91003f6ad5ba02ba0c6ac5e44dd4ce` (Step 3 Maker 커밋).
+- **원인 분석**: `scripts/collaboration/New-CollaborationRun.ps1`에서 `iteration-01/README.md` 생성 시 확장 히어스트링(`@"..."@`) 내부의 백틱 인라인 코드(`` `review.json` ``, `` `test.json` ``, `` `artifacts/schemas/` ``)가 PowerShell 파서에 의해 이스케이프 시퀀스(`\r`, `\t`, `\a`)로 잘못 치환되어 비가시 제어문자가 삽입되었음.
+- **Step 3 조치 (`14674f0`)**:
+  - `New-CollaborationRun.ps1`의 README 템플릿 히어스트링을 변수/이스케이프 평가가 발생하지 않는 리터럴 히어스트링(`@'...'@`)으로 전환하고, `Set-Content`에 `[System.Text.UTF8Encoding]::new($false)` no-BOM 인코딩을 적용해 제어문자 오치환 재발을 원천 차단함.
+  - 손상되었던 `artifacts/require-main-run-sha/iteration-01/README.md`를 표준 텍스트로 복구함 (기존 `review.json` 및 `test.json`은 보존).
+  - Base/Target 간 `git diff --check` 및 markdownlint 검증 통과 완료.
+- **Step 4 정적 재리뷰 및 마감 결과**:
+  - **판정**: PASS (`clean`, finding 0건).
+  - **산출물**: `artifacts/require-main-run-sha/iteration-02/review.json` (findings 0건), `iteration-02/test.json` (markdownlint & diff --check passed), `run.json` (`target_sha: 14674f014e91003f6ad5ba02ba0c6ac5e44dd4ce`, `status: completed`).
+  - **스키마 검증**: `validate_collaboration_artifact.py`를 통해 `run.json`, `review.json`, `test.json` 모두 검증 통과.
+  - **전체 검증**: `git diff --check ea188c6...` 및 markdownlint 오류 0건 확인 후 커밋 `ad26310`으로 Worktree 산출물 기록 완료. R24 과제 종결.
+
+---
 
 ## R24 iteration-01 리뷰 결과 (2026-11-02)
 

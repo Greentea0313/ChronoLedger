@@ -572,7 +572,7 @@
     2. **게임 아이콘 자체 WebP Data URL 변환·저장**: 관리자가 게임 등록/수정 및 게임 요청 승인 시 이미지 파일 업로드 또는 외부 이미지 URL 입력에 대해 `resizeImageToWebP`(256×256 WebP)를 거쳐 자체 `data:image/webp;base64,...` Data URL로 변환해 `games.default_icon_url`에 저장(모바일 핫링크 차단/만료 원천 해결). `GameIcon` 컴포넌트에 외부 URL 로드 실패 시 1회 재시도 안전망 추가.
     3. **비공식 일정 DB 스키마 및 관리자/사용자 기능**: `game_schedules` 및 `schedule_requests`에 `is_official BOOLEAN NOT NULL DEFAULT true`, `public.users`에 `show_unofficial_schedules BOOLEAN NOT NULL DEFAULT false` 컬럼 추가(`MIGRATION_UNOFFICIAL_SCHEDULES.sql`, `SCHEMA.sql`, `database.types.ts`). 관리자 일정 추가/수정 및 일정 요청 모달에서 공식/비공식 여부 분류 지원, 계정 설정 페이지(`/dashboard/settings`)에 `비공식 일정(테스트 서버·유출 등) 표시` 토글 버튼 제공, 대시보드 및 게임 페이지 일정 보기에서 토글 설정에 따른 필터링 및 `[비공식]` 배지 표시.
   - verify: 관련 8개 Vitest 파일의 57개 테스트, `npx tsc --noEmit`, `npm run lint` 통과.
-  - [ ] 후속: 운영 Supabase SQL Editor에서 `MIGRATION_UNOFFICIAL_SCHEDULES.sql`을 수동 적용하고 설정 토글 및 일정 조회를 확인한다.
+  - [x] 후속: 운영 Supabase SQL Editor에서 `MIGRATION_UNOFFICIAL_SCHEDULES.sql` 수동 적용 완료 (2026-11-02 사용자 적용 확인, R27)
 
 - [x] 12.26 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (R17)
   - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/app/globals.css`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`
@@ -611,7 +611,7 @@
 - [x] R21. [P3] `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql`(파괴적 정리) 확인 쿼리·주의 문구 추가
 - [x] R22. [P3] `game-select-modal.tsx` `fetchGames`를 `user?.id` 의존으로 변경, 대시보드 `loadSchedulePreference` 실패 시 공식 일정만 표시로 폴백 (Claude Sonnet) (`완료` - 커밋 `b820a4e`, Claude Opus 대체 수행)
 - [x] R23. 운영 Supabase에 `MIGRATION_USERS_ROLE_GUARD.sql`(R18)·`MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(R19) 적용 (`완료` - 2026-11-02 사용자 실행 확인)
-- [ ] R24. `main` 직접 실행의 Base SHA를 Dispatch Queue에 등록 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하도록 Orchestrator 스킬에 명시한다. `run.schema.json`은 확장하지 않고 가짜 `branch`/`worktree_path` manifest를 만들지 않는다. iteration-01 리뷰에서 발견한 Run README 경로 문자열의 제어문자 손상(P3)을 수정하고 같은 Base SHA부터 새 Target SHA까지 재리뷰해야 완료 처리한다 (Gemini 4 Argon; Run `require-main-run-sha`)
+- [x] R24. `main` 직접 실행의 Base SHA를 Dispatch Queue에 등록 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하도록 Orchestrator 스킬에 명시한다. `run.schema.json`은 확장하지 않고 가짜 `branch`/`worktree_path` manifest를 만들지 않는다. iteration-01 리뷰에서 발견한 Run README 경로 문자열의 제어문자 손상(P3)을 수정하고 같은 Base SHA부터 새 Target SHA까지 재리뷰해야 완료 처리한다 (Gemini 4 Argon; Run `require-main-run-sha`) (완료 - Worktree 커밋 `83d2e18`·`14674f0`, Gemini 4 Argon iteration-02 재리뷰 clean 및 마감 완료)
 - [x] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
 - [x] R26. 소비 페이지 막대 차트: 게임별 과금 툴팁에 UUID 대신 게임명, 금액 축 눈금 중복(`0만 0만 1만 1만`) 제거, 막대 외곽선 다크·라이트 테마 가시성 개선 (`Phase 12.31`, Claude Sonnet) (`완료` - 커밋 `fc4ea9d`, Claude Opus 리뷰 PASS, 배포 대기)
 - [x] R27. [운영 긴급] 운영 Supabase에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 (미적용 시 관리자 일정 추가·수정, 일정 요청 제출·승인 실패) (사용자 수동) (`완료` - 2026-11-02 사용자 적용)

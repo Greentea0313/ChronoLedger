@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-02 (R24 iteration-02 수정 및 정적 재리뷰 clean 마감)
+
+- **New-CollaborationRun.ps1 백틱 제어문자 치환 방지 (`14674f0`)**: `scripts/collaboration/New-CollaborationRun.ps1`의 iteration README 생성 히어스트링을 리터럴 `@'...'@` 및 no-BOM UTF-8로 변경하여 PowerShell 파서가 인라인 코드(백틱)를 `\r`, `\t`, `\a` 제어문자로 치환하던 결함을 원천 차단. 손상된 `artifacts/require-main-run-sha/iteration-01/README.md` 복구.
+- **정적 재리뷰 및 Run 마감 (Gemini 4 Argon)**: Base `ea188c6` ↔ Target `14674f0` 정적 재리뷰 PASS (`clean`, findings 0건). `iteration-02/review.json`, `test.json`, `run.json`(`status: completed`) 스키마 검증 및 `git diff --check`, markdownlint 검증 통과. Worktree 산출물 커밋 `ad26310` 완료.
+- **문서 동기화**: `docs/to-do.md` R24 및 후속 운영 마이그레이션(R27) 완료 체크, `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md` 동기화 완료.
+
 ## 2026-11-02 (R24 iteration-01 리뷰)
 
 - Base `ea188c6` ↔ Target `83d2e18` 리뷰에서 Run 생성 iteration README의 경로 문자열 손상(P3)을 발견했다. README Markdownlint(MD009/MD010)와 Base/Target `git diff --check`가 실패해 R24 마감을 보류하고 Maker 수정·재리뷰 단계를 Dispatch Queue에 등록했다. manifest/review/test 기록은 Run 커밋 `dee8ce6`, Markdownlint 재검증 결과 정정은 `12225b2`에 저장했다.

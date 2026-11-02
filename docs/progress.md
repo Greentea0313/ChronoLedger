@@ -1,5 +1,17 @@
 # 프로젝트 진행 현황
 
+## R24 main 작업 리뷰 SHA 인계 절차 보강 iteration-02 정적 재리뷰 및 Run 마감 (2026-11-02)
+
+- **수행 주체**: Reviewer & Orchestrator: Gemini 4 Argon / Maker: Gemini 3.8 Flash.
+- **수정 내용 (`14674f0`)**:
+  - `scripts/collaboration/New-CollaborationRun.ps1`의 README 템플릿 생성 히어스트링을 리터럴 `@'...'@` 및 no-BOM UTF-8 인코딩으로 수정해 백틱 인라인 코드(`review.json` 등)가 이스케이프 제어문자(`\r`, `\t`, `\a`)로 치환되는 문제를 원천 차단함.
+  - 손상되었던 `artifacts/require-main-run-sha/iteration-01/README.md` 복구, 기존 iteration-01의 `review.json` 및 `test.json` 보존.
+  - Base/Target 간 `git diff --check` 및 markdownlint 통과.
+- **재리뷰 및 Run 마감 결과**:
+  - Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `14674f014e91003f6ad5ba02ba0c6ac5e44dd4ce` 정적 재리뷰 PASS (`clean`, findings 0건).
+  - `artifacts/require-main-run-sha/iteration-02/review.json`, `test.json`, `run.json`(`status: completed`) 생성 및 JSON Schema 검증 통과.
+  - Worktree 산출물 커밋 `ad26310` 완료. `docs/to-do.md` R24 및 운영 마이그레이션(R27) 완료 체크, handoff/progress/changelog 문서 동기화. R24 과제 최종 마감.
+
 ## R24 main 작업 리뷰 SHA 인계 절차 보강 Run 등록 (2026-11-02)
 
 - `docs/to-do.md`의 미완료 중 Orchestrator 역할에 직접 해당하는 R24를 다음 과제로 선택했다.
