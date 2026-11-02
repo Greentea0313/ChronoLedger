@@ -31,41 +31,29 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `users-role-guard-and-subscription-dedupe` *(2026-11-02, Phase 12.24~12.26 통합 리뷰 후속: P1 `public.users.role` 자기 승격 차단(R18), P2 MONTHLY_DAY 중복 PLANNED 정리(R19), P3 README·UI 보강(R21·R22))*
-- **Worktree 경로**: `main` (루트 작업 트리에 범위 밖 미커밋 지침 문서가 있어 `New-CollaborationRun.ps1` 미사용. 각 Maker는 자기 허용 파일만 스테이징·커밋)
-- **리뷰 비교 범위 (Step 4)**: Base `0da8eb4` (`0da8eb49d4e9d98c4fb080e569860133c8f27636`, Run 등록 커밋) ↔ Target `b820a4e` (`b820a4edff03170f02bb24356caba03163066b38`, 마지막 Maker 코드 커밋). 검증 근거: `git diff ec61251 0da8eb4 -- src sql`과 `git diff b820a4e HEAD -- src sql`이 모두 비어 있어, 범위 밖 코드 변경은 없음(이후 커밋은 문서만).
-  - 범위 내 커밋: `361fbbc`(Step 1, 12.27), `bdb064c`(Step 2, 12.28), `b820a4e`(Step 3, 12.29). 문서 커밋 `290055a`, `13d150b`, `70efa54`, `0a279c5`, `9ac714e`는 리뷰 대상 아님.
-  - Run manifest(`artifacts/<run_id>/run.json`) 미생성 사유: `artifacts/schemas/run.schema.json`이 `branch`(`collab/...`)·`worktree_path`(`.worktrees/...`)를 격리 Worktree 형식으로만 허용해 `main` Run을 표현할 수 없음. 가짜 값을 넣지 않고 이 항목을 범위의 권위 기록으로 삼는다.
-- **배경**: `docs/handoff.md` 「Phase 12.24 ~ 12.26 통합 정적 코드 리뷰」 발견 사항. 로컬 PostgreSQL 17 재현 절차는 `docs/known-pitfalls.md` #28.
-- **사용자 결정 (2026-11-02)**:
-  - **R20**: 비공식 일정(`is_official = false`)은 **항상** `VERSION_PASS` 예정 지출 생성과 지출 모달의 연결 버전 일정에서 제외한다. 설정 페이지의 비공식 일정 표시 토글을 켜도 제외하며, 토글은 화면 표시에만 영향을 준다. → Step 2 범위에 포함.
-  - **운영 DB 관리자 확인**: 현재 `role = 'admin'` 계정은 사용자 본인 계정 1개뿐(의도하지 않은 자기 승격 흔적 없음).
+- **Run ID**: `memo-textarea-tab-indent` *(2026-11-02, 메모 입력란 Tab 키 동작 교정(R25))*
+- **Orchestrator**: Claude Opus (Gemini 4 Argon 토큰 소진으로 1순위 대체 접수)
+- **Worktree 경로**: `main` (루트 작업 트리에 범위 밖 미커밋 지침 문서가 있어 `New-CollaborationRun.ps1` 미사용. Maker는 허용 파일만 스테이징·커밋)
+- **리뷰 비교 범위**: Base `7e9a57b` (Run 등록 시점 HEAD, 직전 Run 마감 커밋) ↔ Target = Step 1 Maker 커밋(완료 시 Maker가 이 줄과 표에 기록). `known-pitfalls.md` #31.
+- **사용자 요구사항**: 메모 입력란에서 Tab 키를 누르면 탭 문자(`\t`)가 입력되지 않고 포커스가 다음 버튼(취소)으로 이동함. 메모 입력란에서는 Tab 키가 `\t` 입력으로 동작해야 함.
+- **Orchestrator 결정·가정 (사용자 확인 전 기본값)**:
+  - 대상은 앱의 메모 입력란 4곳 전체: 홈 사이드바 개인 메모(`src/components/calendar/hero-sidebar.tsx`), 게임 상시 메모(`src/app/dashboard/games/page.tsx`), 지출 상세 메모 수정(`src/components/expense/expense-detail-modal.tsx`), 일정 요청 메모(`src/components/game/request-submission-modal.tsx`).
+  - 키보드 사용자가 입력란을 벗어날 수 있도록 **Shift+Tab은 기본 동작(이전 요소로 포커스 이동)을 유지**한다. Ctrl/Alt/Meta 조합 Tab도 가로채지 않는다.
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Phase 12.27 / R18 (Claude Opus)**: `public.users.role` 자기 승격 차단
-     - `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`(재실행 안전) 신규: 인증 사용자가 본인 행을 수정할 때 `role` 변경을 거부(`BEFORE UPDATE` 트리거 또는 `REVOKE UPDATE` + `GRANT UPDATE (nickname, show_unofficial_schedules)` 중 택1, 선택 근거 기록). `nickname`·`show_unofficial_schedules` 본인 수정과 관리자 경로(서비스 역할/`SECURITY DEFINER` 함수)는 계속 동작.
-     - `sql/SCHEMA.sql` 동일 반영, `sql/README.md` B표에 확인 쿼리 추가.
-     - `sql/tests/TESTS.sql`: 일반 사용자 `UPDATE public.users SET role = 'admin'` 거부(0행 또는 `insufficient_privilege`) 및 이후 관리자 RPC 권한 오류 단언, 닉네임·일정 설정 본인 수정 성공 단언 추가.
-     - 로컬 PG(SCHEMA + 전체 migrations, 신규 설치 둘 다)에서 `TESTS.sql` 끝까지 PASS, 운영 적용 절차를 `docs/handoff.md`에 기록.
-  2. **Phase 12.28 / R19·R20 (GPT Codex)**: MONTHLY_DAY 중복 PLANNED 정리 및 비공식 일정의 금전 경로 제외
-     - `sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(재실행 안전) 신규: `MONTHLY_DAY` 템플릿별로 `target_date`가 가장 이른 `PLANNED` 1건만 남기고 나머지 `PLANNED` 삭제(`CONFIRMED`/`CANCELLED` 불변).
-     - 런타임 중복 정리가 필요하면 본인 소유 검증을 포함한 `SECURITY DEFINER` RPC(`REVOKE ... FROM PUBLIC, anon` / `GRANT ... TO authenticated`)로 이전하고, `src/lib/subscription-sync.ts`의 클라이언트 `.from("expenses").delete()` 호출 제거. `expenses` DELETE RLS는 열지 않음(FR-030).
-     - `SCHEMA.sql`·`sql/README.md` 반영, `subscription-sync.test.ts` 갱신, `TESTS.sql`에 중복 정리 단언 추가 및 로컬 PG PASS.
-     - **R20**: `src/lib/subscription-sync.ts`의 `VERSION_PASS` `VERSION` 일정 조회와 `src/components/expense/expense-modal.tsx`의 연결 버전 일정 조회에서 `is_official = false` 일정을 제외(사용자 토글과 무관). `is_official` 컬럼 미적용 DB에서는 기존처럼 전체를 공식으로 간주하는 폴백 유지(`docs/known-pitfalls.md`의 미적용 컬럼 폴백 패턴). 단위 테스트 추가, `docs/spec/SRS.md` FR-050 및 `docs/spec/revisions_and_decisions.md`에 결정 반영.
-  3. **Phase 12.29 / R21·R22 (Claude Sonnet)**: 문서·UI 보강
-     - `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리와 "기존 `TEMPLATE_DEACTIVATION` 취소 행·비활성 템플릿 PLANNED 행을 물리 삭제" 주의 문구 추가.
-     - `src/components/game/game-select-modal.tsx`: `fetchGames`/effect 의존성을 `user?.id`로 바꿔 세션 갱신 시 입력 초기화 방지.
-     - `src/app/dashboard/page.tsx`: `loadSchedulePreference` 실패 시 대시보드 전체 실패 대신 공식 일정만 표시로 폴백하고 안내 문구 표시.
-     - 관련 단위 테스트 추가·갱신, tsc·eslint·vitest 통과.
-  4. **통합 코드 리뷰 및 검증 (Gemini 4 Argon)**: Phase 12.27 ~ 12.29 정적 리뷰, tsc·eslint·vitest·markdownlint, 로컬 PG `TESTS.sql` 결과 확인 및 문서 마감. Step 1·3을 Claude Opus가 구현했으므로 리뷰 독립성을 위해 Argon 우선.
-- **운영 DB 적용 (✅ 완료, 2026-11-02 사용자 실행 확인)**: Supabase SQL Editor에서 `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`(Step 1) → `sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(Step 2) 순서로 적용. 적용 전 관리자 계정은 사용자 본인 1개뿐임을 확인. 확인 쿼리는 `sql/README.md` B표(`trg_prevent_users_role_self_change` 1행, `dedupe_monthly_planned_expenses` RPC 1행, 잔여 중복 0행). 이후 관리자 지정은 SQL Editor 또는 `app_metadata` 방식으로만 가능.
-- **ID 정정 (2026-11-02)**: 이 Run의 to-do ID를 R15~R19 → **R18~R22**로 재번호(기존 R15~R17은 Phase 12.24~12.26이 사용 중이라 충돌). 커밋 `0da8eb4`·`290055a` 메시지의 R15/R16/R18/R19는 각각 R18/R19/R21/R22에 해당.
+  1. **Phase 12.30 / R25 (Claude Sonnet)**:
+     - 공용 헬퍼(예: `src/lib/textarea-tab.ts`)로 구현해 4곳에 동일 적용(중복 구현 금지).
+     - 수식키 없는 Tab: `preventDefault()` 후 현재 커서 위치에 `\t` 삽입(선택 영역이 있으면 대체), 커서는 삽입한 탭 바로 뒤, 포커스는 입력란 유지, React 상태(`onChange` 대상 값)도 갱신.
+     - 한글 IME 조합 중(`event.nativeEvent.isComposing`)에는 가로채지 않음.
+     - `maxLength`가 있는 입력란(사이드바 200자, 게임 메모 1000자)은 탭 삽입으로 한도를 넘기지 않음(넘으면 삽입하지 않음).
+     - Radix 다이얼로그(게임 메모·지출 상세·일정 요청 모달) 안에서도 포커스가 취소 버튼으로 넘어가지 않음.
+     - 저장된 메모를 표시하는 곳에서 탭이 접히지 않는지 확인: `src/app/dashboard/games/page.tsx` 공식 일정 보기의 일정 메모는 현재 `whitespace-pre-line`이라 탭이 공백 1개로 접히므로 `whitespace-pre-wrap`으로 변경(기존 `/` 줄바꿈 표시는 유지). 나머지 표시부는 이미 `pre-wrap`.
+     - 단위 테스트: 헬퍼(삽입 위치·선택 대체·Shift+Tab 미처리·IME 미처리·maxLength) + 4개 컴포넌트 각 1건(Tab 후 값에 `\t` 포함, 포커스 유지). tsc·eslint·vitest 통과.
+  2. **통합 리뷰 및 마감 (Claude Opus)**: Base `7e9a57b` ↔ Target(Step 1 커밋) 정적 리뷰, tsc·eslint·vitest·markdownlint 검증, 문서 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE (SHA: 361fbbc)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Security & SQL/RLS)` | `Phase 12.27 (R18)` `public.users.role` 자기 승격 차단 마이그레이션 + 스모크 테스트 (`sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`) | `✅ DONE` (`BEFORE UPDATE OF role` 트리거로 `authenticated`/`anon`의 role 변경 거부, 컬럼 GRANT 대신 트리거 선택(이후 `GRANT ALL`에도 보호 유지), `TESTS.sql` USR-01 추가. 로컬 PG: 기존 DB+마이그레이션 2회·신규 설치·신규+전체 migrations 모두 PASS, 자기 승격 재현 SQL 거부 확인, postgres 경로 관리자 지정 정상. 운영 DB 적용 완료 2026-11-02) |
-| **2** | `✅ DONE (SHA: bdb064c)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.28 (R19·R20)` 월간 중복 정리 백필/RPC와 클라이언트 DELETE 제거, 공식 일정만 구독 생성·모달 연결에 사용 및 구형 DB 폴백 (`sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/revisions_and_decisions.md`) | `✅ DONE` (Vitest 47개, tsc, eslint, 로컬 PG 전체 스모크/백필/재실행 통과; 운영 DB 적용 완료 2026-11-02) |
-| **3** | `✅ DONE (SHA: b820a4e)` | ~~Claude Sonnet~~ ➡️ **Claude Opus** *(1순위 대체로 수행 / GitHub Copilot 2순위)* | `Maker (UI & Docs)` | `Phase 12.29 (R21·R22)` README 파괴적 마이그레이션 안내, 게임 등록 모달 의존성, 대시보드 일정 설정 폴백 (`sql/README.md`, `src/components/game/game-select-modal.tsx`, `src/components/game/game-select-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`) | `✅ DONE` (README B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리·물리 삭제 경고 추가, `GameSelectModal` `user?.id` 의존, 대시보드 설정 조회 실패 시 공식 일정만 표시 폴백. 신규 테스트 2건은 수정 전 코드에서 실패 확인. tsc·eslint·vitest 42파일 286·markdownlint 통과) |
-| **4** | `✅ DONE (Target SHA: b820a4e)` | **GitHub Copilot** *(Gemini 4 Argon 지정 / Claude Opus 1순위 대체)* | `Reviewer & Orchestrator (fallback)` | Phase 12.27 ~ 12.29 통합 정적 코드 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ 리뷰 clean, finding 0건. review.json Schema 통과; tsc/lint/Vitest 286/Markdownlint 통과. 로컬 PG는 이 환경에 psql이 없어 미실행(메이커 실행 보고 확인)` |
+| **1** | `▶ READY` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Interaction)` | `Phase 12.30 (R25)` 메모 입력란 Tab 키 `\t` 입력 (`src/lib/textarea-tab.ts`, `src/lib/textarea-tab.test.ts`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/expense/expense-detail-modal.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
+| **2** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.30 정적 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `⏳ 대기 중 (Step 1 완료 후 착수)` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 

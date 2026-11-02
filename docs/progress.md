@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## Phase 12.30 메모 입력란 Tab 키 동작 Run 등록 (2026-11-02)
+
+- **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 토큰 소진으로 1순위 대체)
+- **내용**: 메모 입력란에서 Tab 키가 취소 버튼으로 포커스를 옮기는 문제를 Run `memo-textarea-tab-indent`로 등록. 대상 4곳, Shift+Tab 포커스 이동 유지, IME·maxLength 처리, 게임 일정 메모 표시 `pre-wrap` 변경을 수용 기준으로 확정.
+- **다음 단계**: Step 1 `Phase 12.30 (R25)` Claude Sonnet `▶ READY` → Step 2 Claude Opus 리뷰·마감.
+
 ## Phase 12.27~12.29 통합 리뷰 완료 (2026-11-02)
 
 - Base `0da8eb49d4e9d98c4fb080e569860133c8f27636` ↔ Target `b820a4edff03170f02bb24356caba03163066b38` 범위 정적 리뷰 clean, finding 0건. 결과 JSON은 `artifacts/users-role-guard-and-subscription-dedupe/iteration-01/review.json`이며 리뷰 schema 검증 통과.
