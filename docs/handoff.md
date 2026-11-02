@@ -62,11 +62,15 @@
 | **1** | `✅ DONE (SHA: 361fbbc)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Security & SQL/RLS)` | `Phase 12.27 (R18)` `public.users.role` 자기 승격 차단 마이그레이션 + 스모크 테스트 (`sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`) | `✅ DONE` (`BEFORE UPDATE OF role` 트리거로 `authenticated`/`anon`의 role 변경 거부, 컬럼 GRANT 대신 트리거 선택(이후 `GRANT ALL`에도 보호 유지), `TESTS.sql` USR-01 추가. 로컬 PG: 기존 DB+마이그레이션 2회·신규 설치·신규+전체 migrations 모두 PASS, 자기 승격 재현 SQL 거부 확인, postgres 경로 관리자 지정 정상. 운영 DB 적용 완료 2026-11-02) |
 | **2** | `✅ DONE (SHA: bdb064c)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.28 (R19·R20)` 월간 중복 정리 백필/RPC와 클라이언트 DELETE 제거, 공식 일정만 구독 생성·모달 연결에 사용 및 구형 DB 폴백 (`sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/revisions_and_decisions.md`) | `✅ DONE` (Vitest 47개, tsc, eslint, 로컬 PG 전체 스모크/백필/재실행 통과; 운영 DB 적용 완료 2026-11-02) |
 | **3** | `✅ DONE (SHA: b820a4e)` | ~~Claude Sonnet~~ ➡️ **Claude Opus** *(1순위 대체로 수행 / GitHub Copilot 2순위)* | `Maker (UI & Docs)` | `Phase 12.29 (R21·R22)` README 파괴적 마이그레이션 안내, 게임 등록 모달 의존성, 대시보드 일정 설정 폴백 (`sql/README.md`, `src/components/game/game-select-modal.tsx`, `src/components/game/game-select-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`) | `✅ DONE` (README B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리·물리 삭제 경고 추가, `GameSelectModal` `user?.id` 의존, 대시보드 설정 조회 실패 시 공식 일정만 표시 폴백. 신규 테스트 2건은 수정 전 코드에서 실패 확인. tsc·eslint·vitest 42파일 286·markdownlint 통과) |
-| **4** | `▶ READY` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.27 ~ 12.29 통합 정적 코드 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ 착수 대기` (Step 1·3을 Claude Opus가 수행했으므로 **Gemini 4 Argon** 수행 필수 권장) |
+| **4** | `🛑 BLOCKED` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.27 ~ 12.29 통합 정적 코드 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `Run manifest 및 명시된 Base SHA·Target SHA 필요. 정확한 비교 범위를 정할 수 없어 리뷰 미수행.` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
-- **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+- **차단 사유 (2026-11-02, Phase 12.27~12.29 통합 리뷰)**:
+  - 완료된 작업: 큐·스키마와 최근 Maker 커밋 기록 확인. `artifacts/`에 `users-role-guard-and-subscription-dedupe` Run manifest가 없고, Step 4에 Base SHA·Target SHA가 기록되지 않았음을 확인했다.
+  - 남은 작업: Orchestrator가 해당 Run manifest(정확한 `base_sha`, `target_sha`, 산출 경로 포함)를 추가·확정한 뒤 동일 범위의 정적 리뷰와 지정 검증을 재개한다. 기록된 Maker 커밋만으로 비교 범위를 추정하지 않는다.
+  - 가정/결정: 없음. Reviewer 지침에 따라 SHA를 추측하지 않았다.
+  - 검증 상태: 리뷰·전체 테스트·빌드·markdownlint 미실행. 요구된 변경 기준점을 특정할 수 없어 결과를 만들지 않았다.
 
 ---
 

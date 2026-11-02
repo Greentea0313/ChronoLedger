@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## Phase 12.27~12.29 통합 리뷰 차단 (2026-11-02)
+
+- Dispatch Step 4는 READY였으나, 현재 Run `users-role-guard-and-subscription-dedupe`의 manifest를 `artifacts/`에서 찾지 못했고 큐에도 Base SHA·Target SHA가 없어 정확한 커밋 비교 범위가 정해지지 않았다.
+- Reviewer 지침에 따라 Maker 커밋 목록으로 범위를 추측하지 않았고, 정적 리뷰·전체 검증은 실행하지 않았다. 큐를 `🛑 BLOCKED`로 표시했다.
+- 다음 단계: Orchestrator가 정확한 Base/Target SHA와 manifest/산출 경로를 제공한 뒤 리뷰 및 검증을 재개한다.
+
 ## Phase 12.29 문서·UI 보강 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Claude Sonnet 1순위 대체)
