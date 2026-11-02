@@ -1,4 +1,38 @@
 {
-  "markdownlint.configFile": ".markdownlint.json"
+  "markdownlint.configFile": ".markdownlint.json",
+  "chat.tools.terminal.autoApprove": {
+    "/^npx tsc --noEmit$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^npx vitest run src\\\\app\\\\admin\\\\page\\.test\\.tsx src\\\\app\\\\admin\\\\requests\\\\page\\.test\\.tsx src\\\\components\\\\game\\\\request-submission-modal\\.test\\.tsx src\\\\components\\\\game\\\\game-select-modal\\.test\\.tsx src\\\\components\\\\ui\\\\game-icon\\.test\\.tsx src\\\\app\\\\dashboard\\\\settings\\\\page\\.test\\.tsx src\\\\app\\\\dashboard\\\\page\\.test\\.tsx src\\\\app\\\\dashboard\\\\games\\\\page\\.test\\.tsx$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^npm run lint$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^git add docs/architecture\\.md docs/changelog\\.md docs/progress\\.md docs/to-do\\.md sql/README\\.md sql/SCHEMA\\.sql sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES\\.sql src/app/admin/page\\.test\\.tsx src/app/admin/page\\.tsx src/app/admin/requests/page\\.test\\.tsx src/app/admin/requests/page\\.tsx src/app/dashboard/games/page\\.test\\.tsx src/app/dashboard/games/page\\.tsx src/app/dashboard/page\\.test\\.tsx src/app/dashboard/page\\.tsx src/app/dashboard/settings/page\\.test\\.tsx src/app/dashboard/settings/page\\.tsx src/components/calendar/hero-sidebar\\.tsx src/components/game/game-select-modal\\.tsx src/components/game/game-select-modal\\.test\\.tsx src/components/game/request-submission-modal\\.test\\.tsx src/components/game/request-submission-modal\\.tsx src/components/ui/game-icon\\.test\\.tsx src/components/ui/game-icon\\.tsx src/lib/image-resizer\\.ts src/lib/schedule-preferences\\.ts src/types/database\\.types\\.ts; if \\(\\$\\?\\) \\{ git diff --cached --stat; git status --short; \\}$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^git diff --cached --check; if \\(\\$\\?\\) \\{ git commit -m \"feat: add unofficial schedule preferences\" -m \"Co-authored-by: Copilot <223556219\\+Copilot@users\\.noreply\\.github\\.com>\" \\}$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^git diff --check; if \\(\\$\\?\\) \\{ git add docs/handoff\\.md docs/to-do\\.md docs/progress\\.md docs/changelog\\.md; git diff --cached --check; if \\(\\$\\?\\) \\{ git diff --cached --stat; git status --short; \\} \\}$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^git commit -m \"docs: advance Phase 12\\.25 handoff queue\" -m \"Co-authored-by: Copilot <223556219\\+Copilot@users\\.noreply\\.github\\.com>\"$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^npx markdownlint-cli docs\\\\handoff\\.md docs\\\\progress\\.md$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
 }
 
