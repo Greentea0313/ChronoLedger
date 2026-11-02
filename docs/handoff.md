@@ -31,29 +31,27 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `memo-textarea-tab-indent` *(2026-11-02, 메모 입력란 Tab 키 동작 교정(R25))*
+- **Run ID**: `expense-chart-labels-and-outline` *(2026-11-02, 소비 페이지 막대 차트 툴팁 게임명·축 눈금·외곽선 가시성(R26))*
 - **Orchestrator**: Claude Opus (Gemini 4 Argon 토큰 소진으로 1순위 대체 접수)
-- **Worktree 경로**: `main` (루트 작업 트리에 범위 밖 미커밋 지침 문서가 있어 `New-CollaborationRun.ps1` 미사용. Maker는 허용 파일만 스테이징·커밋)
-- **리뷰 비교 범위**: Base `7e9a57b` (Run 등록 시점 HEAD, 직전 Run 마감 커밋) ↔ Target = `87cf75ebc780c462397a3b33dd01b93e5ab42806` (Step 1 Maker 커밋). `known-pitfalls.md` #31.
-- **사용자 요구사항**: 메모 입력란에서 Tab 키를 누르면 탭 문자(`\t`)가 입력되지 않고 포커스가 다음 버튼(취소)으로 이동함. 메모 입력란에서는 Tab 키가 `\t` 입력으로 동작해야 함.
-- **Orchestrator 결정·가정 (사용자 확인 전 기본값)**:
-  - 대상은 앱의 메모 입력란 4곳 전체: 홈 사이드바 개인 메모(`src/components/calendar/hero-sidebar.tsx`), 게임 상시 메모(`src/app/dashboard/games/page.tsx`), 지출 상세 메모 수정(`src/components/expense/expense-detail-modal.tsx`), 일정 요청 메모(`src/components/game/request-submission-modal.tsx`).
-  - 키보드 사용자가 입력란을 벗어날 수 있도록 **Shift+Tab은 기본 동작(이전 요소로 포커스 이동)을 유지**한다. Ctrl/Alt/Meta 조합 Tab도 가로채지 않는다.
+- **Worktree 경로**: `main` (Maker는 허용 파일만 스테이징·커밋. 완료 후 push 여부를 Run 마감 보고에 명시, `known-pitfalls.md` #32)
+- **리뷰 비교 범위**: Base `20e32b5` (Run 등록 직전 HEAD) ↔ Target = Step 1 Maker 커밋(완료 시 Maker가 기록).
+- **사용자 보고 및 원인 분석**:
+  1. `게임별 과금 분석` 막대에 마우스를 올리면 툴팁 제목에 게임 이름 대신 UUID(game_id)가 표시됨. 원인: Y축을 아이콘으로 그리기 위해 `dataKey="key"`로 바꿨고(Phase 12.26), Recharts 툴팁 제목은 카테고리 축 값을 그대로 사용.
+  2. 막대 차트(월별 소비 추이·게임별 과금 분석) 외곽선이 흐림. 원인: 평소 외곽선이 어두운 색(`#4338CA`, 팔레트 `stroke`) 1px이라 다크 배경에서 구분이 안 됨. 반대로 hover 외곽선 `#FFFFFF`는 라이트 테마 배경에서 보이지 않음. 원그래프는 대상 아님.
+  3. (Orchestrator 추가 발견) 두 막대 차트의 금액 축 눈금이 `Math.round(val / 10000)` + `만`이라 1만 미만 눈금이 모두 `0만`, 이후도 `1만 1만`처럼 중복 표시됨(스크린샷: `0만 0만 0만 1만 1만`).
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Phase 12.30 / R25 (Claude Sonnet)**:
-     - 공용 헬퍼(예: `src/lib/textarea-tab.ts`)로 구현해 4곳에 동일 적용(중복 구현 금지).
-     - 수식키 없는 Tab: `preventDefault()` 후 현재 커서 위치에 `\t` 삽입(선택 영역이 있으면 대체), 커서는 삽입한 탭 바로 뒤, 포커스는 입력란 유지, React 상태(`onChange` 대상 값)도 갱신.
-     - 한글 IME 조합 중(`event.nativeEvent.isComposing`)에는 가로채지 않음.
-     - `maxLength`가 있는 입력란(사이드바 200자, 게임 메모 1000자)은 탭 삽입으로 한도를 넘기지 않음(넘으면 삽입하지 않음).
-     - Radix 다이얼로그(게임 메모·지출 상세·일정 요청 모달) 안에서도 포커스가 취소 버튼으로 넘어가지 않음.
-     - 저장된 메모를 표시하는 곳에서 탭이 접히지 않는지 확인: `src/app/dashboard/games/page.tsx` 공식 일정 보기의 일정 메모는 현재 `whitespace-pre-line`이라 탭이 공백 1개로 접히므로 `whitespace-pre-wrap`으로 변경(기존 `/` 줄바꿈 표시는 유지). 나머지 표시부는 이미 `pre-wrap`.
-     - 단위 테스트: 헬퍼(삽입 위치·선택 대체·Shift+Tab 미처리·IME 미처리·maxLength) + 4개 컴포넌트 각 1건(Tab 후 값에 `\t` 포함, 포커스 유지). tsc·eslint·vitest 통과.
-  2. **통합 리뷰 및 마감 (Claude Opus)**: Base `7e9a57b` ↔ Target(Step 1 커밋) 정적 리뷰, tsc·eslint·vitest·markdownlint 검증, 문서 마감.
+  1. **Phase 12.31 / R26 (Claude Sonnet)** — 대상 `src/app/dashboard/expenses/page.tsx`:
+     - 게임별 과금 분석 툴팁 제목은 게임 이름(`gameStatsData.list`의 `name`, 게임 미연결은 `게임 미연결`)으로 표시. UUID가 화면 어디에도 노출되지 않음. Y축 아이콘·`<title>` 동작은 유지.
+     - 금액 축 눈금 포맷터를 공용 순수 함수로 분리해 두 막대 차트에 적용: 같은 축에 동일한 라벨이 반복되지 않고, 1만 미만 값은 `0만`이 아닌 읽을 수 있는 값(예: `4천`, `8천`)으로, 1만 이상은 필요 시 소수 1자리(예: `1.5만`)로 표시. 0은 `0`.
+     - 막대 외곽선 가시성: 평소 외곽선이 다크·라이트 테마 모두에서 배경과 뚜렷이 구분되도록 색과 두께 조정(예: 다크에서 밝은 `active` 계열, 두께 1.5px 이상). hover 외곽선은 하드코딩 `#FFFFFF` 대신 테마 대응 색(예: `rgb(var(--text-primary))` 계열 의미 토큰)으로 바꿔 라이트 테마에서도 보이게 함. 평소와 hover 상태가 계속 구분되어야 함. 원그래프는 변경하지 않음.
+     - 단위 테스트: 툴팁 제목 게임명 표시(UUID 미노출), 축 포맷터(0·4천·8천·1만·1.5만·중복 없음), 기존 `expenses/page.test.tsx` 통과. tsc·eslint·vitest 통과.
+  2. **리뷰 및 마감 (Claude Opus)**: Base `20e32b5` ↔ Target 정적 리뷰, 전체 검증, 문서 마감, push 여부 확인.
+- **운영 조치 (사용자, 즉시 권장 · 이 Run과 별개)**: 운영 DB에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 미적용. 12.25 코드가 이미 배포되어 `is_official` 컬럼을 항상 쓰는 경로가 현재 실패 중일 가능성이 높음: 관리자 일정 추가·수정(`src/app/admin/page.tsx:357,385`), 일정 요청 승인(`src/app/admin/requests/page.tsx:214,231`), 사용자 일정 요청 제출(`src/components/game/request-submission-modal.tsx:190`). 설정 페이지 비공식 일정 토글은 비활성 안내로 폴백됨. Supabase SQL Editor에서 실행 후 `sql/README.md` B표 확인 쿼리(3행) 확인. 재실행 안전(`ADD COLUMN IF NOT EXISTS`, `CREATE OR REPLACE`).
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE (SHA: 87cf75e)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Interaction)` | `Phase 12.30 (R25)` 메모 입력란 Tab 키 `\t` 입력 (`src/lib/textarea-tab.ts`, `src/lib/textarea-tab.test.ts`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/expense/expense-detail-modal.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`) | `✅ DONE` (공용 헬퍼 `src/lib/textarea-tab.ts`를 사이드바·게임 상시 메모·지출 상세·일정 요청 4곳에 연결, 게임 일정 메모 표시 `whitespace-pre-wrap`. Shift/Ctrl/Alt/Meta+Tab·IME 조합 중은 미처리, maxLength 초과 시 삽입 안 함. 신규 테스트 12건. tsc·eslint·vitest 43파일 298 통과; 실제 브라우저·Radix 모달 포커스와 한글 IME 동작은 jsdom 미검증으로 실기기 확인 필요) |
-| **2** | `✅ DONE (리뷰: 7e9a57b ↔ 87cf75e)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.30 정적 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (Claude Opus 정적 리뷰: P1~P3 0건, P4 3건. `artifacts/memo-textarea-tab-indent/iteration-01/review.json` 스키마 검증 통과. tsc·eslint·vitest 43파일 298·markdownlint 통과. Run 마감) |
+| **1** | `▶ READY` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Charts)` | `Phase 12.31 (R26)` 게임별 과금 툴팁 게임명, 금액 축 눈금 포맷 공용화, 막대 외곽선 테마 대응 가시성 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 신규 포맷터 `src/lib/chart-format.ts`·`src/lib/chart-format.test.ts`, 필요 시 `src/app/globals.css`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
+| **2** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.31 정적 리뷰, 전체 검증, 문서 마감 및 push 여부 확인 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `⏳ 대기 중 (Step 1 완료 후 착수)` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 

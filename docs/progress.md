@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.31 소비 차트 라벨·외곽선 Run 등록 (2026-11-02)
+
+- **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 토큰 소진으로 1순위 대체)
+- **내용**: 게임별 과금 툴팁의 UUID 표시, 금액 축 눈금 중복, 막대 외곽선 가시성을 Run `expense-chart-labels-and-outline`(R26)으로 등록.
+- **운영 이슈**: 운영 DB에 `MIGRATION_UNOFFICIAL_SCHEDULES.sql` 미적용 상태로 12.25 코드가 배포되어 관리자 일정 저장·일정 요청 제출/승인이 실패할 가능성이 높음. 즉시 적용 요청(R27).
+- **다음 단계**: R27 운영 적용(사용자) → Step 1 `Phase 12.31 (R26)` Claude Sonnet `▶ READY` → Step 2 Claude Opus 리뷰·마감.
+
 ## Phase 12.30 정적 리뷰 및 Run 마감 (2026-11-02)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)
