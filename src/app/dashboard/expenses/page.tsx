@@ -115,6 +115,39 @@ const GAME_CHART_PALETTE: Array<{ base: string; active: string; stroke: string }
   { base: "#14B8A6", active: "#2DD4BF", stroke: "#0F766E" }, // Teal
 ]
 
+const MONTH_CURRENT = "CURRENT"
+const MONTH_ALL = "ALL"
+
+// 모바일 터치 시 Tooltip이 카드 밖으로 벗어나지 않도록 너비를 제한하고 줄바꿈 허용
+const TOOLTIP_WRAPPER_STYLE = { maxWidth: "min(240px, 70vw)", whiteSpace: "normal", zIndex: 20 } as const
+
+const formatMonthLabel = (monthKey: string) => {
+  const [year, month] = monthKey.split("-")
+  return `${year}년 ${parseInt(month, 10)}월`
+}
+
+interface MonthOption {
+  value: string
+  label: string
+}
+
+// 이번 달(자동 갱신) + 기록이 있는 다른 연·월(최신순) + 전체 기간
+const buildMonthOptions = (targetDates: string[], currentMonthKey: string): MonthOption[] => {
+  const months = Array.from(new Set(targetDates.map((d) => d.slice(0, 7))))
+    .filter((m) => m !== currentMonthKey)
+    .sort((a, b) => b.localeCompare(a))
+  return [
+    { value: MONTH_CURRENT, label: `이번 달 (${formatMonthLabel(currentMonthKey)})` },
+    ...months.map((m) => ({ value: m, label: formatMonthLabel(m) })),
+    { value: MONTH_ALL, label: "전체 기간" },
+  ]
+}
+
+const matchesMonth = (selected: string, targetDate: string, currentMonthKey: string) => {
+  if (selected === MONTH_ALL) return true
+  return targetDate.slice(0, 7) === (selected === MONTH_CURRENT ? currentMonthKey : selected)
+}
+
 const METHOD_LABELS: Record<string, string> = {
   WALLET: "내 지갑",
   NAVER_PAY: "네이버페이",
@@ -157,6 +190,8 @@ export default function ExpensesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [activeMonthlyIndex, setActiveMonthlyIndex] = useState<number | null>(null)
   const [activeGameIndex, setActiveGameIndex] = useState<number | null>(null)
+  const [categoryMonth, setCategoryMonth] = useState<string>(MONTH_CURRENT)
+  const [gameMonth, setGameMonth] = useState<string>(MONTH_CURRENT)
 
   // 사용자 지정 게임 아이콘 URL 맵 (gameId -> objectUrl)
   const [gameIcons, setGameIcons] = useState<Record<string, string>>({})
@@ -347,11 +382,27 @@ export default function ExpensesPage() {
   }, [filteredTemplates, currentSubscriptionPage])
 
   // 통계: 오직 CONFIRMED 지출만 집계
+  const currentMonthKey = getKstToday().slice(0, 7)
+
+  const categoryMonthOptions = useMemo(
+    () => buildMonthOptions(expenses.filter((e) => e.status === "CONFIRMED").map((e) => e.target_date), currentMonthKey),
+    [expenses, currentMonthKey],
+  )
+  const gameMonthOptions = useMemo(
+    () =>
+      buildMonthOptions(
+        expenses.filter((e) => e.status === "CONFIRMED" && e.category === "게임").map((e) => e.target_date),
+        currentMonthKey,
+      ),
+    [expenses, currentMonthKey],
+  )
+
   const categoryData = useMemo(() => {
     const sums: Record<string, number> = {}
     let total = 0
     for (const exp of expenses) {
       if (exp.status !== "CONFIRMED") continue
+      if (!matchesMonth(categoryMonth, exp.target_date, currentMonthKey)) continue
       sums[exp.category] = (sums[exp.category] || 0) + exp.final_amount
       total += exp.final_amount
     }
@@ -363,20 +414,60 @@ export default function ExpensesPage() {
         color: CATEGORY_COLORS[category] || "#9BA3B2",
       }))
       .sort((a, b) => b.amount - a.amount)
-  }, [expenses])
+  }, [expenses, categoryMonth, currentMonthKey])
 
   // 선택된 카테고리의 확정 지출 내역 (원그래프 집계와 동일하게 CONFIRMED만, 최신순).
   // 환불 등으로 카테고리가 사라지면 자동으로 접힌 상태가 된다.
   const selectedCategoryExpenses = useMemo(() => {
     if (!selectedCategory || !categoryData.some((c) => c.category === selectedCategory)) return null
     const items = expenses
-      .filter((exp) => exp.status === "CONFIRMED" && exp.category === selectedCategory)
+      .filter(
+        (exp) =>
+          exp.status === "CONFIRMED" &&
+          exp.category === selectedCategory &&
+          matchesMonth(categoryMonth, exp.target_date, currentMonthKey),
+      )
       .sort((a, b) => b.target_date.localeCompare(a.target_date))
     return {
       items,
       total: items.reduce((sum, exp) => sum + exp.final_amount, 0),
     }
-  }, [expenses, categoryData, selectedCategory])
+  }, [expenses, categoryData, selectedCategory, categoryMonth, currentMonthKey])
+
+  const renderMonthSelect = (id: string, value: string, onChange: (v: string) => void, options: MonthOption[]) => (
+    <select
+      id={id}
+      aria-label="통계 기간 선택"
+      className="h-8 rounded-md border border-line bg-surface-2 px-2.5 text-xs text-content focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  )
+
+  // 현재 활성(is_active) 정기 구독 템플릿 총액 (주기별 소계 포함)
+  const activeTemplateSummary = useMemo(() => {
+    const labels: Record<string, string> = { MONTHLY_DAY: "매월 고정", INTERVAL_30: "누적 충전형", VERSION_PASS: "버전 패스형" }
+    const groups = new Map<string, { label: string; amount: number; count: number }>()
+    let total = 0
+    let count = 0
+    for (const tpl of templates) {
+      if (!tpl.is_active) continue
+      total += tpl.default_price
+      count += 1
+      const cycle = tpl.cycle_type ?? "MONTHLY_DAY"
+      const g = groups.get(cycle) ?? { label: labels[cycle] ?? cycle, amount: 0, count: 0 }
+      g.amount += tpl.default_price
+      g.count += 1
+      groups.set(cycle, g)
+    }
+    return { total, count, byCycle: Array.from(groups.values()) }
+  }, [templates])
 
   const toggleSelectedCategory = (category: string) => {
     setSelectedCategory((prev) => (prev === category ? null : category))
@@ -406,11 +497,12 @@ export default function ExpensesPage() {
 
   // 게임별 소비 통계 (오직 CONFIRMED + category === '게임')
   const gameStatsData = useMemo(() => {
-    const groupMap = new Map<string, { key: string; name: string; amount: number; count: number }>()
+    const groupMap = new Map<string, { key: string; name: string; iconUrl?: string; amount: number; count: number }>()
     let totalGameSpent = 0
 
     for (const exp of expenses) {
       if (exp.status !== "CONFIRMED" || exp.category !== "게임") continue
+      if (!matchesMonth(gameMonth, exp.target_date, currentMonthKey)) continue
       totalGameSpent += exp.final_amount
       const key = exp.game_id ?? "NONE"
       const existing = groupMap.get(key)
@@ -421,6 +513,7 @@ export default function ExpensesPage() {
         groupMap.set(key, {
           key,
           name: exp.game_id ? exp.games?.name || "게임" : "게임 미연결",
+          iconUrl: (exp.game_id ? gameIcons[exp.game_id] : undefined) || exp.games?.default_icon_url || undefined,
           amount: exp.final_amount,
           count: 1,
         })
@@ -439,7 +532,7 @@ export default function ExpensesPage() {
     })
 
     return { totalGameSpent, list, hasData: list.length > 0 }
-  }, [expenses])
+  }, [expenses, gameMonth, currentMonthKey, gameIcons])
 
   // 1. 각 지출의 정렬 및 기간 판정 기준 날짜 (미결제 기간형은 마감일 end_date, 결제 완료 및 특정일은 target_date 기준)
   const getExpenseEffectiveDate = (expense: ExpenseRow): string => {
@@ -802,17 +895,18 @@ export default function ExpensesPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* 카테고리별 지출 비중 (원그래프) */}
             <Card className="flex flex-col">
-              <CardHeader>
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
                 <CardTitle>카테고리별 지출 비중</CardTitle>
+                {renderMonthSelect("category-month-select", categoryMonth, setCategoryMonth, categoryMonthOptions)}
               </CardHeader>
               <CardContent className="flex-1 flex flex-col justify-between min-h-[300px]">
                 {categoryData.length === 0 ? (
-                  <EmptyState message="확정된 지출 내역이 없습니다." hint="결제 완료된 지출만 통계에 집계됩니다." />
+                  <EmptyState message="확정된 지출 내역이 없습니다." hint="결제 완료된 지출만 통계에 집계됩니다. 다른 기간을 선택해 보세요." />
                 ) : (
                   <>
                     <div className="h-[220px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
+                        <PieChart accessibilityLayer={false}>
                           <Pie
                             data={categoryData}
                             dataKey="amount"
@@ -844,6 +938,7 @@ export default function ExpensesPage() {
                             })}
                           </Pie>
                           <Tooltip
+                            wrapperStyle={TOOLTIP_WRAPPER_STYLE}
                             contentStyle={{
                               backgroundColor: "rgb(var(--surface))",
                               borderColor: "rgb(var(--border))",
@@ -955,6 +1050,7 @@ export default function ExpensesPage() {
                   <div className="h-[260px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
+                        accessibilityLayer={false}
                         data={monthlyData}
                         margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                         onMouseLeave={() => setActiveMonthlyIndex(null)}
@@ -974,6 +1070,7 @@ export default function ExpensesPage() {
                           tickFormatter={(val: any) => `${Math.round(Number(val) / 10000)}만`}
                         />
                         <Tooltip
+                          wrapperStyle={TOOLTIP_WRAPPER_STYLE}
                           cursor={false}
                           contentStyle={{
                             backgroundColor: "rgb(var(--surface))",
@@ -1020,6 +1117,7 @@ export default function ExpensesPage() {
                   확정 결제 기준 게임별 소비액과 비중을 분석합니다.
                 </p>
               </div>
+              {renderMonthSelect("game-month-select", gameMonth, setGameMonth, gameMonthOptions)}
             </CardHeader>
             <CardContent className="min-h-[260px] pt-4">
               {!gameStatsData.hasData ? (
@@ -1035,6 +1133,7 @@ export default function ExpensesPage() {
                     <div style={{ height: Math.max(220, gameStatsData.list.length * 42) }} className="w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
+                          accessibilityLayer={false}
                           data={gameStatsData.list}
                           layout="vertical"
                           margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
@@ -1050,13 +1149,43 @@ export default function ExpensesPage() {
                           />
                           <YAxis
                             type="category"
-                            dataKey="name"
+                            dataKey="key"
                             axisLine={{ stroke: "rgb(var(--border))", strokeWidth: 1 }}
-                            tickLine={{ stroke: "rgb(var(--border))" }}
-                            tick={{ fill: "rgb(var(--text-primary))", fontSize: 12, fontWeight: 500 }}
-                            width={110}
+                            tickLine={false}
+                            tick={(tickProps: { x?: number | string; y?: number | string; payload?: { value: string } }) => {
+                              const item = gameStatsData.list.find((g) => g.key === tickProps.payload?.value)
+                              const x = Number(tickProps.x ?? 0)
+                              const y = Number(tickProps.y ?? 0)
+                              return (
+                                <g transform={`translate(${x - 28},${y - 12})`}>
+                                  <title>{item?.name}</title>
+                                  <clipPath id={`game-icon-clip-${item?.key}`}>
+                                    <rect width={24} height={24} rx={5} />
+                                  </clipPath>
+                                  {item?.iconUrl ? (
+                                    <image
+                                      href={item.iconUrl}
+                                      width={24}
+                                      height={24}
+                                      preserveAspectRatio="xMidYMid slice"
+                                      clipPath={`url(#game-icon-clip-${item.key})`}
+                                      data-testid={`game-axis-icon-${item.key}`}
+                                    />
+                                  ) : (
+                                    <>
+                                      <rect width={24} height={24} rx={5} fill="rgb(var(--surface-2))" stroke="rgb(var(--border))" />
+                                      <text x={12} y={16} textAnchor="middle" fontSize={11} fill="rgb(var(--text-secondary))">
+                                        {(item?.name ?? "?").slice(0, 1)}
+                                      </text>
+                                    </>
+                                  )}
+                                </g>
+                              )
+                            }}
+                            width={40}
                           />
                           <Tooltip
+                            wrapperStyle={TOOLTIP_WRAPPER_STYLE}
                             cursor={false}
                             contentStyle={{
                               backgroundColor: "rgb(var(--surface))",
@@ -1537,6 +1666,22 @@ export default function ExpensesPage() {
               </div>
             )}
           </div>
+
+          {activeTemplateSummary.count > 0 && (
+            <Card>
+              <CardContent className="p-4 space-y-1.5" data-testid="active-subscription-total">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-content-secondary">활성 구독 총액 ({activeTemplateSummary.count}건)</span>
+                  <span className="text-base font-bold text-info">{activeTemplateSummary.total.toLocaleString()} 원</span>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-content-secondary">
+                  {activeTemplateSummary.byCycle.map((c) => (
+                    <span key={c.label}>{`${c.label} ${c.amount.toLocaleString()} 원 (${c.count}건)`}</span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {filteredTemplates.length === 0 ? (
             <Card>

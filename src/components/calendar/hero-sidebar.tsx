@@ -108,6 +108,7 @@ export function ScheduleTitleBadges({ title }: { title: string }) {
 export function HeroSidebarContent({
   selectedDateLabel,
   totalAsset,
+  budgetAmount,
   expectedExpense,
   confirmedExpense,
   wallets,
@@ -211,7 +212,18 @@ export function HeroSidebarContent({
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p>{`총 자산: ${totalAsset?.toLocaleString() ?? "-"} 원`}</p>
-          <p>{`예상 지출: ${expectedExpense.toLocaleString()} 원`}</p>
+          <p className="flex flex-wrap items-center gap-1.5">
+            <span>{`예상 지출: ${expectedExpense.toLocaleString()} 원`}</span>
+            {budgetAmount > 0 && expectedExpense > budgetAmount ? (
+              <span className="rounded px-1.5 py-0.5 text-[10px] font-bold border bg-danger/15 text-danger border-danger/30">
+                [위험: 예산 초과]
+              </span>
+            ) : budgetAmount > 0 && expectedExpense >= budgetAmount * 0.8 ? (
+              <span className="rounded px-1.5 py-0.5 text-[10px] font-bold border bg-warning/20 text-warning border-warning/30">
+                [주의: 예산 근접]
+              </span>
+            ) : null}
+          </p>
           <Progress value={progress} />
           <div className="flex justify-between text-xs text-content-muted">
             <span>{`진행률 ${progress}%`}</span>

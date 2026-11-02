@@ -282,4 +282,23 @@ describe("HeroSidebarContent", () => {
     const noDragElements = container.querySelectorAll("[data-vaul-no-drag]")
     expect(noDragElements.length).toBeGreaterThanOrEqual(3)
   })
+  it("예상 지출이 예산의 80% 이상이면 [주의: 예산 근접], 100% 초과면 [위험: 예산 초과] 배지를 표시한다", () => {
+    const base = { selectedDateLabel: "2026-10-14", totalAsset: 0, wallets: [], schedules: [], expenses: [], memos: [] }
+    const { rerender } = render(<HeroSidebarContent {...base} budgetAmount={100000} expectedExpense={79000} />)
+    expect(screen.queryByText("[주의: 예산 근접]")).toBeNull()
+    expect(screen.queryByText("[위험: 예산 초과]")).toBeNull()
+
+    rerender(<HeroSidebarContent {...base} budgetAmount={100000} expectedExpense={80000} />)
+    expect(screen.getByText("[주의: 예산 근접]")).toBeTruthy()
+
+    rerender(<HeroSidebarContent {...base} budgetAmount={100000} expectedExpense={100000} />)
+    expect(screen.getByText("[주의: 예산 근접]")).toBeTruthy()
+
+    rerender(<HeroSidebarContent {...base} budgetAmount={100000} expectedExpense={100001} />)
+    expect(screen.getByText("[위험: 예산 초과]")).toBeTruthy()
+    expect(screen.queryByText("[주의: 예산 근접]")).toBeNull()
+
+    rerender(<HeroSidebarContent {...base} budgetAmount={0} expectedExpense={500000} />)
+    expect(screen.queryByText("[위험: 예산 초과]")).toBeNull()
+  })
 })

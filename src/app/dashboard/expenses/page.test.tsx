@@ -851,6 +851,9 @@ describe("ExpensesPage", () => {
       expect(await screen.findByText("카테고리별 지출 비중")).toBeTruthy()
       expect(screen.queryByTestId("category-expense-accordion")).toBeNull()
 
+      // 기본은 이번 달(2026-10)만 집계되므로 과거 지출까지 보려면 전체 기간 선택
+      fireEvent.change(document.getElementById("category-month-select") as HTMLSelectElement, { target: { value: "ALL" } })
+
       const legend = screen.getByRole("button", { name: /^식비\s*\d+%$/ })
       fireEvent.click(legend)
 
@@ -869,6 +872,23 @@ describe("ExpensesPage", () => {
       fireEvent.click(legend)
       fireEvent.click(screen.getByRole("button", { name: "카테고리 내역 닫기" }))
       expect(screen.queryByTestId("category-expense-accordion")).toBeNull()
+    })
+
+    it("카테고리 통계는 기본으로 이번 달만 집계하고 월 드롭다운으로 이전 달/전체 기간을 선택할 수 있다", async () => {
+      useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+      from.mockReturnValue(createExpenseQueryBuilder(accordionExpenses))
+
+      render(<ExpensesPage />)
+      await screen.findByText("카테고리별 지출 비중")
+
+      const select = document.getElementById("category-month-select") as HTMLSelectElement
+      expect(select.value).toBe("CURRENT")
+      expect(Array.from(select.options).map((o) => o.value)).toEqual(["CURRENT", "2026-09", "ALL"])
+      expect(screen.getByRole("button", { name: /^식비\s*80%$/ })).toBeTruthy() // 10월: 식비 12,000 / 교통 3,000
+
+      fireEvent.change(select, { target: { value: "2026-09" } })
+      expect(screen.getByRole("button", { name: /^식비\s*100%$/ })).toBeTruthy()
+      expect(screen.queryByRole("button", { name: /^교통/ })).toBeNull()
     })
 
     it("아코디언 항목 클릭 시 ExpenseDetailModal이 열린다", async () => {
@@ -955,5 +975,70 @@ describe("ExpensesPage", () => {
     expect(within(rows[1]).getByText("최신 과거 지출 B")).toBeTruthy()
     expect(within(rows[2]).getByText("중간 과거 지출 C")).toBeTruthy()
     expect(within(rows[3]).getByText("오래된 과거 지출 A")).toBeTruthy()
+  })
+  it("게임별 과금 분석은 월 드롭다운으로 이번 달/이전 달/전체 기간을 전환한다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const mkGame = (id: string, date: string, amount: number) => ({
+      id,
+      title: id,
+      category: "게임",
+      status: "CONFIRMED",
+      target_date: date,
+      end_date: null,
+      game_id: "game-1",
+      original_price: amount,
+      discount_amount: 0,
+      point_discount_amount: 0,
+      used_points: 0,
+      earned_points: 0,
+      final_amount: amount,
+      payment_method: "WALLET",
+      games: { name: "원신", default_icon_url: "/icons/genshin.webp" },
+    })
+    from.mockReturnValue(createExpenseQueryBuilder([mkGame("now", "2026-10-03", 10000), mkGame("old", "2026-08-03", 5000)]))
+
+    render(<ExpensesPage />)
+    expect(await screen.findByText("총 10,000 원")).toBeTruthy()
+
+    const select = document.getElementById("game-month-select") as HTMLSelectElement
+    fireEvent.change(select, { target: { value: "ALL" } })
+    expect(screen.getByText("총 15,000 원")).toBeTruthy()
+    fireEvent.change(select, { target: { value: "2026-08" } })
+    expect(screen.getByText("총 5,000 원")).toBeTruthy()
+  })
+
+  it("정기 구독 탭 상단에 활성 구독 총액과 주기별 소계를 표시하고 비활성 구독은 제외한다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const tpl = (id: string, cycle: string, price: number, active: boolean) => ({
+      id,
+      title: id,
+      category: "기타",
+      cycle_type: cycle,
+      billing_day: 5,
+      interval_days: 30,
+      default_price: price,
+      payment_method: "WALLET",
+      is_active: active,
+      game_id: null,
+      games: null,
+    })
+    const subscriptionBuilder = createExpenseQueryBuilder([
+      tpl("a", "MONTHLY_DAY", 10000, true),
+      tpl("b", "MONTHLY_DAY", 5000, true),
+      tpl("c", "INTERVAL_30", 3000, true),
+      tpl("d", "MONTHLY_DAY", 99000, false),
+    ])
+    from.mockImplementation((table: string) =>
+      table === "subscription_templates" ? subscriptionBuilder : createExpenseQueryBuilder([]),
+    )
+
+    render(<ExpensesPage />)
+    fireEvent.mouseDown(await screen.findByRole("tab", { name: /정기 구독/ }))
+    fireEvent.click(screen.getByRole("tab", { name: /정기 구독/ }))
+
+    const summary = await screen.findByTestId("active-subscription-total")
+    expect(within(summary).getByText("18,000 원")).toBeTruthy()
+    expect(within(summary).getByText("매월 고정 15,000 원 (2건)")).toBeTruthy()
+    expect(within(summary).getByText("누적 충전형 3,000 원 (1건)")).toBeTruthy()
   })
 });

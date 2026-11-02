@@ -187,3 +187,11 @@
 .animate-fade-in {
   animation: content-fade-in 180ms ease-out forwards;
 }
+
+/* Recharts SVG 포커스 외곽선 제거 (클릭/터치 시 그래프 둘레 하이라이트 방지) */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-wrapper *:focus {
+  outline: none;
+}
