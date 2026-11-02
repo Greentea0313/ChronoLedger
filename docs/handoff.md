@@ -34,7 +34,7 @@
 - **Run ID**: `expense-chart-labels-and-outline` *(2026-11-02, 소비 페이지 막대 차트 툴팁 게임명·축 눈금·외곽선 가시성(R26))*
 - **Orchestrator**: Claude Opus (Gemini 4 Argon 토큰 소진으로 1순위 대체 접수)
 - **Worktree 경로**: `main` (Maker는 허용 파일만 스테이징·커밋. 완료 후 push 여부를 Run 마감 보고에 명시, `known-pitfalls.md` #32)
-- **리뷰 비교 범위**: Base `20e32b5` (Run 등록 직전 HEAD) ↔ Target = Step 1 Maker 커밋(완료 시 Maker가 기록).
+- **리뷰 비교 범위**: Base `20e32b5` (Run 등록 직전 HEAD) ↔ Target `fc4ea9d` (Step 1 Maker 커밋).
 - **사용자 보고 및 원인 분석**:
   1. `게임별 과금 분석` 막대에 마우스를 올리면 툴팁 제목에 게임 이름 대신 UUID(game_id)가 표시됨. 원인: Y축을 아이콘으로 그리기 위해 `dataKey="key"`로 바꿨고(Phase 12.26), Recharts 툴팁 제목은 카테고리 축 값을 그대로 사용.
   2. 막대 차트(월별 소비 추이·게임별 과금 분석) 외곽선이 흐림. 원인: 평소 외곽선이 어두운 색(`#4338CA`, 팔레트 `stroke`) 1px이라 다크 배경에서 구분이 안 됨. 반대로 hover 외곽선 `#FFFFFF`는 라이트 테마 배경에서 보이지 않음. 원그래프는 대상 아님.
@@ -50,8 +50,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `▶ READY` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Charts)` | `Phase 12.31 (R26)` 게임별 과금 툴팁 게임명, 금액 축 눈금 포맷 공용화, 막대 외곽선 테마 대응 가시성 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 신규 포맷터 `src/lib/chart-format.ts`·`src/lib/chart-format.test.ts`, 필요 시 `src/app/globals.css`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
-| **2** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.31 정적 리뷰, 전체 검증, 문서 마감 및 push 여부 확인 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `⏳ 대기 중 (Step 1 완료 후 착수)` |
+| **1** | `✅ DONE (SHA: fc4ea9d)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Charts)` | `Phase 12.31 (R26)` 게임별 과금 툴팁 게임명, 금액 축 눈금 포맷 공용화, 막대 외곽선 테마 대응 가시성 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 신규 포맷터 `src/lib/chart-format.ts`·`src/lib/chart-format.test.ts`, 필요 시 `src/app/globals.css`) | `✅ 게임명 툴팁, 축 포맷터, 테마 대응 외곽선 적용; Vitest 26개·tsc·lint 통과` |
+| **2** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.31 정적 리뷰, 전체 검증, 문서 마감 및 push 여부 확인 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ Step 1 완료; Base 20e32b5 ↔ Target fc4ea9d 리뷰 및 마감 대기` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
