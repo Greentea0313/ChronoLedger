@@ -53,6 +53,40 @@ describe("DashboardPage", () => {
     loadSchedulePreference.mockResolvedValue({ showUnofficialSchedules: false, isAvailable: true })
   })
 
+  it("일정 표시 설정 조회가 실패해도 대시보드를 그리고 공식 일정만 표시한다", async () => {
+    const now = new Date()
+    const selectedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+    useAuth.mockReturnValue({ user: { id: "user-1" }, isLoading: false })
+    ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+    loadSchedulePreference.mockRejectedValue(new Error("network"))
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    const finance = createQueryBuilder()
+    finance.maybeSingle.mockResolvedValue({ data: { total_asset: 100000, default_budget: 0 }, error: null })
+    const budget = createQueryBuilder()
+    budget.maybeSingle.mockResolvedValue({ data: null, error: null })
+    from.mockImplementation((table: string) => {
+      switch (table) {
+        case "user_finances": return finance
+        case "monthly_budgets": return budget
+        case "game_schedules": return createThenableBuilder([
+          { id: "s1", title: "공식 픽업", schedule_type: "PICKUP", start_date: selectedDate, end_date: selectedDate, game_id: "game-1", is_official: true },
+          { id: "s2", title: "테스트 서버 일정", schedule_type: "CONTENTS", start_date: selectedDate, end_date: selectedDate, game_id: "game-1", is_official: false },
+        ])
+        case "user_games": return createThenableBuilder([{ game_id: "game-1" }])
+        default: return createThenableBuilder([])
+      }
+    })
+
+    render(<DashboardPage />)
+
+    expect(await screen.findByText("일정 표시 설정을 불러오지 못해 공식 일정만 표시합니다.")).toBeTruthy()
+    expect(screen.getByLabelText("월간 캘린더")).toBeTruthy()
+    expect(screen.getAllByText("공식 픽업").length).toBeGreaterThan(0)
+    expect(screen.queryByText("테스트 서버 일정")).toBeNull()
+    consoleSpy.mockRestore()
+  })
+
   it("그리드 범위의 end_date PLANNED 행을 병합하고 기한 지난 항목이 있으면 차단 모달을 자동으로 연다", async () => {
     const now = new Date()
     const selectedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`

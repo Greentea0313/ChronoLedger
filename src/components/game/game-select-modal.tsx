@@ -28,6 +28,7 @@ export function GameSelectModal({
 }) {
   const isOnline = useOnlineStatus()
   const { user } = useAuth()
+  const userId = user?.id
   const [isOpen, setIsOpen] = useState(false)
   const [games, setGames] = useState<Game[]>([])
   const [isLoadingGames, setIsLoadingGames] = useState(false)
@@ -44,8 +45,9 @@ export function GameSelectModal({
     setError(null)
   }
 
+  // user 객체 대신 user?.id에 의존해, 세션 갱신으로 참조만 바뀔 때 목록 재조회·입력 초기화가 일어나지 않게 한다
   const fetchGames = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setGames([])
       setError("로그인이 필요합니다.")
       return
@@ -56,7 +58,7 @@ export function GameSelectModal({
     try {
       const [gamesResult, subscriptionsResult] = await Promise.all([
         supabase.from("games").select("id, name").order("name"),
-        supabase.from("user_games").select("game_id").eq("user_id", user.id),
+        supabase.from("user_games").select("game_id").eq("user_id", userId),
       ])
       if (gamesResult.error) throw gamesResult.error
       if (subscriptionsResult.error) throw subscriptionsResult.error
@@ -69,7 +71,7 @@ export function GameSelectModal({
     } finally {
       setIsLoadingGames(false)
     }
-  }, [user])
+  }, [userId])
 
   useEffect(() => {
     if (isOpen) {

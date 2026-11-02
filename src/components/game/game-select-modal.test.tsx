@@ -47,4 +47,19 @@ describe("GameSelectModal", () => {
     expect(await screen.findByRole("button", { name: "미구독 게임" })).toBeTruthy()
     expect(screen.queryByRole("button", { name: "이미 구독한 게임" })).toBeNull()
   })
+
+  it("세션 갱신으로 user 객체 참조만 바뀌면 목록을 다시 불러오거나 선택을 초기화하지 않는다", async () => {
+    const { rerender } = render(<GameSelectModal onGameAdded={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: "구독 추가" }))
+    fireEvent.click(await screen.findByRole("button", { name: "미구독 게임" }))
+    expect(screen.getByRole("button", { name: "변경" })).toBeTruthy()
+    const callsBeforeRefresh = from.mock.calls.length
+
+    useAuth.mockReturnValue({ user: { id: "user-1" } })
+    rerender(<GameSelectModal onGameAdded={vi.fn()} />)
+
+    expect(from.mock.calls.length).toBe(callsBeforeRefresh)
+    expect(screen.getByText("미구독 게임")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "변경" })).toBeTruthy()
+  })
 })

@@ -272,7 +272,11 @@ export default function DashboardPage() {
         supabase.from("user_games").select("game_id, games(name, default_icon_url)").eq("user_id", user.id),
         supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price, template_id, memo").eq("user_id", user.id).eq("status", "PLANNED"),
         supabase.from("games").select("id, name, default_icon_url"),
-        loadSchedulePreference(user.id),
+        // 설정 조회 실패가 대시보드 전체 로드를 막지 않도록 공식 일정만 표시로 폴백한다
+        loadSchedulePreference(user.id).catch((cause: unknown) => {
+          console.error("schedulePreference", cause)
+          return null
+        }),
       ])
 
       if (financeResult.error) console.error("financeResult", financeResult.error)
@@ -293,12 +297,15 @@ export default function DashboardPage() {
       const monthlyBudget = budgetResult.data?.budget_amount ?? 0
       setBudgetAmount(monthlyBudget > 0 ? monthlyBudget : (financeResult.data?.default_budget ?? 0))
       setWallets((walletResult.data ?? []) as HeroWalletItem[])
-      setSchedulePreferenceNotice(schedulePreference.isAvailable
-        ? null
-        : "비공식 일정 설정 마이그레이션이 적용되지 않아 공식 일정만 표시합니다.")
+      const showUnofficialSchedules = schedulePreference?.showUnofficialSchedules ?? false
+      setSchedulePreferenceNotice(!schedulePreference
+        ? "일정 표시 설정을 불러오지 못해 공식 일정만 표시합니다."
+        : schedulePreference.isAvailable
+          ? null
+          : "비공식 일정 설정 마이그레이션이 적용되지 않아 공식 일정만 표시합니다.")
       setSchedules(((scheduleResult.data ?? []) as ScheduleRow[])
         .map((schedule) => ({ ...schedule, is_official: schedule.is_official ?? true }))
-        .filter((schedule) => schedulePreference.showUnofficialSchedules || schedule.is_official !== false))
+        .filter((schedule) => showUnofficialSchedules || schedule.is_official !== false))
       setMemos((memoResult.data ?? []) as MemoRow[])
       const mergedExpenses = new Map<string, ExpenseRow>()
       for (const row of [...(expenseResult.data ?? []), ...(endDateResult.data ?? [])] as ExpenseRow[]) {
