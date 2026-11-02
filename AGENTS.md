@@ -2,6 +2,8 @@
 
 This document provides shared guidelines for general coding agents (such as GPT Codex, OpenCode, and GitHub Copilot) entering the ChronoLedger repository.
 
+All agents must read and follow this `AGENTS.md` before starting project work, in addition to the applicable rules and skills listed below.
+
 ## 1. Core Rule & Skill References
 
 All agents must consult the following rule files and skill guidelines before starting work:

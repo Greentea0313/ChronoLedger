@@ -1,6 +1,6 @@
 # ChronoLedger instructions for GitHub Copilot
 
-- Before any project or implementation task, read `.agents/skills/handoff/SKILL.md`, `.agents/rules/collaboration.md`, and `.agents/rules/agent_rules.md`. Follow them together with the user's current request; the current user request takes precedence over source documents that merely describe a proposal or design.
+- Before any project or implementation task, read and follow the root `AGENTS.md`, `.agents/skills/handoff/SKILL.md`, `.agents/rules/collaboration.md`, and `.agents/rules/agent_rules.md`. Follow them together with the user's current request; the current user request takes precedence over source documents that merely describe a proposal or design.
 - Treat `docs/spec/revisions_and_decisions.md` and the approved `docs/spec/SRS.md` as product authorities. Use `docs/spec/SPEC.md` and `sql/SCHEMA.sql` for their respective details. If they conflict, report the conflict and do not silently choose.
 - For UI work, read `docs/spec/ChronoLedger_UI_Design_Sheet.md` and use `docs/design-previews/design-v1-ko.html` as a visual reference. Preserve fixed SRS behavior; the sheet marks visual proposals separately. The HTML is a static mockup, not a functional or responsive implementation.
 - `docs/archive/Netlify_Web_Architecture_Proposal.md` is a proposal, not an accepted deployment decision. Do not change build/deployment architecture or rewrite SRS decisions based on it alone. Record unresolved choices in `docs/to-do.md` and ask the user when a choice blocks implementation.
