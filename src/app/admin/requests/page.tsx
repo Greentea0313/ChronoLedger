@@ -6,11 +6,12 @@ import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { useAuth } from "@/lib/auth-context"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CheckCircle, XCircle, Loader2, AlertCircle, Plus } from "lucide-react"
+import { CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react"
+import { convertIconSourceToDataUrl } from "@/lib/image-resizer"
 
 type GameRequest = {
   id: string
@@ -29,6 +30,7 @@ type ScheduleRequest = {
   start_date: string
   end_date: string
   memo: string | null
+  is_official?: boolean
   admin_memo?: string | null
   request_status: string
   created_at: string
@@ -47,13 +49,7 @@ export default function AdminRequestsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null)
   const isOnline = useOnlineStatus()
   const [defaultIconUrls, setDefaultIconUrls] = useState<Record<string, string>>({})
-
-  // 관리자 직접 게임 등록 상태
-  const [directGameName, setDirectGameName] = useState("")
-  const [directGameIconUrl, setDirectGameIconUrl] = useState("")
-  const [isCreatingGame, setIsCreatingGame] = useState(false)
-  const [directCreateError, setDirectCreateError] = useState<string | null>(null)
-  const [directCreateSuccess, setDirectCreateSuccess] = useState<string | null>(null)
+  const [defaultIconFiles, setDefaultIconFiles] = useState<Record<string, File>>({})
 
   const isAdmin = role === "admin" || user?.app_metadata?.role === "admin"
 
@@ -119,20 +115,24 @@ export default function AdminRequestsPage() {
     try {
       let iconUrl: string | undefined
       if (type === "game" && isApprove) {
-        iconUrl = defaultIconUrl?.trim()
-        if (!iconUrl) {
-          throw new Error("게임 기본 아이콘 URL을 입력해 주세요.")
+        const iconFile = defaultIconFiles[id]
+        const iconSource = defaultIconUrl?.trim() || defaultIconUrls[id]?.trim()
+        if (!iconFile && !iconSource) {
+          throw new Error("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")
         }
 
-        let parsedUrl: URL
-        try {
-          parsedUrl = new URL(iconUrl)
-        } catch {
-          throw new Error("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.")
+        if (!iconFile && !iconSource?.startsWith("data:image/webp;base64,")) {
+          let parsedUrl: URL
+          try {
+            parsedUrl = new URL(iconSource!)
+          } catch {
+            throw new Error("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.")
+          }
+          if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+            throw new Error("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.")
+          }
         }
-        if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-          throw new Error("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.")
-        }
+        iconUrl = await convertIconSourceToDataUrl(iconFile ?? iconSource!)
       }
 
       if (type === "game") {
@@ -211,6 +211,7 @@ export default function AdminRequestsPage() {
                   start_date: targetReq.start_date,
                   end_date: targetReq.end_date,
                   memo: targetReq.memo,
+                  is_official: targetReq.is_official ?? true,
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", targetReq.target_schedule_id)
@@ -227,6 +228,7 @@ export default function AdminRequestsPage() {
                   start_date: targetReq.start_date,
                   end_date: targetReq.end_date,
                   memo: targetReq.memo,
+                  is_official: targetReq.is_official ?? true,
                 })
 
               if (insertSchedErr) throw rpcError
@@ -280,78 +282,6 @@ export default function AdminRequestsPage() {
     }
   }
 
-  const handleDirectCreateGame = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    if (isOffline()) {
-      setDirectCreateError(OFFLINE_WRITE_MESSAGE)
-      return
-    }
-
-    const trimmedName = directGameName.trim()
-    const trimmedIconUrl = directGameIconUrl.trim()
-
-    if (!trimmedName) {
-      setDirectCreateError("게임 이름을 입력해 주세요.")
-      return
-    }
-
-    if (!trimmedIconUrl) {
-      setDirectCreateError("게임 기본 아이콘 URL을 입력해 주세요.")
-      return
-    }
-
-    try {
-      const parsedUrl = new URL(trimmedIconUrl)
-      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-        setDirectCreateError("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.")
-        return
-      }
-    } catch {
-      setDirectCreateError("게임 기본 아이콘 URL은 올바른 http 또는 https 주소여야 합니다.")
-      return
-    }
-
-    setIsCreatingGame(true)
-    setDirectCreateError(null)
-    setDirectCreateSuccess(null)
-
-    try {
-      const { error: rpcError } = await supabase.rpc("admin_create_game", {
-        p_name: trimmedName,
-        p_default_icon_url: trimmedIconUrl,
-      })
-
-      if (rpcError) {
-        const { error: insertError } = await supabase.from("games").insert({
-          name: trimmedName,
-          default_icon_url: trimmedIconUrl,
-          status: "APPROVED",
-          created_by: user?.id ?? null,
-        })
-
-        if (insertError) {
-          if (
-            insertError.code === "23505" ||
-            insertError.message?.includes("unique") ||
-            insertError.message?.includes("games_name_key")
-          ) {
-            throw new Error("이미 등록된 게임 이름입니다.")
-          }
-          throw insertError
-        }
-      }
-
-      setDirectCreateSuccess(`'${trimmedName}' 게임이 성공적으로 등록되었습니다.`)
-      setDirectGameName("")
-      setDirectGameIconUrl("")
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "알 수 없는 오류"
-      setDirectCreateError(message.startsWith("게임 등록 실패") ? message : `게임 등록 실패: ${message}`)
-    } finally {
-      setIsCreatingGame(false)
-    }
-  }
-
   if (authLoading) {
     return <div className="p-6 text-content">데이터 불러오는 중...</div>
   }
@@ -389,90 +319,6 @@ export default function AdminRequestsPage() {
         </TabsList>
 
         <TabsContent value="games" className="space-y-6">
-          {/* 관리자 직접 게임 추가 카드 */}
-          <Card className="bg-surface border-line">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-base font-bold text-content flex items-center gap-2">
-                <Plus className="w-4 h-4 text-primary" /> 관리자 직접 게임 추가
-              </CardTitle>
-              <p className="text-xs text-content-secondary mt-0.5">
-                유저 건의 승인 절차 없이 관리자가 즉시 공식 게임 마스터 카탈로그에 새 게임을 등록합니다.
-              </p>
-            </CardHeader>
-            <CardContent className="p-4 pt-2">
-              <form onSubmit={handleDirectCreateGame} className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="direct-game-name" className="text-xs font-medium text-content-secondary block mb-1">
-                      게임 이름 <span className="text-danger">*</span>
-                    </label>
-                    <Input
-                      id="direct-game-name"
-                      type="text"
-                      placeholder="게임 이름 (예: 원신, 붕괴: 스타레일)"
-                      value={directGameName}
-                      onChange={(e) => {
-                        setDirectGameName(e.target.value)
-                        if (directCreateError) setDirectCreateError(null)
-                        if (directCreateSuccess) setDirectCreateSuccess(null)
-                      }}
-                      disabled={isCreatingGame || !isOnline}
-                      className="border-line bg-surface-2 text-content"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="direct-game-icon-url" className="text-xs font-medium text-content-secondary block mb-1">
-                      기본 아이콘 URL <span className="text-danger">*</span>
-                    </label>
-                    <Input
-                      id="direct-game-icon-url"
-                      type="url"
-                      placeholder="기본 아이콘 이미지 URL (https://...)"
-                      value={directGameIconUrl}
-                      onChange={(e) => {
-                        setDirectGameIconUrl(e.target.value)
-                        if (directCreateError) setDirectCreateError(null)
-                        if (directCreateSuccess) setDirectCreateSuccess(null)
-                      }}
-                      disabled={isCreatingGame || !isOnline}
-                      className="border-line bg-surface-2 text-content truncate"
-                    />
-                  </div>
-                </div>
-
-                {directCreateError && (
-                  <p className="text-xs text-danger font-medium flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {directCreateError}
-                  </p>
-                )}
-
-                {directCreateSuccess && (
-                  <p className="text-xs text-success font-medium flex items-center gap-1">
-                    <CheckCircle className="w-3.5 h-3.5 shrink-0" /> {directCreateSuccess}
-                  </p>
-                )}
-
-                <div className="flex justify-end pt-1">
-                  <Button
-                    type="submit"
-                    className="bg-primary hover:bg-primary-hover text-primary-foreground text-xs sm:text-sm h-9 px-4 font-medium"
-                    disabled={isCreatingGame || !isOnline}
-                  >
-                    {isCreatingGame ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" /> 등록 중...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 mr-1" /> 게임 등록
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-content">
               유저 추가 건의 대기열 ({gameRequests.length})
@@ -491,17 +337,36 @@ export default function AdminRequestsPage() {
                     <p className="text-xs text-content-secondary/70 mt-1">요청일: {new Date(req.created_at).toLocaleDateString()}</p>
                   </div>
                   <div className="flex flex-col gap-2 w-full md:w-auto mt-2 md:mt-0">
+                    <label className="text-xs text-content-secondary">
+                      기본 아이콘 파일
+                      <Input
+                        type="file"
+                        aria-label={`${req.name} 기본 아이콘 파일`}
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          if (file) setDefaultIconFiles((current) => ({ ...current, [req.id]: file }))
+                        }}
+                        disabled={processingId === req.id || !isOnline}
+                        className="mt-1 border-line bg-surface-2 text-content"
+                      />
+                    </label>
                     <Input
-                      type="url"
+                      type="text"
                       aria-label={`${req.name} 기본 아이콘 URL`}
-                      placeholder="기본 아이콘 URL (https://...)"
+                      placeholder="또는 기본 아이콘 URL (https://...)"
                       value={defaultIconUrls[req.id] ?? ""}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         setDefaultIconUrls((current) => ({
                           ...current,
                           [req.id]: event.target.value,
                         }))
-                      }
+                        setDefaultIconFiles((current) => {
+                          const next = { ...current }
+                          delete next[req.id]
+                          return next
+                        })
+                      }}
                       disabled={processingId === req.id || !isOnline}
                       className="border-line bg-surface-2 text-content truncate"
                     />
@@ -545,6 +410,7 @@ export default function AdminRequestsPage() {
                       <span className="bg-primary/15 text-primary text-xs px-2 py-1 rounded">
                         {req.schedule_type === "VERSION" ? "버전" : req.schedule_type === "CONTENTS" ? "콘텐츠" : "픽업"}
                       </span>
+                      {req.is_official === false && <span className="bg-warning/15 text-warning text-xs px-2 py-1 rounded">비공식</span>}
                       <h3 className="font-bold text-lg text-content">{req.title}</h3>
                     </div>
                     <p className="text-sm text-content-secondary">대상 게임: <span className="font-semibold text-content">{req.games?.name || '알 수 없음'}</span></p>

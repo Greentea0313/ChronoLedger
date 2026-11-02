@@ -55,6 +55,62 @@ export async function resizeImageToWebP(file: File): Promise<Blob> {
   return blob;
 }
 
+export async function convertIconSourceToDataUrl(source: File | string): Promise<string> {
+  if (typeof source === "string" && source.startsWith("data:image/webp;base64,")) {
+    return source;
+  }
+
+  const file = typeof source === "string" ? await fetchImageFile(source) : source;
+  const blob = await resizeImageToWebP(file);
+  return readBlobAsDataUrl(blob);
+}
+
+async function fetchImageFile(url: string): Promise<File> {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error("게임 기본 아이콘 URL은 올바른 http 또는 https 주소여야 합니다.");
+  }
+  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    throw new Error("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.");
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(parsedUrl);
+  } catch {
+    throw new Error("이미지 URL을 가져오지 못했습니다. 파일을 업로드하거나 CORS가 허용된 URL을 사용해 주세요.");
+  }
+  if (!response.ok) {
+    throw new Error(`이미지 URL 요청에 실패했습니다. (HTTP ${response.status})`);
+  }
+
+  const blob = await response.blob();
+  const contentType = blob.type || getImageTypeFromPath(parsedUrl.pathname);
+  return new File([blob], "game-icon", { type: contentType });
+}
+
+function getImageTypeFromPath(pathname: string): string {
+  const extension = pathname.split(".").pop()?.toLowerCase();
+  if (extension === "png") return "image/png";
+  if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
+  if (extension === "webp") return "image/webp";
+  return "";
+}
+
+function readBlobAsDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("WebP 이미지 Data URL 생성에 실패했습니다."));
+    };
+    reader.onerror = () => reject(new Error("WebP 이미지 Data URL 생성에 실패했습니다."));
+    reader.readAsDataURL(blob);
+  });
+}
+
 // 헬퍼 함수: File 객체를 HTMLImageElement로 변환
 function createImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

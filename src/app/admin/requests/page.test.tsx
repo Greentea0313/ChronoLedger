@@ -4,11 +4,12 @@ import { Simulate } from "react-dom/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import AdminRequestsPage from "./page"
 
-const { from, rpc, useAuth, replace } = vi.hoisted(() => ({
+const { from, rpc, useAuth, replace, convertIconSourceToDataUrl } = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
   useAuth: vi.fn(),
   replace: vi.fn(),
+  convertIconSourceToDataUrl: vi.fn(),
 }))
 
 vi.mock("next/navigation", () => ({
@@ -22,6 +23,7 @@ vi.mock("@/lib/auth-context", () => ({
 vi.mock("@/lib/supabase/client", () => ({
   supabase: { from, rpc },
 }))
+vi.mock("@/lib/image-resizer", () => ({ convertIconSourceToDataUrl }))
 
 interface MockQueryBuilder {
   select: ReturnType<typeof vi.fn>
@@ -92,6 +94,7 @@ describe("AdminRequestsPage", () => {
       user: { id: "admin-1", app_metadata: { role: "admin" } },
       isLoading: false,
     })
+    convertIconSourceToDataUrl.mockResolvedValue("data:image/webp;base64,converted")
     from.mockImplementation((table: string) =>
       table === "game_requests" ? gameQuery : scheduleQuery,
     )
@@ -113,7 +116,7 @@ describe("AdminRequestsPage", () => {
     })
   }
 
-  it("loads schema-backed requests and approves a game with its icon URL", async () => {
+  it("loads requests and stores an approved game's icon as a converted WebP Data URL", async () => {
     await renderPage()
 
     expect(container.textContent).toContain("Sample RPG")
@@ -140,44 +143,15 @@ describe("AdminRequestsPage", () => {
 
     expect(rpc).toHaveBeenCalledWith("approve_game_request", {
       p_request_id: "game-request-1",
-      p_default_icon_url: "https://example.test/game.webp",
+      p_default_icon_url: "data:image/webp;base64,converted",
     })
+    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.test/game.webp")
   })
 
-  it("allows admin to directly add a game by entering name and icon URL and clicking [게임 등록]", async () => {
+  it("does not show the duplicate direct-game registration card", async () => {
     await renderPage()
-
-    const nameInput = container.querySelector("#direct-game-name")
-    const iconInput = container.querySelector("#direct-game-icon-url")
-    expect(nameInput).not.toBeNull()
-    expect(iconInput).not.toBeNull()
-
-    if (!(nameInput instanceof HTMLInputElement) || !(iconInput instanceof HTMLInputElement)) {
-      throw new Error("Expected direct game name and icon URL inputs.")
-    }
-
-    await act(async () => {
-      nameInput.value = "신규 게임"
-      Simulate.change(nameInput)
-      iconInput.value = "https://example.test/new-game.webp"
-      Simulate.change(iconInput)
-    })
-
-    const createButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("게임 등록"),
-    )
-    expect(createButton).toBeDefined()
-
-    await act(async () => {
-      createButton!.click()
-      await Promise.resolve()
-    })
-
-    expect(rpc).toHaveBeenCalledWith("admin_create_game", {
-      p_name: "신규 게임",
-      p_default_icon_url: "https://example.test/new-game.webp",
-    })
-    expect(container.textContent).toContain("'신규 게임' 게임이 성공적으로 등록되었습니다.")
+    expect(container.textContent).not.toContain("관리자 직접 게임 추가")
+    expect(container.querySelector("#direct-game-name")).toBeNull()
   })
 
   it("does not fetch requests for a non-admin user", async () => {

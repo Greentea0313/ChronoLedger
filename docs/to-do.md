@@ -557,6 +557,33 @@
   - verify: `src/components/expense/expense-modal.test.tsx`에 예정 지출 수정(`EDIT_PLAN`) 및 예정 지출 결제(`PAY`) 시 기존 메모 보존 및 이벤트 태그 병합 단위 테스트 추가 및 통과.
   - 결과: `PlannedExpenseInput.memo` 추가, `handleSubmit`에서 기존 메모(`editingExpense?.memo ?? plannedExpense?.memo ?? null`)를 추출해 `mergeEventMemo`로 전달하여 수정·결제 시 사용자 메모 보존 및 이벤트 태그 병합, `expenses/page.tsx`에서 예정 메모 전달 및 잔여 구 픽업 주석 정리, 단위 테스트 2건 추가 (커밋 `d5522dc`, 전체 271개 테스트 통과).
 
+- [x] 12.24 구독 템플릿 동기화 및 중지 시 PLANNED 삭제 개편 (R15, 커밋 `1bb175b`; Vitest 20개 및 tsc 통과; SQL 스모크 미실행)
+  - 대상 파일: `sql/migrations/MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql`, `sql/SCHEMA.sql`, `sql/tests/TESTS.sql`, `docs/spec/SRS.md`, `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/components/expense/expense-modal.tsx`
+  - 작업 (세부 확정 사양):
+    1. **구독 중지 시 PLANNED 완전 삭제**: 구독 중지(`is_active: true → false`) 시 미결제 `PLANNED` 지출을 완전히 물리 삭제(`DELETE`)하고, 구독 재개(`is_active: true`) 시 수정된 템플릿 정보로 새 `PLANNED` 회차가 깨끗하게 재생성되도록 개선. 기존 `TEMPLATE_DEACTIVATION` 취소 행 정리 마이그레이션(`MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql`) 작성 및 `SCHEMA.sql`, `TESTS.sql`, `docs/spec/SRS.md` 명세 갱신.
+    2. **매월 지정일형(`MONTHLY_DAY`) 미래 월 과다 생성 해결**: 대시보드 달력 미래 월(12월, 1월 등) 탐색 시 불필요한 미래 회차가 미리 누적 생성되지 않도록, `MONTHLY_DAY` 템플릿은 언제나 바로 다음 결제 예정 회차 1건만 `PLANNED`로 유지/생성 보장(이미 `PLANNED` 회차가 존재하면 추가 생성 방지, 기존 미래 중복 행 정리). 당월 회차가 결제 확정(`PAY` / `CONFIRMED`)되거나 이미 `CONFIRMED`/`CANCELLED`인 경우 다음 달 회차 1건을 생성.
+    3. **버전 패스형(`VERSION_PASS`) 과거 버전 생성 차단**: `game_schedules`에서 `VERSION` 일정 조회 시 `.gte("end_date", today)` 조건을 적용하여 이미 종료된 과거 버전 일정에 대한 `PLANNED` 지출 생성 원천 차단.
+  - verify: `src/lib/subscription-sync.test.ts` 단위 테스트 보강 및 통과, 스모크 테스트 정합성 확인.
+
+- [x] 12.25 관리자/게임 모달 정비, 아이콘 자체 WebP Data URL 저장, 비공식 일정 분류 및 설정 토글 (R16, 구현 및 로컬 검증 완료)
+  - 대상 파일: `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql`, `sql/SCHEMA.sql`, `src/types/database.types.ts`, `src/lib/schedule-preferences.ts`, `src/app/admin/requests/page.tsx`, `src/app/admin/page.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/game-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/ui/game-icon.tsx`, `src/app/dashboard/settings/page.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/page.tsx`
+  - 작업 (세부 확정 사양):
+    1. **중복 UI 제거 및 미구독 게임 필터**: `/admin/requests`의 `[관리자 직접 게임 추가]` 중복 카드 및 핸들러 삭제. `GameSelectModal`에서 현재 사용자가 이미 구독 중(`user_games`)인 게임을 제외하고 미구독 게임만 표시.
+    2. **게임 아이콘 자체 WebP Data URL 변환·저장**: 관리자가 게임 등록/수정 및 게임 요청 승인 시 이미지 파일 업로드 또는 외부 이미지 URL 입력에 대해 `resizeImageToWebP`(256×256 WebP)를 거쳐 자체 `data:image/webp;base64,...` Data URL로 변환해 `games.default_icon_url`에 저장(모바일 핫링크 차단/만료 원천 해결). `GameIcon` 컴포넌트에 외부 URL 로드 실패 시 1회 재시도 안전망 추가.
+    3. **비공식 일정 DB 스키마 및 관리자/사용자 기능**: `game_schedules` 및 `schedule_requests`에 `is_official BOOLEAN NOT NULL DEFAULT true`, `public.users`에 `show_unofficial_schedules BOOLEAN NOT NULL DEFAULT false` 컬럼 추가(`MIGRATION_UNOFFICIAL_SCHEDULES.sql`, `SCHEMA.sql`, `database.types.ts`). 관리자 일정 추가/수정 및 일정 요청 모달에서 공식/비공식 여부 분류 지원, 계정 설정 페이지(`/dashboard/settings`)에 `비공식 일정(테스트 서버·유출 등) 표시` 토글 버튼 제공, 대시보드 및 게임 페이지 일정 보기에서 토글 설정에 따른 필터링 및 `[비공식]` 배지 표시.
+  - verify: 관련 8개 Vitest 파일의 57개 테스트, `npx tsc --noEmit`, `npm run lint` 통과.
+  - [ ] 후속: 운영 Supabase SQL Editor에서 `MIGRATION_UNOFFICIAL_SCHEDULES.sql`을 수동 적용하고 설정 토글 및 일정 조회를 확인한다.
+
+- [ ] 12.26 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (R17)
+  - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/app/globals.css`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`
+  - 작업 (세부 확정 사양):
+    1. **게임별 과금 분석 가로 막대 차트 좌측 Y축 아이콘화**: 좌측 Y축 게임 이름 텍스트를 24×24px 게임 아이콘으로 대체하고, 우측 순위 목록에만 게임 이름 텍스트 유지.
+    2. **차트 포커스 테두리 제거 및 모바일 툴팁 이탈 교정**: Recharts SVG 포커스 테두리(`outline: none`, `accessibilityLayer={false}`) 제거 및 모바일 터치 시 `<Tooltip>`이 카드 우측 화면 밖으로 벗어나지 않도록 위치·최대 너비·줄바꿈 교정.
+    3. **카테고리별 지출 비중 & 게임별 과금 분석 월별 자동 갱신 및 이전 달 드롭다운**: 두 통계 카드 모두 기본값을 현재 KST 연·월(`YYYY-MM`)로 설정하여 매달 자동 갱신되도록 하고, 각 카드 우측 상단에 월 선택 드롭다운(이번 달, 이전 기록이 있는 과거 연·월, 전체 기간)을 추가해 이전 기록 조회 지원.
+    4. **활성 정기 구독 템플릿 총액 표시**: `/dashboard/expenses` 정기 구독 탭 상단에 현재 활성(`is_active === true`) 구독 템플릿들의 총액(전체 합산 및 주기별 소계) 요약 표시.
+    5. **홈 대시보드 예산 경고 배지**: `hero-sidebar.tsx` 요약 카드의 `예상 지출: n원` 행 우측에 `budgetAmount > 0` 기준 80% 이상 시 주황색 `[주의: 예산 근접]`, 100% 초과 시 빨간색 `[위험: 예산 초과]` 배지 배치.
+  - verify: `expenses/page.test.tsx`, `hero-sidebar.test.tsx` 단위 테스트 갱신 및 전체 통과.
+
 ---
 
 ## 향후 / 진행 로드맵 (Active & Planned Roadmap)
@@ -575,6 +602,9 @@
 - [x] R11. 소비 페이지 게임 픽업별 과금 분석을 게임별 과금 분석으로 변경 및 지출 모달 내 픽업 배너 연결 제거(버전 일정/패스 유예는 유지) (`완료` - 커밋 `e9a7017`, Claude Sonnet, Claude Opus 통합 리뷰 완료)
 - [x] R12. AI 전용 지침 문서(CLAUDE.md, AGENTS.md, .agents/**, .github/**) 영문화 및 한국어 원본(*-ko.md) docs/archive/agent-rules-ko/ 분리 보관 (`완료` - 커밋 `de71051`, Gemini 3.8 Flash 완료)
 - [x] R14. 지출 모달(`expense-modal.tsx`) 수정·결제 시 기존 사용자 메모(`editingExpense.memo`)가 이벤트 태그로 덮어써지는 기존 결함 보정 (`mergeEventMemo(null, ...)` → 기존 메모 보존, 단위 테스트 추가) 및 잔여 주석 정리 (`완료` - 커밋 `d5522dc`, Claude Sonnet, Gemini 4 Argon 통합 리뷰 완료)
+- [x] R15. 구독 템플릿 동기화 및 중지 시 PLANNED 삭제 개편 (`Phase 12.24`, GPT Codex, 커밋 `1bb175b`)
+- [x] R16. 관리자/게임 모달 정비, 아이콘 자체 WebP Data URL 저장, 비공식 일정 분류 및 설정 토글 (`Phase 12.25`, GitHub Copilot 담당)
+- [ ] R17. 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (`Phase 12.26`, Claude Sonnet 담당)
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---

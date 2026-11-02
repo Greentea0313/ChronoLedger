@@ -18,6 +18,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
+import { convertIconSourceToDataUrl } from "@/lib/image-resizer"
 import {
   Plus,
   Pencil,
@@ -66,6 +67,7 @@ interface ScheduleItem {
   start_date: string
   end_date: string
   memo: string | null
+  is_official?: boolean
   games?: { id?: string; name?: string; default_icon_url?: string | null } | null
 }
 
@@ -86,6 +88,7 @@ export default function AdminPage() {
   const [editingGame, setEditingGame] = useState<GameOption | null>(null)
   const [gameFormName, setGameFormName] = useState("")
   const [gameFormIconUrl, setGameFormIconUrl] = useState("")
+  const [gameFormIconFile, setGameFormIconFile] = useState<File | null>(null)
   const [gameFormError, setGameFormError] = useState<string | null>(null)
   const [isSubmittingGame, setIsSubmittingGame] = useState(false)
   const [deletingGame, setDeletingGame] = useState<GameOption | null>(null)
@@ -131,6 +134,7 @@ export default function AdminPage() {
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [gameId, setGameId] = useState("")
   const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS">("VERSION")
+  const [isOfficial, setIsOfficial] = useState(true)
   const [isSingleDate, setIsSingleDate] = useState(false)
   const [title, setTitle] = useState("")
   const [startDate, setStartDate] = useState("")
@@ -200,7 +204,7 @@ export default function AdminPage() {
     const today = getKstToday()
     const { data, error } = await supabase
       .from("game_schedules")
-      .select("id, game_id, schedule_type, title, start_date, end_date, memo, games(id, name)")
+      .select("*, games(id, name)")
       .gte("end_date", today)
       .order("start_date", { ascending: true })
 
@@ -223,7 +227,7 @@ export default function AdminPage() {
     const today = getKstToday()
     const { data, error } = await supabase
       .from("game_schedules")
-      .select("id, game_id, schedule_type, title, start_date, end_date, memo, games(id, name, default_icon_url)")
+      .select("*, games(id, name, default_icon_url)")
       .lt("end_date", today)
       .order("end_date", { ascending: false })
 
@@ -258,6 +262,7 @@ export default function AdminPage() {
     setIsDuplicating(false)
     setGameId(selectedGameFilter || "")
     setScheduleType("VERSION")
+    setIsOfficial(true)
     setIsSingleDate(false)
     setTitle("")
     setStartDate("")
@@ -273,6 +278,7 @@ export default function AdminPage() {
     setIsDuplicating(true)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
+    setIsOfficial(schedule.is_official ?? true)
     setIsSingleDate(schedule.start_date === schedule.end_date)
     setTitle(schedule.title)
     setStartDate(schedule.start_date)
@@ -287,6 +293,7 @@ export default function AdminPage() {
     setIsDuplicating(false)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
+    setIsOfficial(schedule.is_official ?? true)
     setIsSingleDate(schedule.start_date === schedule.end_date)
     setTitle(schedule.title)
     setStartDate(schedule.start_date)
@@ -347,6 +354,7 @@ export default function AdminPage() {
         .update({
           game_id: gameId,
           schedule_type: scheduleType,
+          is_official: isOfficial,
           title: title.trim(),
           start_date: startDate,
           end_date: finalEndDate,
@@ -374,6 +382,7 @@ export default function AdminPage() {
       const { error } = await supabase.from("game_schedules").insert({
         game_id: gameId,
         schedule_type: scheduleType,
+        is_official: isOfficial,
         title: title.trim(),
         start_date: startDate,
         end_date: finalEndDate,
@@ -426,6 +435,7 @@ export default function AdminPage() {
     setEditingGame(null)
     setGameFormName("")
     setGameFormIconUrl("")
+    setGameFormIconFile(null)
     setGameFormError(null)
     setIsGameModalOpen(true)
   }
@@ -434,6 +444,7 @@ export default function AdminPage() {
     setEditingGame(game)
     setGameFormName(game.name)
     setGameFormIconUrl(game.default_icon_url || "")
+    setGameFormIconFile(null)
     setGameFormError(null)
     setIsGameModalOpen(true)
   }
@@ -447,23 +458,33 @@ export default function AdminPage() {
       setGameFormError("게임 이름을 입력해주세요.")
       return
     }
-    if (!trimmedIconUrl) {
-      setGameFormError("게임 기본 아이콘 URL을 입력해주세요.")
+    if (!trimmedIconUrl && !gameFormIconFile) {
+      setGameFormError("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해주세요.")
       return
     }
-    try {
-      const parsed = new URL(trimmedIconUrl)
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        setGameFormError("아이콘 URL은 http 또는 https 형식이어야 합니다.")
+    if (!gameFormIconFile && !trimmedIconUrl.startsWith("data:image/webp;base64,")) {
+      try {
+        const parsed = new URL(trimmedIconUrl)
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          setGameFormError("아이콘 URL은 http 또는 https 형식이어야 합니다.")
+          return
+        }
+      } catch {
+        setGameFormError("아이콘 URL이 올바른 주소 형식이 아닙니다.")
         return
       }
-    } catch {
-      setGameFormError("아이콘 URL이 올바른 주소 형식이 아닙니다.")
-      return
     }
 
     setIsSubmittingGame(true)
     setGameFormError(null)
+    let defaultIconUrl: string
+    try {
+      defaultIconUrl = await convertIconSourceToDataUrl(gameFormIconFile ?? trimmedIconUrl)
+    } catch (error: unknown) {
+      setIsSubmittingGame(false)
+      setGameFormError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
+      return
+    }
 
     if (editingGame) {
       // 게임 수정
@@ -471,7 +492,7 @@ export default function AdminPage() {
         .from("games")
         .update({
           name: trimmedName,
-          default_icon_url: trimmedIconUrl,
+          default_icon_url: defaultIconUrl,
         })
         .eq("id", editingGame.id)
 
@@ -488,7 +509,7 @@ export default function AdminPage() {
       // 새 게임 등록
       const { error } = await supabase.from("games").insert({
         name: trimmedName,
-        default_icon_url: trimmedIconUrl,
+        default_icon_url: defaultIconUrl,
         status: "APPROVED",
         created_by: user?.id ?? null,
       })
@@ -571,7 +592,7 @@ export default function AdminPage() {
             onClick={() => setAdminTab("schedules")}
             className="data-[state=active]:bg-surface data-[state=active]:text-content"
           >
-            공식 일정 관리 ({schedules.length})
+            일정 관리 ({schedules.length})
           </TabsTrigger>
           <TabsTrigger
             value="games"
@@ -632,7 +653,7 @@ export default function AdminPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-line">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
-                <CardTitle className="text-base font-semibold">등록된 공식 일정</CardTitle>
+                <CardTitle className="text-base font-semibold">등록된 일정</CardTitle>
               </div>
               <span className="text-xs text-content-secondary">
                 {filteredSchedules.length}개의 일정
@@ -695,6 +716,11 @@ export default function AdminPage() {
                               >
                                 {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
                               </span>
+                              {schedule.is_official === false && (
+                                <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-warning/15 text-warning border border-warning/30">
+                                  비공식
+                                </span>
+                              )}
                               <div className="font-medium text-sm text-content flex items-center gap-1.5 flex-wrap">
                                 <ScheduleTitleBadges title={schedule.title} />
                               </div>
@@ -1093,6 +1119,11 @@ export default function AdminPage() {
                         >
                           {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
                         </span>
+                        {schedule.is_official === false && (
+                          <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-warning/15 text-warning border border-warning/30">
+                            비공식
+                          </span>
+                        )}
                         <div className="font-medium text-sm text-content flex items-center gap-1.5 flex-wrap">
                           <ScheduleTitleBadges title={schedule.title} />
                         </div>
@@ -1220,6 +1251,19 @@ export default function AdminPage() {
                 <option value="VERSION">버전 (VERSION)</option>
                 <option value="PICKUP">픽업 (PICKUP)</option>
                 <option value="CONTENTS">콘텐츠 (CONTENTS)</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="schedule-official-select" className="block text-sm font-medium mb-1">일정 분류 *</label>
+              <select
+                id="schedule-official-select"
+                className="w-full bg-surface-2 border border-line rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                value={isOfficial ? "official" : "unofficial"}
+                onChange={(event) => setIsOfficial(event.target.value === "official")}
+              >
+                <option value="official">공식</option>
+                <option value="unofficial">비공식 (테스트 서버·유출 등)</option>
               </select>
             </div>
 
@@ -1402,20 +1446,30 @@ export default function AdminPage() {
 
             <div className="w-full min-w-0">
               <label htmlFor="game-form-icon-url" className="block text-sm font-medium mb-1">
-                기본 아이콘 URL *
+                기본 아이콘 URL
               </label>
               <Input
                 id="game-form-icon-url"
-                type="url"
+                type="text"
                 value={gameFormIconUrl}
-                onChange={(e) => setGameFormIconUrl(e.target.value)}
+                onChange={(e) => {
+                  setGameFormIconUrl(e.target.value)
+                  setGameFormIconFile(null)
+                }}
                 placeholder="https://... (웹 이미지 주소)"
-                required
                 className="bg-surface-2 border-line text-content truncate"
               />
               <p className="text-[11px] text-content-muted mt-1">
-                외부 웹 호스팅 또는 CDN의 이미지 절대 URL(http/https)을 입력하세요.
+                또는 이미지 파일을 업로드하세요. 저장 시 256×256 WebP Data URL로 변환됩니다.
               </p>
+              <Input
+                id="game-form-icon-file"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                aria-label="기본 아이콘 파일"
+                onChange={(event) => setGameFormIconFile(event.target.files?.[0] ?? null)}
+                className="mt-2 bg-surface-2 border-line text-content"
+              />
             </div>
 
             {/* 실시간 아이콘 미리보기 */}

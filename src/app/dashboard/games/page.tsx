@@ -13,6 +13,7 @@ import { RequestSubmissionModal } from "@/components/game/request-submission-mod
 import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-upload"
 import { resizeImageToWebP } from "@/lib/image-resizer"
 import { getKstToday } from "@/lib/dashboard-date"
+import { loadSchedulePreference } from "@/lib/schedule-preferences"
 import { GameIcon } from "@/components/ui/game-icon"
 import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
@@ -53,6 +54,7 @@ interface GameScheduleRow {
   start_date: string
   end_date: string
   memo: string | null
+  is_official?: boolean
 }
 
 export default function GamesPage() {
@@ -76,10 +78,29 @@ export default function GamesPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [schedules, setSchedules] = useState<GameScheduleRow[]>([])
   const [isSchedulesLoading, setIsSchedulesLoading] = useState(false)
+  const [showUnofficialSchedules, setShowUnofficialSchedules] = useState(false)
+  const [schedulePreferenceNotice, setSchedulePreferenceNotice] = useState<string | null>(null)
+  const [scheduleError, setScheduleError] = useState<string | null>(null)
 
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const hasLoadedInitialRef = useRef(false)
   const userId = user?.id
+
+  useEffect(() => {
+    if (!userId) return
+    void loadSchedulePreference(userId)
+      .then((preference) => {
+        setShowUnofficialSchedules(preference.showUnofficialSchedules)
+        setSchedulePreferenceNotice(preference.isAvailable
+          ? null
+          : "비공식 일정 설정 마이그레이션이 적용되지 않아 공식 일정만 표시합니다.")
+      })
+      .catch((cause: unknown) => {
+        setSchedulePreferenceNotice(cause instanceof Error
+          ? `일정 표시 설정을 불러오지 못했습니다: ${cause.message}`
+          : "일정 표시 설정을 불러오지 못했습니다.")
+      })
+  }, [userId])
 
   // 게임 이름 기준 가나다순 정렬
   const sortedUserGames = useMemo(() => {
@@ -157,24 +178,30 @@ export default function GamesPage() {
     if (!selectedGame || !isSheetOpen) return
     const fetchSchedules = async () => {
       setIsSchedulesLoading(true)
+      setScheduleError(null)
       const today = getKstToday()
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("game_schedules")
         .select("*")
         .eq("game_id", selectedGame.id)
         .gte("end_date", today)
         .order("start_date", { ascending: true })
-      if (data) {
-        const sorted = (data as GameScheduleRow[]).sort((a, b) => {
-          if (a.start_date !== b.start_date) return a.start_date.localeCompare(b.start_date)
-          return a.end_date.localeCompare(b.end_date)
-        })
+      if (error) {
+        setScheduleError(`일정을 불러오지 못했습니다: ${error.message}`)
+      } else {
+        const sorted = ((data ?? []) as GameScheduleRow[])
+          .map((schedule) => ({ ...schedule, is_official: schedule.is_official ?? true }))
+          .filter((schedule) => showUnofficialSchedules || schedule.is_official !== false)
+          .sort((a, b) => {
+            if (a.start_date !== b.start_date) return a.start_date.localeCompare(b.start_date)
+            return a.end_date.localeCompare(b.end_date)
+          })
         setSchedules(sorted)
       }
       setIsSchedulesLoading(false)
     }
     void fetchSchedules()
-  }, [selectedGame, isSheetOpen])
+  }, [selectedGame, isSheetOpen, showUnofficialSchedules])
 
   const handleIconUpload = async (gameId: string, file: File) => {
     if (!user) return
@@ -524,16 +551,18 @@ export default function GamesPage() {
       >
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-surface text-content border-line">
           <DialogHeader>
-            <DialogTitle className="text-content">{selectedGame?.name || "게임"} 공식 일정</DialogTitle>
+            <DialogTitle className="text-content">{selectedGame?.name || "게임"} 일정</DialogTitle>
             <DialogDescription className="text-content-secondary">
-              관리자가 등록한 공식 픽업, 버전 및 콘텐츠 업데이트 일정입니다.
+              관리자가 등록한 픽업, 버전 및 콘텐츠 업데이트 일정입니다.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-3">
+            {schedulePreferenceNotice && <p role="status" className="text-xs text-content-secondary">{schedulePreferenceNotice}</p>}
+            {scheduleError && <p role="alert" className="text-sm text-danger">{scheduleError}</p>}
             {isSchedulesLoading ? (
               <p className="text-sm text-content-secondary">불러오는 중...</p>
             ) : schedules.length === 0 ? (
-              <p className="text-sm text-content-secondary py-8 text-center">등록된 공식 일정이 없습니다.</p>
+              <p className="text-sm text-content-secondary py-8 text-center">표시할 일정이 없습니다.</p>
             ) : (
               schedules.map((sch) => {
                 const isSingle = sch.start_date === sch.end_date
@@ -555,6 +584,11 @@ export default function GamesPage() {
                           sch.title
                         )}
                       </span>
+                      {sch.is_official === false && (
+                        <span className="shrink-0 rounded bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+                          [비공식]
+                        </span>
+                      )}
                       <span
                         className={`shrink-0 whitespace-nowrap text-xs px-2 py-0.5 rounded font-medium ${
                           sch.schedule_type === "VERSION"

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,6 +30,7 @@ export function GameSelectModal({
   const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [games, setGames] = useState<Game[]>([])
+  const [isLoadingGames, setIsLoadingGames] = useState(false)
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
   const [iconFile, setIconFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -37,31 +38,45 @@ export function GameSelectModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchGames()
-      resetState()
-    }
-  }, [isOpen])
-
   const resetState = () => {
     setSelectedGame(null)
     setIconFile(null)
     setError(null)
   }
 
-  const fetchGames = async () => {
-    const { data, error } = await supabase
-      .from("games")
-      .select("id, name")
-      .order("name")
-
-    if (error) {
-      setError("게임 카탈로그를 불러오지 못했습니다.")
-    } else {
-      setGames(data || [])
+  const fetchGames = useCallback(async () => {
+    if (!user) {
+      setGames([])
+      setError("로그인이 필요합니다.")
+      return
     }
-  }
+
+    setIsLoadingGames(true)
+    setError(null)
+    try {
+      const [gamesResult, subscriptionsResult] = await Promise.all([
+        supabase.from("games").select("id, name").order("name"),
+        supabase.from("user_games").select("game_id").eq("user_id", user.id),
+      ])
+      if (gamesResult.error) throw gamesResult.error
+      if (subscriptionsResult.error) throw subscriptionsResult.error
+
+      const subscribedGameIds = new Set((subscriptionsResult.data ?? []).map((row) => row.game_id))
+      setGames((gamesResult.data ?? []).filter((game) => !subscribedGameIds.has(game.id)))
+    } catch {
+      setGames([])
+      setError("등록 가능한 게임 목록을 불러오지 못했습니다.")
+    } finally {
+      setIsLoadingGames(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (isOpen) {
+      resetState()
+      void fetchGames()
+    }
+  }, [fetchGames, isOpen])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -129,7 +144,9 @@ export function GameSelectModal({
             <div className="space-y-2">
               <p className="text-sm text-content-secondary">카탈로그에서 플레이 중인 게임을 선택하세요.</p>
               <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
-                {games.map(game => (
+                {isLoadingGames ? (
+                  <p role="status" className="text-sm text-content-muted">게임 목록을 불러오는 중...</p>
+                ) : games.map(game => (
                   <Button
                     key={game.id}
                     variant="outline"
@@ -139,7 +156,8 @@ export function GameSelectModal({
                     {game.name}
                   </Button>
                 ))}
-                {games.length === 0 && <p className="text-sm text-content-muted">등록 가능한 공용 게임이 없습니다.</p>}
+                {!isLoadingGames && games.length === 0 && !error && <p className="text-sm text-content-muted">등록 가능한 공용 게임이 없습니다.</p>}
+                {error && <p role="alert" className="text-sm text-danger">{error}</p>}
               </div>
             </div>
           ) : (

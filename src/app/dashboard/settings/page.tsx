@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { FormEvent } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { ProfileAvatarCard } from "@/components/profile/profile-avatar-card"
 import { ProfileNicknameCard } from "@/components/profile/profile-nickname-card"
 import { useAuth } from "@/lib/auth-context"
 import { requestAccountDeletion } from "@/lib/account-deletion"
+import { loadSchedulePreference, saveSchedulePreference } from "@/lib/schedule-preferences"
 
 export default function SettingsPage() {
   const { user, role, beginAccountDeletionTracking } = useAuth()
@@ -19,6 +20,59 @@ export default function SettingsPage() {
   const [confirmationEmail, setConfirmationEmail] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showUnofficialSchedules, setShowUnofficialSchedules] = useState(false)
+  const [isSchedulePreferenceAvailable, setIsSchedulePreferenceAvailable] = useState(false)
+  const [isLoadingSchedulePreference, setIsLoadingSchedulePreference] = useState(true)
+  const [isSavingSchedulePreference, setIsSavingSchedulePreference] = useState(false)
+  const [schedulePreferenceError, setSchedulePreferenceError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user?.id) {
+      setIsLoadingSchedulePreference(false)
+      return
+    }
+    let isCurrent = true
+    setIsLoadingSchedulePreference(true)
+    setSchedulePreferenceError(null)
+    void loadSchedulePreference(user.id)
+      .then((preference) => {
+        if (!isCurrent) return
+        setShowUnofficialSchedules(preference.showUnofficialSchedules)
+        setIsSchedulePreferenceAvailable(preference.isAvailable)
+        if (!preference.isAvailable) {
+          setSchedulePreferenceError("비공식 일정 설정 마이그레이션이 적용되지 않아 설정을 사용할 수 없습니다.")
+        }
+      })
+      .catch((cause: unknown) => {
+        if (!isCurrent) return
+        setSchedulePreferenceError(cause instanceof Error
+          ? `일정 표시 설정을 불러오지 못했습니다: ${cause.message}`
+          : "일정 표시 설정을 불러오지 못했습니다.")
+      })
+      .finally(() => {
+        if (isCurrent) setIsLoadingSchedulePreference(false)
+      })
+    return () => {
+      isCurrent = false
+    }
+  }, [user?.id])
+
+  const handleSchedulePreferenceChange = async () => {
+    if (!user?.id || !isSchedulePreferenceAvailable || isSavingSchedulePreference) return
+    const nextValue = !showUnofficialSchedules
+    setIsSavingSchedulePreference(true)
+    setSchedulePreferenceError(null)
+    try {
+      await saveSchedulePreference(user.id, nextValue)
+      setShowUnofficialSchedules(nextValue)
+    } catch (cause: unknown) {
+      setSchedulePreferenceError(cause instanceof Error
+        ? `일정 표시 설정을 저장하지 못했습니다: ${cause.message}`
+        : "일정 표시 설정을 저장하지 못했습니다.")
+    } finally {
+      setIsSavingSchedulePreference(false)
+    }
+  }
 
   const handleAccountDeletion = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -58,6 +112,30 @@ export default function SettingsPage() {
       <StoreWalletWidget />
 
       {!isAdmin && <UserRequestsCard />}
+
+      <Card className="border-line text-content">
+        <CardHeader>
+          <CardTitle>일정 표시 설정</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-content-secondary">
+            테스트 서버·유출 등 비공식으로 분류된 일정을 캘린더와 게임 일정에서 표시합니다.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            role="switch"
+            aria-label="비공식 일정(테스트 서버·유출 등) 표시"
+            aria-checked={showUnofficialSchedules}
+            onClick={() => void handleSchedulePreferenceChange()}
+            disabled={isLoadingSchedulePreference || !isSchedulePreferenceAvailable || isSavingSchedulePreference}
+          >
+            비공식 일정(테스트 서버·유출 등) 표시: {showUnofficialSchedules ? "켜짐" : "꺼짐"}
+          </Button>
+          {isLoadingSchedulePreference && <p role="status" className="text-xs text-content-secondary">설정을 불러오는 중...</p>}
+          {schedulePreferenceError && <p role="alert" className="text-sm text-danger">{schedulePreferenceError}</p>}
+        </CardContent>
+      </Card>
 
       <Card className="border-danger/50 text-content">
         <CardHeader>

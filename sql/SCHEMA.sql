@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   nickname TEXT,
+  show_unofficial_schedules BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -128,6 +129,7 @@ CREATE TABLE public.game_schedules (
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     title VARCHAR(150) NOT NULL,
     schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS')),
+    is_official BOOLEAN NOT NULL DEFAULT true,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     memo TEXT,
@@ -144,6 +146,7 @@ CREATE TABLE public.schedule_requests (
     target_schedule_id UUID REFERENCES public.game_schedules(id) ON DELETE SET NULL, -- 수정 요청 시 대상 일정
     title VARCHAR(150) NOT NULL,
     schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS')),
+    is_official BOOLEAN NOT NULL DEFAULT true,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     request_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (request_status IN ('PENDING', 'APPROVED', 'REJECTED')),
@@ -1163,12 +1166,13 @@ BEGIN
         RAISE EXCEPTION '승인 대기 중인 일정 요청이 아닙니다.';
     END IF;
     IF v_request.target_schedule_id IS NULL THEN
-        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo)
-        VALUES (v_request.game_id, v_request.title, v_request.schedule_type, v_request.start_date, v_request.end_date, v_request.memo);
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo, is_official)
+        VALUES (v_request.game_id, v_request.title, v_request.schedule_type, v_request.start_date, v_request.end_date, v_request.memo, v_request.is_official);
     ELSE
         UPDATE public.game_schedules
         SET title = v_request.title, schedule_type = v_request.schedule_type,
             start_date = v_request.start_date, end_date = v_request.end_date, memo = v_request.memo,
+            is_official = v_request.is_official,
             updated_at = NOW()
         WHERE id = v_request.target_schedule_id AND game_id = v_request.game_id;
         IF NOT FOUND THEN RAISE EXCEPTION '요청 대상 일정이 없거나 게임이 일치하지 않습니다.'; END IF;

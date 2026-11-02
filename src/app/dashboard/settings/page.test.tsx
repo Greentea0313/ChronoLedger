@@ -2,15 +2,18 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import SettingsPage from "./page"
 
-const { useAuth, requestAccountDeletion, from, rpc } = vi.hoisted(() => ({
+const { useAuth, requestAccountDeletion, from, rpc, loadSchedulePreference, saveSchedulePreference } = vi.hoisted(() => ({
   useAuth: vi.fn(),
   requestAccountDeletion: vi.fn(),
   from: vi.fn(),
   rpc: vi.fn(),
+  loadSchedulePreference: vi.fn(),
+  saveSchedulePreference: vi.fn(),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/account-deletion", () => ({ requestAccountDeletion }))
+vi.mock("@/lib/schedule-preferences", () => ({ loadSchedulePreference, saveSchedulePreference }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from, rpc } }))
 vi.mock("@/lib/storage-upload", () => ({
   downloadProfileAvatar: vi.fn().mockResolvedValue(null),
@@ -62,6 +65,8 @@ describe("SettingsPage", () => {
     })
 
     rpc.mockResolvedValue({ error: null })
+    loadSchedulePreference.mockResolvedValue({ showUnofficialSchedules: false, isAvailable: true })
+    saveSchedulePreference.mockResolvedValue(undefined)
   })
 
   it("renders page header and main sections", async () => {
@@ -107,6 +112,27 @@ describe("SettingsPage", () => {
       expect(requestAccountDeletion).toHaveBeenCalledWith("test@example.com")
       expect(mockBeginAccountDeletionTracking).toHaveBeenCalledWith("test-status-token")
     })
+  })
+
+  it("persists the unofficial schedule display toggle", async () => {
+    render(<SettingsPage />)
+    const toggle = await screen.findByRole("switch", { name: "비공식 일정(테스트 서버·유출 등) 표시" })
+    expect(toggle.getAttribute("aria-checked")).toBe("false")
+
+    fireEvent.click(toggle)
+
+    await waitFor(() => {
+      expect(saveSchedulePreference).toHaveBeenCalledWith("user-123", true)
+      expect(toggle.getAttribute("aria-checked")).toBe("true")
+    })
+  })
+
+  it("disables the toggle and reports when the preference migration is unavailable", async () => {
+    loadSchedulePreference.mockResolvedValueOnce({ showUnofficialSchedules: false, isAvailable: false })
+    render(<SettingsPage />)
+
+    expect(await screen.findByRole("alert")).toBeTruthy()
+    expect(screen.getByRole("switch", { name: "비공식 일정(테스트 서버·유출 등) 표시" })).toHaveProperty("disabled", true)
   })
 
   it("displays error when account deletion fails", async () => {

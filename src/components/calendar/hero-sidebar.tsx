@@ -46,6 +46,7 @@ export interface HeroScheduleItem {
   schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
   start_date: string
   end_date: string
+  is_official?: boolean
   gameId?: string | null
   gameName?: string | null
   iconUrl?: string
@@ -334,6 +335,11 @@ export function HeroSidebarContent({
                           {group.items.map((item) => (
                             <li key={item.id} className="leading-snug">
                               <div className="font-bold text-sm text-content">
+                                {item.is_official === false && (
+                                  <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                    [비공식]
+                                  </span>
+                                )}
                                 {item.title.includes("/") ? (
                                   <span className="inline-flex items-center gap-1">
                                     <span>•</span>
@@ -354,6 +360,11 @@ export function HeroSidebarContent({
                       ) : (
                         <>
                           <div className="relative z-10 font-bold text-sm text-content leading-snug">
+                            {group.items[0].is_official === false && (
+                              <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                [비공식]
+                              </span>
+                            )}
                             <ScheduleTitleBadges title={group.items[0].title} />
                           </div>
 

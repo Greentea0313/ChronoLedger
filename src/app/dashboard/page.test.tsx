@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import DashboardPage from "./page"
 import { getGridRange } from "@/lib/calendar-utils"
 
@@ -8,17 +8,20 @@ const {
   useAuth,
   ensureMonthlySubscriptionExpenses,
   downloadUserIcon,
+  loadSchedulePreference,
 } = vi.hoisted(() => ({
   from: vi.fn(),
   useAuth: vi.fn(),
   ensureMonthlySubscriptionExpenses: vi.fn(),
   downloadUserIcon: vi.fn().mockResolvedValue(null),
+  loadSchedulePreference: vi.fn(),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/subscription-sync", () => ({ ensureMonthlySubscriptionExpenses }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
 vi.mock("@/lib/storage-upload", () => ({ downloadUserIcon }))
+vi.mock("@/lib/schedule-preferences", () => ({ loadSchedulePreference }))
 
 function createQueryBuilder() {
   const query = {
@@ -46,6 +49,10 @@ function createThenableBuilder(data: unknown[]) {
 }
 
 describe("DashboardPage", () => {
+  beforeEach(() => {
+    loadSchedulePreference.mockResolvedValue({ showUnofficialSchedules: false, isAvailable: true })
+  })
+
   it("그리드 범위의 end_date PLANNED 행을 병합하고 기한 지난 항목이 있으면 차단 모달을 자동으로 연다", async () => {
     const now = new Date()
     const selectedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
@@ -112,7 +119,10 @@ describe("DashboardPage", () => {
     })
     const schedules = createQueryBuilder()
     schedules.gte.mockResolvedValue({
-      data: [{ id: "s1", schedule_type: "PICKUP", start_date: selectedDate, end_date: selectedDate, game_id: "game-1" }],
+      data: [
+        { id: "s1", schedule_type: "PICKUP", start_date: selectedDate, end_date: selectedDate, game_id: "game-1", is_official: true },
+        { id: "s2", title: "테스트 서버 일정", schedule_type: "CONTENTS", start_date: selectedDate, end_date: selectedDate, game_id: "game-1", is_official: false },
+      ],
       error: null,
     })
     const memos = createQueryBuilder()
@@ -142,6 +152,7 @@ describe("DashboardPage", () => {
 
     expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
     expect(screen.getAllByText("PICKUP").length).toBeGreaterThan(0)
+    expect(screen.queryByText("테스트 서버 일정")).toBeNull()
     expect(screen.getByText(/100,000/)).toBeTruthy()
 
     // 날짜 타일 클릭 시 HeroSidebar에서 드롭다운 전환을 통해 지출과 메모 확인 가능

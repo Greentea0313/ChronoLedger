@@ -18,6 +18,7 @@ type Schedule = {
   game_id: string
   title: string
   schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  is_official?: boolean
   start_date: string
   end_date: string
   memo: string | null
@@ -35,6 +36,7 @@ type ScheduleRequest = {
   target_schedule_id: string | null
   title: string
   schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  is_official: boolean
   start_date: string
   end_date: string
   memo: string | null
@@ -73,6 +75,7 @@ export function RequestSubmissionModal({
   const [targetScheduleId, setTargetScheduleId] = useState("")
   const [title, setTitle] = useState("")
   const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS">("VERSION")
+  const [isOfficial, setIsOfficial] = useState(true)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [scheduleMemo, setScheduleMemo] = useState("")
@@ -91,7 +94,7 @@ export function RequestSubmissionModal({
     try {
       const [gamesResult, schedulesResult] = await Promise.all([
         supabase.from("games").select("id, name").order("name"),
-        supabase.from("game_schedules").select("id, game_id, title, schedule_type, start_date, end_date, memo").order("start_date"),
+        supabase.from("game_schedules").select("*").order("start_date"),
       ])
       if (gamesResult.error) setCatalogError("게임 카탈로그를 불러오지 못했습니다.")
       else setGames(gamesResult.data ?? [])
@@ -118,7 +121,7 @@ export function RequestSubmissionModal({
       const [gamesResult, schedulesResult] = await Promise.all([
         supabase.from("game_requests").select("id, name, memo, request_status, admin_memo")
           .eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("schedule_requests").select("id, game_id, target_schedule_id, title, schedule_type, start_date, end_date, memo, request_status, admin_memo")
+        supabase.from("schedule_requests").select("*")
           .eq("user_id", user.id).order("created_at", { ascending: false }),
       ])
       if (gamesResult.error) setHistoryError("내 게임 요청을 불러오지 못했습니다.")
@@ -147,6 +150,7 @@ export function RequestSubmissionModal({
     if (!schedule) return
     setTitle(schedule.title)
     setScheduleType(schedule.schedule_type)
+    setIsOfficial(schedule.is_official ?? true)
     setStartDate(schedule.start_date)
     setEndDate(schedule.end_date)
     setScheduleMemo(schedule.memo ?? "")
@@ -182,6 +186,7 @@ export function RequestSubmissionModal({
             target_schedule_id: requestMode === "EDIT" ? targetScheduleId : null,
             title: title.trim(),
             schedule_type: scheduleType,
+            is_official: isOfficial,
             start_date: startDate,
             end_date: endDate,
             memo: scheduleMemo.trim() || null,
@@ -199,6 +204,7 @@ export function RequestSubmissionModal({
         setStartDate("")
         setEndDate("")
         setScheduleMemo("")
+        setIsOfficial(true)
         setRequestMode("ADD")
       }
       await loadRequests()
@@ -266,11 +272,24 @@ export function RequestSubmissionModal({
                         setStartDate("")
                         setEndDate("")
                         setScheduleMemo("")
+                        setIsOfficial(true)
                       }
                       setSubmitError(null)
                     }}>
                       <option value="ADD">일정 추가</option>
                       <option value="EDIT">기존 일정 수정 제안</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="schedule-official" className="text-sm font-medium text-content">일정 분류</label>
+                    <select
+                      id="schedule-official"
+                      className={selectClassName}
+                      value={isOfficial ? "official" : "unofficial"}
+                      onChange={(event) => setIsOfficial(event.target.value === "official")}
+                    >
+                      <option value="official">공식</option>
+                      <option value="unofficial">비공식 (테스트 서버·유출 등)</option>
                     </select>
                   </div>
                   {catalogLoading && <p role="status" className="text-sm text-content-secondary">게임 및 일정을 불러오는 중입니다.</p>}
@@ -387,6 +406,7 @@ export function RequestSubmissionModal({
                 </div>
                 <p className="text-sm text-content-secondary">
                   {gameNames.get(request.game_id) ?? "게임"} · {request.schedule_type} · {request.start_date} ~ {request.end_date}
+                  {request.is_official === false ? " · [비공식]" : ""}
                 </p>
                 {request.memo && <p className="text-sm text-content-muted">{request.memo}</p>}
                 {request.admin_memo && <p className="text-sm text-content-muted">관리자 메모: {request.admin_memo}</p>}

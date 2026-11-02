@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-02 (Phase 12.25 관리자/게임 모달 및 비공식 일정)
+
+- `/admin/requests`의 관리자 직접 게임 추가 중복 UI를 제거하고, 관리자 게임 등록/수정 및 게임 요청 승인에서 아이콘 파일·URL을 256×256 WebP Data URL로 변환해 저장하도록 했다. 이미 구독한 게임은 구독 추가 목록에서 제외하며, `GameIcon`에 외부 이미지 1회 재시도를 추가했다.
+- `game_schedules` 및 `schedule_requests`에 `is_official`, `users`에 `show_unofficial_schedules`를 추가하고, 관리자 분류·사용자 설정 토글·대시보드/게임 페이지 필터와 `[비공식]` 배지를 연결했다.
+- 관련 8개 Vitest 파일(57개 테스트), `tsc --noEmit`, lint 통과. 운영 Supabase 적용 및 원격 동작 확인은 후속 수동 작업이다.
+
 ## 2026-11-02 (Phase 12.24 구독 템플릿·다음 회차 동기화)
 
 - 구독 템플릿 비활성화 시 미결제 `PLANNED` 회차를 삭제하도록 스키마와 마이그레이션을 추가하고, 과거 `TEMPLATE_DEACTIVATION` 취소 행을 정리한다. 복구 RPC는 사용자가 직접 취소한 `PLANNED_CANCEL`만 복구한다.

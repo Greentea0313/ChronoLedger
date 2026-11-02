@@ -23,11 +23,13 @@ export function GameIcon({
 }: GameIconProps) {
   const [isLoaded, setIsLoaded] = useState(false)
   const [hasError, setHasError] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
   const imgRef = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
     setIsLoaded(false)
     setHasError(false)
+    setRetryCount(0)
   }, [src])
 
   useEffect(() => {
@@ -52,6 +54,7 @@ export function GameIcon({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={imgRef}
+        key={retryCount}
         src={src}
         alt={alt}
         className={cn(
@@ -63,9 +66,11 @@ export function GameIcon({
         decoding="async"
         referrerPolicy="no-referrer"
         onLoad={() => setIsLoaded(true)}
-        onError={() => setHasError(true)}
+        onError={() => {
+          if (retryCount === 0) setRetryCount(1)
+          else setHasError(true)
+        }}
       />
     </div>
   )
 }
-

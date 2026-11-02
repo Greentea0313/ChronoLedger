@@ -2,15 +2,17 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import AdminPage from "./page"
 
-const { from, useAuth, mockGetKstToday } = vi.hoisted(() => ({
+const { from, useAuth, mockGetKstToday, convertIconSourceToDataUrl } = vi.hoisted(() => ({
   from: vi.fn(),
   useAuth: vi.fn(),
   mockGetKstToday: vi.fn(() => "2026-09-01"),
+  convertIconSourceToDataUrl: vi.fn(),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
 vi.mock("@/lib/dashboard-date", () => ({ getKstToday: mockGetKstToday }))
+vi.mock("@/lib/image-resizer", () => ({ convertIconSourceToDataUrl }))
 
 function createQueryBuilder() {
   const query = {
@@ -69,6 +71,7 @@ describe("AdminPage - 일정 관리", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetKstToday.mockReturnValue("2026-09-01")
+    convertIconSourceToDataUrl.mockResolvedValue("data:image/webp;base64,converted")
     useAuth.mockReturnValue({
       user: { id: "admin-1", app_metadata: { role: "admin" } },
       role: "admin",
@@ -102,7 +105,7 @@ describe("AdminPage - 일정 관리", () => {
   it("등록된 일정 목록을 정상적으로 렌더링하고 게임별 필터링을 지원한다", async () => {
     render(<AdminPage />)
 
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
     expect(screen.getByText("5.0 버전 업데이트")).toBeTruthy()
     expect(screen.getByText("아케론 복각")).toBeTruthy()
     expect(screen.getByText(/나타 신규 지역/)).toBeTruthy()
@@ -115,16 +118,16 @@ describe("AdminPage - 일정 관리", () => {
     expect(screen.queryByText("아케론 복각")).toBeNull()
   })
 
-  it("end_date가 오늘(today)보다 이전(end_date < today)인 만료된 공식 일정은 목록 및 카운트에서 제외된다", async () => {
+  it("end_date가 오늘(today)보다 이전(end_date < today)인 만료된 일정은 목록 및 카운트에서 제외된다", async () => {
     mockGetKstToday.mockReturnValue("2026-10-01")
 
     render(<AdminPage />)
 
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
     expect(schedulesBuilder.gte).toHaveBeenCalledWith("end_date", "2026-10-01")
     expect(screen.getByText("5.0 버전 업데이트")).toBeTruthy()
     expect(screen.queryByText("아케론 복각")).toBeNull()
-    expect(screen.getByText("공식 일정 관리 (1)")).toBeTruthy()
+    expect(screen.getByText("일정 관리 (1)")).toBeTruthy()
     expect(screen.getByText("1개의 일정")).toBeTruthy()
   })
 
@@ -132,7 +135,7 @@ describe("AdminPage - 일정 관리", () => {
     schedulesBuilder.insert.mockResolvedValue({ error: null })
 
     render(<AdminPage />)
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
 
     // 새 일정 등록 버튼 클릭
     fireEvent.click(screen.getByRole("button", { name: "새 일정 등록" }))
@@ -160,6 +163,7 @@ describe("AdminPage - 일정 관리", () => {
       expect(schedulesBuilder.insert).toHaveBeenCalledWith({
         game_id: "game-1",
         schedule_type: "VERSION",
+        is_official: true,
         title: "5.1 신규 버전",
         start_date: "2026-10-09",
         end_date: "2026-11-19",
@@ -170,7 +174,7 @@ describe("AdminPage - 일정 관리", () => {
 
   it("일정 항목의 버튼이 [복사] [수정] [삭제] 순서로 배치된다", async () => {
     render(<AdminPage />)
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
 
     const copyBtn = screen.getByRole("button", { name: "일정 복사: 5.0 버전 업데이트" })
     const actionLabels = Array.from(copyBtn.parentElement!.querySelectorAll("button")).map((b) => b.textContent?.trim())
@@ -181,7 +185,7 @@ describe("AdminPage - 일정 관리", () => {
     schedulesBuilder.insert.mockResolvedValue({ error: null })
 
     render(<AdminPage />)
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
 
     fireEvent.click(screen.getByRole("button", { name: "일정 복사: 아케론 복각" }))
     expect(screen.getByRole("heading", { name: "일정 복사" })).toBeTruthy()
@@ -196,6 +200,7 @@ describe("AdminPage - 일정 관리", () => {
       expect(schedulesBuilder.insert).toHaveBeenCalledWith({
         game_id: "game-2",
         schedule_type: "PICKUP",
+        is_official: true,
         title: "블랙스완 복각",
         start_date: "2026-09-01",
         end_date: "2026-09-21",
@@ -210,7 +215,7 @@ describe("AdminPage - 일정 관리", () => {
     schedulesBuilder.eq.mockResolvedValue({ error: null })
 
     render(<AdminPage />)
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
 
     // 첫 번째 일정의 수정 버튼 클릭
     const editButtons = screen.getAllByRole("button", { name: /일정 수정:/ })
@@ -242,7 +247,7 @@ describe("AdminPage - 일정 관리", () => {
     schedulesBuilder.eq.mockResolvedValue({ error: null })
 
     render(<AdminPage />)
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
 
     // 두 번째 일정의 삭제 버튼 클릭
     const deleteButtons = screen.getAllByRole("button", { name: /일정 삭제:/ })
@@ -276,7 +281,7 @@ describe("AdminPage - 일정 관리", () => {
     schedulesBuilder.order.mockResolvedValue({ data: manySchedules, error: null })
 
     render(<AdminPage />)
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
 
     // 1페이지 항목은 표시되지만 11번째는 1페이지에 없음
     expect(screen.getByText("일정 테스트 #1")).toBeTruthy()
@@ -331,7 +336,7 @@ describe("AdminPage - 일정 관리", () => {
       expect(gamesBuilder.update).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "원신 (수정됨)",
-          default_icon_url: "https://example.com/genshin-new.webp",
+          default_icon_url: "data:image/webp;base64,converted",
         })
       )
       expect(gamesBuilder.eq).toHaveBeenCalledWith("id", "game-1")
@@ -390,7 +395,7 @@ describe("AdminPage - 일정 관리", () => {
       expect(gamesBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "명조: 워더링 웨이브",
-          default_icon_url: "https://example.com/wuthering.webp",
+          default_icon_url: "data:image/webp;base64,converted",
           status: "APPROVED",
         })
       )
@@ -424,7 +429,7 @@ describe("AdminPage - 일정 관리", () => {
     schedulesBuilder.order.mockResolvedValue({ data: mockPastSchedules, error: null })
 
     render(<AdminPage />)
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
 
     // 지난 일정 버튼 클릭
     const pastBtn = screen.getByRole("button", { name: "지난 일정 모아보기" })
@@ -471,7 +476,7 @@ describe("AdminPage - 일정 관리", () => {
     schedulesBuilder.eq.mockResolvedValue({ error: null })
 
     render(<AdminPage />)
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
 
     // 지난 일정 버튼 클릭
     fireEvent.click(screen.getByRole("button", { name: "지난 일정 모아보기" }))
@@ -520,7 +525,7 @@ describe("AdminPage - 일정 관리", () => {
     schedulesBuilder.eq.mockResolvedValue({ error: null })
 
     render(<AdminPage />)
-    expect(await screen.findByText("등록된 공식 일정")).toBeTruthy()
+    expect(await screen.findByText("등록된 일정")).toBeTruthy()
 
     // 지난 일정 버튼 클릭
     fireEvent.click(screen.getByRole("button", { name: "지난 일정 모아보기" }))

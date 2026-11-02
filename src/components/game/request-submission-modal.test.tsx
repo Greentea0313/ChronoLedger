@@ -18,6 +18,7 @@ const schedules = [{
   start_date: "2026-01-10",
   end_date: "2026-01-20",
   memo: "Existing memo",
+  is_official: true,
 }]
 
 function createQuery(table: string) {
@@ -104,6 +105,7 @@ describe("RequestSubmissionModal", () => {
     await change("#schedule-game", "game-1")
     await change("#schedule-title", "Version 2.0")
     await change("#schedule-type", "PICKUP")
+    await change("#schedule-official", "unofficial")
     await change("#schedule-start-date", "2026-02-01")
     await change("#schedule-end-date", "2026-02-03")
     await submit()
@@ -114,6 +116,7 @@ describe("RequestSubmissionModal", () => {
       target_schedule_id: null,
       title: "Version 2.0",
       schedule_type: "PICKUP",
+      is_official: false,
       start_date: "2026-02-01",
       end_date: "2026-02-03",
       memo: null,
@@ -136,6 +139,7 @@ describe("RequestSubmissionModal", () => {
       target_schedule_id: "schedule-1",
       title: "Version 1.1",
       schedule_type: "VERSION",
+      is_official: true,
       start_date: "2026-01-10",
       end_date: "2026-01-20",
       memo: "Existing memo",

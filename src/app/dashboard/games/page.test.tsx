@@ -4,11 +4,12 @@ import { Simulate } from "react-dom/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import GamesPage from "./page"
 
-const { from, useAuth, downloadUserIcon, deleteUserIcon } = vi.hoisted(() => ({
+const { from, useAuth, downloadUserIcon, deleteUserIcon, loadSchedulePreference } = vi.hoisted(() => ({
   from: vi.fn(),
   useAuth: vi.fn(),
   downloadUserIcon: vi.fn(),
   deleteUserIcon: vi.fn(),
+  loadSchedulePreference: vi.fn(),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
@@ -18,6 +19,7 @@ vi.mock("@/lib/storage-upload", () => ({
   deleteUserIcon,
   uploadUserIcon: vi.fn(),
 }))
+vi.mock("@/lib/schedule-preferences", () => ({ loadSchedulePreference }))
 
 const mockUserGames = [
   {
@@ -87,6 +89,7 @@ describe("GamesPage", () => {
     useAuth.mockReturnValue({ user: { id: "test-user-id" } })
     downloadUserIcon.mockResolvedValue(null)
     deleteUserIcon.mockResolvedValue(undefined)
+    loadSchedulePreference.mockResolvedValue({ showUnofficialSchedules: false, isAvailable: true })
     from.mockImplementation((table: string) => createQuery(table))
     vi.spyOn(window, "confirm").mockReturnValue(true)
   })
@@ -162,7 +165,7 @@ describe("GamesPage", () => {
     expect(deleteQuery.delete).toHaveBeenCalled()
   })
 
-  it("opens official schedule sheet when clicking schedule button", async () => {
+  it("opens the schedule sheet when clicking schedule button", async () => {
     await act(async () => root.render(<GamesPage />))
     const scheduleBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("일정 보기")
@@ -175,7 +178,45 @@ describe("GamesPage", () => {
       await Promise.resolve()
     })
 
-    expect(document.body.textContent).toContain("공식 일정")
+    expect(document.body.textContent).toContain("붕괴: 스타레일 일정")
+  })
+
+  it("includes unofficial schedules and labels them when the user preference is enabled", async () => {
+    loadSchedulePreference.mockResolvedValueOnce({ showUnofficialSchedules: true, isAvailable: true })
+    from.mockImplementation((table: string) => {
+      const q = createQuery(table)
+      if (table === "game_schedules") {
+        q.then = vi.fn((resolve: (val: unknown) => unknown) =>
+          Promise.resolve({
+            data: [
+              { ...mockSchedules[0], is_official: true },
+              { ...mockSchedules[0], id: "sch-unofficial", title: "테스트 서버 일정", is_official: false },
+            ],
+            error: null,
+          }).then(resolve)
+        )
+      }
+      return q
+    })
+
+    await act(async () => {
+      root.render(<GamesPage />)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    const scheduleBtn = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("일정 보기")
+    )
+    expect(scheduleBtn).toBeDefined()
+
+    await act(async () => {
+      Simulate.click(scheduleBtn!)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(document.body.textContent).toContain("테스트 서버 일정")
+    expect(document.body.textContent).toContain("[비공식]")
   })
 
   it("renders schedule title and memo with slash separated into block elements for line breaks", async () => {
@@ -396,4 +437,3 @@ describe("GamesPage", () => {
     })
   })
 })
-

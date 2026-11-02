@@ -18,10 +18,11 @@ describe("GameIcon", () => {
     expect(img.className).toContain("opacity-100")
   })
 
-  it("이미지 로드 실패 시 fallback으로 전환된다", () => {
+  it("이미지 로드 실패 후 한 번 재시도하고 다시 실패하면 fallback으로 전환된다", () => {
     const { container } = render(<GameIcon src="/invalid-image.png" alt="오류 이미지" />)
-    const img = screen.getByAltText("오류 이미지")
-    fireEvent.error(img)
+    fireEvent.error(screen.getByAltText("오류 이미지"))
+    expect(screen.getByAltText("오류 이미지")).toBeTruthy()
+    fireEvent.error(screen.getByAltText("오류 이미지"))
 
     expect(screen.queryByAltText("오류 이미지")).toBeNull()
     expect(container.querySelector("svg")).toBeTruthy()
@@ -34,9 +35,8 @@ describe("GameIcon", () => {
         fallbackIcon={<span data-testid="custom-fallback">대체 아이콘</span>}
       />,
     )
-    const img = container.querySelector("img")
-    expect(img).not.toBeNull()
-    fireEvent.error(img!)
+    fireEvent.error(container.querySelector("img")!)
+    fireEvent.error(container.querySelector("img")!)
 
     expect(screen.getByTestId("custom-fallback")).toBeTruthy()
   })

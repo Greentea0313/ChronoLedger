@@ -79,14 +79,14 @@ isOneToOne: false
                   ]
                 },"game_schedules": {
                   Row: {
-                    "created_at": string | null,"end_date": string,"game_id": string,"id": string,"memo": string | null,"schedule_type": string,"start_date": string,"title": string,"updated_at": string | null
+                    "created_at": string | null,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"memo": string | null,"schedule_type": string,"start_date": string,"title": string,"updated_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"memo"?: string | null,"schedule_type": string,"start_date": string,"title": string,"updated_at"?: string | null
+                    "created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"schedule_type": string,"start_date": string,"title": string,"updated_at"?: string | null
                   }
                   Update: {
-                    "created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"memo"?: string | null,"schedule_type"?: string,"start_date"?: string,"title"?: string,"updated_at"?: string | null
+                    "created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"schedule_type"?: string,"start_date"?: string,"title"?: string,"updated_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -141,14 +141,14 @@ isOneToOne: false
                   ]
                 },"schedule_requests": {
                   Row: {
-                    "admin_memo": string | null,"created_at": string | null,"end_date": string,"game_id": string,"id": string,"memo": string | null,"request_status": string,"schedule_type": string,"start_date": string,"target_schedule_id": string | null,"title": string,"user_id": string
+                    "admin_memo": string | null,"created_at": string | null,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"memo": string | null,"request_status": string,"schedule_type": string,"start_date": string,"target_schedule_id": string | null,"title": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"memo"?: string | null,"request_status"?: string,"schedule_type": string,"start_date": string,"target_schedule_id"?: string | null,"title": string,"user_id": string
+                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"request_status"?: string,"schedule_type": string,"start_date": string,"target_schedule_id"?: string | null,"title": string,"user_id": string
                   }
                   Update: {
-                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"memo"?: string | null,"request_status"?: string,"schedule_type"?: string,"start_date"?: string,"target_schedule_id"?: string | null,"title"?: string,"user_id"?: string
+                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"request_status"?: string,"schedule_type"?: string,"start_date"?: string,"target_schedule_id"?: string | null,"title"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -255,14 +255,14 @@ isOneToOne: false
                   ]
                 },"users": {
                   Row: {
-                    "created_at": string,"id": string,"nickname": string | null,"role": string
+                    "created_at": string,"id": string,"nickname": string | null,"role": string,"show_unofficial_schedules": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id": string,"nickname"?: string | null,"role"?: string
+                    "created_at"?: string,"id": string,"nickname"?: string | null,"role"?: string,"show_unofficial_schedules"?: boolean
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"nickname"?: string | null,"role"?: string
+                    "created_at"?: string,"id"?: string,"nickname"?: string | null,"role"?: string,"show_unofficial_schedules"?: boolean
                   }
                   Relationships: [
                     

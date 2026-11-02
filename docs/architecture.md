@@ -42,6 +42,7 @@ Supabase
 - `src/components/calendar/hero-sidebar.tsx`, `mobile-drawer.tsx`: 선택일 상세, 예산 진행률, 포인트 요약을 데스크톱/모바일 각각의 레이아웃으로 표시한다.
 - `src/components/expense/`: 예정 지출 입력, 결제/환불 RPC 호출, 예산 요약 및 만료 예정 지출 흐름.
 - `src/components/game/`: 공용 카탈로그 선택 및 게임 요청, 일정 추가·수정 제안 제출, 개인 아이콘 업로드/표시.
+- `src/lib/schedule-preferences.ts`: `users.show_unofficial_schedules` 설정 조회·저장 및 마이그레이션 미적용 상태 처리. 공식 여부는 `game_schedules.is_official`/`schedule_requests.is_official`로 관리하며, 사용자 설정에 따라 일정 화면에서 비공식 일정을 필터링한다.
 - `src/app/admin/requests/`: 관리자 전용 게임/일정 요청 조회 및 승인·반려 화면. DB 변경은 승인된 RPC 경로를 사용한다.
 - `src/lib/`: 단일 Supabase client(브라우저 PKCE/Tauri implicit 런타임 설정 및 callback URL 자동 감지 비활성화), 인증 상태, KST 날짜 범위·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
 - `src/lib/calendar-utils.ts`: 캘린더 그리드와 말일 보정 날짜 계산. `src/lib/subscription-sync.ts`: 월간 구독 Lazy Generation과 중복 충돌 무시 upsert 경계.

@@ -27,6 +27,7 @@ import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
 import { DashboardSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
 import { downloadUserIcon } from "@/lib/storage-upload"
+import { loadSchedulePreference } from "@/lib/schedule-preferences"
 
 const EXPENSE_COLUMNS = "id, title, final_amount, status, target_date, start_date, end_date, game_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, deduct_from_asset, point_platform, template_id"
 
@@ -37,6 +38,7 @@ interface ScheduleRow {
   start_date: string
   end_date: string
   game_id: string
+  is_official?: boolean
   memo?: string | null
 }
 
@@ -90,6 +92,7 @@ export default function DashboardPage() {
   const [budgetAmount, setBudgetAmount] = useState(0)
   const [wallets, setWallets] = useState<HeroWalletItem[]>([])
   const [schedules, setSchedules] = useState<ScheduleRow[]>([])
+  const [schedulePreferenceNotice, setSchedulePreferenceNotice] = useState<string | null>(null)
   const [memos, setMemos] = useState<MemoRow[]>([])
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [userGames, setUserGames] = useState<UserGameRow[]>([])
@@ -257,17 +260,19 @@ export default function DashboardPage() {
         userGameResult,
         overdueResult,
         allGamesResult,
+        schedulePreference,
       ] = await Promise.all([
         supabase.from("user_finances").select("total_asset, default_budget").eq("user_id", user.id).maybeSingle(),
         supabase.from("monthly_budgets").select("budget_amount").eq("user_id", user.id).eq("year", year).eq("month", month).maybeSingle(),
         supabase.from("store_wallets").select("platform, current_balance").eq("user_id", user.id),
-        supabase.from("game_schedules").select("id, title, schedule_type, start_date, end_date, game_id, memo").lt("start_date", endDateExclusive).gte("end_date", startDate),
+        supabase.from("game_schedules").select("*").lt("start_date", endDateExclusive).gte("end_date", startDate),
         supabase.from("personal_memos").select("id, memo_date, content").eq("user_id", user.id).gte("memo_date", startDate).lt("memo_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).gte("target_date", startDate).lt("target_date", endDateExclusive),
         supabase.from("expenses").select(EXPENSE_COLUMNS).eq("user_id", user.id).eq("status", "PLANNED").gte("end_date", startDate).lt("end_date", endDateExclusive),
         supabase.from("user_games").select("game_id, games(name, default_icon_url)").eq("user_id", user.id),
         supabase.from("expenses").select("id, title, final_amount, status, target_date, end_date, original_price, template_id, memo").eq("user_id", user.id).eq("status", "PLANNED"),
         supabase.from("games").select("id, name, default_icon_url"),
+        loadSchedulePreference(user.id),
       ])
 
       if (financeResult.error) console.error("financeResult", financeResult.error)
@@ -288,7 +293,12 @@ export default function DashboardPage() {
       const monthlyBudget = budgetResult.data?.budget_amount ?? 0
       setBudgetAmount(monthlyBudget > 0 ? monthlyBudget : (financeResult.data?.default_budget ?? 0))
       setWallets((walletResult.data ?? []) as HeroWalletItem[])
-      setSchedules((scheduleResult.data ?? []) as ScheduleRow[])
+      setSchedulePreferenceNotice(schedulePreference.isAvailable
+        ? null
+        : "비공식 일정 설정 마이그레이션이 적용되지 않아 공식 일정만 표시합니다.")
+      setSchedules(((scheduleResult.data ?? []) as ScheduleRow[])
+        .map((schedule) => ({ ...schedule, is_official: schedule.is_official ?? true }))
+        .filter((schedule) => schedulePreference.showUnofficialSchedules || schedule.is_official !== false))
       setMemos((memoResult.data ?? []) as MemoRow[])
       const mergedExpenses = new Map<string, ExpenseRow>()
       for (const row of [...(expenseResult.data ?? []), ...(endDateResult.data ?? [])] as ExpenseRow[]) {
@@ -454,6 +464,7 @@ export default function DashboardPage() {
           id: s.id,
           title: s.title,
           schedule_type: s.schedule_type,
+          is_official: s.is_official ?? true,
           start_date: s.start_date,
           end_date: s.end_date,
           gameId: s.game_id,
@@ -590,6 +601,7 @@ export default function DashboardPage() {
         schedules: daySchedules.map((schedule) => ({
           id: schedule.id,
           schedule_type: schedule.schedule_type,
+          is_official: schedule.is_official ?? true,
           is_start_date: schedule.start_date === cell.date,
           game_id: schedule.game_id,
         })),
@@ -609,6 +621,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4 animate-fade-in">
       {error && <p role="alert" className="text-danger">{error}</p>}
+      {schedulePreferenceNotice && <p role="status" className="text-xs text-content-secondary">{schedulePreferenceNotice}</p>}
       {overdueExpenses.length > 0 && (
         <div className="flex items-center justify-end">
           <span className="text-sm text-warning">{`기한 지난 예정 ${overdueExpenses.length}건을 정리해야 합니다.`}</span>
