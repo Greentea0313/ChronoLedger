@@ -1,6 +1,6 @@
 # 변경 이력
 
-## 2026-11-02 (Phase 12.25 관리자/게임 모달 및 비공식 일정)
+## 2026-11-02 (Phase 12.25 관리자/게임 모달 및 비공식 일정, `3c20e70`)
 
 - `/admin/requests`의 관리자 직접 게임 추가 중복 UI를 제거하고, 관리자 게임 등록/수정 및 게임 요청 승인에서 아이콘 파일·URL을 256×256 WebP Data URL로 변환해 저장하도록 했다. 이미 구독한 게임은 구독 추가 목록에서 제외하며, `GameIcon`에 외부 이미지 1회 재시도를 추가했다.
 - `game_schedules` 및 `schedule_requests`에 `is_official`, `users`에 `show_unofficial_schedules`를 추가하고, 관리자 분류·사용자 설정 토글·대시보드/게임 페이지 필터와 `[비공식]` 배지를 연결했다.

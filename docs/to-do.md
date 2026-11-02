@@ -603,7 +603,7 @@
 - [x] R12. AI 전용 지침 문서(CLAUDE.md, AGENTS.md, .agents/**, .github/**) 영문화 및 한국어 원본(*-ko.md) docs/archive/agent-rules-ko/ 분리 보관 (`완료` - 커밋 `de71051`, Gemini 3.8 Flash 완료)
 - [x] R14. 지출 모달(`expense-modal.tsx`) 수정·결제 시 기존 사용자 메모(`editingExpense.memo`)가 이벤트 태그로 덮어써지는 기존 결함 보정 (`mergeEventMemo(null, ...)` → 기존 메모 보존, 단위 테스트 추가) 및 잔여 주석 정리 (`완료` - 커밋 `d5522dc`, Claude Sonnet, Gemini 4 Argon 통합 리뷰 완료)
 - [x] R15. 구독 템플릿 동기화 및 중지 시 PLANNED 삭제 개편 (`Phase 12.24`, GPT Codex, 커밋 `1bb175b`)
-- [x] R16. 관리자/게임 모달 정비, 아이콘 자체 WebP Data URL 저장, 비공식 일정 분류 및 설정 토글 (`Phase 12.25`, GitHub Copilot 담당)
+- [x] R16. 관리자/게임 모달 정비, 아이콘 자체 WebP Data URL 저장, 비공식 일정 분류 및 설정 토글 (`Phase 12.25`, GitHub Copilot, 커밋 `3c20e70`)
 - [ ] R17. 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (`Phase 12.26`, Claude Sonnet 담당)
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
