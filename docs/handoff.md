@@ -52,51 +52,34 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `ux-stats-subscription-and-unofficial-schedules` *(2026-11-02, 구독 템플릿 동기화·중지 로직 개편(12.24), 비공식 일정 토글·관리자 아이콘 자체 저장·게임 모달 정비(12.25), 소비 차트·월별 통계·구독 총액·예산 경고 배지(12.26))*
-- **Worktree 경로**: `main`
-- **배경 및 사용자 확정 요구사항**:
-  1. **Phase 12.24 (GPT Codex — 구독 템플릿 동기화 및 중지 시 PLANNED 삭제 개편)**:
-     - **[구독 중지 시 PLANNED 완전 삭제]**: 구독 중지(`is_active: true → false`) 시 기존에는 `status = 'CANCELLED' (TEMPLATE_DEACTIVATION)`로 남겨두어 템플릿 수정 후 재개 시 변경 사항이 반영되지 않거나 유니크 인덱스(`(template_id, billing_cycle)`) 충돌로 재생성이 막히는 문제가 있었음. 이를 **구독 중지 시 해당 템플릿의 미결제 `PLANNED` 지출을 완전히 물리 삭제(`DELETE`)**하고, 구독 재개(`is_active: true`) 시 수정된 템플릿 정보로 새 `PLANNED` 회차가 깨끗하게 재생성되도록 변경 (기존 `TEMPLATE_DEACTIVATION` 취소 행도 마이그레이션에서 정리).
-     - **[매월 지정일형(`MONTHLY_DAY`) 미래 월(1월 등) 과다 생성 해결]**: 사용자가 대시보드 달력을 미래 월(12월, 1월 등)로 넘겨볼 때 `ensureMonthlySubscriptionExpenses(user.id, year, month)`가 미래 `viewMonth`로 호출되어 1월까지 `PLANNED` 지출이 미리 생성되던 문제를 해결. `MONTHLY_DAY` 템플릿은 **언제나 바로 다음 결제 예정 회차 1건만 `PLANNED`로 존재**하도록 보장(이미 `PLANNED` 회차가 있으면 미래 월 탐색 시 추가 생성 금지, 기존에 중복 생성된 미래 월 `PLANNED` 회차는 가장 이른 다음 회차 1건만 남기고 정리). 또한 당월 회차가 결제 확정(`PAY`)되거나 이미 `CONFIRMED`/`CANCELLED`인 경우 다음 달 회차 1건을 생성.
-     - **[버전 패스형(`VERSION_PASS`) 과거 버전 생성 차단]**: `game_schedules`에서 `VERSION` 일정을 조회할 때 `.gte("end_date", today)` 조건을 추가하여 이미 종료된 과거 버전 일정에 대해 `PLANNED` 지출이 생성되지 않도록 수정.
-  2. **Phase 12.25 (GitHub Copilot — 관리자/게임 모달 정비, 아이콘 자체 WebP Data URL 저장, 비공식 일정 분류 및 설정 토글)**:
-     - **[/admin/requests 직접 게임 추가 삭제]**: `src/app/admin/requests/page.tsx`에서 중복 기능인 `[관리자 직접 게임 추가]` 카드 및 관련 상태/핸들러 제거.
-     - **[내 게임 등록 모달 구독 중 게임 제외]**: `src/components/game/game-select-modal.tsx`에서 현재 사용자가 이미 구독 중(`user_games`)인 게임을 제외한 미구독 게임만 목록에 표시.
-     - **[게임 기본 아이콘 자체 WebP Data URL 변환·저장 지원]**: 관리자가 게임 등록/수정(`src/app/admin/page.tsx`) 또는 게임 요청 승인(`src/app/admin/requests/page.tsx`) 시 이미지 파일 업로드 또는 외부 이미지 URL 입력 시 클라이언트에서 `resizeImageToWebP`(256×256 WebP)를 거쳐 자체 `data:image/webp;base64,...` Data URL로 변환해 `games.default_icon_url`에 저장하도록 지원(모바일 핫링크 차단/만료 원천 해결). `GameIcon` 컴포넌트에도 외부 URL 로드 실패 시 1회 재시도 안전망 추가.
-     - **[비공식 일정(테섭 등) 관리자 분류 및 설정 페이지 토글]**: `game_schedules` 및 `schedule_requests`에 `is_official BOOLEAN NOT NULL DEFAULT true`, `public.users`에 `show_unofficial_schedules BOOLEAN NOT NULL DEFAULT false` 추가(`sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql`, `sql/SCHEMA.sql`, `src/types/database.types.ts`). 관리자 일정 추가/수정 및 일정 요청 모달에서 공식/비공식 여부 분류 지원, 계정 설정 페이지(`src/app/dashboard/settings/page.tsx`)에서 **`비공식 일정(테스트 서버·유출 등) 표시` 토글 버튼** 제공, 대시보드(`/dashboard`) 및 게임 페이지(`/dashboard/games` 일정 보기)에서 해당 설정에 따라 비공식 일정 필터링 및 `[비공식]` 배지 표시.
-  3. **Phase 12.26 (Claude Sonnet — 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지)**:
-     - **[게임별 과금 분석 Y축 아이콘화]**: `src/app/dashboard/expenses/page.tsx`의 가로 막대 차트 좌측 Y축 게임 이름 텍스트를 **게임 아이콘(24×24px)**으로 대체하고, 우측(모바일 하단) `게임 과금 순위` 목록에만 `name` 텍스트 유지.
-     - **[그래프 외곽 하이라이트선 및 모바일 상세 팝업(Tooltip) 화면 이탈 해결]**: Recharts SVG 포커스 테두리(`outline: none`, `accessibilityLayer={false}`) 제거 및 모바일 터치 시 `<Tooltip>`이 카드 우측 화면 밖으로 벗어나지 않도록 위치·최대 너비·줄바꿈 교정.
-     - **[카테고리별 지출 비중 & 게임별 과금 분석 월별 자동 갱신 + 이전 달 드롭다운]**: 두 통계 카드 모두 기본값을 **현재 KST 연·월(`YYYY-MM`)**로 설정하여 매달 자동 갱신되도록 하고, 각 카드 우측 상단에 **월 선택 드롭다운**(이번 달, 이전 기록이 있는 과거 연·월, 전체 기간)을 추가해 이전 기록 조회 지원.
-     - **[활성 정기 구독 템플릿 총액 표시]**: `/dashboard/expenses` 정기 구독 탭 상단에 현재 활성(`is_active === true`) 구독 템플릿들의 총액(전체 합산 및 주기별 소계) 요약 표시.
-     - **[홈 대시보드 예산 근접/초과 배지]**: `src/components/calendar/hero-sidebar.tsx` 요약 카드의 `예상 지출: n원` 행 우측에 `budgetAmount > 0` 기준 **80% 이상 시 주황색 `[주의: 예산 근접]`**, **100% 초과 시 빨간색 `[위험: 예산 초과]`** 배지 배치.
-
+- **Run ID**: `users-role-guard-and-subscription-dedupe` *(2026-11-02, Phase 12.24~12.26 통합 리뷰 후속: P1 `public.users.role` 자기 승격 차단(R15), P2 MONTHLY_DAY 중복 PLANNED 정리(R16), P3 README·UI 보강(R18·R19))*
+- **Worktree 경로**: `main` (루트 작업 트리에 범위 밖 미커밋 지침 문서가 있어 `New-CollaborationRun.ps1` 미사용. 각 Maker는 자기 허용 파일만 스테이징·커밋)
+- **배경**: `docs/handoff.md` 「Phase 12.24 ~ 12.26 통합 정적 코드 리뷰」 발견 사항. 로컬 PostgreSQL 17 재현 절차는 `docs/known-pitfalls.md` #28.
+- **보류 (사용자 결정 필요)**: R17 비공식 일정을 `VERSION_PASS` 회차 생성·지출 모달 버전 연결에서 제외할지 여부. 결정 전까지 이번 Run 범위에서 제외.
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Phase 12.24 (GPT Codex)**:
-     - `sql/migrations/MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql`: 구독 중지 시 해당 템플릿의 `PLANNED` 행을 물리 삭제하고, 기존 `TEMPLATE_DEACTIVATION` 취소 행 정리, `SCHEMA.sql` 및 `TESTS.sql` 동기화, `docs/spec/SRS.md` 명세 갱신.
-     - `src/lib/subscription-sync.ts`: `MONTHLY_DAY` 템플릿은 항상 바로 다음 1건만 `PLANNED`로 생성 보장 및 미래 월 과다 생성 차단(이미 예정 회차가 있으면 미래 월 추가 생성 방지), `VERSION_PASS`는 `.gte("end_date", today)`로 종료된 버전 일정 제외, `src/lib/subscription-sync.test.ts` 단위 테스트 통과.
-     - `src/components/expense/expense-modal.tsx`: 구독 템플릿 연결 예정 지출 관련 정합성 확인.
-  2. **Phase 12.25 (GitHub Copilot)**:
-     - `src/app/admin/requests/page.tsx`: 중복 `[관리자 직접 게임 추가]` 카드 및 핸들러 삭제.
-     - `src/components/game/game-select-modal.tsx`: 사용자가 이미 구독 중인 게임 제외 필터링.
-     - `src/app/admin/page.tsx` & `src/app/admin/requests/page.tsx`: 게임 아이콘 업로드/URL 입력 시 256×256 WebP Data URL로 변환하여 `default_icon_url` 저장, `GameIcon` 컴포넌트 1회 로드 재시도 안전망 추가.
-     - `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql`: `game_schedules.is_official` (기본값 true), `schedule_requests.is_official` (기본값 true), `public.users.show_unofficial_schedules` (기본값 false) 컬럼 추가, `SCHEMA.sql` 및 `src/types/database.types.ts` 반영.
-     - 관리자 일정 등록/수정 모달 및 일정 요청 모달에 공식/비공식 분류 추가, `/dashboard/settings`에 비공식 일정 표시 토글 제공, `/dashboard` 및 `/dashboard/games`에서 토글 설정에 따른 필터링 및 `[비공식]` 배지 표시.
-  3. **Phase 12.26 (Claude Sonnet)**:
-     - `src/app/dashboard/expenses/page.tsx`: `게임별 과금 분석` 가로 막대 차트 좌측 Y축을 게임 24×24px 아이콘으로 렌더링, Recharts 외곽선 포커스 테두리 제거, 모바일 `Tooltip` 위치/너비 교정.
-     - `카테고리별 지출 비중` 및 `게임별 과금 분석` 통계의 당월(`YYYY-MM`) 자동 갱신 및 우측 상단 월 선택 드롭다운(이번 달/과거 연월/전체 기간) 구현.
-     - 정기 구독 탭 상단에 현재 활성 구독(`is_active === true`) 템플릿 총액 요약 표시.
-     - `src/components/calendar/hero-sidebar.tsx`: `예상 지출` 우측에 예산 80% 이상 시 `[주의: 예산 근접]`, 100% 초과 시 `[위험: 예산 초과]` 배지 표시.
-     - 관련 단위 테스트(`expenses/page.test.tsx`, `hero-sidebar.test.tsx`) 갱신 및 통과.
-  4. **통합 코드 리뷰 및 검증 (Claude Opus / Gemini 4 Argon)**:
-     - `Phase 12.24 ~ 12.26` 통합 정적 코드 리뷰, 전체 빌드/테스트(tsc, lint, vitest, markdownlint) 100% 통과 확인 및 마감.
+  1. **Phase 12.27 / R15 (Claude Opus)**: `public.users.role` 자기 승격 차단
+     - `sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`(재실행 안전) 신규: 인증 사용자가 본인 행을 수정할 때 `role` 변경을 거부(`BEFORE UPDATE` 트리거 또는 `REVOKE UPDATE` + `GRANT UPDATE (nickname, show_unofficial_schedules)` 중 택1, 선택 근거 기록). `nickname`·`show_unofficial_schedules` 본인 수정과 관리자 경로(서비스 역할/`SECURITY DEFINER` 함수)는 계속 동작.
+     - `sql/SCHEMA.sql` 동일 반영, `sql/README.md` B표에 확인 쿼리 추가.
+     - `sql/tests/TESTS.sql`: 일반 사용자 `UPDATE public.users SET role = 'admin'` 거부(0행 또는 `insufficient_privilege`) 및 이후 관리자 RPC 권한 오류 단언, 닉네임·일정 설정 본인 수정 성공 단언 추가.
+     - 로컬 PG(SCHEMA + 전체 migrations, 신규 설치 둘 다)에서 `TESTS.sql` 끝까지 PASS, 운영 적용 절차를 `docs/handoff.md`에 기록.
+  2. **Phase 12.28 / R16 (GPT Codex)**: MONTHLY_DAY 중복 PLANNED 정리
+     - `sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(재실행 안전) 신규: `MONTHLY_DAY` 템플릿별로 `target_date`가 가장 이른 `PLANNED` 1건만 남기고 나머지 `PLANNED` 삭제(`CONFIRMED`/`CANCELLED` 불변).
+     - 런타임 중복 정리가 필요하면 본인 소유 검증을 포함한 `SECURITY DEFINER` RPC(`REVOKE ... FROM PUBLIC, anon` / `GRANT ... TO authenticated`)로 이전하고, `src/lib/subscription-sync.ts`의 클라이언트 `.from("expenses").delete()` 호출 제거. `expenses` DELETE RLS는 열지 않음(FR-030).
+     - `SCHEMA.sql`·`sql/README.md` 반영, `subscription-sync.test.ts` 갱신, `TESTS.sql`에 중복 정리 단언 추가 및 로컬 PG PASS.
+  3. **Phase 12.29 / R18·R19 (Claude Sonnet)**: 문서·UI 보강
+     - `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리와 "기존 `TEMPLATE_DEACTIVATION` 취소 행·비활성 템플릿 PLANNED 행을 물리 삭제" 주의 문구 추가.
+     - `src/components/game/game-select-modal.tsx`: `fetchGames`/effect 의존성을 `user?.id`로 바꿔 세션 갱신 시 입력 초기화 방지.
+     - `src/app/dashboard/page.tsx`: `loadSchedulePreference` 실패 시 대시보드 전체 실패 대신 공식 일정만 표시로 폴백하고 안내 문구 표시.
+     - 관련 단위 테스트 추가·갱신, tsc·eslint·vitest 통과.
+  4. **통합 코드 리뷰 및 검증 (Gemini 4 Argon)**: Phase 12.27 ~ 12.29 정적 리뷰, tsc·eslint·vitest·markdownlint, 로컬 PG `TESTS.sql` 결과 확인 및 문서 마감. Step 1을 Claude Opus가 구현하므로 리뷰 독립성을 위해 Argon 우선.
+- **운영 반영 (사용자 수동)**: Step 1 완료 직후 Supabase SQL Editor에서 `MIGRATION_USERS_ROLE_GUARD.sql` 우선 적용, 이어서 Step 2 마이그레이션 적용. 적용 전 운영 DB에서 `SELECT id, role FROM public.users WHERE role = 'admin';`로 의도하지 않은 관리자 행이 없는지 확인.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE (SHA: 1bb175b1742b512217b0c0e18f0e3384b228b833)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.24`: 구독 중지 시 `PLANNED` 완전 삭제 마이그레이션과 SRS/스모크 테스트 정합화, `MONTHLY_DAY` 다음 회차 1건 유지·중복 정리 및 `VERSION_PASS` 종료 일정 제외 | `Vitest 20개, tsc 통과; SQL 스모크 테스트 미실행` |
-| **2** | `✅ DONE (SHA: 3c20e701da0c55f1113d37e66388f0f94c57c690)` | **GitHub Copilot** *(Gemini 3.8 Flash 1순위 대체 / GPT Codex 2순위)* | `Maker (General & Admin/Settings)` | `Phase 12.25`: `/admin/requests` 직접 게임 추가 삭제, `GameSelectModal` 구독 중 게임 제외, 관리자 게임 아이콘 WebP Data URL 저장 및 `GameIcon` 재시도 보강, 비공식 일정(`is_official`) DB 마이그레이션 및 관리자 분류·`/dashboard/settings` 토글·일정 필터 연동 (`sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql`, `src/types/database.types.ts`, `src/lib/schedule-preferences.ts`, `src/app/admin/**`, `src/components/game/**`, `src/components/ui/game-icon.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/settings/page.tsx`, `src/app/dashboard/page.tsx`) | `Vitest 8개 파일 57개 통과, tsc/lint 통과; 운영 DB 마이그레이션 적용 대기` |
-| **3** | `✅ DONE (SHA: 6364132fb120fdccf3711f8e80b3869fe547ba77)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Charts/Stats)` | `Phase 12.26`: `게임별 과금 분석` 좌측 Y축 게임 아이콘 대체, Recharts 외곽 포커스 테두리 제거 및 모바일 `Tooltip` 화면 이탈 교정, `카테고리별 지출 비중`·`게임별 과금 분석` 당월 기준 자동 갱신 및 우측 상단 월별 드롭다운 추가, 정기 구독 탭 활성 구독 총액 요약 표시, 홈 대시보드 요약 카드 `[예상 지출: n원]` 우측 `[주의: 예산 근접]`(80%+) / `[위험: 예산 초과]`(100% 초과) 배지 배치 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/app/globals.css`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`) | `Vitest 42개 파일 281개 통과, tsc/eslint 통과; 모바일 Tooltip 위치·포커스 외곽선은 실기기 확인 필요` |
-| **4** | `✅ DONE (리뷰 기준: ec61251, 조건부)` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | `Phase 12.24 ~ 12.26` 통합 정적 코드 리뷰, 전체 빌드/테스트 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (Claude Opus 통합 리뷰: **P1 1건**(기존 결함, `public.users.role` 자기 승격), **P2 1건**(MONTHLY_DAY 중복 PLANNED 정리가 RLS로 무동작), P3 4건·P4 2건. tsc·eslint·vitest 42파일 281·markdownlint·로컬 PG `TESTS.sql` 통과. 후속 Run 등록 필요) |
+| **1** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Security & SQL/RLS)` | `Phase 12.27 (R15)` `public.users.role` 자기 승격 차단 마이그레이션 + 스모크 테스트 (`sql/migrations/MIGRATION_USERS_ROLE_GUARD.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
+| **2** | `⏳ WAITING` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Core & SQL/Test)` | `Phase 12.28 (R16)` MONTHLY_DAY 중복 PLANNED 정리 마이그레이션/RPC 전환, 클라이언트 DELETE 제거 (`sql/migrations/MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/types/database.types.ts`) | `⏳ 대기 중 (Step 1 완료 후 착수)` |
+| **3** | `⏳ WAITING` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Docs)` | `Phase 12.29 (R18·R19)` README 파괴적 마이그레이션 안내, 게임 등록 모달 의존성, 대시보드 일정 설정 폴백 (`sql/README.md`, `src/components/game/game-select-modal.tsx`, `src/components/game/game-select-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`) | `⏳ 대기 중 (Step 2 완료 후 착수)` |
+| **4** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.27 ~ 12.29 통합 정적 코드 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `⏳ 대기 중 (Step 3 완료 후 착수)` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 

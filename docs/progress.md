@@ -5,7 +5,7 @@
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)
 - **결과**: 조건부 통과. 12.26 PASS. 기존 P1 보안 결함(`public.users.role` 자기 승격)과 P2(MONTHLY_DAY 중복 PLANNED 정리 무동작)를 로컬 PostgreSQL에서 재현해 기록. 상세 내용은 `docs/handoff.md` 리뷰 섹션 참조.
 - **검증**: tsc·eslint 0건, vitest 42개 파일 281개 통과, markdownlint 0건, 로컬 PG `TESTS.sql` PASS.
-- **다음 단계**: `docs/to-do.md` R15(P1, 최우선)~R19 후속 Run 등록.
+- **다음 단계**: 후속 Run `users-role-guard-and-subscription-dedupe` 등록 완료. Step 1 `Phase 12.27 (R15)` Claude Opus `▶ READY` → Step 2 R16(GPT Codex) → Step 3 R18·R19(Claude Sonnet) → Step 4 통합 리뷰(Gemini 4 Argon). R17은 사용자 결정 대기.
 
 ## Phase 12.26 소비 통계·예산 배지 개선 (2026-11-02, 커밋 `6364132`)
 
