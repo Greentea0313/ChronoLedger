@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.30 정적 리뷰 및 Run 마감 (2026-11-02)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)
+- **결과**: Run `memo-textarea-tab-indent` 마감. Base `7e9a57b` ↔ Target `87cf75e` 리뷰 PASS(P1~P3 0건, P4 3건). `review.json` 스키마 검증 통과.
+- **검증**: tsc·eslint 0건, vitest 43개 파일 298개 통과, markdownlint 0건.
+- **다음 단계**: 활성 과제 없음. 실제 브라우저에서 메모 Tab 입력 육안 확인(사용자). 미결 백로그: R13(장기), R24(`run.schema.json` main Run 지원).
+
 ## Phase 12.30 메모 입력란 Tab 키 `\t` 입력 (2026-11-02, 커밋 `87cf75e`)
 
 - 공용 헬퍼 `src/lib/textarea-tab.ts`(`insertTabOnKeyDown`)를 홈 사이드바 메모, 게임 상시 메모, 지출 상세 메모, 일정 요청 메모에 연결했다. 수식키 없는 Tab은 커서/선택 영역에 `\t`를 삽입하고 포커스를 유지한다.

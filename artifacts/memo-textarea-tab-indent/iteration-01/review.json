@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "run_id": "memo-textarea-tab-indent",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "7e9a57b",
+  "target_sha": "87cf75ebc780c462397a3b33dd01b93e5ab42806",
+  "status": "findings",
+  "created_at": "2026-11-02T00:00:00+09:00",
+  "findings": [
+    {
+      "id": "P4-focus-scope-last-element",
+      "severity": "P4",
+      "file": "src/lib/textarea-tab.ts",
+      "line": 15,
+      "evidence": "Radix FocusScope handleKeyDown (node_modules/@radix-ui/react-focus-scope/dist/index.mjs:120-136) does not check event.defaultPrevented and moves focus to the first element when the focused element is the last tabbable one.",
+      "impact": "No impact today: in the game memo, expense detail and request modals the memo textarea is followed by buttons. If a memo textarea ever becomes the last tabbable element in a dialog, Tab would insert a tab and also jump focus to the first element.",
+      "recommendation": "Keep a button after memo textareas in dialogs, or call event.stopPropagation() after preventDefault() in insertTabOnKeyDown."
+    },
+    {
+      "id": "P4-native-undo",
+      "severity": "P4",
+      "file": "src/lib/textarea-tab.ts",
+      "line": 22,
+      "evidence": "The tab is inserted by replacing the controlled value through setValue instead of a native text insertion.",
+      "impact": "Browser undo (Ctrl+Z) may not revert the inserted tab as a separate step, consistent with other programmatic value changes in the app.",
+      "recommendation": "Accept as is; revisit only if users report undo issues."
+    },
+    {
+      "id": "P4-pre-wrap-spacing",
+      "severity": "P4",
+      "file": "src/app/dashboard/games/page.tsx",
+      "line": 609,
+      "evidence": "Schedule memo display changed from whitespace-pre-line to whitespace-pre-wrap as required by the acceptance criteria.",
+      "impact": "Consecutive and leading spaces in existing schedule memos are now shown as typed instead of collapsed. Intended side effect.",
+      "recommendation": "No change needed."
+    }
+  ]
+}

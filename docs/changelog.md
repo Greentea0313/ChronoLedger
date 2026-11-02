@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-02 (Phase 12.30 정적 리뷰)
+
+- **리뷰 완료 (Claude Opus)**: `7e9a57b` ↔ `87cf75e` PASS. P4 3건(Radix 포커스 트랩 마지막 요소 조건, 되돌리기 단계, 일정 메모 공백 표시)을 `docs/handoff.md`에 기록. 코드 변경 없음.
+
 ## 2026-11-02 (Phase 12.30 메모 입력란 Tab 키, `87cf75e`)
 
 - `src/lib/textarea-tab.ts` 신규: 메모 입력란에서 Tab 키를 `\t` 입력으로 처리(Shift/Ctrl/Alt/Meta 조합·IME 조합 중 제외, `maxLength` 초과 시 미삽입).

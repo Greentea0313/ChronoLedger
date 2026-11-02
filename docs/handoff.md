@@ -52,13 +52,28 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE (SHA: 87cf75ebc780c462397a3b33dd01b93e5ab42806)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Interaction)` | `Phase 12.30 (R25)` 메모 입력란 Tab 키 `\t` 입력 (`src/lib/textarea-tab.ts`, `src/lib/textarea-tab.test.ts`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/expense/expense-detail-modal.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`) | `✅ DONE` (공용 헬퍼 `src/lib/textarea-tab.ts`를 사이드바·게임 상시 메모·지출 상세·일정 요청 4곳에 연결, 게임 일정 메모 표시 `whitespace-pre-wrap`. Shift/Ctrl/Alt/Meta+Tab·IME 조합 중은 미처리, maxLength 초과 시 삽입 안 함. 신규 테스트 12건. tsc·eslint·vitest 43파일 298 통과; 실제 브라우저·Radix 모달 포커스와 한글 IME 동작은 jsdom 미검증으로 실기기 확인 필요) |
-| **2** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.30 정적 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `▶ 착수 대기 (인수인계 문서를 확인해 트리거 시 착수)` |
+| **1** | `✅ DONE (SHA: 87cf75e)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Interaction)` | `Phase 12.30 (R25)` 메모 입력란 Tab 키 `\t` 입력 (`src/lib/textarea-tab.ts`, `src/lib/textarea-tab.test.ts`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/components/expense/expense-detail-modal.tsx`, `src/components/expense/expense-detail-modal.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`) | `✅ DONE` (공용 헬퍼 `src/lib/textarea-tab.ts`를 사이드바·게임 상시 메모·지출 상세·일정 요청 4곳에 연결, 게임 일정 메모 표시 `whitespace-pre-wrap`. Shift/Ctrl/Alt/Meta+Tab·IME 조합 중은 미처리, maxLength 초과 시 삽입 안 함. 신규 테스트 12건. tsc·eslint·vitest 43파일 298 통과; 실제 브라우저·Radix 모달 포커스와 한글 IME 동작은 jsdom 미검증으로 실기기 확인 필요) |
+| **2** | `✅ DONE (리뷰: 7e9a57b ↔ 87cf75e)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.30 정적 리뷰, 전체 검증 및 문서 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (Claude Opus 정적 리뷰: P1~P3 0건, P4 3건. `artifacts/memo-textarea-tab-indent/iteration-01/review.json` 스키마 검증 통과. tsc·eslint·vitest 43파일 298·markdownlint 통과. Run 마감) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
+
+---
+
+## Phase 12.30 메모 입력란 Tab 키 정적 리뷰 및 Run 마감 (2026-11-02)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator). Maker는 Claude Sonnet(`87cf75e`)이므로 리뷰 독립성 충족.
+- **리뷰 범위**: Base `7e9a57b` ↔ Target `87cf75e`. 이후 커밋(`0c9a2ef`)은 문서만 변경.
+- **판정**: PASS (P1~P3 0건). 수용 기준 전항 충족: 공용 헬퍼 `insertTabOnKeyDown` 1개로 4곳 적용, 수식키 없는 Tab만 처리(Shift/Ctrl/Alt/Meta+Tab·IME 조합 중 미처리), 선택 영역 대체·커서 위치 복원, `maxLength` 초과 시 미삽입, 게임 일정 메모 표시 `whitespace-pre-wrap` 변경, 헬퍼 8건 + 컴포넌트 4건 테스트.
+- **발견 사항 (P4, 조치 불필요)**:
+  - Radix `FocusScope`는 `defaultPrevented`를 확인하지 않고 포커스가 마지막 요소일 때 첫 요소로 옮긴다. 현재 세 모달 모두 메모 입력란 뒤에 버튼이 있어 영향 없음. 입력란이 다이얼로그의 마지막 포커스 요소가 되면 `stopPropagation()` 추가 필요.
+  - 탭 삽입을 React 상태 교체로 처리해 브라우저 되돌리기(Ctrl+Z) 단계가 네이티브 입력과 다를 수 있음.
+  - 게임 일정 메모가 `pre-wrap`으로 바뀌어 기존 메모의 연속·선행 공백이 그대로 보임(의도된 변화).
+- **산출물**: `artifacts/memo-textarea-tab-indent/iteration-01/review.json` (`validate_collaboration_artifact.py` 통과).
+- **검증**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 43개 파일 298개 통과, markdownlint 0건.
+- **남은 확인 (사용자)**: 실제 브라우저(데스크톱·Android)에서 각 메모 입력란 Tab 입력과 한글 조합 중 Tab 동작 육안 확인.
 
 ---
 
