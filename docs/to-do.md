@@ -574,7 +574,7 @@
   - verify: 관련 8개 Vitest 파일의 57개 테스트, `npx tsc --noEmit`, `npm run lint` 통과.
   - [ ] 후속: 운영 Supabase SQL Editor에서 `MIGRATION_UNOFFICIAL_SCHEDULES.sql`을 수동 적용하고 설정 토글 및 일정 조회를 확인한다.
 
-- [ ] 12.26 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (R17)
+- [x] 12.26 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (R17)
   - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/app/globals.css`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`
   - 작업 (세부 확정 사양):
     1. **게임별 과금 분석 가로 막대 차트 좌측 Y축 아이콘화**: 좌측 Y축 게임 이름 텍스트를 24×24px 게임 아이콘으로 대체하고, 우측 순위 목록에만 게임 이름 텍스트 유지.
@@ -604,7 +604,7 @@
 - [x] R14. 지출 모달(`expense-modal.tsx`) 수정·결제 시 기존 사용자 메모(`editingExpense.memo`)가 이벤트 태그로 덮어써지는 기존 결함 보정 (`mergeEventMemo(null, ...)` → 기존 메모 보존, 단위 테스트 추가) 및 잔여 주석 정리 (`완료` - 커밋 `d5522dc`, Claude Sonnet, Gemini 4 Argon 통합 리뷰 완료)
 - [x] R15. 구독 템플릿 동기화 및 중지 시 PLANNED 삭제 개편 (`Phase 12.24`, GPT Codex, 커밋 `1bb175b`)
 - [x] R16. 관리자/게임 모달 정비, 아이콘 자체 WebP Data URL 저장, 비공식 일정 분류 및 설정 토글 (`Phase 12.25`, GitHub Copilot, 커밋 `3c20e70`)
-- [ ] R17. 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (`Phase 12.26`, Claude Sonnet 담당)
+- [x] R17. 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (`Phase 12.26`, Claude Sonnet 담당)
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---
