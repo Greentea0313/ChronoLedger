@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-02 (R24 iteration-01 리뷰)
+
+- Base `ea188c6` ↔ Target `83d2e18` 리뷰에서 Run 생성 iteration README의 경로 문자열 손상(P3)을 발견했다. README Markdownlint(MD009/MD010)와 Base/Target `git diff --check`가 실패해 R24 마감을 보류하고 Maker 수정·재리뷰 단계를 Dispatch Queue에 등록했다. manifest/review/test 기록은 Run 커밋 `dee8ce6`, Markdownlint 재검증 결과 정정은 `12225b2`에 저장했다.
+- Run manifest, review, test 산출물은 각각 해당 JSON Schema 검증을 통과했다. 기능 소스 변경이나 배포는 없다.
+
 ## 2026-11-02 (Phase 12.31 정적 리뷰)
 
 - **리뷰 완료 (Claude Opus)**: `20e32b5` ↔ `fc4ea9d` PASS. P4 2건(미사용 eslint-disable 주석, 툴팁 연결 컴포넌트 테스트 부재)을 `docs/handoff.md`에 기록. 코드 변경 없음.

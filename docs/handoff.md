@@ -44,7 +44,9 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: 83d2e18)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Collaboration Docs)` | R24: `.agents/skills/chronoledger-orchestrator/SKILL.md` 및 관련 문서. `run.schema.json`과 표준 격리 manifest 절차는 변경하지 않음. | `✅ DONE` (Worktree 커밋 `83d2e18`: Orchestrator 스킬에 「Main-worktree fallback runs」 섹션 추가 — `main` 사용 조건·사유 기록, 가짜 manifest 금지, 등록 시 Base SHA·Maker 완료 시 Target SHA 기록 위치, Reviewer 범위 검사(`git diff <Target> HEAD -- src sql`) 실패 시 `🛑 BLOCKED`, Maker 스테이징 범위. 표준 격리 절차·`run.schema.json` 불변. markdownlint 통과. manifest `target_sha`와 R24 to-do/progress/changelog 마감은 Step 2 담당) |
-| **2** | `▶ READY` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Step 1 Target SHA 정적 리뷰, 문서 검증 및 R24 마감 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`). | `⏳ Step 1 커밋 및 manifest Target SHA 기록 후 착수` |
+| **2** | `✅ DONE (SHA: 12225b2)` | **GitHub Copilot** *(Gemini 4 Argon 1순위 / Claude Opus 2순위 대체)* | `Reviewer` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `83d2e180ee2871679bb76c15a34a42c596a61ed2` 정적 리뷰 및 결과 검증. | `iteration-01/review.json`: P1/P2 0건, P3 1건. README 경로 텍스트의 제어문자로 Markdownlint(MD009/MD010)와 `git diff --check` 실패. 세 JSON Schema 검증 통과. 검증 결과 정정은 `12225b2`. |
+| **3** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 / GitHub Copilot 2순위 대체)* | `Maker (Run Artifact & Docs)` | iteration-02: iteration-01 `README.md`의 손상된 경로 수정 및 생성 원인 조사. 재발 방지는 `scripts/collaboration/` 내 직접 관련 생성 코드로 한정. 기존 iteration-01 `review.json`/`test.json`은 보존. `git diff <Base> HEAD --check` 및 관련 Markdownlint 통과, Maker 커밋 후 새 Target SHA 기록. | `⏳ iteration-01 P3 finding 수정 및 검증 후 커밋` |
+| **4** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Step 3 Maker 커밋 정적 재리뷰, 새 Target SHA 기록, 문서 검증 및 R24 마감. | `⏳ Step 3 커밋 및 Target SHA 기록 대기` |
 
 ### 🗂️ 이전 Run 기록 (완료): expense-chart-labels-and-outline
 
@@ -74,6 +76,13 @@
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
+
+## R24 iteration-01 리뷰 결과 (2026-11-02)
+
+- **리뷰 범위**: Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `83d2e180ee2871679bb76c15a34a42c596a61ed2`.
+- **결과**: 조건부 진행. P1/P2 0건, P3 1건 — `artifacts/require-main-run-sha/iteration-01/README.md:5`의 `review.json`, `test.json`, `artifacts/schemas/` 경로가 제어문자로 손상되어 문서 내용을 읽기 어렵고, Base/Target `git diff --check`가 실패한다.
+- **기록**: Run/review/test JSON Schema 검증 통과. 재확인한 Markdownlint는 README 4행의 trailing spaces(MD009), 5행의 hard tab(MD010)으로 실패했고, Base/Target `git diff --check`도 제어문자·CRLF 때문에 실패했다. `docs/` 및 변경된 skill 문서는 Markdownlint 통과. 초기 결과 파일은 커밋 `dee8ce6`, 검증 정정은 `12225b2`.
+- **다음 단계**: Step 3 Maker가 README를 수정하고 생성 원인을 조사한다. iteration-01의 리뷰·테스트 결과 파일은 보존하며, 수정 커밋 후 Step 4가 같은 Base부터 새 Target으로 재검토한다.
 
 ---
 

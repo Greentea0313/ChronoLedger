@@ -5,7 +5,8 @@
 - `docs/to-do.md`의 미완료 중 Orchestrator 역할에 직접 해당하는 R24를 다음 과제로 선택했다.
 - Run `require-main-run-sha`를 `.worktrees/require-main-run-sha`에 생성했다. Base SHA는 `ea188c66f534e7adf63c2747769b2fae986c9d25`.
 - 해결 방향은 `run.schema.json`을 확장하지 않고, main 직접 실행의 Base SHA 등록 시 기록과 Target SHA Maker 커밋 후 기록을 Orchestrator 스킬에 명시하는 것이다. 가짜 manifest 경로는 사용하지 않는다.
-- 다음 단계: Claude Opus가 문서 Maker를 수행하고, 이후 Gemini 4 Argon이 정확한 Base/Target SHA로 정적 리뷰 및 문서 마감을 진행한다.
+- Step 1 Maker 커밋 `83d2e180ee2871679bb76c15a34a42c596a61ed2`를 대상으로 iteration-01 리뷰를 진행했다. R24 스킬 문서는 기준을 충족하지만, 함께 생성된 iteration README의 경로 문자열에 제어문자가 있어 P3 finding을 기록했다. Run/review/test JSON Schema 검증은 통과했다. README Markdownlint(MD009/MD010)와 Base/Target `git diff --check`는 실패했고, 루트 문서와 변경 skill은 Markdownlint 통과했다. 산출물은 Run 커밋 `dee8ce6`, 검증 결과 정정은 `12225b2`에 기록했다.
+- R24는 미완료 상태다. 다음 단계는 Claude Opus가 README 손상과 생성 원인을 수정·검증해 커밋하고, Gemini 4 Argon이 동일 Base SHA부터 새 Target SHA까지 재리뷰한 뒤 문서 마감을 하는 것이다.
 
 ## Phase 12.31 정적 리뷰 및 Run 마감 (2026-11-02)
 
