@@ -5,7 +5,8 @@
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)
 - **결과**: Run `expense-chart-labels-and-outline` 마감. Base `20e32b5` ↔ Target `fc4ea9d` PASS(P1~P3 0건, P4 2건).
 - **검증**: tsc·eslint 0건, vitest 44개 파일 302개 통과, markdownlint 0건.
-- **다음 단계**: push 및 배포(미완료), 실제 브라우저 확인, 운영 DB R27 적용 여부 확인.
+- **배포·운영**: 운영 DB `MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 완료(R27), `origin/main` push 완료.
+- **다음 단계**: Cloudflare 배포 후 실제 브라우저에서 차트 툴팁·축 눈금·외곽선 확인(사용자). 활성 과제 없음.
 
 ## Phase 12.31 소비 차트 라벨·외곽선 Run 등록 (2026-11-02)
 

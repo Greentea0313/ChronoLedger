@@ -51,7 +51,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: fc4ea9d)` | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위)* | `Maker (UI & Charts)` | `Phase 12.31 (R26)` 게임별 과금 툴팁 게임명, 금액 축 눈금 포맷 공용화, 막대 외곽선 테마 대응 가시성 (`src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 신규 포맷터 `src/lib/chart-format.ts`·`src/lib/chart-format.test.ts`, 필요 시 `src/app/globals.css`) | `✅ 게임명 툴팁, 축 포맷터, 테마 대응 외곽선 적용; Vitest 26개·tsc·lint 통과` |
-| **2** | `✅ DONE (리뷰: 20e32b5 ↔ fc4ea9d)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.31 정적 리뷰, 전체 검증, 문서 마감 및 push 여부 확인 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (Claude Opus 정적 리뷰: P1~P3 0건, P4 2건. `review.json` 스키마 검증 통과. tsc·eslint·vitest 44파일 302·markdownlint 통과. **push 미완료**(로컬 `main` 3커밋 앞섬) — 사용자 확인 후 push) |
+| **2** | `✅ DONE (리뷰: 20e32b5 ↔ fc4ea9d)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Reviewer & Orchestrator` | Phase 12.31 정적 리뷰, 전체 검증, 문서 마감 및 push 여부 확인 (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) | `✅ DONE` (Claude Opus 정적 리뷰: P1~P3 0건, P4 2건. `review.json` 스키마 검증 통과. tsc·eslint·vitest 44파일 302·markdownlint 통과. push 완료(2026-11-02)) |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -71,8 +71,9 @@
 - **발견 사항 (P4)**: ① 월별 차트 Y축 위 사용하지 않는 `eslint-disable-next-line` 주석(`page.tsx:1070`, 기본 lint는 통과) ② 툴팁 `labelFormatter` 연결 자체는 컴포넌트 테스트가 없고 헬퍼만 단위 테스트됨.
 - **산출물**: `artifacts/expense-chart-labels-and-outline/iteration-01/review.json` (스키마 검증 통과).
 - **검증**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 44개 파일 302개 통과, markdownlint 0건.
-- **배포 상태**: **미배포**. 로컬 `main`이 `origin/main`보다 3커밋 앞섬(`0e34d1a`, `fc4ea9d`, `d896190`) + 이 마감 커밋. 사용자 확인 후 push 필요(`known-pitfalls.md` #32).
-- **남은 확인 (사용자)**: ① 운영 DB `MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 여부(R27) ② push·배포 후 실제 브라우저에서 툴팁 게임명·축 눈금·다크/라이트 테마 외곽선 육안 확인.
+- **배포 상태**: 사용자 요청으로 `origin/main`에 push(2026-11-02). Cloudflare Pages 빌드 결과는 사용자 확인.
+- **운영 DB**: `MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 완료(R27, 2026-11-02 사용자 적용).
+- **남은 확인 (사용자)**: push·배포 후 실제 브라우저에서 툴팁 게임명·축 눈금·다크/라이트 테마 외곽선 육안 확인.
 
 ---
 
