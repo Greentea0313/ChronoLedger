@@ -108,3 +108,6 @@
 31. **`main` Run의 리뷰 범위 누락**
     - 증상: `New-CollaborationRun.ps1` 없이 `main`에서 Run을 등록하면 `artifacts/<run_id>/run.json`이 없어, Reviewer가 Base/Target SHA를 정할 수 없어 리뷰를 `🛑 BLOCKED` 처리한다(2026-11-02).
     - 방어책: `main` Run을 등록할 때 Dispatch Queue에 Base SHA(등록 시점 HEAD)를 즉시 기록하고, Reviewer 단계를 `▶ READY`로 바꾸는 쪽이 Target SHA(마지막 Maker 코드 커밋)를 적는다. `run.schema.json`은 현재 `main` Run을 표현하지 못하므로 가짜 `branch`/`worktree_path`를 넣지 않는다.
+32. **로컬 커밋만 하고 push하지 않은 상태에서 운영 확인**
+    - 증상: 수정 커밋과 리뷰가 끝났는데도 운영에서 결함이 재현됨. 원인은 `main`이 `origin/main`보다 앞서 있어 Cloudflare Pages가 수정 전 코드를 배포 중이었던 것(2026-11-02, 24커밋 미반영).
+    - 방어책: 운영 재현 보고를 받으면 먼저 `git fetch origin` 후 `git status -sb`와 `git merge-base --is-ancestor <수정 SHA> origin/main`으로 배포 대상에 포함됐는지 확인한다. Run 마감 보고에는 push 여부를 명시한다.

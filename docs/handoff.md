@@ -73,7 +73,7 @@
   - 게임 일정 메모가 `pre-wrap`으로 바뀌어 기존 메모의 연속·선행 공백이 그대로 보임(의도된 변화).
 - **산출물**: `artifacts/memo-textarea-tab-indent/iteration-01/review.json` (`validate_collaboration_artifact.py` 통과).
 - **검증**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 43개 파일 298개 통과, markdownlint 0건.
-- **남은 확인 (사용자)**: 실제 브라우저(데스크톱·Android)에서 각 메모 입력란 Tab 입력과 한글 조합 중 Tab 동작 육안 확인.
+- **배포 및 실기기 확인 (✅ 완료, 2026-11-02 사용자 확인)**: 처음 보고된 "Tab이 취소 버튼으로 이동" 현상은 수정 커밋이 원격에 push되지 않아 배포본이 수정 전 코드였기 때문(로컬 `main`이 `origin/main` `d70ec5e`보다 24커밋 앞섬). 사용자가 로컬(`npm run dev`)에서 동작 확인 후 `d57b3e2`까지 push, Cloudflare Pages 배포 완료, 실제 환경 테스트 성공.
 
 ---
 
