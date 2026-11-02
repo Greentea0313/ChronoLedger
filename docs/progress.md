@@ -1,6 +1,6 @@
 # 프로젝트 진행 현황
 
-## Phase 12.28 MONTHLY_DAY 중복 정리 및 공식 일정 금전 경로 제한 (2026-11-02)
+## Phase 12.28 MONTHLY_DAY 중복 정리 및 공식 일정 금전 경로 제한 (2026-11-02, 커밋 `bdb064c`)
 
 - `dedupe_monthly_planned_expenses(UUID)` 소유자 검증 RPC를 추가하고, 중복 `MONTHLY_DAY` 예정 회차는 가장 이른 1건만 남기도록 마이그레이션·스키마·스모크 테스트를 동기화했다. 클라이언트 직접 DELETE는 제거했다.
 - `VERSION_PASS` 생성과 지출 모달의 버전 일정 연결은 공식 일정만 사용한다. `is_official` 미적용 DB에서는 전체 일정을 공식으로 간주하는 폴백을 유지한다.

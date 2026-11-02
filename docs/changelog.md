@@ -1,6 +1,6 @@
 # 변경 이력
 
-## 2026-11-02 (Phase 12.28 월간 구독 중복 정리 및 공식 일정 필터)
+## 2026-11-02 (Phase 12.28 월간 구독 중복 정리 및 공식 일정 필터, `bdb064c`)
 
 - `MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`이 각 월간 템플릿의 가장 이른 `PLANNED` 1건만 남기고 기존 중복을 정리한다. 본인 활성 템플릿 소유를 검사하는 `dedupe_monthly_planned_expenses` RPC로 런타임 정리를 수행하며 `expenses` DELETE 정책은 열지 않는다.
 - `VERSION_PASS` 예정 지출과 지출 모달 버전 연결에서 비공식 일정을 제외한다. `is_official` 컬럼이 없는 기존 DB는 전체 일정을 공식으로 처리한다.
