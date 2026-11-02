@@ -22,6 +22,7 @@ import { ChevronLeft, ChevronRight, Trash2, History } from "lucide-react"
 import { preloadImages } from "@/lib/icon-preload"
 import { downloadUserIcon } from "@/lib/storage-upload"
 import { IncomeModal } from "@/components/finance/income-modal"
+import { formatAmountAxisTick, getGameTooltipLabel } from "@/lib/chart-format"
 
 const EXPENSES_PER_PAGE = 10
 const SUBSCRIPTIONS_PER_PAGE = 12
@@ -104,15 +105,15 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 // 게임별 과금 분석 차트용 다중 컬러 팔레트 (게임 간 명확한 시각적 구분)
-const GAME_CHART_PALETTE: Array<{ base: string; active: string; stroke: string }> = [
-  { base: "#6366F1", active: "#818CF8", stroke: "#4338CA" }, // Indigo
-  { base: "#10B981", active: "#34D399", stroke: "#047857" }, // Emerald
-  { base: "#F59E0B", active: "#FBBF24", stroke: "#B45309" }, // Amber
-  { base: "#EC4899", active: "#F472B6", stroke: "#BE185D" }, // Pink
-  { base: "#06B6D4", active: "#22D3EE", stroke: "#0E7490" }, // Cyan
-  { base: "#8B5CF6", active: "#A78BFA", stroke: "#6D28D9" }, // Violet
-  { base: "#F97316", active: "#FB923C", stroke: "#C2410C" }, // Orange
-  { base: "#14B8A6", active: "#2DD4BF", stroke: "#0F766E" }, // Teal
+const GAME_CHART_PALETTE: Array<{ base: string; active: string }> = [
+  { base: "#6366F1", active: "#818CF8" }, // Indigo
+  { base: "#10B981", active: "#34D399" }, // Emerald
+  { base: "#F59E0B", active: "#FBBF24" }, // Amber
+  { base: "#EC4899", active: "#F472B6" }, // Pink
+  { base: "#06B6D4", active: "#22D3EE" }, // Cyan
+  { base: "#8B5CF6", active: "#A78BFA" }, // Violet
+  { base: "#F97316", active: "#FB923C" }, // Orange
+  { base: "#14B8A6", active: "#2DD4BF" }, // Teal
 ]
 
 const MONTH_CURRENT = "CURRENT"
@@ -528,7 +529,7 @@ export default function ExpensesPage() {
 
     const list = rawList.map((item, idx) => {
       const palette = GAME_CHART_PALETTE[idx % GAME_CHART_PALETTE.length]
-      return { ...item, color: palette.base, activeColor: palette.active, strokeColor: palette.stroke }
+      return { ...item, color: palette.base, activeColor: palette.active }
     })
 
     return { totalGameSpent, list, hasData: list.length > 0 }
@@ -1067,7 +1068,7 @@ export default function ExpensesPage() {
                           tickLine={{ stroke: "rgb(var(--border))" }}
                           tick={{ fill: "rgb(var(--text-secondary))", fontSize: 12 }}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          tickFormatter={(val: any) => `${Math.round(Number(val) / 10000)}만`}
+                          tickFormatter={formatAmountAxisTick}
                         />
                         <Tooltip
                           wrapperStyle={TOOLTIP_WRAPPER_STYLE}
@@ -1089,8 +1090,8 @@ export default function ExpensesPage() {
                               <Cell
                                 key={`month-${index}`}
                                 fill={isHovered ? "#818CF8" : "#6366F1"}
-                                stroke={isHovered ? "#FFFFFF" : "#4338CA"}
-                                strokeWidth={isHovered ? 2 : 1}
+                                stroke={isHovered ? "rgb(var(--text-primary))" : "rgb(var(--text-secondary))"}
+                                strokeWidth={isHovered ? 2.5 : 1.5}
                                 cursor="pointer"
                                 onMouseEnter={() => setActiveMonthlyIndex(index)}
                                 style={{
@@ -1145,7 +1146,7 @@ export default function ExpensesPage() {
                             axisLine={{ stroke: "rgb(var(--border))", strokeWidth: 1 }}
                             tickLine={{ stroke: "rgb(var(--border))" }}
                             tick={{ fill: "rgb(var(--text-secondary))", fontSize: 11 }}
-                            tickFormatter={(val: number) => `${Math.round(val / 10000)}만`}
+                            tickFormatter={formatAmountAxisTick}
                           />
                           <YAxis
                             type="category"
@@ -1199,19 +1200,19 @@ export default function ExpensesPage() {
                               `${Number(value).toLocaleString()} 원 (${props.payload.percent}%)`,
                               "게임 과금액",
                             ]}
+                            labelFormatter={(label: unknown) => getGameTooltipLabel(label, gameStatsData.list)}
                           />
                           <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={24}>
                             {gameStatsData.list.map((entry, idx) => {
                               const isHovered = activeGameIndex === idx
                               const baseFill = entry.color
                               const activeFill = entry.activeColor
-                              const baseStroke = entry.strokeColor
                               return (
                                 <Cell
                                   key={`cell-${idx}`}
                                   fill={isHovered ? activeFill : baseFill}
-                                  stroke={isHovered ? "#FFFFFF" : baseStroke}
-                                  strokeWidth={isHovered ? 2 : 1}
+                                  stroke={isHovered ? "rgb(var(--text-primary))" : "rgb(var(--text-secondary))"}
+                                  strokeWidth={isHovered ? 2.5 : 1.5}
                                   cursor="pointer"
                                   onMouseEnter={() => setActiveGameIndex(idx)}
                                   style={{
