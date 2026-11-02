@@ -17,6 +17,7 @@ import { loadSchedulePreference } from "@/lib/schedule-preferences"
 import { GameIcon } from "@/components/ui/game-icon"
 import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
+import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { Calendar, Check, ChevronLeft, ChevronRight, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
 
 const GAMES_PER_PAGE = 12
@@ -605,7 +606,7 @@ export default function GamesPage() {
                       {isSingle ? `${sch.start_date} (단일)` : `${sch.start_date} ~ ${sch.end_date}`}
                     </p>
                     {sch.memo && (
-                      <p className="text-xs text-content-muted mt-1 whitespace-pre-line">
+                      <p className="text-xs text-content-muted mt-1 whitespace-pre-wrap">
                         {sch.memo.includes("/") ? (
                           sch.memo
                             .split("/")
@@ -649,6 +650,7 @@ export default function GamesPage() {
             <Textarea
               value={memoInput}
               onChange={(e) => setMemoInput(e.target.value)}
+              onKeyDown={(e) => insertTabOnKeyDown(e, setMemoInput)}
               placeholder="상시 메모를 입력하세요 (예: 육성 목표, 과금 계획 등)"
               maxLength={1000}
               className="w-full h-56 max-h-56 resize-none overflow-y-auto text-xs leading-relaxed bg-surface-2 border-line-control p-3 text-content placeholder:text-content-muted"

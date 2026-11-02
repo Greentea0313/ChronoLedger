@@ -263,6 +263,34 @@ describe("HeroSidebarContent", () => {
     await waitFor(() => expect(onSaveMemo).toHaveBeenCalledWith("수정된 새 메모"))
   })
 
+  it("메모 입력란에서 Tab 키는 포커스를 옮기지 않고 탭 문자를 입력한다", () => {
+    render(
+      <HeroSidebarContent
+        selectedDateLabel="2026-10-14"
+        totalAsset={0}
+        budgetAmount={0}
+        expectedExpense={0}
+        wallets={[]}
+        schedules={[]}
+        expenses={[]}
+        memos={["가나"]}
+        onSaveMemo={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText("선택일 상세 항목 선택"), { target: { value: "MEMO" } })
+    fireEvent.click(screen.getByRole("button", { name: "수정" }))
+    const textarea = screen.getByPlaceholderText("메모를 입력하세요 (최대 200자)") as HTMLTextAreaElement
+    textarea.focus()
+    textarea.setSelectionRange(1, 1)
+
+    const notPrevented = fireEvent.keyDown(textarea, { key: "Tab" })
+
+    expect(notPrevented).toBe(false)
+    expect(textarea.value).toBe("가	나")
+    expect(document.activeElement).toBe(textarea)
+  })
+
   it("바텀시트 제스처 간섭 방지를 위해 인터랙티브 요소에 data-vaul-no-drag가 부여되어 있다", () => {
     const { container } = render(
       <HeroSidebarContent

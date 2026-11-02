@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pencil, Check, X } from "lucide-react"
+import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 
 const PLATFORM_LABELS: Record<string, string> = {
   GOOGLE_PLAY: "Google",
@@ -447,6 +448,7 @@ export function HeroSidebarContent({
                   <textarea
                     value={memoInput}
                     onChange={(e) => setMemoInput(e.target.value)}
+                    onKeyDown={(e) => insertTabOnKeyDown(e, setMemoInput)}
                     maxLength={200}
                     placeholder="메모를 입력하세요 (최대 200자)"
                     className="w-full h-20 rounded-md border border-line-control bg-surface-2 p-2.5 text-sm text-content focus:outline-none focus:ring-1 focus:ring-primary"

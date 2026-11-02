@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
+import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { validateGameRequest, validateScheduleRequest } from "./request-validation"
 
 type Game = { id: string; name: string }
@@ -371,6 +372,7 @@ export function RequestSubmissionModal({
                       placeholder="일정에 관한 추가 설명이나 출처를 적어주세요."
                       value={scheduleMemo}
                       onChange={(event) => setScheduleMemo(event.target.value)}
+                      onKeyDown={(event) => insertTabOnKeyDown(event, setScheduleMemo)}
                       className="border-line-control bg-surface-2 text-content"
                     />
                   </div>

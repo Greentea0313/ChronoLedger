@@ -146,6 +146,22 @@ describe("RequestSubmissionModal", () => {
     }))
   })
 
+  it("inserts a tab character into the schedule memo when Tab is pressed", async () => {
+    await openModal()
+    await change("#request-kind", "schedule")
+    await change("#schedule-memo", "ab")
+    const textarea = document.body.querySelector("#schedule-memo") as HTMLTextAreaElement
+    textarea.setSelectionRange(1, 1)
+    const preventDefault = vi.fn()
+
+    await act(async () => {
+      Simulate.keyDown(textarea, { key: "Tab", preventDefault })
+    })
+
+    expect(preventDefault).toHaveBeenCalled()
+    expect(textarea.value).toBe("a	b")
+  })
+
   it("rejects missing values and reversed schedule dates before inserting", async () => {
     await openModal()
     await submit()

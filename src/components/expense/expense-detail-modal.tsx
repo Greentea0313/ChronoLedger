@@ -10,6 +10,7 @@ import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { mapPaymentError } from "@/lib/payment-calculations"
 import { rollbackIntervalSubscriptionExpense } from "@/lib/subscription-sync"
+import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 
 export interface ExpenseDetail {
   id: string
@@ -227,6 +228,7 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
                     id="edit-expense-memo"
                     value={editMemo}
                     onChange={(e) => setEditMemo(e.target.value)}
+                    onKeyDown={(e) => insertTabOnKeyDown(e, setEditMemo)}
                     rows={3}
                     className="w-full rounded-md border border-line-control bg-surface-2 p-2.5 text-sm text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     placeholder="메모 입력"

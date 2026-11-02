@@ -407,6 +407,22 @@ describe("GamesPage", () => {
       expect(buttonsByText("메모 작성")).toHaveLength(2)
     })
 
+    it("inserts a tab character instead of moving focus when Tab is pressed in the memo textarea", async () => {
+      mockUserGamesWithUpdate()
+      await act(async () => root.render(<GamesPage />))
+
+      await click(buttonsByText("메모 수정")[0])
+      const textarea = await typeMemo("원신", "ab")
+      textarea.setSelectionRange(1, 1)
+      const preventDefault = vi.fn()
+      await act(async () => {
+        Simulate.keyDown(textarea, { key: "Tab", preventDefault })
+      })
+
+      expect(preventDefault).toHaveBeenCalled()
+      expect(textarea.value).toBe("a	b")
+    })
+
     it("discards edits on cancel without calling the server", async () => {
       const { update } = mockUserGamesWithUpdate()
       await act(async () => root.render(<GamesPage />))

@@ -97,6 +97,22 @@ describe("ExpenseDetailModal", () => {
     })
   })
 
+  it("inserts a tab character instead of moving focus when Tab is pressed in the memo field", () => {
+    render(<ExpenseDetailModal expense={confirmed} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "정보 수정" }))
+    const memoTextarea = screen.getByLabelText("메모") as HTMLTextAreaElement
+    fireEvent.change(memoTextarea, { target: { value: "ab" } })
+    memoTextarea.focus()
+    memoTextarea.setSelectionRange(1, 1)
+
+    const notPrevented = fireEvent.keyDown(memoTextarea, { key: "Tab" })
+
+    expect(notPrevented).toBe(false)
+    expect(memoTextarea.value).toBe("a	b")
+    expect(document.activeElement).toBe(memoTextarea)
+  })
+
   it("allows updating target_date for confirmed expenses", async () => {
     rpc.mockResolvedValue({ error: null })
     const onUpdated = vi.fn()
