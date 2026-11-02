@@ -10,7 +10,7 @@
                                 "Validate the changed documentation formatting and confirm the prescribed SHA pair is unambiguous for a Reviewer."
                             ],
     "base_sha":  "ea188c66f534e7adf63c2747769b2fae986c9d25",
-    "target_sha":  null,
+    "target_sha":  "83d2e180ee2871679bb76c15a34a42c596a61ed2",
     "branch":  "collab/require-main-run-sha",
     "worktree_path":  ".worktrees/require-main-run-sha",
     "max_iterations":  3,

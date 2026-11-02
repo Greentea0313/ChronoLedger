@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "require-main-run-sha",
+  "iteration": 1,
+  "agent": "GitHub Copilot",
+  "role": "static-review",
+  "base_sha": "ea188c66f534e7adf63c2747769b2fae986c9d25",
+  "target_sha": "83d2e180ee2871679bb76c15a34a42c596a61ed2",
+  "status": "findings",
+  "created_at": "2026-11-02T16:00:32+09:00",
+  "findings": [
+    {
+      "id": "R24-ARTIFACT-README",
+      "severity": "P3",
+      "file": "artifacts/require-main-run-sha/iteration-01/README.md",
+      "line": 4,
+      "evidence": "Line 4 contains raw control bytes in the artifact paths: CR before `eview.json`, TAB before `est.json`, and BEL before `rtifacts/schemas/`.",
+      "impact": "The generated iteration instructions render as damaged paths, so the expected review/test artifact filenames and schema directory are unclear to collaborators.",
+      "recommendation": "Replace the control bytes with literal `review.json`, `test.json`, and `artifacts/schemas/` path text, then rerun the documentation whitespace check."
+    }
+  ]
+}
