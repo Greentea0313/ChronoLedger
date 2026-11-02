@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-02 (Phase 12.29 문서·UI 보강)
+
+- **대시보드 (b820a4e)**: 일정 표시 설정 조회 실패 시 대시보드 전체 실패 대신 공식 일정만 표시하고 안내 문구 노출.
+- **게임 등록 모달 (b820a4e)**: 세션 갱신으로 `user` 참조만 바뀔 때 목록 재조회·선택 초기화가 일어나지 않도록 `user?.id` 의존으로 변경.
+- **`sql/README.md` (b820a4e)**: `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql` 확인 쿼리와 물리 삭제 경고 추가.
+- **`docs/handoff.md` (70efa54)**: 잘못 삽입된 12.24~12.26 리뷰 섹션을 이동해 상단 Fallback 표 구조 복구.
+
 ## 2026-11-02 (Phase 12.28 월간 구독 중복 정리 및 공식 일정 필터, `bdb064c`)
 
 - `MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`이 각 월간 템플릿의 가장 이른 `PLANNED` 1건만 남기고 기존 중복을 정리한다. 본인 활성 템플릿 소유를 검사하는 `dedupe_monthly_planned_expenses` RPC로 런타임 정리를 수행하며 `expenses` DELETE 정책은 열지 않는다.

@@ -608,8 +608,8 @@
 - [x] R15. [P1 보안] `public.users` 본인 UPDATE 정책으로 `role`을 `admin`으로 자기 승격 가능 → `role` 변경 차단 마이그레이션(트리거 또는 컬럼 단위 GRANT) + `TESTS.sql` 단언 추가, 운영 DB 즉시 적용 (Claude Opus) (`완료` - 커밋 `361fbbc`, 운영 DB 적용은 사용자 수동 대기)
 - [x] R16. [P2] MONTHLY_DAY 중복 `PLANNED` 정리가 RLS로 무동작 → `MIGRATION_MONTHLY_PLANNED_DEDUPE.sql` 백필과 소유권 검증 RPC로 전환, 클라이언트 `.delete()` 제거 (Phase 12.28, GPT Codex, 커밋 `bdb064c`; 로컬 PG 신규 설치·마이그레이션 재실행·TESTS 통과)
 - [x] R17. [P3] 비공식 일정을 `VERSION_PASS` 회차 생성·지출 모달 버전 연결에서 항상 제외(토글과 무관, 2026-11-02 사용자 결정) (Phase 12.28, GPT Codex, 커밋 `bdb064c`; 컬럼 미적용 DB 공식 폴백 테스트 통과)
-- [ ] R18. [P3] `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql`(파괴적 정리) 확인 쿼리·주의 문구 추가
-- [ ] R19. [P3] `game-select-modal.tsx` `fetchGames`를 `user?.id` 의존으로 변경, 대시보드 `loadSchedulePreference` 실패 시 공식 일정만 표시로 폴백 (Claude Sonnet)
+- [x] R18. [P3] `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql`(파괴적 정리) 확인 쿼리·주의 문구 추가
+- [x] R19. [P3] `game-select-modal.tsx` `fetchGames`를 `user?.id` 의존으로 변경, 대시보드 `loadSchedulePreference` 실패 시 공식 일정만 표시로 폴백 (Claude Sonnet) (`완료` - 커밋 `b820a4e`, Claude Opus 대체 수행)
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---
