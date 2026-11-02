@@ -1,11 +1,10 @@
 # 프로젝트 진행 현황
 
-## Phase 12.27~12.29 통합 리뷰 차단 및 해소 (2026-11-02)
+## Phase 12.27~12.29 통합 리뷰 완료 (2026-11-02)
 
-- GitHub Copilot이 Run manifest·Base/Target SHA 미기재로 Step 4를 `🛑 BLOCKED` 처리했다(`f9afbb5`).
-- Claude Opus(Orchestrator 1순위 대체)가 비교 범위를 Base `0da8eb4` ↔ Target `b820a4e`로 확정해 `docs/handoff.md`에 기록하고 Step 4를 `▶ READY`로 되돌렸다. 범위 밖 `src`/`sql` 변경 없음을 `git diff`로 확인.
-- `run.json` manifest는 `run.schema.json`이 `main` Run을 표현하지 못해(격리 Worktree 형식만 허용) 만들지 않았다.
-- 다음 단계: Step 4 통합 리뷰. Step 1·3 구현자가 Claude Opus이므로 Gemini 4 Argon 또는 GitHub Copilot이 수행.
+- Base `0da8eb49d4e9d98c4fb080e569860133c8f27636` ↔ Target `b820a4edff03170f02bb24356caba03163066b38` 범위 정적 리뷰 clean, finding 0건. 결과 JSON은 `artifacts/users-role-guard-and-subscription-dedupe/iteration-01/review.json`이며 리뷰 schema 검증 통과.
+- 전체 Vitest 42개 파일 286개 통과, `npx tsc --noEmit`, `npm run lint`, 관련 Markdownlint 통과. `psql` 미설치로 SQL 스모크 테스트는 재실행하지 않았으며 Maker의 로컬 PG 통과 기록만 확인했다.
+- Dispatch Step 4 완료. Run manifest는 기존 schema가 main 작업 트리를 표현하지 못해 미생성; 고정 SHA 범위는 `docs/handoff.md`에 기록했다.
 
 ## Phase 12.29 문서·UI 보강 (2026-11-02)
 

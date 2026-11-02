@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-02 (Phase 12.27 ~ 12.29 통합 정적 리뷰)
+
+- Base `0da8eb4` ↔ Target `b820a4e` 통합 리뷰 clean, finding 0건. 리뷰 결과 `artifacts/users-role-guard-and-subscription-dedupe/iteration-01/review.json` schema 검증 통과.
+- 전체 Vitest 42개 파일 286개, TypeScript, lint, 관련 Markdownlint 통과. 리뷰 환경에 `psql`이 없어 SQL 스모크 테스트는 독립 재실행하지 않았고 Maker 기록과 구분했다.
+
 ## 2026-11-02 (Phase 12.29 문서·UI 보강)
 
 - **대시보드 (b820a4e)**: 일정 표시 설정 조회 실패 시 대시보드 전체 실패 대신 공식 일정만 표시하고 안내 문구 노출.

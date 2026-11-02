@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "users-role-guard-and-subscription-dedupe",
+  "iteration": 1,
+  "agent": "GitHub Copilot",
+  "role": "static-review",
+  "base_sha": "0da8eb49d4e9d98c4fb080e569860133c8f27636",
+  "target_sha": "b820a4edff03170f02bb24356caba03163066b38",
+  "status": "clean",
+  "created_at": "2026-11-02T12:46:27+09:00",
+  "findings": []
+}
