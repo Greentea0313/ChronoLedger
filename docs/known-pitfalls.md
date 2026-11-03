@@ -111,3 +111,6 @@
 32. **로컬 커밋만 하고 push하지 않은 상태에서 운영 확인**
     - 증상: 수정 커밋과 리뷰가 끝났는데도 운영에서 결함이 재현됨. 원인은 `main`이 `origin/main`보다 앞서 있어 Cloudflare Pages가 수정 전 코드를 배포 중이었던 것(2026-11-02, 24커밋 미반영).
     - 방어책: 운영 재현 보고를 받으면 먼저 `git fetch origin` 후 `git status -sb`와 `git merge-base --is-ancestor <수정 SHA> origin/main`으로 배포 대상에 포함됐는지 확인한다. Run 마감 보고에는 push 여부를 명시한다.
+33. **PL/pgSQL 관리자 가드의 `NULL` 우회**
+    - 증상: `IF NOT ((auth.jwt()->'app_metadata'->>'role' = 'admin') OR EXISTS (...)) THEN RAISE` 형태는 일반 사용자 JWT에 `role` 키가 없으면 `NULL OR FALSE = NULL`, `NOT NULL = NULL`이 되어 `RAISE`를 건너뛴다. R13 `approve/reject_character_request`에서 비관리자 승인이 재현됐다(2026-11-04, `78c132f` 리뷰).
+    - 방어책: 기존 RPC처럼 `v_is_admin := ...; IF NOT coalesce(v_is_admin, false) THEN RAISE`로 작성한다. 관리자 RPC를 추가하면 `TESTS.sql`에 비관리자 호출 거부 테스트를 함께 넣는다. 로컬 PostgreSQL 서버가 없으면 PGlite(`@electric-sql/pglite`)에 auth/storage 최소 스텁을 두고 마이그레이션을 적용해 확인할 수 있다.

@@ -6,10 +6,12 @@
 - **Run ID**: `r13-phase13-1-db-and-r30-icon-resave`
 - **Worktree**: `.worktrees/r13-phase13-1-db-and-r30-icon-resave` (브랜치: `collab/r13-phase13-1-db-and-r30-icon-resave`, Base SHA: `3bc02457a8de4c19b4dca46060c4d358ce15b94e`)
 - **과제 구성**:
-  1. **Step 1 (`Phase 13.1` / R13 DB & Types, GPT Codex, `▶ READY`)**: 캐릭터·프리셋 DB 스키마 및 마이그레이션(`MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`), `SCHEMA.sql`, `TESTS.sql` §7.5 필수 스모크 테스트 7종, `sql/README.md`, `database.types.ts`, `docs/spec/SRS.md` & `SPEC.md` 반영.
-  2. **Step 2 (`Phase 12.34` / R30, Claude Sonnet, `⏳ WAITING`)**: 관리자 등록된 게임 목록의 외부 URL 아이콘 `[외부 URL]` 배지 표시 및 WebP Data URL 재저장 버튼/일괄 변환 구현 (`src/app/admin/page.tsx`, `page.test.tsx`, `docs/to-do.md`).
-  3. **Step 3 (통합 정적 코드 리뷰 및 Run 마감, Claude Opus / Gemini 4 Argon, `⏳ WAITING`)**: Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Target 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 마감, `main` 병합 및 문서 마감 (SQL/RLS/RPC 변경 포함으로 Opus 승격 조건 ①·④ 적용).
-- **다음 단계**: Step 1 GPT Codex(또는 1순위 대체 Claude Opus) 착수 대기 (`"인수인계 문서를 확인해"` 입력 시 즉시 착수).
+  1. **Step 1 (`Phase 13.1` / R13 DB & Types, GPT Codex, `✅ DONE`, `1746ffc`)**: 캐릭터·프리셋 DB 스키마 및 마이그레이션, §7.5 SQL 테스트 7종, 타입·명세 반영. tsc/lint/Vitest 통과. PostgreSQL 서버가 없어 SQL suite는 미실행.
+  2. **Step 2 (`Phase 12.34` / R30, Claude Sonnet, `✅ DONE`, `78c132f`)**: 관리자 게임 목록 외부 URL 아이콘 `[외부 URL]` 배지 및 행별 WebP Data URL 재저장. 단위 테스트 4건 추가.
+  3. **Step 3 (통합 정적 리뷰, Claude Opus, `✅ DONE` — 수정 필요)**: `iteration-01/review.json` P1 1건(관리자 승인/반려 RPC 가드가 `NULL`로 평가되어 일반 사용자가 캐릭터 요청을 승인·반려 가능, PGlite 재현), P2 1건(§7.5·RPC 테스트 누락), P3 1건(SCHEMA 중복 정의). tsc·lint·Vitest 45파일/313 통과. `main` 병합 보류.
+  4. **Step 4 (iteration-02 SQL 수정, GPT Codex, `▶ READY`)**: 가드 `coalesce` 수정, TESTS.sql 보강, SCHEMA 중복 정리.
+  5. **Step 5 (재리뷰 및 Run 마감, Claude Opus, `⏳ WAITING`)**.
+- **다음 단계**: GPT Codex(1순위 대체 Claude Opus)가 `"인수인계 문서를 확인해"`로 Step 4 착수. 수정 기준은 `docs/handoff.md` 「iteration-02 수정 기준」.
 
 ## Phase 12.33 정적 코드 리뷰 완료 및 Run 마감 (2026-11-03)
 

@@ -632,8 +632,8 @@
 - [x] R28. Phase 12.15-F3 & Phase 12.32: `createClient<Database>` 연결 및 RPC/테이블 타입 정밀 보정(`c075045f`, GPT Codex), 관리자·게임 요청 모달 5종 `DialogDescription` 추가·소비 통계 기간 선택 고유 `aria-label` 분리·관리자 권한 거부 시맨틱 danger 토큰 및 `role="alert"` 적용(`3ed5e5d`, GitHub Copilot) (`완료` - Gemini 4 Argon 통합 리뷰 `7243c3b` PASS 및 `main` 병합 완료).
 - [x] R29 (`Phase 12.33`). 나무위키 등 외부 아이콘 URL 등록 시 CORS 실패 해결(`image-resizer.ts` CORS 프록시 폴백 + `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기 `onPaste` 지원) 및 모바일 외부 아이콘 핫링크 차단 방지(`public/_headers`·`layout.tsx` `no-referrer` 적용) (완료 - 커밋 bf3f1a1, GitHub Copilot, Gemini 4 Argon 리뷰 PASS)
   - 구현: `bf3f1a1` (GitHub Copilot), 정적 리뷰: Gemini 4 Argon PASS (`artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json`). 전체 테스트·타입 검사·린트·문서 마감 완료.
-- [ ] R30. 이미 DB에 외부 URL(나무위키 등)로 저장된 게임 아이콘을 관리자 게임 목록에서 표시하고 Data URL로 재저장하는 기능 (Phase 12.34, Run `r13-phase13-1-db-and-r30-icon-resave` Step 2 대기 중)
-- [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`), Phase 13.1 DB 스키마·타입 협업 Run `r13-phase13-1-db-and-r30-icon-resave` Step 1 착수 대기
+- [ ] R30. 이미 DB에 외부 URL(나무위키 등)로 저장된 게임 아이콘을 관리자 게임 목록에서 표시하고 Data URL로 재저장하는 기능 (Phase 12.34, 구현 `78c132f` Claude Sonnet, 리뷰 지적 없음. 같은 Run의 R13 P1 수정 후 `main` 병합 예정)
+- [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`), Phase 13.1 DB 스키마·타입 구현 `1746ffc` 완료, 통합 리뷰에서 P1(관리자 승인/반려 RPC 가드 NULL 우회) 발견 → iteration-02 수정(Step 4) 대기
 
 ---
 

@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-11-04 (Run r13-phase13-1-db-and-r30-icon-resave iteration-01 통합 리뷰)
+
+- **정적 리뷰 (Claude Opus)**: Base `3bc0245` ↔ Target `78c132f`. P1: `approve_character_request`/`reject_character_request` 관리자 가드가 일반 사용자에게서 `NULL`이 되어 우회됨(PGlite에서 비관리자가 기존 캐릭터 이름·아이콘을 덮어쓰는 것 재현). P2: §7.5 및 RPC 권한 테스트 누락. P3: `SCHEMA.sql` 함수 중복 정의.
+- **검증**: tsc·ESLint·Vitest 45파일/313개 통과, PGlite에서 마이그레이션 2회 멱등 및 프리셋 트리거 엣지 케이스 통과. `TESTS.sql` 전체 실행은 Supabase 테스트 프로젝트 부재로 미실행.
+- **산출물**: worktree 커밋 `4d30d5a` (`iteration-01/review.json`·`test.json`, `run.json` `target_sha`). `main` 병합 보류, iteration-02 수정(Step 4, GPT Codex) 배정.
+- Phase 12.34 (R30) 관리자 외부 URL 아이콘 배지·Data URL 재저장(`78c132f`, Claude Sonnet)은 리뷰 지적 없음.
+
+## 2026-11-04 (Phase 13.1 R13 DB/타입 Maker 완료)
+
+- 캐릭터 분류 스키마 검증, 캐릭터/요청/보유 캐릭터/프리셋 테이블, 소유권·슬롯 검증 트리거, 캐릭터 삭제 정리, 관리자 승인·반려 RPC, RLS 및 계정 삭제 대기 차단/정리 연동을 추가했다.
+- `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`, 통합 `SCHEMA.sql`, rollback-only 테스트 7개 시나리오, TypeScript DB 타입, SRS/SPEC/README/to-do를 갱신했다.
+- 검증: `tsc --noEmit`, ESLint, 전체 Vitest 45파일/309개 테스트 통과. 로컬 PostgreSQL이 실행되지 않아 SQL 스모크 실행은 보류.
+- 커밋: `1746ffcda57f8be943d52e5fbc0502b228157448`. 다음 단계는 Claude Sonnet의 Phase 12.34 관리자 아이콘 재저장 구현.
+
 ## 2026-11-04 (신규 협업 Run r13-phase13-1-db-and-r30-icon-resave 등록)
 
 - **협업 Run 생성 (Gemini 4 Argon)**: 격리 Worktree `.worktrees/r13-phase13-1-db-and-r30-icon-resave` (브랜치 `collab/r13-phase13-1-db-and-r30-icon-resave`, Base SHA `3bc02457a8de4c19b4dca46060c4d358ce15b94e`) 생성 및 Dispatch Queue 배정.
