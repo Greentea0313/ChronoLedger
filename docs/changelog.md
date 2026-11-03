@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-03 (R24 iteration-02 수정 및 Run 마감, `42e52c6` / `5bd515e`)
+
+- `scripts/collaboration/New-CollaborationRun.ps1`: `iteration-01/README.md` 생성 구문을 `@" ... "@`에서 `@' ... '@`로 교체해 백틱 경로 문자열(`review.json`, `test.json`, `artifacts/schemas/`)이 제어문자(`\r`, `\t`, `\a`)로 손상되는 문제를 해결.
+- `artifacts/require-main-run-sha/`: `iteration-01/README.md` 복구 및 `iteration-02/review.json`·`test.json` 기록(Base `ea188c6` ↔ Target `42e52c6` clean), `run.json` `completed` 마감 및 `main` 병합 완료.
+
 ## 2026-11-02 (R24 iteration-01 리뷰)
 
 - Base `ea188c6` ↔ Target `83d2e18` 리뷰에서 Run 생성 iteration README의 경로 문자열 손상(P3)을 발견했다. README Markdownlint(MD009/MD010)와 Base/Target `git diff --check`가 실패해 R24 마감을 보류하고 Maker 수정·재리뷰 단계를 Dispatch Queue에 등록했다. manifest/review/test 기록은 Run 커밋 `dee8ce6`, Markdownlint 재검증 결과 정정은 `12225b2`에 저장했다.

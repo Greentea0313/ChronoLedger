@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## R24 iteration-02 수정·재리뷰 및 Run 마감 (2026-11-03)
+
+- **수행 주체**: Gemini 4 Argon (Step 3 Claude Opus 1순위 대체 및 Step 4 Orchestrator & Reviewer)
+- **원인 규명 및 수정 (`42e52c6`)**: `scripts/collaboration/New-CollaborationRun.ps1`에서 `iteration-01/README.md`를 생성할 때 PowerShell 이중 인용구 here-string(`@" ... "@`)을 사용해 백틱 뒤의 `` `r ``, `` `t ``, `` `a ``가 각각 `\r`, `\t`, `\a` 제어문자로 치환되던 문제를 단일 인용구 here-string(`@' ... '@`)으로 변경해 원천 해결하고, `artifacts/require-main-run-sha/iteration-01/README.md`를 정상 경로 텍스트로 복구했다.
+- **재리뷰 및 검증 (`5bd515e`)**: Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `42e52c6940d0d141a595b90c04768c521b2d969f` 정적 재리뷰 clean(finding 0건). `run.json`, `iteration-02/review.json`, `iteration-02/test.json` 모두 JSON Schema 검증 통과, `git diff --check` 및 Markdownlint 통과 후 `main` 브랜치에 병합 완료.
+
 ## R24 main 작업 리뷰 SHA 인계 절차 보강 Run 등록 (2026-11-02)
 
 - `docs/to-do.md`의 미완료 중 Orchestrator 역할에 직접 해당하는 R24를 다음 과제로 선택했다.

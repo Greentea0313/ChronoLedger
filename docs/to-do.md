@@ -40,7 +40,7 @@
   - Claude Code 전용 루트 지침 [`CLAUDE.md`](../CLAUDE.md) 신규 생성 (`@.agents/rules/*.md` 링크 임포트, Claude Pro Opus / Sonnet 역할 및 세부 운용 기준, `"인수인계 문서를 확인해"` 자동 실행 프로토콜, 프로젝트 권위 경로 안내).
   - 범용 에이전트 전용 루트 지침 [`AGENTS.md`](../AGENTS.md) 신규 생성 (GPT Codex, OpenCode 자동 인식, 5대 AI 모델 역할 분배표, Claude Pro Opus/Sonnet 세부 역할 및 5단계 실행 프로토콜 안내).
   - 지침 파일 내 구버전 경로 일괄 최신화 (`.github/copilot-instructions.md`, `.agents/skills/chronoledger-orchestrator/SKILL.md`, `.agents/skills/chronoledger-maker/SKILL.md`, `.agents/skills/chronoledger-reviewer/SKILL.md` 내 `md/` 참조를 `.agents/rules/`, `docs/spec/`, `sql/`, `docs/design-previews/`, `docs/archive/`로 변경).
-- [ ] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다.
+- [x] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다. (`완료` - `require-main-run-sha` 및 `12.15-F2` 등 다수 Run 검증 완료)
 - [x] 대시보드·지출·통계 반응형 시안을 만들고 주요 화면 구성과 반응형 동작을 브라우저에서 검증한다. 사용자는 대시보드 그래프 제외, 데스크톱 표/모바일 그룹 카드, 아이콘 전체 표시, 월별 세로 막대/분류별 가로 막대를 결정했다.
 - [x] 시안 검토 후 글자 크기, 쿨 뉴트럴 라이트 팔레트/대비, 기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 확정해 UI 디자인 시트·상세 설계에 기록했다.
 - [x] A2z 제작자 페이지의 SIL OFL 1.1 및 눈누의 상업 사용/수정/재배포 허용 안내를 확인했다. 재배포 시 저작권 고지와 OFL 전문이 필요하며, 폰트 자체 단독 판매는 허용되지 않는다.
@@ -611,7 +611,7 @@
 - [x] R21. [P3] `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql`(파괴적 정리) 확인 쿼리·주의 문구 추가
 - [x] R22. [P3] `game-select-modal.tsx` `fetchGames`를 `user?.id` 의존으로 변경, 대시보드 `loadSchedulePreference` 실패 시 공식 일정만 표시로 폴백 (Claude Sonnet) (`완료` - 커밋 `b820a4e`, Claude Opus 대체 수행)
 - [x] R23. 운영 Supabase에 `MIGRATION_USERS_ROLE_GUARD.sql`(R18)·`MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(R19) 적용 (`완료` - 2026-11-02 사용자 실행 확인)
-- [ ] R24. `main` 직접 실행의 Base SHA를 Dispatch Queue에 등록 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하도록 Orchestrator 스킬에 명시한다. `run.schema.json`은 확장하지 않고 가짜 `branch`/`worktree_path` manifest를 만들지 않는다. iteration-01 리뷰에서 발견한 Run README 경로 문자열의 제어문자 손상(P3)을 수정하고 같은 Base SHA부터 새 Target SHA까지 재리뷰해야 완료 처리한다 (Gemini 4 Argon; Run `require-main-run-sha`)
+- [x] R24. `main` 직접 실행의 Base SHA를 Dispatch Queue에 등록 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하도록 Orchestrator 스킬에 명시한다. `run.schema.json`은 확장하지 않고 가짜 `branch`/`worktree_path` manifest를 만들지 않는다. iteration-01 리뷰에서 발견한 Run README 경로 문자열의 제어문자 손상(P3)을 수정하고 같은 Base SHA부터 새 Target SHA까지 재리뷰해야 완료 처리한다 (`완료` - 커밋 `83d2e18`, `42e52c6`, `5bd515e`; Gemini 4 Argon iteration-02 재리뷰 PASS 및 `main` 병합 완료)
 - [x] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
 - [x] R26. 소비 페이지 막대 차트: 게임별 과금 툴팁에 UUID 대신 게임명, 금액 축 눈금 중복(`0만 0만 1만 1만`) 제거, 막대 외곽선 다크·라이트 테마 가시성 개선 (`Phase 12.31`, Claude Sonnet) (`완료` - 커밋 `fc4ea9d`, Claude Opus 리뷰 PASS, 배포 대기)
 - [x] R27. [운영 긴급] 운영 Supabase에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 (미적용 시 관리자 일정 추가·수정, 일정 요청 제출·승인 실패) (사용자 수동) (`완료` - 2026-11-02 사용자 적용)
