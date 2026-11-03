@@ -1,8 +1,9 @@
 # R13 Specification: Per-Game Character Roster, Custom Taxonomy, and Party Presets
 
 - **Document ID**: `R13-SPEC-v1`
-- **Status**: `DRAFT — Ready for Architectural & Security Review (Claude Opus)`
+- **Status**: `APPROVED — 2026-11-03, architectural & security review by Claude Opus (see §7 Review Resolutions; §7 is normative and overrides earlier sections where they differ)`
 - **Author**: `Gemini 4 Argon (Orchestrator & Architect)`
+- **Reviewer**: `Claude Opus`
 - **Created**: `2026-11-03`
 - **Related Authorities**: [`docs/spec/SRS.md`](SRS.md), [`sql/SCHEMA.sql`](../../sql/SCHEMA.sql), [`docs/to-do.md`](../to-do.md)
 
@@ -45,10 +46,13 @@ ALTER TABLE public.games
     ADD COLUMN IF NOT EXISTS max_preset_slots SMALLINT NOT NULL DEFAULT 4
         CHECK (max_preset_slots BETWEEN 1 AND 12),
     ADD COLUMN IF NOT EXISTS classification_schema JSONB NOT NULL DEFAULT '{
-        "rarities": ["SSR", "SR", "R"],
+        "rarities": [],
         "axes": []
-    }'::jsonb;
+    }'::jsonb
+        CHECK (public.is_valid_classification_schema(classification_schema));
 ```
+
+*(Review: the default is empty instead of `SSR/SR/R` so existing games do not silently receive a wrong rarity system; see §7.2.)*
 
 #### Structure of `games.classification_schema` (JSONB)
 
@@ -71,9 +75,9 @@ ALTER TABLE public.games
 ```
 
 - **Constraints & Validation**:
-  - `rarities`: array of 1–10 non-empty strings (ordered from highest rarity to lowest for default sort order).
-  - `axes`: array of 0–3 axis objects, each with `key` (`^[a-z0-9_]{1,24}$`), `label` (1–30 chars, Korean display name), and `options` (1–20 strings).
-  - Enforced by a `CHECK (jsonb_typeof(classification_schema) = 'object')` constraint and client/RPC validation.
+  - `rarities`: array of 0–10 unique non-empty strings (ordered from highest rarity to lowest for default sort order; empty means the game has no rarity system).
+  - `axes`: array of 0–3 axis objects, each with a unique `key` (`^[a-z0-9_]{1,24}$`), `label` (1–30 chars, Korean display name), and `options` (1–20 unique non-empty strings).
+  - Enforced in the database by the `IMMUTABLE` function `public.is_valid_classification_schema(jsonb)` used in the `CHECK` constraint above, and mirrored by client validation for user-friendly errors.
 
 ---
 
@@ -84,7 +88,9 @@ CREATE TABLE public.game_characters (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    default_icon_url TEXT NOT NULL,
+    default_icon_url TEXT NOT NULL
+        CHECK (length(default_icon_url) <= 150000
+               AND (default_icon_url LIKE 'data:image/webp;base64,%' OR default_icon_url LIKE 'https://%')),
     rarity VARCHAR(30),
     attributes JSONB NOT NULL DEFAULT '{}'::jsonb
         CHECK (jsonb_typeof(attributes) = 'object'),
@@ -111,11 +117,13 @@ CREATE TABLE public.character_requests (
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     target_character_id UUID REFERENCES public.game_characters(id) ON DELETE SET NULL,
     name VARCHAR(100) NOT NULL,
-    default_icon_url TEXT,
+    default_icon_url TEXT
+        CHECK (default_icon_url IS NULL OR (length(default_icon_url) <= 150000
+               AND (default_icon_url LIKE 'data:image/webp;base64,%' OR default_icon_url LIKE 'https://%'))),
     rarity VARCHAR(30),
     attributes JSONB NOT NULL DEFAULT '{}'::jsonb
         CHECK (jsonb_typeof(attributes) = 'object'),
-    memo TEXT,
+    memo VARCHAR(500),
     request_status VARCHAR(20) NOT NULL DEFAULT 'PENDING'
         CHECK (request_status IN ('PENDING', 'APPROVED', 'REJECTED')),
     admin_memo TEXT,
@@ -141,7 +149,9 @@ CREATE TABLE public.user_characters (
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     character_id UUID NOT NULL REFERENCES public.game_characters(id) ON DELETE CASCADE,
     is_owned BOOLEAN NOT NULL DEFAULT true,
-    custom_icon_path TEXT,
+    custom_icon_path TEXT
+        CHECK (custom_icon_path IS NULL
+               OR custom_icon_path = user_id::text || '/characters/' || character_id::text || '.webp'),
     memo VARCHAR(200),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -154,7 +164,8 @@ CREATE INDEX idx_user_characters_user_game ON public.user_characters(user_id, ga
 - **Integrity Trigger (`validate_user_character_game`)**:
   - `BEFORE INSERT OR UPDATE` trigger verifying that `NEW.game_id` matches `game_characters.game_id` for `NEW.character_id`.
 - **Storage Path Convention**:
-  - `custom_icon_path` is stored in the existing private bucket `user-icons` at `{user_id}/characters/{character_id}.webp` (or `{user_id}/character_{character_id}_{timestamp}.webp`), which already satisfies the existing RLS policy `(storage.foldername(name))[1] = auth.uid()::text` and the account deletion cleanup `name LIKE v_req.user_id || '/%'`!
+  - `custom_icon_path` is stored in the existing private bucket `user-icons` at exactly `{user_id}/characters/{character_id}.webp` (single convention, overwritten with `upsert`; enforced by the `CHECK` above). This satisfies the existing `storage.objects` policies `(storage.foldername(name))[1] = auth.uid()::text` and the account deletion cleanup `name LIKE v_req.user_id || '/%'` without a new bucket (verified against `sql/SCHEMA.sql`).
+- **Ownership semantics**: a character with no `user_characters` row is unowned. A row with `is_owned = false` keeps a memo or custom icon for an unowned character.
 
 ---
 
@@ -167,7 +178,8 @@ CREATE TABLE public.user_character_presets (
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     title VARCHAR(80) NOT NULL,
     character_ids UUID[] NOT NULL
-        CHECK (cardinality(character_ids) >= 1 AND cardinality(character_ids) <= 12),
+        CHECK (cardinality(character_ids) >= 1 AND cardinality(character_ids) <= 12
+               AND array_position(character_ids, NULL) IS NULL),
     memo VARCHAR(300),
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -179,8 +191,8 @@ CREATE INDEX idx_user_character_presets_user_game ON public.user_character_prese
 
 - **Integrity Trigger (`validate_user_character_preset`)**:
   - `BEFORE INSERT OR UPDATE` trigger on `public.user_character_presets`:
-    1. Fetches `max_preset_slots` from `public.games WHERE id = NEW.game_id`.
-    2. Checks `cardinality(NEW.character_ids) BETWEEN 1 AND v_max_slots`.
+    1. Fetches `max_preset_slots` from `public.games WHERE id = NEW.game_id`. If the game row no longer exists (cascade in progress), return `NEW` and let the foreign key decide.
+    2. Checks `cardinality(NEW.character_ids) <= v_max_slots`, **except** on `UPDATE` when `cardinality(NEW.character_ids) <= cardinality(OLD.character_ids)` (non-destructive slot reduction; see §7.3).
     3. Checks that there are no duplicate UUIDs in `NEW.character_ids`.
     4. Checks that every UUID in `NEW.character_ids` exists in `public.game_characters` with `game_id = NEW.game_id`.
 - **Cascade Behavior on Character Deletion**:
@@ -192,8 +204,9 @@ CREATE INDEX idx_user_character_presets_user_game ON public.user_character_prese
 
 1. **Row-Level Security (RLS)**:
    - `public.game_characters`: `SELECT` for `authenticated`; `ALL` for `admin` (`app_metadata.role = 'admin'` or `public.users.role = 'admin'`).
-   - `public.character_requests`: `INSERT` (`request_status = 'PENDING' AND admin_memo IS NULL AND approved_character_id IS NULL`) and `SELECT` for own rows (`auth.uid() = user_id`); `ALL` for `admin`.
-   - `public.user_characters` & `public.user_character_presets`: `ALL` for own rows (`auth.uid() = user_id`).
+   - `public.character_requests`: `INSERT` with `WITH CHECK (auth.uid() = user_id AND request_status = 'PENDING' AND admin_memo IS NULL AND approved_character_id IS NULL)` and `SELECT` for own rows (`auth.uid() = user_id`); `ALL` for `admin`. Users cannot `UPDATE`/`DELETE` requests (same as `schedule_requests`).
+   - `public.user_characters` & `public.user_character_presets`: `ALL` for own rows with `USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)`.
+   - Admin checks rely on `public.users.role`, which is protected against self-promotion by `MIGRATION_USERS_ROLE_GUARD.sql` (R18); this migration is a prerequisite.
 2. **Account Deletion Guard & Purge Integration**:
    - Add `character_requests`, `user_characters`, and `user_character_presets` to:
      - Restrictive RLS policy loop (`Block account deletion users from ...`)
@@ -203,7 +216,8 @@ CREATE INDEX idx_user_character_presets_user_game ON public.user_character_prese
    - `approve_character_request(p_request_id UUID, p_default_icon_url TEXT DEFAULT NULL)`:
      - Verifies caller is admin and request is `PENDING`.
      - If `target_character_id IS NULL`: inserts into `public.game_characters` using `coalesce(nullif(btrim(p_default_icon_url), ''), v_request.default_icon_url)` (raises exception if neither is provided) and sets `approved_character_id`.
-     - If `target_character_id IS NOT NULL`: updates the target row in `public.game_characters`.
+     - If `target_character_id IS NOT NULL`: updates the target row in `public.game_characters` only when it belongs to `v_request.game_id`; otherwise raises an exception and leaves the request `PENDING`.
+     - Validates `v_request.rarity` and `v_request.attributes` against the game's `classification_schema` (unknown rarity, axis key, or option raises an exception).
      - Marks `character_requests.request_status = 'APPROVED'`.
    - `reject_character_request(p_request_id UUID, p_admin_memo TEXT DEFAULT NULL)`:
      - Verifies caller is admin and marks `PENDING` request as `REJECTED` with `admin_memo`.
@@ -274,3 +288,50 @@ When reviewing this specification, verify and report on:
 2. **Storage RLS Compatibility**: Does storing custom character icons at `{user_id}/characters/{character_id}.webp` in `user-icons` work seamlessly with the existing `storage.objects` policies and `storage-upload.ts` helper without requiring new buckets?
 3. **Classification Schema Ergonomics**: Is `games.classification_schema` (`rarities` + up to 3 `axes`) sufficient and ergonomic for both Admin input and User filtering across major subculture games?
 4. **Edge Cases**: What happens when an admin reduces `games.max_preset_slots` after users already saved presets with more slots, or renames a classification option? (Recommend non-destructive handling: existing presets remain viewable and only enforce the new `max_preset_slots` ceiling when edited, or `CHECK` in trigger allows existing cardinality if unchanged).
+
+---
+
+## 7. Review Resolutions (Claude Opus, 2026-11-03)
+
+This section records the outcome of the §6 checklist. It is normative: Phase 13.1–13.3 implement these rules, and they override earlier sections where they differ.
+
+### 7.1 Schema, RLS, and Account Deletion (Checklist 1)
+
+- **Verdict**: Sound with the amendments applied inline above.
+- **Amendments made**:
+  - `character_requests` user `INSERT` policy now requires `auth.uid() = user_id` (it was missing; without it a user could file requests under another user's ID).
+  - Icon text columns (`game_characters.default_icon_url`, `character_requests.default_icon_url`) are capped at 150,000 characters and limited to `data:image/webp;base64,` or `https://` values. A 256×256 WebP under 100 KiB encodes to at most ~137,000 characters. Without this cap, any user could store arbitrarily large text through requests.
+  - `character_requests.memo` is `VARCHAR(500)` instead of unbounded `TEXT`.
+  - `approve_character_request` verifies the update target belongs to the request's game and validates rarity/attributes against `classification_schema`.
+  - Users get `USING` and `WITH CHECK` on `user_characters` and `user_character_presets`.
+- **Account deletion**: The three user-owned tables cascade from `auth.users`, and the explicit purge, restrictive policy, and mutation-block hooks listed in §3.2 are still required so pending-deletion users cannot write. Approved catalog rows stay (`created_by ON DELETE SET NULL`), matching `games`.
+
+### 7.2 Storage Compatibility (Checklist 2)
+
+- **Verdict**: Compatible without a new bucket. Verified in `sql/SCHEMA.sql`: the `user-icons` policies check `(storage.foldername(name))[1] = auth.uid()::text`, and the purge deletes `name LIKE user_id || '/%'`; both cover `{user_id}/characters/{character_id}.webp`.
+- **Required code change**: `src/lib/storage-upload.ts` hard-codes `${userId}/${gameId}.webp` and caches by `${userId}/${gameId}`. Phase 13.3 must add character-specific helpers (upload, download with signed URL cache, delete) keyed by the full object path so game and character caches cannot collide.
+- **Orphaned files**: When an admin deletes a character, `user_characters` rows cascade but Storage objects are not removed by SQL. Accepted: files remain private, are overwritten on re-upload, and are removed at account deletion. The client deletes the object when a user resets a custom icon.
+
+### 7.3 Edge Cases (Checklist 4)
+
+1. **Reducing `max_preset_slots`**: Non-destructive. Existing presets stay viewable with all characters. The validation trigger only rejects inserts or updates that add characters beyond the new ceiling (rule in §2.5). The editor shows an over-limit preset as read-only until the user removes characters down to the ceiling.
+2. **Deleting a character**: The `AFTER DELETE` cleanup on `game_characters` first deletes presets whose `character_ids` would become empty, then applies `array_remove` to the rest. Because the slot rule allows shrinking arrays, cleanup never fails on presets that exceed a reduced ceiling.
+3. **Deleting a game**: Cascades to characters and presets in an unspecified order. The validation trigger returns `NEW` when the game row is gone, so the cleanup trigger cannot block game deletion.
+4. **Renaming or removing a classification option or rarity**: Stored character values are not rewritten. Values no longer in the schema render as their raw text and are grouped under a `기타` filter option in both roster and picker. The admin game modal warns how many characters use a removed value. Bulk rename is out of scope for R13.
+5. **Slot positions**: `character_ids` has no gaps or `NULL` elements; array order is slot order.
+
+### 7.4 Classification Ergonomics (Checklist 3)
+
+- **Verdict**: Sufficient for the listed games (Genshin, Star Rail, Arknights, Nikke) with single-valued axes. Multi-valued tags (for example several roles per character) are out of scope; such a game uses its most useful single axis.
+- **Indexing**: Per-game catalogs are small (hundreds of rows) and filtered on the client after one `game_id` query, so no JSONB GIN index is needed. `idx_game_characters_game_id` is sufficient.
+- **Database validation**: `is_valid_classification_schema(jsonb)` enforces the §2.1 shape so a malformed admin edit cannot break every client.
+
+### 7.5 Required SQL Smoke Tests for Phase 13.1 (`sql/tests/TESTS.sql`)
+
+- A user cannot insert a `character_requests` row with another `user_id`, or with an oversized or non-WebP/non-HTTPS icon value.
+- A preset rejects duplicates, `NULL` elements, characters from another game, and counts above `max_preset_slots`.
+- After `max_preset_slots` is reduced, an over-limit preset can still be read and shrunk, and deleting one of its characters succeeds.
+- Deleting a character removes it from presets and deletes presets that become empty.
+- Deleting a game with characters and presets succeeds.
+- `custom_icon_path` rejects paths outside `{user_id}/characters/{character_id}.webp`.
+- A pending-deletion user cannot write to the three new user tables.
