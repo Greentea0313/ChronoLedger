@@ -57,9 +57,17 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `▶ READY` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & Types)` | `Phase 12.15-F3`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 `src/types/database.types.ts` RPC/테이블 타입 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 연결 (`src/types/database.types.ts`, `src/lib/supabase/client.ts`, 필요 시 타입 정합성 관련 `src/**` 최소 범위) | `⏳ Worktree 커밋 및 Step 2 ▶ READY 전환 대기` |
-| **2** | `⏳ WAITING` | **GitHub Copilot** *(Gemini 3.8 Flash 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & A11y)` | `Phase 12.32`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 5개 모달 `DialogDescription` 추가, 소비 통계 월 드롭다운 고유 `aria-label` 분리, 관리자 권한 안내 `text-danger`/`role="alert"`, 단위 테스트 및 `docs/to-do.md` 체크리스트 마감 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `docs/to-do.md`) | `⏳ Step 1 완료 후 진행 대기` |
+| **1** | `✅ DONE (SHA: c075045f82fae6af8e9c7900a656220637bd899f)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & Types)` | `Phase 12.15-F3`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 `src/types/database.types.ts` RPC/테이블 타입 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 연결 (`src/types/database.types.ts`, `src/lib/supabase/client.ts`, 필요 시 타입 정합성 관련 `src/**` 최소 범위) | `✅ c075045f: RPC nullable/optional 및 schedule/request 리터럴 타입 정리, typed client 연결. 구독 sync/modal 및 요청 화면 호출부 타입 정합성 수정. tsc 통과, 관련 Vitest 30건 및 ESLint 통과.` |
+| **2** | `▶ READY` | **GitHub Copilot** *(Gemini 3.8 Flash 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & A11y)` | `Phase 12.32`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 5개 모달 `DialogDescription` 추가, 소비 통계 월 드롭다운 고유 `aria-label` 분리, 관리자 권한 안내 `text-danger`/`role="alert"`, 단위 테스트 및 `docs/to-do.md` 체크리스트 마감 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `docs/to-do.md`) | `▶ Phase 12.15-F3 Maker 커밋 완료 후 진행 가능` |
 | **3** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 통합 리뷰 대기` |
+
+## Phase 12.15-F3 Supabase 타입 연결 Maker 완료 (2026-11-03)
+
+- **수행 주체**: GPT Codex (Maker - Core & Types)
+- **커밋**: `.worktrees/supabase-typed-client-and-a11y-closeout`의 `c075045f82fae6af8e9c7900a656220637bd899f`.
+- **변경**: `Database`를 Supabase client에 연결하고 요구된 RPC nullable/optional 인자와 game schedule/request literal 타입을 반영했다. 제네릭 연결 후 드러난 구독 템플릿 insert/update payload 및 요청 화면 nullable 필드, subscription sync game ID 타입 정합성도 수정했다.
+- **검증**: `tsc --noEmit` 통과, `subscription-sync.test.ts` 22개 및 `subscription-modal.test.tsx` 8개 통과, 변경 파일 ESLint와 `git diff --check` 통과.
+- **현재 상태 / 다음 단계**: Step 1 완료, Step 2 Phase 12.32가 `▶ READY`. GitHub Copilot이 지정 worktree에서 접근성·대비 수정, 테스트와 `docs/to-do.md` 마감을 진행한다.
 
 ### 🗂️ 이전 Run 기록 (완료): require-main-run-sha
 

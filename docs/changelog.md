@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-03 (Phase 12.15-F3 Supabase 타입 연결, `c075045f`)
+
+- `src/lib/supabase/client.ts`의 `createClient<Database>` 연결과 RPC nullable/optional 인자 및 일정·요청 상태 리터럴 타입을 반영했다.
+- 타입 안전성 연결 중 확인된 호출부 정합성 문제를 해결하기 위해 구독 템플릿 payload를 `TablesInsert`/`TablesUpdate`로 지정하고, subscription sync 및 요청 화면의 nullable 필드를 보정했다.
+- 검증: `tsc --noEmit`, 관련 Vitest 30개, 변경 파일 ESLint 통과.
+
 ## 2026-11-03 (R24 iteration-02 수정 및 Run 마감, `42e52c6` / `5bd515e`)
 
 - `scripts/collaboration/New-CollaborationRun.ps1`: `iteration-01/README.md` 생성 구문을 `@" ... "@`에서 `@' ... '@`로 교체해 백틱 경로 문자열(`review.json`, `test.json`, `artifacts/schemas/`)이 제어문자(`\r`, `\t`, `\a`)로 손상되는 문제를 해결.

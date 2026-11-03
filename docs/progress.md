@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## Phase 12.15-F3 Supabase 타입 연결 완료 (2026-11-03)
+
+- **수행 주체**: GPT Codex (Step 1 Maker)
+- **완료**: `c075045f82fae6af8e9c7900a656220637bd899f`에서 RPC nullable/optional 인자와 일정·요청 상태 리터럴 타입을 정리하고 `createClient<Database>`를 연결했다. 타입 연결로 드러난 구독 동기화/모달 payload, 요청 화면 nullable 필드도 정합화했다.
+- **검증**: `tsc --noEmit` 통과, 관련 Vitest 30개(22+8) 통과, 변경 파일 ESLint 및 `git diff --check` 통과.
+- **다음 단계**: 같은 worktree의 Step 2 Phase 12.32 UI 접근성 및 Cloudflare Pages 체크리스트 마감(GitHub Copilot, `▶ READY`).
+
 ## Phase 12.15-F3 & Phase 12.32 협업 Run 등록 (2026-11-03)
 
 - **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
