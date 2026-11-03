@@ -1,5 +1,15 @@
 # 프로젝트 진행 현황
 
+## R13 영문 명세서 작성 및 Phase 12.33 아이콘 CORS/모바일 깨짐 해결 Run 등록 (2026-11-03)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
+- **R13 영문 명세서 작성**: 사용자의 3대 핵심 요구사항(① 게임 아이콘과 동일한 캐릭터 아이콘 관리 및 사용자 커스텀 아이콘 `user-icons` 지원, ② 관리자 게임별 프리셋 최대 슬롯 `max_preset_slots` 설정 및 미보유 캐릭터 명도 감쇠 시각화, ③ 게임별 성급·다중 분류 축 `classification_schema` 최적화 및 캐릭터별 메모 필드·배지 생략)을 반영한 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)를 작성했다.
+- **나무위키 아이콘 모바일 깨짐 및 관리자 URL 등록 CORS 오류 원인 규명 (`Phase 12.33` / `R29`)**:
+  1. 관리자 URL 등록 실패 원인: `src/lib/image-resizer.ts`의 `fetchImageFile`이 브라우저 `fetch()`를 직접 수행하여 `Access-Control-Allow-Origin` 헤더가 없는 나무위키(`i.namu.wiki`) 등 외부 서버에서 CORS 에러가 발생함.
+  2. 모바일 미표시 원인: 과거 원본 URL로 저장된 나무위키 이미지가 핫링크·세션 토큰·Referer 정책(`strict-origin-when-cross-origin` 및 SVG `<image>`의 `referrerPolicy` 미지원)에 의해 모바일에서 차단됨.
+  3. 해결책: `fetchImageFile`에 CORS 허용 이미지 프록시(`wsrv.nl`) 폴백 추가, 관리자 모달 클립보드 이미지 직접 붙여넣기(`onPaste`) 지원, 전역 `Referrer-Policy: no-referrer` 적용을 `Phase 12.33`으로 등록했다.
+- **다음 단계**: Step 1 **Claude Opus**(`▶ READY`)가 `R13` 영문 명세서 및 `Phase 12.33` 설계를 리뷰·확정 → Step 2 **GitHub Copilot**이 `Phase 12.33` 구현.
+
 ## Phase 12.15-F3 & Phase 12.32 통합 정적 리뷰 및 Run 마감 (2026-11-03)
 
 - **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator)

@@ -31,6 +31,39 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
+- **Run ID**: `r13-spec-review-and-icon-cors-fix` *(2026-11-03, R13 영문 명세서 아키텍처·보안 리뷰 및 나무위키 등 외부 아이콘 URL CORS/모바일 깨짐 해결 `Phase 12.33`)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `main` (사유: Step 1은 신규 영문 명세서 `docs/spec/R13_Character_Roster_and_Preset_Spec.md` 아키텍처·보안 리뷰 중심 과제이며, Step 2는 아이콘 변환 유틸·헤더 국소 수정이므로 `chronoledger-orchestrator/SKILL.md`의 「Main-worktree fallback runs」 절차 적용)
+- **리뷰 비교 범위**: Base `cdee5a7b9f756a8131a5f49a6e82b47f97698541` (Run 등록 직전 `main` HEAD) ↔ Target *(각 단계 완료 시 해당 커밋 SHA 기록)*
+- **수용 기준 (Acceptance Criteria)**:
+  1. **Step 1 — `R13` 영문 명세서([`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)) 심층 리뷰 및 `Phase 12.33` 설계 검증 (Claude Opus)**:
+     - **대상 파일**: `docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/handoff.md`, `docs/to-do.md`
+     - **R13 명세 검토 항목**:
+       - ① **캐릭터 아이콘 관리(사용자 커스터마이징 포함)**: `game_characters.default_icon_url`(256×256 WebP Data URL) + `user_characters.custom_icon_path`(`user-icons` 비공개 버킷 `{user_id}/characters/{character_id}.webp`) 구조가 기존 `storage.objects` RLS 및 계정 탈퇴 정리(`purge_expired_account_deletion_requests`)와 완벽히 호환되는지 검증.
+       - ② **게임별 최대 프리셋 슬롯(`games.max_preset_slots`) 및 미보유 캐릭터 명도 감쇠**: 관리자가 게임별로 최대 슬롯(`1..12`)을 설정하고, 슬롯 축소 시 기존 프리셋 보존/편집 시 검증 트리거(`validate_user_character_preset`) 및 캐릭터 삭제 시 배열 정리 트리거의 무결성 검토. 미보유 캐릭터는 배지 없이 명도(`brightness-50 saturate-50 opacity-65`)만 낮추고 보유 태그 배지는 제외(캐릭터별 `memo` 필드로만 기록)하는 UX 일관성 확인.
+       - ③ **성급(`rarities`) 및 게임별 캐릭터 분류 축(`classification_schema` JSONB — 속성/원소, 직업/무기/운명의 길 등)**: 서브컬처 게임별 다양한 분류 체계를 수용하기에 스키마(`games.classification_schema` + `game_characters.rarity`/`attributes`)가 충분하고 인덱싱·필터링에 유리한지 검토 후 보완 사항을 `docs/spec/R13_Character_Roster_and_Preset_Spec.md`에 직접 반영하여 `APPROVED` 상태로 확정.
+     - **`Phase 12.33` (나무위키 등 외부 아이콘 URL CORS 실패 및 모바일 깨짐 해결) 설계 검토**:
+       - 아래 Step 2의 원인 분석 및 해결 방안(CORS 허용 프록시 폴백 / 클립보드 이미지 직접 붙여넣기 `onPaste` / 전역 `Referrer-Policy: no-referrer`)의 보안·안정성을 검토하고 필요 시 Step 2 수용 기준을 보완한 뒤 Step 2를 `▶ READY`로 전환.
+  2. **Step 2 — `Phase 12.33 (R29)` 나무위키 등 외부 아이콘 URL 등록 CORS 우회·클립보드 붙여넣기 및 모바일 깨짐 해결 (GitHub Copilot / Claude Sonnet)**:
+     - **원인 규명**:
+       - ① **관리자 URL 등록 시 CORS 실패**: `src/lib/image-resizer.ts`의 `fetchImageFile(url)`이 브라우저 `fetch(parsedUrl)`를 직접 호출하므로, `Access-Control-Allow-Origin` 헤더를 주지 않는 나무위키(`i.namu.wiki`) 등 외부 이미지 URL 입력 시 무조건 CORS 에러(`"이미지 URL을 가져오지 못했습니다. 파일을 업로드하거나 CORS가 허용된 URL을 사용해 주세요."`)가 발생해 저장 자체가 차단됨.
+       - ② **기존 나무위키 URL 모바일 미표시**: 과거 DB에 원본 `https://i.namu.wiki/...` URL로 저장된 아이콘은 나무위키의 핫링크·세션 토큰·Referer 차단 및 `public/_headers`의 `Referrer-Policy: strict-origin-when-cross-origin`(특히 SVG `<image href>`는 `referrerPolicy` 속성이 동작하지 않음)으로 인해 노트북 로컬 캐시에서는 보이지만 모바일에서는 차단됨.
+     - **대상 파일**: `src/lib/image-resizer.ts`, `src/lib/image-resizer.test.ts`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `public/_headers`, `src/app/layout.tsx`
+     - **구현 요구사항**:
+       - ① **`fetchImageFile` 다단계 폴백 (`src/lib/image-resizer.ts`)**: 1차로 `fetch(parsedUrl, { referrerPolicy: "no-referrer" })`를 시도하고, CORS/네트워크 예외 또는 비정상 응답 발생 시 2차로 공개 CORS 이미지 프록시(`https://wsrv.nl/?url=${encodeURIComponent(parsedUrl.toString())}&w=256&h=256&fit=cover&output=webp`)를 통해 이미지를 가져와 256×256 WebP Data URL(`data:image/webp;base64,...`)로 변환·저장한다.
+       - ② **클립보드 이미지 붙여넣기(`onPaste`) 지원 (`/admin`, `/admin/requests`)**: 나무위키 등에서 `[이미지 주소 복사]` 대신 `[이미지 복사]` 후 관리자 게임 등록/수정 모달 또는 게임 요청 승인 입력란에서 `Ctrl+V`(또는 모바일 클립보드 붙여넣기)를 누르면 `event.clipboardData.files`(또는 `items`)의 이미지 `File`을 즉시 인식해 외부 서버 요청/CORS 없이 256×256 WebP Data URL로 변환·미리보기할 수 있도록 지원한다.
+       - ③ **전역 `no-referrer` 적용 (`public/_headers`, `src/app/layout.tsx`)**: `public/_headers`의 `Referrer-Policy`를 `no-referrer`로 변경하고 `src/app/layout.tsx` metadata에 `referrer: "no-referrer"`를 설정하여, 아직 재저장되지 않은 기존 외부 URL 이미지 및 소비 차트 SVG `<image>` 요청에서도 Referer가 외부로 노출되지 않도록 차단한다.
+  3. **Step 3 — `Phase 12.33` 정적 리뷰 및 Run 마감 (Gemini 4 Argon / Claude Opus)**:
+     - Step 2 커밋에 대한 정적 리뷰, 전체 검증(`tsc`, `lint`, `vitest`, `markdownlint`) 및 문서 마감.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Architect` | `R13` 영문 명세서([`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)) 아키텍처·RLS·Storage·분류 스키마 리뷰 및 확정 + `Phase 12.33` 아이콘 CORS/모바일 깨짐 해결 설계 검증 (`docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/handoff.md`, `docs/to-do.md`) | `⏳ R13 명세 리뷰·보완 커밋 및 Step 2 ▶ READY 전환 대기` |
+| **2** | `⏳ WAITING` | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & Image Utils)` | `Phase 12.33 (R29)`: `src/lib/image-resizer.ts` CORS 프록시 폴백, `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기(`onPaste`), `public/_headers`·`src/app/layout.tsx` `no-referrer` 적용 및 단위 테스트 | `⏳ Step 1 리뷰 완료 후 진행 대기` |
+| **3** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | `Phase 12.33` 정적 코드 리뷰, 전체 테스트 검증 및 문서 마감 | `⏳ Step 2 완료 후 진행 대기` |
+
+### 🗂️ 이전 Run 기록 (완료): supabase-typed-client-and-a11y-closeout
+
 - **Run ID**: `supabase-typed-client-and-a11y-closeout` *(2026-11-03, Phase 12.15-F3 Supabase `createClient<Database>` 타입 안전성 연결 & Phase 12.32 주요 화면/모달 접근성·대비 보완 및 Cloudflare Pages 릴리즈 체크리스트 마감)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/supabase-typed-client-and-a11y-closeout` (브랜치: `collab/supabase-typed-client-and-a11y-closeout`)
