@@ -33,7 +33,7 @@ type ScheduleRequest = {
   is_official?: boolean
   admin_memo?: string | null
   request_status: string
-  created_at: string
+  created_at: string | null
   games?: { name: string } | null
 }
 

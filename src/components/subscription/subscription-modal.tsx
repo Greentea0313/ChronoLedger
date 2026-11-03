@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
+import type { TablesInsert, TablesUpdate } from "@/types/database.types"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { ensureMonthlySubscriptionExpenses, type SubscriptionCycleType } from "@/lib/subscription-sync"
@@ -169,7 +170,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
     try {
       const targetCategory = gameId ? "게임" : "정기 구독"
       if (editingTemplate) {
-        const updatePayload: Record<string, unknown> = {
+        const updatePayload: TablesUpdate<"subscription_templates"> = {
           title: title.trim(),
           category: targetCategory,
           game_id: gameId || null,
@@ -217,7 +218,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
         const now = new Date()
         await ensureMonthlySubscriptionExpenses(user.id, now.getFullYear(), now.getMonth() + 1).catch(() => {})
       } else {
-        const insertPayload: Record<string, unknown> = {
+        const insertPayload: TablesInsert<"subscription_templates"> = {
           user_id: user.id,
           title: title.trim(),
           category: targetCategory,

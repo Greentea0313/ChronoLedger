@@ -59,14 +59,14 @@ isOneToOne: false
                   ]
                 },"game_requests": {
                   Row: {
-                    "admin_memo": string | null,"approved_game_id": string | null,"created_at": string,"id": string,"memo": string | null,"name": string,"request_status": string,"user_id": string
+                    "admin_memo": string | null,"approved_game_id": string | null,"created_at": string,"id": string,"memo": string | null,"name": string,"request_status": "PENDING" | "APPROVED" | "REJECTED","user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "admin_memo"?: string | null,"approved_game_id"?: string | null,"created_at"?: string,"id"?: string,"memo"?: string | null,"name": string,"request_status"?: string,"user_id": string
+                    "admin_memo"?: string | null,"approved_game_id"?: string | null,"created_at"?: string,"id"?: string,"memo"?: string | null,"name": string,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","user_id": string
                   }
                   Update: {
-                    "admin_memo"?: string | null,"approved_game_id"?: string | null,"created_at"?: string,"id"?: string,"memo"?: string | null,"name"?: string,"request_status"?: string,"user_id"?: string
+                    "admin_memo"?: string | null,"approved_game_id"?: string | null,"created_at"?: string,"id"?: string,"memo"?: string | null,"name"?: string,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","user_id"?: string
                   }
                   Relationships: [
                     {
@@ -79,14 +79,14 @@ isOneToOne: false
                   ]
                 },"game_schedules": {
                   Row: {
-                    "created_at": string | null,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"memo": string | null,"schedule_type": string,"start_date": string,"title": string,"updated_at": string | null
+                    "created_at": string | null,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"memo": string | null,"schedule_type": "VERSION" | "PICKUP" | "CONTENTS","start_date": string,"title": string,"updated_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"schedule_type": string,"start_date": string,"title": string,"updated_at"?: string | null
+                    "created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"schedule_type": "VERSION" | "PICKUP" | "CONTENTS","start_date": string,"title": string,"updated_at"?: string | null
                   }
                   Update: {
-                    "created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"schedule_type"?: string,"start_date"?: string,"title"?: string,"updated_at"?: string | null
+                    "created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"schedule_type"?: "VERSION" | "PICKUP" | "CONTENTS","start_date"?: string,"title"?: string,"updated_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -141,14 +141,14 @@ isOneToOne: false
                   ]
                 },"schedule_requests": {
                   Row: {
-                    "admin_memo": string | null,"created_at": string | null,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"memo": string | null,"request_status": string,"schedule_type": string,"start_date": string,"target_schedule_id": string | null,"title": string,"user_id": string
+                    "admin_memo": string | null,"created_at": string | null,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"memo": string | null,"request_status": "PENDING" | "APPROVED" | "REJECTED","schedule_type": "VERSION" | "PICKUP" | "CONTENTS","start_date": string,"target_schedule_id": string | null,"title": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"request_status"?: string,"schedule_type": string,"start_date": string,"target_schedule_id"?: string | null,"title": string,"user_id": string
+                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","schedule_type": "VERSION" | "PICKUP" | "CONTENTS","start_date": string,"target_schedule_id"?: string | null,"title": string,"user_id": string
                   }
                   Update: {
-                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"request_status"?: string,"schedule_type"?: string,"start_date"?: string,"target_schedule_id"?: string | null,"title"?: string,"user_id"?: string
+                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"memo"?: string | null,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","schedule_type"?: "VERSION" | "PICKUP" | "CONTENTS","start_date"?: string,"target_schedule_id"?: string | null,"title"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -277,7 +277,7 @@ isOneToOne: false
 { Args: { "p_user_id": string }; Returns: boolean
                            },
 "adjust_wallet_balance":
-{ Args: { "p_memo": string,"p_platform": string,"p_target_balance": number }; Returns: undefined
+{ Args: { "p_memo"?: string,"p_platform": string,"p_target_balance": number }; Returns: undefined
                            },
 "admin_create_game":
 { Args: { "p_default_icon_url": string,"p_name": string }; Returns: string
@@ -324,7 +324,7 @@ isOneToOne: false
 { Args: { "p_status_token": string }; Returns: Json
                            },
 "process_expense_payment":
-{ Args: { "p_custom_earned_points"?: number,"p_deduct_asset": boolean,"p_discount_amount": number,"p_expense_id": string,"p_memo"?: string,"p_original_price": number,"p_payment_date": string,"p_payment_method": string,"p_point_discount_amount": number,"p_point_platform": string,"p_used_points": number }; Returns: undefined
+{ Args: { "p_custom_earned_points"?: number | null,"p_deduct_asset": boolean,"p_discount_amount": number,"p_expense_id": string,"p_memo"?: string | null,"p_original_price": number,"p_payment_date": string,"p_payment_method": string,"p_point_discount_amount": number,"p_point_platform": string | null,"p_used_points": number }; Returns: undefined
                            },
 "purge_expired_account_deletion_requests":
 { Args: { "p_limit"?: number }; Returns: number
@@ -333,10 +333,10 @@ isOneToOne: false
 { Args: { "p_expense_id": string }; Returns: undefined
                            },
 "reject_game_request":
-{ Args: { "p_admin_memo"?: string,"p_request_id": string }; Returns: undefined
+{ Args: { "p_admin_memo"?: string | null,"p_request_id": string }; Returns: undefined
                            },
 "reject_schedule_request":
-{ Args: { "p_admin_memo"?: string,"p_request_id": string }; Returns: undefined
+{ Args: { "p_admin_memo"?: string | null,"p_request_id": string }; Returns: undefined
                            },
 "request_account_deletion":
 { Args: { "p_confirmation_email": string }; Returns: string
@@ -348,10 +348,10 @@ isOneToOne: false
 { Args: { "p_default_budget": number,"p_total_asset": number }; Returns: undefined
                            },
 "update_confirmed_expense_metadata":
-{ Args: { "p_category": string,"p_expense_id": string,"p_memo"?: string,"p_target_date"?: string,"p_title": string }; Returns: undefined
+{ Args: { "p_category": string,"p_expense_id": string,"p_memo"?: string | null,"p_target_date"?: string | null,"p_title": string }; Returns: undefined
                            },
 "update_store_wallet_settings":
-{ Args: { "p_earn_rate": number,"p_platform": string,"p_tier": string }; Returns: undefined
+{ Args: { "p_earn_rate": number,"p_platform": string,"p_tier": string | null }; Returns: undefined
                            }
           }
           Enums: {
