@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-03 (R13 명세 승인)
+
+- **R13 명세 `APPROVED` (b66b07c)**: Claude Opus 아키텍처·보안 리뷰 결과를 명세에 직접 반영하고 §7 Review Resolutions를 추가. 코드 변경 없음.
+- **Phase 12.33 Step 2 수용 기준 보완**: 아이콘 URL 프록시 폴백의 시간 제한·응답 형식 검사·제3자 고지, 붙여넣기 범위, CSP 주의 사항.
+
 ## 2026-11-03 (Phase 12.32 모달 접근성·기간 필터 라벨 및 통합 리뷰 마감, `3ed5e5d` / `7243c3b`)
 
 - **Phase 12.32 (`3ed5e5d`, GitHub Copilot)**: `src/app/admin/page.tsx`(일정 등록/수정·일정 삭제·게임 삭제), `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx` 등 5개 모달에 `<DialogDescription>` 추가, `src/app/dashboard/expenses/page.tsx` 통계 기간 드롭다운 고유 `aria-label` 분리(`카테고리별 지출 비중 기간 선택` / `게임별 과금 분석 기간 선택`), 관리자 권한 거부 안내에 `role="alert"` 및 `text-danger` 적용, 단위 테스트 보강.

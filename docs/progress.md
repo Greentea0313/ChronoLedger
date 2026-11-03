@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## R13 명세 리뷰 확정 및 Phase 12.33 설계 검증 (2026-11-03)
+
+- **수행 주체**: Claude Opus (Reviewer & Architect)
+- **결과**: `docs/spec/R13_Character_Roster_and_Preset_Spec.md`를 `APPROVED`로 확정(`b66b07c`). §7에 리뷰 결정(RLS 보완, 아이콘 크기 제한, 분류 스키마 DB 검증, 프리셋 트리거 경계 규칙, Storage 헬퍼 확장, Phase 13.1 필수 스모크 테스트)을 기록.
+- **Phase 12.33**: 설계 승인. Step 2 수용 기준에 시간 제한, `Content-Type` 검사, wsrv.nl 제3자 고지, 붙여넣기 범위, CSP 주의를 보완하고 `▶ READY` 전환. 기존 외부 URL 아이콘 재저장은 후속 R30.
+- **다음 단계**: Step 2 `Phase 12.33 (R29)` GitHub Copilot `▶ READY`.
+
 ## R13 영문 명세서 작성 및 Phase 12.33 아이콘 CORS/모바일 깨짐 해결 Run 등록 (2026-11-03)
 
 - **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)

@@ -34,7 +34,7 @@
 - **Run ID**: `r13-spec-review-and-icon-cors-fix` *(2026-11-03, R13 영문 명세서 아키텍처·보안 리뷰 및 나무위키 등 외부 아이콘 URL CORS/모바일 깨짐 해결 `Phase 12.33`)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `main` (사유: Step 1은 신규 영문 명세서 `docs/spec/R13_Character_Roster_and_Preset_Spec.md` 아키텍처·보안 리뷰 중심 과제이며, Step 2는 아이콘 변환 유틸·헤더 국소 수정이므로 `chronoledger-orchestrator/SKILL.md`의 「Main-worktree fallback runs」 절차 적용)
-- **리뷰 비교 범위**: Base `cdee5a7b9f756a8131a5f49a6e82b47f97698541` (Run 등록 직전 `main` HEAD) ↔ Target *(각 단계 완료 시 해당 커밋 SHA 기록)*
+- **리뷰 비교 범위**: Base `cdee5a7b9f756a8131a5f49a6e82b47f97698541` (Run 등록 직전 `main` HEAD) ↔ Target *(각 단계 완료 시 해당 커밋 SHA 기록)* Step 1 Target: `b66b07c` (명세·to-do 문서 커밋).
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — `R13` 영문 명세서([`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)) 심층 리뷰 및 `Phase 12.33` 설계 검증 (Claude Opus)**:
      - **대상 파일**: `docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/handoff.md`, `docs/to-do.md`
@@ -53,13 +53,19 @@
        - ① **`fetchImageFile` 다단계 폴백 (`src/lib/image-resizer.ts`)**: 1차로 `fetch(parsedUrl, { referrerPolicy: "no-referrer" })`를 시도하고, CORS/네트워크 예외 또는 비정상 응답 발생 시 2차로 공개 CORS 이미지 프록시(`https://wsrv.nl/?url=${encodeURIComponent(parsedUrl.toString())}&w=256&h=256&fit=cover&output=webp`)를 통해 이미지를 가져와 256×256 WebP Data URL(`data:image/webp;base64,...`)로 변환·저장한다.
        - ② **클립보드 이미지 붙여넣기(`onPaste`) 지원 (`/admin`, `/admin/requests`)**: 나무위키 등에서 `[이미지 주소 복사]` 대신 `[이미지 복사]` 후 관리자 게임 등록/수정 모달 또는 게임 요청 승인 입력란에서 `Ctrl+V`(또는 모바일 클립보드 붙여넣기)를 누르면 `event.clipboardData.files`(또는 `items`)의 이미지 `File`을 즉시 인식해 외부 서버 요청/CORS 없이 256×256 WebP Data URL로 변환·미리보기할 수 있도록 지원한다.
        - ③ **전역 `no-referrer` 적용 (`public/_headers`, `src/app/layout.tsx`)**: `public/_headers`의 `Referrer-Policy`를 `no-referrer`로 변경하고 `src/app/layout.tsx` metadata에 `referrer: "no-referrer"`를 설정하여, 아직 재저장되지 않은 기존 외부 URL 이미지 및 소비 차트 SVG `<image>` 요청에서도 Referer가 외부로 노출되지 않도록 차단한다.
+     - **Step 1 설계 검토 보완 (Claude Opus, 2026-11-03 — 필수)**:
+       - ① 프록시 폴백: 직접 요청·프록시 요청 모두 `AbortController`로 10초 제한. 응답은 `Content-Type`이 `image/`로 시작할 때만 사용하고, 이후 기존 5MB 입력·100KB 출력 검사를 그대로 거친다. 프록시에는 기존 `http`/`https` 프로토콜 검사를 통과한 원본 URL만 `encodeURIComponent`로 인코딩해 넘기고, 직접 요청이 실패했을 때만 호출한다. 아이콘 URL 입력란 도움말에 "직접 가져오지 못하면 외부 변환 서비스(wsrv.nl)를 거쳐 가져와 Data URL로 저장"한다고 표시해 URL이 제3자에 전달됨을 고지한다. 결과는 Data URL로 저장되므로 런타임에는 wsrv.nl에 의존하지 않는다. 프록시도 실패하면 "이미지 복사 후 붙여넣기 또는 파일 업로드"를 안내한다.
+       - ② 붙여넣기: 클립보드에 이미지 파일이 있을 때만 가로채고(`preventDefault`), 텍스트 붙여넣기는 기본 동작을 유지한다. 기존 `resizeImageToWebP` 형식·용량 검사를 재사용한다. 모바일 브라우저의 이미지 붙여넣기 지원은 기기마다 달라 보조 수단이며, 파일 업로드가 기본 경로다.
+       - ③ `no-referrer`: 현재 `public/_headers`에 CSP가 없어 wsrv.nl 호출이 막히지 않는다. 이후 CSP를 추가하면 `connect-src`에 `https://wsrv.nl`을 포함해야 한다. Tauri 데스크톱에는 `_headers`가 적용되지 않으므로 `layout.tsx`의 `referrer` 메타가 필수다.
+       - 테스트: 직접 요청 성공 시 프록시 미호출, 직접 요청 실패 시 인코딩된 프록시 URL 호출, 프록시가 이미지가 아닌 응답을 주면 오류, 시간 초과 처리, 이미지 붙여넣기 변환과 텍스트 붙여넣기 미가로채기.
+       - 범위 밖(후속 R30): 이미 DB에 외부 URL로 저장된 아이콘은 이 변경 후에도 원본 사이트에 의존한다. 관리자 게임 목록에서 Data URL이 아닌 아이콘을 표시하고 재저장하는 기능은 별도 과제로 진행한다.
   3. **Step 3 — `Phase 12.33` 정적 리뷰 및 Run 마감 (Gemini 4 Argon / Claude Opus)**:
      - Step 2 커밋에 대한 정적 리뷰, 전체 검증(`tsc`, `lint`, `vitest`, `markdownlint`) 및 문서 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Architect` | `R13` 영문 명세서([`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)) 아키텍처·RLS·Storage·분류 스키마 리뷰 및 확정 + `Phase 12.33` 아이콘 CORS/모바일 깨짐 해결 설계 검증 (`docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/handoff.md`, `docs/to-do.md`) | `⏳ R13 명세 리뷰·보완 커밋 및 Step 2 ▶ READY 전환 대기` |
-| **2** | `⏳ WAITING` | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & Image Utils)` | `Phase 12.33 (R29)`: `src/lib/image-resizer.ts` CORS 프록시 폴백, `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기(`onPaste`), `public/_headers`·`src/app/layout.tsx` `no-referrer` 적용 및 단위 테스트 | `⏳ Step 1 리뷰 완료 후 진행 대기` |
+| **1** | `✅ DONE (SHA: b66b07c)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Architect` | `R13` 영문 명세서([`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)) 아키텍처·RLS·Storage·분류 스키마 리뷰 및 확정 + `Phase 12.33` 아이콘 CORS/모바일 깨짐 해결 설계 검증 (`docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/handoff.md`, `docs/to-do.md`) | `✅ DONE` (R13 명세 `APPROVED` 확정, §7 리뷰 결정 추가: `character_requests` INSERT 정책에 빠진 `auth.uid() = user_id` 보완, 아이콘 텍스트 150,000자·WebP/HTTPS 제한, 요청 메모 500자, 분류 스키마 DB 검증 함수와 빈 기본값, `custom_icon_path` 단일 경로 CHECK, 프리셋 `NULL`·공백 금지, 슬롯 축소 비파괴 규칙, 캐릭터·게임 삭제 시 트리거 충돌 방지, Storage 헬퍼 확장 필요, Phase 13.1 필수 스모크 테스트 목록. Phase 12.33 설계는 승인하고 Step 2 수용 기준에 시간 제한, `Content-Type` 검사, 제3자 고지, 붙여넣기 범위, CSP 주의를 보완) |
+| **2** | `▶ READY` | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & Image Utils)` | `Phase 12.33 (R29)`: `src/lib/image-resizer.ts` CORS 프록시 폴백, `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기(`onPaste`), `public/_headers`·`src/app/layout.tsx` `no-referrer` 적용 및 단위 테스트 | `▶ 착수 대기` (Step 2 수용 기준의 「Step 1 설계 검토 보완」 포함) |
 | **3** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | `Phase 12.33` 정적 코드 리뷰, 전체 테스트 검증 및 문서 마감 | `⏳ Step 2 완료 후 진행 대기` |
 
 ### 🗂️ 이전 Run 기록 (완료): supabase-typed-client-and-a11y-closeout
