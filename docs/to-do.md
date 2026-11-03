@@ -486,9 +486,9 @@
 - [x] 12.15-F2-b src/types/database.types.ts를 최신 sql/SCHEMA.sql 테이블(user_games.memo, subscription_templates) 및 11개 인자 process_expense_payment 등 전체 RPC 시그니처에 맞게 동기화 (담당: Claude Sonnet) (`완료` - 커밋 `38d3f71`, Claude Opus 통합 리뷰 PASS)
 - [x] 12.15-F2-c 원격 DB 정합성 점검: `sql/README.md` B표 확인 쿼리 실행(특히 9개 인자 `process_expense_payment` 잔존 여부) 및 전용 테스트 프로젝트에서 `TESTS.sql` 실행 확인 (사용자 수동) (`완료` - 2026-11-02)
   - 결과: `process_expense_payment` 11개 인자·`update_confirmed_expense_metadata` 5개 인자, pg_cron 작업·`user_games.memo`·`public.users`·가입 트리거 2종 정상, 템플릿 직접 DELETE 정책 0. 운영에 누락돼 있던 `uq_personal_memos_user_date`는 `MIGRATION_MEMO_UNIQUE.sql`로 적용, 구 PHASE9 `game_schedules` 정책 1건 DROP. 신규 테스트 프로젝트(`SCHEMA.sql` 설치)에서 `TESTS.sql` 최종 PASS.
-- [x] 12.15-F3 `database.types.ts` 리뷰 P3 후속: SQL DEFAULT/nullable 인자 타입을 보정하고 `createClient<Database>`를 연결해 타입 불일치를 검출한다 (`c075045f`, Step 1; 통합 리뷰 대기).
-  - `admin_create_game.p_default_icon_url`, `approve_game_request.p_default_icon_url`, `set_user_finance_settings.p_default_budget` 등 RPC 인자를 스키마 기본값 및 호출부와 정렬했다.
-  - Supabase client에 `Database` 제네릭을 연결하고 노출된 호출부 타입 불일치를 정리했다. tsc, 관련 Vitest 및 ESLint는 Maker 기록 기준 통과; 통합 리뷰는 Run Step 3에서 수행한다.
+- [x] 12.15-F3 `database.types.ts` 리뷰 P3 후속: SQL DEFAULT/nullable 인자 타입을 보정하고 `createClient<Database>`를 연결해 타입 불일치를 검출한다 (`완료` - 커밋 `c075045f`, GPT Codex; Gemini 4 Argon 통합 리뷰 `7243c3b` PASS).
+  - `SCHEMA.sql` 기준 필수 인자(`admin_create_game.p_default_icon_url`, `approve_game_request.p_default_icon_url`, `set_user_finance_settings.p_default_budget`)는 필수로 유지하고, `process_expense_payment`, `update_confirmed_expense_metadata`, `reject_game_request`, `reject_schedule_request`, `update_store_wallet_settings`, `adjust_wallet_balance`의 nullable/optional 인자와 `game_schedules`·`game_requests`·`schedule_requests` 리터럴 유니온 타입을 스키마·호출부와 정렬했다.
+  - Supabase client에 `Database` 제네릭을 연결하고 노출된 호출부 타입 불일치를 정리했다. `tsc --noEmit`, 전체 Vitest(44파일 302테스트) 및 ESLint 통과; 통합 리뷰(`7243c3b`) 및 `main` 병합 완료.
 
 - [x] 12.16 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시 (2026-10-28)
   - 대상 파일: `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`
@@ -615,7 +615,7 @@
 - [x] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
 - [x] R26. 소비 페이지 막대 차트: 게임별 과금 툴팁에 UUID 대신 게임명, 금액 축 눈금 중복(`0만 0만 1만 1만`) 제거, 막대 외곽선 다크·라이트 테마 가시성 개선 (`Phase 12.31`, Claude Sonnet) (`완료` - 커밋 `fc4ea9d`, Claude Opus 리뷰 PASS, 배포 대기)
 - [x] R27. [운영 긴급] 운영 Supabase에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 (미적용 시 관리자 일정 추가·수정, 일정 요청 제출·승인 실패) (사용자 수동) (`완료` - 2026-11-02 사용자 적용)
-- [x] R28. Phase 12.32: 관리자·게임 요청 모달에 접근 가능한 설명 추가, 소비 통계 기간 선택에 고유한 `aria-label` 부여, 관리자 권한 거부 문구를 시맨틱 danger 토큰과 alert 역할로 표시 (GitHub Copilot, 단위 테스트 추가; 통합 리뷰 대기). 이 코드 검증은 실제 스크린리더·접근성 대비·Cloudflare 배포 및 OAuth/PWA 검증을 대신하지 않는다.
+- [x] R28. Phase 12.15-F3 & Phase 12.32: `createClient<Database>` 연결 및 RPC/테이블 타입 정밀 보정(`c075045f`, GPT Codex), 관리자·게임 요청 모달 5종 `DialogDescription` 추가·소비 통계 기간 선택 고유 `aria-label` 분리·관리자 권한 거부 시맨틱 danger 토큰 및 `role="alert"` 적용(`3ed5e5d`, GitHub Copilot) (`완료` - Gemini 4 Argon 통합 리뷰 `7243c3b` PASS 및 `main` 병합 완료).
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---

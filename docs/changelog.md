@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-03 (Phase 12.32 모달 접근성·기간 필터 라벨 및 통합 리뷰 마감, `3ed5e5d` / `7243c3b`)
+
+- **Phase 12.32 (`3ed5e5d`, GitHub Copilot)**: `src/app/admin/page.tsx`(일정 등록/수정·일정 삭제·게임 삭제), `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx` 등 5개 모달에 `<DialogDescription>` 추가, `src/app/dashboard/expenses/page.tsx` 통계 기간 드롭다운 고유 `aria-label` 분리(`카테고리별 지출 비중 기간 선택` / `게임별 과금 분석 기간 선택`), 관리자 권한 거부 안내에 `role="alert"` 및 `text-danger` 적용, 단위 테스트 보강.
+- **통합 리뷰 및 마감 (`7243c3b`, Gemini 4 Argon)**: Base `05140cb` ↔ Target `3ed5e5d` 정적 리뷰 clean(finding 0건), JSON Schema 검증 및 전체 테스트(44파일 302개)·`tsc`·`lint` 통과 후 `main` 병합 완료.
+
 ## 2026-11-03 (Phase 12.15-F3 Supabase 타입 연결, `c075045f`)
 
 - `src/lib/supabase/client.ts`의 `createClient<Database>` 연결과 RPC nullable/optional 인자 및 일정·요청 상태 리터럴 타입을 반영했다.
