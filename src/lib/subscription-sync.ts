@@ -415,10 +415,12 @@ export async function ensureMonthlySubscriptionExpenses(
     (t) => t.cycle_type === "VERSION_PASS" && Boolean(t.game_id),
   )
   for (const template of versionPassTemplates) {
+    const gameId = template.game_id
+    if (!gameId) continue
     const { data: officialSchedules, error: officialScheduleError } = await supabase
       .from("game_schedules")
       .select("id, title, start_date, end_date, is_official")
-      .eq("game_id", template.game_id)
+      .eq("game_id", gameId)
       .eq("schedule_type", "VERSION")
       .gte("end_date", today)
       .eq("is_official", true)
@@ -436,7 +438,7 @@ export async function ensureMonthlySubscriptionExpenses(
       const legacyResult = await supabase
         .from("game_schedules")
         .select("id, title, start_date, end_date")
-        .eq("game_id", template.game_id)
+        .eq("game_id", gameId)
         .eq("schedule_type", "VERSION")
         .gte("end_date", today)
       schedules = (legacyResult.data || []).map((schedule) => ({
