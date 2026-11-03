@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "supabase-typed-client-and-a11y-closeout",
+    "created_at":  "2026-11-03T04:42:58.6410838+00:00",
+    "objective":  "Phase 12.15-F3 \u0026 Phase 12.32: Connect createClient\u003cDatabase\u003e with accurate RPC/table nullable \u0026 optional types in database.types.ts, complete modal/control accessibility (DialogDescription, distinct aria-labels, semantic danger token), and close out Cloudflare Pages \u0026 accessibility checklists in docs/to-do.md.",
+    "acceptance_criteria":  [
+                                "1. (Phase 12.15-F3) Synchronize src/types/database.types.ts RPC Args with sql/SCHEMA.sql DEFAULT/nullable signatures and connect createClient\u003cDatabase\u003e in src/lib/supabase/client.ts with 0 tsc errors across src/**.",
+                                "2. (Phase 12.32) Add missing DialogDescription to DialogContent in src/app/admin/page.tsx, src/components/game/game-select-modal.tsx, and src/components/game/request-submission-modal.tsx; give distinct aria-labels to the two month filter selects in src/app/dashboard/expenses/page.tsx; replace hardcoded text-red-500 with text-danger role=alert in src/app/admin/page.tsx; add/update unit tests.",
+                                "3. Update docs/to-do.md (12.15-F3, lines 49-51 accessibility check, lines 53-57 Cloudflare Pages deployment verification, and Phase 12.32) and pass npx tsc --noEmit, npm run lint, npx vitest run, and markdownlint."
+                            ],
+    "base_sha":  "05140cb12f3f77b90656c71baad1d8686841cf87",
+    "target_sha":  null,
+    "branch":  "collab/supabase-typed-client-and-a11y-closeout",
+    "worktree_path":  ".worktrees/supabase-typed-client-and-a11y-closeout",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
