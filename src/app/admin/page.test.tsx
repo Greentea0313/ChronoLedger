@@ -99,7 +99,10 @@ describe("AdminPage - 일정 관리", () => {
     })
 
     render(<AdminPage />)
-    expect(screen.getByText("접근 권한이 없습니다. 관리자만 이용 가능합니다.")).toBeTruthy()
+    const alert = screen.getByRole("alert")
+    expect(alert.textContent).toContain("접근 권한이 없습니다. 관리자만 이용 가능합니다.")
+    expect(alert.className).toContain("text-danger")
+    expect(alert.className).not.toContain("text-red-500")
   })
 
   it("등록된 일정 목록을 정상적으로 렌더링하고 게임별 필터링을 지원한다", async () => {
@@ -141,6 +144,7 @@ describe("AdminPage - 일정 관리", () => {
     fireEvent.click(screen.getByRole("button", { name: "새 일정 등록" }))
 
     expect(screen.getByRole("heading", { name: "새 일정 등록" })).toBeTruthy()
+    expect(screen.getByText("새 게임 일정을 등록합니다.")).toBeTruthy()
 
     // 폼 입력
     fireEvent.change(screen.getByLabelText(/게임 선택/), {
@@ -254,6 +258,7 @@ describe("AdminPage - 일정 관리", () => {
     fireEvent.click(deleteButtons[1])
 
     expect(screen.getByRole("heading", { name: "일정 삭제 확인" })).toBeTruthy()
+    expect(screen.getByText("선택한 일정은 삭제 후 복구할 수 없습니다.")).toBeTruthy()
     expect(screen.getByText(/'아케론 복각'/)).toBeTruthy()
 
     // 모달 내 최종 삭제 버튼 클릭
@@ -358,6 +363,7 @@ describe("AdminPage - 일정 관리", () => {
     fireEvent.click(deleteBtn)
 
     expect(screen.getByRole("heading", { name: "게임 삭제 확인" })).toBeTruthy()
+    expect(screen.getByText("게임을 삭제하면 연결된 데이터도 함께 삭제되며 복구할 수 없습니다.")).toBeTruthy()
     expect(screen.getByText(/'붕괴: 스타레일'/)).toBeTruthy()
 
     // 모달 내 최종 삭제 버튼 클릭

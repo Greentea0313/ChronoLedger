@@ -47,14 +47,14 @@
 - [x] A2Z의 내장 저작권 표기와 SIL OFL 1.1을 확인하고 9개 WOFF2 굵기를 시안 및 웹 앱에서 자체 호스팅한다. 두 배포 위치에 OFL 전문을 동봉한다.
 - [x] 업데이트된 시안을 양 테마와 390/900/1280px에서 재검증해 가로 넘침과 주요 반응형 패널 위치를 확인했다.
 - [ ] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
-  - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했다.
+  - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했고, Phase 12.32에서 관리자/게임 요청 모달 설명·통계 기간 이름·관리자 권한 오류 시맨틱을 테스트했다.
   - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
 - [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](archive/Netlify_Web_Architecture_Proposal.md)에 반영했다.
 - [ ] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
   - [x] **Cloudflare Pages 호스팅 환경 구성**: [`.nvmrc`](../.nvmrc) (Node.js 20 LTS), [`public/_headers`](../public/_headers) (불변 캐싱 및 보안 헤더), [`public/_redirects`](../public/_redirects) 설정 완료.
   - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`sql/MIGRATION_PG_CRON.sql`](../sql/MIGRATION_PG_CRON.sql)) 작성 완료.
   - [x] **탈퇴 API Supabase RPC 완전 통합**: Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` `SECURITY DEFINER` RPC 함수로 프론트엔드 직접 연동 완료 ([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts)).
-  - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
+  - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅을 실제 배포 환경에서 검증한다. 저장소 코드 검증만으로 배포·도메인·OAuth 성공을 완료 처리하지 않는다.
 - [x] ~~(폐기/대안) Netlify 후보 유지 시 점검 사항:~~ (Cloudflare Pages 공식 채택으로 제외)
   - Cloudflare Pages + Supabase pg_cron으로 배포 환경이 공식 확정되어 Netlify 관련 점검 사항은 폐기 및 제외 처리함. (Supabase OAuth Redirect URLs 원격 등록 이력 보존 완료).
 
@@ -486,9 +486,9 @@
 - [x] 12.15-F2-b src/types/database.types.ts를 최신 sql/SCHEMA.sql 테이블(user_games.memo, subscription_templates) 및 11개 인자 process_expense_payment 등 전체 RPC 시그니처에 맞게 동기화 (담당: Claude Sonnet) (`완료` - 커밋 `38d3f71`, Claude Opus 통합 리뷰 PASS)
 - [x] 12.15-F2-c 원격 DB 정합성 점검: `sql/README.md` B표 확인 쿼리 실행(특히 9개 인자 `process_expense_payment` 잔존 여부) 및 전용 테스트 프로젝트에서 `TESTS.sql` 실행 확인 (사용자 수동) (`완료` - 2026-11-02)
   - 결과: `process_expense_payment` 11개 인자·`update_confirmed_expense_metadata` 5개 인자, pg_cron 작업·`user_games.memo`·`public.users`·가입 트리거 2종 정상, 템플릿 직접 DELETE 정책 0. 운영에 누락돼 있던 `uq_personal_memos_user_date`는 `MIGRATION_MEMO_UNIQUE.sql`로 적용, 구 PHASE9 `game_schedules` 정책 1건 DROP. 신규 테스트 프로젝트(`SCHEMA.sql` 설치)에서 `TESTS.sql` 최종 PASS.
-- [ ] 12.15-F3 `database.types.ts` 리뷰 P3 후속 (비차단, 담당 후보: Claude Sonnet / 연결 여부 결정은 Claude Opus)
-  - P3-1: SCHEMA에서 DEFAULT가 있는 RPC 인자를 optional로 표기 (`admin_create_game.p_default_icon_url`, `approve_game_request.p_default_icon_url`, `set_user_finance_settings.p_default_budget`).
-  - P3-2: 타입 파일이 import되지 않고 `createClient`에 `Database` 제네릭이 없어 타입 불일치가 tsc로 검출되지 않음. `createClient<Database>` 연결(호출부 타입 오류 정리 포함) 또는 `supabase gen types` 재생성 절차 중 방향 결정 필요.
+- [x] 12.15-F3 `database.types.ts` 리뷰 P3 후속: SQL DEFAULT/nullable 인자 타입을 보정하고 `createClient<Database>`를 연결해 타입 불일치를 검출한다 (`c075045f`, Step 1; 통합 리뷰 대기).
+  - `admin_create_game.p_default_icon_url`, `approve_game_request.p_default_icon_url`, `set_user_finance_settings.p_default_budget` 등 RPC 인자를 스키마 기본값 및 호출부와 정렬했다.
+  - Supabase client에 `Database` 제네릭을 연결하고 노출된 호출부 타입 불일치를 정리했다. tsc, 관련 Vitest 및 ESLint는 Maker 기록 기준 통과; 통합 리뷰는 Run Step 3에서 수행한다.
 
 - [x] 12.16 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시 (2026-10-28)
   - 대상 파일: `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`
@@ -615,6 +615,7 @@
 - [x] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
 - [x] R26. 소비 페이지 막대 차트: 게임별 과금 툴팁에 UUID 대신 게임명, 금액 축 눈금 중복(`0만 0만 1만 1만`) 제거, 막대 외곽선 다크·라이트 테마 가시성 개선 (`Phase 12.31`, Claude Sonnet) (`완료` - 커밋 `fc4ea9d`, Claude Opus 리뷰 PASS, 배포 대기)
 - [x] R27. [운영 긴급] 운영 Supabase에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 (미적용 시 관리자 일정 추가·수정, 일정 요청 제출·승인 실패) (사용자 수동) (`완료` - 2026-11-02 사용자 적용)
+- [x] R28. Phase 12.32: 관리자·게임 요청 모달에 접근 가능한 설명 추가, 소비 통계 기간 선택에 고유한 `aria-label` 부여, 관리자 권한 거부 문구를 시맨틱 danger 토큰과 alert 역할로 표시 (GitHub Copilot, 단위 테스트 추가; 통합 리뷰 대기). 이 코드 검증은 실제 스크린리더·접근성 대비·Cloudflare 배포 및 OAuth/PWA 검증을 대신하지 않는다.
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---

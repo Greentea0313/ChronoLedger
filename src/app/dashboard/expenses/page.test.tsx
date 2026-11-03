@@ -123,6 +123,8 @@ describe("ExpensesPage", () => {
     // 통계 타이틀 확인
     expect(screen.getByText("카테고리별 지출 비중")).toBeTruthy()
     expect(screen.getByText("월별 소비 추이")).toBeTruthy()
+    expect(screen.getByRole("combobox", { name: "카테고리별 지출 비중 기간 선택" })).toBeTruthy()
+    expect(screen.getByRole("combobox", { name: "게임별 과금 분석 기간 선택" })).toBeTruthy()
 
     // CONFIRMED인 '식비'만 범례에 100%로 집계됨 (PLANNED 게임, CANCELLED 구독 제외)
     expect(screen.getAllByText("식비").length).toBeGreaterThan(0)
