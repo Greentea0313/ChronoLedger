@@ -34,7 +34,7 @@
 - **Run ID**: `r13-spec-review-and-icon-cors-fix` *(2026-11-03, R13 영문 명세서 아키텍처·보안 리뷰 및 나무위키 등 외부 아이콘 URL CORS/모바일 깨짐 해결 `Phase 12.33`)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `main` (사유: Step 1은 신규 영문 명세서 `docs/spec/R13_Character_Roster_and_Preset_Spec.md` 아키텍처·보안 리뷰 중심 과제이며, Step 2는 아이콘 변환 유틸·헤더 국소 수정이므로 `chronoledger-orchestrator/SKILL.md`의 「Main-worktree fallback runs」 절차 적용)
-- **리뷰 비교 범위**: Base `cdee5a7b9f756a8131a5f49a6e82b47f97698541` (Run 등록 직전 `main` HEAD) ↔ Target `bf3f1a1606958c82f33cedc733979f14bb504bac` (Step 2 Maker 코드 커밋; Step 1 문서 커밋 `b66b07c` 포함).
+- **리뷰 비교 범위**: Base `cdee5a74ddb97b86d3899e3cfe6c01cadb9fa9e9` (Run 등록 직전 `main` HEAD) ↔ Target `bf3f1a1606958c82f33cedc733979f14bb504bac` (Step 2 Maker 코드 커밋; Step 1 문서 커밋 `b66b07c` 포함).
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — `R13` 영문 명세서([`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)) 심층 리뷰 및 `Phase 12.33` 설계 검증 (Claude Opus)**:
      - **대상 파일**: `docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/handoff.md`, `docs/to-do.md`
@@ -66,7 +66,7 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: b66b07c)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Architect` | `R13` 영문 명세서([`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)) 아키텍처·RLS·Storage·분류 스키마 리뷰 및 확정 + `Phase 12.33` 아이콘 CORS/모바일 깨짐 해결 설계 검증 (`docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/handoff.md`, `docs/to-do.md`) | `✅ DONE` (R13 명세 `APPROVED` 확정, §7 리뷰 결정 추가: `character_requests` INSERT 정책에 빠진 `auth.uid() = user_id` 보완, 아이콘 텍스트 150,000자·WebP/HTTPS 제한, 요청 메모 500자, 분류 스키마 DB 검증 함수와 빈 기본값, `custom_icon_path` 단일 경로 CHECK, 프리셋 `NULL`·공백 금지, 슬롯 축소 비파괴 규칙, 캐릭터·게임 삭제 시 트리거 충돌 방지, Storage 헬퍼 확장 필요, Phase 13.1 필수 스모크 테스트 목록. Phase 12.33 설계는 승인하고 Step 2 수용 기준에 시간 제한, `Content-Type` 검사, 제3자 고지, 붙여넣기 범위, CSP 주의를 보완) |
 | **2** | `✅ DONE (SHA: bf3f1a1606958c82f33cedc733979f14bb504bac)` | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & Image Utils)` | `Phase 12.33 (R29)`: `src/lib/image-resizer.ts` CORS 프록시 폴백, `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기(`onPaste`), `public/_headers`·`src/app/layout.tsx` `no-referrer` 적용 및 단위 테스트 | `✅ bf3f1a1: 직접 URL 실패 시 10초 제한 wsrv.nl 폴백, 이미지 MIME·5MB 검사, URL 제3자 전달 고지, 두 관리자 입력의 이미지 붙여넣기·미리보기, 전역 no-referrer 구현. 전체 Vitest 45파일/309개, tsc, lint 통과.` |
-| **3** | `▶ READY` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `cdee5a7b9f756a8131a5f49a6e82b47f97698541` ↔ Target `bf3f1a1606958c82f33cedc733979f14bb504bac` `Phase 12.33` 정적 코드 리뷰, 전체 검증 및 문서 마감 | `▶ Step 2 Maker 완료. 리뷰·문서 마감 진행 가능.` |
+| **3** | `✅ DONE (리뷰: cdee5a7 ↔ bf3f1a1)` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `cdee5a74ddb97b86d3899e3cfe6c01cadb9fa9e9` ↔ Target `bf3f1a1606958c82f33cedc733979f14bb504bac` `Phase 12.33` 정적 코드 리뷰, 전체 검증 및 문서 마감 | `✅ DONE (Gemini 4 Argon 정적 리뷰 PASS: P1~P3 0건, P4 비차단 참고 1건. iteration-01/review.json 스키마 검증 통과, tsc·lint·Vitest 28개(전체 45파일/309개)·markdownlint 통과 및 문서 마감 완료)` |
 
 ### 🗂️ 이전 Run 기록 (완료): supabase-typed-client-and-a11y-closeout
 
@@ -99,6 +99,18 @@
 | **1** | `✅ DONE (SHA: c075045f82fae6af8e9c7900a656220637bd899f)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & Types)` | `Phase 12.15-F3`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 `src/types/database.types.ts` RPC/테이블 타입 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 연결 (`src/types/database.types.ts`, `src/lib/supabase/client.ts`, 필요 시 타입 정합성 관련 `src/**` 최소 범위) | `✅ c075045f: RPC nullable/optional 및 schedule/request 리터럴 타입 정리, typed client 연결. 구독 sync/modal 및 요청 화면 호출부 타입 정합성 수정. tsc 통과, 관련 Vitest 30건 및 ESLint 통과.` |
 | **2** | `✅ DONE (SHA: 3ed5e5da10dd6c758dac370234aa27ac0608421e)` | **GitHub Copilot** *(Gemini 3.8 Flash 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & A11y)` | `Phase 12.32`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 5개 모달 `DialogDescription` 추가, 소비 통계 월 드롭다운 고유 `aria-label` 분리, 관리자 권한 안내 `text-danger`/`role="alert"`, 단위 테스트 및 `docs/to-do.md` 체크리스트 마감 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `docs/to-do.md`) | `✅ 3ed5e5d: 5개 모달 설명·고유 기간 이름·관리자 경고 시맨틱 반영. 전체 Vitest 44파일/302테스트, tsc, lint, docs/to-do Markdownlint 통과. 수동 스크린리더·실배포 검증은 미완료.` |
 | **3** | `✅ DONE (SHA: 7243c3b)` | **Gemini 4 Argon** *(Claude Opus 1순위 대체)* | `Reviewer & Orchestrator` | Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Target `3ed5e5da10dd6c758dac370234aa27ac0608421e` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 기록 및 스키마 검증, `main` 병합과 `docs/` 마감 | `✅ DONE` (Base `05140cb` ↔ Target `3ed5e5d` 통합 정적 리뷰 PASS, P1~P4 0건. `run.json`·`iteration-01/review.json`·`iteration-01/test.json` JSON Schema 검증 통과, `npx tsc --noEmit`·`npm run lint`·`npx vitest run` 44파일/302테스트·`markdownlint` 통과 및 `main` 병합·마감 완료) |
+
+## Phase 12.33 외부 아이콘 URL CORS 폴백·클립보드 붙여넣기·no-referrer 정적 리뷰 및 Run 마감 (2026-11-03)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator). Maker는 GitHub Copilot(`bf3f1a1`)이므로 리뷰 독립성 충족.
+- **리뷰 범위**: Base `cdee5a74ddb97b86d3899e3cfe6c01cadb9fa9e9` ↔ Target `bf3f1a1606958c82f33cedc733979f14bb504bac` (`git diff bf3f1a1 HEAD -- src sql public` 비어 있음 확인).
+- **판정**: PASS (`clean`, P1~P3 0건). 수용 기준 및 Step 1 Claude Opus 설계 보완 조건 전항 충족:
+  1. `src/lib/image-resizer.ts`: 직접 `fetch(url, { referrerPolicy: "no-referrer" })` 실패 시 `https://wsrv.nl/?url=...&w=256&h=256&fit=cover&output=webp` 폴백, 두 요청 모두 `AbortController` 10초 타임아웃(`clearTimeout` 보장), `http:`/`https:` 프로토콜 검증, `Content-Type` `image/` 접두사 검사, 5MB 입력 및 100KB WebP 출력 제한 준수.
+  2. `src/app/admin/page.tsx` & `src/app/admin/requests/page.tsx`: 클립보드에 이미지 파일(`files` 또는 `items`)이 있을 때만 `preventDefault()` 후 256×256 WebP Data URL로 변환·미리보기하며 일반 텍스트 붙여넣기는 가로채지 않음. 입력란 하단에 `wsrv.nl` 제3자 전달 고지 문구 표시.
+  3. `public/_headers` (`Referrer-Policy: no-referrer`) 및 `src/app/layout.tsx` (`referrer: "no-referrer"`) 전역 적용.
+  4. `src/lib/image-resizer.test.ts`(5건), `src/app/admin/page.test.tsx`(16건), `src/app/admin/requests/page.test.tsx`(7건) 단위 테스트 통과.
+- **비차단 참고 사항 (P4)**: 클립보드 이미지 붙여넣기 시 비동기 로컬 캔버스 변환(`convertIconSourceToDataUrl`)이 진행되는 수 밀리초 동안 등록/승인 버튼이 별도 비활성화되지는 않으나 로컬 메모리 연산이라 실질적 영향 없음. Run 등록 시 기록된 Base SHA(`cdee5a7b9f...`)의 뒷자리 오기를 실제 커밋 SHA(`cdee5a74dd...`)로 정정함.
+- **산출물**: `artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json` (스키마 검증 통과).
 
 ## Phase 12.15-F3 Supabase 타입 연결 Maker 완료 (2026-11-03)
 

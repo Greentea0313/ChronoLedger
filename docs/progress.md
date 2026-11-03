@@ -1,5 +1,17 @@
 # 프로젝트 진행 현황
 
+## Phase 12.33 정적 코드 리뷰 완료 및 Run 마감 (2026-11-03)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator)
+- **리뷰 범위**: Base `cdee5a74ddb97b86d3899e3cfe6c01cadb9fa9e9` ↔ Target `bf3f1a1606958c82f33cedc733979f14bb504bac` (`git diff bf3f1a1 HEAD -- src sql public` 비어 있음 확인).
+- **결과**: 정적 코드 리뷰 PASS (`clean`, P1~P3 0건, P4 비차단 참고 1건). `artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json` 스키마 검증 통과.
+- **수용 기준 점검**:
+  1. `src/lib/image-resizer.ts`: 1차 `fetch` no-referrer 시도 후 실패 시 10초 제한 wsrv.nl 폴백, `image/*` 및 5MB 용량 검증, 256×256 WebP Data URL 변환 정상.
+  2. `/admin` 및 `/admin/requests`: 클립보드 이미지 붙여넣기(`onPaste`) 및 WebP Data URL 미리보기 정상, 일반 텍스트 붙여넣기 미가로챔 보장, wsrv.nl 제3자 전달 고지 문구 반영.
+  3. 전역 `no-referrer` 적용: `public/_headers` 및 `layout.tsx` 반영.
+  4. 테스트: 단위 테스트 28건 및 전체 Vitest 45개 파일/309개 테스트 통과, `tsc --noEmit`, ESLint, `git diff --check`, `markdownlint` 전체 통과.
+- **Run 마감**: Run ID `r13-spec-review-and-icon-cors-fix` 3단계(Step 1 R13 명세 승인 `b66b07c`, Step 2 Phase 12.33 구현 `bf3f1a1`, Step 3 정적 리뷰 및 문서 마감) 전체 완료.
+
 ## Phase 12.33 Maker 구현 완료 (2026-11-03, `bf3f1a1`)
 
 - **수행 주체**: GitHub Copilot (Step 2 Maker, main-worktree fallback)

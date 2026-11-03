@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-03 (Phase 12.33 정적 리뷰 PASS 및 r13 Run 마감)
+
+- **정적 코드 리뷰 완료 (Gemini 4 Argon)**: Base `cdee5a74ddb97b86d3899e3cfe6c01cadb9fa9e9` ↔ Target `bf3f1a1606958c82f33cedc733979f14bb504bac` 리뷰 PASS (`clean`, P1~P3 0건, P4 1건). `artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json` 검증 통과.
+- **Run 마감**: `r13-spec-review-and-icon-cors-fix` (Step 1 R13 캐릭터 로스터·프리셋 영문 명세서 승인 `b66b07c` + Step 2 Phase 12.33 외부 아이콘 CORS 폴백·클립보드 이미지 붙여넣기·전역 no-referrer `bf3f1a1` + Step 3 정적 리뷰 및 문서 마감) 전 단계 완료.
+- **검증**: `tsc --noEmit`, `npm run lint`, Vitest 45개 파일 309개 테스트, `markdownlint` 통과.
+
 ## 2026-11-03 (Phase 12.33 외부 아이콘 URL 및 클립보드 이미지, `bf3f1a1`)
 
 - `src/lib/image-resizer.ts`: 외부 URL 직접 요청 실패 시 10초 제한 wsrv.nl 폴백을 추가하고 `no-referrer`, `image/*` 응답 확인, 5MB 입력 제한을 적용했다. URL 실패 시 이미지 붙여넣기 또는 파일 업로드를 안내한다.

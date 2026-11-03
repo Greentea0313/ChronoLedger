@@ -584,6 +584,11 @@
     5. **홈 대시보드 예산 경고 배지**: `hero-sidebar.tsx` 요약 카드의 `예상 지출: n원` 행 우측에 `budgetAmount > 0` 기준 80% 이상 시 주황색 `[주의: 예산 근접]`, 100% 초과 시 빨간색 `[위험: 예산 초과]` 배지 배치.
   - verify: `expenses/page.test.tsx`, `hero-sidebar.test.tsx` 단위 테스트 갱신 및 전체 통과.
 
+- [x] 12.33 나무위키 등 외부 아이콘 URL 등록 CORS 프록시 폴백·클립보드 붙여넣기 및 전역 no-referrer 적용 (R29, 완료 - 커밋 bf3f1a1, GitHub Copilot, Gemini 4 Argon 리뷰 PASS)
+  - 대상 파일: `src/lib/image-resizer.ts`, `src/lib/image-resizer.test.ts`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `public/_headers`, `src/app/layout.tsx`
+  - 작업: 외부 URL 직접 요청 실패 시 10초 제한 wsrv.nl 프록시 폴백(`image/*` 및 5MB 제한), `/admin` 및 `/admin/requests` 클립보드 이미지 붙여넣기(`onPaste`) 및 WebP Data URL 미리보기/변환, `public/_headers` 및 `layout.tsx` 전역 `Referrer-Policy: no-referrer` 설정.
+  - verify: 관련 단위 테스트(28개) 및 전체 Vitest 45개 파일/309개 테스트 통과, `tsc --noEmit`, ESLint 통과.
+
 ---
 
 ## 향후 / 진행 로드맵 (Active & Planned Roadmap)
@@ -616,8 +621,8 @@
 - [x] R26. 소비 페이지 막대 차트: 게임별 과금 툴팁에 UUID 대신 게임명, 금액 축 눈금 중복(`0만 0만 1만 1만`) 제거, 막대 외곽선 다크·라이트 테마 가시성 개선 (`Phase 12.31`, Claude Sonnet) (`완료` - 커밋 `fc4ea9d`, Claude Opus 리뷰 PASS, 배포 대기)
 - [x] R27. [운영 긴급] 운영 Supabase에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 (미적용 시 관리자 일정 추가·수정, 일정 요청 제출·승인 실패) (사용자 수동) (`완료` - 2026-11-02 사용자 적용)
 - [x] R28. Phase 12.15-F3 & Phase 12.32: `createClient<Database>` 연결 및 RPC/테이블 타입 정밀 보정(`c075045f`, GPT Codex), 관리자·게임 요청 모달 5종 `DialogDescription` 추가·소비 통계 기간 선택 고유 `aria-label` 분리·관리자 권한 거부 시맨틱 danger 토큰 및 `role="alert"` 적용(`3ed5e5d`, GitHub Copilot) (`완료` - Gemini 4 Argon 통합 리뷰 `7243c3b` PASS 및 `main` 병합 완료).
-- [ ] R29 (`Phase 12.33`). 나무위키 등 외부 아이콘 URL 등록 시 CORS 실패 해결(`image-resizer.ts` CORS 프록시 폴백 + `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기 `onPaste` 지원) 및 모바일 외부 아이콘 핫링크 차단 방지(`public/_headers`·`layout.tsx` `no-referrer` 적용) (설계 검증: Claude Opus → 구현: GitHub Copilot)
-  - 구현 완료: `bf3f1a1` (GitHub Copilot). 전체 테스트·타입 검사·린트 통과; Step 3 정적 리뷰 및 문서 마감 대기.
+- [x] R29 (`Phase 12.33`). 나무위키 등 외부 아이콘 URL 등록 시 CORS 실패 해결(`image-resizer.ts` CORS 프록시 폴백 + `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기 `onPaste` 지원) 및 모바일 외부 아이콘 핫링크 차단 방지(`public/_headers`·`layout.tsx` `no-referrer` 적용) (완료 - 커밋 bf3f1a1, GitHub Copilot, Gemini 4 Argon 리뷰 PASS)
+  - 구현: `bf3f1a1` (GitHub Copilot), 정적 리뷰: Gemini 4 Argon PASS (`artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json`). 전체 테스트·타입 검사·린트·문서 마감 완료.
 - [ ] R30. 이미 DB에 외부 URL(나무위키 등)로 저장된 게임 아이콘을 관리자 게임 목록에서 표시하고 Data URL로 재저장하는 기능 (Phase 12.33 후속)
 - [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 작성 완료, Claude Opus 아키텍처 리뷰 진행 중 (`Phase 13.1 ~ 13.3` 분할 예정) (명세 `docs/spec/R13_Character_Roster_and_Preset_Spec.md` `APPROVED`, 2026-11-03 Claude Opus 리뷰. 구현은 Phase 13.1~13.3)
 
