@@ -34,7 +34,7 @@
 - **Run ID**: `r13-phase13-1-db-and-r30-icon-resave` *(2026-11-04, R13 `Phase 13.1` 캐릭터·프리셋 DB 스키마/마이그레이션/스모크 테스트/TypeScript 타입 & `Phase 12.34 (R30)` 관리자 외부 아이콘 URL Data URL 재저장)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/r13-phase13-1-db-and-r30-icon-resave` (브랜치: `collab/r13-phase13-1-db-and-r30-icon-resave`)
-- **리뷰 비교 범위**: Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Target *(Step 2 완료 후 Step 3 Orchestrator가 manifest `target_sha` 및 여기에 기록)*
+- **리뷰 비교 범위**: Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Target `78c132f9b23ea22064831f83f8f564ce24950c61` *(Step 2 완료 커밋. manifest `target_sha` 기록은 Step 3 Orchestrator)*
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — `Phase 13.1 (R13 DB & Types)` 캐릭터·프리셋 DB 스키마, 마이그레이션, 스모크 테스트 및 TypeScript 타입 구현 (GPT Codex)**:
      - **권위 명세**: 승인 완료된 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) (§2, §3, §5 및 **§7 Review Resolutions** — §7이 최우선 규범).
@@ -66,9 +66,9 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `▶ READY` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.1 (R13 DB & Types)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`, `SCHEMA.sql`, `TESTS.sql`(§7.5 7개 스모크 테스트), `sql/README.md`, `SRS.md`/`SPEC.md`, `src/types/database.types.ts` 구현 및 검증 | `▶ 대기 중 (GPT Codex 또는 1순위 대체 Claude Opus 전환 후 "인수인계 문서를 확인해" 입력 시 즉시 착수)` |
-| **2** | `⏳ WAITING` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (UI & State)` | `Phase 12.34 (R30)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `/admin` 등록된 게임 목록의 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 버튼 구현 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `docs/to-do.md`) | `⏳ Step 1 완료 후 진행 대기` |
-| **3** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 진행 대기 (SQL/RLS/RPC 변경 포함이므로 Opus 승격 조건 ①·④ 적용)` |
+| **1** | `✅ DONE (SHA: 1746ffcda57f8be943d52e5fbc0502b228157448)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.1 (R13 DB & Types)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 캐릭터 분류 검증, 테이블/RLS/RPC, 계정 삭제 연동, 마이그레이션·스모크 테스트·타입 및 명세 구현 | `✅ DONE (1746ffc; tsc/lint/Vitest 통과. PostgreSQL 미가동으로 SQL 스모크 미실행)` |
+| **2** | `✅ DONE (SHA: 78c132f9b23ea22064831f83f8f564ce24950c61)` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (UI & State)` | `Phase 12.34 (R30)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `/admin` 등록된 게임 목록의 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 버튼 구현 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `docs/to-do.md`) | `✅ DONE` (Claude Sonnet 5.5: `/admin` 등록된 게임 목록에 외부 URL 아이콘 `[외부 URL]` 배지 및 행별 `[Data URL 재저장]` 버튼 추가 — `convertIconSourceToDataUrl` → `games.update` → 로컬 목록 즉시 반영, `isOffline()` 가드·진행 중 중복 클릭 방지·변환/DB 오류 알림. 상단 일괄 변환 버튼은 "및/또는" 중 행별만 구현. 단위 테스트 4건 추가 / worktree 전체 45파일 313테스트·tsc·lint PASS, build 미실행) |
+| **3** | **`▶ READY`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 진행 대기 (SQL/RLS/RPC 변경 포함이므로 Opus 승격 조건 ①·④ 적용)` |
 
 ### 🗂️ 이전 Run 기록 (완료): r13-spec-review-and-icon-cors-fix
 
