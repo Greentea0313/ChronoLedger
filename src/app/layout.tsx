@@ -7,6 +7,7 @@ import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register"
 export const metadata: Metadata = {
   title: "ChronoLedger",
   description: "게임 일정 및 지출 관리 매니저",
+  referrer: "no-referrer",
   manifest: "/manifest.json",
   icons: {
     icon: [

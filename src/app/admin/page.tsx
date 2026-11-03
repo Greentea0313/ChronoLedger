@@ -18,7 +18,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
-import { convertIconSourceToDataUrl } from "@/lib/image-resizer"
+import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import {
   Plus,
   Pencil,
@@ -447,6 +447,21 @@ export default function AdminPage() {
     setGameFormIconFile(null)
     setGameFormError(null)
     setIsGameModalOpen(true)
+  }
+
+  const handleGameIconPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const file = getClipboardImageFile(event.clipboardData)
+    if (!file) return
+
+    event.preventDefault()
+    setGameFormIconFile(null)
+    setGameFormIconUrl("")
+    setGameFormError(null)
+    void convertIconSourceToDataUrl(file)
+      .then(setGameFormIconUrl)
+      .catch((error: unknown) => {
+        setGameFormError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
+      })
   }
 
   const handleSaveGame = async (e: React.FormEvent) => {
@@ -1461,7 +1476,8 @@ export default function AdminPage() {
               <Input
                 id="game-form-icon-url"
                 type="text"
-                value={gameFormIconUrl}
+                value={gameFormIconUrl.startsWith("data:image/webp;base64,") ? "" : gameFormIconUrl}
+                onPaste={handleGameIconPaste}
                 onChange={(e) => {
                   setGameFormIconUrl(e.target.value)
                   setGameFormIconFile(null)
@@ -1470,7 +1486,7 @@ export default function AdminPage() {
                 className="bg-surface-2 border-line text-content truncate"
               />
               <p className="text-[11px] text-content-muted mt-1">
-                또는 이미지 파일을 업로드하세요. 저장 시 256×256 WebP Data URL로 변환됩니다.
+                URL은 직접 가져오기를 우선 시도하고, 실패하면 wsrv.nl에 전달해 변환합니다. 이미지 복사 후 붙여넣기 또는 파일 업로드도 가능합니다.
               </p>
               <Input
                 id="game-form-icon-file"
@@ -1497,7 +1513,9 @@ export default function AdminPage() {
                     {gameFormName.trim() || "아이콘 미리보기"}
                   </p>
                   <p className="text-[11px] text-content-muted truncate">
-                    {gameFormIconUrl.trim()}
+                    {gameFormIconUrl.startsWith("data:image/webp;base64,")
+                      ? "클립보드 이미지 (WebP)"
+                      : gameFormIconUrl.trim()}
                   </p>
                 </div>
               </div>

@@ -1,10 +1,13 @@
+const MAX_INPUT_SIZE = 5 * 1024 * 1024;
+const IMAGE_FETCH_TIMEOUT_MS = 10_000;
+const IMAGE_PROXY_BASE_URL = "https://wsrv.nl/";
+
 /**
  * 5MB 이하의 PNG/JPG/JPEG/WebP 이미지를 입력받아
  * 1:1 중앙 크롭 후 256x256 해상도의 WebP(100KB 이하)로 변환합니다.
  */
 export async function resizeImageToWebP(file: File): Promise<Blob> {
   // 1. 초기 용량(5MB 이하) 및 확장자 검사
-  const MAX_INPUT_SIZE = 5 * 1024 * 1024;
   if (file.size > MAX_INPUT_SIZE) {
     throw new Error("원본 이미지는 5MB 이하만 업로드 가능합니다.");
   }
@@ -65,6 +68,21 @@ export async function convertIconSourceToDataUrl(source: File | string): Promise
   return readBlobAsDataUrl(blob);
 }
 
+export function getClipboardImageFile(clipboardData: DataTransfer): File | null {
+  const clipboardFile = Array.from(clipboardData.files).find((file) =>
+    file.type.toLowerCase().startsWith("image/"),
+  );
+  if (clipboardFile) return clipboardFile;
+
+  for (const item of Array.from(clipboardData.items)) {
+    if (item.kind !== "file" || !item.type.toLowerCase().startsWith("image/")) continue;
+    const file = item.getAsFile();
+    if (file) return file;
+  }
+
+  return null;
+}
+
 async function fetchImageFile(url: string): Promise<File> {
   let parsedUrl: URL;
   try {
@@ -76,27 +94,55 @@ async function fetchImageFile(url: string): Promise<File> {
     throw new Error("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.");
   }
 
-  let response: Response;
   try {
-    response = await fetch(parsedUrl);
+    const blob = await fetchImageBlob(parsedUrl.toString());
+    return new File([blob], "game-icon", { type: blob.type });
   } catch {
-    throw new Error("이미지 URL을 가져오지 못했습니다. 파일을 업로드하거나 CORS가 허용된 URL을 사용해 주세요.");
-  }
-  if (!response.ok) {
-    throw new Error(`이미지 URL 요청에 실패했습니다. (HTTP ${response.status})`);
-  }
+    const proxyUrl = new URL(IMAGE_PROXY_BASE_URL);
+    proxyUrl.searchParams.set("url", parsedUrl.toString());
+    proxyUrl.searchParams.set("w", "256");
+    proxyUrl.searchParams.set("h", "256");
+    proxyUrl.searchParams.set("fit", "cover");
+    proxyUrl.searchParams.set("output", "webp");
 
-  const blob = await response.blob();
-  const contentType = blob.type || getImageTypeFromPath(parsedUrl.pathname);
-  return new File([blob], "game-icon", { type: contentType });
+    try {
+      const blob = await fetchImageBlob(proxyUrl.toString());
+      return new File([blob], "game-icon", { type: blob.type });
+    } catch {
+      throw new Error(
+        "이미지 URL을 가져오지 못했습니다. 이미지 복사 후 붙여넣기 또는 파일 업로드를 이용해 주세요.",
+      );
+    }
+  }
 }
 
-function getImageTypeFromPath(pathname: string): string {
-  const extension = pathname.split(".").pop()?.toLowerCase();
-  if (extension === "png") return "image/png";
-  if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
-  if (extension === "webp") return "image/webp";
-  return "";
+async function fetchImageBlob(url: string): Promise<Blob> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), IMAGE_FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      referrerPolicy: "no-referrer",
+    });
+    if (!response.ok) {
+      throw new Error(`Image request failed with HTTP ${response.status}.`);
+    }
+
+    const contentType = response.headers.get("content-type")?.trim().toLowerCase() ?? "";
+    if (!contentType.startsWith("image/")) {
+      throw new Error("Image response has an invalid content type.");
+    }
+
+    const blob = await response.blob();
+    if (blob.size > MAX_INPUT_SIZE) {
+      throw new Error("Image response exceeds the 5 MB input limit.");
+    }
+
+    return new Blob([blob], { type: contentType.split(";")[0] });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function readBlobAsDataUrl(blob: Blob): Promise<string> {

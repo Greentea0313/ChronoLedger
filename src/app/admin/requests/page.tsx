@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react"
-import { convertIconSourceToDataUrl } from "@/lib/image-resizer"
+import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 
 type GameRequest = {
   id: string
@@ -52,6 +53,27 @@ export default function AdminRequestsPage() {
   const [defaultIconFiles, setDefaultIconFiles] = useState<Record<string, File>>({})
 
   const isAdmin = role === "admin" || user?.app_metadata?.role === "admin"
+
+  const handleGameIconPaste = (event: React.ClipboardEvent<HTMLInputElement>, requestId: string) => {
+    const file = getClipboardImageFile(event.clipboardData)
+    if (!file) return
+
+    event.preventDefault()
+    setDefaultIconFiles((current) => {
+      const next = { ...current }
+      delete next[requestId]
+      return next
+    })
+    setDefaultIconUrls((current) => ({ ...current, [requestId]: "" }))
+    setError(null)
+    void convertIconSourceToDataUrl(file)
+      .then((dataUrl) => {
+        setDefaultIconUrls((current) => ({ ...current, [requestId]: dataUrl }))
+      })
+      .catch((error: unknown) => {
+        setError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
+      })
+  }
 
   const fetchRequests = useCallback(async () => {
     setIsDataLoading(true)
@@ -355,7 +377,10 @@ export default function AdminRequestsPage() {
                       type="text"
                       aria-label={`${req.name} 기본 아이콘 URL`}
                       placeholder="또는 기본 아이콘 URL (https://...)"
-                      value={defaultIconUrls[req.id] ?? ""}
+                      value={defaultIconUrls[req.id]?.startsWith("data:image/webp;base64,")
+                        ? ""
+                        : defaultIconUrls[req.id] ?? ""}
+                      onPaste={(event) => handleGameIconPaste(event, req.id)}
                       onChange={(event) => {
                         setDefaultIconUrls((current) => ({
                           ...current,
@@ -370,6 +395,18 @@ export default function AdminRequestsPage() {
                       disabled={processingId === req.id || !isOnline}
                       className="border-line bg-surface-2 text-content truncate"
                     />
+                    <p className="text-[11px] text-content-muted">
+                      URL 직접 가져오기에 실패하면 wsrv.nl에 전달해 변환합니다. 이미지 복사 후 붙여넣기도 가능합니다.
+                    </p>
+                    {defaultIconUrls[req.id]?.startsWith("data:image/webp;base64,") && (
+                      <Image
+                        src={defaultIconUrls[req.id]}
+                        alt={`${req.name} 아이콘 미리보기`}
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 rounded border border-line object-cover"
+                      />
+                    )}
                     <div className="flex gap-2">
                     <Button
                       variant="outline"

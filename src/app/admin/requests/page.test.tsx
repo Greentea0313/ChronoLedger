@@ -23,7 +23,10 @@ vi.mock("@/lib/auth-context", () => ({
 vi.mock("@/lib/supabase/client", () => ({
   supabase: { from, rpc },
 }))
-vi.mock("@/lib/image-resizer", () => ({ convertIconSourceToDataUrl }))
+vi.mock("@/lib/image-resizer", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/image-resizer")>(),
+  convertIconSourceToDataUrl,
+}))
 
 interface MockQueryBuilder {
   select: ReturnType<typeof vi.fn>
@@ -146,6 +149,37 @@ describe("AdminRequestsPage", () => {
       p_default_icon_url: "data:image/webp;base64,converted",
     })
     expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.test/game.webp")
+  })
+
+  it("converts a pasted game image, previews it, and approves with its WebP Data URL", async () => {
+    await renderPage()
+
+    const iconUrlInput = container.querySelector('input[aria-label="Sample RPG 기본 아이콘 URL"]')
+    if (!(iconUrlInput instanceof HTMLInputElement)) throw new Error("Expected the game icon URL input.")
+    const imageFile = new File(["image"], "clipboard.png", { type: "image/png" })
+    await act(async () => {
+      Simulate.paste(iconUrlInput, {
+        clipboardData: { files: [imageFile], items: [] },
+      } as unknown as { clipboardData: DataTransfer })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(imageFile)
+    expect(container.querySelector('img[alt="Sample RPG 아이콘 미리보기"]')).not.toBeNull()
+
+    const approveButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("승인"),
+    )
+    await act(async () => {
+      approveButton!.click()
+      await Promise.resolve()
+    })
+
+    expect(rpc).toHaveBeenCalledWith("approve_game_request", {
+      p_request_id: "game-request-1",
+      p_default_icon_url: "data:image/webp;base64,converted",
+    })
   })
 
   it("does not show the duplicate direct-game registration card", async () => {

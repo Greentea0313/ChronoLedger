@@ -12,7 +12,10 @@ const { from, useAuth, mockGetKstToday, convertIconSourceToDataUrl } = vi.hoiste
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
 vi.mock("@/lib/dashboard-date", () => ({ getKstToday: mockGetKstToday }))
-vi.mock("@/lib/image-resizer", () => ({ convertIconSourceToDataUrl }))
+vi.mock("@/lib/image-resizer", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/image-resizer")>(),
+  convertIconSourceToDataUrl,
+}))
 
 function createQueryBuilder() {
   const query = {
@@ -404,6 +407,35 @@ describe("AdminPage - 일정 관리", () => {
           default_icon_url: "data:image/webp;base64,converted",
           status: "APPROVED",
         })
+      )
+    })
+  })
+
+  it("게임 아이콘 입력란은 이미지 붙여넣기를 변환하고 텍스트 붙여넣기는 가로채지 않는다", async () => {
+    gamesBuilder.insert.mockResolvedValue({ error: null })
+
+    render(<AdminPage />)
+    fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
+    fireEvent.click(screen.getByRole("button", { name: "새 게임 등록" }))
+
+    const iconInput = screen.getByPlaceholderText("https://... (웹 이미지 주소)")
+    expect(fireEvent.paste(iconInput, { clipboardData: { files: [], items: [] } })).toBe(true)
+
+    const imageFile = new File(["image"], "clipboard.png", { type: "image/png" })
+    expect(fireEvent.paste(iconInput, { clipboardData: { files: [imageFile], items: [] } })).toBe(false)
+    await waitFor(() => expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(imageFile))
+
+    fireEvent.change(screen.getByPlaceholderText("예: 원신, 붕괴: 스타레일"), {
+      target: { value: "클립보드 테스트 게임" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "게임 등록" }))
+
+    await waitFor(() => {
+      expect(gamesBuilder.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "클립보드 테스트 게임",
+          default_icon_url: "data:image/webp;base64,converted",
+        }),
       )
     })
   })
