@@ -615,7 +615,7 @@
 - [x] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
 - [x] R26. 소비 페이지 막대 차트: 게임별 과금 툴팁에 UUID 대신 게임명, 금액 축 눈금 중복(`0만 0만 1만 1만`) 제거, 막대 외곽선 다크·라이트 테마 가시성 개선 (`Phase 12.31`, Claude Sonnet) (`완료` - 커밋 `fc4ea9d`, Claude Opus 리뷰 PASS, 배포 대기)
 - [x] R27. [운영 긴급] 운영 Supabase에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 (미적용 시 관리자 일정 추가·수정, 일정 요청 제출·승인 실패) (사용자 수동) (`완료` - 2026-11-02 사용자 적용)
-- [ ] R28 (`Phase 12.15-F3` & `Phase 12.32`). `database.types.ts` RPC/테이블 nullable·optional 타입 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 제네릭 연결(GPT Codex) + 5개 모달 `DialogDescription` 보완, 소비 통계 기간 드롭다운 고유 `aria-label` 분리, 관리자 권한 거부 시맨틱 토큰 적용 및 Cloudflare Pages·접근성 체크리스트 마감(GitHub Copilot) (Run `supabase-typed-client-and-a11y-closeout`)
+- [x] R28. Phase 12.32: 관리자·게임 요청 모달에 접근 가능한 설명 추가, 소비 통계 기간 선택에 고유한 `aria-label` 부여, 관리자 권한 거부 문구를 시맨틱 danger 토큰과 alert 역할로 표시 (GitHub Copilot, 단위 테스트 추가; 통합 리뷰 대기). 이 코드 검증은 실제 스크린리더·접근성 대비·Cloudflare 배포 및 OAuth/PWA 검증을 대신하지 않는다.
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---

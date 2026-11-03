@@ -34,7 +34,7 @@
 - **Run ID**: `supabase-typed-client-and-a11y-closeout` *(2026-11-03, Phase 12.15-F3 Supabase `createClient<Database>` 타입 안전성 연결 & Phase 12.32 주요 화면/모달 접근성·대비 보완 및 Cloudflare Pages 릴리즈 체크리스트 마감)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/supabase-typed-client-and-a11y-closeout` (브랜치: `collab/supabase-typed-client-and-a11y-closeout`)
-- **리뷰 비교 범위**: Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Target *(Step 2 Maker 커밋 후 Step 3에서 `run.json` `target_sha`에 기록)*
+- **리뷰 비교 범위**: Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Target `3ed5e5da10dd6c758dac370234aa27ac0608421e` (Step 2 Maker 커밋, `collab/supabase-typed-client-and-a11y-closeout`; Step 3 Orchestrator가 manifest `target_sha` 기록)
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — `Phase 12.15-F3` Supabase 타입 안전성 연결 (GPT Codex)**:
      - **대상 파일**: `src/types/database.types.ts`, `src/lib/supabase/client.ts` (필요 시 `createClient<Database>` 연결로 드러나는 `src/**` 호출부 타입 정합성 수정 및 관련 단위 테스트)
@@ -58,8 +58,8 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: c075045f82fae6af8e9c7900a656220637bd899f)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & Types)` | `Phase 12.15-F3`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 `src/types/database.types.ts` RPC/테이블 타입 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 연결 (`src/types/database.types.ts`, `src/lib/supabase/client.ts`, 필요 시 타입 정합성 관련 `src/**` 최소 범위) | `✅ c075045f: RPC nullable/optional 및 schedule/request 리터럴 타입 정리, typed client 연결. 구독 sync/modal 및 요청 화면 호출부 타입 정합성 수정. tsc 통과, 관련 Vitest 30건 및 ESLint 통과.` |
-| **2** | `▶ READY` | **GitHub Copilot** *(Gemini 3.8 Flash 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & A11y)` | `Phase 12.32`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 5개 모달 `DialogDescription` 추가, 소비 통계 월 드롭다운 고유 `aria-label` 분리, 관리자 권한 안내 `text-danger`/`role="alert"`, 단위 테스트 및 `docs/to-do.md` 체크리스트 마감 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `docs/to-do.md`) | `▶ Phase 12.15-F3 Maker 커밋 완료 후 진행 가능` |
-| **3** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 통합 리뷰 대기` |
+| **2** | `✅ DONE (SHA: 3ed5e5da10dd6c758dac370234aa27ac0608421e)` | **GitHub Copilot** *(Gemini 3.8 Flash 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & A11y)` | `Phase 12.32`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 5개 모달 `DialogDescription` 추가, 소비 통계 월 드롭다운 고유 `aria-label` 분리, 관리자 권한 안내 `text-danger`/`role="alert"`, 단위 테스트 및 `docs/to-do.md` 체크리스트 마감 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `docs/to-do.md`) | `✅ 3ed5e5d: 5개 모달 설명·고유 기간 이름·관리자 경고 시맨틱 반영. 전체 Vitest 44파일/302테스트, tsc, lint, docs/to-do Markdownlint 통과. 수동 스크린리더·실배포 검증은 미완료.` |
+| **3** | `▶ READY` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Target `3ed5e5da10dd6c758dac370234aa27ac0608421e` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 기록 및 스키마 검증, `main` 병합과 `docs/` 마감 | `▶ Maker 커밋 완료; 동일 SHA 범위로 통합 리뷰 및 closeout 진행` |
 
 ## Phase 12.15-F3 Supabase 타입 연결 Maker 완료 (2026-11-03)
 
