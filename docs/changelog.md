@@ -1,10 +1,25 @@
 # 변경 이력
 
-## 2026-11-02 (R24 iteration-02 수정 및 정적 재리뷰 clean 마감)
+## 2026-11-03 (R13 명세 승인)
 
-- **New-CollaborationRun.ps1 백틱 제어문자 치환 방지 (`14674f0`)**: `scripts/collaboration/New-CollaborationRun.ps1`의 iteration README 생성 히어스트링을 리터럴 `@'...'@` 및 no-BOM UTF-8로 변경하여 PowerShell 파서가 인라인 코드(백틱)를 `\r`, `\t`, `\a` 제어문자로 치환하던 결함을 원천 차단. 손상된 `artifacts/require-main-run-sha/iteration-01/README.md` 복구.
-- **정적 재리뷰 및 Run 마감 (Gemini 4 Argon)**: Base `ea188c6` ↔ Target `14674f0` 정적 재리뷰 PASS (`clean`, findings 0건). `iteration-02/review.json`, `test.json`, `run.json`(`status: completed`) 스키마 검증 및 `git diff --check`, markdownlint 검증 통과. Worktree 산출물 커밋 `ad26310` 완료.
-- **문서 동기화**: `docs/to-do.md` R24 및 후속 운영 마이그레이션(R27) 완료 체크, `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md` 동기화 완료.
+- **R13 명세 `APPROVED` (b66b07c)**: Claude Opus 아키텍처·보안 리뷰 결과를 명세에 직접 반영하고 §7 Review Resolutions를 추가. 코드 변경 없음.
+- **Phase 12.33 Step 2 수용 기준 보완**: 아이콘 URL 프록시 폴백의 시간 제한·응답 형식 검사·제3자 고지, 붙여넣기 범위, CSP 주의 사항.
+
+## 2026-11-03 (Phase 12.32 모달 접근성·기간 필터 라벨 및 통합 리뷰 마감, `3ed5e5d` / `7243c3b`)
+
+- **Phase 12.32 (`3ed5e5d`, GitHub Copilot)**: `src/app/admin/page.tsx`(일정 등록/수정·일정 삭제·게임 삭제), `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx` 등 5개 모달에 `<DialogDescription>` 추가, `src/app/dashboard/expenses/page.tsx` 통계 기간 드롭다운 고유 `aria-label` 분리(`카테고리별 지출 비중 기간 선택` / `게임별 과금 분석 기간 선택`), 관리자 권한 거부 안내에 `role="alert"` 및 `text-danger` 적용, 단위 테스트 보강.
+- **통합 리뷰 및 마감 (`7243c3b`, Gemini 4 Argon)**: Base `05140cb` ↔ Target `3ed5e5d` 정적 리뷰 clean(finding 0건), JSON Schema 검증 및 전체 테스트(44파일 302개)·`tsc`·`lint` 통과 후 `main` 병합 완료.
+
+## 2026-11-03 (Phase 12.15-F3 Supabase 타입 연결, `c075045f`)
+
+- `src/lib/supabase/client.ts`의 `createClient<Database>` 연결과 RPC nullable/optional 인자 및 일정·요청 상태 리터럴 타입을 반영했다.
+- 타입 안전성 연결 중 확인된 호출부 정합성 문제를 해결하기 위해 구독 템플릿 payload를 `TablesInsert`/`TablesUpdate`로 지정하고, subscription sync 및 요청 화면의 nullable 필드를 보정했다.
+- 검증: `tsc --noEmit`, 관련 Vitest 30개, 변경 파일 ESLint 통과.
+
+## 2026-11-03 (R24 iteration-02 수정 및 Run 마감, `42e52c6` / `5bd515e`)
+
+- `scripts/collaboration/New-CollaborationRun.ps1`: `iteration-01/README.md` 생성 구문을 `@" ... "@`에서 `@' ... '@`로 교체해 백틱 경로 문자열(`review.json`, `test.json`, `artifacts/schemas/`)이 제어문자(`\r`, `\t`, `\a`)로 손상되는 문제를 해결.
+- `artifacts/require-main-run-sha/`: `iteration-01/README.md` 복구 및 `iteration-02/review.json`·`test.json` 기록(Base `ea188c6` ↔ Target `42e52c6` clean), `run.json` `completed` 마감 및 `main` 병합 완료.
 
 ## 2026-11-02 (R24 iteration-01 리뷰)
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -226,6 +226,9 @@ export function RequestSubmissionModal({
       <DialogContent className="max-h-[85vh] overflow-y-auto border-line bg-surface text-content sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>추가 요청</DialogTitle>
+          <DialogDescription className="text-sm text-content-secondary">
+            게임이나 일정의 추가·수정을 요청하고 이전 요청 상태를 확인합니다.
+          </DialogDescription>
         </DialogHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 bg-surface-2 border border-line">

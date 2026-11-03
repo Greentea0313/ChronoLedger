@@ -105,13 +105,13 @@ $manifestPath = Join-Path $workRunPath 'run.json'
 $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $tempManifest -Encoding utf8
 Move-Item -LiteralPath $tempManifest -Destination $manifestPath
 
-@"
+@'
 # Iteration 01
 
 Target SHA is recorded by Maker after implementation. Reviewer and Orchestrator must use that same SHA.
 Write sanitized results to `review.json` and `test.json` using `artifacts/schemas/`.
 Do not put raw logs, credentials, or personal data in shared result files.
-"@ | Set-Content -LiteralPath (Join-Path $iterationPath 'README.md') -Encoding utf8
+'@ | Set-Content -LiteralPath (Join-Path $iterationPath 'README.md') -Encoding utf8
 
 try {
     Invoke-WorktreeGit -GitArguments @('add', '--', "artifacts/$RunId") | Out-Null

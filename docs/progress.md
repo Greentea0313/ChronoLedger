@@ -1,16 +1,48 @@
 # 프로젝트 진행 현황
 
-## R24 main 작업 리뷰 SHA 인계 절차 보강 iteration-02 정적 재리뷰 및 Run 마감 (2026-11-02)
+## R13 명세 리뷰 확정 및 Phase 12.33 설계 검증 (2026-11-03)
 
-- **수행 주체**: Reviewer & Orchestrator: Gemini 4 Argon / Maker: Gemini 3.8 Flash.
-- **수정 내용 (`14674f0`)**:
-  - `scripts/collaboration/New-CollaborationRun.ps1`의 README 템플릿 생성 히어스트링을 리터럴 `@'...'@` 및 no-BOM UTF-8 인코딩으로 수정해 백틱 인라인 코드(`review.json` 등)가 이스케이프 제어문자(`\r`, `\t`, `\a`)로 치환되는 문제를 원천 차단함.
-  - 손상되었던 `artifacts/require-main-run-sha/iteration-01/README.md` 복구, 기존 iteration-01의 `review.json` 및 `test.json` 보존.
-  - Base/Target 간 `git diff --check` 및 markdownlint 통과.
-- **재리뷰 및 Run 마감 결과**:
-  - Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `14674f014e91003f6ad5ba02ba0c6ac5e44dd4ce` 정적 재리뷰 PASS (`clean`, findings 0건).
-  - `artifacts/require-main-run-sha/iteration-02/review.json`, `test.json`, `run.json`(`status: completed`) 생성 및 JSON Schema 검증 통과.
-  - Worktree 산출물 커밋 `ad26310` 완료. `docs/to-do.md` R24 및 운영 마이그레이션(R27) 완료 체크, handoff/progress/changelog 문서 동기화. R24 과제 최종 마감.
+- **수행 주체**: Claude Opus (Reviewer & Architect)
+- **결과**: `docs/spec/R13_Character_Roster_and_Preset_Spec.md`를 `APPROVED`로 확정(`b66b07c`). §7에 리뷰 결정(RLS 보완, 아이콘 크기 제한, 분류 스키마 DB 검증, 프리셋 트리거 경계 규칙, Storage 헬퍼 확장, Phase 13.1 필수 스모크 테스트)을 기록.
+- **Phase 12.33**: 설계 승인. Step 2 수용 기준에 시간 제한, `Content-Type` 검사, wsrv.nl 제3자 고지, 붙여넣기 범위, CSP 주의를 보완하고 `▶ READY` 전환. 기존 외부 URL 아이콘 재저장은 후속 R30.
+- **다음 단계**: Step 2 `Phase 12.33 (R29)` GitHub Copilot `▶ READY`.
+
+## R13 영문 명세서 작성 및 Phase 12.33 아이콘 CORS/모바일 깨짐 해결 Run 등록 (2026-11-03)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
+- **R13 영문 명세서 작성**: 사용자의 3대 핵심 요구사항(① 게임 아이콘과 동일한 캐릭터 아이콘 관리 및 사용자 커스텀 아이콘 `user-icons` 지원, ② 관리자 게임별 프리셋 최대 슬롯 `max_preset_slots` 설정 및 미보유 캐릭터 명도 감쇠 시각화, ③ 게임별 성급·다중 분류 축 `classification_schema` 최적화 및 캐릭터별 메모 필드·배지 생략)을 반영한 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)를 작성했다.
+- **나무위키 아이콘 모바일 깨짐 및 관리자 URL 등록 CORS 오류 원인 규명 (`Phase 12.33` / `R29`)**:
+  1. 관리자 URL 등록 실패 원인: `src/lib/image-resizer.ts`의 `fetchImageFile`이 브라우저 `fetch()`를 직접 수행하여 `Access-Control-Allow-Origin` 헤더가 없는 나무위키(`i.namu.wiki`) 등 외부 서버에서 CORS 에러가 발생함.
+  2. 모바일 미표시 원인: 과거 원본 URL로 저장된 나무위키 이미지가 핫링크·세션 토큰·Referer 정책(`strict-origin-when-cross-origin` 및 SVG `<image>`의 `referrerPolicy` 미지원)에 의해 모바일에서 차단됨.
+  3. 해결책: `fetchImageFile`에 CORS 허용 이미지 프록시(`wsrv.nl`) 폴백 추가, 관리자 모달 클립보드 이미지 직접 붙여넣기(`onPaste`) 지원, 전역 `Referrer-Policy: no-referrer` 적용을 `Phase 12.33`으로 등록했다.
+- **다음 단계**: Step 1 **Claude Opus**(`▶ READY`)가 `R13` 영문 명세서 및 `Phase 12.33` 설계를 리뷰·확정 → Step 2 **GitHub Copilot**이 `Phase 12.33` 구현.
+
+## Phase 12.15-F3 & Phase 12.32 통합 정적 리뷰 및 Run 마감 (2026-11-03)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator)
+- **리뷰 범위**: Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Target `3ed5e5da10dd6c758dac370234aa27ac0608421e` (`c075045` GPT Codex + `3ed5e5d` GitHub Copilot).
+- **결과**: 정적 코드 리뷰 PASS(P1~P4 finding 0건). `artifacts/supabase-typed-client-and-a11y-closeout/`의 `run.json`, `iteration-01/review.json`, `iteration-01/test.json` JSON Schema 검증 통과(`7243c3b`).
+- **원격 대조 및 병합**: `origin/main`(`5a39dbe`) 대비 로컬 `main`이 순수 Fast-Forward(`ahead 10, behind 0`) 상태임을 확인하고, Worktree와 `main` 간 `docs/to-do.md`의 `R28` 행 충돌 가능성을 사전 정렬해 무충돌 병합 완료.
+- **검증**: `npx tsc --noEmit` 0건, `npm run lint` 0건, `npx vitest run` 44개 파일 302개 테스트 통과, `markdownlint` 통과.
+
+## Phase 12.15-F3 Supabase 타입 연결 완료 (2026-11-03)
+
+- **수행 주체**: GPT Codex (Step 1 Maker)
+- **완료**: `c075045f82fae6af8e9c7900a656220637bd899f`에서 RPC nullable/optional 인자와 일정·요청 상태 리터럴 타입을 정리하고 `createClient<Database>`를 연결했다. 타입 연결로 드러난 구독 동기화/모달 payload, 요청 화면 nullable 필드도 정합화했다.
+- **검증**: `tsc --noEmit` 통과, 관련 Vitest 30개(22+8) 통과, 변경 파일 ESLint 및 `git diff --check` 통과.
+- **다음 단계**: 같은 worktree의 Step 2 Phase 12.32 UI 접근성 및 Cloudflare Pages 체크리스트 마감(GitHub Copilot, `▶ READY`).
+
+## Phase 12.15-F3 & Phase 12.32 협업 Run 등록 (2026-11-03)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
+- **내용**: 후보 1(`Phase 12.15-F3`: `src/types/database.types.ts` RPC/테이블 nullable·optional 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 연결)과 후보 2(`Phase 12.32`: 주요 모달 5종 `DialogDescription` 보완, 소비 페이지 월 선택 드롭다운 고유 `aria-label` 분리, 관리자 권한 안내 시맨틱 토큰 적용, Cloudflare Pages·접근성 체크리스트 마감)를 묶어 격리 Worktree `.worktrees/supabase-typed-client-and-a11y-closeout`(Base SHA: `05140cb12f3f77b90656c71baad1d8686841cf87`)에 등록했다.
+- **다음 단계**: Step 1 `Phase 12.15-F3` **GPT Codex** `▶ READY` → Step 2 `Phase 12.32` **GitHub Copilot** → Step 3 **Claude Opus** 통합 정적 리뷰 및 마감.
+
+## R24 iteration-02 수정·재리뷰 및 Run 마감 (2026-11-03)
+
+- **수행 주체**: Gemini 4 Argon (Step 3 Claude Opus 1순위 대체 및 Step 4 Orchestrator & Reviewer)
+- **원인 규명 및 수정 (`42e52c6`)**: `scripts/collaboration/New-CollaborationRun.ps1`에서 `iteration-01/README.md`를 생성할 때 PowerShell 이중 인용구 here-string(`@" ... "@`)을 사용해 백틱 뒤의 `` `r ``, `` `t ``, `` `a ``가 각각 `\r`, `\t`, `\a` 제어문자로 치환되던 문제를 단일 인용구 here-string(`@' ... '@`)으로 변경해 원천 해결하고, `artifacts/require-main-run-sha/iteration-01/README.md`를 정상 경로 텍스트로 복구했다.
+- **재리뷰 및 검증 (`5bd515e`)**: Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `42e52c6940d0d141a595b90c04768c521b2d969f` 정적 재리뷰 clean(finding 0건). `run.json`, `iteration-02/review.json`, `iteration-02/test.json` 모두 JSON Schema 검증 통과, `git diff --check` 및 Markdownlint 통과 후 `main` 브랜치에 병합 완료.
 
 ## R24 main 작업 리뷰 SHA 인계 절차 보강 Run 등록 (2026-11-02)
 

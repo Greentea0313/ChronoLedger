@@ -248,7 +248,7 @@ export default function AdminPage() {
 
   if (authLoading) return <div className="p-6">불러오는 중...</div>
   if (!user || role !== "admin") {
-    return <div className="p-6 text-red-500">접근 권한이 없습니다. 관리자만 이용 가능합니다.</div>
+    return <div role="alert" className="p-6 text-danger">접근 권한이 없습니다. 관리자만 이용 가능합니다.</div>
   }
 
   const handleOpenPastSchedules = () => {
@@ -1219,6 +1219,13 @@ export default function AdminPage() {
             <DialogTitle>
               {editingScheduleId ? "일정 수정" : isDuplicating ? "일정 복사" : "새 일정 등록"}
             </DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              {editingScheduleId
+                ? "선택한 게임 일정을 수정합니다."
+                : isDuplicating
+                  ? "기존 일정을 복사해 새 게임 일정을 등록합니다."
+                  : "새 게임 일정을 등록합니다."}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
@@ -1384,6 +1391,9 @@ export default function AdminPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>일정 삭제 확인</DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              선택한 일정은 삭제 후 복구할 수 없습니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <p className="text-sm text-content-secondary">
@@ -1531,6 +1541,9 @@ export default function AdminPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>게임 삭제 확인</DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              게임을 삭제하면 연결된 데이터도 함께 삭제되며 복구할 수 없습니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <p className="text-sm text-content-secondary">

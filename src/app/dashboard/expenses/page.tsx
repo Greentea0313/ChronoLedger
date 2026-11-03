@@ -435,10 +435,10 @@ export default function ExpensesPage() {
     }
   }, [expenses, categoryData, selectedCategory, categoryMonth, currentMonthKey])
 
-  const renderMonthSelect = (id: string, value: string, onChange: (v: string) => void, options: MonthOption[]) => (
+  const renderMonthSelect = (id: string, ariaLabel: string, value: string, onChange: (v: string) => void, options: MonthOption[]) => (
     <select
       id={id}
-      aria-label="통계 기간 선택"
+      aria-label={ariaLabel}
       className="h-8 rounded-md border border-line bg-surface-2 px-2.5 text-xs text-content focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -898,7 +898,7 @@ export default function ExpensesPage() {
             <Card className="flex flex-col">
               <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
                 <CardTitle>카테고리별 지출 비중</CardTitle>
-                {renderMonthSelect("category-month-select", categoryMonth, setCategoryMonth, categoryMonthOptions)}
+                {renderMonthSelect("category-month-select", "카테고리별 지출 비중 기간 선택", categoryMonth, setCategoryMonth, categoryMonthOptions)}
               </CardHeader>
               <CardContent className="flex-1 flex flex-col justify-between min-h-[300px]">
                 {categoryData.length === 0 ? (
@@ -1118,7 +1118,7 @@ export default function ExpensesPage() {
                   확정 결제 기준 게임별 소비액과 비중을 분석합니다.
                 </p>
               </div>
-              {renderMonthSelect("game-month-select", gameMonth, setGameMonth, gameMonthOptions)}
+              {renderMonthSelect("game-month-select", "게임별 과금 분석 기간 선택", gameMonth, setGameMonth, gameMonthOptions)}
             </CardHeader>
             <CardContent className="min-h-[260px] pt-4">
               {!gameStatsData.hasData ? (

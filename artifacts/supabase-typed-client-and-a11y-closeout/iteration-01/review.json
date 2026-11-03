@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "supabase-typed-client-and-a11y-closeout",
+  "iteration": 1,
+  "agent": "Gemini 4 Argon",
+  "role": "static-review",
+  "base_sha": "05140cb12f3f77b90656c71baad1d8686841cf87",
+  "target_sha": "3ed5e5da10dd6c758dac370234aa27ac0608421e",
+  "status": "clean",
+  "created_at": "2026-11-03T14:10:00+09:00",
+  "findings": []
+}

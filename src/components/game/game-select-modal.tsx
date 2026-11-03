@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
@@ -139,6 +139,9 @@ export function GameSelectModal({
       <DialogContent className="border-line bg-surface text-content sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>내 게임 등록</DialogTitle>
+          <DialogDescription className="text-sm text-content-secondary">
+            카탈로그에서 게임을 선택해 내 게임 목록에 추가합니다.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">

@@ -40,21 +40,21 @@
   - Claude Code 전용 루트 지침 [`CLAUDE.md`](../CLAUDE.md) 신규 생성 (`@.agents/rules/*.md` 링크 임포트, Claude Pro Opus / Sonnet 역할 및 세부 운용 기준, `"인수인계 문서를 확인해"` 자동 실행 프로토콜, 프로젝트 권위 경로 안내).
   - 범용 에이전트 전용 루트 지침 [`AGENTS.md`](../AGENTS.md) 신규 생성 (GPT Codex, OpenCode 자동 인식, 5대 AI 모델 역할 분배표, Claude Pro Opus/Sonnet 세부 역할 및 5단계 실행 프로토콜 안내).
   - 지침 파일 내 구버전 경로 일괄 최신화 (`.github/copilot-instructions.md`, `.agents/skills/chronoledger-orchestrator/SKILL.md`, `.agents/skills/chronoledger-maker/SKILL.md`, `.agents/skills/chronoledger-reviewer/SKILL.md` 내 `md/` 참조를 `.agents/rules/`, `docs/spec/`, `sql/`, `docs/design-previews/`, `docs/archive/`로 변경).
-- [ ] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다.
+- [x] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다. (`완료` - `require-main-run-sha` 및 `12.15-F2` 등 다수 Run 검증 완료)
 - [x] 대시보드·지출·통계 반응형 시안을 만들고 주요 화면 구성과 반응형 동작을 브라우저에서 검증한다. 사용자는 대시보드 그래프 제외, 데스크톱 표/모바일 그룹 카드, 아이콘 전체 표시, 월별 세로 막대/분류별 가로 막대를 결정했다.
 - [x] 시안 검토 후 글자 크기, 쿨 뉴트럴 라이트 팔레트/대비, 기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 확정해 UI 디자인 시트·상세 설계에 기록했다.
 - [x] A2z 제작자 페이지의 SIL OFL 1.1 및 눈누의 상업 사용/수정/재배포 허용 안내를 확인했다. 재배포 시 저작권 고지와 OFL 전문이 필요하며, 폰트 자체 단독 판매는 허용되지 않는다.
 - [x] A2Z의 내장 저작권 표기와 SIL OFL 1.1을 확인하고 9개 WOFF2 굵기를 시안 및 웹 앱에서 자체 호스팅한다. 두 배포 위치에 OFL 전문을 동봉한다.
 - [x] 업데이트된 시안을 양 테마와 390/900/1280px에서 재검증해 가로 넘침과 주요 반응형 패널 위치를 확인했다.
 - [ ] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
-  - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했다.
+  - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했고, Phase 12.32에서 관리자/게임 요청 모달 설명·통계 기간 이름·관리자 권한 오류 시맨틱을 테스트했다.
   - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
 - [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](archive/Netlify_Web_Architecture_Proposal.md)에 반영했다.
 - [ ] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
   - [x] **Cloudflare Pages 호스팅 환경 구성**: [`.nvmrc`](../.nvmrc) (Node.js 20 LTS), [`public/_headers`](../public/_headers) (불변 캐싱 및 보안 헤더), [`public/_redirects`](../public/_redirects) 설정 완료.
   - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`sql/MIGRATION_PG_CRON.sql`](../sql/MIGRATION_PG_CRON.sql)) 작성 완료.
   - [x] **탈퇴 API Supabase RPC 완전 통합**: Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` `SECURITY DEFINER` RPC 함수로 프론트엔드 직접 연동 완료 ([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts)).
-  - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅 검증 (트래픽 무제한, 월 500회 빌드 활용).
+  - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅을 실제 배포 환경에서 검증한다. 저장소 코드 검증만으로 배포·도메인·OAuth 성공을 완료 처리하지 않는다.
 - [x] ~~(폐기/대안) Netlify 후보 유지 시 점검 사항:~~ (Cloudflare Pages 공식 채택으로 제외)
   - Cloudflare Pages + Supabase pg_cron으로 배포 환경이 공식 확정되어 Netlify 관련 점검 사항은 폐기 및 제외 처리함. (Supabase OAuth Redirect URLs 원격 등록 이력 보존 완료).
 
@@ -486,9 +486,9 @@
 - [x] 12.15-F2-b src/types/database.types.ts를 최신 sql/SCHEMA.sql 테이블(user_games.memo, subscription_templates) 및 11개 인자 process_expense_payment 등 전체 RPC 시그니처에 맞게 동기화 (담당: Claude Sonnet) (`완료` - 커밋 `38d3f71`, Claude Opus 통합 리뷰 PASS)
 - [x] 12.15-F2-c 원격 DB 정합성 점검: `sql/README.md` B표 확인 쿼리 실행(특히 9개 인자 `process_expense_payment` 잔존 여부) 및 전용 테스트 프로젝트에서 `TESTS.sql` 실행 확인 (사용자 수동) (`완료` - 2026-11-02)
   - 결과: `process_expense_payment` 11개 인자·`update_confirmed_expense_metadata` 5개 인자, pg_cron 작업·`user_games.memo`·`public.users`·가입 트리거 2종 정상, 템플릿 직접 DELETE 정책 0. 운영에 누락돼 있던 `uq_personal_memos_user_date`는 `MIGRATION_MEMO_UNIQUE.sql`로 적용, 구 PHASE9 `game_schedules` 정책 1건 DROP. 신규 테스트 프로젝트(`SCHEMA.sql` 설치)에서 `TESTS.sql` 최종 PASS.
-- [ ] 12.15-F3 `database.types.ts` 리뷰 P3 후속 (비차단, 담당 후보: Claude Sonnet / 연결 여부 결정은 Claude Opus)
-  - P3-1: SCHEMA에서 DEFAULT가 있는 RPC 인자를 optional로 표기 (`admin_create_game.p_default_icon_url`, `approve_game_request.p_default_icon_url`, `set_user_finance_settings.p_default_budget`).
-  - P3-2: 타입 파일이 import되지 않고 `createClient`에 `Database` 제네릭이 없어 타입 불일치가 tsc로 검출되지 않음. `createClient<Database>` 연결(호출부 타입 오류 정리 포함) 또는 `supabase gen types` 재생성 절차 중 방향 결정 필요.
+- [x] 12.15-F3 `database.types.ts` 리뷰 P3 후속: SQL DEFAULT/nullable 인자 타입을 보정하고 `createClient<Database>`를 연결해 타입 불일치를 검출한다 (`완료` - 커밋 `c075045f`, GPT Codex; Gemini 4 Argon 통합 리뷰 `7243c3b` PASS).
+  - `SCHEMA.sql` 기준 필수 인자(`admin_create_game.p_default_icon_url`, `approve_game_request.p_default_icon_url`, `set_user_finance_settings.p_default_budget`)는 필수로 유지하고, `process_expense_payment`, `update_confirmed_expense_metadata`, `reject_game_request`, `reject_schedule_request`, `update_store_wallet_settings`, `adjust_wallet_balance`의 nullable/optional 인자와 `game_schedules`·`game_requests`·`schedule_requests` 리터럴 유니온 타입을 스키마·호출부와 정렬했다.
+  - Supabase client에 `Database` 제네릭을 연결하고 노출된 호출부 타입 불일치를 정리했다. `tsc --noEmit`, 전체 Vitest(44파일 302테스트) 및 ESLint 통과; 통합 리뷰(`7243c3b`) 및 `main` 병합 완료.
 
 - [x] 12.16 공식 일정 보기에서 "/" 구분자 입력 시 자동 줄바꿈 표시 (2026-10-28)
   - 대상 파일: `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`
@@ -572,7 +572,7 @@
     2. **게임 아이콘 자체 WebP Data URL 변환·저장**: 관리자가 게임 등록/수정 및 게임 요청 승인 시 이미지 파일 업로드 또는 외부 이미지 URL 입력에 대해 `resizeImageToWebP`(256×256 WebP)를 거쳐 자체 `data:image/webp;base64,...` Data URL로 변환해 `games.default_icon_url`에 저장(모바일 핫링크 차단/만료 원천 해결). `GameIcon` 컴포넌트에 외부 URL 로드 실패 시 1회 재시도 안전망 추가.
     3. **비공식 일정 DB 스키마 및 관리자/사용자 기능**: `game_schedules` 및 `schedule_requests`에 `is_official BOOLEAN NOT NULL DEFAULT true`, `public.users`에 `show_unofficial_schedules BOOLEAN NOT NULL DEFAULT false` 컬럼 추가(`MIGRATION_UNOFFICIAL_SCHEDULES.sql`, `SCHEMA.sql`, `database.types.ts`). 관리자 일정 추가/수정 및 일정 요청 모달에서 공식/비공식 여부 분류 지원, 계정 설정 페이지(`/dashboard/settings`)에 `비공식 일정(테스트 서버·유출 등) 표시` 토글 버튼 제공, 대시보드 및 게임 페이지 일정 보기에서 토글 설정에 따른 필터링 및 `[비공식]` 배지 표시.
   - verify: 관련 8개 Vitest 파일의 57개 테스트, `npx tsc --noEmit`, `npm run lint` 통과.
-  - [x] 후속: 운영 Supabase SQL Editor에서 `MIGRATION_UNOFFICIAL_SCHEDULES.sql` 수동 적용 완료 (2026-11-02 사용자 적용 확인, R27)
+  - [x] 후속: 운영 Supabase SQL Editor에서 `MIGRATION_UNOFFICIAL_SCHEDULES.sql`을 수동 적용하고 설정 토글 및 일정 조회를 확인한다. (`완료` - 2026-11-02 사용자 적용, R27)
 
 - [x] 12.26 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (R17)
   - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/app/globals.css`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`
@@ -611,11 +611,14 @@
 - [x] R21. [P3] `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql`(파괴적 정리) 확인 쿼리·주의 문구 추가
 - [x] R22. [P3] `game-select-modal.tsx` `fetchGames`를 `user?.id` 의존으로 변경, 대시보드 `loadSchedulePreference` 실패 시 공식 일정만 표시로 폴백 (Claude Sonnet) (`완료` - 커밋 `b820a4e`, Claude Opus 대체 수행)
 - [x] R23. 운영 Supabase에 `MIGRATION_USERS_ROLE_GUARD.sql`(R18)·`MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(R19) 적용 (`완료` - 2026-11-02 사용자 실행 확인)
-- [x] R24. `main` 직접 실행의 Base SHA를 Dispatch Queue에 등록 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하도록 Orchestrator 스킬에 명시한다. `run.schema.json`은 확장하지 않고 가짜 `branch`/`worktree_path` manifest를 만들지 않는다. iteration-01 리뷰에서 발견한 Run README 경로 문자열의 제어문자 손상(P3)을 수정하고 같은 Base SHA부터 새 Target SHA까지 재리뷰해야 완료 처리한다 (Gemini 4 Argon; Run `require-main-run-sha`) (완료 - Worktree 커밋 `83d2e18`·`14674f0`, Gemini 4 Argon iteration-02 재리뷰 clean 및 마감 완료)
+- [x] R24. `main` 직접 실행의 Base SHA를 Dispatch Queue에 등록 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하도록 Orchestrator 스킬에 명시한다. `run.schema.json`은 확장하지 않고 가짜 `branch`/`worktree_path` manifest를 만들지 않는다. iteration-01 리뷰에서 발견한 Run README 경로 문자열의 제어문자 손상(P3)을 수정하고 같은 Base SHA부터 새 Target SHA까지 재리뷰해야 완료 처리한다 (`완료` - 커밋 `83d2e18`, `42e52c6`, `5bd515e`; Gemini 4 Argon iteration-02 재리뷰 PASS 및 `main` 병합 완료)
 - [x] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
 - [x] R26. 소비 페이지 막대 차트: 게임별 과금 툴팁에 UUID 대신 게임명, 금액 축 눈금 중복(`0만 0만 1만 1만`) 제거, 막대 외곽선 다크·라이트 테마 가시성 개선 (`Phase 12.31`, Claude Sonnet) (`완료` - 커밋 `fc4ea9d`, Claude Opus 리뷰 PASS, 배포 대기)
 - [x] R27. [운영 긴급] 운영 Supabase에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 (미적용 시 관리자 일정 추가·수정, 일정 요청 제출·승인 실패) (사용자 수동) (`완료` - 2026-11-02 사용자 적용)
-- [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
+- [x] R28. Phase 12.15-F3 & Phase 12.32: `createClient<Database>` 연결 및 RPC/테이블 타입 정밀 보정(`c075045f`, GPT Codex), 관리자·게임 요청 모달 5종 `DialogDescription` 추가·소비 통계 기간 선택 고유 `aria-label` 분리·관리자 권한 거부 시맨틱 danger 토큰 및 `role="alert"` 적용(`3ed5e5d`, GitHub Copilot) (`완료` - Gemini 4 Argon 통합 리뷰 `7243c3b` PASS 및 `main` 병합 완료).
+- [ ] R29 (`Phase 12.33`). 나무위키 등 외부 아이콘 URL 등록 시 CORS 실패 해결(`image-resizer.ts` CORS 프록시 폴백 + `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기 `onPaste` 지원) 및 모바일 외부 아이콘 핫링크 차단 방지(`public/_headers`·`layout.tsx` `no-referrer` 적용) (설계 검증: Claude Opus → 구현: GitHub Copilot)
+- [ ] R30. 이미 DB에 외부 URL(나무위키 등)로 저장된 게임 아이콘을 관리자 게임 목록에서 표시하고 Data URL로 재저장하는 기능 (Phase 12.33 후속)
+- [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 작성 완료, Claude Opus 아키텍처 리뷰 진행 중 (`Phase 13.1 ~ 13.3` 분할 예정) (명세 `docs/spec/R13_Character_Roster_and_Preset_Spec.md` `APPROVED`, 2026-11-03 Claude Opus 리뷰. 구현은 Phase 13.1~13.3)
 
 ---
 

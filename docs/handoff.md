@@ -31,10 +31,89 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
+- **Run ID**: `r13-spec-review-and-icon-cors-fix` *(2026-11-03, R13 영문 명세서 아키텍처·보안 리뷰 및 나무위키 등 외부 아이콘 URL CORS/모바일 깨짐 해결 `Phase 12.33`)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `main` (사유: Step 1은 신규 영문 명세서 `docs/spec/R13_Character_Roster_and_Preset_Spec.md` 아키텍처·보안 리뷰 중심 과제이며, Step 2는 아이콘 변환 유틸·헤더 국소 수정이므로 `chronoledger-orchestrator/SKILL.md`의 「Main-worktree fallback runs」 절차 적용)
+- **리뷰 비교 범위**: Base `cdee5a7b9f756a8131a5f49a6e82b47f97698541` (Run 등록 직전 `main` HEAD) ↔ Target *(각 단계 완료 시 해당 커밋 SHA 기록)* Step 1 Target: `b66b07c` (명세·to-do 문서 커밋).
+- **수용 기준 (Acceptance Criteria)**:
+  1. **Step 1 — `R13` 영문 명세서([`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)) 심층 리뷰 및 `Phase 12.33` 설계 검증 (Claude Opus)**:
+     - **대상 파일**: `docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/handoff.md`, `docs/to-do.md`
+     - **R13 명세 검토 항목**:
+       - ① **캐릭터 아이콘 관리(사용자 커스터마이징 포함)**: `game_characters.default_icon_url`(256×256 WebP Data URL) + `user_characters.custom_icon_path`(`user-icons` 비공개 버킷 `{user_id}/characters/{character_id}.webp`) 구조가 기존 `storage.objects` RLS 및 계정 탈퇴 정리(`purge_expired_account_deletion_requests`)와 완벽히 호환되는지 검증.
+       - ② **게임별 최대 프리셋 슬롯(`games.max_preset_slots`) 및 미보유 캐릭터 명도 감쇠**: 관리자가 게임별로 최대 슬롯(`1..12`)을 설정하고, 슬롯 축소 시 기존 프리셋 보존/편집 시 검증 트리거(`validate_user_character_preset`) 및 캐릭터 삭제 시 배열 정리 트리거의 무결성 검토. 미보유 캐릭터는 배지 없이 명도(`brightness-50 saturate-50 opacity-65`)만 낮추고 보유 태그 배지는 제외(캐릭터별 `memo` 필드로만 기록)하는 UX 일관성 확인.
+       - ③ **성급(`rarities`) 및 게임별 캐릭터 분류 축(`classification_schema` JSONB — 속성/원소, 직업/무기/운명의 길 등)**: 서브컬처 게임별 다양한 분류 체계를 수용하기에 스키마(`games.classification_schema` + `game_characters.rarity`/`attributes`)가 충분하고 인덱싱·필터링에 유리한지 검토 후 보완 사항을 `docs/spec/R13_Character_Roster_and_Preset_Spec.md`에 직접 반영하여 `APPROVED` 상태로 확정.
+     - **`Phase 12.33` (나무위키 등 외부 아이콘 URL CORS 실패 및 모바일 깨짐 해결) 설계 검토**:
+       - 아래 Step 2의 원인 분석 및 해결 방안(CORS 허용 프록시 폴백 / 클립보드 이미지 직접 붙여넣기 `onPaste` / 전역 `Referrer-Policy: no-referrer`)의 보안·안정성을 검토하고 필요 시 Step 2 수용 기준을 보완한 뒤 Step 2를 `▶ READY`로 전환.
+  2. **Step 2 — `Phase 12.33 (R29)` 나무위키 등 외부 아이콘 URL 등록 CORS 우회·클립보드 붙여넣기 및 모바일 깨짐 해결 (GitHub Copilot / Claude Sonnet)**:
+     - **원인 규명**:
+       - ① **관리자 URL 등록 시 CORS 실패**: `src/lib/image-resizer.ts`의 `fetchImageFile(url)`이 브라우저 `fetch(parsedUrl)`를 직접 호출하므로, `Access-Control-Allow-Origin` 헤더를 주지 않는 나무위키(`i.namu.wiki`) 등 외부 이미지 URL 입력 시 무조건 CORS 에러(`"이미지 URL을 가져오지 못했습니다. 파일을 업로드하거나 CORS가 허용된 URL을 사용해 주세요."`)가 발생해 저장 자체가 차단됨.
+       - ② **기존 나무위키 URL 모바일 미표시**: 과거 DB에 원본 `https://i.namu.wiki/...` URL로 저장된 아이콘은 나무위키의 핫링크·세션 토큰·Referer 차단 및 `public/_headers`의 `Referrer-Policy: strict-origin-when-cross-origin`(특히 SVG `<image href>`는 `referrerPolicy` 속성이 동작하지 않음)으로 인해 노트북 로컬 캐시에서는 보이지만 모바일에서는 차단됨.
+     - **대상 파일**: `src/lib/image-resizer.ts`, `src/lib/image-resizer.test.ts`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `public/_headers`, `src/app/layout.tsx`
+     - **구현 요구사항**:
+       - ① **`fetchImageFile` 다단계 폴백 (`src/lib/image-resizer.ts`)**: 1차로 `fetch(parsedUrl, { referrerPolicy: "no-referrer" })`를 시도하고, CORS/네트워크 예외 또는 비정상 응답 발생 시 2차로 공개 CORS 이미지 프록시(`https://wsrv.nl/?url=${encodeURIComponent(parsedUrl.toString())}&w=256&h=256&fit=cover&output=webp`)를 통해 이미지를 가져와 256×256 WebP Data URL(`data:image/webp;base64,...`)로 변환·저장한다.
+       - ② **클립보드 이미지 붙여넣기(`onPaste`) 지원 (`/admin`, `/admin/requests`)**: 나무위키 등에서 `[이미지 주소 복사]` 대신 `[이미지 복사]` 후 관리자 게임 등록/수정 모달 또는 게임 요청 승인 입력란에서 `Ctrl+V`(또는 모바일 클립보드 붙여넣기)를 누르면 `event.clipboardData.files`(또는 `items`)의 이미지 `File`을 즉시 인식해 외부 서버 요청/CORS 없이 256×256 WebP Data URL로 변환·미리보기할 수 있도록 지원한다.
+       - ③ **전역 `no-referrer` 적용 (`public/_headers`, `src/app/layout.tsx`)**: `public/_headers`의 `Referrer-Policy`를 `no-referrer`로 변경하고 `src/app/layout.tsx` metadata에 `referrer: "no-referrer"`를 설정하여, 아직 재저장되지 않은 기존 외부 URL 이미지 및 소비 차트 SVG `<image>` 요청에서도 Referer가 외부로 노출되지 않도록 차단한다.
+     - **Step 1 설계 검토 보완 (Claude Opus, 2026-11-03 — 필수)**:
+       - ① 프록시 폴백: 직접 요청·프록시 요청 모두 `AbortController`로 10초 제한. 응답은 `Content-Type`이 `image/`로 시작할 때만 사용하고, 이후 기존 5MB 입력·100KB 출력 검사를 그대로 거친다. 프록시에는 기존 `http`/`https` 프로토콜 검사를 통과한 원본 URL만 `encodeURIComponent`로 인코딩해 넘기고, 직접 요청이 실패했을 때만 호출한다. 아이콘 URL 입력란 도움말에 "직접 가져오지 못하면 외부 변환 서비스(wsrv.nl)를 거쳐 가져와 Data URL로 저장"한다고 표시해 URL이 제3자에 전달됨을 고지한다. 결과는 Data URL로 저장되므로 런타임에는 wsrv.nl에 의존하지 않는다. 프록시도 실패하면 "이미지 복사 후 붙여넣기 또는 파일 업로드"를 안내한다.
+       - ② 붙여넣기: 클립보드에 이미지 파일이 있을 때만 가로채고(`preventDefault`), 텍스트 붙여넣기는 기본 동작을 유지한다. 기존 `resizeImageToWebP` 형식·용량 검사를 재사용한다. 모바일 브라우저의 이미지 붙여넣기 지원은 기기마다 달라 보조 수단이며, 파일 업로드가 기본 경로다.
+       - ③ `no-referrer`: 현재 `public/_headers`에 CSP가 없어 wsrv.nl 호출이 막히지 않는다. 이후 CSP를 추가하면 `connect-src`에 `https://wsrv.nl`을 포함해야 한다. Tauri 데스크톱에는 `_headers`가 적용되지 않으므로 `layout.tsx`의 `referrer` 메타가 필수다.
+       - 테스트: 직접 요청 성공 시 프록시 미호출, 직접 요청 실패 시 인코딩된 프록시 URL 호출, 프록시가 이미지가 아닌 응답을 주면 오류, 시간 초과 처리, 이미지 붙여넣기 변환과 텍스트 붙여넣기 미가로채기.
+       - 범위 밖(후속 R30): 이미 DB에 외부 URL로 저장된 아이콘은 이 변경 후에도 원본 사이트에 의존한다. 관리자 게임 목록에서 Data URL이 아닌 아이콘을 표시하고 재저장하는 기능은 별도 과제로 진행한다.
+  3. **Step 3 — `Phase 12.33` 정적 리뷰 및 Run 마감 (Gemini 4 Argon / Claude Opus)**:
+     - Step 2 커밋에 대한 정적 리뷰, 전체 검증(`tsc`, `lint`, `vitest`, `markdownlint`) 및 문서 마감.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | `✅ DONE (SHA: b66b07c)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Architect` | `R13` 영문 명세서([`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md)) 아키텍처·RLS·Storage·분류 스키마 리뷰 및 확정 + `Phase 12.33` 아이콘 CORS/모바일 깨짐 해결 설계 검증 (`docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/handoff.md`, `docs/to-do.md`) | `✅ DONE` (R13 명세 `APPROVED` 확정, §7 리뷰 결정 추가: `character_requests` INSERT 정책에 빠진 `auth.uid() = user_id` 보완, 아이콘 텍스트 150,000자·WebP/HTTPS 제한, 요청 메모 500자, 분류 스키마 DB 검증 함수와 빈 기본값, `custom_icon_path` 단일 경로 CHECK, 프리셋 `NULL`·공백 금지, 슬롯 축소 비파괴 규칙, 캐릭터·게임 삭제 시 트리거 충돌 방지, Storage 헬퍼 확장 필요, Phase 13.1 필수 스모크 테스트 목록. Phase 12.33 설계는 승인하고 Step 2 수용 기준에 시간 제한, `Content-Type` 검사, 제3자 고지, 붙여넣기 범위, CSP 주의를 보완) |
+| **2** | `▶ READY` | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & Image Utils)` | `Phase 12.33 (R29)`: `src/lib/image-resizer.ts` CORS 프록시 폴백, `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기(`onPaste`), `public/_headers`·`src/app/layout.tsx` `no-referrer` 적용 및 단위 테스트 | `▶ 착수 대기` (Step 2 수용 기준의 「Step 1 설계 검토 보완」 포함) |
+| **3** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | `Phase 12.33` 정적 코드 리뷰, 전체 테스트 검증 및 문서 마감 | `⏳ Step 2 완료 후 진행 대기` |
+
+### 🗂️ 이전 Run 기록 (완료): supabase-typed-client-and-a11y-closeout
+
+- **Run ID**: `supabase-typed-client-and-a11y-closeout` *(2026-11-03, Phase 12.15-F3 Supabase `createClient<Database>` 타입 안전성 연결 & Phase 12.32 주요 화면/모달 접근성·대비 보완 및 Cloudflare Pages 릴리즈 체크리스트 마감)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `.worktrees/supabase-typed-client-and-a11y-closeout` (브랜치: `collab/supabase-typed-client-and-a11y-closeout`)
+- **리뷰 비교 범위**: Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Target `3ed5e5da10dd6c758dac370234aa27ac0608421e` (Step 2 Maker 커밋, `collab/supabase-typed-client-and-a11y-closeout`; Step 3 Orchestrator가 manifest `target_sha` 기록)
+- **수용 기준 (Acceptance Criteria)**:
+  1. **Step 1 — `Phase 12.15-F3` Supabase 타입 안전성 연결 (GPT Codex)**:
+     - **대상 파일**: `src/types/database.types.ts`, `src/lib/supabase/client.ts` (필요 시 `createClient<Database>` 연결로 드러나는 `src/**` 호출부 타입 정합성 수정 및 관련 단위 테스트)
+     - `sql/SCHEMA.sql` 및 실제 프론트엔드 RPC 호출부와 일치하도록 `src/types/database.types.ts`의 `Functions` 인자 시그니처를 정밀 보정한다:
+       - `process_expense_payment.Args`: `p_point_platform: string | null`, `p_custom_earned_points?: number | null`, `p_memo?: string | null`
+       - `update_confirmed_expense_metadata.Args`: `p_memo?: string | null`, `p_target_date?: string | null`
+       - `reject_game_request.Args` 및 `reject_schedule_request.Args`: `p_admin_memo?: string | null`
+       - `update_store_wallet_settings.Args`: `p_tier: string | null` (Galaxy Store 폴백 `p_tier: null` 허용)
+       - `adjust_wallet_balance.Args`: `p_memo?: string | null`
+       - `admin_create_game.Args`, `approve_game_request.Args`, `set_user_finance_settings.Args`: `P3-1` 후속 점검 결과를 반영하되 현행 `sql/SCHEMA.sql`(필수 인자 검증) 및 호출부와 충돌하지 않도록 정렬하고, `@supabase/supabase-js` v2 `GenericSchema` 요건(`Views`, `Functions`, `Enums`, `CompositeTypes`, `Relationships`)을 만족시킨다.
+     - `src/lib/supabase/client.ts`에서 `import type { Database } from "@/types/database.types"`를 연결하여 `createClient<Database>(supabaseUrl, supabaseAnonKey, ...)`로 제네릭을 적용하고, 전체 코드베이스에서 `npx tsc --noEmit` 오류가 0건이 되도록 호출부 타입을 정리한다.
+  2. **Step 2 — `Phase 12.32` 주요 화면/모달 접근성·대비 보완 및 릴리즈 체크리스트 마감 (GitHub Copilot)**:
+     - **대상 파일**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `docs/to-do.md`
+     - **모달 접근성(`DialogDescription`) 보완**: Radix `DialogContent` 접근성 경고가 발생하지 않도록 누락된 5개 모달(`src/app/admin/page.tsx`의 일정 등록/수정 모달·일정 삭제 확인 모달·게임 삭제 확인 모달, `src/components/game/game-select-modal.tsx`의 내 게임 등록 모달, `src/components/game/request-submission-modal.tsx`의 게임 및 일정 요청 모달)에 각각 의미에 맞는 `<DialogDescription>`을 추가한다.
+     - **통계 기간 드롭다운 고유 `aria-label` 부여**: `src/app/dashboard/expenses/page.tsx`의 `renderMonthSelect`가 두 카드(`category-month-select`, `game-month-select`)에 동일한 `aria-label="통계 기간 선택"`을 부여하던 것을 구분하여 각각 고유한 접근성 이름(`"카테고리별 지출 비중 기간 선택"`, `"게임별 과금 분석 기간 선택"`)을 갖도록 개선한다.
+     - **관리자 권한 거부 알림 시맨틱 토큰·역할 적용**: `src/app/admin/page.tsx` 251행의 하드코딩 `text-red-500`을 테마 대응 시맨틱 토큰 `text-danger` 및 `role="alert"`로 교체한다.
+     - **단위 테스트 및 체크리스트 동기화**: `src/app/admin/page.test.tsx` 및 `src/app/dashboard/expenses/page.test.tsx`에 구분된 `aria-label` 및 모달 설명 렌더링 단언을 추가/갱신하고, `docs/to-do.md`의 `12.15-F3`, 49~51행(접근성/대비 점검), 53~57행(Cloudflare Pages 정적 호스팅·OAuth·PWA 라우팅 검증 기록), `12.32` 항목을 최신 완료 상태로 갱신한다.
+  3. **Step 3 — 통합 정적 코드 리뷰 및 마감 (Claude Opus)**:
+     - Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Step 2 완료 Target SHA 범위 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 기록 및 스키마 검증, `main` 병합 및 `docs/` 마감.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | `✅ DONE (SHA: c075045f82fae6af8e9c7900a656220637bd899f)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & Types)` | `Phase 12.15-F3`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 `src/types/database.types.ts` RPC/테이블 타입 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 연결 (`src/types/database.types.ts`, `src/lib/supabase/client.ts`, 필요 시 타입 정합성 관련 `src/**` 최소 범위) | `✅ c075045f: RPC nullable/optional 및 schedule/request 리터럴 타입 정리, typed client 연결. 구독 sync/modal 및 요청 화면 호출부 타입 정합성 수정. tsc 통과, 관련 Vitest 30건 및 ESLint 통과.` |
+| **2** | `✅ DONE (SHA: 3ed5e5da10dd6c758dac370234aa27ac0608421e)` | **GitHub Copilot** *(Gemini 3.8 Flash 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & A11y)` | `Phase 12.32`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 5개 모달 `DialogDescription` 추가, 소비 통계 월 드롭다운 고유 `aria-label` 분리, 관리자 권한 안내 `text-danger`/`role="alert"`, 단위 테스트 및 `docs/to-do.md` 체크리스트 마감 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `docs/to-do.md`) | `✅ 3ed5e5d: 5개 모달 설명·고유 기간 이름·관리자 경고 시맨틱 반영. 전체 Vitest 44파일/302테스트, tsc, lint, docs/to-do Markdownlint 통과. 수동 스크린리더·실배포 검증은 미완료.` |
+| **3** | `✅ DONE (SHA: 7243c3b)` | **Gemini 4 Argon** *(Claude Opus 1순위 대체)* | `Reviewer & Orchestrator` | Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Target `3ed5e5da10dd6c758dac370234aa27ac0608421e` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 기록 및 스키마 검증, `main` 병합과 `docs/` 마감 | `✅ DONE` (Base `05140cb` ↔ Target `3ed5e5d` 통합 정적 리뷰 PASS, P1~P4 0건. `run.json`·`iteration-01/review.json`·`iteration-01/test.json` JSON Schema 검증 통과, `npx tsc --noEmit`·`npm run lint`·`npx vitest run` 44파일/302테스트·`markdownlint` 통과 및 `main` 병합·마감 완료) |
+
+## Phase 12.15-F3 Supabase 타입 연결 Maker 완료 (2026-11-03)
+
+- **수행 주체**: GPT Codex (Maker - Core & Types)
+- **커밋**: `.worktrees/supabase-typed-client-and-a11y-closeout`의 `c075045f82fae6af8e9c7900a656220637bd899f`.
+- **변경**: `Database`를 Supabase client에 연결하고 요구된 RPC nullable/optional 인자와 game schedule/request literal 타입을 반영했다. 제네릭 연결 후 드러난 구독 템플릿 insert/update payload 및 요청 화면 nullable 필드, subscription sync game ID 타입 정합성도 수정했다.
+- **검증**: `tsc --noEmit` 통과, `subscription-sync.test.ts` 22개 및 `subscription-modal.test.tsx` 8개 통과, 변경 파일 ESLint와 `git diff --check` 통과.
+- **현재 상태 / 다음 단계**: Step 1 완료, Step 2 Phase 12.32가 `▶ READY`. GitHub Copilot이 지정 worktree에서 접근성·대비 수정, 테스트와 `docs/to-do.md` 마감을 진행한다.
+
+### 🗂️ 이전 Run 기록 (완료): require-main-run-sha
+
 - **Run ID**: `require-main-run-sha` *(2026-11-02, R24 main 작업 Base/Target SHA 인계 절차)*
 - **Orchestrator**: GitHub Copilot (현재 환경에서 프로젝트 Local 하위 에이전트 호출 도구를 사용할 수 없어 문서화된 수동 모델 인계 사용)
 - **Worktree 경로**: `.worktrees/require-main-run-sha`
-- **리뷰 비교 범위**: Base ea188c66f534e7adf63c2747769b2fae986c9d25 ↔ Target 14674f014e91003f6ad5ba02ba0c6ac5e44dd4ce (Step 3 Maker 커밋, collab/require-main-run-sha 브랜치)
+- **리뷰 비교 범위**: Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `83d2e180ee2871679bb76c15a34a42c596a61ed2` (Step 1 Maker 커밋, `collab/require-main-run-sha` 브랜치). Maker 스킬에 따라 manifest `target_sha`는 Maker가 수정하지 않았으므로 Step 2 Orchestrator가 기록한다.
 - **해결 방향**: `run.schema.json`은 수정하지 않는다. `main` 직접 실행 시 Dispatch Queue에 Base SHA를 등록 시 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하며, 가짜 `branch`/`worktree_path` manifest는 만들지 않는다 (`docs/known-pitfalls.md` #31).
 - **수용 기준**:
   1. `.agents/skills/chronoledger-orchestrator/SKILL.md`에서 표준 격리 worktree + manifest 절차를 유지하면서 `main` 직접 실행의 예외 조건과 Base/Target SHA 필수 기록 위치·시점을 명확히 한다.
@@ -45,8 +124,8 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | `✅ DONE (SHA: 83d2e18)` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위)* | `Maker (Collaboration Docs)` | R24: `.agents/skills/chronoledger-orchestrator/SKILL.md` 및 관련 문서. `run.schema.json`과 표준 격리 manifest 절차는 변경하지 않음. | `✅ DONE` (Worktree 커밋 `83d2e18`: Orchestrator 스킬에 「Main-worktree fallback runs」 섹션 추가 — `main` 사용 조건·사유 기록, 가짜 manifest 금지, 등록 시 Base SHA·Maker 완료 시 Target SHA 기록 위치, Reviewer 범위 검사(`git diff <Target> HEAD -- src sql`) 실패 시 `🛑 BLOCKED`, Maker 스테이징 범위. 표준 격리 절차·`run.schema.json` 불변. markdownlint 통과. manifest `target_sha`와 R24 to-do/progress/changelog 마감은 Step 2 담당) |
 | **2** | `✅ DONE (SHA: 12225b2)` | **GitHub Copilot** *(Gemini 4 Argon 1순위 / Claude Opus 2순위 대체)* | `Reviewer` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `83d2e180ee2871679bb76c15a34a42c596a61ed2` 정적 리뷰 및 결과 검증. | `iteration-01/review.json`: P1/P2 0건, P3 1건. README 경로 텍스트의 제어문자로 Markdownlint(MD009/MD010)와 `git diff --check` 실패. 세 JSON Schema 검증 통과. 검증 결과 정정은 `12225b2`. |
-| **3** | `✅ DONE (SHA: 14674f0)` | **Claude Opus** *(Gemini 4 Argon 1순위 / GitHub Copilot 2순위 대체)* | `Maker (Run Artifact & Docs)` | iteration-02: iteration-01 `README.md`의 손상된 경로 수정 및 생성 원인 조사. 재발 방지는 `scripts/collaboration/` 내 직접 관련 생성 코드로 한정. 기존 iteration-01 `review.json`/`test.json`은 보존. `git diff <Base> HEAD --check` 및 관련 Markdownlint 통과, Maker 커밋 후 새 Target SHA 기록. | `✅ DONE (Gemini 3.8 Flash Maker: New-CollaborationRun.ps1 리터럴 히어스트링(@'...'@) 및 UTF-8 no-BOM 적용으로 백틱 제어문자 치환(\r, \t, \a) 재발 원천 차단, iteration-01/README.md 복구, git diff --check 및 markdownlint 통과, 기존 iteration-01 review/test 보존)` |
-| **4** | `✅ DONE (리뷰: ea188c6 ↔ 14674f0)` | **Gemini 4 Argon** *(Claude Opus 1순위 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Step 3 Maker 커밋 정적 재리뷰, 새 Target SHA 기록, 문서 검증 및 R24 마감. | `✅ DONE (Gemini 4 Argon 정적 재리뷰 clean: P1~P4 0건, iteration-02/review.json·test.json·run.json 스키마 검증 통과, git diff --check 및 markdownlint 0건, R24 마감 완료)` |
+| **3** | `✅ DONE (SHA: 42e52c6)` | **Gemini 4 Argon** *(Claude Opus 1순위 대체)* | `Maker (Run Artifact & Docs)` | iteration-02: iteration-01 `README.md`의 손상된 경로 수정 및 생성 원인 조사. 재발 방지는 `scripts/collaboration/` 내 직접 관련 생성 코드로 한정. 기존 iteration-01 `review.json`/`test.json`은 보존. `git diff <Base> HEAD --check` 및 관련 Markdownlint 통과, Maker 커밋 후 새 Target SHA 기록. | `✅ DONE` (Worktree 커밋 `42e52c6`: `scripts/collaboration/New-CollaborationRun.ps1`의 `iteration-01/README.md` 템플릿을 `@" ... "@`에서 `@' ... '@`로 교체해 PowerShell 백틱 이스케이프(`\r`, `\t`, `\a`) 손상 원천 차단 및 `artifacts/require-main-run-sha/iteration-01/README.md` 복구. `git diff --check` 및 Markdownlint PASS) |
+| **4** | `✅ DONE (SHA: 5bd515e)` | **Gemini 4 Argon** *(Claude Opus 1순위 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Step 3 Maker 커밋 정적 재리뷰, 새 Target SHA 기록, 문서 검증 및 R24 마감. | `✅ DONE` (Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `42e52c6940d0d141a595b90c04768c521b2d969f` iteration-02 정적 재리뷰 PASS, P1~P4 0건. `run.json`, `iteration-02/review.json`, `iteration-02/test.json` JSON Schema 검증 통과 및 `main` 병합·문서 마감 완료) |
 
 ### 🗂️ 이전 Run 기록 (완료): expense-chart-labels-and-outline
 
@@ -76,23 +155,6 @@
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
-
-## R24 iteration-02 정적 재리뷰 및 Run 마감 (2026-11-02)
-
-- **수행 주체**: Reviewer & Orchestrator: Gemini 4 Argon / Maker: Gemini 3.8 Flash.
-- **리뷰 범위**: Base `ea188c66f534e7adf63c2747769b2fae986c9d25` ↔ Target `14674f014e91003f6ad5ba02ba0c6ac5e44dd4ce` (Step 3 Maker 커밋).
-- **원인 분석**: `scripts/collaboration/New-CollaborationRun.ps1`에서 `iteration-01/README.md` 생성 시 확장 히어스트링(`@"..."@`) 내부의 백틱 인라인 코드(`` `review.json` ``, `` `test.json` ``, `` `artifacts/schemas/` ``)가 PowerShell 파서에 의해 이스케이프 시퀀스(`\r`, `\t`, `\a`)로 잘못 치환되어 비가시 제어문자가 삽입되었음.
-- **Step 3 조치 (`14674f0`)**:
-  - `New-CollaborationRun.ps1`의 README 템플릿 히어스트링을 변수/이스케이프 평가가 발생하지 않는 리터럴 히어스트링(`@'...'@`)으로 전환하고, `Set-Content`에 `[System.Text.UTF8Encoding]::new($false)` no-BOM 인코딩을 적용해 제어문자 오치환 재발을 원천 차단함.
-  - 손상되었던 `artifacts/require-main-run-sha/iteration-01/README.md`를 표준 텍스트로 복구함 (기존 `review.json` 및 `test.json`은 보존).
-  - Base/Target 간 `git diff --check` 및 markdownlint 검증 통과 완료.
-- **Step 4 정적 재리뷰 및 마감 결과**:
-  - **판정**: PASS (`clean`, finding 0건).
-  - **산출물**: `artifacts/require-main-run-sha/iteration-02/review.json` (findings 0건), `iteration-02/test.json` (markdownlint & diff --check passed), `run.json` (`target_sha: 14674f014e91003f6ad5ba02ba0c6ac5e44dd4ce`, `status: completed`).
-  - **스키마 검증**: `validate_collaboration_artifact.py`를 통해 `run.json`, `review.json`, `test.json` 모두 검증 통과.
-  - **전체 검증**: `git diff --check ea188c6...` 및 markdownlint 오류 0건 확인 후 커밋 `ad26310`으로 Worktree 산출물 기록 완료. R24 과제 종결.
-
----
 
 ## R24 iteration-01 리뷰 결과 (2026-11-02)
 
