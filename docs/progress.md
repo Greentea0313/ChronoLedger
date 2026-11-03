@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## Phase 12.15-F3 & Phase 12.32 협업 Run 등록 (2026-11-03)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
+- **내용**: 후보 1(`Phase 12.15-F3`: `src/types/database.types.ts` RPC/테이블 nullable·optional 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 연결)과 후보 2(`Phase 12.32`: 주요 모달 5종 `DialogDescription` 보완, 소비 페이지 월 선택 드롭다운 고유 `aria-label` 분리, 관리자 권한 안내 시맨틱 토큰 적용, Cloudflare Pages·접근성 체크리스트 마감)를 묶어 격리 Worktree `.worktrees/supabase-typed-client-and-a11y-closeout`(Base SHA: `05140cb12f3f77b90656c71baad1d8686841cf87`)에 등록했다.
+- **다음 단계**: Step 1 `Phase 12.15-F3` **GPT Codex** `▶ READY` → Step 2 `Phase 12.32` **GitHub Copilot** → Step 3 **Claude Opus** 통합 정적 리뷰 및 마감.
+
 ## R24 iteration-02 수정·재리뷰 및 Run 마감 (2026-11-03)
 
 - **수행 주체**: Gemini 4 Argon (Step 3 Claude Opus 1순위 대체 및 Step 4 Orchestrator & Reviewer)

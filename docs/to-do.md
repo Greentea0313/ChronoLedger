@@ -572,7 +572,7 @@
     2. **게임 아이콘 자체 WebP Data URL 변환·저장**: 관리자가 게임 등록/수정 및 게임 요청 승인 시 이미지 파일 업로드 또는 외부 이미지 URL 입력에 대해 `resizeImageToWebP`(256×256 WebP)를 거쳐 자체 `data:image/webp;base64,...` Data URL로 변환해 `games.default_icon_url`에 저장(모바일 핫링크 차단/만료 원천 해결). `GameIcon` 컴포넌트에 외부 URL 로드 실패 시 1회 재시도 안전망 추가.
     3. **비공식 일정 DB 스키마 및 관리자/사용자 기능**: `game_schedules` 및 `schedule_requests`에 `is_official BOOLEAN NOT NULL DEFAULT true`, `public.users`에 `show_unofficial_schedules BOOLEAN NOT NULL DEFAULT false` 컬럼 추가(`MIGRATION_UNOFFICIAL_SCHEDULES.sql`, `SCHEMA.sql`, `database.types.ts`). 관리자 일정 추가/수정 및 일정 요청 모달에서 공식/비공식 여부 분류 지원, 계정 설정 페이지(`/dashboard/settings`)에 `비공식 일정(테스트 서버·유출 등) 표시` 토글 버튼 제공, 대시보드 및 게임 페이지 일정 보기에서 토글 설정에 따른 필터링 및 `[비공식]` 배지 표시.
   - verify: 관련 8개 Vitest 파일의 57개 테스트, `npx tsc --noEmit`, `npm run lint` 통과.
-  - [ ] 후속: 운영 Supabase SQL Editor에서 `MIGRATION_UNOFFICIAL_SCHEDULES.sql`을 수동 적용하고 설정 토글 및 일정 조회를 확인한다.
+  - [x] 후속: 운영 Supabase SQL Editor에서 `MIGRATION_UNOFFICIAL_SCHEDULES.sql`을 수동 적용하고 설정 토글 및 일정 조회를 확인한다. (`완료` - 2026-11-02 사용자 적용, R27)
 
 - [x] 12.26 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (R17)
   - 대상 파일: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/app/globals.css`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`
@@ -615,6 +615,7 @@
 - [x] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
 - [x] R26. 소비 페이지 막대 차트: 게임별 과금 툴팁에 UUID 대신 게임명, 금액 축 눈금 중복(`0만 0만 1만 1만`) 제거, 막대 외곽선 다크·라이트 테마 가시성 개선 (`Phase 12.31`, Claude Sonnet) (`완료` - 커밋 `fc4ea9d`, Claude Opus 리뷰 PASS, 배포 대기)
 - [x] R27. [운영 긴급] 운영 Supabase에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 (미적용 시 관리자 일정 추가·수정, 일정 요청 제출·승인 실패) (사용자 수동) (`완료` - 2026-11-02 사용자 적용)
+- [ ] R28 (`Phase 12.15-F3` & `Phase 12.32`). `database.types.ts` RPC/테이블 nullable·optional 타입 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 제네릭 연결(GPT Codex) + 5개 모달 `DialogDescription` 보완, 소비 통계 기간 드롭다운 고유 `aria-label` 분리, 관리자 권한 거부 시맨틱 토큰 적용 및 Cloudflare Pages·접근성 체크리스트 마감(GitHub Copilot) (Run `supabase-typed-client-and-a11y-closeout`)
 - [ ] R13. 게임별 보유 캐릭터 체크 및 캐릭터 조합 프리셋 저장 기능 (장기 백로그 / 기획 검토)
 
 ---

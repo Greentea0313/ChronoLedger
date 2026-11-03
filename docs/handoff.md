@@ -31,6 +31,38 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
+- **Run ID**: `supabase-typed-client-and-a11y-closeout` *(2026-11-03, Phase 12.15-F3 Supabase `createClient<Database>` 타입 안전성 연결 & Phase 12.32 주요 화면/모달 접근성·대비 보완 및 Cloudflare Pages 릴리즈 체크리스트 마감)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `.worktrees/supabase-typed-client-and-a11y-closeout` (브랜치: `collab/supabase-typed-client-and-a11y-closeout`)
+- **리뷰 비교 범위**: Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Target *(Step 2 Maker 커밋 후 Step 3에서 `run.json` `target_sha`에 기록)*
+- **수용 기준 (Acceptance Criteria)**:
+  1. **Step 1 — `Phase 12.15-F3` Supabase 타입 안전성 연결 (GPT Codex)**:
+     - **대상 파일**: `src/types/database.types.ts`, `src/lib/supabase/client.ts` (필요 시 `createClient<Database>` 연결로 드러나는 `src/**` 호출부 타입 정합성 수정 및 관련 단위 테스트)
+     - `sql/SCHEMA.sql` 및 실제 프론트엔드 RPC 호출부와 일치하도록 `src/types/database.types.ts`의 `Functions` 인자 시그니처를 정밀 보정한다:
+       - `process_expense_payment.Args`: `p_point_platform: string | null`, `p_custom_earned_points?: number | null`, `p_memo?: string | null`
+       - `update_confirmed_expense_metadata.Args`: `p_memo?: string | null`, `p_target_date?: string | null`
+       - `reject_game_request.Args` 및 `reject_schedule_request.Args`: `p_admin_memo?: string | null`
+       - `update_store_wallet_settings.Args`: `p_tier: string | null` (Galaxy Store 폴백 `p_tier: null` 허용)
+       - `adjust_wallet_balance.Args`: `p_memo?: string | null`
+       - `admin_create_game.Args`, `approve_game_request.Args`, `set_user_finance_settings.Args`: `P3-1` 후속 점검 결과를 반영하되 현행 `sql/SCHEMA.sql`(필수 인자 검증) 및 호출부와 충돌하지 않도록 정렬하고, `@supabase/supabase-js` v2 `GenericSchema` 요건(`Views`, `Functions`, `Enums`, `CompositeTypes`, `Relationships`)을 만족시킨다.
+     - `src/lib/supabase/client.ts`에서 `import type { Database } from "@/types/database.types"`를 연결하여 `createClient<Database>(supabaseUrl, supabaseAnonKey, ...)`로 제네릭을 적용하고, 전체 코드베이스에서 `npx tsc --noEmit` 오류가 0건이 되도록 호출부 타입을 정리한다.
+  2. **Step 2 — `Phase 12.32` 주요 화면/모달 접근성·대비 보완 및 릴리즈 체크리스트 마감 (GitHub Copilot)**:
+     - **대상 파일**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `docs/to-do.md`
+     - **모달 접근성(`DialogDescription`) 보완**: Radix `DialogContent` 접근성 경고가 발생하지 않도록 누락된 5개 모달(`src/app/admin/page.tsx`의 일정 등록/수정 모달·일정 삭제 확인 모달·게임 삭제 확인 모달, `src/components/game/game-select-modal.tsx`의 내 게임 등록 모달, `src/components/game/request-submission-modal.tsx`의 게임 및 일정 요청 모달)에 각각 의미에 맞는 `<DialogDescription>`을 추가한다.
+     - **통계 기간 드롭다운 고유 `aria-label` 부여**: `src/app/dashboard/expenses/page.tsx`의 `renderMonthSelect`가 두 카드(`category-month-select`, `game-month-select`)에 동일한 `aria-label="통계 기간 선택"`을 부여하던 것을 구분하여 각각 고유한 접근성 이름(`"카테고리별 지출 비중 기간 선택"`, `"게임별 과금 분석 기간 선택"`)을 갖도록 개선한다.
+     - **관리자 권한 거부 알림 시맨틱 토큰·역할 적용**: `src/app/admin/page.tsx` 251행의 하드코딩 `text-red-500`을 테마 대응 시맨틱 토큰 `text-danger` 및 `role="alert"`로 교체한다.
+     - **단위 테스트 및 체크리스트 동기화**: `src/app/admin/page.test.tsx` 및 `src/app/dashboard/expenses/page.test.tsx`에 구분된 `aria-label` 및 모달 설명 렌더링 단언을 추가/갱신하고, `docs/to-do.md`의 `12.15-F3`, 49~51행(접근성/대비 점검), 53~57행(Cloudflare Pages 정적 호스팅·OAuth·PWA 라우팅 검증 기록), `12.32` 항목을 최신 완료 상태로 갱신한다.
+  3. **Step 3 — 통합 정적 코드 리뷰 및 마감 (Claude Opus)**:
+     - Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Step 2 완료 Target SHA 범위 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 기록 및 스키마 검증, `main` 병합 및 `docs/` 마감.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | `▶ READY` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & Types)` | `Phase 12.15-F3`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 `src/types/database.types.ts` RPC/테이블 타입 정밀 보정 및 `src/lib/supabase/client.ts` `createClient<Database>` 연결 (`src/types/database.types.ts`, `src/lib/supabase/client.ts`, 필요 시 타입 정합성 관련 `src/**` 최소 범위) | `⏳ Worktree 커밋 및 Step 2 ▶ READY 전환 대기` |
+| **2** | `⏳ WAITING` | **GitHub Copilot** *(Gemini 3.8 Flash 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (UI & A11y)` | `Phase 12.32`: `.worktrees/supabase-typed-client-and-a11y-closeout`에서 5개 모달 `DialogDescription` 추가, 소비 통계 월 드롭다운 고유 `aria-label` 분리, 관리자 권한 안내 `text-danger`/`role="alert"`, 단위 테스트 및 `docs/to-do.md` 체크리스트 마감 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `src/components/game/game-select-modal.tsx`, `src/components/game/request-submission-modal.tsx`, `docs/to-do.md`) | `⏳ Step 1 완료 후 진행 대기` |
+| **3** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `05140cb12f3f77b90656c71baad1d8686841cf87` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 통합 리뷰 대기` |
+
+### 🗂️ 이전 Run 기록 (완료): require-main-run-sha
+
 - **Run ID**: `require-main-run-sha` *(2026-11-02, R24 main 작업 Base/Target SHA 인계 절차)*
 - **Orchestrator**: GitHub Copilot (현재 환경에서 프로젝트 Local 하위 에이전트 호출 도구를 사용할 수 없어 문서화된 수동 모델 인계 사용)
 - **Worktree 경로**: `.worktrees/require-main-run-sha`
