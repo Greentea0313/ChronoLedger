@@ -31,6 +31,47 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
+- **Run ID**: `r13-phase13-1-db-and-r30-icon-resave` *(2026-11-04, R13 `Phase 13.1` 캐릭터·프리셋 DB 스키마/마이그레이션/스모크 테스트/TypeScript 타입 & `Phase 12.34 (R30)` 관리자 외부 아이콘 URL Data URL 재저장)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `.worktrees/r13-phase13-1-db-and-r30-icon-resave` (브랜치: `collab/r13-phase13-1-db-and-r30-icon-resave`)
+- **리뷰 비교 범위**: Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Target *(Step 2 완료 후 Step 3 Orchestrator가 manifest `target_sha` 및 여기에 기록)*
+- **수용 기준 (Acceptance Criteria)**:
+  1. **Step 1 — `Phase 13.1 (R13 DB & Types)` 캐릭터·프리셋 DB 스키마, 마이그레이션, 스모크 테스트 및 TypeScript 타입 구현 (GPT Codex)**:
+     - **권위 명세**: 승인 완료된 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) (§2, §3, §5 및 **§7 Review Resolutions** — §7이 최우선 규범).
+     - **대상 파일 (`.worktrees/r13-phase13-1-db-and-r30-icon-resave` 내부)**: `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` (신규), `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/SPEC.md`
+     - **구현 요구사항**:
+       - ① **`public.games` 확장 및 분류 검증 함수**: `public.is_valid_classification_schema(jsonb)` (`IMMUTABLE`) 함수를 정의하고, `public.games`에 `max_preset_slots SMALLINT NOT NULL DEFAULT 4 CHECK (max_preset_slots BETWEEN 1 AND 12)` 및 `classification_schema JSONB NOT NULL DEFAULT '{"rarities": [], "axes": []}'::jsonb CHECK (public.is_valid_classification_schema(classification_schema))` 컬럼 추가.
+       - ② **신규 테이블 4종 생성 및 제약조건 (§2.2~§2.5, §7.1~§7.3 완벽 반영)**:
+         - `public.game_characters`: `(game_id, name)` UNIQUE, `default_icon_url` 150,000자 제한 및 `data:image/webp;base64,%` 또는 `https://%` CHECK, `attributes` JSONB object CHECK.
+         - `public.character_requests`: `default_icon_url` NULL 또는 동일 150,000자·WebP/HTTPS CHECK, `memo VARCHAR(500)`, `request_status IN ('PENDING', 'APPROVED', 'REJECTED')`.
+         - `public.user_characters`: `(user_id, character_id)` UNIQUE, `custom_icon_path` NULL 또는 `user_id::text || '/characters/' || character_id::text || '.webp'` CHECK, `memo VARCHAR(200)`, `validate_user_character_game` 트리거(`NEW.game_id`와 `game_characters.game_id` 일치 검증).
+         - `public.user_character_presets`: `character_ids UUID[] NOT NULL CHECK (cardinality(character_ids) BETWEEN 1 AND 12 AND array_position(character_ids, NULL) IS NULL)`, `title VARCHAR(80) NOT NULL CHECK (btrim(title) <> '')`, `memo VARCHAR(300)`, `validate_user_character_preset` 트리거(게임 삭제 중이면 `NEW` 반환, UPDATE 시 `cardinality(NEW.character_ids) <= cardinality(OLD.character_ids)`이면 축소된 `max_preset_slots` 초과 허용, 중복 UUID 차단, 모든 캐릭터가 동일 `game_id` 소속인지 검증), `game_characters` `AFTER DELETE` 정리 트리거(빈 배열이 되는 프리셋 먼저 삭제 후 `array_remove(character_ids, OLD.id)` 갱신).
+       - ③ **RLS 정책, 계정 탈퇴 연동 및 관리자 RPC (§3, §7.1)**:
+         - 4개 테이블 RLS 활성화 및 정책 설정 (`character_requests` INSERT 정책에 반드시 `auth.uid() = user_id AND request_status = 'PENDING' AND admin_memo IS NULL AND approved_character_id IS NULL` 포함).
+         - 계정 탈퇴 보류 차단(`Block account deletion users from ...` RESTRICTIVE 정책 및 `block_pending_account_data_mutations` 트리거)과 `purge_expired_account_deletion_requests` 삭제 순서(`user_games` 삭제 직전)에 `user_character_presets`, `user_characters`, `character_requests` 추가.
+         - 관리자 `SECURITY DEFINER` RPC 2종(`approve_character_request`, `reject_character_request`) 구현 및 `REVOKE ALL ... FROM PUBLIC, anon; GRANT EXECUTE ... TO authenticated;` 적용 (`approve_character_request`는 대상 캐릭터의 `game_id` 일치 및 `rarity`/`attributes`가 해당 게임 `classification_schema`에 유효한지 검증).
+       - ④ **스모크 테스트 (`sql/tests/TESTS.sql`) 및 가이드 (`sql/README.md`)**:
+         - `docs/spec/R13_Character_Roster_and_Preset_Spec.md` §7.5의 필수 스모크 테스트 7개 항목을 `sql/tests/TESTS.sql`에 추가하고, 로컬 PostgreSQL(또는 PGlite)에서 신규 설치(`SCHEMA.sql`) 및 기존 DB 마이그레이션 2회 멱등 실행 + `TESTS.sql` 전체 PASS 검증.
+         - `sql/README.md` B표에 `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 확인 쿼리 추가, `docs/spec/SRS.md` 및 `docs/spec/SPEC.md`에 R13 요구사항 반영.
+       - ⑤ **TypeScript 타입 동기화 (`src/types/database.types.ts`)**:
+         - `games` 확장 컬럼, 신규 4개 테이블(`Row`/`Insert`/`Update`/`Relationships`), 신규 2개 RPC(`approve_character_request`, `reject_character_request`)를 추가하고 `npx tsc --noEmit`, `npm run lint`, `npx vitest run` 통과 확인.
+  2. **Step 2 — `Phase 12.34 (R30)` 관리자 게임 목록 외부 URL 아이콘 표시 및 WebP Data URL 재저장 (Claude Sonnet)**:
+     - **대상 파일 (`.worktrees/r13-phase13-1-db-and-r30-icon-resave` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `docs/to-do.md`
+     - **구현 요구사항**:
+       - ① `/admin` 페이지 `등록된 게임 목록` 탭에서 `game.default_icon_url`이 자체 WebP Data URL(`data:image/webp;base64,`)이 아닌 외부 URL(`https://...` 등)인 게임 행에 `[외부 URL]` 배지를 표시한다.
+       - ② 외부 URL 아이콘을 가진 게임 행에 `[Data URL 재저장]` 버튼(및/또는 상단 툴바에 외부 URL 게임이 1개 이상일 때 `[외부 아이콘 일괄 변환 (n)]` 버튼)을 제공하여, 클릭 시 `convertIconSourceToDataUrl(game.default_icon_url)`로 256×256 WebP Data URL을 생성한 뒤 `supabase.from("games").update({ default_icon_url: dataUrl }).eq("id", game.id)`로 갱신하고 로컬 목록을 즉시 반영한다 (`isOffline()` 가드 및 변환 중 로딩/비활성화 처리 포함).
+       - ③ `src/app/admin/page.test.tsx`에 외부 URL 배지 표시 및 `[Data URL 재저장]` 클릭 시 `convertIconSourceToDataUrl` 호출·DB `update`·목록 갱신 단위 테스트를 추가하고 통과시킨다.
+  3. **Step 3 — 통합 정적 코드 리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
+     - Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | `▶ READY` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.1 (R13 DB & Types)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`, `SCHEMA.sql`, `TESTS.sql`(§7.5 7개 스모크 테스트), `sql/README.md`, `SRS.md`/`SPEC.md`, `src/types/database.types.ts` 구현 및 검증 | `▶ 대기 중 (GPT Codex 또는 1순위 대체 Claude Opus 전환 후 "인수인계 문서를 확인해" 입력 시 즉시 착수)` |
+| **2** | `⏳ WAITING` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (UI & State)` | `Phase 12.34 (R30)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `/admin` 등록된 게임 목록의 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 버튼 구현 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `docs/to-do.md`) | `⏳ Step 1 완료 후 진행 대기` |
+| **3** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 진행 대기 (SQL/RLS/RPC 변경 포함이므로 Opus 승격 조건 ①·④ 적용)` |
+
+### 🗂️ 이전 Run 기록 (완료): r13-spec-review-and-icon-cors-fix
+
 - **Run ID**: `r13-spec-review-and-icon-cors-fix` *(2026-11-03, R13 영문 명세서 아키텍처·보안 리뷰 및 나무위키 등 외부 아이콘 URL CORS/모바일 깨짐 해결 `Phase 12.33`)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `main` (사유: Step 1은 신규 영문 명세서 `docs/spec/R13_Character_Roster_and_Preset_Spec.md` 아키텍처·보안 리뷰 중심 과제이며, Step 2는 아이콘 변환 유틸·헤더 국소 수정이므로 `chronoledger-orchestrator/SKILL.md`의 「Main-worktree fallback runs」 절차 적용)

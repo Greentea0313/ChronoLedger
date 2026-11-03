@@ -1,5 +1,13 @@
 # 변경 이력
 
+## 2026-11-04 (신규 협업 Run r13-phase13-1-db-and-r30-icon-resave 등록)
+
+- **협업 Run 생성 (Gemini 4 Argon)**: 격리 Worktree `.worktrees/r13-phase13-1-db-and-r30-icon-resave` (브랜치 `collab/r13-phase13-1-db-and-r30-icon-resave`, Base SHA `3bc02457a8de4c19b4dca46060c4d358ce15b94e`) 생성 및 Dispatch Queue 배정.
+- **과제 배정**:
+  - Step 1 (`Phase 13.1`, GPT Codex, `▶ READY`): R13 캐릭터·프리셋 DB 스키마(`MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`), `SCHEMA.sql`, `TESTS.sql`(§7.5 스모크 테스트 7종), `database.types.ts`, `sql/README.md`, `SRS.md`/`SPEC.md`.
+  - Step 2 (`Phase 12.34`, Claude Sonnet, `⏳ WAITING`): `/admin` 게임 목록 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 기능 (`src/app/admin/page.tsx`, `page.test.tsx`, `docs/to-do.md`).
+  - Step 3 (Claude Opus / Gemini 4 Argon, `⏳ WAITING`): Base `3bc0245` ↔ Target 통합 정적 리뷰(`review.json`), `run.json` 마감 및 `main` 병합.
+
 ## 2026-11-03 (Phase 12.33 정적 리뷰 PASS 및 r13 Run 마감)
 
 - **정적 코드 리뷰 완료 (Gemini 4 Argon)**: Base `cdee5a74ddb97b86d3899e3cfe6c01cadb9fa9e9` ↔ Target `bf3f1a1606958c82f33cedc733979f14bb504bac` 리뷰 PASS (`clean`, P1~P3 0건, P4 1건). `artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json` 검증 통과.

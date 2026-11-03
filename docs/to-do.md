@@ -588,6 +588,15 @@
   - 대상 파일: `src/lib/image-resizer.ts`, `src/lib/image-resizer.test.ts`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `public/_headers`, `src/app/layout.tsx`
   - 작업: 외부 URL 직접 요청 실패 시 10초 제한 wsrv.nl 프록시 폴백(`image/*` 및 5MB 제한), `/admin` 및 `/admin/requests` 클립보드 이미지 붙여넣기(`onPaste`) 및 WebP Data URL 미리보기/변환, `public/_headers` 및 `layout.tsx` 전역 `Referrer-Policy: no-referrer` 설정.
   - verify: 관련 단위 테스트(28개) 및 전체 Vitest 45개 파일/309개 테스트 통과, `tsc --noEmit`, ESLint 통과.
+- [ ] 12.34 관리자 게임 목록 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 (R30, 담당: Claude Sonnet, Run r13-phase13-1-db-and-r30-icon-resave)
+
+---
+
+## Phase 13: 게임별 보유 캐릭터 및 조합 프리셋 (R13)
+
+- [ ] 13.1 R13 캐릭터·프리셋 DB 스키마, 마이그레이션(MIGRATION_R13_CHARACTERS_AND_PRESETS.sql), 스모크 테스트(TESTS.sql §7.5 7종) 및 TypeScript 타입(database.types.ts) 구현 (담당: GPT Codex, Run r13-phase13-1-db-and-r30-icon-resave)
+- [ ] 13.2 관리자 게임별 성급/분류 축/최대 프리셋 슬롯 설정, 캐릭터 관리 탭, 캐릭터 추가/수정 요청 및 승인/반려 UI 구현 (담당: GitHub Copilot / Claude Sonnet)
+- [ ] 13.3 대시보드 게임 카드 [캐릭터·프리셋] 모달(보유 캐릭터 체크·커스텀 아이콘·메모 및 조합 프리셋 빌더·미보유 명도 감쇠) 구현 (담당: Claude Sonnet)
 
 ---
 
@@ -623,8 +632,8 @@
 - [x] R28. Phase 12.15-F3 & Phase 12.32: `createClient<Database>` 연결 및 RPC/테이블 타입 정밀 보정(`c075045f`, GPT Codex), 관리자·게임 요청 모달 5종 `DialogDescription` 추가·소비 통계 기간 선택 고유 `aria-label` 분리·관리자 권한 거부 시맨틱 danger 토큰 및 `role="alert"` 적용(`3ed5e5d`, GitHub Copilot) (`완료` - Gemini 4 Argon 통합 리뷰 `7243c3b` PASS 및 `main` 병합 완료).
 - [x] R29 (`Phase 12.33`). 나무위키 등 외부 아이콘 URL 등록 시 CORS 실패 해결(`image-resizer.ts` CORS 프록시 폴백 + `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기 `onPaste` 지원) 및 모바일 외부 아이콘 핫링크 차단 방지(`public/_headers`·`layout.tsx` `no-referrer` 적용) (완료 - 커밋 bf3f1a1, GitHub Copilot, Gemini 4 Argon 리뷰 PASS)
   - 구현: `bf3f1a1` (GitHub Copilot), 정적 리뷰: Gemini 4 Argon PASS (`artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json`). 전체 테스트·타입 검사·린트·문서 마감 완료.
-- [ ] R30. 이미 DB에 외부 URL(나무위키 등)로 저장된 게임 아이콘을 관리자 게임 목록에서 표시하고 Data URL로 재저장하는 기능 (Phase 12.33 후속)
-- [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 작성 완료, Claude Opus 아키텍처 리뷰 진행 중 (`Phase 13.1 ~ 13.3` 분할 예정) (명세 `docs/spec/R13_Character_Roster_and_Preset_Spec.md` `APPROVED`, 2026-11-03 Claude Opus 리뷰. 구현은 Phase 13.1~13.3)
+- [ ] R30. 이미 DB에 외부 URL(나무위키 등)로 저장된 게임 아이콘을 관리자 게임 목록에서 표시하고 Data URL로 재저장하는 기능 (Phase 12.34, Run `r13-phase13-1-db-and-r30-icon-resave` Step 2 대기 중)
+- [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`), Phase 13.1 DB 스키마·타입 협업 Run `r13-phase13-1-db-and-r30-icon-resave` Step 1 착수 대기
 
 ---
 

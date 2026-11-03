@@ -1,5 +1,16 @@
 # 프로젝트 진행 현황
 
+## 신규 격리 협업 Run 등록: r13-phase13-1-db-and-r30-icon-resave (2026-11-04)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
+- **Run ID**: `r13-phase13-1-db-and-r30-icon-resave`
+- **Worktree**: `.worktrees/r13-phase13-1-db-and-r30-icon-resave` (브랜치: `collab/r13-phase13-1-db-and-r30-icon-resave`, Base SHA: `3bc02457a8de4c19b4dca46060c4d358ce15b94e`)
+- **과제 구성**:
+  1. **Step 1 (`Phase 13.1` / R13 DB & Types, GPT Codex, `▶ READY`)**: 캐릭터·프리셋 DB 스키마 및 마이그레이션(`MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`), `SCHEMA.sql`, `TESTS.sql` §7.5 필수 스모크 테스트 7종, `sql/README.md`, `database.types.ts`, `docs/spec/SRS.md` & `SPEC.md` 반영.
+  2. **Step 2 (`Phase 12.34` / R30, Claude Sonnet, `⏳ WAITING`)**: 관리자 등록된 게임 목록의 외부 URL 아이콘 `[외부 URL]` 배지 표시 및 WebP Data URL 재저장 버튼/일괄 변환 구현 (`src/app/admin/page.tsx`, `page.test.tsx`, `docs/to-do.md`).
+  3. **Step 3 (통합 정적 코드 리뷰 및 Run 마감, Claude Opus / Gemini 4 Argon, `⏳ WAITING`)**: Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Target 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 마감, `main` 병합 및 문서 마감 (SQL/RLS/RPC 변경 포함으로 Opus 승격 조건 ①·④ 적용).
+- **다음 단계**: Step 1 GPT Codex(또는 1순위 대체 Claude Opus) 착수 대기 (`"인수인계 문서를 확인해"` 입력 시 즉시 착수).
+
 ## Phase 12.33 정적 코드 리뷰 완료 및 Run 마감 (2026-11-03)
 
 - **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator)
