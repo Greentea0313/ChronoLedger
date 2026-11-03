@@ -1,4 +1,4 @@
-﻿{
+{
     "schema_version":  1,
     "run_id":  "supabase-typed-client-and-a11y-closeout",
     "created_at":  "2026-11-03T04:42:58.6410838+00:00",
@@ -9,9 +9,9 @@
                                 "3. Update docs/to-do.md (12.15-F3, lines 49-51 accessibility check, lines 53-57 Cloudflare Pages deployment verification, and Phase 12.32) and pass npx tsc --noEmit, npm run lint, npx vitest run, and markdownlint."
                             ],
     "base_sha":  "05140cb12f3f77b90656c71baad1d8686841cf87",
-    "target_sha":  null,
+    "target_sha":  "3ed5e5da10dd6c758dac370234aa27ac0608421e",
     "branch":  "collab/supabase-typed-client-and-a11y-closeout",
     "worktree_path":  ".worktrees/supabase-typed-client-and-a11y-closeout",
     "max_iterations":  3,
-    "status":  "in_progress"
+    "status":  "completed"
 }
