@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-03 (Phase 12.33 외부 아이콘 URL 및 클립보드 이미지, `bf3f1a1`)
+
+- `src/lib/image-resizer.ts`: 외부 URL 직접 요청 실패 시 10초 제한 wsrv.nl 폴백을 추가하고 `no-referrer`, `image/*` 응답 확인, 5MB 입력 제한을 적용했다. URL 실패 시 이미지 붙여넣기 또는 파일 업로드를 안내한다.
+- `/admin` 게임 등록/수정 및 `/admin/requests` 게임 승인에서 클립보드 이미지 파일을 WebP Data URL로 변환해 미리보기·저장에 사용한다. 텍스트 붙여넣기는 가로채지 않는다.
+- `public/_headers`와 Next metadata의 Referrer Policy를 `no-referrer`로 변경하고, 프록시 폴백·타임아웃·클립보드 입력 테스트를 추가했다.
+- 검증: Vitest 45개 파일/309개 테스트, TypeScript, ESLint 통과. 정적 리뷰와 배포는 다음 단계.
+
 ## 2026-11-03 (R13 명세 승인)
 
 - **R13 명세 `APPROVED` (b66b07c)**: Claude Opus 아키텍처·보안 리뷰 결과를 명세에 직접 반영하고 §7 Review Resolutions를 추가. 코드 변경 없음.

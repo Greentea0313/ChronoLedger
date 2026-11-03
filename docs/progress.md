@@ -1,5 +1,13 @@
 # 프로젝트 진행 현황
 
+## Phase 12.33 Maker 구현 완료 (2026-11-03, `bf3f1a1`)
+
+- **수행 주체**: GitHub Copilot (Step 2 Maker, main-worktree fallback)
+- `image-resizer.ts`에서 직접 이미지 요청 실패 시 10초 제한 wsrv.nl 폴백을 적용했다. 응답은 `image/*` 및 5MB 이하만 사용하고, 최종 결과는 기존 256×256 WebP Data URL로 저장한다. URL 입력 도움말에 제3자 전달을 고지했다.
+- `/admin` 및 `/admin/requests`에서 클립보드 이미지(`files`/`items`)를 WebP Data URL로 변환해 미리보기·승인에 연결했다. 이미지가 아닌 붙여넣기는 기본 동작을 유지한다. `public/_headers`와 Next metadata에 `no-referrer`를 적용했다.
+- **검증**: 전체 Vitest 45개 파일/309개 테스트, `npx tsc --noEmit`, `npm run lint`, `git diff --check` 통과.
+- **다음 단계**: Gemini 4 Argon이 Base `cdee5a7b9f756a8131a5f49a6e82b47f97698541` ↔ Target `bf3f1a1606958c82f33cedc733979f14bb504bac` 정적 리뷰 및 문서 마감을 진행한다. 배포·실기기 모바일 검증은 미실시.
+
 ## R13 명세 리뷰 확정 및 Phase 12.33 설계 검증 (2026-11-03)
 
 - **수행 주체**: Claude Opus (Reviewer & Architect)
