@@ -633,7 +633,7 @@
 - [x] R29 (`Phase 12.33`). 나무위키 등 외부 아이콘 URL 등록 시 CORS 실패 해결(`image-resizer.ts` CORS 프록시 폴백 + `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기 `onPaste` 지원) 및 모바일 외부 아이콘 핫링크 차단 방지(`public/_headers`·`layout.tsx` `no-referrer` 적용) (완료 - 커밋 bf3f1a1, GitHub Copilot, Gemini 4 Argon 리뷰 PASS)
   - 구현: `bf3f1a1` (GitHub Copilot), 정적 리뷰: Gemini 4 Argon PASS (`artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json`). 전체 테스트·타입 검사·린트·문서 마감 완료.
 - [x] R30. 외부 HTTP(S) 게임 아이콘 표시 및 Data URL 재저장 기능 (`Phase 12.34`, 구현 `12148ea`, iteration-02 수정 `334c642f`; iteration-02 리뷰 clean, `main` 병합 `7956064`)
-- [ ] R31. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_USERS_ROLE_GUARD.sql` 적용 완료). 앱 배포는 `main` push 후 진행 (사용자 수동)
+- [x] R31. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_USERS_ROLE_GUARD.sql` 적용 완료). 앱 배포는 `main` push 후 진행 (사용자 수동) (`완료` - 2026-11-04 사용자 적용, 테이블 4·함수 3·정책 10행 확인)
 - [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`). Phase 13.1 DB/타입 구현은 커밋 `4a21555e`로 완료함. 남은 작업은 R13 UI 구현과 통합 리뷰임.
 
 ---
