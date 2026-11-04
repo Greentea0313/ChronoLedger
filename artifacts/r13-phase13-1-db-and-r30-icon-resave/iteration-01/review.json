@@ -22,7 +22,7 @@
       "id": "R13-P3-preset-slot-cap-on-game-change",
       "severity": "P3",
       "file": "sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql",
-      "line": 136,
+      "line": 154,
       "evidence": "validate_user_character_preset skips the max_preset_slots check on UPDATE when cardinality does not grow, even if game_id changes. Reproduced on local PostgreSQL 17: an authenticated owner moved a 6-character preset to a game with max_preset_slots = 4 (UPDATE 1, stored 6 slots).",
       "impact": "Only the owner's own data is affected and the UI never sends this update, but the database no longer guarantees the slot ceiling for presets.",
       "recommendation": "Apply the non-destructive exemption only when NEW.game_id = OLD.game_id (same change in sql/SCHEMA.sql) and add a TESTS.sql case for a game_id change above the target ceiling."
