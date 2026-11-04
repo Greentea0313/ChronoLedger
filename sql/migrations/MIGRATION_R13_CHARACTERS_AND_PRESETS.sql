@@ -151,7 +151,8 @@ DECLARE v_max_slots SMALLINT; v_character_count INTEGER;
 BEGIN
     SELECT max_preset_slots INTO v_max_slots FROM public.games WHERE id = NEW.game_id;
     IF NOT FOUND THEN RETURN NEW; END IF; -- game deletion cascade is in progress; FK decides the outcome.
-    IF TG_OP = 'INSERT' OR cardinality(NEW.character_ids) > cardinality(OLD.character_ids) THEN
+    IF TG_OP = 'INSERT' OR NEW.game_id IS DISTINCT FROM OLD.game_id
+       OR cardinality(NEW.character_ids) > cardinality(OLD.character_ids) THEN
         IF cardinality(NEW.character_ids) > v_max_slots THEN
             RAISE EXCEPTION '프리셋 슬롯 수가 게임의 최대 슬롯 수를 초과합니다.';
         END IF;

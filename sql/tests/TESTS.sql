@@ -1196,6 +1196,7 @@ RETURNING id AS r13_game_id \gset
 SELECT set_config('chronoledger.r13_game_id', :'r13_game_id', true);
 INSERT INTO public.games (name, default_icon_url) VALUES ('R13 other game', 'https://example.invalid/other.webp') RETURNING id AS r13_other_game_id \gset
 SELECT set_config('chronoledger.r13_other_game_id', :'r13_other_game_id', true);
+UPDATE public.games SET max_preset_slots = 1 WHERE id = :'r13_other_game_id';
 INSERT INTO public.games (name, default_icon_url) VALUES ('R13 delete game', 'https://example.invalid/delete.webp') RETURNING id AS r13_delete_game_id \gset
 SELECT set_config('chronoledger.r13_delete_game_id', :'r13_delete_game_id', true);
 
@@ -1211,6 +1212,8 @@ INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r1
 SELECT set_config('chronoledger.r13_character_5_id', :'r13_character_5', true);
 INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_other_game_id', 'R13 other character', 'https://example.invalid/other-char.webp') RETURNING id AS r13_other_character \gset
 SELECT set_config('chronoledger.r13_other_character_id', :'r13_other_character', true);
+INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_other_game_id', 'R13 other character 2', 'https://example.invalid/other-char-2.webp') RETURNING id AS r13_other_character_2 \gset
+SELECT set_config('chronoledger.r13_other_character_2_id', :'r13_other_character_2', true);
 INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_delete_game_id', 'R13 delete character', 'https://example.invalid/delete-char.webp') RETURNING id AS r13_delete_character \gset
 SELECT set_config('chronoledger.r13_delete_character_id', :'r13_delete_character', true);
 
@@ -1291,6 +1294,9 @@ INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids
 VALUES (:'test_user_id', :'r13_game_id', 'over-limit preserved', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid, :'r13_character_3'::uuid, :'r13_character_4'::uuid]) RETURNING id AS r13_over_limit_preset \gset
 SELECT set_config('chronoledger.r13_over_limit_preset_id', :'r13_over_limit_preset', true);
 INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids)
+VALUES (:'test_user_id', :'r13_game_id', 'game change slot guard', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid]) RETURNING id AS r13_game_change_preset \gset
+SELECT set_config('chronoledger.r13_game_change_preset_id', :'r13_game_change_preset', true);
+INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids)
 VALUES (:'test_user_id', :'r13_game_id', 'deleted when empty', ARRAY[:'r13_character_5'::uuid]) RETURNING id AS r13_empty_preset \gset
 SELECT set_config('chronoledger.r13_empty_preset_id', :'r13_empty_preset', true);
 INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids)
@@ -1303,8 +1309,20 @@ DO $$ BEGIN
     IF (SELECT cardinality(character_ids) FROM public.user_character_presets WHERE id = current_setting('chronoledger.r13_over_limit_preset_id')::uuid) <> 3 THEN RAISE EXCEPTION 'FAIL: character delete did not shrink over-limit preset'; END IF;
     IF EXISTS (SELECT 1 FROM public.user_character_presets WHERE id = current_setting('chronoledger.r13_empty_preset_id')::uuid) THEN RAISE EXCEPTION 'FAIL: empty preset was not deleted'; END IF;
 END $$;
+DO $$ BEGIN
+    BEGIN
+        UPDATE public.user_character_presets
+        SET game_id = current_setting('chronoledger.r13_other_game_id')::uuid,
+            character_ids = ARRAY[
+                current_setting('chronoledger.r13_other_character_id')::uuid,
+                current_setting('chronoledger.r13_other_character_2_id')::uuid
+            ]
+        WHERE id = current_setting('chronoledger.r13_game_change_preset_id')::uuid;
+        RAISE EXCEPTION 'FAIL: game change bypassed target slot limit';
+    EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+END $$;
 UPDATE public.user_character_presets SET character_ids = ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid] WHERE id = :'r13_over_limit_preset';
-\echo PASS: preset limits, non-destructive slot reduction, and character-delete cleanup
+\echo PASS: preset limits, non-destructive slot reduction, game-change slot cap, and character-delete cleanup
 
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'admin'))::text, true);
 SET LOCAL ROLE authenticated;

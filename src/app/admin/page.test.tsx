@@ -356,6 +356,7 @@ describe("AdminPage - 일정 관리", () => {
       data: [
         { id: "game-1", name: "원신", default_icon_url: "https://i.namu.wiki/a.png" },
         { id: "game-2", name: "붕괴: 스타레일", default_icon_url: "data:image/webp;base64,own" },
+        { id: "game-3", name: "로컬 아이콘 게임", default_icon_url: "/assets/games/local.webp" },
       ],
       error: null,
     })
@@ -367,6 +368,7 @@ describe("AdminPage - 일정 관리", () => {
 
     expect(screen.getAllByText("외부 URL")).toHaveLength(1)
     expect(screen.queryByRole("button", { name: "Data URL 재저장: 붕괴: 스타레일" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Data URL 재저장: 로컬 아이콘 게임" })).toBeNull()
 
     fireEvent.click(screen.getByRole("button", { name: "Data URL 재저장: 원신" }))
 
@@ -386,6 +388,7 @@ describe("AdminPage - 일정 관리", () => {
       data: [
         { id: "game-1", name: "원신", default_icon_url: "https://a.example/1.png" },
         { id: "game-2", name: "붕괴: 스타레일", default_icon_url: "https://a.example/2.png" },
+        { id: "game-3", name: "로컬 아이콘 게임", default_icon_url: "/assets/games/local.webp" },
       ],
       error: null,
     })
@@ -401,6 +404,8 @@ describe("AdminPage - 일정 관리", () => {
 
     expect(await screen.findByText(/아이콘 재저장 실패: 붕괴: 스타레일 \(성공 1개\)/)).toBeTruthy()
     expect(gamesBuilder.update).toHaveBeenCalledTimes(1)
+    expect(convertIconSourceToDataUrl).toHaveBeenCalledTimes(2)
+    expect(convertIconSourceToDataUrl).not.toHaveBeenCalledWith("/assets/games/local.webp")
     expect(screen.getByRole("button", { name: "외부 아이콘 일괄 변환 (1)" })).toBeTruthy()
   })
 

@@ -552,7 +552,7 @@ export default function AdminPage() {
   }
 
   const isExternalIconGame = (game: GameOption) =>
-    !!game.default_icon_url && !game.default_icon_url.startsWith("data:image/webp;base64,")
+    !!game.default_icon_url && /^https?:\/\//i.test(game.default_icon_url)
 
   // 외부 URL 아이콘을 256x256 WebP Data URL로 변환해 재저장하고 로컬 목록에 즉시 반영
   const resaveGameIcons = async (targets: GameOption[]) => {
