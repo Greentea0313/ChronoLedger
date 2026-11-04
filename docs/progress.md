@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+
+## R13 Phase 13.1·R30 iteration-01 통합 리뷰 (2026-11-04)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)
+- **결과**: 조건부 통과. P2 1건(R30 시드 `/assets/...` 아이콘 외부 URL 오판), P3 1건(프리셋 `game_id` 변경 시 슬롯 상한 우회) 발견. iteration-02 수정 과제 등록.
+- **검증**: tsc·eslint 0건, vitest 45개 파일 311개 통과, 로컬 PostgreSQL 17에서 기존 DB 경로·신규 설치 모두 `TESTS.sql` PASS. R13-SEC-01(관리자 가드)·R13-MAINT-01(함수 단일 정의)·purge 재정의 무회귀 확인.
+- **다음 단계**: Step 4 iteration-02 수정(GPT Codex) → Step 5 재리뷰·병합(Claude Opus).
+
 ## Phase 13.1 R13 DB/타입 Maker 완료 (2026-11-04)
 
 - **수행 주체**: GPT Codex (Maker - Core & SQL/Types)임.

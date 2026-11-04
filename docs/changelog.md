@@ -1,4 +1,9 @@
 # 변경 이력
+
+## 2026-11-04 (R13 Phase 13.1·R30 iteration-01 리뷰)
+
+- **통합 리뷰 (Claude Opus)**: `1f656ad` ↔ `12148ea` 리뷰 결과 P2 1건·P3 1건 기록, 산출물 `review.json`·`test.json` 스키마 검증 통과. 코드 변경 없음.
+
 ## 2026-11-04 (Phase 13.1 R13 DB/타입 Maker 완료)
 
 - R13 분류 스키마 검증, 캐릭터/요청/보유 캐릭터/프리셋 DB, RLS와 관리자 RPC, 계정 삭제 연동 및 TypeScript 타입을 구현함.
