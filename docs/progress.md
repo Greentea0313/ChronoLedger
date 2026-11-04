@@ -1,5 +1,15 @@
 # 프로젝트 진행 현황
 
+## 신규 격리 협업 Run 등록: r13-phase13-2-and-13-3-ui (2026-11-04)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
+- **Run ID**: `r13-phase13-2-and-13-3-ui`
+- **Worktree**: `.worktrees/r13-phase13-2-and-13-3-ui` (브랜치: `collab/r13-phase13-2-and-13-3-ui`, Base SHA: `fe8a7762404a1b119cb879d1ae4fe624aa370ef7`)
+- **과제 구성**:
+  1. **Step 1 (`Phase 13.2`, GitHub Copilot, `▶ READY`)**: `/admin` 게임 등록/수정 모달의 `max_preset_slots`·`classification_schema`(성급 및 최대 3개 분류 축) 설정과 옵션 제거 시 사용 캐릭터 수 경고, `/admin` `캐릭터 관리` 탭, `RequestSubmissionModal` 캐릭터 요청 제출 탭, `/admin/requests` 캐릭터 요청 승인/반려 탭 및 단위 테스트 구현함.
+  2. **Step 2 (`Phase 13.3`, Claude Sonnet, `⏳ WAITING`)**: `storage-upload.ts` 캐릭터 커스텀 아이콘 헬퍼(`{user_id}/characters/{character_id}.webp`), `CharacterPresetModal`(`보유 캐릭터` 탭 — 성급/분류 축/`기타` 필터·미보유 명도 감쇠·커스텀 아이콘·200자 메모 & `조합 프리셋` 탭 — `1..max_preset_slots` 빌더·미보유 슬롯 명도 감쇠·슬롯 축소 비파괴 처리), `/dashboard/games` 구독 게임 카드 연동 및 단위 테스트 구현함.
+  3. **Step 3 (통합 정적 리뷰 및 Run 마감, Claude Opus / Gemini 4 Argon, `⏳ WAITING`)**: Base `fe8a7762` ↔ Step 2 Target SHA 통합 정적 리뷰 및 `main` 병합 마감함.
+
 ## R13 Phase 13.1·R30 iteration-02 재리뷰 및 Run 마감 (2026-11-04)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)

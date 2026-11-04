@@ -1,5 +1,13 @@
 # 변경 이력
 
+## 2026-11-04 (신규 협업 Run r13-phase13-2-and-13-3-ui 등록 — R13 Phase 13.2 & 13.3 UI)
+
+- **협업 Run 생성 (Gemini 4 Argon)**: Phase 13.1 DB 스키마 및 운영 마이그레이션(R31) 적용이 완료됨에 따라, R13 UI 구현을 위한 격리 Worktree `.worktrees/r13-phase13-2-and-13-3-ui` (Base SHA `fe8a7762404a1b119cb879d1ae4fe624aa370ef7`)를 생성하고 Dispatch Queue에 배정함.
+- **과제 배정**:
+  - Step 1 (`Phase 13.2`, GitHub Copilot, `▶ READY`): 관리자 게임 분류/슬롯 설정, `캐릭터 관리` 탭, 캐릭터 요청 제출 및 `/admin/requests` 승인/반려 UI + 단위 테스트 배정함.
+  - Step 2 (`Phase 13.3`, Claude Sonnet, `⏳ WAITING`): 캐릭터 커스텀 아이콘 Storage 헬퍼, `CharacterPresetModal`(보유 캐릭터 로스터 & 조합 프리셋 빌더), `/dashboard/games` 연동 + 단위 테스트 배정함.
+  - Step 3 (Claude Opus / Gemini 4 Argon, `⏳ WAITING`): 통합 정적 코드 리뷰 및 `main` 병합 마감 배정함.
+
 ## 2026-11-04 (R13 Phase 13.1·R30 병합)
 
 - **`main` 병합 (7956064)**: R13 캐릭터·프리셋 DB 스키마·마이그레이션·RLS·관리자 RPC·스모크 테스트·타입(`4a21555`), R30 관리자 외부 아이콘 재저장(`12148ea`), iteration-02 수정(`334c642`: 외부 아이콘 판정을 `http(s)://`로 한정, 프리셋 `game_id` 변경 시 슬롯 상한 적용).
