@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-04 (격리 협업 Run r13-phase13-1-db-and-r30-icon-resave 재생성 및 재배정)
+
+- **협업 Run 재생성 (Gemini 4 Argon)**: 타 작업 환경의 미동기화 Worktree로 인한 `🛑 BLOCKED` 상태를 해소하기 위해 현재 PC에서 `.worktrees/r13-phase13-1-db-and-r30-icon-resave` (Base SHA `1f656ad9156e874bfed5901aca00ef06ca9e82cf`)를 재생성함.
+- **수용 기준 보강 및 재배정**:
+  - Step 1 (`Phase 13.1`, GPT Codex, `▶ READY`): R13 캐릭터·프리셋 DB 스키마 및 타입 구현 시 `iteration-01` 리뷰 지적 사항(`R13-SEC-01` 관리자 RPC `coalesce(v_is_admin, false)` 가드, `R13-TEST-01` 권한/트리거 테스트, `R13-MAINT-01` `SCHEMA.sql` 중복 제거)을 선반영하도록 수용 기준을 명문화함.
+  - Step 2 (`Phase 12.34`, Claude Sonnet, `⏳ WAITING`): `/admin` 게임 목록 외부 URL 아이콘 배지 및 WebP Data URL 재저장 기능 배정함.
+
 ## 2026-11-04 (에이전트 규칙 문서 한국어 개조식 원칙 추가)
 
 - **에이전트 소통 및 문서 작성 규칙 표준화**:

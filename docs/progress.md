@@ -1,5 +1,15 @@
 # 프로젝트 진행 현황
 
+## 격리 협업 Run 재생성 및 재배정: r13-phase13-1-db-and-r30-icon-resave (2026-11-04)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
+- **조치 사유**: 이전 작업 환경(타 PC)의 로컬 Worktree에만 존재하던 `collab/r13-phase13-1-db-and-r30-icon-resave` 커밋(`1746ffc`, `78c132f`, `4d30d5a`)이 원격(`origin`)에 Push되지 않아 Step 4가 `🛑 BLOCKED`된 상태를 해소하기 위해 사용자 결정에 따라 현재 PC에서 격리 Worktree를 새로 생성함.
+- **Worktree**: `.worktrees/r13-phase13-1-db-and-r30-icon-resave` (브랜치: `collab/r13-phase13-1-db-and-r30-icon-resave`, Base SHA: `1f656ad9156e874bfed5901aca00ef06ca9e82cf`)
+- **과제 구성**:
+  1. **Step 1 (`Phase 13.1` / R13 DB & Types, GPT Codex, `▶ READY`)**: R13 캐릭터·프리셋 DB 스키마 및 마이그레이션, `iteration-01` 리뷰 지적 사항(`R13-SEC-01` 관리자 RPC `coalesce(v_is_admin, false)` 가드, `R13-TEST-01` 비관리자 RPC 거부·관리자 승인·캐릭터/게임 삭제 테스트, `R13-MAINT-01` `SCHEMA.sql` 단일 함수 정의)을 수용 기준에 선반영하여 구현함.
+  2. **Step 2 (`Phase 12.34` / R30, Claude Sonnet, `⏳ WAITING`)**: 관리자 게임 목록 외부 URL 아이콘 `[외부 URL]` 배지 및 행별 WebP Data URL 재저장 버튼 구현 및 단위 테스트 추가함.
+  3. **Step 3 (통합 정적 리뷰 및 Run 마감, Claude Opus / Gemini 4 Argon, `⏳ WAITING`)**: Base `1f656ad9` ↔ Step 2 Target SHA 정적 리뷰 및 `main` 병합 마감함.
+
 ## 에이전트 규칙 문서 한국어 개조식 원칙 추가 (2026-11-04)
 
 - **작업 개요**: 에이전트 규칙 문서들에 '답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것' 원칙 반영 완료함.

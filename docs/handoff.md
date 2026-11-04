@@ -31,55 +31,46 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `r13-phase13-1-db-and-r30-icon-resave` *(2026-11-04, R13 `Phase 13.1` 캐릭터·프리셋 DB 스키마/마이그레이션/스모크 테스트/TypeScript 타입 & `Phase 12.34 (R30)` 관리자 외부 아이콘 URL Data URL 재저장)*
+- **Run ID**: `r13-phase13-1-db-and-r30-icon-resave` *(2026-11-04 재생성, R13 `Phase 13.1` 캐릭터·프리셋 DB 스키마/마이그레이션/스모크 테스트/TypeScript 타입 & `Phase 12.34 (R30)` 관리자 외부 아이콘 URL Data URL 재저장)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/r13-phase13-1-db-and-r30-icon-resave` (브랜치: `collab/r13-phase13-1-db-and-r30-icon-resave`)
-- **리뷰 비교 범위**: Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Target `78c132f9b23ea22064831f83f8f564ce24950c61` *(Step 2 완료 커밋, iteration-01 리뷰 대상. manifest `target_sha` 기록 완료. iteration-02 Target은 Step 4 Maker가 기록)*
+- **리뷰 비교 범위**: Base `1f656ad9156e874bfed5901aca00ef06ca9e82cf` ↔ Target `<Step 2 완료 시 커밋 SHA>` *(Step 3 Orchestrator가 manifest `target_sha` 기록. 다중 PC 전환 시 미병합 Worktree 브랜치도 `git push -u origin collab/r13-phase13-1-db-and-r30-icon-resave`로 원격 동기화 권장)*
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — `Phase 13.1 (R13 DB & Types)` 캐릭터·프리셋 DB 스키마, 마이그레이션, 스모크 테스트 및 TypeScript 타입 구현 (GPT Codex)**:
-     - **권위 명세**: 승인 완료된 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) (§2, §3, §5 및 **§7 Review Resolutions** — §7이 최우선 규범).
+     - **권위 명세**: 승인 완료된 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) (§2, §3, §5 및 **§7 Review Resolutions** — §7 및 아래 `R13-SEC-01`~`R13-MAINT-01` 선반영 사항이 최우선 규범임).
      - **대상 파일 (`.worktrees/r13-phase13-1-db-and-r30-icon-resave` 내부)**: `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` (신규), `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/SPEC.md`
      - **구현 요구사항**:
-       - ① **`public.games` 확장 및 분류 검증 함수**: `public.is_valid_classification_schema(jsonb)` (`IMMUTABLE`) 함수를 정의하고, `public.games`에 `max_preset_slots SMALLINT NOT NULL DEFAULT 4 CHECK (max_preset_slots BETWEEN 1 AND 12)` 및 `classification_schema JSONB NOT NULL DEFAULT '{"rarities": [], "axes": []}'::jsonb CHECK (public.is_valid_classification_schema(classification_schema))` 컬럼 추가.
+       - ① **`public.games` 확장 및 분류 검증 함수**: `public.is_valid_classification_schema(jsonb)` (`IMMUTABLE`) 함수를 정의하고, `public.games`에 `max_preset_slots SMALLINT NOT NULL DEFAULT 4 CHECK (max_preset_slots BETWEEN 1 AND 12)` 및 `classification_schema JSONB NOT NULL DEFAULT '{"rarities": [], "axes": []}'::jsonb CHECK (public.is_valid_classification_schema(classification_schema))` 컬럼을 추가함.
        - ② **신규 테이블 4종 생성 및 제약조건 (§2.2~§2.5, §7.1~§7.3 완벽 반영)**:
          - `public.game_characters`: `(game_id, name)` UNIQUE, `default_icon_url` 150,000자 제한 및 `data:image/webp;base64,%` 또는 `https://%` CHECK, `attributes` JSONB object CHECK.
          - `public.character_requests`: `default_icon_url` NULL 또는 동일 150,000자·WebP/HTTPS CHECK, `memo VARCHAR(500)`, `request_status IN ('PENDING', 'APPROVED', 'REJECTED')`.
          - `public.user_characters`: `(user_id, character_id)` UNIQUE, `custom_icon_path` NULL 또는 `user_id::text || '/characters/' || character_id::text || '.webp'` CHECK, `memo VARCHAR(200)`, `validate_user_character_game` 트리거(`NEW.game_id`와 `game_characters.game_id` 일치 검증).
          - `public.user_character_presets`: `character_ids UUID[] NOT NULL CHECK (cardinality(character_ids) BETWEEN 1 AND 12 AND array_position(character_ids, NULL) IS NULL)`, `title VARCHAR(80) NOT NULL CHECK (btrim(title) <> '')`, `memo VARCHAR(300)`, `validate_user_character_preset` 트리거(게임 삭제 중이면 `NEW` 반환, UPDATE 시 `cardinality(NEW.character_ids) <= cardinality(OLD.character_ids)`이면 축소된 `max_preset_slots` 초과 허용, 중복 UUID 차단, 모든 캐릭터가 동일 `game_id` 소속인지 검증), `game_characters` `AFTER DELETE` 정리 트리거(빈 배열이 되는 프리셋 먼저 삭제 후 `array_remove(character_ids, OLD.id)` 갱신).
-       - ③ **RLS 정책, 계정 탈퇴 연동 및 관리자 RPC (§3, §7.1)**:
+       - ③ **RLS 정책, 계정 탈퇴 연동 및 관리자 RPC (§3, §7.1, `R13-SEC-01`, `R13-MAINT-01` 필수 반영)**:
          - 4개 테이블 RLS 활성화 및 정책 설정 (`character_requests` INSERT 정책에 반드시 `auth.uid() = user_id AND request_status = 'PENDING' AND admin_memo IS NULL AND approved_character_id IS NULL` 포함).
          - 계정 탈퇴 보류 차단(`Block account deletion users from ...` RESTRICTIVE 정책 및 `block_pending_account_data_mutations` 트리거)과 `purge_expired_account_deletion_requests` 삭제 순서(`user_games` 삭제 직전)에 `user_character_presets`, `user_characters`, `character_requests` 추가.
-         - 관리자 `SECURITY DEFINER` RPC 2종(`approve_character_request`, `reject_character_request`) 구현 및 `REVOKE ALL ... FROM PUBLIC, anon; GRANT EXECUTE ... TO authenticated;` 적용 (`approve_character_request`는 대상 캐릭터의 `game_id` 일치 및 `rarity`/`attributes`가 해당 게임 `classification_schema`에 유효한지 검증).
-       - ④ **스모크 테스트 (`sql/tests/TESTS.sql`) 및 가이드 (`sql/README.md`)**:
-         - `docs/spec/R13_Character_Roster_and_Preset_Spec.md` §7.5의 필수 스모크 테스트 7개 항목을 `sql/tests/TESTS.sql`에 추가하고, 로컬 PostgreSQL(또는 PGlite)에서 신규 설치(`SCHEMA.sql`) 및 기존 DB 마이그레이션 2회 멱등 실행 + `TESTS.sql` 전체 PASS 검증.
+         - **`R13-SEC-01 (필수)`**: 관리자 `SECURITY DEFINER` RPC 2종(`approve_character_request`, `reject_character_request`) 구현 시 관리자 권한 가드는 `NULL` 우회가 발생하지 않도록 기존 `approve_schedule_request`와 동일하게 `v_is_admin := ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin') OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin'); IF NOT coalesce(v_is_admin, false) THEN RAISE EXCEPTION ...; END IF;` 패턴을 사용하고, `REVOKE ALL ... FROM PUBLIC, anon; GRANT EXECUTE ... TO authenticated;`를 적용함 (`approve_character_request`는 대상 캐릭터의 `game_id` 일치 및 `rarity`/`attributes`가 해당 게임 `classification_schema`에 유효한지 검증).
+         - **`R13-MAINT-01 (필수)`**: `sql/SCHEMA.sql`에서 `is_valid_classification_schema`·`purge_expired_account_deletion_requests` 중복 정의나 중첩 `BEGIN;`/`COMMIT;`이 생기지 않도록 각 함수를 단일 정의로 깔끔하게 유지함.
+       - ④ **스모크 테스트 (`sql/tests/TESTS.sql` — §7.5 및 `R13-TEST-01` 필수 반영) 및 가이드 (`sql/README.md`)**:
+         - `docs/spec/R13_Character_Roster_and_Preset_Spec.md` §7.5의 필수 스모크 테스트 7개 항목에 더해, **`R13-TEST-01`** 항목(① 비관리자 `authenticated` 사용자의 승인/반려 RPC 호출 거부 및 행 불변 확인, ② `app_metadata.role=admin` JWT의 승인 성공 — 신규/기존 캐릭터 대상 각 1건, ③ 슬롯 축소 후 초과 상태 그대로 소속 캐릭터 삭제 시 `cardinality` 감소, ④ 프리셋·캐릭터가 남아 있는 게임 삭제 성공)을 `sql/tests/TESTS.sql`에 모두 포함함.
+         - 로컬 PostgreSQL이 없으면 PGlite(`@electric-sql/pglite`, auth/storage 최소 스텁)로 마이그레이션 2회 멱등 적용 및 비관리자 RPC 차단·트리거 동작을 검증함.
          - `sql/README.md` B표에 `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 확인 쿼리 추가, `docs/spec/SRS.md` 및 `docs/spec/SPEC.md`에 R13 요구사항 반영.
        - ⑤ **TypeScript 타입 동기화 (`src/types/database.types.ts`)**:
          - `games` 확장 컬럼, 신규 4개 테이블(`Row`/`Insert`/`Update`/`Relationships`), 신규 2개 RPC(`approve_character_request`, `reject_character_request`)를 추가하고 `npx tsc --noEmit`, `npm run lint`, `npx vitest run` 통과 확인.
   2. **Step 2 — `Phase 12.34 (R30)` 관리자 게임 목록 외부 URL 아이콘 표시 및 WebP Data URL 재저장 (Claude Sonnet)**:
      - **대상 파일 (`.worktrees/r13-phase13-1-db-and-r30-icon-resave` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `docs/to-do.md`
      - **구현 요구사항**:
-       - ① `/admin` 페이지 `등록된 게임 목록` 탭에서 `game.default_icon_url`이 자체 WebP Data URL(`data:image/webp;base64,`)이 아닌 외부 URL(`https://...` 등)인 게임 행에 `[외부 URL]` 배지를 표시한다.
-       - ② 외부 URL 아이콘을 가진 게임 행에 `[Data URL 재저장]` 버튼(및/또는 상단 툴바에 외부 URL 게임이 1개 이상일 때 `[외부 아이콘 일괄 변환 (n)]` 버튼)을 제공하여, 클릭 시 `convertIconSourceToDataUrl(game.default_icon_url)`로 256×256 WebP Data URL을 생성한 뒤 `supabase.from("games").update({ default_icon_url: dataUrl }).eq("id", game.id)`로 갱신하고 로컬 목록을 즉시 반영한다 (`isOffline()` 가드 및 변환 중 로딩/비활성화 처리 포함).
-       - ③ `src/app/admin/page.test.tsx`에 외부 URL 배지 표시 및 `[Data URL 재저장]` 클릭 시 `convertIconSourceToDataUrl` 호출·DB `update`·목록 갱신 단위 테스트를 추가하고 통과시킨다.
+       - ① `/admin` 페이지 `등록된 게임 목록` 탭에서 `game.default_icon_url`이 자체 WebP Data URL(`data:image/webp;base64,`)이 아닌 외부 URL(`https://...` 등)인 게임 행에 `[외부 URL]` 배지를 표시함.
+       - ② 외부 URL 아이콘을 가진 게임 행에 `[Data URL 재저장]` 버튼(및/또는 상단 툴바에 외부 URL 게임이 1개 이상일 때 `[외부 아이콘 일괄 변환 (n)]` 버튼)을 제공하여, 클릭 시 `convertIconSourceToDataUrl(game.default_icon_url)`로 256×256 WebP Data URL을 생성한 뒤 `supabase.from("games").update({ default_icon_url: dataUrl }).eq("id", game.id)`로 갱신하고 로컬 목록을 즉시 반영함 (`isOffline()` 가드 및 변환 중 로딩/비활성화 처리 포함).
+       - ③ `src/app/admin/page.test.tsx`에 외부 URL 배지 표시 및 `[Data URL 재저장]` 클릭 시 `convertIconSourceToDataUrl` 호출·DB `update`·목록 갱신 단위 테스트를 추가하고 통과시킴.
   3. **Step 3 — 통합 정적 코드 리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
-     - Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
+     - Base `1f656ad9156e874bfed5901aca00ef06ca9e82cf` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `✅ DONE (SHA: 1746ffcda57f8be943d52e5fbc0502b228157448)` | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.1 (R13 DB & Types)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 캐릭터 분류 검증, 테이블/RLS/RPC, 계정 삭제 연동, 마이그레이션·스모크 테스트·타입 및 명세 구현 | `✅ DONE (1746ffc; tsc/lint/Vitest 통과. PostgreSQL 미가동으로 SQL 스모크 미실행)` |
-| **2** | `✅ DONE (SHA: 78c132f9b23ea22064831f83f8f564ce24950c61)` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (UI & State)` | `Phase 12.34 (R30)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `/admin` 등록된 게임 목록의 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 버튼 구현 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `docs/to-do.md`) | `✅ DONE` (Claude Sonnet 5.5: `/admin` 등록된 게임 목록에 외부 URL 아이콘 `[외부 URL]` 배지 및 행별 `[Data URL 재저장]` 버튼 추가 — `convertIconSourceToDataUrl` → `games.update` → 로컬 목록 즉시 반영, `isOffline()` 가드·진행 중 중복 클릭 방지·변환/DB 오류 알림. 상단 일괄 변환 버튼은 "및/또는" 중 행별만 구현. 단위 테스트 4건 추가 / worktree 전체 45파일 313테스트·tsc·lint PASS, build 미실행) |
-| **3** | `✅ DONE (SHA: 4d30d5a, 리뷰: 3bc0245 ↔ 78c132f — 수정 필요)` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ DONE` (Claude Opus 5.5: `iteration-01/review.json` status `findings` — **P1 1건**(R13-SEC-01 관리자 RPC 가드 NULL 우회, PGlite 재현), P2 1건(R13-TEST-01 §7.5·RPC 테스트 누락), P3 1건(R13-MAINT-01 SCHEMA 중복 정의). `test.json` status `failed`(tsc·lint·Vitest 45파일/313 PASS, PGlite 마이그레이션 2회 멱등·트리거 엣지 PASS, 비관리자 RPC 차단 FAIL). `run.json` `target_sha` 기록, 3종 스키마 검증 통과. **`main` 병합 보류** → Step 4로 수정 반복) |
-| **4** | **`🛑 BLOCKED`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL) — iteration-02 수정` | `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `iteration-01/review.json` 지적 수정. 허용 파일: `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`, `sql/SCHEMA.sql`, `sql/tests/TESTS.sql` (아래 「iteration-02 수정 기준」 참고). | `🛑 지정 worktree가 없고 기록된 Step 1/2 SHA(1746ffc…, 78c132f…)가 현재 Git 객체 DB에 없음. R13 SQL 구현과 리뷰 산출물도 checkout/artifacts에 없어 수정 기준점 부재. 해당 worktree 또는 커밋 복원 후 재개 필요.` |
-| **5** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `3bc02457a8de4c19b4dca46060c4d358ce15b94e` ↔ Step 4 Target SHA 재리뷰(`iteration-02/review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 4 완료 후 진행` |
-
-#### 🔧 iteration-02 수정 기준 (Step 4, Claude Opus 리뷰 2026-11-04)
-
-> **현재 실행 차단 (2026-11-04)**: 지정 worktree `.worktrees/r13-phase13-1-db-and-r30-icon-resave`가 없고 `git worktree list`에도 등록되지 않았다. 기록된 Step 1/2 커밋 SHA는 `git cat-file`에서 찾을 수 없으며, `git fsck --full --no-reflogs --unreachable`에서도 R13 구현 커밋이 발견되지 않았다. 현재 checkout에는 R13 명세만 있고 마이그레이션, R13 SCHEMA 정의, R13 TESTS 블록 및 `iteration-01/review.json`이 없다. 기존 구현을 전제로 한 국소 수정은 안전하게 수행할 수 없으므로 원래 worktree/커밋/리뷰 산출물을 복구하거나 Run을 재등록해야 한다. `run.json`은 Maker가 수정하지 않았다.
-
-- **R13-SEC-01 (P1, 필수)**: `approve_character_request`·`reject_character_request`의 관리자 가드가 `IF NOT ((jwt role = 'admin') OR EXISTS(...))` 형태라 일반 사용자에게서 `NULL`이 되어 `RAISE`가 건너뛰어진다. 마이그레이션(135·161행)과 `SCHEMA.sql`(1697·1723행) 모두 기존 `approve_schedule_request`와 같은 `v_is_admin := ...; IF NOT coalesce(v_is_admin, false) THEN RAISE ...` 패턴으로 바꾼다. 마이그레이션은 `CREATE OR REPLACE`이므로 재실행만으로 반영된다.
-- **R13-TEST-01 (P2, 필수)**: `TESTS.sql` R13 블록에 ① 비관리자 `authenticated` 사용자의 승인/반려 RPC 호출 거부 및 행 불변 확인, ② `app_metadata.role=admin` JWT의 승인 성공(신규/기존 캐릭터 대상 각 1건), ③ 슬롯 축소 후 **초과 상태 그대로** 소속 캐릭터 삭제 시 `cardinality` 감소, ④ 프리셋·캐릭터가 남아 있는 게임 삭제 성공을 추가한다.
-- **R13-MAINT-01 (P3, 권장)**: `SCHEMA.sql`에서 `is_valid_classification_schema`·`purge_expired_account_deletion_requests` 중복 정의와 중첩 `BEGIN;`/`COMMIT;`(1563·1800행)을 정리해 각 함수를 한 번만 정의한다.
-- **검증**: `npx tsc --noEmit`, `npm run lint`, `npx vitest run`. SQL은 Supabase 테스트 프로젝트가 없으면 PGlite(`@electric-sql/pglite`, auth/storage 최소 스텁)로 마이그레이션 2회 적용 및 비관리자 RPC 거부를 확인하고, 실행 방식을 커밋 메시지나 Dispatch 기록에 남긴다.
+| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.1 (R13 DB & Types)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 캐릭터 분류 검증, 테이블/RLS/RPC(`coalesce` 관리자 가드 `R13-SEC-01`), 계정 삭제 연동, 마이그레이션·스모크 테스트(`R13-TEST-01`)·단일 함수 정의(`R13-MAINT-01`)·타입 및 명세 구현 | `⏳ 대기 중 (재생성된 Worktree에서 즉시 착수 가능)` |
+| **2** | `⏳ WAITING` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (UI & State)` | `Phase 12.34 (R30)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `/admin` 등록된 게임 목록의 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 버튼 구현 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `docs/to-do.md`) | `⏳ Step 1 완료 후 진행` |
+| **3** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `1f656ad9156e874bfed5901aca00ef06ca9e82cf` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 진행` |
 
 ### 🗂️ 이전 Run 기록 (완료): r13-spec-review-and-icon-cors-fix
 
