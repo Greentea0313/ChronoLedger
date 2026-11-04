@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
+import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 import {
   Plus,
   Pencil,
@@ -93,6 +94,7 @@ export default function AdminPage() {
   const [isSubmittingGame, setIsSubmittingGame] = useState(false)
   const [deletingGame, setDeletingGame] = useState<GameOption | null>(null)
   const [isDeletingGame, setIsDeletingGame] = useState(false)
+  const [resavingGameIds, setResavingGameIds] = useState<string[]>([])
 
   const filteredSchedules = useMemo(() => {
     return schedules.filter((schedule) => {
@@ -549,6 +551,41 @@ export default function AdminPage() {
     }
   }
 
+  const isExternalIconGame = (game: GameOption) =>
+    !!game.default_icon_url && !game.default_icon_url.startsWith("data:image/webp;base64,")
+
+  // 외부 URL 아이콘을 256x256 WebP Data URL로 변환해 재저장하고 로컬 목록에 즉시 반영
+  const resaveGameIcons = async (targets: GameOption[]) => {
+    if (isOffline()) {
+      setMessage({ type: "error", text: OFFLINE_WRITE_MESSAGE })
+      return
+    }
+    if (targets.length === 0) return
+    setResavingGameIds((prev) => [...prev, ...targets.map((g) => g.id)])
+    let successCount = 0
+    const failedNames: string[] = []
+    for (const game of targets) {
+      try {
+        const dataUrl = await convertIconSourceToDataUrl(game.default_icon_url as string)
+        const { error } = await supabase.from("games").update({ default_icon_url: dataUrl }).eq("id", game.id)
+        if (error) throw error
+        successCount += 1
+        setGames((prev) => prev.map((g) => (g.id === game.id ? { ...g, default_icon_url: dataUrl } : g)))
+      } catch {
+        failedNames.push(game.name)
+      }
+      setResavingGameIds((prev) => prev.filter((id) => id !== game.id))
+    }
+    if (failedNames.length === 0) {
+      setMessage({ type: "success", text: `${successCount}개 게임 아이콘을 Data URL로 재저장했습니다.` })
+    } else {
+      setMessage({
+        type: "error",
+        text: `아이콘 재저장 실패: ${failedNames.join(", ")} (성공 ${successCount}개). 파일 업로드나 이미지 붙여넣기로 수정해 주세요.`,
+      })
+    }
+  }
+
   const handleDeleteGame = async () => {
     if (!deletingGame) return
     setIsDeletingGame(true)
@@ -570,6 +607,8 @@ export default function AdminPage() {
       void fetchPastSchedules()
     }
   }
+
+  const externalIconGames = games.filter(isExternalIconGame)
 
   const paginatedSchedules = filteredSchedules.slice(
     (currentSchedulePage - 1) * SCHEDULES_PER_PAGE,
@@ -872,10 +911,23 @@ export default function AdminPage() {
                 aria-label="게임 이름 검색"
               />
             </div>
-            <Button onClick={handleOpenAddGame} className="flex items-center gap-1.5 h-9">
-              <Plus className="h-4 w-4" />
-              새 게임 등록
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {externalIconGames.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => void resaveGameIcons(externalIconGames)}
+                  disabled={resavingGameIds.length > 0}
+                  className="flex items-center gap-1.5 h-9 border-line-control bg-surface text-content hover:bg-surface-2"
+                >
+                  {resavingGameIds.length > 0 && <Loader2 className="h-4 w-4 animate-spin" />}
+                  외부 아이콘 일괄 변환 ({externalIconGames.length})
+                </Button>
+              )}
+              <Button onClick={handleOpenAddGame} className="flex items-center gap-1.5 h-9">
+                <Plus className="h-4 w-4" />
+                새 게임 등록
+              </Button>
+            </div>
           </div>
 
           {/* 등록된 게임 목록 카드 */}
@@ -923,6 +975,11 @@ export default function AdminPage() {
                                 <span className="text-[11px] px-2 py-0.5 rounded bg-surface-2 border border-line text-content-secondary">
                                   {scheduleCount}개 일정
                                 </span>
+                                {isExternalIconGame(game) && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded bg-warning/20 border border-warning/30 text-warning">
+                                    외부 URL
+                                  </span>
+                                )}
                               </div>
                               <p className="text-xs text-content-muted truncate max-w-md">
                                 {game.default_icon_url || "기본 아이콘 미등록"}
@@ -931,6 +988,19 @@ export default function AdminPage() {
                           </div>
 
                           <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                            {isExternalIconGame(game) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void resaveGameIcons([game])}
+                                disabled={resavingGameIds.includes(game.id)}
+                                className="h-8 px-2.5 text-xs flex items-center gap-1 border-line-control bg-surface text-content hover:bg-surface-2"
+                                aria-label={`Data URL 재저장: ${game.name}`}
+                              >
+                                {resavingGameIds.includes(game.id) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                                Data URL 재저장
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"

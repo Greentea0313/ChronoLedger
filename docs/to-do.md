@@ -588,7 +588,7 @@
   - 대상 파일: `src/lib/image-resizer.ts`, `src/lib/image-resizer.test.ts`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `public/_headers`, `src/app/layout.tsx`
   - 작업: 외부 URL 직접 요청 실패 시 10초 제한 wsrv.nl 프록시 폴백(`image/*` 및 5MB 제한), `/admin` 및 `/admin/requests` 클립보드 이미지 붙여넣기(`onPaste`) 및 WebP Data URL 미리보기/변환, `public/_headers` 및 `layout.tsx` 전역 `Referrer-Policy: no-referrer` 설정.
   - verify: 관련 단위 테스트(28개) 및 전체 Vitest 45개 파일/309개 테스트 통과, `tsc --noEmit`, ESLint 통과.
-- [ ] 12.34 관리자 게임 목록 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 (R30, 담당: Claude Sonnet, Run r13-phase13-1-db-and-r30-icon-resave)
+- [x] 12.34 관리자 게임 목록 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 (R30, 담당: Claude Sonnet, Run r13-phase13-1-db-and-r30-icon-resave)
 
 ---
 
