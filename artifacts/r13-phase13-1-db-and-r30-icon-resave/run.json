@@ -11,9 +11,9 @@
         "Phase 12.34 (R30): Display [외부 URL] badge on non-WebP-Data-URL game icons in /admin game list and provide [Data URL 재저장] button with convertIconSourceToDataUrl + supabase games.update + unit tests in src/app/admin/page.test.tsx."
     ],
     "base_sha": "1f656ad9156e874bfed5901aca00ef06ca9e82cf",
-    "target_sha": "12148ea4b5015dabc4c851f354d148a3fd069681",
+    "target_sha": "334c642f91111b0227327efb2848007cd6ee07f6",
     "branch": "collab/r13-phase13-1-db-and-r30-icon-resave",
     "worktree_path": ".worktrees/r13-phase13-1-db-and-r30-icon-resave",
     "max_iterations": 3,
-    "status": "in_progress"
+    "status": "completed"
 }
