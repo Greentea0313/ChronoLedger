@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-04 (R13 iteration-02 실행 차단 기록)
+
+- 지정된 `.worktrees/r13-phase13-1-db-and-r30-icon-resave` worktree가 없고, 기록된 Step 1/2 SHA `1746ffc…` 및 `78c132f…`가 현재 Git 객체 DB에 없음을 확인했다. 미참조 Git 객체와 저장소 파일 검색에서도 R13 구현 및 iteration-01 리뷰 산출물을 찾지 못했다.
+- 기존 SQL 구현에 대한 iteration-02 수정·검증이 불가능해 `docs/handoff.md` Step 4를 `🛑 BLOCKED` 처리했다. 원본 복구 또는 새 Run 등록이 필요하다.
+
 ## 2026-11-04 (Run r13-phase13-1-db-and-r30-icon-resave iteration-01 통합 리뷰)
 
 - **정적 리뷰 (Claude Opus)**: Base `3bc0245` ↔ Target `78c132f`. P1: `approve_character_request`/`reject_character_request` 관리자 가드가 일반 사용자에게서 `NULL`이 되어 우회됨(PGlite에서 비관리자가 기존 캐릭터 이름·아이콘을 덮어쓰는 것 재현). P2: §7.5 및 RPC 권한 테스트 누락. P3: `SCHEMA.sql` 함수 중복 정의.

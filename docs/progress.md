@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## R13 iteration-02 실행 차단 (2026-11-04)
+
+- **확인 결과**: 대기열에서 지정한 `.worktrees/r13-phase13-1-db-and-r30-icon-resave`가 없고 `git worktree list`에도 나타나지 않는다. 기록된 Step 1/2 SHA `1746ffcda57f8be943d52e5fbc0502b228157448`, `78c132f9b23ea22064831f83f8f564ce24950c61`은 현재 Git 객체 DB에서 찾을 수 없었다.
+- **영향**: 현재 checkout에는 R13 명세만 있고 `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`, R13 SCHEMA 정의/TESTS 블록 및 `iteration-01/review.json`이 없어 iteration-02 국소 수정과 리뷰 기준 재검증을 할 수 없다. 저장소의 미참조 객체에서도 해당 구현 commit은 복구되지 않았다.
+- **상태**: `docs/handoff.md` Step 4를 `🛑 BLOCKED`로 기록. 구현 파일을 임의로 재작성하지 않고, 이전 worktree/commit 및 리뷰 artifact 복구 또는 R13 DB 작업 재등록을 다음 조치로 남겼다.
+- **검증**: `git worktree list`, 지정 경로 확인, `git cat-file`, `git fsck --full --no-reflogs --unreachable`, R13 파일 검색.
+
 ## 신규 격리 협업 Run 등록: r13-phase13-1-db-and-r30-icon-resave (2026-11-04)
 
 - **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
@@ -9,9 +16,9 @@
   1. **Step 1 (`Phase 13.1` / R13 DB & Types, GPT Codex, `✅ DONE`, `1746ffc`)**: 캐릭터·프리셋 DB 스키마 및 마이그레이션, §7.5 SQL 테스트 7종, 타입·명세 반영. tsc/lint/Vitest 통과. PostgreSQL 서버가 없어 SQL suite는 미실행.
   2. **Step 2 (`Phase 12.34` / R30, Claude Sonnet, `✅ DONE`, `78c132f`)**: 관리자 게임 목록 외부 URL 아이콘 `[외부 URL]` 배지 및 행별 WebP Data URL 재저장. 단위 테스트 4건 추가.
   3. **Step 3 (통합 정적 리뷰, Claude Opus, `✅ DONE` — 수정 필요)**: `iteration-01/review.json` P1 1건(관리자 승인/반려 RPC 가드가 `NULL`로 평가되어 일반 사용자가 캐릭터 요청을 승인·반려 가능, PGlite 재현), P2 1건(§7.5·RPC 테스트 누락), P3 1건(SCHEMA 중복 정의). tsc·lint·Vitest 45파일/313 통과. `main` 병합 보류.
-  4. **Step 4 (iteration-02 SQL 수정, GPT Codex, `▶ READY`)**: 가드 `coalesce` 수정, TESTS.sql 보강, SCHEMA 중복 정리.
+  4. **Step 4 (iteration-02 SQL 수정, GPT Codex, `🛑 BLOCKED`)**: 지정 worktree와 기록된 Step 1/2 commit 객체가 현재 저장소에 없어 수정 기준 코드를 찾을 수 없다. 원본 복구 또는 Run 재등록 필요.
   5. **Step 5 (재리뷰 및 Run 마감, Claude Opus, `⏳ WAITING`)**.
-- **다음 단계**: GPT Codex(1순위 대체 Claude Opus)가 `"인수인계 문서를 확인해"`로 Step 4 착수. 수정 기준은 `docs/handoff.md` 「iteration-02 수정 기준」.
+- **다음 단계**: 원본 R13 worktree/commit과 iteration-01 리뷰 산출물을 복구하거나 R13 DB 작업을 새 Run으로 재등록한 뒤 Step 4를 재개한다.
 
 ## Phase 12.33 정적 코드 리뷰 완료 및 Run 마감 (2026-11-03)
 
