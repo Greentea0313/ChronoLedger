@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+
+## R13 Phase 13.1·R30 iteration-02 재리뷰 및 Run 마감 (2026-11-04)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)
+- **결과**: iteration-02(`334c642`) 리뷰 clean. Run `r13-phase13-1-db-and-r30-icon-resave` 완료, `main` 병합(`7956064`).
+- **검증**: 워크트리·병합 후 `main` 모두 tsc·eslint 0건, vitest 45개 파일 311개 통과. 로컬 PostgreSQL 17 기존 DB·신규 설치 `TESTS.sql` PASS.
+- **다음 단계**: `main` push(사용자 확인), 운영 DB `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용(R31). 이후 R13 Phase 13.2(관리자 카탈로그)·13.3(사용자 로스터·프리셋) Run 등록 필요.
+
 ## R13/R30 iteration-02 수정 완료 (2026-11-04)
 
 - **수행 주체**: GPT Codex (Maker)임.

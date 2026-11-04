@@ -588,7 +588,7 @@
   - 대상 파일: `src/lib/image-resizer.ts`, `src/lib/image-resizer.test.ts`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `public/_headers`, `src/app/layout.tsx`
   - 작업: 외부 URL 직접 요청 실패 시 10초 제한 wsrv.nl 프록시 폴백(`image/*` 및 5MB 제한), `/admin` 및 `/admin/requests` 클립보드 이미지 붙여넣기(`onPaste`) 및 WebP Data URL 미리보기/변환, `public/_headers` 및 `layout.tsx` 전역 `Referrer-Policy: no-referrer` 설정.
   - verify: 관련 단위 테스트(28개) 및 전체 Vitest 45개 파일/309개 테스트 통과, `tsc --noEmit`, ESLint 통과.
-- [x] 12.34 관리자 게임 목록 외부 HTTP(S) URL 아이콘 배지 및 WebP Data URL 재저장 (R30, `12148ea` 구현 + `334c642f` iteration-02 리뷰 수정, admin 테스트 18개 통과; 통합 리뷰 대기)
+- [x] 12.34 관리자 게임 목록 외부 HTTP(S) URL 아이콘 배지 및 WebP Data URL 재저장 (R30, `12148ea` 구현 + `334c642f` iteration-02 리뷰 수정, admin 테스트 18개 통과; iteration-02 리뷰 clean, `main` 병합 `7956064`)
 
 ---
 
@@ -632,7 +632,8 @@
 - [x] R28. Phase 12.15-F3 & Phase 12.32: `createClient<Database>` 연결 및 RPC/테이블 타입 정밀 보정(`c075045f`, GPT Codex), 관리자·게임 요청 모달 5종 `DialogDescription` 추가·소비 통계 기간 선택 고유 `aria-label` 분리·관리자 권한 거부 시맨틱 danger 토큰 및 `role="alert"` 적용(`3ed5e5d`, GitHub Copilot) (`완료` - Gemini 4 Argon 통합 리뷰 `7243c3b` PASS 및 `main` 병합 완료).
 - [x] R29 (`Phase 12.33`). 나무위키 등 외부 아이콘 URL 등록 시 CORS 실패 해결(`image-resizer.ts` CORS 프록시 폴백 + `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기 `onPaste` 지원) 및 모바일 외부 아이콘 핫링크 차단 방지(`public/_headers`·`layout.tsx` `no-referrer` 적용) (완료 - 커밋 bf3f1a1, GitHub Copilot, Gemini 4 Argon 리뷰 PASS)
   - 구현: `bf3f1a1` (GitHub Copilot), 정적 리뷰: Gemini 4 Argon PASS (`artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json`). 전체 테스트·타입 검사·린트·문서 마감 완료.
-- [x] R30. 외부 HTTP(S) 게임 아이콘 표시 및 Data URL 재저장 기능 (`Phase 12.34`, 구현 `12148ea`, iteration-02 수정 `334c642f`; iteration-02 통합 리뷰 대기)
+- [x] R30. 외부 HTTP(S) 게임 아이콘 표시 및 Data URL 재저장 기능 (`Phase 12.34`, 구현 `12148ea`, iteration-02 수정 `334c642f`; iteration-02 리뷰 clean, `main` 병합 `7956064`)
+- [ ] R31. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_USERS_ROLE_GUARD.sql` 적용 완료). 앱 배포는 `main` push 후 진행 (사용자 수동)
 - [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`). Phase 13.1 DB/타입 구현은 커밋 `4a21555e`로 완료함. 남은 작업은 R13 UI 구현과 통합 리뷰임.
 
 ---
