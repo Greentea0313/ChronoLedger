@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## R13/R30 iteration-02 수정 완료 (2026-11-04)
+
+- **수행 주체**: GPT Codex (Maker)임.
+- **커밋**: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`의 `334c642f91111b0227327efb2848007cd6ee07f6`임.
+- **수정 내용**: 관리자 아이콘 변환 대상은 HTTP(S) URL로 한정하고 `/assets/...` 시드 아이콘을 제외함. 프리셋의 게임 변경 시 대상 게임 슬롯 상한 검증을 강제하고 회귀 테스트를 추가함.
+- **검증**: admin 테스트 18개, `tsc --noEmit`, `npm run lint`, 전체 Vitest 45파일/311개 통과함. 임시 PostgreSQL 17 stub DB에서 마이그레이션 2회 및 전체 `TESTS.sql` 통과함.
+- **다음 단계**: Claude Opus가 Base `1f656ad` ↔ Target `334c642f` iteration-02 재리뷰 및 Run 마감 진행함.
 
 ## R13 Phase 13.1·R30 iteration-01 통합 리뷰 (2026-11-04)
 

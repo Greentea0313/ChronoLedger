@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-04 (R13/R30 iteration-02 리뷰 수정)
+
+- R30 아이콘 변환 배지·일괄 집계 대상을 HTTP(S) 외부 URL로 한정하고 `/assets/...` 로컬 시드 아이콘 테스트를 추가함.
+- `user_character_presets.game_id` 변경 시 대상 게임의 슬롯 상한을 다시 검사하고 PostgreSQL 회귀 시나리오를 추가함.
+- 검증: admin 18개, tsc, ESLint, Vitest 45파일/311개 통과. PostgreSQL 17 임시 stub DB에서 migration 2회 및 전체 SQL suite 통과함.
+- 커밋 `334c642f91111b0227327efb2848007cd6ee07f6`임. Claude Opus iteration-02 재리뷰 대기 중임.
 
 ## 2026-11-04 (R13 Phase 13.1·R30 iteration-01 리뷰)
 
