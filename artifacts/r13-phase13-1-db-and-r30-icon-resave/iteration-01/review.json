@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r13-phase13-1-db-and-r30-icon-resave",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "1f656ad9156e874bfed5901aca00ef06ca9e82cf",
+  "target_sha": "12148ea4b5015dabc4c851f354d148a3fd069681",
+  "status": "findings",
+  "created_at": "2026-11-04T00:00:00+09:00",
+  "findings": [
+    {
+      "id": "R30-P2-local-asset-flagged-external",
+      "severity": "P2",
+      "file": "src/app/admin/page.tsx",
+      "line": 554,
+      "evidence": "isExternalIconGame returns true for any default_icon_url not starting with 'data:image/webp;base64,'. All 23 seeded games in sql/seed use same-origin '/assets/games/...' paths, and convertIconSourceToDataUrl -> fetchImageFile rejects them in new URL(url) because they are not absolute http(s) URLs.",
+      "impact": "Seeded games show an incorrect [외부 URL] badge, the bulk button counts them, and every conversion of these rows fails with an error listing the game names; acceptance criterion targets external https URLs only.",
+      "recommendation": "Treat an icon as external only when it starts with 'http://' or 'https://'; add a test that a '/assets/...' icon gets no badge and is excluded from the bulk count."
+    },
+    {
+      "id": "R13-P3-preset-slot-cap-on-game-change",
+      "severity": "P3",
+      "file": "sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql",
+      "line": 136,
+      "evidence": "validate_user_character_preset skips the max_preset_slots check on UPDATE when cardinality does not grow, even if game_id changes. Reproduced on local PostgreSQL 17: an authenticated owner moved a 6-character preset to a game with max_preset_slots = 4 (UPDATE 1, stored 6 slots).",
+      "impact": "Only the owner's own data is affected and the UI never sends this update, but the database no longer guarantees the slot ceiling for presets.",
+      "recommendation": "Apply the non-destructive exemption only when NEW.game_id = OLD.game_id (same change in sql/SCHEMA.sql) and add a TESTS.sql case for a game_id change above the target ceiling."
+    }
+  ]
+}
