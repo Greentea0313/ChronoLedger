@@ -8,7 +8,7 @@ All agents must read and follow this `AGENTS.md` before starting project work, i
 
 All agents must consult the following rule files and skill guidelines before starting work:
 
-- [.agents/rules/language.md](.agents/rules/language.md) — Always communicate with the user in Korean (including `ask_question`).
+- [.agents/rules/language.md](.agents/rules/language.md) — Always communicate with the user in Korean (including `ask_question`); write all responses and documentation in Korean itemized style (~함, ~임).
 - [.agents/rules/collaboration.md](.agents/rules/collaboration.md) — 5-model AI role distribution, hybrid delegation, and emergency handover rules.
 - [.agents/rules/handoff.md](.agents/rules/handoff.md) — `"인수인계 문서를 확인해"` dispatch trigger protocol and documentation update rules.
 - [.agents/rules/agent_rules.md](.agents/rules/agent_rules.md) — Think before coding, simplicity first, and surgical changes.
@@ -51,6 +51,7 @@ When the user enters **`"인수인계 문서를 확인해"`** (or any request to
    - If token/context budget runs low before completion, set status to `⚠️ HANDOVER_NEEDED`, record checkpoint details, and guide the user to the designated fallback model.
 5. **Report Results & Documentation Sync**:
    - Update `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, and `docs/to-do.md`, and report the next model to invoke.
+   - **Language & Tone**: All user-facing responses and project management documentation (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) must be written in Korean itemized style (한국어 개조식: `~함`, `~임`). Machine collaboration artifacts (`artifacts/**`), English specifications (`docs/spec/SRS.md`), code comments, and commit messages maintain standard English.
 
 ## 4. Key Project Documents & Code Paths
 

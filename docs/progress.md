@@ -1,5 +1,21 @@
 # 프로젝트 진행 현황
 
+## 에이전트 규칙 문서 한국어 개조식 원칙 추가 (2026-11-04)
+
+- **작업 개요**: 에이전트 규칙 문서들에 '답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것' 원칙 반영 완료함.
+- **수정된 규칙 및 지침 문서**:
+  1. .agents/rules/language.md: 한국어 소통 원칙에 답변 및 문서의 한국어 개조식(~함, ~임) 의무화 조항 추가함.
+  2. AGENTS.md: Core Rule 요약 및 5단계 결과 보고 지침에 한국어 개조식 작성 원칙 반영함.
+  3. CLAUDE.md: Claude Code 전용 지침에 한국어 개조식(~함, ~임) 의무화 및 완료 보고 지침 추가함.
+  4. .agents/rules/agent_rules.md: 5번 섹션(응답 및 문서 작성 원칙)을 신설하여 개조식 종결어미(~함, ~임, ~됨) 사용 명시함.
+  5. .agents/rules/document_location.md: 문서 작성 스타일 항목을 추가하여 프로젝트 문서의 개조식 작성을 명시함.
+  6. .agents/rules/collaboration.md: 사후 문서 동기화 및 커뮤니케이션 스타일에 개조식 원칙 명시함.
+  7. .agents/rules/handoff.md: 5번 규칙(Rules)에 모든 대화 응답 및 docs/** 문서의 개조식 준수 조항 추가함.
+  8. .agents/skills/handoff/SKILL.md: 스킬 5번 규칙에 동일하게 개조식 원칙 동기화함.
+  9. .github/copilot-instructions.md: GitHub Copilot 전용 지침에 한국어 개조식 소통 및 문서화 스타일 추가함.
+- **적용 범위 명확화**: 사용자와의 채팅 대화 및 운영 문서(docs/handoff.md, docs/progress.md 등)에 한정되며, 에이전트 간 협업 아티팩트(artifacts/**), 영문 기술 명세서(docs/spec/SRS.md 등), 코드/커밋 메시지는 기존 영문 규격을 유지함을 전 규칙 파일에 명시함.
+- **검증**: git diff를 통해 전 파일의 수정 내용 및 누락 여부 확인 완료함.
+
 ## R13 iteration-02 실행 차단 (2026-11-04)
 
 - **확인 결과**: 대기열에서 지정한 `.worktrees/r13-phase13-1-db-and-r30-icon-resave`가 없고 `git worktree list`에도 나타나지 않는다. 기록된 Step 1/2 SHA `1746ffcda57f8be943d52e5fbc0502b228157448`, `78c132f9b23ea22064831f83f8f564ce24950c61`은 현재 Git 객체 DB에서 찾을 수 없었다.

@@ -65,6 +65,15 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Communication & Documentation Style (응답 및 문서 작성 원칙)
+
+**답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것.**
+
+- 모든 대화 응답, 상태 보고, 질문 답변 등 사용자 소통은 한국어 개조식 종결어미(`~함`, `~임`, `~됨` 등)를 일관되게 사용함.
+- `docs/` 내의 프로젝트 운영 문서(진행상황, 변경이력, 인수인계 등) 역시 명확하고 간결한 개조식 문체로 작성함.
+- 에이전트 간 기계 판독용 아티팩트(`artifacts/**`), 영문 기술 명세서(`docs/spec/SRS.md` 등), 코드 주석, Git 커밋 메시지는 기존 영문 규격을 유지함.
+- 불필요한 서술형 미사여구나 군더더기를 배제하고 전달할 사실과 근거 중심의 항목별 구조를 유지함.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

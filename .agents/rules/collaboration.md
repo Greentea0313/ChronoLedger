@@ -39,4 +39,6 @@ description: Enforces ChronoLedger 5-model AI collaboration roles, fallback chai
 3. **Emergency Handover on Token Exhaustion (`⚠️ HANDOVER_NEEDED`)**:
    - If remaining tokens or context budget are insufficient to safely finish the task, safely save all current file edits, update the task status in `docs/handoff.md` Dispatch Table to **`⚠️ HANDOVER_NEEDED`**, and update `Assigned Model` to **`~~Current Model~~ ➡️ [Fallback Model]`**.
    - Record **① Completed files/tasks, ② Remaining concrete tasks, ③ Decisions/assumptions, ④ Tests executed** in `### 📌 중단 체크포인트 (Handover Checkpoint)`, then instruct the user to switch to the replacement model and input `"인수인계 문서를 확인해"`.
-4. **Post-Completion Documentation Sync**: After meaningful development work, update `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md` (and `docs/architecture.md` if system structure changed).
+4. **Post-Completion Documentation Sync & Communication Style**:
+   - After meaningful development work, update `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md` (and `docs/architecture.md` if system structure changed).
+   - **답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것**: 모든 사용자 응답, 진행/인수인계 보고, 프로젝트 운영 문서는 한국어 개조식 종결어미(`~함`, `~임`, `~됨` 등)로 간결하게 작성함 (기계 판독용 아티팩트 `artifacts/**`, 영문 명세서, 커밋 메시지는 기존 영문 규격 유지).

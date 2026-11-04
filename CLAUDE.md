@@ -4,11 +4,16 @@
 
 When starting a Claude Code session, load and adhere to the following rule files:
 
-- @.agents/rules/language.md — [.agents/rules/language.md](.agents/rules/language.md) (Korean language communication rule)
+- @.agents/rules/language.md — [.agents/rules/language.md](.agents/rules/language.md) (Korean language communication rule: 답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것)
 - @.agents/rules/collaboration.md — [.agents/rules/collaboration.md](.agents/rules/collaboration.md) (5-model AI collaboration roles, hybrid delegation & emergency handover)
 - @.agents/rules/handoff.md — [.agents/rules/handoff.md](.agents/rules/handoff.md) (`"인수인계 문서를 확인해"` auto-execution & docs sync)
 - @.agents/rules/agent_rules.md — [.agents/rules/agent_rules.md](.agents/rules/agent_rules.md) (Core coding behavior guidelines)
 - @.agents/rules/document_location.md — [.agents/rules/document_location.md](.agents/rules/document_location.md) (Document location & taxonomy)
+
+> **💡 Language & Communication Style Rule**:
+>
+> - Always communicate with the user in Korean.
+> - **답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것**: 사용자 대화 응답 및 프로젝트 운영 문서(`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`)는 한국어 개조식 종결어미(`~함`, `~임`, `~됨` 등)로 간결하게 작성함. 에이전트 간 협업 아티팩트(`artifacts/**`), 영문 기술 명세서(`docs/spec/SRS.md`), 코드 주석, 커밋 메시지는 기존 영문 규격을 유지함.
 
 ## 2. Claude Core Roles (Role & Fallback)
 
@@ -40,7 +45,7 @@ When the user enters **`"인수인계 문서를 확인해"`** (or any request to
    - Orchestrator: [.agents/skills/chronoledger-orchestrator/SKILL.md](.agents/skills/chronoledger-orchestrator/SKILL.md)
    - Handoff Protocol: [.agents/skills/handoff/SKILL.md](.agents/skills/handoff/SKILL.md)
 5. **Emergency Handover Checkpoint**: If token/context budget runs low during execution, update task status in `docs/handoff.md` to `⚠️ HANDOVER_NEEDED`, record completed tasks, remaining work, decisions, and tests in `### 📌 중단 체크포인트 (Handover Checkpoint)`, and instruct the user to switch to the fallback model.
-6. **Completion & Docs Sync**: Upon completion, update Dispatch Queue status to `✅ DONE (SHA: <commit_sha>)`, advance the next step to `▶ READY`, and sync `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, and `docs/to-do.md`.
+6. **Completion & Docs Sync**: Upon completion, update Dispatch Queue status to `✅ DONE (SHA: <commit_sha>)`, advance the next step to `▶ READY`, and sync `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, and `docs/to-do.md`. All responses and documentation must be in Korean itemized style (한국어 개조식: `~함`, `~임`).
 
 ## 4. Key Project Documents & Code Paths
 

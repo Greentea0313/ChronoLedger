@@ -1,5 +1,13 @@
 # 변경 이력
 
+## 2026-11-04 (에이전트 규칙 문서 한국어 개조식 원칙 추가)
+
+- **에이전트 소통 및 문서 작성 규칙 표준화**:
+  - 답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것 원칙을 에이전트 규칙 및 지침 문서 전반에 반영함.
+  - 적용 파일: .agents/rules/language.md, AGENTS.md, CLAUDE.md, .agents/rules/agent_rules.md, .agents/rules/collaboration.md, .agents/rules/document_location.md, .agents/rules/handoff.md, .agents/skills/handoff/SKILL.md, .github/copilot-instructions.md.
+  - 사용자와의 채팅 대화 및 직접 확인하는 프로젝트 운영 문서(docs/handoff.md, docs/progress.md, docs/changelog.md, docs/to-do.md)에 ~함, ~임, ~됨 종결어미의 개조식 문체를 적용하도록 명시함.
+  - 에이전트 간 협업 아티팩트(artifacts/** JSON), 영문 기술 명세서(docs/spec/SRS.md 등), 코드 주석, 커밋 메시지는 기존 영문 규격을 그대로 유지하도록 예외 범위를 명확히 규정함.
+
 ## 2026-11-04 (R13 iteration-02 실행 차단 기록)
 
 - 지정된 `.worktrees/r13-phase13-1-db-and-r30-icon-resave` worktree가 없고, 기록된 Step 1/2 SHA `1746ffc…` 및 `78c132f…`가 현재 Git 객체 DB에 없음을 확인했다. 미참조 Git 객체와 저장소 파일 검색에서도 R13 구현 및 iteration-01 리뷰 산출물을 찾지 못했다.

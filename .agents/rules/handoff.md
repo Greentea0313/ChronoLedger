@@ -62,6 +62,7 @@ When the Orchestrator breaks down tasks into the Dispatch Queue, use this role d
 
 ## 5. Rules
 
+- **답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것**: 모든 대화 응답과 `docs/` 내 운영 문서(인수인계/진행상황/변경이력 등)는 한국어 개조식 종결어미(`~함`, `~임`, `~됨` 등)로 명확하고 간결하게 작성함 (기계 판독용 아티팩트 `artifacts/**`, 영문 명세서, 커밋 메시지는 기존 영문 규격 유지).
 - Keep entries concise, factual, and useful for the next AI agent or developer.
 - Preserve the existing format of each documentation file.
 - Do not rewrite entire documents unless the current content is outdated or misleading.
