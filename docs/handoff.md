@@ -68,8 +68,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.1 (R13 DB & Types)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 캐릭터 분류 검증, 테이블/RLS/RPC(`coalesce` 관리자 가드 `R13-SEC-01`), 계정 삭제 연동, 마이그레이션·스모크 테스트(`R13-TEST-01`)·단일 함수 정의(`R13-MAINT-01`)·타입 및 명세 구현 | `⏳ 대기 중 (재생성된 Worktree에서 즉시 착수 가능)` |
-| **2** | `⏳ WAITING` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (UI & State)` | `Phase 12.34 (R30)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `/admin` 등록된 게임 목록의 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 버튼 구현 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `docs/to-do.md`) | `⏳ Step 1 완료 후 진행` |
+| **1** | **`✅ DONE (SHA: 4a21555e6bc8177d440a4c765507b1f438069474)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.1 (R13 DB & Types)`: 캐릭터 분류 검증, 테이블/RLS/RPC(`coalesce` 관리자 가드 `R13-SEC-01`), 계정 삭제 연동, 마이그레이션·스모크 테스트(`R13-TEST-01`)·단일 함수 정의(`R13-MAINT-01`)·타입 및 명세 구현 | `✅ 4a21555e: R13 DB/타입 구현 완료. tsc·lint·Vitest 45파일/309개, PostgreSQL 17 로컬(stubbed Supabase roles/auth/storage/cron, pg_cron 미설치)에서 migration 2회 적용 및 전체 TESTS.sql PASS.` |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (UI & State)` | `Phase 12.34 (R30)`: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`에서 `/admin` 등록된 게임 목록의 외부 URL 아이콘 표시 배지 및 WebP Data URL 재저장 버튼 구현 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `docs/to-do.md`) | `▶ Step 1 완료. 동일 worktree에서 진행 가능.` |
 | **3** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `1f656ad9156e874bfed5901aca00ef06ca9e82cf` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 진행` |
 
 ### 🗂️ 이전 Run 기록 (완료): r13-spec-review-and-icon-cors-fix

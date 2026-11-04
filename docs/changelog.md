@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-04 (Phase 13.1 R13 DB/타입 Maker 완료)
+
+- R13 분류 스키마 검증, 캐릭터/요청/보유 캐릭터/프리셋 DB, RLS와 관리자 RPC, 계정 삭제 연동 및 TypeScript 타입을 구현함.
+- 단일 정의를 유지한 통합 `sql/SCHEMA.sql`, 재실행 가능한 `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`, rollback-only SQL 시나리오 7종과 SRS/SPEC/README를 갱신함.
+- 검증: tsc·ESLint·Vitest 45파일/309개 통과, PostgreSQL 17 임시 stub DB에서 마이그레이션 2회 및 전체 SQL smoke suite 통과함. 로컬에는 `pg_cron`을 설치하지 않아 SCHEMA 검증 복사본에서 해당 확장 선언만 제외함.
+- 커밋: `4a21555e6bc8177d440a4c765507b1f438069474`임.
 
 ## 2026-11-04 (격리 협업 Run r13-phase13-1-db-and-r30-icon-resave 재생성 및 재배정)
 

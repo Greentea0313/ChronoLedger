@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Phase 13.1 R13 DB/타입 Maker 완료 (2026-11-04)
+
+- **수행 주체**: GPT Codex (Maker - Core & SQL/Types)임.
+- **커밋**: `.worktrees/r13-phase13-1-db-and-r30-icon-resave`의 `4a21555e6bc8177d440a4c765507b1f438069474`임.
+- **완료 내용**: 분류 검증 함수, 게임별 슬롯/분류 설정, 캐릭터·요청·보유 목록·프리셋 테이블 및 RLS/RPC, 계정 삭제 대기 차단·정리, SQL 테스트 7 시나리오, DB 타입과 SRS/SPEC/README를 반영함.
+- **검증**: `npx tsc --noEmit`, `npm run lint`, Vitest 45파일/309개 통과함. PostgreSQL 17 로컬 stub 환경에서 마이그레이션 2회 적용 및 `sql/tests/TESTS.sql` 전체 PASS함. `pg_cron`은 로컬 설치가 없어 `SCHEMA.sql` 검증용 복사본에서만 제외했으며, 운영 DB는 사용하지 않음.
+- **다음 단계**: Claude Sonnet이 동일 Worktree에서 Phase 12.34 (R30) 관리자 게임 아이콘 배지·WebP Data URL 재저장 기능을 구현함.
 
 ## 격리 협업 Run 재생성 및 재배정: r13-phase13-1-db-and-r30-icon-resave (2026-11-04)
 
