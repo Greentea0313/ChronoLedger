@@ -66,6 +66,15 @@
 --                                  요청 상태·admin memo 기록, 연결 예정 지출 동기화.
 --   ADM-03 authenticated / A+admin 잘못된 game/target 일정 승인 -> 오류, 요청 PENDING,
 --                                  대상 일정 값 불변.
+--   R13-01 authenticated / A       타인 ID, invalid icon/oversize character request -> 거부.
+--   R13-02 authenticated / A       중복/NULL/다른 게임/최대 초과 preset -> 거부.
+--   R13-03 authenticated / A       슬롯 축소 후 기존 preset 유지·축소 및 캐릭터 삭제 정리.
+--   R13-04 authenticated / A       비관리자 character approval/rejection RPC -> 거부·행 불변.
+--   R13-05 authenticated / A+admin metadata JWT
+--                                  신규 및 기존 캐릭터 request 승인 성공.
+--   R13-06 DB fixture 역할         캐릭터 삭제 시 preset 배열 정리/빈 preset 삭제,
+--                                  캐릭터와 preset이 남은 게임 삭제 성공.
+--   R13-07 authenticated / A       custom icon path 제한 및 pending deletion 쓰기 차단.
 --   WAL-03 authenticated / A       일치하는 tier/rate 변경 성공, 불일치/음수 잔액 거부.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
@@ -1178,6 +1187,167 @@ END;
 $$;
 RESET ROLE;
 \echo PASS: wallet settings accept matching tier/rate and reject invalid values
+
+-- R13 character catalog, requests, owned roster, and presets.
+INSERT INTO public.games (name, default_icon_url, max_preset_slots, classification_schema)
+VALUES ('R13 smoke game', 'https://example.invalid/game.webp', 4,
+        '{"rarities":["5★","4★"],"axes":[{"key":"element","label":"속성","options":["불","물"]}]}'::jsonb)
+RETURNING id AS r13_game_id \gset
+SELECT set_config('chronoledger.r13_game_id', :'r13_game_id', true);
+INSERT INTO public.games (name, default_icon_url) VALUES ('R13 other game', 'https://example.invalid/other.webp') RETURNING id AS r13_other_game_id \gset
+SELECT set_config('chronoledger.r13_other_game_id', :'r13_other_game_id', true);
+INSERT INTO public.games (name, default_icon_url) VALUES ('R13 delete game', 'https://example.invalid/delete.webp') RETURNING id AS r13_delete_game_id \gset
+SELECT set_config('chronoledger.r13_delete_game_id', :'r13_delete_game_id', true);
+
+INSERT INTO public.game_characters(game_id, name, default_icon_url, rarity, attributes) VALUES (:'r13_game_id', 'R13 character 1', 'https://example.invalid/c1.webp', '5★', '{"element":"불"}') RETURNING id AS r13_character_1 \gset
+SELECT set_config('chronoledger.r13_character_1_id', :'r13_character_1', true);
+INSERT INTO public.game_characters(game_id, name, default_icon_url, rarity, attributes) VALUES (:'r13_game_id', 'R13 character 2', 'https://example.invalid/c2.webp', '4★', '{"element":"물"}') RETURNING id AS r13_character_2 \gset
+SELECT set_config('chronoledger.r13_character_2_id', :'r13_character_2', true);
+INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_game_id', 'R13 character 3', 'https://example.invalid/c3.webp') RETURNING id AS r13_character_3 \gset
+SELECT set_config('chronoledger.r13_character_3_id', :'r13_character_3', true);
+INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_game_id', 'R13 character 4', 'https://example.invalid/c4.webp') RETURNING id AS r13_character_4 \gset
+SELECT set_config('chronoledger.r13_character_4_id', :'r13_character_4', true);
+INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_game_id', 'R13 character 5', 'https://example.invalid/c5.webp') RETURNING id AS r13_character_5 \gset
+SELECT set_config('chronoledger.r13_character_5_id', :'r13_character_5', true);
+INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_other_game_id', 'R13 other character', 'https://example.invalid/other-char.webp') RETURNING id AS r13_other_character \gset
+SELECT set_config('chronoledger.r13_other_character_id', :'r13_other_character', true);
+INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_delete_game_id', 'R13 delete character', 'https://example.invalid/delete-char.webp') RETURNING id AS r13_delete_character \gset
+SELECT set_config('chronoledger.r13_delete_character_id', :'r13_delete_character', true);
+
+INSERT INTO public.character_requests(user_id, game_id, name, default_icon_url, rarity, attributes)
+VALUES (:'test_user_id', :'r13_game_id', 'R13 new request', 'https://example.invalid/request.webp', '5★', '{"element":"불"}') RETURNING id AS r13_new_request \gset
+SELECT set_config('chronoledger.r13_new_request_id', :'r13_new_request', true);
+INSERT INTO public.character_requests(user_id, game_id, target_character_id, name, rarity, attributes)
+VALUES (:'test_user_id', :'r13_game_id', :'r13_character_1', 'R13 renamed character', '4★', '{"element":"물"}') RETURNING id AS r13_update_request \gset
+SELECT set_config('chronoledger.r13_update_request_id', :'r13_update_request', true);
+
+SELECT set_config('request.jwt.claim.sub', :'test_user_id', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+    BEGIN
+        INSERT INTO public.character_requests(user_id, game_id, name) VALUES (current_setting('chronoledger.other_user_id')::uuid, current_setting('chronoledger.r13_game_id')::uuid, 'forged owner');
+        RAISE EXCEPTION 'FAIL: character request accepted another user_id';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+    BEGIN
+        INSERT INTO public.character_requests(user_id, game_id, name, default_icon_url) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, 'bad icon', 'http://example.invalid/icon.png');
+        RAISE EXCEPTION 'FAIL: character request accepted invalid icon';
+    EXCEPTION WHEN check_violation THEN NULL; END;
+    BEGIN
+        INSERT INTO public.character_requests(user_id, game_id, name, default_icon_url) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, 'oversized icon', repeat('x', 150001));
+        RAISE EXCEPTION 'FAIL: character request accepted oversized icon';
+    EXCEPTION WHEN check_violation THEN NULL; END;
+    BEGIN
+        INSERT INTO public.character_requests(user_id, game_id, name, admin_memo) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, 'forged admin memo', 'forged');
+        RAISE EXCEPTION 'FAIL: character request accepted admin_memo';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+    BEGIN
+        PERFORM public.approve_character_request(current_setting('chronoledger.r13_new_request_id')::uuid);
+        RAISE EXCEPTION 'FAIL: non-admin approved character request';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+    BEGIN
+        PERFORM public.reject_character_request(current_setting('chronoledger.r13_update_request_id')::uuid, 'forbidden');
+        RAISE EXCEPTION 'FAIL: non-admin rejected character request';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $$;
+RESET ROLE;
+DO $$ BEGIN
+    IF (SELECT request_status FROM public.character_requests WHERE id = current_setting('chronoledger.r13_new_request_id')::uuid) <> 'PENDING'
+       OR (SELECT request_status FROM public.character_requests WHERE id = current_setting('chronoledger.r13_update_request_id')::uuid) <> 'PENDING'
+       OR (SELECT name FROM public.game_characters WHERE id = current_setting('chronoledger.r13_character_1_id')::uuid) <> 'R13 character 1' THEN
+        RAISE EXCEPTION 'FAIL: non-admin character RPC changed data';
+    END IF;
+END $$;
+\echo PASS: character request constraints and null-safe non-admin RPC denial
+
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+    BEGIN
+        INSERT INTO public.user_characters(user_id, game_id, character_id, custom_icon_path) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, current_setting('chronoledger.r13_character_1_id')::uuid, 'wrong/path.webp');
+        RAISE EXCEPTION 'FAIL: invalid custom icon path accepted';
+    EXCEPTION WHEN check_violation THEN NULL; END;
+    BEGIN
+        INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, 'duplicate', ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid, current_setting('chronoledger.r13_character_1_id')::uuid]);
+        RAISE EXCEPTION 'FAIL: duplicate preset characters accepted';
+    EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+    BEGIN
+        INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, 'null member', ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid, NULL]::uuid[]);
+        RAISE EXCEPTION 'FAIL: NULL preset member accepted';
+    EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+    BEGIN
+        INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, 'wrong game', ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid, current_setting('chronoledger.r13_other_character_id')::uuid]);
+        RAISE EXCEPTION 'FAIL: cross-game preset accepted';
+    EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+    BEGIN
+        INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, 'too many', ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid, current_setting('chronoledger.r13_character_2_id')::uuid, current_setting('chronoledger.r13_character_3_id')::uuid, current_setting('chronoledger.r13_character_4_id')::uuid, current_setting('chronoledger.r13_character_5_id')::uuid]);
+        RAISE EXCEPTION 'FAIL: over-limit preset accepted';
+    EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+END $$;
+RESET ROLE;
+
+INSERT INTO public.user_characters(user_id, game_id, character_id, custom_icon_path)
+VALUES (:'test_user_id', :'r13_game_id', :'r13_character_1', :'test_user_id' || '/characters/' || :'r13_character_1' || '.webp');
+INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids)
+VALUES (:'test_user_id', :'r13_game_id', 'over-limit preserved', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid, :'r13_character_3'::uuid, :'r13_character_4'::uuid]) RETURNING id AS r13_over_limit_preset \gset
+SELECT set_config('chronoledger.r13_over_limit_preset_id', :'r13_over_limit_preset', true);
+INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids)
+VALUES (:'test_user_id', :'r13_game_id', 'deleted when empty', ARRAY[:'r13_character_5'::uuid]) RETURNING id AS r13_empty_preset \gset
+SELECT set_config('chronoledger.r13_empty_preset_id', :'r13_empty_preset', true);
+INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids)
+VALUES (:'test_user_id', :'r13_delete_game_id', 'cascade preset', ARRAY[:'r13_delete_character'::uuid]) RETURNING id AS r13_delete_preset \gset
+SELECT set_config('chronoledger.r13_delete_preset_id', :'r13_delete_preset', true);
+UPDATE public.games SET max_preset_slots = 2 WHERE id = :'r13_game_id';
+DELETE FROM public.game_characters WHERE id = :'r13_character_4'::uuid;
+DELETE FROM public.game_characters WHERE id = :'r13_character_5'::uuid;
+DO $$ BEGIN
+    IF (SELECT cardinality(character_ids) FROM public.user_character_presets WHERE id = current_setting('chronoledger.r13_over_limit_preset_id')::uuid) <> 3 THEN RAISE EXCEPTION 'FAIL: character delete did not shrink over-limit preset'; END IF;
+    IF EXISTS (SELECT 1 FROM public.user_character_presets WHERE id = current_setting('chronoledger.r13_empty_preset_id')::uuid) THEN RAISE EXCEPTION 'FAIL: empty preset was not deleted'; END IF;
+END $$;
+UPDATE public.user_character_presets SET character_ids = ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid] WHERE id = :'r13_over_limit_preset';
+\echo PASS: preset limits, non-destructive slot reduction, and character-delete cleanup
+
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'admin'))::text, true);
+SET LOCAL ROLE authenticated;
+SELECT public.approve_character_request(:'r13_new_request'::uuid);
+SELECT public.approve_character_request(:'r13_update_request'::uuid);
+RESET ROLE;
+DO $$ BEGIN
+    IF (SELECT request_status FROM public.character_requests WHERE id = current_setting('chronoledger.r13_new_request_id')::uuid) <> 'APPROVED'
+       OR NOT EXISTS (SELECT 1 FROM public.game_characters WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid AND name = 'R13 new request' AND rarity = '5★') THEN RAISE EXCEPTION 'FAIL: admin could not approve new character'; END IF;
+    IF (SELECT request_status FROM public.character_requests WHERE id = current_setting('chronoledger.r13_update_request_id')::uuid) <> 'APPROVED'
+       OR NOT EXISTS (SELECT 1 FROM public.game_characters WHERE id = current_setting('chronoledger.r13_character_1_id')::uuid AND name = 'R13 renamed character' AND default_icon_url = 'https://example.invalid/c1.webp') THEN RAISE EXCEPTION 'FAIL: admin update did not preserve omitted icon'; END IF;
+END $$;
+\echo PASS: admin metadata JWT approves new and existing character requests
+
+DELETE FROM public.games WHERE id = :'r13_delete_game_id'::uuid;
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM public.user_character_presets WHERE id = current_setting('chronoledger.r13_delete_preset_id')::uuid)
+       OR EXISTS (SELECT 1 FROM public.game_characters WHERE id = current_setting('chronoledger.r13_delete_character_id')::uuid) THEN RAISE EXCEPTION 'FAIL: game deletion did not cascade characters and presets'; END IF;
+END $$;
+\echo PASS: deleting game with characters and presets succeeds
+
+INSERT INTO public.account_deletion_requests(user_id, status_token_hash, status) VALUES (:'test_user_id', repeat('a', 64), 'PENDING');
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+    BEGIN
+        INSERT INTO public.character_requests(user_id, game_id, name) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, 'blocked');
+        RAISE EXCEPTION 'FAIL: pending user inserted character request';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+    BEGIN
+        INSERT INTO public.user_characters(user_id, game_id, character_id) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, current_setting('chronoledger.r13_character_2_id')::uuid);
+        RAISE EXCEPTION 'FAIL: pending user inserted user character';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+    BEGIN
+        INSERT INTO public.user_character_presets(user_id, game_id, title, character_ids) VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, 'blocked', ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid]);
+        RAISE EXCEPTION 'FAIL: pending user inserted preset';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+END $$;
+RESET ROLE;
+\echo PASS: pending deletion user is blocked from writes to all R13 personal tables
 
 -- SECURITY DEFINER RPC execute 권한은 authenticated에만 있어야 한다.
 SELECT set_config(

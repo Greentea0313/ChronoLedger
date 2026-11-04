@@ -57,6 +57,36 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"character_requests": {
+                  Row: {
+                    "admin_memo": string | null,"approved_character_id": string | null,"attributes": Json,"created_at": string,"default_icon_url": string | null,"game_id": string,"id": string,"memo": string | null,"name": string,"rarity": string | null,"request_status": "PENDING" | "APPROVED" | "REJECTED","target_character_id": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "admin_memo"?: string | null,"approved_character_id"?: string | null,"attributes"?: Json,"created_at"?: string,"default_icon_url"?: string | null,"game_id": string,"id"?: string,"memo"?: string | null,"name": string,"rarity"?: string | null,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","target_character_id"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "admin_memo"?: string | null,"approved_character_id"?: string | null,"attributes"?: Json,"created_at"?: string,"default_icon_url"?: string | null,"game_id"?: string,"id"?: string,"memo"?: string | null,"name"?: string,"rarity"?: string | null,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","target_character_id"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    { foreignKeyName: "character_requests_approved_character_id_fkey"; columns: ["approved_character_id"]; isOneToOne: false; referencedRelation: "game_characters"; referencedColumns: ["id"] },
+                    { foreignKeyName: "character_requests_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] },
+                    { foreignKeyName: "character_requests_target_character_id_fkey"; columns: ["target_character_id"]; isOneToOne: false; referencedRelation: "game_characters"; referencedColumns: ["id"] }
+                  ]
+                },"game_characters": {
+                  Row: {
+                    "attributes": Json,"created_at": string,"created_by": string | null,"default_icon_url": string,"game_id": string,"id": string,"name": string,"rarity": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attributes"?: Json,"created_at"?: string,"created_by"?: string | null,"default_icon_url": string,"game_id": string,"id"?: string,"name": string,"rarity"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "attributes"?: Json,"created_at"?: string,"created_by"?: string | null,"default_icon_url"?: string,"game_id"?: string,"id"?: string,"name"?: string,"rarity"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    { foreignKeyName: "game_characters_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] }
+                  ]
                 },"game_requests": {
                   Row: {
                     "admin_memo": string | null,"approved_game_id": string | null,"created_at": string,"id": string,"memo": string | null,"name": string,"request_status": "PENDING" | "APPROVED" | "REJECTED","user_id": string
@@ -99,14 +129,14 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "created_at": string | null,"created_by": string | null,"default_icon_url": string,"id": string,"name": string,"status": string
+                    "classification_schema": Json,"created_at": string | null,"created_by": string | null,"default_icon_url": string,"id": string,"max_preset_slots": number,"name": string,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string | null,"created_by"?: string | null,"default_icon_url": string,"id"?: string,"name": string,"status"?: string
+                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"default_icon_url": string,"id"?: string,"max_preset_slots"?: number,"name": string,"status"?: string
                   }
                   Update: {
-                    "created_at"?: string | null,"created_by"?: string | null,"default_icon_url"?: string,"id"?: string,"name"?: string,"status"?: string
+                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"default_icon_url"?: string,"id"?: string,"max_preset_slots"?: number,"name"?: string,"status"?: string
                   }
                   Relationships: [
                     
@@ -219,6 +249,35 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"user_character_presets": {
+                  Row: {
+                    "character_ids": string[],"created_at": string,"game_id": string,"id": string,"memo": string | null,"sort_order": number,"title": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "character_ids": string[],"created_at"?: string,"game_id": string,"id"?: string,"memo"?: string | null,"sort_order"?: number,"title": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "character_ids"?: string[],"created_at"?: string,"game_id"?: string,"id"?: string,"memo"?: string | null,"sort_order"?: number,"title"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    { foreignKeyName: "user_character_presets_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] }
+                  ]
+                },"user_characters": {
+                  Row: {
+                    "character_id": string,"created_at": string,"custom_icon_path": string | null,"game_id": string,"id": string,"is_owned": boolean,"memo": string | null,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "character_id": string,"created_at"?: string,"custom_icon_path"?: string | null,"game_id": string,"id"?: string,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "character_id"?: string,"created_at"?: string,"custom_icon_path"?: string | null,"game_id"?: string,"id"?: string,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    { foreignKeyName: "user_characters_character_id_fkey"; columns: ["character_id"]; isOneToOne: false; referencedRelation: "game_characters"; referencedColumns: ["id"] },
+                    { foreignKeyName: "user_characters_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] }
+                  ]
                 },"user_finances": {
                   Row: {
                     "default_budget": number,"id": string,"total_asset": number,"updated_at": string | null,"user_id": string
@@ -285,6 +344,9 @@ isOneToOne: false
 "approve_game_request":
 { Args: { "p_default_icon_url": string,"p_request_id": string }; Returns: string
                            },
+"approve_character_request":
+{ Args: { "p_default_icon_url"?: string | null,"p_request_id": string }; Returns: string
+                           },
 "approve_schedule_request":
 { Args: { "p_request_id": string }; Returns: undefined
                            },
@@ -333,6 +395,9 @@ isOneToOne: false
 { Args: { "p_expense_id": string }; Returns: undefined
                            },
 "reject_game_request":
+{ Args: { "p_admin_memo"?: string | null,"p_request_id": string }; Returns: undefined
+                           },
+"reject_character_request":
 { Args: { "p_admin_memo"?: string | null,"p_request_id": string }; Returns: undefined
                            },
 "reject_schedule_request":
