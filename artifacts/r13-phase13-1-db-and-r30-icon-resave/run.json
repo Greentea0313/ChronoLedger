@@ -1,0 +1,19 @@
+{
+    "schema_version": 1,
+    "run_id": "r13-phase13-1-db-and-r30-icon-resave",
+    "created_at": "2026-11-04T02:40:14.2452517+00:00",
+    "objective": "Implement Phase 13.1 (R13 character roster and preset DB schema, migration, RLS, admin RPCs with null-safe coalesce guard, account deletion purge integration, PGlite/SQL smoke tests, TypeScript types, and SRS/SPEC sync) and Phase 12.34 (R30 admin game list external icon URL badge and WebP Data URL resave action)",
+    "acceptance_criteria": [
+        "Phase 13.1: Add public.is_valid_classification_schema(jsonb) and extend public.games with max_preset_slots (1..12) and classification_schema JSONB.",
+        "Phase 13.1: Create game_characters, character_requests, user_characters, and user_character_presets tables with all §2 and §7 constraints, ownership/slot validation triggers, and character delete cleanup trigger.",
+        "Phase 13.1: Enable RLS policies, account-deletion pending mutation blocks, purge_expired_account_deletion_requests integration, and approve/reject_character_request SECURITY DEFINER RPCs using null-safe coalesce(v_is_admin, false) admin guards (R13-SEC-01) without duplicate function definitions or nested transactions in SCHEMA.sql (R13-MAINT-01).",
+        "Phase 13.1: Add all §7.5 and R13-TEST-01 smoke test cases (including non-admin RPC rejection, admin JWT approval for new/existing characters, post-shrink character deletion, and game deletion cascade) to sql/tests/TESTS.sql, update sql/README.md, docs/spec/SRS.md, docs/spec/SPEC.md, and sync src/types/database.types.ts.",
+        "Phase 12.34 (R30): Display [외부 URL] badge on non-WebP-Data-URL game icons in /admin game list and provide [Data URL 재저장] button with convertIconSourceToDataUrl + supabase games.update + unit tests in src/app/admin/page.test.tsx."
+    ],
+    "base_sha": "1f656ad9156e874bfed5901aca00ef06ca9e82cf",
+    "target_sha": "334c642f91111b0227327efb2848007cd6ee07f6",
+    "branch": "collab/r13-phase13-1-db-and-r30-icon-resave",
+    "worktree_path": ".worktrees/r13-phase13-1-db-and-r30-icon-resave",
+    "max_iterations": 3,
+    "status": "completed"
+}

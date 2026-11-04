@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r13-phase13-1-db-and-r30-icon-resave",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "1f656ad9156e874bfed5901aca00ef06ca9e82cf",
+  "target_sha": "12148ea4b5015dabc4c851f354d148a3fd069681",
+  "status": "passed",
+  "created_at": "2026-11-04T00:00:00+09:00",
+  "finished_at": "2026-11-04T00:30:00+09:00",
+  "sandbox": "unavailable",
+  "redactions_applied": true,
+  "tests": [
+    {"name": "TypeScript type check", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null},
+    {"name": "ESLint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null},
+    {"name": "Vitest (45 files, 311 tests)", "command": "npx vitest run", "status": "passed", "exit_code": 0, "log_path": null},
+    {"name": "Markdownlint (changed docs)", "command": "npx markdownlint-cli docs/spec/SRS.md docs/spec/SPEC.md docs/to-do.md sql/README.md", "status": "passed", "exit_code": 0, "log_path": null},
+    {"name": "SQL smoke tests on base schema + all migrations applied twice (local PostgreSQL 17 with Supabase stubs, pg_cron extension line excluded)", "command": "psql -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null},
+    {"name": "SQL smoke tests on fresh sql/SCHEMA.sql install (local PostgreSQL 17 with Supabase stubs)", "command": "psql -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null}
+  ]
+}
