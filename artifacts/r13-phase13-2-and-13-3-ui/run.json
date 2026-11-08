@@ -1,15 +1,15 @@
-﻿{
+{
     "schema_version":  1,
     "run_id":  "r13-phase13-2-and-13-3-ui",
     "created_at":  "2026-11-06T12:06:56.3312416+00:00",
     "objective":  "Implement Phase 13.2 (R13 Admin Catalog, Taxonomy \u0026 Character Requests) and Phase 13.3 (R13 User Character Roster, Custom Icons \u0026 Party Presets)",
     "acceptance_criteria":  [
                                 "Phase 13.2: Admin game classification_schema/max_preset_slots settings, Character Management tab, RequestSubmissionModal character tab, /admin/requests character approval/rejection tab, and unit tests.",
-                                "Phase 13.3: Character custom icon storage helpers, CharacterPresetModal (roster filters, ownership toggle, unowned dimming, character memo, party preset builder), /dashboard/games integration, and unit tests.",
+                                "Phase 13.3: Character custom icon storage helpers, Topbar '캐릭터' navigation item, dedicated /dashboard/characters page (game selector bar, roster filters, ownership toggle, unowned dimming, character memo, party preset builder), and unit tests.",
                                 "Combined static review, verification (tsc, lint, vitest), and docs closeout."
                             ],
     "base_sha":  "fe8a7762404a1b119cb879d1ae4fe624aa370ef7",
-    "target_sha":  null,
+    "target_sha":  "6b755aa3841c86eed48ad9d67bd3af0bb8d5eb1d",
     "branch":  "collab/r13-phase13-2-and-13-3-ui",
     "worktree_path":  ".worktrees/r13-phase13-2-and-13-3-ui",
     "max_iterations":  3,

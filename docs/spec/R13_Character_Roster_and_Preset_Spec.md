@@ -240,32 +240,36 @@ CREATE INDEX idx_user_character_presets_user_game ON public.user_character_prese
 3. **Character Requests Tab (`/admin/requests` $\to$ `캐릭터 요청` Tab)**:
    - Lists pending character addition/update requests with game badge, rarity/attributes summary, and icon preview/upload before clicking `[승인]` or `[반려]`.
 
-### 4.2 User Game Card & `CharacterPresetModal` (`/dashboard/games`)
+### 4.2 Dedicated Character & Preset Page (`/dashboard/characters`) and Topbar Navigation
 
-1. **Subscribed Game Card Entry**:
-   - Add a `[캐릭터·프리셋]` button next to `[일정 보기]` on each subscribed game card.
-   - Display a compact summary badge/line: `보유 캐릭터 n / m명 · 프리셋 k개`.
+1. **Topbar Navigation (`src/components/layout/topbar.tsx`) & Page Entry (`src/app/dashboard/characters/page.tsx`)**:
+   - Add `{ href: "/dashboard/characters", label: "캐릭터" }` to `TOPBAR_NAV_ITEMS` in `src/components/layout/topbar.tsx` (alongside `홈`, `소비`, `게임`).
+   - Character roster and party presets are managed in the dedicated `/dashboard/characters` page rather than inside `/dashboard/games`.
+   - **Subscribed Game Selector Bar**:
+     - At the top of `/dashboard/characters`, display a horizontal selector/pill bar of the user's subscribed games (`user_games` joined with `games`), showing each game's icon (custom icon fallback to default icon), game name, and summary counts (`보유 캐릭터 n / m명 · 프리셋 k개`).
+     - Defaults to the first subscribed game (or pre-selects a game if `?gameId=<uuid>` is present). If the user has no subscribed games, render an `EmptyState` with a link/button to `/dashboard/games`.
+     - Include a `[+ 캐릭터 추가·수정 요청]` button (`RequestSubmissionModal` opened on the `캐릭터 요청` tab) in the page header.
 2. **Tab 1 — `보유 캐릭터` (Character Roster)**:
    - **Filter Bar**:
      - Ownership filter: `전체` | `보유` | `미보유`
-     - Rarity filter pills (from `game.classification_schema.rarities`)
-     - Dynamic Axis filter pills/dropdowns (from `game.classification_schema.axes`)
+     - Rarity filter pills (from `game.classification_schema.rarities`, plus `기타` if unmapped values exist per §7.3.4)
+     - Dynamic Axis filter pills/dropdowns (from `game.classification_schema.axes`, plus `기타` if unmapped values exist)
      - Name search input
    - **Character Card / Row**:
-     - Displays Character Icon (`user_characters.custom_icon_path` if set, else `game_characters.default_icon_url`) with `[아이콘 변경]` overlay/button (same 256×256 WebP upload to `user-icons` bucket as game custom icons).
-     - Unowned characters render with dimmed icon brightness (`brightness-50 saturate-50 opacity-65`); clicking the ownership toggle switches `is_owned` immediately.
+     - Displays Character Icon (`user_characters.custom_icon_path` if set, else `game_characters.default_icon_url`, else initial avatar) with `[아이콘 변경]` / `[기본 복원]` actions (256×256 WebP upload to `{user_id}/characters/{character_id}.webp` in `user-icons` bucket).
+     - Unowned characters render with dimmed icon brightness (`brightness-50 saturate-50 opacity-65`); clicking the ownership toggle switches `is_owned` immediately (`isOffline()` guard applied).
      - Displays Rarity badge and classification tags (`속성`, `직업` 등).
      - Includes a **캐릭터 메모 (`memo`)** input/inline editor (up to 200 chars, supports Tab key via `insertTabOnKeyDown`) for recording personal notes (e.g., `"2돌 전무"`, `"유물 세팅 중"`).
 3. **Tab 2 — `조합 프리셋` (Party Presets)**:
-   - Displays saved presets for the game + `[+ 새 프리셋 추가]` button.
+   - Displays saved presets for the selected game (`sort_order, created_at` order) + `[+ 새 프리셋 추가]` button.
    - **Preset Card**:
-     - Shows **Preset Title** (e.g., `"혼돈 전반 아케론 파티"`), **Slot Grid** (`1 .. game.max_preset_slots`), and **Preset Memo**.
+     - Shows **Preset Title** (e.g., `"혼돈 전반 아케론 파티"`, `1..80` chars), **Slot Grid** (`1 .. Math.max(game.max_preset_slots, preset.character_ids.length)`), and **Preset Memo** (up to 300 chars, `whitespace-pre-wrap`).
      - Each slot shows the character's icon and name:
        - **Owned character (`is_owned = true`)**: Normal full brightness and primary border.
        - **Unowned character (`is_owned = false`)**: Lowered brightness (`brightness-50 saturate-50 opacity-65`) so the user can immediately distinguish missing target characters without extra badge clutter.
        - Character memos are **not** shown as badges on preset cards.
-   - **Preset Editor Modal / Drawer**:
-     - Filterable character picker (using the same Rarity & Axis filters) to assign/reorder characters into slots `1 .. max_preset_slots`.
+   - **Preset Editor (Modal / Panel)**:
+     - Filterable character picker (using the same Rarity, Axis, and Ownership filters) to assign/reorder/remove characters across slots `1 .. max_preset_slots` without duplicates (`isOffline()` guard; if rendered in a Radix `Dialog`, include `DialogTitle` and `DialogDescription`).
 
 ---
 
@@ -275,8 +279,8 @@ CREATE INDEX idx_user_character_presets_user_game ON public.user_character_prese
   - `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`, `sql/SCHEMA.sql`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`.
 - **Phase 13.2 (Admin Catalog, Taxonomy Config & Character Requests — `GitHub Copilot` / `Claude Sonnet`)**:
   - `/admin` game taxonomy config & `캐릭터 관리` tab, `RequestSubmissionModal` character requests, `/admin/requests` approval tab.
-- **Phase 13.3 (User Roster, Custom Character Icons & Party Presets — `Claude Sonnet`)**:
-  - `CharacterPresetModal` (`보유 캐릭터` & `조합 프리셋` tabs), custom character icon upload (`user-icons` bucket), `/dashboard/games` integration, and unit tests.
+- **Phase 13.3 (Dedicated Character Page `/dashboard/characters`, Custom Character Icons & Party Presets — `Claude Sonnet`)**:
+  - `Topbar` (`캐릭터` nav item), `/dashboard/characters` page (`보유 캐릭터` & `조합 프리셋` tabs + game selector bar), custom character icon upload (`user-icons` bucket), and unit tests.
 
 ---
 
