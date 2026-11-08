@@ -88,7 +88,7 @@
 
 #### 📝 iteration-01 리뷰 결과 (Claude Opus, 2026-11-10)
 
-- **산출물**: `artifacts/r13-phase13-2-and-13-3-ui/iteration-01/review.json`·`test.json`, manifest `target_sha=6b755aa` (워크트리 커밋 `b6cd7a0`, 미 push)임.
+- **산출물**: `artifacts/r13-phase13-2-and-13-3-ui/iteration-01/review.json`·`test.json`, manifest `target_sha=6b755aa` (워크트리 커밋 `b6cd7a0`)임. 2026-11-10 `main`(`92b4150`)과 `collab/r13-phase13-2-and-13-3-ui` 브랜치 모두 `origin`에 push 완료함.
 - **스키마 검증**: 이 PC에 Python 미설치로 `validate_collaboration_artifact.py` 실행 불가함. Node 기반 보조 검사(스키마 하위 기능 구현)로 `run.json`·`review.json`·`test.json` 통과 확인함. Python 설치 후 공식 스크립트 재검증 필요함.
 - **Step 4 Maker 수정 대상 (수용 기준)**:
   - **R13UI-01 (P2)** `src/app/admin/requests/page.tsx:239`: 캐릭터 요청 탭에 아이콘 미리보기·관리자 아이콘 교체(파일·붙여넣기·URL → `convertIconSourceToDataUrl`) 없음. `approve_character_request`에 `p_default_icon_url` 미전달로, 아이콘 없이 제출된 ADD 요청은 RPC가 `캐릭터 아이콘이 필요합니다.`로 거부해 승인 불가함. 교체 아이콘을 `p_default_icon_url`로 전달하고, 아이콘 없는 ADD 요청은 승인 버튼 비활성화·안내 표시함.
