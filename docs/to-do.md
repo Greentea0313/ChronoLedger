@@ -596,8 +596,9 @@
 
 - [x] 13.1 R13 캐릭터·프리셋 DB 스키마, 마이그레이션(MIGRATION_R13_CHARACTERS_AND_PRESETS.sql), SQL 스모크 테스트 및 TypeScript 타입 구현 (완료 - `4a21555e`, PostgreSQL 17 로컬 stub DB에서 migration 2회 및 전체 TESTS.sql 통과; tsc/lint/Vitest 통과)
 - [x] 13.2 관리자 게임별 성급/분류 축/최대 프리셋 슬롯 설정, 캐릭터 관리 탭, 캐릭터 추가/수정 요청 및 승인/반려 UI 구현 (구현 `688205e`, 결함 수정 `17945d9`. iteration-01 리뷰에서 P2 1건·P3 6건 지적 — iteration-02 수정 진행 예정)
-  - [ ] 13.2-F1 iteration-01 지적 수정: 캐릭터 요청 아이콘 미리보기·관리자 아이콘 교체 및 `p_default_icon_url` 전달(R13UI-01, P2), 요청 빈 분류 값 제거·UPDATE 대상 검증(R13UI-02), UPDATE 대상 프리필(R13UI-03), 분류 축 행 안정 key(R13UI-04), 캐릭터 삭제 확인 다이얼로그(R13UI-05), §7.3.4 옵션 제거 사용량 경고(R13UI-06), Phase 13.2 단위 테스트(R13UI-07), 캐릭터 아이콘 필수 검증(R13UI-08) (담당: Claude Sonnet)
-  - [ ] 13.2-F2 (비차단 후속) `normalizeClassificationSchema` 중복(admin·`character-utils`·요청 모달) 통합 및 명세 §2.4/§7.2 'signed URL' 표현을 Object URL 방식으로 보정
+  - [x] 13.2-F1 iteration-01 지적 수정 (완료 - `e07cc6a`, tsc/lint/Vitest 385개 통과, 빌드·수동 확인 미수행): 캐릭터 요청 아이콘 미리보기·관리자 아이콘 교체 및 `p_default_icon_url` 전달(R13UI-01, P2), 요청 빈 분류 값 제거·UPDATE 대상 검증(R13UI-02), UPDATE 대상 프리필(R13UI-03), 분류 축 행 안정 key(R13UI-04), 캐릭터 삭제 확인 다이얼로그(R13UI-05), §7.3.4 옵션 제거 사용량 경고(R13UI-06), Phase 13.2 단위 테스트(R13UI-07), 캐릭터 아이콘 필수 검증(R13UI-08) (담당: Claude Sonnet)
+  - [ ] 13.2-F2 (비차단 후속) `normalizeClassificationSchema` 중복(admin·`character-utils`·요청 모달) 통합, 명세 §2.4/§7.2 'signed URL' 표현을 Object URL 방식으로 보정, iteration-02 P4 서식(속성·연산자 사이 공백 누락 3곳, R13UI-09) 정리
+  - [ ] 13.2-F3 (환경) `vitest.config.ts` exclude에 `.claude/worktrees/**` 추가 검토: 루트에서 `npx vitest run` 실행 시 Claude 세션 워크트리 테스트까지 수집되어 138파일/1007개로 중복 실행됨(현재는 `--dir src`로 회피)
 - [x] 13.3 상단 내비게이션(`Topbar` `캐릭터` 메뉴) 및 전용 캐릭터·프리셋 페이지(`/dashboard/characters`: 구독 게임 선택 바, 보유 캐릭터 체크·커스텀 아이콘·메모 및 조합 프리셋 빌더·미보유 명도 감쇠) 구현 (완료 - `6b755aa`, tsc 0건·lint 통과·Vitest 48파일 364개 통과. 정적 export 빌드·브라우저 수동 확인은 미수행)
 
 ---
@@ -636,7 +637,7 @@
   - 구현: `bf3f1a1` (GitHub Copilot), 정적 리뷰: Gemini 4 Argon PASS (`artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json`). 전체 테스트·타입 검사·린트·문서 마감 완료.
 - [x] R30. 외부 HTTP(S) 게임 아이콘 표시 및 Data URL 재저장 기능 (`Phase 12.34`, 구현 `12148ea`, iteration-02 수정 `334c642f`; iteration-02 리뷰 clean, `main` 병합 `7956064`)
 - [x] R31. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_USERS_ROLE_GUARD.sql` 적용 완료). 앱 배포는 `main` push 후 진행 (사용자 수동) (`완료` - 2026-11-04 사용자 적용, 테이블 4·함수 3·정책 10행 확인)
-- [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`, 2026-11-09 `/dashboard/characters` 전용 페이지 분리 반영). Phase 13.1 DB/타입 구현(`4a21555e`, `334c642f`) 및 운영 DB 적용(R31) 완료함. Phase 13.2 관리자 카탈로그·분류 설정·캐릭터 요청 UI 구현(`688205e`) 완료함. Phase 13.3(Topbar `캐릭터` 메뉴·전용 `/dashboard/characters` 페이지 보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 빌더) 구현(`6b755aa`, 선행 결함 수정 `17945d9`) 완료함. Step 3 iteration-01 통합 리뷰(2026-11-10, P2 1건·P3 6건·P4 1건, 산출물 `b6cd7a0`) 완료함. 남은 작업은 iteration-02 수정(13.2-F1), 재리뷰, `run.json` 마감, `main` 병합임.
+- [x] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`, 2026-11-09 `/dashboard/characters` 전용 페이지 분리 반영). Phase 13.1 DB/타입 구현(`4a21555e`, `334c642f`) 및 운영 DB 적용(R31) 완료함. Phase 13.2 관리자 카탈로그·분류 설정·캐릭터 요청 UI 구현(`688205e`) 완료함. Phase 13.3(Topbar `캐릭터` 메뉴·전용 `/dashboard/characters` 페이지 보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 빌더) 구현(`6b755aa`, 선행 결함 수정 `17945d9`) 완료함. Step 3 iteration-01 통합 리뷰(2026-11-09, P2 1건·P3 6건·P4 1건, 산출물 `b6cd7a0`) 완료함. iteration-02 수정(13.2-F1, `e07cc6a`) 및 재리뷰(지적 8건 해소, P4 서식 1건만 남음, 산출물 `0b8eb4d`) 완료함. `main` 병합 `1f5d43a` 완료함(병합 후 tsc·lint·Vitest 385개·`npm run build` 통과). 남은 확인: 브라우저 수동 확인(사용자), 비차단 후속 13.2-F2.
 
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)
 

@@ -1,6 +1,23 @@
 # 프로젝트 진행 현황
 
-## R13 UI Run iteration-01 통합 정적 리뷰 (2026-11-10)
+## R13 UI Run iteration-02 재리뷰 및 `main` 병합 마감 (2026-11-09)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator, Step 5)임.
+- **재리뷰 결과**: Base `fe8a776` ↔ Target `e07cc6a`. iteration-01 지적 R13UI-01~08 전부 해소 확인함. 신규 지적은 P4 서식 1건(R13UI-09, 비차단)뿐임.
+- **산출물**: 워크트리 커밋 `0b8eb4d`(`iteration-02/review.json`·`test.json`, manifest `target_sha=e07cc6a`·`status=completed`)임.
+- **병합**: `main` 병합 `1f5d43a`(충돌 없음)임. 병합 후 tsc 0건·lint 통과·Vitest 48파일/385개(`--dir src`)·`npm run build` 통과함. push 완료함.
+- **R13 상태**: Phase 13.1~13.3 전체 `main` 반영 완료임. 브라우저 수동 확인(사용자)과 비차단 후속 13.2-F2(스키마 정규화 중복·명세 표현·서식), 13.2-F3(Vitest `.claude/worktrees` 제외)이 남음.
+- **다음 단계**: 큐에 `▶ READY` 과제 없음. Gemini 4 Argon(Fallback: Claude Opus)이 차기 Run `dashboard-summary-dday-and-week-list`(R32+R34) 등록 예정임.
+
+## R13 UI Run iteration-02 수정 Maker 완료 (2026-11-09)
+
+- **수행 주체**: Claude Sonnet (Maker, Step 4)임.
+- **커밋**: `e07cc6a` (`.worktrees/r13-phase13-2-and-13-3-ui`, 미 push)임.
+- **완료 내용**: iteration-01 지적 `R13UI-01`~`R13UI-08` 전부 수정함. 캐릭터 요청 아이콘 미리보기·관리자 교체 및 `p_default_icon_url` 전달(P2), 요청 빈 분류 값 제거·UPDATE 대상 검증·프리필, 분류 축 행 안정 key, 캐릭터 삭제 확인 다이얼로그, §7.3.4 옵션 제거 사용량 경고, 캐릭터 아이콘 필수 검증, Phase 13.2 단위 테스트 21개 추가함.
+- **검증**: `tsc --noEmit` 0건, `npm run lint` 통과, `vitest run` 48파일 385개 통과임(Node 24.22.2). `npm run build`·브라우저 수동 확인 미수행임.
+- **다음 단계**: Step 5 Claude Opus가 Base `fe8a776` ↔ Target `e07cc6a` 재리뷰, `iteration-02` 산출물, manifest 마감, `main` 병합을 수행함.
+
+## R13 UI Run iteration-01 통합 정적 리뷰 (2026-11-09)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator, Step 3)임.
 - **범위**: Base `fe8a776` ↔ Target `6b755aa` (Phase 13.2 `688205e`·결함 수정 `17945d9`·Phase 13.3 `6b755aa`)임.

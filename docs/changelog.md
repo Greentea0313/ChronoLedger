@@ -1,6 +1,20 @@
 # 변경 이력
 
-## 2026-11-10 (R13 UI Run iteration-01 통합 정적 리뷰)
+## 2026-11-09 (R13 UI Run iteration-02 재리뷰 및 `main` 병합)
+
+- iteration-02 재리뷰 결과를 기록함: R13UI-01~08 해소, 신규 P4 서식 1건(`artifacts/r13-phase13-2-and-13-3-ui/iteration-02/review.json`).
+- manifest를 `target_sha=e07cc6a`, `status=completed`로 마감하고 iteration-01 산출물 날짜 오기를 정정함(워크트리 커밋 `0b8eb4d`).
+- `collab/r13-phase13-2-and-13-3-ui`를 `main`에 병합함(`1f5d43a`). R13 Phase 13.2 관리자 캐릭터 카탈로그·분류 설정·캐릭터 요청 승인과 Phase 13.3 `/dashboard/characters`가 `main`에 반영됨.
+- 병합 후 tsc·lint·Vitest 385개·정적 export 빌드 통과함. 브라우저 수동 확인은 미수행임.
+
+## 2026-11-09 (R13 UI Run iteration-02 수정)
+
+- `/admin/requests` 캐릭터 요청: 아이콘 미리보기와 관리자 교체(파일·붙여넣기·URL) 추가, 교체 아이콘을 `approve_character_request`의 `p_default_icon_url`로 전달함. 아이콘 없는 ADD 요청은 승인 버튼을 비활성화함.
+- `RequestSubmissionModal` 캐릭터 요청: 빈 분류 값 제거, UPDATE 대상 미선택 검증 문구, 대상 선택 시 이름·성급·분류 프리필(현재 스키마에 유효한 값만) 추가함.
+- `/admin`: 분류 축 행 안정 key(입력 중 포커스 유지), 캐릭터 삭제 확인 다이얼로그, 게임 수정 시 제거되는 성급·분류 옵션의 사용 캐릭터 수 경고(재확인 후 저장), 캐릭터 폼 아이콘 필수 검증 추가함.
+- Phase 13.2 단위 테스트 21개 추가함. tsc·lint 통과, Vitest 48파일 385개 통과, 빌드·수동 확인은 미수행임. 커밋 `e07cc6a`(워크트리, 미 push)임.
+
+## 2026-11-09 (R13 UI Run iteration-01 통합 정적 리뷰)
 
 - Base `fe8a776` ↔ Target `6b755aa` 리뷰 결과 기록함: P1 0건, P2 1건, P3 6건, P4 1건(`artifacts/r13-phase13-2-and-13-3-ui/iteration-01/review.json`).
 - `test.json`에 tsc·lint·Vitest(48파일 364개) 통과와 빌드·수동 확인 미수행을 기록함.

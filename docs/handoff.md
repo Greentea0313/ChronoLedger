@@ -34,7 +34,7 @@
 - **Run ID**: `r13-phase13-2-and-13-3-ui` *(2026-11-04, R13 `Phase 13.2` 관리자 게임별 분류 축·캐릭터 카탈로그·캐릭터 요청/승인 UI & `Phase 13.3` 사용자 보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 빌더 구현)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/r13-phase13-2-and-13-3-ui` (브랜치: `collab/r13-phase13-2-and-13-3-ui`)
-- **리뷰 비교 범위**: iteration-01 Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Target `6b755aa3841c86eed48ad9d67bd3af0bb8d5eb1d` (manifest `target_sha` 기록 완료, 산출물 커밋 `b6cd7a0`). iteration-02 Target은 Step 4 Maker 완료 시 기록함 *(다중 PC 전환 시 미병합 Worktree 브랜치도 `git push -u origin collab/r13-phase13-2-and-13-3-ui`로 원격 동기화 권장)*
+- **리뷰 비교 범위**: iteration-01 Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Target `6b755aa3841c86eed48ad9d67bd3af0bb8d5eb1d` (manifest `target_sha` 기록 완료, 산출물 커밋 `b6cd7a0`). iteration-02 Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Target `e07cc6a98c8366458d366ac2c97d9f2b23afeec6` (manifest `target_sha`·`status=completed` 기록, 산출물 커밋 `0b8eb4d`). **Run 마감: `main` 병합 `1f5d43a`, push 완료** *(차기 Run은 Orchestrator가 아래 계획에 따라 등록함)*
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — `Phase 13.2 (R13 Admin Catalog, Taxonomy & Requests)` 관리자 게임 분류 설정, 캐릭터 관리 탭 및 캐릭터 요청/승인 구현 (GitHub Copilot)**:
      - **권위 명세**: 승인 완료된 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) (§2.1~§2.3, §4.1, §7.1, §7.3.4, §7.4).
@@ -83,12 +83,38 @@
 | **1** | **`✅ DONE (SHA: 688205e)`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (Admin & Request UI)` | `Phase 13.2`: `.worktrees/r13-phase13-2-and-13-3-ui`에서 `/admin` 게임 분류/슬롯 설정 및 `캐릭터 관리` 탭, `RequestSubmissionModal` 캐릭터 요청 제출, `/admin/requests` 캐릭터 요청 승인/반려 탭 구현 (`src/app/admin/page.tsx`, `src/app/admin/requests/page.tsx`, `src/components/game/request-submission-modal.tsx`) | `✅ 688205e: 게임별 프리셋 슬롯·성급·분류 축 설정, 캐릭터 CRUD·필터, 캐릭터 요청 ADD/UPDATE 제출 및 관리자 승인/반려 RPC 연결 완료. 옵션 제거 사용량 경고와 신규 단위 테스트는 후속 보완 필요함. 실행 환경에 Node/npm이 없어 tsc·lint·Vitest 미실행.` |
 | **2** | **`✅ DONE (SHA: 6b755aa)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Characters Page, Storage & Presets UI)` | `Phase 13.3`: `.worktrees/r13-phase13-2-and-13-3-ui`에서 `storage-upload.ts` 캐릭터 커스텀 아이콘 헬퍼, `Topbar` `캐릭터` 메뉴 추가, 전용 `/dashboard/characters` 페이지(구독 게임 선택 바·보유 캐릭터 로스터·미보유 명도 감쇠·캐릭터 메모·조합 프리셋 빌더) 및 단위 테스트 구현 (`src/lib/storage-upload.ts`, `src/lib/storage-upload.test.ts`, `src/components/layout/topbar.tsx`, `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `docs/to-do.md`) | `✅ 6b755aa: Phase 13.3 구현 완료 (선행 결함 수정 17945d9 별도 커밋). 신규 /dashboard/characters(구독 게임 선택 바·보유 캐릭터 로스터·성급/분류 축/기타 필터·미보유 명도 감쇠·캐릭터 메모·커스텀 아이콘·조합 프리셋 편집기), storage-upload 캐릭터 아이콘 헬퍼, Topbar 캐릭터 메뉴, RequestSubmissionModal initialKind prop 추가. 검증: tsc 0건, lint 통과, Vitest 48파일/364개 전부 통과(Node 24.22.2). 미검증: npm run build(정적 export)·브라우저 수동 확인 미수행, push 안 함. 상세는 아래 '📝 Step 2 완료 기록' 참조.` |
 | **3** | **`✅ DONE (iteration-01 리뷰: fe8a776 ↔ 6b755aa, 산출물 b6cd7a0)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Target `6b755aa` 통합 정적 리뷰(`review.json`·`test.json`), manifest `target_sha` 기록 | `⚠️ 조건부(findings)`: **P1 0건, P2 1건, P3 6건, P4 1건** — 아래 '📝 iteration-01 리뷰 결과' 참조. Phase 13.3(`/dashboard/characters`) 지적 0건, 지적은 모두 Phase 13.2 관리자·요청 UI임. tsc·lint·Vitest 48파일/364개 통과. P2 미해소로 `main` 병합 보류함. |
-| **4** | `▶ READY` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (iteration-02 수정)` | `.worktrees/r13-phase13-2-and-13-3-ui`에서 iteration-01 지적 `R13UI-01`~`R13UI-08` 수정 및 테스트 추가 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`). SQL/RPC 변경 금지(기존 `p_default_icon_url` 인자만 사용). 완료 시 커밋 후 Target SHA를 이 행과 Run 블록에 기록하고 Step 5를 `▶ READY`로 전환함. | `⏳ 대기` |
-| **5** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | iteration-02 재리뷰(Base `fe8a776` ↔ Step 4 Target), `iteration-02/review.json`·`test.json`, manifest 마감, `main` 병합 및 `docs/` 동기화 | `⏳ 대기` |
+| **4** | **`✅ DONE (SHA: e07cc6a)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (iteration-02 수정)` | `.worktrees/r13-phase13-2-and-13-3-ui`에서 iteration-01 지적 `R13UI-01`~`R13UI-08` 수정 및 테스트 추가 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`). SQL/RPC 변경 금지(기존 `p_default_icon_url` 인자만 사용). 완료 시 커밋 후 Target SHA를 이 행과 Run 블록에 기록하고 Step 5를 `▶ READY`로 전환함. | `✅ e07cc6a: R13UI-01~08 전부 수정 완료. 검증: tsc 0건, lint 통과, Vitest 48파일/385개 통과(신규 21개, Node 24.22.2). 미검증: npm run build·브라우저 수동 확인, push 안 함. 상세는 아래 '📝 Step 4 완료 기록' 참조.` |
+| **5** | **`✅ DONE (iteration-02 리뷰 · main 병합 1f5d43a)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | iteration-02 재리뷰(Base `fe8a776` ↔ Target `e07cc6a`), `iteration-02/review.json`·`test.json`, manifest 마감, `main` 병합 및 `docs/` 동기화 | `✅ DONE`: R13UI-01~08 전부 해소 확인, 신규 지적은 P4 서식 1건(R13UI-09, 비차단)뿐임. 워크트리 tsc·lint·Vitest 48파일/385개 통과. 산출물 `0b8eb4d`(manifest `target_sha=e07cc6a`, `status=completed`). `main` 병합 `1f5d43a`(충돌 없음) 후 tsc·lint·Vitest(`--dir src`) 385개·`npm run build`(16개 정적 페이지, `/dashboard/characters` 포함) 통과. push 완료. 브라우저 수동 확인은 미수행임. |
 
-#### 📝 iteration-01 리뷰 결과 (Claude Opus, 2026-11-10)
+#### 📝 iteration-02 리뷰 및 Run 마감 기록 (Claude Opus, 2026-11-09)
 
-- **산출물**: `artifacts/r13-phase13-2-and-13-3-ui/iteration-01/review.json`·`test.json`, manifest `target_sha=6b755aa` (워크트리 커밋 `b6cd7a0`)임. 2026-11-10 `main`(`92b4150`)과 `collab/r13-phase13-2-and-13-3-ui` 브랜치 모두 `origin`에 push 완료함.
+- **재리뷰 범위**: `b6cd7a0` ↔ `e07cc6a` 수정분(허용 파일 6개만 변경, `sql/`·`src/types/` 변경 없음)과 Base `fe8a776` ↔ `e07cc6a` 전체 범위를 확인함.
+- **지적 해소 확인**: R13UI-01(아이콘 미리보기·교체·`p_default_icon_url` 전달·아이콘 없는 ADD 승인 차단), R13UI-02(빈 분류 값 제거·UPDATE 대상 검증), R13UI-03(UPDATE 프리필, 스키마에 없는 값 제외), R13UI-04(안정 `rowId`), R13UI-05(삭제 확인 다이얼로그), R13UI-06(제거 옵션 사용 인원 경고·재확인, key 변경 시에도 경고), R13UI-07(테스트 21개), R13UI-08(아이콘 필수 검증) 모두 코드·테스트로 확인함.
+- **신규 지적**: R13UI-09 (P4) `src/app/admin/page.tsx:1981` 등 3곳 공백 누락(서식만, 동작 영향 없음) — 후속 13.2-F2에 포함함.
+- **Step 4 판단 승인**: 옵션 제거 경고를 폼 내 경고 + 재클릭 확인으로 구현한 방식 승인함(§7.3.4에 UI 형태 지정 없음).
+- **스키마 검증**: Python 미설치로 공식 스크립트 대신 Node 보조 검사로 `run.json`·iteration-01/02 `review.json`·`test.json` 5종 통과 확인함. iteration-01 산출물 타임스탬프 날짜 오기(11-10 → 11-09)를 같은 커밋에서 정정함.
+- **환경 주의**: 루트에서 `npx vitest run` 실행 시 `.claude/worktrees/` 아래 Claude 세션 워크트리 2개까지 수집되어 138파일/1007개가 돔(전부 통과). `main` 단독 검증은 `npx vitest run --dir src`로 수행함. 설정 보완은 to-do 13.2-F3로 등록함.
+- **사용자 확인 필요**: Cloudflare Pages 배포 후 `/dashboard/characters`(보유 토글·메모·아이콘·프리셋), `/admin` 캐릭터 관리·분류 설정, `/admin/requests` 캐릭터 요청 승인을 브라우저에서 확인 권장함.
+- **차기 Run**: 큐에 `▶ READY` 과제 없음. 아래 병행 과제 기록의 Argon 계획대로 Orchestrator(**Gemini 4 Argon**, Fallback: Claude Opus)가 차기 Run `dashboard-summary-dday-and-week-list`(R32+R34, Maker Claude Sonnet)를 `New-CollaborationRun.ps1`로 등록해야 함.
+
+#### 📝 Step 4 완료 기록 (Claude Sonnet, iteration-02 수정)
+
+- **커밋**: `e07cc6a` (`.worktrees/r13-phase13-2-and-13-3-ui`, 미 push). 변경 파일은 수용 기준 허용 범위 6개(`admin/page.tsx`·`page.test.tsx`, `admin/requests/page.tsx`·`page.test.tsx`, `request-submission-modal.tsx`·`.test.tsx`)뿐이며 SQL/RPC 변경 없음.
+- **지적별 처리**:
+  - **R13UI-01 (P2)**: `/admin/requests` 캐릭터 요청 카드에 아이콘 미리보기, 교체 파일/URL/붙여넣기 입력 추가함. 교체 아이콘은 `convertIconSourceToDataUrl` 변환 후 `approve_character_request`의 `p_default_icon_url`로 전달하고, 교체 없으면 `{ p_request_id }`만 전달해 요청 아이콘을 유지함. 아이콘 없는 ADD 요청은 승인 버튼 비활성화 + 안내 문구 표시함(UPDATE는 기존 카탈로그 아이콘 유지로 승인 가능). 교체 URL은 http/https만 허용함.
+  - **R13UI-02 (P3)**: 제출 시 빈 분류 값 제거, UPDATE 모드 대상 미선택 시 `수정할 캐릭터를 선택해 주세요.` 표시함.
+  - **R13UI-03 (P3)**: 카탈로그 조회에 `rarity, attributes` 추가, 대상 선택 시 이름·성급·분류 프리필함. RPC가 스키마 검증으로 거부하므로 현재 게임 스키마에 없는 성급·분류 값은 프리필에서 제외함.
+  - **R13UI-04 (P3)**: 분류 축 행에 안정적인 `rowId` 부여해 key 입력 중 재마운트(포커스 소실) 제거함.
+  - **R13UI-05 (P3)**: 캐릭터 삭제를 확인 다이얼로그(`DialogTitle`·`DialogDescription`, 전 사용자 보유·프리셋 영향 안내)로 전환함.
+  - **R13UI-06 (P3)**: 게임 수정 저장 시 제거되는 성급·분류 옵션을 사용 중인 캐릭터 수를 경고로 표시하고 `[수정 저장]` 재클릭 시 저장함(경고 문구가 달라지면 다시 경고). 기존 캐릭터 값은 유지되며 로스터에서 `기타`로 표시됨.
+  - **R13UI-07 (P3)**: admin 11개, requests 7개, 요청 모달 4개 신규 테스트 추가함(총 21개 → 364→385개).
+  - **R13UI-08 (P4)**: 캐릭터 폼에서 아이콘 미지정 시 DB 호출 전에 폼 오류 표시함.
+- **판단·가정**: 옵션 제거 경고는 별도 다이얼로그가 아닌 폼 내 경고 + 재확인 방식으로 구현함(명세 §7.3.4에 UI 형태 지정 없음). 슬롯 수 1~12 범위 검증은 `<input type="number">` 네이티브 검증이 jsdom에서 먼저 제출을 막아 단위 테스트에서 JS 검증 경로를 직접 검증하지 못함(성급 10개 초과 검증으로 대체).
+- **미검증·후속**: `npm run build`(정적 export)·브라우저 수동 확인 미수행. `normalizeClassificationSchema` 3중 중복은 비차단 후속 정리 대상으로 그대로 둠.
+
+#### 📝 iteration-01 리뷰 결과 (Claude Opus, 2026-11-09)
+
+- **산출물**: `artifacts/r13-phase13-2-and-13-3-ui/iteration-01/review.json`·`test.json`, manifest `target_sha=6b755aa` (워크트리 커밋 `b6cd7a0`)임. 2026-11-09 `main`(`92b4150`)과 `collab/r13-phase13-2-and-13-3-ui` 브랜치 모두 `origin`에 push 완료함.
 - **스키마 검증**: 이 PC에 Python 미설치로 `validate_collaboration_artifact.py` 실행 불가함. Node 기반 보조 검사(스키마 하위 기능 구현)로 `run.json`·`review.json`·`test.json` 통과 확인함. Python 설치 후 공식 스크립트 재검증 필요함.
 - **Step 4 Maker 수정 대상 (수용 기준)**:
   - **R13UI-01 (P2)** `src/app/admin/requests/page.tsx:239`: 캐릭터 요청 탭에 아이콘 미리보기·관리자 아이콘 교체(파일·붙여넣기·URL → `convertIconSourceToDataUrl`) 없음. `approve_character_request`에 `p_default_icon_url` 미전달로, 아이콘 없이 제출된 ADD 요청은 RPC가 `캐릭터 아이콘이 필요합니다.`로 거부해 승인 불가함. 교체 아이콘을 `p_default_icon_url`로 전달하고, 아이콘 없는 ADD 요청은 승인 버튼 비활성화·안내 표시함.
