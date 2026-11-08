@@ -114,3 +114,6 @@
 33. **PL/pgSQL 관리자 가드의 `NULL` 우회**
     - 증상: `IF NOT ((auth.jwt()->'app_metadata'->>'role' = 'admin') OR EXISTS (...)) THEN RAISE` 형태는 일반 사용자 JWT에 `role` 키가 없으면 `NULL OR FALSE = NULL`, `NOT NULL = NULL`이 되어 `RAISE`를 건너뛴다. R13 `approve/reject_character_request`에서 비관리자 승인이 재현됐다(2026-11-04, `78c132f` 리뷰).
     - 방어책: 기존 RPC처럼 `v_is_admin := ...; IF NOT coalesce(v_is_admin, false) THEN RAISE`로 작성한다. 관리자 RPC를 추가하면 `TESTS.sql`에 비관리자 호출 거부 테스트를 함께 넣는다. 로컬 PostgreSQL 서버가 없으면 PGlite(`@electric-sql/pglite`)에 auth/storage 최소 스텁을 두고 마이그레이션을 적용해 확인할 수 있다.
+34. **워크트리 안에서 연 세션이 낡은 `docs/handoff.md`를 읽음**
+    - 증상: `.worktrees/<run_id>`를 작업 폴더로 연 기존 Claude 세션(예: Step 2 Sonnet 세션)에서 `"인수인계 문서를 확인해"`를 입력하면, 이미 끝난 Step 3을 유일한 과제로 보고함(2026-11-10). 워크트리 브랜치의 `docs/handoff.md`는 Run 생성 시점(`fe8a776`) 사본이고, Dispatch Queue 갱신은 루트 `main`에만 기록됨. 기존 세션은 이전 대화 맥락(마지막으로 본 큐 상태)도 그대로 믿음.
+    - 방어책: 큐는 항상 루트 폴더의 `docs/handoff.md`(예: `C:\Users\Inha\Desktop\Project\ChronoLedger\docs\handoff.md`)를 절대 경로로 읽음. 다음 Step은 루트 폴더에서 새 세션으로 시작하는 것을 권장함. 워크트리 세션을 재사용할 때는 루트 handoff를 다시 읽으라고 명시함. 워크트리 사본의 `docs/handoff.md`는 병합 충돌을 피하기 위해 수정하지 않음.
