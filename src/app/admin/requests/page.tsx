@@ -37,6 +37,19 @@ type ScheduleRequest = {
   created_at: string | null
   games?: { name: string } | null
 }
+type CharacterRequest = {
+  id: string
+  game_id: string
+  target_character_id: string | null
+  name: string
+  rarity: string | null
+  attributes: Record<string, string>
+  default_icon_url: string | null
+  memo: string | null
+  request_status: string
+  created_at: string
+  games?: { name: string } | null
+}
 
 export default function AdminRequestsPage() {
   const { user, role, isLoading: authLoading } = useAuth()
@@ -44,6 +57,7 @@ export default function AdminRequestsPage() {
 
   const [gameRequests, setGameRequests] = useState<GameRequest[]>([])
   const [scheduleRequests, setScheduleRequests] = useState<ScheduleRequest[]>([])
+  const [characterRequests, setCharacterRequests] = useState<CharacterRequest[]>([])
   const [isDataLoading, setIsDataLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -91,6 +105,14 @@ export default function AdminRequestsPage() {
       if (gError) throw gError
       setGameRequests(gData || [])
 
+      const { data: cData, error: cError } = await supabase
+        .from("character_requests")
+        .select("*, games(name)")
+        .eq("request_status", "PENDING")
+        .order("created_at", { ascending: true })
+      if (cError) throw cError
+      setCharacterRequests((cData || []) as CharacterRequest[])
+
       // 2. 대기(PENDING) 상태인 일정 추가 요청 가져오기 (게임 이름 조인)
       const { data: sData, error: sError } = await supabase
         .from("schedule_requests")
@@ -122,7 +144,7 @@ export default function AdminRequestsPage() {
 
   // 승인/반려 공통 처리 함수
   const processRequest = async (
-    type: "game" | "schedule",
+    type: "game" | "schedule" | "character",
     id: string,
     isApprove: boolean,
     defaultIconUrl?: string,
@@ -212,6 +234,11 @@ export default function AdminRequestsPage() {
             if (tableError) throw rpcError
           }
         }
+      } else if (type === "character") {
+        const { error: rpcError } = isApprove
+          ? await supabase.rpc("approve_character_request", { p_request_id: id })
+          : await supabase.rpc("reject_character_request", { p_request_id: id, p_admin_memo: null })
+        if (rpcError) throw rpcError
       } else {
         // type === "schedule"
         if (isApprove) {
@@ -287,6 +314,8 @@ export default function AdminRequestsPage() {
       // 처리 완료된 항목을 화면 목록에서 즉시 제거
       if (type === "game") {
         setGameRequests(prev => prev.filter(req => req.id !== id))
+      } else if (type === "character") {
+        setCharacterRequests(prev => prev.filter(req => req.id !== id))
       } else {
         setScheduleRequests(prev => prev.filter(req => req.id !== id))
       }
@@ -294,7 +323,9 @@ export default function AdminRequestsPage() {
       setSuccessMessage(
         type === "game"
           ? (isApprove ? "게임 추가 요청을 승인했습니다." : "게임 추가 요청을 반려했습니다.")
-          : (isApprove ? "일정 추가 요청을 승인했습니다." : "일정 추가 요청을 반려했습니다.")
+          : type === "character"
+            ? (isApprove ? "캐릭터 요청을 승인했습니다." : "캐릭터 요청을 반려했습니다.")
+            : (isApprove ? "일정 추가 요청을 승인했습니다." : "일정 추가 요청을 반려했습니다.")
       )
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "알 수 없는 오류"
@@ -331,12 +362,15 @@ export default function AdminRequestsPage() {
       )}
 
       <Tabs defaultValue="games" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-surface-2 mb-6">
+        <TabsList className="grid w-full grid-cols-3 bg-surface-2 mb-6">
           <TabsTrigger value="games" className="data-[state=active]:bg-surface-3 data-[state=active]:text-content">
             게임 요청 ({gameRequests.length})
           </TabsTrigger>
           <TabsTrigger value="schedules" className="data-[state=active]:bg-surface-3 data-[state=active]:text-content">
             일정 요청 ({scheduleRequests.length})
+          </TabsTrigger>
+          <TabsTrigger value="characters" className="data-[state=active]:bg-surface-3 data-[state=active]:text-content">
+            캐릭터 요청 ({characterRequests.length})
           </TabsTrigger>
         </TabsList>
 
@@ -433,6 +467,29 @@ export default function AdminRequestsPage() {
             ))
           )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="characters" className="space-y-4">
+          {characterRequests.length === 0 ? (
+            <p className="rounded-lg bg-surface-2/50 py-8 text-center text-content-secondary">대기 중인 캐릭터 요청이 없습니다.</p>
+          ) : characterRequests.map((req) => (
+            <Card key={req.id} className="bg-surface border-line">
+              <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded bg-primary/15 px-2 py-1 text-xs text-primary">{req.target_character_id ? "UPDATE" : "ADD"}</span>
+                    <h3 className="text-lg font-bold text-content">{req.name}</h3>
+                  </div>
+                  <p className="text-sm text-content-secondary">{req.games?.name ?? "알 수 없음"} · {req.rarity ?? "성급 없음"} · {Object.values(req.attributes ?? {}).join(", ")}</p>
+                  {req.memo && <p className="mt-1 text-sm text-content-muted">메모: {req.memo}</p>}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="border-success/60 text-success" onClick={() => processRequest("character", req.id, true)} disabled={processingId === req.id || !isOnline}>승인</Button>
+                  <Button variant="outline" className="border-danger/60 text-danger" onClick={() => processRequest("character", req.id, false)} disabled={processingId === req.id || !isOnline}>반려</Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </TabsContent>
 
         <TabsContent value="schedules" className="space-y-4">

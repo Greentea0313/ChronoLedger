@@ -11,9 +11,11 @@ import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
+import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { validateGameRequest, validateScheduleRequest } from "./request-validation"
 
-type Game = { id: string; name: string }
+type Game = { id: string; name: string; classification_schema?: { rarities?: string[]; axes?: Array<{ key: string; label: string; options: string[] }> } }
+type Character = { id: string; game_id: string; name: string }
 type Schedule = {
   id: string
   game_id: string
@@ -44,7 +46,7 @@ type ScheduleRequest = {
   request_status: "PENDING" | "APPROVED" | "REJECTED"
   admin_memo: string | null
 }
-type RequestKind = "game" | "schedule"
+type RequestKind = "game" | "schedule" | "character"
 type RequestMode = "ADD" | "EDIT"
 
 const selectClassName = "h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -64,6 +66,7 @@ export function RequestSubmissionModal({
   const [requestKind, setRequestKind] = useState<RequestKind>("game")
   const [requestMode, setRequestMode] = useState<RequestMode>("ADD")
   const [games, setGames] = useState<Game[]>([])
+  const [characters, setCharacters] = useState<Character[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [gameRequests, setGameRequests] = useState<GameRequest[]>([])
   const [scheduleRequests, setScheduleRequests] = useState<ScheduleRequest[]>([])
@@ -80,12 +83,29 @@ export function RequestSubmissionModal({
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [scheduleMemo, setScheduleMemo] = useState("")
+  const [characterRequestMode, setCharacterRequestMode] = useState<"ADD" | "UPDATE">("ADD")
+  const [targetCharacterId, setTargetCharacterId] = useState("")
+  const [characterName, setCharacterName] = useState("")
+  const [characterRarity, setCharacterRarity] = useState("")
+  const [characterAttributes, setCharacterAttributes] = useState<Record<string, string>>({})
+  const [characterIconUrl, setCharacterIconUrl] = useState("")
+  const [characterIconFile, setCharacterIconFile] = useState<File | null>(null)
+  const [characterMemo, setCharacterMemo] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const schedulesForGame = useMemo(() => schedules.filter((item) => item.game_id === gameId), [gameId, schedules])
   const gameNames = useMemo(() => new Map(games.map((game) => [game.id, game.name])), [games])
+  const handleCharacterIconPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const file = getClipboardImageFile(event.clipboardData)
+    if (!file) return
+    event.preventDefault()
+    setCharacterIconFile(null)
+    void convertIconSourceToDataUrl(file)
+      .then(setCharacterIconUrl)
+      .catch((error: unknown) => setSubmitError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다."))
+  }
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true)
@@ -93,12 +113,32 @@ export function RequestSubmissionModal({
     setGames([])
     setSchedules([])
     try {
-      const [gamesResult, schedulesResult] = await Promise.all([
-        supabase.from("games").select("id, name").order("name"),
+      const [gamesResult, schedulesResult, charactersResult] = await Promise.all([
+        supabase.from("games").select("id, name, classification_schema").order("name"),
         supabase.from("game_schedules").select("*").order("start_date"),
+        supabase.from("game_characters").select("id, game_id, name").order("name"),
       ])
       if (gamesResult.error) setCatalogError("게임 카탈로그를 불러오지 못했습니다.")
-      else setGames(gamesResult.data ?? [])
+      else setGames((gamesResult.data ?? []).map((game) => {
+        const schema = game.classification_schema
+        if (!schema || typeof schema !== "object" || Array.isArray(schema)) return { id: game.id, name: game.name }
+        const value = schema as { rarities?: unknown; axes?: unknown }
+        return {
+          id: game.id,
+          name: game.name,
+          classification_schema: {
+            rarities: Array.isArray(value.rarities) ? value.rarities.filter((item): item is string => typeof item === "string") : [],
+            axes: Array.isArray(value.axes) ? value.axes.filter((item): item is { key: string; label: string; options: string[] } => (
+              !!item && typeof item === "object" && !Array.isArray(item) &&
+              typeof (item as { key?: unknown }).key === "string" &&
+              typeof (item as { label?: unknown }).label === "string" &&
+              Array.isArray((item as { options?: unknown }).options) &&
+              (item as { options: unknown[] }).options.every((option) => typeof option === "string")
+            )) : [],
+          },
+        }
+      }))
+      setCharacters(charactersResult.data ?? [])
       if (schedulesResult.error) setCatalogError("일정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.")
       else setSchedules(schedulesResult.data ?? [])
     } catch {
@@ -171,7 +211,9 @@ export function RequestSubmissionModal({
     }
     const validationError = requestKind === "game"
       ? validateGameRequest(name)
-      : validateScheduleRequest({ requestMode, gameId, targetScheduleId, title, scheduleType, startDate, endDate })
+      : requestKind === "schedule"
+        ? validateScheduleRequest({ requestMode, gameId, targetScheduleId, title, scheduleType, startDate, endDate })
+        : (!gameId ? "게임을 선택해 주세요." : !characterName.trim() || characterName.trim().length > 100 ? "캐릭터 이름을 1~100자로 입력해 주세요." : characterMemo.length > 500 ? "메모는 500자 이내로 입력해 주세요." : null)
     if (validationError) {
       setSubmitError(validationError)
       return
@@ -181,7 +223,8 @@ export function RequestSubmissionModal({
     try {
       const result = requestKind === "game"
         ? await supabase.from("game_requests").insert({ user_id: user.id, name: name.trim(), memo: null })
-        : await supabase.from("schedule_requests").insert({
+        : requestKind === "schedule"
+        ? await supabase.from("schedule_requests").insert({
             user_id: user.id,
             game_id: gameId,
             target_schedule_id: requestMode === "EDIT" ? targetScheduleId : null,
@@ -192,6 +235,18 @@ export function RequestSubmissionModal({
             end_date: endDate,
             memo: scheduleMemo.trim() || null,
           })
+        : await supabase.from("character_requests").insert({
+            user_id: user.id,
+            game_id: gameId,
+            target_character_id: characterRequestMode === "UPDATE" ? targetCharacterId : null,
+            name: characterName.trim(),
+            rarity: characterRarity || null,
+            attributes: characterAttributes,
+            default_icon_url: characterIconFile || characterIconUrl
+              ? await convertIconSourceToDataUrl(characterIconFile ?? characterIconUrl)
+              : null,
+            memo: characterMemo.trim() || null,
+          })
       if (result.error) {
         setSubmitError("요청을 저장하지 못했습니다. 입력값과 로그인 상태를 확인한 뒤 다시 시도해 주세요.")
         return
@@ -199,7 +254,7 @@ export function RequestSubmissionModal({
       setSuccessMessage("요청을 제출했습니다. 관리자 검토 후 처리됩니다.")
       if (requestKind === "game") {
         setName("")
-      } else {
+      } else if (requestKind === "schedule") {
         setTargetScheduleId("")
         setTitle("")
         setStartDate("")
@@ -207,6 +262,15 @@ export function RequestSubmissionModal({
         setScheduleMemo("")
         setIsOfficial(true)
         setRequestMode("ADD")
+      } else {
+        setTargetCharacterId("")
+        setCharacterName("")
+        setCharacterRarity("")
+        setCharacterAttributes({})
+        setCharacterIconUrl("")
+        setCharacterIconFile(null)
+        setCharacterMemo("")
+        setCharacterRequestMode("ADD")
       }
       await loadRequests()
     } catch {
@@ -246,6 +310,7 @@ export function RequestSubmissionModal({
                 }}>
                   <option value="game">게임 요청</option>
                   <option value="schedule">일정 요청</option>
+                  <option value="character">캐릭터 요청</option>
                 </select>
               </div>
               {requestKind === "game" ? (
@@ -263,6 +328,61 @@ export function RequestSubmissionModal({
                     관리자가 확인 후 공용 게임 카탈로그에 등록합니다.
                   </p>
                 </div>
+              ) : requestKind === "character" ? (
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="character-request-mode" className="text-sm font-medium text-content">요청 유형</label>
+                    <select id="character-request-mode" className={selectClassName} value={characterRequestMode} onChange={(event) => setCharacterRequestMode(event.target.value as "ADD" | "UPDATE")}>
+                      <option value="ADD">신규 캐릭터 추가</option>
+                      <option value="UPDATE">기존 캐릭터 수정</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="character-game" className="text-sm font-medium text-content">대상 게임</label>
+                    <select id="character-game" className={selectClassName} value={gameId} onChange={(event) => { setGameId(event.target.value); setTargetCharacterId(""); setCharacterRarity(""); setCharacterAttributes({}) }}>
+                      <option value="">게임을 선택하세요</option>
+                      {games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
+                    </select>
+                  </div>
+                  {characterRequestMode === "UPDATE" && (
+                    <div className="space-y-2">
+                      <label htmlFor="target-character" className="text-sm font-medium text-content">수정할 캐릭터</label>
+                      <select id="target-character" className={selectClassName} value={targetCharacterId} onChange={(event) => setTargetCharacterId(event.target.value)}>
+                        <option value="">캐릭터를 선택하세요</option>
+                        {characters.filter((character) => character.game_id === gameId).map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <label htmlFor="character-name" className="text-sm font-medium text-content">캐릭터 이름</label>
+                    <Input id="character-name" value={characterName} maxLength={100} onChange={(event) => setCharacterName(event.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="character-rarity" className="text-sm font-medium text-content">성급</label>
+                    <select id="character-rarity" className={selectClassName} value={characterRarity} onChange={(event) => setCharacterRarity(event.target.value)}>
+                      <option value="">선택하지 않음</option>
+                      {(games.find((game) => game.id === gameId)?.classification_schema?.rarities ?? []).map((rarity) => <option key={rarity} value={rarity}>{rarity}</option>)}
+                    </select>
+                  </div>
+                  {(games.find((game) => game.id === gameId)?.classification_schema?.axes ?? []).map((axis) => (
+                    <div className="space-y-2" key={axis.key}>
+                      <label htmlFor={`character-axis-${axis.key}`} className="text-sm font-medium text-content">{axis.label}</label>
+                      <select id={`character-axis-${axis.key}`} className={selectClassName} value={characterAttributes[axis.key] ?? ""} onChange={(event) => setCharacterAttributes((current) => ({ ...current, [axis.key]: event.target.value }))}>
+                        <option value="">선택하지 않음</option>
+                        {axis.options.map((option) => <option key={option} value={option}>{option}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                  <div className="space-y-2">
+                    <label htmlFor="character-icon-url" className="text-sm font-medium text-content">아이콘 (선택)</label>
+                    <Input id="character-icon-url" value={characterIconUrl.startsWith("data:image/webp;base64,") ? "" : characterIconUrl} onPaste={handleCharacterIconPaste} onChange={(event) => { setCharacterIconUrl(event.target.value); setCharacterIconFile(null) }} placeholder="https://... 또는 이미지 붙여넣기" />
+                    <Input id="character-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 아이콘 파일" onChange={(event) => setCharacterIconFile(event.target.files?.[0] ?? null)} />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="character-memo" className="text-sm font-medium text-content">메모 (선택)</label>
+                    <Textarea id="character-memo" maxLength={500} value={characterMemo} onChange={(event) => setCharacterMemo(event.target.value)} onKeyDown={(event) => insertTabOnKeyDown(event, setCharacterMemo)} />
+                  </div>
+                </>
               ) : (
                 <>
                   <div className="space-y-2">
