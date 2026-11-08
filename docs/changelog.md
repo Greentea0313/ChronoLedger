@@ -1,9 +1,36 @@
 # 변경 이력
 
-## 2026-11-09 (경쟁 서비스 비교 분석 및 개선 후보 등록)
+## 2026-11-10 (R13 UI Run iteration-01 통합 정적 리뷰)
+
+- Base `fe8a776` ↔ Target `6b755aa` 리뷰 결과 기록함: P1 0건, P2 1건, P3 6건, P4 1건(`artifacts/r13-phase13-2-and-13-3-ui/iteration-01/review.json`).
+- `test.json`에 tsc·lint·Vitest(48파일 364개) 통과와 빌드·수동 확인 미수행을 기록함.
+- manifest `target_sha`를 `6b755aa`로 기록하고 Phase 13.3 수용 기준·R13 명세 §4.2를 전용 `/dashboard/characters` 페이지 기준으로 동기화함(워크트리 커밋 `b6cd7a0`).
+- Dispatch Queue에 iteration-02 수정(Step 4, Claude Sonnet `▶ READY`)과 재리뷰·병합(Step 5, Claude Opus)을 추가함. 코드 변경 없음.
+
+## 2026-11-09 (R13 Phase 13.3 전용 캐릭터·프리셋 페이지)
+
+- 신규 `/dashboard/characters` 페이지와 Topbar `캐릭터` 메뉴를 추가함. 구독 게임 선택 바(`보유 캐릭터 n / m명 · 프리셋 k개`), `?gameId=` 진입, 구독 0개 안내를 포함함.
+- `보유 캐릭터` 탭에 보유 여부·성급·분류 축·`기타` 필터, 이름 검색, 미보유 명도 감쇠(`brightness-50 saturate-50 opacity-65`), 보유 토글, 캐릭터 메모(200자, Tab 입력), 커스텀 아이콘 변경·기본 복원을 추가함.
+- `조합 프리셋` 탭에 프리셋 목록·편집기(중복 방지, 순서 변경, 슬롯 상한, 상한 초과 프리셋의 비파괴 처리)와 삭제를 추가함.
+- `storage-upload.ts`에 캐릭터 커스텀 아이콘 헬퍼(`{userId}/characters/{characterId}.webp`, 전체 객체 경로 캐시 키)를 추가하고 게임 아이콘 함수는 공통 내부 함수로 위임함(동작 동일).
+- `RequestSubmissionModal`에 선택 prop `initialKind`를 추가함(기존 호출부 동작 불변).
+- 선행 수정(`17945d9`): 관리자 페이지 게임 목록의 `classification_schema`·`max_preset_slots` 정규화 및 `Json` 타입 오류 3건 수정, 관리자 테스트 17개 실패 해소함.
+- 커밋 `17945d9`, `6b755aa`임. tsc·lint·Vitest(48파일 364개) 통과, 빌드·수동 확인은 미수행임.
+
+## 2026-11-09 (R13 Phase 13.2 관리자 캐릭터 UI)
+
+- 게임 등록·수정 모달에 프리셋 슬롯 수와 성급·분류 축 설정을 추가함.
+- `/admin` 캐릭터 관리 탭에 게임·성급·이름 필터 및 캐릭터 추가·수정·삭제 흐름을 추가함.
+- `RequestSubmissionModal`에 캐릭터 ADD/UPDATE 요청, 분류 값·아이콘·메모 제출을 추가함.
+- `/admin/requests`에 캐릭터 요청 목록과 승인·반려 RPC 처리를 추가함.
+- 커밋 `688205e`임. Node/npm 부재로 tsc·lint·Vitest는 미실행 상태임.
+
+## 2026-11-09 (경쟁 서비스 비교 분석 및 개선 후보 R32~R40 등록·리뷰 확정)
 
 - **비교 분석 문서 추가 (Claude Opus)**: `docs/competitive-analysis-pickupgg.md` 신설함. ChronoLedger 기능 현황 점검, 픽업지지(pickupgg.com) 기능 조사, 강점·개선점·포지셔닝 정리함.
 - **로드맵 등록**: `docs/to-do.md`에 개선 후보 R32~R40 등록함(오늘/이번 주 요약·D-day, 복각·특별방송 분류, 주차별 리스트 뷰, 관심 일정, 게임별 상세, 일정 시각, 온보딩, 알림, R13 후속 편성). 코드 변경 없음.
+- **아키텍처·정합성 리뷰 및 로드맵 확정 (Gemini 4 Argon)**: `docs/competitive-analysis-pickupgg.md` §1 과장/누락 3건 보정(Tauri 딥링크 T1~T4 후속 명시, 카테고리 원그래프 아코디언·수익 추가·R29/R30 보완, R36 버전별 지출 요약으로 R11 정합성 보정), §3·§5 포지셔닝 공식 승인(`APPROVED`), R32~R40 담당 모델·Opus 승격 조건 및 실행 순서(현재 R13 UI Run 완수 직후 차기 Run 1순위 `R32+R34` → 2순위 `R33`) 확정함.
+- **R13 `Phase 13.3` 전용 `/dashboard/characters` 페이지 분리 설계 반영 (Gemini 4 Argon)**: 사용자 요청에 따라 보유 캐릭터 로스터 및 조합 프리셋 관리를 `/dashboard/games` 내부 모달이 아닌 상단 내비게이션(`Topbar` `캐릭터` 탭) 및 독립 페이지(`/dashboard/characters`)에서 관리하도록 `docs/spec/R13_Character_Roster_and_Preset_Spec.md`(§4.2, §5), `docs/handoff.md`(Step 2 수용 기준), `docs/to-do.md`, 워크트리 매니페스트(`run.json`)를 일괄 갱신함.
 
 ## 2026-11-04 (신규 협업 Run r13-phase13-2-and-13-3-ui 등록 — R13 Phase 13.2 & 13.3 UI)
 

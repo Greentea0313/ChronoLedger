@@ -33,7 +33,7 @@ Supabase
 
 ## 3. 클라이언트 모듈 책임
 
-- `src/app/`: 인증, 캘린더, 설정, 관리자 요청 화면의 라우팅과 페이지 조립.
+- `src/app/`: 인증(`/auth`), 대시보드 홈·캘린더(`/dashboard`), 소비(`/dashboard/expenses`), 게임 관리(`/dashboard/games`), 보유 캐릭터·조합 프리셋(`/dashboard/characters`), 설정(`/dashboard/settings`), 관리자(`/admin`, `/admin/requests`) 화면의 라우팅과 페이지 조립.
 - `src/app/page.tsx`는 단일 로그인 경로 `/auth`로 이동한다. `src/app/dashboard/layout.tsx`는 세션 로딩과 사용자 존재 여부를 확인해 보호 화면 렌더링을 제어한다. 데이터 권한은 Supabase RLS가 강제한다.
 - `src/lib/budget-calculations.ts`: 월별 예산 귀속(PLANNED=종료일 월, CONFIRMED=결제월)과 만료 예정 탐지. `src/components/expense/overdue-planned-modal.tsx`: 만료 항목 결제/예정 취소. `src/lib/use-online-status.ts`, `src/components/ui/offline-banner.tsx`: 오프라인 감지·배너·쓰기 잠금. `public/manifest.json`: PWA 매니페스트. `public/sw.js`, `src/components/pwa/service-worker-register.tsx`: 앱 셸 + 로그인 사용자별 Supabase 읽기 캐시 Service Worker와 등록/로그아웃 캐시 삭제. `src/lib/offline-guard.ts`: 쓰기 핸들러 오프라인 가드.
 - `src/components/wallet/store-wallet-widget.tsx`: 스토어 지갑 설정/수동 보정 위젯(설정 페이지). `src/components/expense/expense-modal.tsx`, `expense-detail-modal.tsx`: 결제(`process_expense_payment`)와 환불(`refund_expense_payment`) 모달. `src/lib/payment-calculations.ts`: 실결제액·적립 추정·검증·RPC 오류 매핑.
@@ -62,7 +62,7 @@ Supabase
 
 ## 4. Storage 및 캐시
 
-- `user-icons`는 비공개 버킷이다. 키는 `{user_id}/{game_id}.webp`이며 Storage RLS는 인증된 소유자 경로만 허용한다.
+- `user-icons`는 비공개 버킷이다. 키는 게임 커스텀 아이콘 `{user_id}/{game_id}.webp`, 캐릭터 커스텀 아이콘 `{user_id}/characters/{character_id}.webp`이며 Storage RLS는 인증된 소유자 경로만 허용한다.
 - 업로드 전 원본(최대 5 MiB)을 256×256 WebP로 변환한다. 결과가 100 KiB를 넘으면 업로드를 거부하고 안내한다.
 - 앱은 소유자 세션으로 객체를 가져와 표시한다. 공개 URL은 만들지 않는다.
 - 계정 삭제 요청에서는 소유자의 Storage 아이콘 객체를 정리한 뒤 Auth 계정 삭제를 완료해야 한다. 사용자 테이블의 cascade 삭제만으로 Storage 객체가 제거된다고 가정하지 않는다.

@@ -1,11 +1,41 @@
 # 프로젝트 진행 현황
 
-## 경쟁 서비스(픽업지지) 비교 분석 및 R32~R40 로드맵 등록 (2026-11-09)
+## R13 UI Run iteration-01 통합 정적 리뷰 (2026-11-10)
 
-- **수행 주체**: Claude Opus (사용자 직접 요청)
-- **커밋**: `14eb539` (브랜치 `claude/project-feature-review-comparison-2974fa`, `main` 미병합)
-- **완료 내용**: `docs/competitive-analysis-pickupgg.md` 신설(기능 현황 점검, pickupgg.com 기능 조사, 강점·개선점·포지셔닝), `docs/to-do.md`에 개선 후보 R32~R40 등록함. 코드 변경 없음.
-- **다음 단계**: `docs/handoff.md` 병행 과제 `competitive-analysis-pickupgg-review` Step 2를 Gemini 4 Argon에 `▶ READY`로 배정함. Argon이 분석·로드맵 리뷰 후 착수 항목 Run 등록 계획 수립 예정임.
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator, Step 3)임.
+- **범위**: Base `fe8a776` ↔ Target `6b755aa` (Phase 13.2 `688205e`·결함 수정 `17945d9`·Phase 13.3 `6b755aa`)임.
+- **결과**: `findings` — P1 0건, **P2 1건**(아이콘 없는 ADD 캐릭터 요청 승인 불가·관리자 아이콘 교체 UI 부재), P3 6건(요청 빈 분류 값·UPDATE 미프리필·분류 축 키 입력 포커스 소실·캐릭터 삭제 확인 부재·§7.3.4 옵션 제거 경고 미구현·Phase 13.2 테스트 부재), P4 1건임. Phase 13.3 `/dashboard/characters` 지적 0건임.
+- **검증**: tsc 0건·lint 통과·Vitest 48파일/364개 통과(Node 24.22.2)임. 빌드·수동 확인 미수행임. Python 부재로 공식 스키마 검증 스크립트 대신 Node 보조 검사로 산출물 3종 통과 확인함.
+- **산출물**: 워크트리 커밋 `b6cd7a0`(`iteration-01/review.json`·`test.json`, manifest `target_sha`, R13 명세 §4.2 동기화), 미 push임.
+- **다음 단계**: Step 4 iteration-02 수정 Maker **Claude Sonnet** `▶ READY` → Step 5 재리뷰·`main` 병합 Claude Opus임. P2 해소 전 `main` 병합 보류함.
+
+## R13 Phase 13.3 전용 캐릭터·프리셋 페이지 Maker 완료 (2026-11-09)
+
+- **수행 주체**: Claude Sonnet (Maker)임.
+- **커밋**: `17945d9`(Step 1 결함 수정: admin 스키마 정규화·tsc 오류 3건·테스트 17개 실패 해소), `6b755aa`(Phase 13.3 구현) — `.worktrees/r13-phase13-2-and-13-3-ui`, 미 push임.
+- **완료 내용**: `/dashboard/characters`(구독 게임 선택 바, 보유 캐릭터 로스터의 성급·분류 축·`기타` 필터·미보유 명도 감쇠·메모·커스텀 아이콘, 조합 프리셋 목록·편집기·슬롯 축소 비파괴 처리), 캐릭터 아이콘 Storage 헬퍼, Topbar `캐릭터` 메뉴, `RequestSubmissionModal` `initialKind` prop 추가함.
+- **검증**: `tsc --noEmit` 0건, `npm run lint` 통과, `vitest run` 48파일 364개 통과임(Node 24.22.2). `npm run build`·브라우저 수동 확인은 미수행임.
+- **다음 단계**: Step 3(Claude Opus / Gemini 4 Argon)이 Base `fe8a776` ↔ Target `6b755aa` 통합 리뷰·`run.json` 마감·`main` 병합을 수행함. 명세와의 차이(download→Object URL 방식, 옵션 제거 경고 미확인 등)는 `docs/handoff.md` Step 2 완료 기록 참조함.
+
+## R13 Phase 13.2 관리자 UI Maker 완료 (2026-11-09)
+
+- **수행 주체**: GitHub Copilot (Maker)임.
+- **커밋**: `688205e` (`.worktrees/r13-phase13-2-and-13-3-ui`)임.
+- **완료 내용**: 게임별 `max_preset_slots`·`classification_schema` 설정, 관리자 캐릭터 CRUD·필터, 사용자 캐릭터 ADD/UPDATE 요청 제출, 관리자 캐릭터 요청 승인·반려 RPC 연결함.
+- **검증**: `git diff --check` 통과함. 현재 환경에 Node/npm이 없어 `tsc`·lint·Vitest는 실행하지 못함.
+- **다음 단계**: Claude Sonnet이 동일 Worktree에서 Phase 13.3 전용 `/dashboard/characters`·Storage 헬퍼·Topbar·프리셋 UI 구현함.
+
+## 경쟁 서비스(픽업지지) 비교 분석 및 R32~R40 로드맵 리뷰·확정 (2026-11-09)
+
+- **수행 주체**: Claude Opus (분석 문서 작성 `14eb539`) → Gemini 4 Argon (아키텍처·정합성 리뷰 및 로드맵 확정)
+- **리뷰 및 보정 내용**:
+  - `docs/competitive-analysis-pickupgg.md` §1 기능 현황 대조 결과 3건 보정 반영함: ① `Tauri deep link`를 `PKCE 브라우저 콜백 완료, Tauri 딥링크는 T1~T4 후속 예정`으로 과장 표현 보정함, ② Phase 12.19(카테고리 원그래프 클릭 아코디언)·수익 추가·구독 중지 시 미결제 `PLANNED` 정리·외부 아이콘 CORS 프록시 폴백 및 Data URL 재저장(R29·R30) 누락 항목을 보완함, ③ §4.2 및 `docs/to-do.md` R36의 `"픽업별 지출 결합"` 표현을 Phase 12.21(R11, 픽업 배너 연결 제거) 정책에 맞춰 `"이번 달/누적 확정 과금액·예정 지출·버전별(및 월별) 지출 요약 결합"`으로 정합성 보정함.
+  - §3 강점 9종 및 §5 포지셔닝(**"게임 일정 기반 개인 과금 가계부"**)을 공식 승인(`APPROVED`)함.
+  - `docs/to-do.md` R32~R40 각 항목의 우선순위(R37 시각 필드는 중간→낮음 조정), 담당 모델 및 대체(Fallback) 체인, Opus 승격 조건(① DB/RLS/RPC 변경: R33·R35·R37)을 확정함.
+- **실행 순서 및 차기 Run 계획**:
+  - **1순위**: 현재 활성 격리 Run `r13-phase13-2-and-13-3-ui` (`Phase 13.2` GitHub Copilot `▶ READY` → `Phase 13.3` Claude Sonnet: `/dashboard/games` 모달 대신 `Topbar` `캐릭터` 메뉴 및 전용 `/dashboard/characters` 페이지로 분리 구현 → 통합 리뷰 및 `main` 병합)를 최우선 완수함.
+  - **2순위 (차기 Run 1순위)**: R13 병합 직후 DB 변경이 없는 `R32`(오늘/이번 주 요약 카드 + 일정·예정 지출 `D-n`/진행률 바) + `R34`(대시보드 주차별 리스트 뷰 토글)를 묶어 `dashboard-summary-dday-and-week-list` Run(Maker: Claude Sonnet)으로 등록·착수함.
+  - **3순위 (차기 Run 2순위)**: DB/RPC 확장이 포함되는 `R33`(`PICKUP` 복각 플래그 `is_rerun` & `BROADCAST` 특별방송 일정 종류)을 `schedule-rerun-and-broadcast` Run(Step 1 GPT Codex DB/RPC → Step 2 GitHub Copilot UI → Step 3 Claude Opus 리뷰)으로 착수함.
 
 ## 신규 격리 협업 Run 등록: r13-phase13-2-and-13-3-ui (2026-11-04)
 

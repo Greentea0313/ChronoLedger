@@ -34,7 +34,7 @@
 - **Run ID**: `r13-phase13-2-and-13-3-ui` *(2026-11-04, R13 `Phase 13.2` 관리자 게임별 분류 축·캐릭터 카탈로그·캐릭터 요청/승인 UI & `Phase 13.3` 사용자 보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 빌더 구현)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/r13-phase13-2-and-13-3-ui` (브랜치: `collab/r13-phase13-2-and-13-3-ui`)
-- **리뷰 비교 범위**: Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Target `<Step 2 완료 시 커밋 SHA>` *(Step 3 Orchestrator가 manifest `target_sha` 기록. 다중 PC 전환 시 미병합 Worktree 브랜치도 `git push -u origin collab/r13-phase13-2-and-13-3-ui`로 원격 동기화 권장)*
+- **리뷰 비교 범위**: iteration-01 Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Target `6b755aa3841c86eed48ad9d67bd3af0bb8d5eb1d` (manifest `target_sha` 기록 완료, 산출물 커밋 `b6cd7a0`). iteration-02 Target은 Step 4 Maker 완료 시 기록함 *(다중 PC 전환 시 미병합 Worktree 브랜치도 `git push -u origin collab/r13-phase13-2-and-13-3-ui`로 원격 동기화 권장)*
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — `Phase 13.2 (R13 Admin Catalog, Taxonomy & Requests)` 관리자 게임 분류 설정, 캐릭터 관리 탭 및 캐릭터 요청/승인 구현 (GitHub Copilot)**:
      - **권위 명세**: 승인 완료된 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) (§2.1~§2.3, §4.1, §7.1, §7.3.4, §7.4).
@@ -52,41 +52,87 @@
          - `RequestSubmissionModal`에 `캐릭터 요청` 탭을 추가하여 대상 게임, 요청 유형(`ADD` 신규 / `UPDATE` 기존 캐릭터 수정 시 `target_character_id` 선택), 캐릭터 이름, 성급/분류 축 선택, 선택적 아이콘(파일 업로드/붙여넣기/URL $\to$ 256×256 WebP Data URL), 메모(최대 500자, `insertTabOnKeyDown` 적용) 제출을 지원함.
          - `/admin/requests`에 `캐릭터 요청` 탭을 추가하여 대기 중인 요청 목록(게임 배지, `ADD`/`UPDATE` 구분, 성급·분류 요약, 아이콘 미리보기 및 관리자 아이콘 교체 업로드/붙여넣기/URL)을 표시하고, `[승인]`(`supabase.rpc("approve_character_request", ...)`) 및 `[반려]`(`supabase.rpc("reject_character_request", ...)`) 처리를 연결함.
        - ④ **단위 테스트**: `src/app/admin/page.test.tsx` 및 `src/app/admin/requests/page.test.tsx`에 게임 분류/슬롯 설정, 캐릭터 추가/목록 필터링, 캐릭터 요청 승인/반려 RPC 호출 테스트를 추가하고 `npx tsc --noEmit`, `npm run lint`, `npx vitest run` 통과를 확인함.
-  2. **Step 2 — `Phase 13.3 (R13 User Character Roster, Custom Icons & Party Presets)` 보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 모달 및 내 게임 연동 (Claude Sonnet)**:
+  2. **Step 2 — `Phase 13.3 (R13 Dedicated Character Page, Custom Icons & Party Presets)` 전용 캐릭터·프리셋 페이지(`/dashboard/characters`), Topbar 내비게이션 및 커스텀 아이콘 구현 (Claude Sonnet)**:
      - **권위 명세**: 승인 완료된 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) (§2.4~§2.6, §4.2, §7.2, §7.3).
-     - **대상 파일 (`.worktrees/r13-phase13-2-and-13-3-ui` 내부)**: `src/lib/storage-upload.ts`, `src/lib/storage-upload.test.ts`(신규 또는 보강), `src/components/game/character-preset-modal.tsx`(신규), `src/components/game/character-preset-modal.test.tsx`(신규), `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`(필요 시), `docs/to-do.md`
+     - **대상 파일 (`.worktrees/r13-phase13-2-and-13-3-ui` 내부)**: `src/lib/storage-upload.ts`, `src/lib/storage-upload.test.ts`(신규 또는 보강), `src/components/layout/topbar.tsx`, `src/components/layout/topbar.test.tsx`(필요 시), `src/app/dashboard/characters/page.tsx`(신규), `src/app/dashboard/characters/page.test.tsx`(신규), `docs/to-do.md` *(필요 시 하위 컴포넌트 `src/components/character/*` 분리 허용; `/dashboard/games`에는 모달을 넣지 않고 별도 `/dashboard/characters` 페이지로 독립 구성함)*
      - **구현 요구사항**:
        - ① **캐릭터 커스텀 아이콘 Storage 헬퍼 확장 (`src/lib/storage-upload.ts`, §2.6 & §7.2)**:
          - 비공개 `user-icons` 버킷의 `{userId}/characters/{characterId}.webp` 경로를 사용하는 캐릭터 전용 헬퍼(`uploadCustomCharacterIcon`, `getCustomCharacterIconUrl`, `deleteCustomCharacterIcon`)를 추가하고, Signed URL 메모리 캐시 키를 전체 객체 경로(`{userId}/characters/{characterId}.webp`)로 분리하여 기존 게임 커스텀 아이콘 캐시와 충돌하지 않도록 구현함.
-       - ② **`CharacterPresetModal` 구현 (`src/components/game/character-preset-modal.tsx`, §4.2 & §7.3)**:
-         - 접근성 준수를 위해 `DialogTitle` 및 `DialogDescription`을 포함함.
+       - ② **상단 내비게이션 확장 (`src/components/layout/topbar.tsx`, §4.2)**:
+         - `TOPBAR_NAV_ITEMS`에 `{ href: "/dashboard/characters", label: "캐릭터" }` 항목을 추가하여 상단 메뉴(`홈` | `소비` | `게임` | `캐릭터`)에서 바로 진입할 수 있도록 구성함.
+       - ③ **전용 캐릭터·프리셋 페이지 구현 (`src/app/dashboard/characters/page.tsx`, §4.2 & §7.3)**:
+         - **상단 내 구독 게임 선택 바 & 헤더**:
+           - 사용자의 구독 게임 목록(`user_games` + `games(id, name, default_icon_url, max_preset_slots, classification_schema)`)을 가로 칩/카드로 표시하며, 각 게임의 아이콘(커스텀 아이콘 우선 $\to$ 기본 아이콘), 게임명, `보유 캐릭터 n / m명 · 프리셋 k개` 요약을 표시하고 클릭 시 선택 게임을 전환함 (기본값: 첫 번째 구독 게임 또는 `?gameId=` 쿼리 파라미터; 구독 게임이 0개면 `/dashboard/games`로 안내하는 `EmptyState` 표시).
+           - 페이지 헤더 우측에 `[+ 캐릭터 추가·수정 요청]` 버튼을 배치해 `RequestSubmissionModal`(캐릭터 요청 탭)을 열 수 있도록 연동함.
          - **탭 1 — `보유 캐릭터` (Character Roster)**:
            - 필터 바: 보유 여부(`전체` | `보유` | `미보유`), 성급 필터 칩(`game.classification_schema.rarities` + 스키마에서 제거된 기존 값 존재 시 `기타` 칩 §7.3.4), 동적 분류 축 필터 칩/드롭다운(`game.classification_schema.axes` + 미매핑 값 `기타`), 캐릭터 이름 검색.
-           - 캐릭터 카드: 3단계 아이콘 Fallback(`custom_icon_path` Signed URL $\to$ `default_icon_url` $\to$ 캐릭터 이니셜 아바타), 미보유(`is_owned = false`) 캐릭터 아이콘 명도 감쇠(`brightness-50 saturate-50 opacity-65`), 보유 체크 토글(`public.user_characters` upsert), 보유 캐릭터 커스텀 아이콘 업로드/기본 아이콘 복원(`[아이콘 변경]` / `[기본 복원]`), 캐릭터별 한 줄 메모(`memo`, 최대 200자, `insertTabOnKeyDown` 적용).
+           - 캐릭터 카드: 3단계 아이콘 Fallback(`custom_icon_path` Signed URL $\to$ `default_icon_url` $\to$ 캐릭터 이니셜 아바타), 미보유(`is_owned = false`) 캐릭터 아이콘 명도 감쇠(`brightness-50 saturate-50 opacity-65`), 보유 체크 토글(`public.user_characters` upsert, `isOffline()` 가드), 보유 캐릭터 커스텀 아이콘 업로드/기본 아이콘 복원(`[아이콘 변경]` / `[기본 복원]`), 캐릭터별 한 줄 메모(`memo`, 최대 200자, `insertTabOnKeyDown` 적용).
          - **탭 2 — `조합 프리셋` (Party Presets)**:
            - 프리셋 목록(`sort_order, created_at` 순) + `[+ 새 프리셋 추가]` 버튼.
            - 프리셋 카드: 프리셋 제목(`title`, `1..80`자), 슬롯 그리드(`1 .. Math.max(game.max_preset_slots, preset.character_ids.length)`), 프리셋 메모(`memo`, 최대 300자, `whitespace-pre-wrap`).
            - 슬롯 표시 규칙: 보유 캐릭터(`is_owned = true`)는 정상 명도 및 강조 테두리, **미보유 캐릭터(`is_owned = false`)는 배지 없이 명도만 낮춘 스타일(`brightness-50 saturate-50 opacity-65`)**로 렌더링하며 캐릭터 개별 메모 배지는 표시하지 않음.
            - 슬롯 축소 비파괴 처리(§7.3.1): 관리자가 `max_preset_slots`를 축소해 기존 프리셋 인원이 상한을 초과한 경우 열람·삭제·인원 축소 저장은 허용하되, 상한 이하로 줄이기 전에는 새 캐릭터 추가를 제한하고 안내 문구를 표시함.
-           - 프리셋 편집기: 성급·분류 축·보유 여부 필터가 포함된 캐릭터 피커를 통해 슬롯(`1 .. max_preset_slots`)에 중복 없이 캐릭터를 배치·순서 변경·제거하고 저장/삭제함(`isOffline()` 가드 포함).
-       - ③ **내 게임 카드 연동 (`src/app/dashboard/games/page.tsx`)**:
-         - 구독 중인 게임 카드의 `[일정 보기]` 버튼 옆에 `[캐릭터·프리셋]` 버튼을 추가하고, 카드 내에 `보유 캐릭터 n / m명 · 프리셋 k개` 요약을 표시하며 모달 변경 시 카운트를 즉시 갱신함.
+           - 프리셋 편집기(Radix `Dialog` 사용 시 `DialogTitle` 및 `DialogDescription` 필수 포함): 성급·분류 축·보유 여부 필터가 포함된 캐릭터 피커를 통해 슬롯(`1 .. max_preset_slots`)에 중복 없이 캐릭터를 배치·순서 변경·제거하고 저장/삭제함(`isOffline()` 가드 포함).
        - ④ **단위 테스트 및 문서 갱신**:
-         - `src/components/game/character-preset-modal.test.tsx` 및 `src/lib/storage-upload.test.ts`에 로스터 필터링(성급/분류 축/`기타`), 보유 토글 및 미보유 명도 감쇠 클래스(`brightness-50 saturate-50 opacity-65`), 캐릭터 메모 Tab 입력, 커스텀 캐릭터 아이콘 경로(`{userId}/characters/{characterId}.webp`), 프리셋 생성·슬롯 상한·중복 방지 테스트를 추가하고 전체 테스트 통과 후 `docs/to-do.md`의 R13 상태를 갱신함.
+         - `src/app/dashboard/characters/page.test.tsx` 및 `src/lib/storage-upload.test.ts`에 구독 게임 전환, 로스터 필터링(성급/분류 축/`기타`), 보유 토글 및 미보유 명도 감쇠 클래스(`brightness-50 saturate-50 opacity-65`), 캐릭터 메모 Tab 입력, 커스텀 캐릭터 아이콘 경로(`{userId}/characters/{characterId}.webp`), 프리셋 생성·슬롯 상한·중복 방지 테스트를 추가하고 전체 테스트 통과 후 `docs/to-do.md`의 R13 상태를 갱신함.
   3. **Step 3 — 통합 정적 코드 리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
      - Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (Admin & Request UI)` | `Phase 13.2`: `.worktrees/r13-phase13-2-and-13-3-ui`에서 `/admin` 게임 분류/슬롯 설정 및 `캐릭터 관리` 탭, `RequestSubmissionModal` 캐릭터 요청 제출, `/admin/requests` 캐릭터 요청 승인/반려 탭 및 단위 테스트 구현 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/game/request-submission-modal.tsx`) | `⏳ 대기 중` |
-| **2** | `⏳ WAITING` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Roster, Storage & Presets UI)` | `Phase 13.3`: `.worktrees/r13-phase13-2-and-13-3-ui`에서 `storage-upload.ts` 캐릭터 커스텀 아이콘 헬퍼, `CharacterPresetModal`(보유 캐릭터 로스터·미보유 명도 감쇠·캐릭터 메모·조합 프리셋 빌더), `/dashboard/games` 카드 연동 및 단위 테스트 구현 (`src/lib/storage-upload.ts`, `src/components/game/character-preset-modal.tsx`, `src/components/game/character-preset-modal.test.tsx`, `src/app/dashboard/games/page.tsx`, `docs/to-do.md`) | `⏳ Step 1 완료 후 진행` |
-| **3** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 진행` |
+| **1** | **`✅ DONE (SHA: 688205e)`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / GPT Codex 2순위 대체)* | `Maker (Admin & Request UI)` | `Phase 13.2`: `.worktrees/r13-phase13-2-and-13-3-ui`에서 `/admin` 게임 분류/슬롯 설정 및 `캐릭터 관리` 탭, `RequestSubmissionModal` 캐릭터 요청 제출, `/admin/requests` 캐릭터 요청 승인/반려 탭 구현 (`src/app/admin/page.tsx`, `src/app/admin/requests/page.tsx`, `src/components/game/request-submission-modal.tsx`) | `✅ 688205e: 게임별 프리셋 슬롯·성급·분류 축 설정, 캐릭터 CRUD·필터, 캐릭터 요청 ADD/UPDATE 제출 및 관리자 승인/반려 RPC 연결 완료. 옵션 제거 사용량 경고와 신규 단위 테스트는 후속 보완 필요함. 실행 환경에 Node/npm이 없어 tsc·lint·Vitest 미실행.` |
+| **2** | **`✅ DONE (SHA: 6b755aa)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Characters Page, Storage & Presets UI)` | `Phase 13.3`: `.worktrees/r13-phase13-2-and-13-3-ui`에서 `storage-upload.ts` 캐릭터 커스텀 아이콘 헬퍼, `Topbar` `캐릭터` 메뉴 추가, 전용 `/dashboard/characters` 페이지(구독 게임 선택 바·보유 캐릭터 로스터·미보유 명도 감쇠·캐릭터 메모·조합 프리셋 빌더) 및 단위 테스트 구현 (`src/lib/storage-upload.ts`, `src/lib/storage-upload.test.ts`, `src/components/layout/topbar.tsx`, `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `docs/to-do.md`) | `✅ 6b755aa: Phase 13.3 구현 완료 (선행 결함 수정 17945d9 별도 커밋). 신규 /dashboard/characters(구독 게임 선택 바·보유 캐릭터 로스터·성급/분류 축/기타 필터·미보유 명도 감쇠·캐릭터 메모·커스텀 아이콘·조합 프리셋 편집기), storage-upload 캐릭터 아이콘 헬퍼, Topbar 캐릭터 메뉴, RequestSubmissionModal initialKind prop 추가. 검증: tsc 0건, lint 통과, Vitest 48파일/364개 전부 통과(Node 24.22.2). 미검증: npm run build(정적 export)·브라우저 수동 확인 미수행, push 안 함. 상세는 아래 '📝 Step 2 완료 기록' 참조.` |
+| **3** | **`✅ DONE (iteration-01 리뷰: fe8a776 ↔ 6b755aa, 산출물 b6cd7a0)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Target `6b755aa` 통합 정적 리뷰(`review.json`·`test.json`), manifest `target_sha` 기록 | `⚠️ 조건부(findings)`: **P1 0건, P2 1건, P3 6건, P4 1건** — 아래 '📝 iteration-01 리뷰 결과' 참조. Phase 13.3(`/dashboard/characters`) 지적 0건, 지적은 모두 Phase 13.2 관리자·요청 UI임. tsc·lint·Vitest 48파일/364개 통과. P2 미해소로 `main` 병합 보류함. |
+| **4** | `▶ READY` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (iteration-02 수정)` | `.worktrees/r13-phase13-2-and-13-3-ui`에서 iteration-01 지적 `R13UI-01`~`R13UI-08` 수정 및 테스트 추가 (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`). SQL/RPC 변경 금지(기존 `p_default_icon_url` 인자만 사용). 완료 시 커밋 후 Target SHA를 이 행과 Run 블록에 기록하고 Step 5를 `▶ READY`로 전환함. | `⏳ 대기` |
+| **5** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | iteration-02 재리뷰(Base `fe8a776` ↔ Step 4 Target), `iteration-02/review.json`·`test.json`, manifest 마감, `main` 병합 및 `docs/` 동기화 | `⏳ 대기` |
 
-### 🚦 병행 과제: 경쟁 서비스 비교 분석 및 R32~R40 로드맵 리뷰 (2026-11-09 등록)
+#### 📝 iteration-01 리뷰 결과 (Claude Opus, 2026-11-10)
+
+- **산출물**: `artifacts/r13-phase13-2-and-13-3-ui/iteration-01/review.json`·`test.json`, manifest `target_sha=6b755aa` (워크트리 커밋 `b6cd7a0`, 미 push)임.
+- **스키마 검증**: 이 PC에 Python 미설치로 `validate_collaboration_artifact.py` 실행 불가함. Node 기반 보조 검사(스키마 하위 기능 구현)로 `run.json`·`review.json`·`test.json` 통과 확인함. Python 설치 후 공식 스크립트 재검증 필요함.
+- **Step 4 Maker 수정 대상 (수용 기준)**:
+  - **R13UI-01 (P2)** `src/app/admin/requests/page.tsx:239`: 캐릭터 요청 탭에 아이콘 미리보기·관리자 아이콘 교체(파일·붙여넣기·URL → `convertIconSourceToDataUrl`) 없음. `approve_character_request`에 `p_default_icon_url` 미전달로, 아이콘 없이 제출된 ADD 요청은 RPC가 `캐릭터 아이콘이 필요합니다.`로 거부해 승인 불가함. 교체 아이콘을 `p_default_icon_url`로 전달하고, 아이콘 없는 ADD 요청은 승인 버튼 비활성화·안내 표시함.
+  - **R13UI-02 (P3)** `src/components/game/request-submission-modal.tsx:247`: 분류 축을 선택 후 `선택하지 않음`으로 되돌리면 `""` 값이 `attributes`에 남아 승인 시 RPC가 거부함. 빈 값 제거하고, UPDATE 모드에서 대상 캐릭터 미선택 시 전용 검증 문구 표시함.
+  - **R13UI-03 (P3)** 같은 파일 `:353`: UPDATE 모드에서 대상 캐릭터 선택 시 이름·성급·분류 값 미프리필임. RPC가 전체 덮어쓰기라 미선택 시 기존 성급·분류가 지워짐. 카탈로그 조회에 `rarity, attributes` 추가 후 프리필함.
+  - **R13UI-04 (P3)** `src/app/admin/page.tsx:1920`: 분류 축 행 `key`에 편집 중인 `axis.key`가 포함되어 키 입력 시 매 글자마다 포커스가 사라짐. 안정적인 행 ID 사용함.
+  - **R13UI-05 (P3)** 같은 파일 `:1394`: 캐릭터 삭제가 확인 없이 즉시 실행됨. 전 사용자 `user_characters`·프리셋 슬롯에 연쇄 영향이 있으므로 영향 안내가 포함된 확인 다이얼로그(`DialogTitle`·`DialogDescription`) 추가함.
+  - **R13UI-06 (P3)** 같은 파일 `:734`: 명세 §7.3.4 옵션 제거 사용량 경고 미구현임. 기존 게임 수정 시 제거되는 성급·옵션을 사용하는 캐릭터 수를 안내하고 확인 후 저장함.
+  - **R13UI-07 (P3)** `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.test.tsx`: Phase 13.2 기능 테스트 0건임. 분류/슬롯 설정, 캐릭터 CRUD·필터, 캐릭터 요청 승인(아이콘 포함/미포함)·반려 RPC 테스트 추가함.
+  - **R13UI-08 (P4)** 같은 파일 `:636`: 아이콘 없이 캐릭터 저장 시 DB CHECK 원문 오류 노출됨. 폼 단계에서 아이콘 필수 검증함.
+- **Step 2 명세 차이 판정**:
+  - 커스텀 캐릭터 아이콘 `storage.download()` → Object URL 방식은 기존 게임 아이콘과 동일하고 `getPublicUrl` 미사용이므로 승인함(명세 'signed URL' 표현은 차기 문서 정리 시 보정 대상임).
+  - `기타` 칩의 빈 값 포함, 이름 가나다순 정렬, `?gameId=` 최초 진입 전용, `is_owned: false` 기본 upsert, 상한 초과 프리셋 처리 모두 승인함.
+  - `normalizeClassificationSchema` 3중 중복(admin·character-utils·요청 모달)은 비차단 후속 정리 대상임(iteration-02 범위 밖).
+- **미검증**: `npm run build`(정적 export, `.env.local` 필요)·브라우저 수동 확인은 미수행임. Step 5 병합 전 사용자 확인 권장함.
+
+#### 📝 Step 2 완료 기록 (Claude Sonnet, Phase 13.3)
+
+- **커밋 (`.worktrees/r13-phase13-2-and-13-3-ui`, 미 push)**:
+  - `17945d9` `fix(admin)`: Step 1 결함 수정. `fetchGames`가 `classification_schema`·`max_preset_slots`를 정규화(비정상 값은 빈 스키마·기본 4)하고, `ClassificationAxis`/`ClassificationSchema`를 `type` 별칭으로 바꿔 `Json` 대입 tsc 오류 3건 해소함. admin 테스트 17개 실패 해소함.
+  - `6b755aa` `feat(characters)`: Phase 13.3 본 구현임.
+- **구현 파일**: `src/app/dashboard/characters/page.tsx`, `src/components/character/{character-icon,character-filter-bar,character-roster,preset-list,preset-editor-dialog}.tsx`, `src/lib/character-utils.ts`(순수 로직), `src/lib/storage-upload.ts`, `src/components/layout/topbar.tsx`, `src/components/game/request-submission-modal.tsx`(`initialKind` 선택 prop, 미지정 시 기존 동작 불변).
+- **테스트**: `page.test.tsx`(26개), `character-utils.test.ts`, `storage-upload.test.ts`(신규), `topbar.test.tsx`(보강).
+- **검증 결과**: `npx tsc --noEmit` 0건, `npm run lint` 경고·오류 0건, `npx vitest run` 48파일 364개 통과임.
+- **명세와 다른 점 (Step 3 리뷰 확인 요청)**:
+  - 커스텀 캐릭터 아이콘은 명세 §2.4/§7.2의 'signed URL'이 아니라 기존 `downloadUserIcon`과 동일하게 `storage.download()` → Object URL 방식임. 캐시 키는 전체 객체 경로(`{userId}/characters/{characterId}.webp`)로 분리해 게임 아이콘 키(`{userId}/{gameId}`)와 충돌하지 않음. 내부적으로 `uploadIconObject`/`downloadIconObject`/`deleteIconObject` 공통 함수를 두고 기존 게임 아이콘 함수가 위임하도록 리팩터링함(동작 동일).
+  - 기타 칩은 스키마에 없는 값뿐 아니라 값이 비어 있는(rarity null, 속성 누락) 캐릭터도 포함함. 게임 스키마에 해당 분류가 정의된 경우에만 칩을 표시함.
+  - 구독 게임 선택 바 정렬은 `/dashboard/games`와 같은 이름 가나다순임. `?gameId=`는 최초 진입 시 `window.location.search`로만 읽음(URL 동기화 없음, Next 정적 export Suspense 제약 회피).
+  - 요약 `보유 캐릭터 n / m명`의 m은 게임별 `count: exact, head: true` 쿼리로 구함.
+  - 메모·아이콘 저장 시 `user_characters` 행이 없으면 `is_owned: false`로 upsert하여 DB 기본값(true)으로 의도치 않게 보유 처리되지 않도록 함.
+  - 슬롯 상한 초과 프리셋은 편집기에서 제거·순서 변경·저장만 가능하며, 현재 인원이 상한 미만일 때만 추가 가능함(트리거 규칙과 일치).
+- **미해결·후속 사항**:
+  - `npm run build`(정적 export)와 브라우저 수동 확인은 미수행함. `.env.local` 필요함.
+  - Step 1 기록의 '옵션 제거 사용량 경고'(spec §7.3.4, 관리자 게임 모달)는 `src/app/admin/page.tsx`에서 구현이 확인되지 않으며 이번 Step 2 범위 밖이라 손대지 않음. Step 3 리뷰에서 처리 여부 결정 필요함.
+  - `src/app/admin/page.tsx`의 정규화 함수와 `src/lib/character-utils.ts`의 `normalizeClassificationSchema`가 중복됨. 선행 수정을 admin 파일 단독 커밋으로 분리하기 위해 의도적으로 남겼으며 Step 3 이후 통합 가능함.
+  - `RequestSubmissionModal`의 로컬 게임 스키마 정규화도 유사 중복임.
+  - `.nvmrc`(20)는 Vitest 5/jsdom 30 요구(Node 22.22+)와 맞지 않음(이번 Run에서 수정하지 않음).
+  - 문서 변경(`docs/to-do.md` 등)은 main 폴더에서만 수정했고 커밋하지 않았음.
+
+### 🗂️ 병행 과제 기록 (완료): 경쟁 서비스 비교 분석 및 R32~R40 로드맵 리뷰 (2026-11-09)
 
 - **과제 ID**: `competitive-analysis-pickupgg-review` *(문서 전용, 코드 변경 없음. 위 R13 Run과 독립이며 파일 충돌 없음)*
 - **작성 주체**: Claude Opus (사용자 직접 요청으로 분석 문서 작성 및 로드맵 등록)
-- **작업 브랜치**: `claude/project-feature-review-comparison-2974fa` *(Claude Code 워크트리 `.claude/worktrees/project-feature-review-comparison-2974fa`. 아직 `main` 미병합·미push 상태라 다른 환경에서 리뷰하려면 사용자가 브랜치 push 또는 `main` 병합을 먼저 수행해야 함)*
+- **작업 브랜치**: `claude/project-feature-review-comparison-2974fa` *(로컬 `main` 반영 완료)*
 - **리뷰 비교 범위**: Base `a63fc4f` ↔ Target `14eb539` (`docs: add pickupgg competitive analysis and register R32-R40 roadmap items`)
 - **대상 파일**: `docs/competitive-analysis-pickupgg.md`(신규), `docs/to-do.md`(R32~R40 추가), `docs/changelog.md`
 - **수용 기준 (Acceptance Criteria)**:
@@ -99,7 +145,32 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 14eb539)`** | **Claude Opus** | `Analyst (Docs)` | pickupgg.com 기능 조사, ChronoLedger 기능 현황 점검, 강점·개선점 정리 및 R32~R40 로드맵 등록 (`docs/competitive-analysis-pickupgg.md`, `docs/to-do.md`, `docs/changelog.md`) | `docs/competitive-analysis-pickupgg.md` |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Orchestrator & Architect (Review)` | Base `a63fc4f` ↔ Target `14eb539` 분석 문서·로드맵 리뷰, R32~R40 우선순위·담당 확정, 착수 항목 Run 등록 계획 수립 (`docs/**`만 수정 허용, `src/**` 수정 금지) | `⏳ 리뷰 결과 기록 대기` |
+| **2** | **`✅ DONE (2026-11-09 리뷰 확정)`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Orchestrator & Architect (Review)` | Base `a63fc4f` ↔ Target `14eb539` 분석 문서·로드맵 리뷰, R32~R40 우선순위·담당 확정, 착수 항목 Run 등록 계획 수립 (`docs/**`만 수정 허용, `src/**` 수정 금지) | `✅ DONE: §1 과장/누락 3건 보정, §3·§5 포지셔닝 APPROVED, R32~R40 우선순위·담당 확정 및 차기 Run 계획 수립 완료` |
+
+- **📋 Gemini 4 Argon 아키텍처·정합성 리뷰 결과 요약 (2026-11-09)**:
+  1. **`docs/competitive-analysis-pickupgg.md` §1 및 본문 정합성 검증 (3건 보정 반영)**:
+     - **[과장 보정 — §1 인증·계정]**: `Tauri deep link`가 `완료` 행에 기재되어 있었으나, 실제 구현은 브라우저 PKCE 콜백까지 완료되었고 Tauri v2 custom scheme 및 외부 브라우저 OAuth 연동(`T1~T4`)은 Web/PWA MVP 이후 후속 단계임 → `PKCE 브라우저 콜백 완료, Tauri 딥링크는 T1~T4 후속 예정`으로 명시함.
+     - **[누락 보완 — §1 게임 관리·지출·소비 통계]**: Phase 12.19(R9) `카테고리 원그래프 클릭 시 확정 지출 아코디언 내역 펼침`, `수익(Income) 추가`, Phase 12.24(R15) `구독 중지 시 미결제 PLANNED 정리`, Phase 12.33~12.34(R29·R30) `외부 아이콘 CORS 프록시 폴백·클립보드 붙여넣기·Data URL 재저장`을 §1 표에 보완함.
+     - **[설계 정합성 보정 — §4.2 & `to-do.md` R36]**: §4.2 및 R36에 `"해당 게임 누적 과금·픽업별 지출 결합"`으로 기재되어 있었으나, Phase 12.21(R11, 커밋 `e9a7017`)에서 지출 모달의 픽업 배너(`pickup_schedule_id`) 연결을 제거하고 버전(`VERSION`) 일정 연결 및 게임별 과금 분석으로 일원화했으므로, R11 결정과 충돌하지 않도록 `"해당 게임 이번 달/누적 확정 과금액·예정 지출·버전별(및 월별) 지출 요약 결합"`으로 보정함.
+  2. **§3 강점·§4 개선점·§5 포지셔닝 검토 결과 (`APPROVED`)**:
+     - 픽업지지를 **서브컬처 게임 일정 정보 포털**로, ChronoLedger를 **게임 일정 기반 개인 과금 가계부(일정 $\to$ 예정 지출 $\to$ 결제·포인트 $\to$ 통계의 닫힌 루프)**로 정의한 §5 포지셔닝과 §3의 9대 차별화 강점을 공식 승인(`APPROVED`)함.
+  3. **`docs/to-do.md` R32~R40 우선순위·담당 모델·Opus 승격 조건 확정**:
+     - **R32 (`[우선 높음]`, 차기 Run 1)**: 대시보드 상단 오늘/이번 주 요약 카드 + 사이드바 일정·예정 지출(`PLANNED`) 종료/결제 `D-n` 및 기간 진행률 바 표시 — DB 변경 없음, 담당: **Claude Sonnet** *(Fallback: GitHub Copilot / Gemini 3.8 Flash)*.
+     - **R34 (`[우선 높음]`, 차기 Run 1)**: 대시보드 주차별 리스트 뷰 토글(월간 캘린더형 ↔ 주차별 리스트형, KST "이번 주" 강조 및 주간 예정/확정 지출 소계) — DB 변경 없음, 담당: **Claude Sonnet** *(Fallback: GitHub Copilot / Claude Opus)*.
+     - **R33 (`[우선 높음]`, 차기 Run 2)**: `PICKUP` 복각 플래그(`is_rerun BOOLEAN NOT NULL DEFAULT false`) 및 `BROADCAST`(특별방송) 일정 종류 추가 — DB 마이그레이션·CHECK 제약·`approve_schedule_request` RPC 변경이 포함되므로 **Opus 승격 조건 ①** 적용. Step 1 DB/RPC/Types **GPT Codex** $\to$ Step 2 캘린더 배지·관리자/요청 UI **GitHub Copilot** $\to$ Step 3 통합 보안/정적 리뷰 **Claude Opus**.
+     - **R35 (`[우선 중간]`)**: 관심 일정(즐겨찾기) 저장(`user_favorite_schedules` + RLS + 탈퇴 `purge` 연동) 및 예정 지출 추가 프리필 — **Opus 승격 조건 ①** 적용 (GPT Codex + Claude Sonnet + Claude Opus 리뷰).
+     - **R36 (`[우선 중간]`)**: `/dashboard/games` 게임별 상세 뷰(진행 중 ON AIR / 다음 예정 / 최근 6개월 지난 기록 + 누적·버전별 과금 요약) — DB 변경 없음, 담당: **Claude Sonnet** *(Fallback: GitHub Copilot)*.
+     - **R38 (`[우선 중간]`)**: 신규 가입 첫 진입 시(구독 게임 0개) 게임 일괄 선택 온보딩 모달 및 내 게임 정렬 순서 변경 (`user_games.sort_order` 추가 시 Opus 승격 조건 ① 적용, 담당: **GitHub Copilot** / **Claude Sonnet**).
+     - **R37 (`[우선 중간 → 낮음 조정]`)**: 일정 시각(`start_time`)·예상 여부(`is_estimated`) 필드 — DATE 기반 가계부 핵심 흐름 대비 타임존·관리자 입력 복잡도가 높아 `[우선 낮음]`으로 하향 조정함 (착수 시 Opus 승격 조건 ① 적용).
+     - **R39 (`[우선 낮음]`)**: 일정·결제 알림 조사·설계 (**Claude Opus** / **Gemini 4 Argon**).
+     - **R40 (`[우선 낮음]`)**: R13 후속 엔드 콘텐츠별 다중 파티 편성(팀 수 제한·중복 금지) — R13 `Phase 13.3` 완료 후 검토 (**Claude Opus** 설계 $\to$ **GPT Codex** / **Claude Sonnet**).
+  4. **R13 Run과의 진행 순서 및 차기 Run(`dashboard-summary-dday-and-week-list`) 등록 계획**:
+     - **실행 순서 결정**: 이미 운영 DB에 R13 스키마(R31)가 적용되어 있고 전용 워크트리(`.worktrees/r13-phase13-2-and-13-3-ui`)가 준비된 **현재 활성 Run `r13-phase13-2-and-13-3-ui` (`Phase 13.2` $\to$ `Phase 13.3` $\to$ 통합 리뷰 및 `main` 병합)를 1순위로 완수**함.
+     - **차기 Run 1순위 계획 (`r13-phase13-2-and-13-3-ui` 병합 직후 등록)**:
+       - **예정 Run ID**: `dashboard-summary-dday-and-week-list` (격리 Worktree `.worktrees/dashboard-summary-dday-and-week-list`)
+       - **포함 범위**: `R32` (대시보드 상단 오늘 시작·마감 일정 수 및 이번 주 예정 지출 합계 요약 배너/카드 + `HeroSidebar` 일정·예정 지출 `D-n` 배지 및 진행률 바) + `R34` (대시보드 월간 캘린더 ↔ 주차별 리스트 뷰 토글, KST "이번 주" 자동 포커스·강조, 주간 예정/확정 지출 합계 표시)
+       - **대상 파일**: `src/lib/calendar-utils.ts`, `src/lib/calendar-utils.test.ts`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/weekly-schedule-list.tsx`(신규), `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `docs/to-do.md`
+       - **Step 구성**: Step 1 Maker (**Claude Sonnet**, Fallback 1: **GitHub Copilot**, Fallback 2: **Claude Opus**) $\to$ Step 2 통합 정적 코드 리뷰 및 마감 (**Gemini 4 Argon** / **Claude Opus**).
 
 ### 🗂️ 이전 Run 기록 (완료): r13-phase13-1-db-and-r30-icon-resave
 

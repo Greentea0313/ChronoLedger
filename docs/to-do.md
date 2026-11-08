@@ -595,8 +595,10 @@
 ## Phase 13: 게임별 보유 캐릭터 및 조합 프리셋 (R13)
 
 - [x] 13.1 R13 캐릭터·프리셋 DB 스키마, 마이그레이션(MIGRATION_R13_CHARACTERS_AND_PRESETS.sql), SQL 스모크 테스트 및 TypeScript 타입 구현 (완료 - `4a21555e`, PostgreSQL 17 로컬 stub DB에서 migration 2회 및 전체 TESTS.sql 통과; tsc/lint/Vitest 통과)
-- [ ] 13.2 관리자 게임별 성급/분류 축/최대 프리셋 슬롯 설정, 캐릭터 관리 탭, 캐릭터 추가/수정 요청 및 승인/반려 UI 구현 (담당: GitHub Copilot / Claude Sonnet)
-- [ ] 13.3 대시보드 게임 카드 [캐릭터·프리셋] 모달(보유 캐릭터 체크·커스텀 아이콘·메모 및 조합 프리셋 빌더·미보유 명도 감쇠) 구현 (담당: Claude Sonnet)
+- [x] 13.2 관리자 게임별 성급/분류 축/최대 프리셋 슬롯 설정, 캐릭터 관리 탭, 캐릭터 추가/수정 요청 및 승인/반려 UI 구현 (구현 `688205e`, 결함 수정 `17945d9`. iteration-01 리뷰에서 P2 1건·P3 6건 지적 — iteration-02 수정 진행 예정)
+  - [ ] 13.2-F1 iteration-01 지적 수정: 캐릭터 요청 아이콘 미리보기·관리자 아이콘 교체 및 `p_default_icon_url` 전달(R13UI-01, P2), 요청 빈 분류 값 제거·UPDATE 대상 검증(R13UI-02), UPDATE 대상 프리필(R13UI-03), 분류 축 행 안정 key(R13UI-04), 캐릭터 삭제 확인 다이얼로그(R13UI-05), §7.3.4 옵션 제거 사용량 경고(R13UI-06), Phase 13.2 단위 테스트(R13UI-07), 캐릭터 아이콘 필수 검증(R13UI-08) (담당: Claude Sonnet)
+  - [ ] 13.2-F2 (비차단 후속) `normalizeClassificationSchema` 중복(admin·`character-utils`·요청 모달) 통합 및 명세 §2.4/§7.2 'signed URL' 표현을 Object URL 방식으로 보정
+- [x] 13.3 상단 내비게이션(`Topbar` `캐릭터` 메뉴) 및 전용 캐릭터·프리셋 페이지(`/dashboard/characters`: 구독 게임 선택 바, 보유 캐릭터 체크·커스텀 아이콘·메모 및 조합 프리셋 빌더·미보유 명도 감쇠) 구현 (완료 - `6b755aa`, tsc 0건·lint 통과·Vitest 48파일 364개 통과. 정적 export 빌드·브라우저 수동 확인은 미수행)
 
 ---
 
@@ -634,21 +636,21 @@
   - 구현: `bf3f1a1` (GitHub Copilot), 정적 리뷰: Gemini 4 Argon PASS (`artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json`). 전체 테스트·타입 검사·린트·문서 마감 완료.
 - [x] R30. 외부 HTTP(S) 게임 아이콘 표시 및 Data URL 재저장 기능 (`Phase 12.34`, 구현 `12148ea`, iteration-02 수정 `334c642f`; iteration-02 리뷰 clean, `main` 병합 `7956064`)
 - [x] R31. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_USERS_ROLE_GUARD.sql` 적용 완료). 앱 배포는 `main` push 후 진행 (사용자 수동) (`완료` - 2026-11-04 사용자 적용, 테이블 4·함수 3·정책 10행 확인)
-- [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`). Phase 13.1 DB/타입 구현(`4a21555e`, `334c642f`) 및 운영 DB 적용(R31) 완료함. 현재 Run `r13-phase13-2-and-13-3-ui`에서 Phase 13.2(관리자 카탈로그·분류 설정·캐릭터 요청 UI, GitHub Copilot `▶ READY`) 및 Phase 13.3(보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 모달, Claude Sonnet `⏳ WAITING`) 진행 중임.
+- [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`, 2026-11-09 `/dashboard/characters` 전용 페이지 분리 반영). Phase 13.1 DB/타입 구현(`4a21555e`, `334c642f`) 및 운영 DB 적용(R31) 완료함. Phase 13.2 관리자 카탈로그·분류 설정·캐릭터 요청 UI 구현(`688205e`) 완료함. Phase 13.3(Topbar `캐릭터` 메뉴·전용 `/dashboard/characters` 페이지 보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 빌더) 구현(`6b755aa`, 선행 결함 수정 `17945d9`) 완료함. Step 3 iteration-01 통합 리뷰(2026-11-10, P2 1건·P3 6건·P4 1건, 산출물 `b6cd7a0`) 완료함. 남은 작업은 iteration-02 수정(13.2-F1), 재리뷰, `run.json` 마감, `main` 병합임.
 
-### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록)
+### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)
 
-> 근거: [`docs/competitive-analysis-pickupgg.md`](competitive-analysis-pickupgg.md). 아래 항목은 미착수 후보이며 착수 전 Orchestrator가 수용 기준·담당 모델을 확정함.
+> 근거: [`docs/competitive-analysis-pickupgg.md`](competitive-analysis-pickupgg.md). 실행 순서: 현재 진행 중인 R13 UI Run(`r13-phase13-2-and-13-3-ui`)을 1순위로 완수·병합한 직후, **차기 Run 1(`R32 + R34`)** → **차기 Run 2(`R33`)** 순으로 착수함.
 
-- [ ] R32. [우선 높음] 대시보드 상단 오늘/이번 주 요약 카드(오늘 시작·마감 일정 수, 이번 주 예정 지출 합계) 추가 및 사이드바 일정·예정 지출 카드에 종료 D-n·기간 진행률 표시 (담당 후보: Claude Sonnet / GitHub Copilot)
-- [ ] R33. [우선 높음] 일정 분류 세분화: `PICKUP` 복각 여부 플래그(예: `is_rerun`) 및 특별방송 일정 종류 추가, 캘린더 배지·필터·관리자/요청 모달 반영 (DB 마이그레이션 포함 → Opus 승격 조건 ①, 담당 후보: GPT Codex + Claude Opus 리뷰)
-- [ ] R34. [우선 높음] 대시보드 주차별 리스트 뷰 토글(캘린더형 ↔ 리스트형, "이번 주" 강조, 모바일 우선) (담당 후보: Claude Sonnet)
-- [ ] R35. [우선 중간] 관심 일정(즐겨찾기) 저장·"관심만" 필터 및 관심 일정에서 바로 예정 지출 추가 연결 (사용자 소유 테이블·RLS 필요 → Opus 승격 조건 ①)
-- [ ] R36. [우선 중간] 게임별 상세 화면: 진행 중 / 다음 예정 / 지난 일정 기록(최근 6개월) 구분 + 해당 게임 누적 과금·픽업별 지출 요약 결합
-- [ ] R37. [우선 중간] 일정 표시용 시각·예상 여부 필드(예: `start_time`, `is_estimated`) 도입 검토 (DB 변경 → Opus 승격 조건 ①)
-- [ ] R38. [우선 중간] 신규 가입 첫 진입 시 게임 일괄 구독 선택 온보딩 및 내 게임 순서 변경(캘린더 아이콘 정렬 반영)
-- [ ] R39. [우선 낮음] 일정·결제 알림(픽업 종료 D-1, 예정 지출 결제일) PWA/Tauri 알림 방식 조사 및 설계
-- [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후)
+- [ ] R32. [우선 높음 · 차기 Run 1 (`dashboard-summary-dday-and-week-list`)] 대시보드 상단 오늘/이번 주 요약 카드(오늘 시작·마감 일정 수, 이번 주 예정 지출 합계) 추가 및 사이드바 일정·예정 지출(`PLANNED`) 카드에 종료/결제 `D-n`·기간 진행률 바 표시 (DB 변경 없음, 담당: Claude Sonnet, Fallback: GitHub Copilot / Gemini 3.8 Flash)
+- [ ] R33. [우선 높음 · 차기 Run 2 (`schedule-rerun-and-broadcast`)] 일정 분류 세분화: `PICKUP` 복각 여부 플래그(`is_rerun BOOLEAN NOT NULL DEFAULT false`) 및 `BROADCAST`(특별방송) 일정 종류 추가, `approve_schedule_request` RPC·캘린더 배지·필터·관리자/요청 모달 반영 (DB 마이그레이션·RPC 변경 포함 → Opus 승격 조건 ①, 담당: Step 1 DB/RPC/Types GPT Codex + Step 2 UI GitHub Copilot + Step 3 리뷰 Claude Opus)
+- [ ] R34. [우선 높음 · 차기 Run 1 (`dashboard-summary-dday-and-week-list`)] 대시보드 주차별 리스트 뷰 토글(월간 캘린더형 ↔ 주차별 리스트형, KST "이번 주" 강조 및 주간 예정/확정 지출 소계 표시, 모바일 가독성 최적화) (DB 변경 없음, 담당: Claude Sonnet, Fallback: GitHub Copilot / Claude Opus)
+- [ ] R35. [우선 중간] 관심 일정(즐겨찾기) 저장(`user_favorite_schedules` + 소유자 RLS + 계정 탈퇴 `purge` 연동), "관심 일정만" 필터 및 관심 일정에서 바로 `[+ 예정 지출 추가]` 모달 프리필 연결 (사용자 소유 테이블·RLS 필요 → Opus 승격 조건 ①, 담당: GPT Codex + Claude Sonnet + Claude Opus 리뷰)
+- [ ] R36. [우선 중간] 게임별 일정·과금 통합 상세 뷰(`/dashboard/games` 일정 보기 확장): 진행 중(ON AIR, D-n·진행 바) / 다음 예정 / 지난 일정 기록(최근 6개월) 구분 + 해당 게임 이번 달/누적 확정 과금액·예정 지출·버전별 지출 요약 결합 (Phase 12.21 R11의 픽업 배너 연결 제거 정책과 정합성 유지, 담당: Claude Sonnet, Fallback: GitHub Copilot)
+- [ ] R37. [우선 낮음 (중간→낮음 조정)] 일정 표시용 시각·예상 여부 필드(`start_time`, `is_estimated`) 도입 검토 (DATE 기반 가계부 핵심 흐름 대비 타임존·관리자 입력 복잡도가 높아 후순위 조정; DB 변경 → Opus 승격 조건 ①, 담당: GPT Codex + Claude Opus)
+- [ ] R38. [우선 중간] 신규 가입 첫 진입 시(구독 게임 0개) 게임 일괄 구독 선택 온보딩 모달 자동 표시 및 내 게임 순서 변경(캘린더 아이콘 정렬 반영; `user_games.sort_order` 추가 시 Opus 승격 조건 ① 적용, 담당: GitHub Copilot / Claude Sonnet)
+- [ ] R39. [우선 낮음] 일정·결제 알림(픽업 종료 D-1, 예정 지출 결제일) PWA/Tauri 알림 방식 조사 및 설계 (담당: Claude Opus / Gemini 4 Argon)
+- [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---
 
