@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-09 (경쟁 서비스 비교 분석 및 개선 후보 등록)
+
+- **비교 분석 문서 추가 (Claude Opus)**: `docs/competitive-analysis-pickupgg.md` 신설함. ChronoLedger 기능 현황 점검, 픽업지지(pickupgg.com) 기능 조사, 강점·개선점·포지셔닝 정리함.
+- **로드맵 등록**: `docs/to-do.md`에 개선 후보 R32~R40 등록함(오늘/이번 주 요약·D-day, 복각·특별방송 분류, 주차별 리스트 뷰, 관심 일정, 게임별 상세, 일정 시각, 온보딩, 알림, R13 후속 편성). 코드 변경 없음.
+
 ## 2026-11-04 (신규 협업 Run r13-phase13-2-and-13-3-ui 등록 — R13 Phase 13.2 & 13.3 UI)
 
 - **협업 Run 생성 (Gemini 4 Argon)**: Phase 13.1 DB 스키마 및 운영 마이그레이션(R31) 적용이 완료됨에 따라, R13 UI 구현을 위한 격리 Worktree `.worktrees/r13-phase13-2-and-13-3-ui` (Base SHA `fe8a7762404a1b119cb879d1ae4fe624aa370ef7`)를 생성하고 Dispatch Queue에 배정함.

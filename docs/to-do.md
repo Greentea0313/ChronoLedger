@@ -636,6 +636,20 @@
 - [x] R31. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_USERS_ROLE_GUARD.sql` 적용 완료). 앱 배포는 `main` push 후 진행 (사용자 수동) (`완료` - 2026-11-04 사용자 적용, 테이블 4·함수 3·정책 10행 확인)
 - [ ] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`). Phase 13.1 DB/타입 구현(`4a21555e`, `334c642f`) 및 운영 DB 적용(R31) 완료함. 현재 Run `r13-phase13-2-and-13-3-ui`에서 Phase 13.2(관리자 카탈로그·분류 설정·캐릭터 요청 UI, GitHub Copilot `▶ READY`) 및 Phase 13.3(보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 모달, Claude Sonnet `⏳ WAITING`) 진행 중임.
 
+### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록)
+
+> 근거: [`docs/competitive-analysis-pickupgg.md`](competitive-analysis-pickupgg.md). 아래 항목은 미착수 후보이며 착수 전 Orchestrator가 수용 기준·담당 모델을 확정함.
+
+- [ ] R32. [우선 높음] 대시보드 상단 오늘/이번 주 요약 카드(오늘 시작·마감 일정 수, 이번 주 예정 지출 합계) 추가 및 사이드바 일정·예정 지출 카드에 종료 D-n·기간 진행률 표시 (담당 후보: Claude Sonnet / GitHub Copilot)
+- [ ] R33. [우선 높음] 일정 분류 세분화: `PICKUP` 복각 여부 플래그(예: `is_rerun`) 및 특별방송 일정 종류 추가, 캘린더 배지·필터·관리자/요청 모달 반영 (DB 마이그레이션 포함 → Opus 승격 조건 ①, 담당 후보: GPT Codex + Claude Opus 리뷰)
+- [ ] R34. [우선 높음] 대시보드 주차별 리스트 뷰 토글(캘린더형 ↔ 리스트형, "이번 주" 강조, 모바일 우선) (담당 후보: Claude Sonnet)
+- [ ] R35. [우선 중간] 관심 일정(즐겨찾기) 저장·"관심만" 필터 및 관심 일정에서 바로 예정 지출 추가 연결 (사용자 소유 테이블·RLS 필요 → Opus 승격 조건 ①)
+- [ ] R36. [우선 중간] 게임별 상세 화면: 진행 중 / 다음 예정 / 지난 일정 기록(최근 6개월) 구분 + 해당 게임 누적 과금·픽업별 지출 요약 결합
+- [ ] R37. [우선 중간] 일정 표시용 시각·예상 여부 필드(예: `start_time`, `is_estimated`) 도입 검토 (DB 변경 → Opus 승격 조건 ①)
+- [ ] R38. [우선 중간] 신규 가입 첫 진입 시 게임 일괄 구독 선택 온보딩 및 내 게임 순서 변경(캘린더 아이콘 정렬 반영)
+- [ ] R39. [우선 낮음] 일정·결제 알림(픽업 종료 D-1, 예정 지출 결제일) PWA/Tauri 알림 방식 조사 및 설계
+- [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후)
+
 ---
 
 ## 후속 단계: Windows Tauri 데스크톱 통합 (Web/PWA MVP 완료 후)
