@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r13-phase13-2-and-13-3-ui",
+  "iteration": 2,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "fe8a7762404a1b119cb879d1ae4fe624aa370ef7",
+  "target_sha": "e07cc6a98c8366458d366ac2c97d9f2b23afeec6",
+  "status": "passed",
+  "created_at": "2026-11-09T04:05:00+09:00",
+  "finished_at": "2026-11-09T04:08:00+09:00",
+  "sandbox": "unavailable",
+  "redactions_applied": true,
+  "tests": [
+    {"name": "TypeScript type check (Node 24.22.2)", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null},
+    {"name": "ESLint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null},
+    {"name": "Vitest (48 files, 385 tests; 21 new for R13UI-01..08)", "command": "npx vitest run", "status": "passed", "exit_code": 0, "log_path": null},
+    {"name": "Whitespace check of iteration-02 diff", "command": "git diff --check b6cd7a0 e07cc6a", "status": "passed", "exit_code": 0, "log_path": null},
+    {"name": "Static export build (requires .env.local; not run in worktree)", "command": "npm run build", "status": "skipped", "exit_code": null, "log_path": null},
+    {"name": "Manual browser verification of /dashboard/characters, /admin, /admin/requests", "command": "manual", "status": "skipped", "exit_code": null, "log_path": null}
+  ]
+}

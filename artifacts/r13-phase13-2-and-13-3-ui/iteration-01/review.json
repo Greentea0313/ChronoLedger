@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "run_id": "r13-phase13-2-and-13-3-ui",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "fe8a7762404a1b119cb879d1ae4fe624aa370ef7",
+  "target_sha": "6b755aa3841c86eed48ad9d67bd3af0bb8d5eb1d",
+  "status": "findings",
+  "created_at": "2026-11-09T03:40:00+09:00",
+  "findings": [
+    {
+      "id": "R13UI-01",
+      "severity": "P2",
+      "file": "src/app/admin/requests/page.tsx",
+      "line": 239,
+      "evidence": "The character approve call passes only p_request_id (`supabase.rpc(\"approve_character_request\", { p_request_id: id })`). The `캐릭터 요청` tab renders no icon preview and no admin icon replacement (upload/paste/URL). RequestSubmissionModal marks the icon optional and inserts default_icon_url = null when empty. approve_character_request (sql/SCHEMA.sql) raises '캐릭터 아이콘이 필요합니다.' for an ADD request when both p_default_icon_url and the request icon are NULL, because game_characters.default_icon_url is NOT NULL.",
+      "impact": "Any ADD character request submitted without an icon can never be approved from the UI; the admin can only reject it. Acceptance criterion Step 1 ③ (icon preview and admin icon replacement on /admin/requests) is not met.",
+      "recommendation": "Show the request icon preview, add admin icon replacement (file upload, onPaste, URL -> convertIconSourceToDataUrl, 150,000-char limit) per request, and pass it as p_default_icon_url. Disable or warn on [승인] for ADD requests that have no icon. Add tests for approve with and without an admin icon and for reject."
+    },
+    {
+      "id": "R13UI-02",
+      "severity": "P3",
+      "file": "src/components/game/request-submission-modal.tsx",
+      "line": 247,
+      "evidence": "`attributes: characterAttributes` is inserted as-is. Choosing an axis option and then switching back to '선택하지 않음' stores `{ <axis_key>: \"\" }`. approve_character_request iterates jsonb_each_text(attributes) and raises '게임 분류 스키마에 없는 분류 값입니다' for any value not in the axis options, including the empty string. Also, UPDATE mode does not validate that a target character was selected, so `target_character_id: \"\"` is sent and the insert fails on the UUID cast with only the generic save error.",
+      "impact": "Such requests are accepted at submission but always fail at approval; UPDATE requests without a target fail with a non-actionable message.",
+      "recommendation": "Drop empty attribute values before insert (as /admin handleSaveCharacter already does) and require targetCharacterId in UPDATE mode with a specific validation message. Add unit tests for both cases."
+    },
+    {
+      "id": "R13UI-03",
+      "severity": "P3",
+      "file": "src/components/game/request-submission-modal.tsx",
+      "line": 353,
+      "evidence": "Selecting the target character in UPDATE mode only sets targetCharacterId; name, rarity and attributes are not prefilled (the catalog query selects only id, game_id, name). approve_character_request replaces name, rarity and attributes of the target with the request values unconditionally.",
+      "impact": "A user who only wants to fix one field (for example an icon or a single attribute) and leaves rarity/axes unselected causes the approved update to wipe the existing rarity and attributes to NULL/{}; the admin list does not show the current values for comparison.",
+      "recommendation": "Load rarity and attributes for the catalog and prefill name, rarity and attributes when a target is chosen in UPDATE mode. Optionally show current vs requested values on /admin/requests."
+    },
+    {
+      "id": "R13UI-04",
+      "severity": "P3",
+      "file": "src/app/admin/page.tsx",
+      "line": 1920,
+      "evidence": "Axis editor rows use `key={`${axis.key}-${index}`}` while the first input edits axis.key. Each keystroke in the key input changes the React key, so the row is unmounted and remounted.",
+      "impact": "Typing an axis key loses input focus after every character, making the classification axis key field practically unusable without clicking back after each keystroke.",
+      "recommendation": "Use a stable row identifier (for example an id generated when the row is added, or the index alone) as the key. Add a test that types a multi-character axis key."
+    },
+    {
+      "id": "R13UI-05",
+      "severity": "P3",
+      "file": "src/app/admin/page.tsx",
+      "line": 1394,
+      "evidence": "The character [삭제] button deletes game_characters immediately with no confirmation. Deleting a catalog character cascades to every user's user_characters row and the cleanup_deleted_game_character_presets trigger removes the character from all user presets, deleting presets that become empty.",
+      "impact": "A single mis-click irreversibly removes ownership, memos and preset slots for all users of that character.",
+      "recommendation": "Require a confirmation dialog (Radix Dialog with DialogTitle/DialogDescription, matching the existing game delete flow) that states the cross-user impact before deleting; disable the button while the request is in flight."
+    },
+    {
+      "id": "R13UI-06",
+      "severity": "P3",
+      "file": "src/app/admin/page.tsx",
+      "line": 734,
+      "evidence": "Saving an edited game writes the new classification_schema directly. There is no check of how many existing game_characters use a rarity or axis option that the edit removes.",
+      "impact": "Acceptance criterion Step 1 ① (option removal usage warning, spec §7.3.4) is not implemented; admins can silently orphan classification values, which then only appear under the user-side `기타` filter.",
+      "recommendation": "Before saving an existing game, compare removed rarities/options against the loaded characters for that game and display '<n>명의 캐릭터가 사용 중' warnings (confirm-to-proceed). Add a unit test."
+    },
+    {
+      "id": "R13UI-07",
+      "severity": "P3",
+      "file": "src/app/admin/page.test.tsx",
+      "line": 1,
+      "evidence": "Neither src/app/admin/page.test.tsx nor src/app/admin/requests/page.test.tsx contains any test for the Phase 13.2 features (no occurrence of '캐릭터'). Step 1 recorded that new tests were deferred.",
+      "impact": "Acceptance criterion Step 1 ④ is unmet; game taxonomy/slot settings, character CRUD/filtering, and character request approve/reject RPC wiring have no regression coverage.",
+      "recommendation": "Add tests for taxonomy/slot validation and payload, character add/edit/delete and filters, and approve_character_request/reject_character_request calls (including p_default_icon_url from R13UI-01)."
+    },
+    {
+      "id": "R13UI-08",
+      "severity": "P4",
+      "file": "src/app/admin/page.tsx",
+      "line": 636,
+      "evidence": "When neither an icon file nor a URL is provided, handleSaveCharacter sends default_icon_url = \"\", which violates the game_characters CHECK (data:image/webp;base64 or https) and NOT NULL intent.",
+      "impact": "The admin sees a raw database constraint error instead of a form validation message.",
+      "recommendation": "Validate that a default icon is provided (file, paste or URL) before submitting, mirroring the game form validation."
+    }
+  ]
+}

@@ -58,6 +58,79 @@ interface GameOption {
   name: string
   default_icon_url?: string | null
   created_at?: string | null
+  max_preset_slots: number
+  classification_schema: ClassificationSchema
+}
+
+type ClassificationAxis = {
+  key: string
+  label: string
+  options: string[]
+}
+
+type ClassificationSchema = {
+  rarities: string[]
+  axes: ClassificationAxis[]
+}
+
+const DEFAULT_MAX_PRESET_SLOTS = 4
+
+type GameFormAxis = { rowId: string; key: string; label: string; options: string }
+
+// Stable React key for axis rows so editing `key` does not remount (and blur) the input.
+let axisRowSequence = 0
+const nextAxisRowId = () => `axis-row-${++axisRowSequence}`
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+}
+
+// Normalizes a raw DB value so malformed or missing schemas never crash the UI.
+function normalizeClassificationSchema(raw: unknown): ClassificationSchema {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { rarities: [], axes: [] }
+  }
+  const source = raw as { rarities?: unknown; axes?: unknown }
+  const axes: ClassificationAxis[] = []
+  if (Array.isArray(source.axes)) {
+    source.axes.forEach((axis) => {
+      if (!axis || typeof axis !== "object") return
+      const { key, label, options } = axis as { key?: unknown; label?: unknown; options?: unknown }
+      if (typeof key !== "string" || typeof label !== "string") return
+      axes.push({ key, label, options: toStringArray(options) })
+    })
+  }
+  return { rarities: toStringArray(source.rarities), axes }
+}
+
+function normalizeGameRow(row: {
+  id: string
+  name: string
+  default_icon_url?: string | null
+  created_at?: string | null
+  max_preset_slots?: number | null
+  classification_schema?: unknown
+}): GameOption {
+  return {
+    id: row.id,
+    name: row.name,
+    default_icon_url: row.default_icon_url ?? null,
+    created_at: row.created_at ?? null,
+    max_preset_slots:
+      typeof row.max_preset_slots === "number" && row.max_preset_slots >= 1
+        ? row.max_preset_slots
+        : DEFAULT_MAX_PRESET_SLOTS,
+    classification_schema: normalizeClassificationSchema(row.classification_schema),
+  }
+}
+
+interface CharacterItem {
+  id: string
+  game_id: string
+  name: string
+  rarity: string | null
+  attributes: Record<string, string>
+  default_icon_url: string
 }
 
 interface ScheduleItem {
@@ -80,7 +153,21 @@ export default function AdminPage() {
   const [isLoadingGames, setIsLoadingGames] = useState(false)
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("")
   const [currentSchedulePage, setCurrentSchedulePage] = useState(1)
-  const [adminTab, setAdminTab] = useState<"schedules" | "games">("schedules")
+  const [adminTab, setAdminTab] = useState<"schedules" | "games" | "characters">("schedules")
+  const [characters, setCharacters] = useState<CharacterItem[]>([])
+  const [characterGameFilter, setCharacterGameFilter] = useState("")
+  const [characterSearchQuery, setCharacterSearchQuery] = useState("")
+  const [characterRarityFilter, setCharacterRarityFilter] = useState("")
+  const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false)
+  const [editingCharacter, setEditingCharacter] = useState<CharacterItem | null>(null)
+  const [characterFormGameId, setCharacterFormGameId] = useState("")
+  const [characterFormName, setCharacterFormName] = useState("")
+  const [characterFormRarity, setCharacterFormRarity] = useState("")
+  const [characterFormAttributes, setCharacterFormAttributes] = useState<Record<string, string>>({})
+  const [characterFormIconUrl, setCharacterFormIconUrl] = useState("")
+  const [characterFormIconFile, setCharacterFormIconFile] = useState<File | null>(null)
+  const [characterFormError, setCharacterFormError] = useState<string | null>(null)
+  const [isSubmittingCharacter, setIsSubmittingCharacter] = useState(false)
 
   // 게임 관리 탭 상태
   const [gamesSearchQuery, setGamesSearchQuery] = useState("")
@@ -91,6 +178,13 @@ export default function AdminPage() {
   const [gameFormIconUrl, setGameFormIconUrl] = useState("")
   const [gameFormIconFile, setGameFormIconFile] = useState<File | null>(null)
   const [gameFormError, setGameFormError] = useState<string | null>(null)
+  const [gameFormMaxPresetSlots, setGameFormMaxPresetSlots] = useState("4")
+  const [gameFormRarities, setGameFormRarities] = useState("")
+  const [gameFormAxes, setGameFormAxes] = useState<GameFormAxis[]>([])
+  const [acknowledgedRemovalWarning, setAcknowledgedRemovalWarning] = useState<string | null>(null)
+  const [gameFormWarning, setGameFormWarning] = useState<string | null>(null)
+  const [deletingCharacter, setDeletingCharacter] = useState<CharacterItem | null>(null)
+  const [isDeletingCharacter, setIsDeletingCharacter] = useState(false)
   const [isSubmittingGame, setIsSubmittingGame] = useState(false)
   const [deletingGame, setDeletingGame] = useState<GameOption | null>(null)
   const [isDeletingGame, setIsDeletingGame] = useState(false)
@@ -191,14 +285,31 @@ export default function AdminPage() {
     setIsLoadingGames(true)
     const { data, error } = await supabase
       .from("games")
-      .select("id, name, default_icon_url, created_at")
+      .select("id, name, default_icon_url, created_at, max_preset_slots, classification_schema")
       .order("name")
     if (error) {
       setMessage({ type: "error", text: "게임 목록을 불러오지 못했습니다: " + error.message })
     } else if (data) {
-      setGames(data as GameOption[])
+      setGames(data.map(normalizeGameRow))
     }
     setIsLoadingGames(false)
+  }, [])
+
+  const fetchCharacters = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("game_characters")
+      .select("id, game_id, name, rarity, attributes, default_icon_url")
+      .order("name")
+    if (error) {
+      setMessage({ type: "error", text: "캐릭터 목록을 불러오지 못했습니다: " + error.message })
+    } else {
+      setCharacters((data ?? []).map((item) => ({
+        ...item,
+        attributes: (item.attributes && typeof item.attributes === "object" && !Array.isArray(item.attributes))
+          ? item.attributes as Record<string, string>
+          : {},
+      })))
+    }
   }, [])
 
   const fetchSchedules = useCallback(async () => {
@@ -244,9 +355,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (role === "admin") {
       void fetchGames()
+      void fetchCharacters()
       void fetchSchedules()
     }
-  }, [fetchGames, fetchSchedules, role])
+  }, [fetchCharacters, fetchGames, fetchSchedules, role])
 
   if (authLoading) return <div className="p-6">불러오는 중...</div>
   if (!user || role !== "admin") {
@@ -439,6 +551,11 @@ export default function AdminPage() {
     setGameFormIconUrl("")
     setGameFormIconFile(null)
     setGameFormError(null)
+    setGameFormMaxPresetSlots("4")
+    setGameFormRarities("")
+    setGameFormAxes([])
+    setGameFormWarning(null)
+    setAcknowledgedRemovalWarning(null)
     setIsGameModalOpen(true)
   }
 
@@ -448,7 +565,105 @@ export default function AdminPage() {
     setGameFormIconUrl(game.default_icon_url || "")
     setGameFormIconFile(null)
     setGameFormError(null)
+    const schema = game.classification_schema ?? { rarities: [], axes: [] }
+    setGameFormMaxPresetSlots(String(game.max_preset_slots ?? 4))
+    setGameFormRarities(schema.rarities.join(", "))
+    setGameFormAxes(schema.axes.map((axis) => ({
+      rowId: nextAxisRowId(),
+      key: axis.key,
+      label: axis.label,
+      options: axis.options.join(", "),
+    })))
+    setGameFormWarning(null)
+    setAcknowledgedRemovalWarning(null)
     setIsGameModalOpen(true)
+  }
+
+  const getGameSchema = (gameId: string): ClassificationSchema =>
+    games.find((game) => game.id === gameId)?.classification_schema ?? { rarities: [], axes: [] }
+
+  const handleOpenAddCharacter = () => {
+    const firstGame = games[0]
+    setEditingCharacter(null)
+    setCharacterFormGameId(firstGame?.id ?? "")
+    setCharacterFormName("")
+    setCharacterFormRarity("")
+    setCharacterFormAttributes({})
+    setCharacterFormIconUrl("")
+    setCharacterFormIconFile(null)
+    setCharacterFormError(null)
+    setIsCharacterModalOpen(true)
+  }
+
+  const handleOpenEditCharacter = (character: CharacterItem) => {
+    setEditingCharacter(character)
+    setCharacterFormGameId(character.game_id)
+    setCharacterFormName(character.name)
+    setCharacterFormRarity(character.rarity ?? "")
+    setCharacterFormAttributes(character.attributes)
+    setCharacterFormIconUrl(character.default_icon_url)
+    setCharacterFormIconFile(null)
+    setCharacterFormError(null)
+    setIsCharacterModalOpen(true)
+  }
+
+  const handleCharacterIconPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const file = getClipboardImageFile(event.clipboardData)
+    if (!file) return
+    event.preventDefault()
+    setCharacterFormIconFile(null)
+    setCharacterFormIconUrl("")
+    void convertIconSourceToDataUrl(file)
+      .then(setCharacterFormIconUrl)
+      .catch((error: unknown) => setCharacterFormError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다."))
+  }
+
+  const handleSaveCharacter = async (event: React.FormEvent) => {
+    event.preventDefault()
+    const name = characterFormName.trim()
+    if (!characterFormGameId || !name || name.length > 100) {
+      setCharacterFormError("대상 게임과 캐릭터 이름(1~100자)을 입력해 주세요.")
+      return
+    }
+    if (!characterFormIconFile && !characterFormIconUrl.trim()) {
+      setCharacterFormError("캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")
+      return
+    }
+    if (isOffline()) {
+      setCharacterFormError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
+    const schema = getGameSchema(characterFormGameId)
+    if (characterFormRarity && !schema.rarities.includes(characterFormRarity)) {
+      setCharacterFormError("선택한 성급이 해당 게임 설정에 없습니다.")
+      return
+    }
+    const attributes = Object.fromEntries(
+      Object.entries(characterFormAttributes).filter(([, value]) => value.trim()),
+    )
+    setIsSubmittingCharacter(true)
+    setCharacterFormError(null)
+    try {
+      const iconUrl = await convertIconSourceToDataUrl(characterFormIconFile ?? characterFormIconUrl.trim())
+      const payload = {
+        game_id: characterFormGameId,
+        name,
+        rarity: characterFormRarity || null,
+        attributes,
+        default_icon_url: iconUrl,
+      }
+      const result = editingCharacter
+        ? await supabase.from("game_characters").update(payload).eq("id", editingCharacter.id)
+        : await supabase.from("game_characters").insert(payload)
+      if (result.error) throw result.error
+      setIsCharacterModalOpen(false)
+      setMessage({ type: "success", text: `캐릭터 '${name}'을(를) 저장했습니다.` })
+      await fetchCharacters()
+    } catch (error: unknown) {
+      setCharacterFormError(error instanceof Error ? error.message : "캐릭터 저장에 실패했습니다.")
+    } finally {
+      setIsSubmittingCharacter(false)
+    }
   }
 
   const handleGameIconPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
@@ -466,6 +681,45 @@ export default function AdminPage() {
       })
   }
 
+  // Lists removed rarities/axis options that existing catalog characters still use (spec §7.3.4).
+  const describeRemovedOptionUsage = (game: GameOption, nextRarities: string[], nextAxes: ClassificationAxis[]) => {
+    const usage: string[] = []
+    const gameCharacters = characters.filter((character) => character.game_id === game.id)
+    game.classification_schema.rarities.forEach((rarity) => {
+      if (nextRarities.includes(rarity)) return
+      const count = gameCharacters.filter((character) => character.rarity === rarity).length
+      if (count > 0) usage.push(`성급 '${rarity}' ${count}명`)
+    })
+    game.classification_schema.axes.forEach((axis) => {
+      const nextAxis = nextAxes.find((item) => item.key === axis.key)
+      axis.options.forEach((option) => {
+        if (nextAxis?.options.includes(option)) return
+        const count = gameCharacters.filter((character) => character.attributes[axis.key] === option).length
+        if (count > 0) usage.push(`${axis.label} '${option}' ${count}명`)
+      })
+    })
+    return usage
+  }
+
+  const handleDeleteCharacter = async () => {
+    if (!deletingCharacter) return
+    if (isOffline()) {
+      setMessage({ type: "error", text: OFFLINE_WRITE_MESSAGE })
+      setDeletingCharacter(null)
+      return
+    }
+    setIsDeletingCharacter(true)
+    const { error } = await supabase.from("game_characters").delete().eq("id", deletingCharacter.id)
+    setIsDeletingCharacter(false)
+    if (error) {
+      setMessage({ type: "error", text: "캐릭터 삭제에 실패했습니다: " + error.message })
+    } else {
+      setMessage({ type: "success", text: `캐릭터 '${deletingCharacter.name}'을(를) 삭제했습니다.` })
+      await fetchCharacters()
+    }
+    setDeletingCharacter(null)
+  }
+
   const handleSaveGame = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmedName = gameFormName.trim()
@@ -475,6 +729,41 @@ export default function AdminPage() {
       setGameFormError("게임 이름을 입력해주세요.")
       return
     }
+    const maxPresetSlots = Number(gameFormMaxPresetSlots)
+    if (!Number.isInteger(maxPresetSlots) || maxPresetSlots < 1 || maxPresetSlots > 12) {
+      setGameFormError("프리셋 슬롯 수는 1~12 사이의 정수여야 합니다.")
+      return
+    }
+    const rarities = gameFormRarities.split(",").map((value) => value.trim()).filter(Boolean)
+    if (rarities.length > 10 || rarities.some((value) => value.length > 20)) {
+      setGameFormError("성급은 비어 있지 않은 문자열을 최대 10개까지 입력할 수 있습니다.")
+      return
+    }
+    const axes: ClassificationAxis[] = []
+    for (let index = 0; index < Math.min(gameFormAxes.length, 3); index += 1) {
+      const axis = gameFormAxes[index]
+      const options = axis.options.split(",").map((value) => value.trim()).filter(Boolean)
+      const key = axis.key.trim() || `axis_${index + 1}`
+      const label = axis.label.trim()
+      if (!label || key.length > 32 || label.length > 30 || options.length < 1 || options.length > 30 || options.some((value) => value.length > 30)) {
+        setGameFormError("분류 축은 키·표시명·옵션을 올바르게 입력해 주세요.")
+        return
+      }
+      axes.push({ key, label, options })
+    }
+    if (editingGame) {
+      const removedUsage = describeRemovedOptionUsage(editingGame, rarities, axes)
+      if (removedUsage.length > 0) {
+        const warning = `제거되는 분류 값을 사용 중인 캐릭터가 있음: ${removedUsage.join(", ")}. 해당 캐릭터의 값은 그대로 남으며 로스터에서 '기타'로 표시됨. 계속하려면 [수정 저장]을 다시 누름.`
+        if (acknowledgedRemovalWarning !== warning) {
+          setGameFormError(null)
+          setGameFormWarning(warning)
+          setAcknowledgedRemovalWarning(warning)
+          return
+        }
+      }
+    }
+    setGameFormWarning(null)
     if (!trimmedIconUrl && !gameFormIconFile) {
       setGameFormError("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해주세요.")
       return
@@ -510,6 +799,8 @@ export default function AdminPage() {
         .update({
           name: trimmedName,
           default_icon_url: defaultIconUrl,
+          max_preset_slots: maxPresetSlots,
+          classification_schema: { rarities, axes },
         })
         .eq("id", editingGame.id)
 
@@ -527,6 +818,8 @@ export default function AdminPage() {
       const { error } = await supabase.from("games").insert({
         name: trimmedName,
         default_icon_url: defaultIconUrl,
+        max_preset_slots: maxPresetSlots,
+        classification_schema: { rarities, axes },
         status: "APPROVED",
         created_by: user?.id ?? null,
       })
@@ -609,6 +902,11 @@ export default function AdminPage() {
   }
 
   const externalIconGames = games.filter(isExternalIconGame)
+  const filteredCharacters = characters.filter((character) => {
+    if (characterGameFilter && character.game_id !== characterGameFilter) return false
+    if (characterRarityFilter && character.rarity !== characterRarityFilter) return false
+    return !characterSearchQuery.trim() || character.name.toLowerCase().includes(characterSearchQuery.trim().toLowerCase())
+  })
 
   const paginatedSchedules = filteredSchedules.slice(
     (currentSchedulePage - 1) * SCHEDULES_PER_PAGE,
@@ -637,10 +935,10 @@ export default function AdminPage() {
 
       <Tabs
         value={adminTab}
-        onValueChange={(val) => setAdminTab(val as "schedules" | "games")}
+        onValueChange={(val) => setAdminTab(val as "schedules" | "games" | "characters")}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-2 bg-surface-2 mb-6">
+        <TabsList className="grid w-full grid-cols-3 bg-surface-2 mb-6">
           <TabsTrigger
             value="schedules"
             onClick={() => setAdminTab("schedules")}
@@ -654,6 +952,13 @@ export default function AdminPage() {
             className="data-[state=active]:bg-surface data-[state=active]:text-content"
           >
             등록된 게임 목록 ({games.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="characters"
+            onClick={() => setAdminTab("characters")}
+            className="data-[state=active]:bg-surface data-[state=active]:text-content"
+          >
+            캐릭터 관리 ({characters.length})
           </TabsTrigger>
         </TabsList>
 
@@ -1091,6 +1396,72 @@ export default function AdminPage() {
                   )}
                 </>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="characters" className="space-y-6">
+          <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 sm:flex-row sm:items-center">
+            <select
+              className="h-9 rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content"
+              value={characterGameFilter}
+              onChange={(event) => {
+                setCharacterGameFilter(event.target.value)
+                setCharacterRarityFilter("")
+              }}
+              aria-label="캐릭터 게임 필터"
+            >
+              <option value="">모든 게임</option>
+              {games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
+            </select>
+            <select
+              className="h-9 rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content"
+              value={characterRarityFilter}
+              onChange={(event) => setCharacterRarityFilter(event.target.value)}
+              aria-label="캐릭터 성급 필터"
+            >
+              <option value="">모든 성급</option>
+              {(characterGameFilter ? getGameSchema(characterGameFilter).rarities : Array.from(new Set(games.flatMap((game) => game.classification_schema.rarities)))).map((rarity) => (
+                <option key={rarity} value={rarity}>{rarity}</option>
+              ))}
+            </select>
+            <Input
+              value={characterSearchQuery}
+              onChange={(event) => setCharacterSearchQuery(event.target.value)}
+              placeholder="캐릭터 이름 검색"
+              aria-label="캐릭터 이름 검색"
+              className="h-9 bg-surface-2"
+            />
+            <Button className="sm:ml-auto" onClick={handleOpenAddCharacter}><Plus className="mr-1 h-4 w-4" />캐릭터 추가</Button>
+          </div>
+          <Card>
+            <CardHeader><CardTitle className="text-base">캐릭터 카탈로그</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {filteredCharacters.length === 0 ? (
+                <p className="py-8 text-center text-sm text-content-secondary">조건에 맞는 캐릭터가 없습니다.</p>
+              ) : filteredCharacters.map((character) => (
+                <div key={character.id} className="flex items-center justify-between gap-3 rounded-lg border border-line p-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-content">{character.name}</p>
+                      <p className="text-xs text-content-secondary">
+                        {games.find((game) => game.id === character.game_id)?.name ?? "알 수 없음"} · {character.rarity ?? "성급 없음"} · {Object.values(character.attributes).join(", ")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button size="sm" variant="outline" onClick={() => handleOpenEditCharacter(character)}>수정</Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setDeletingCharacter(character)}
+                    >
+                      삭제
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1591,6 +1962,37 @@ export default function AdminPage() {
               </div>
             )}
 
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="game-form-max-slots" className="block text-sm font-medium mb-1">최대 프리셋 슬롯</label>
+                <Input id="game-form-max-slots" type="number" min={1} max={12} value={gameFormMaxPresetSlots} onChange={(event) => setGameFormMaxPresetSlots(event.target.value)} />
+              </div>
+              <div>
+                <label htmlFor="game-form-rarities" className="block text-sm font-medium mb-1">성급 목록</label>
+                <Input id="game-form-rarities" value={gameFormRarities} onChange={(event) => setGameFormRarities(event.target.value)} placeholder="5★, 4★" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium">분류 축 (최대 3개)</label>
+                <Button type="button" size="sm" variant="outline" onClick={() => setGameFormAxes((current) => current.length >= 3 ? current : [...current, { rowId: nextAxisRowId(), key: "", label: "", options: "" }])}>축 추가</Button>
+              </div>
+              {gameFormAxes.map((axis, index) => (
+                <div key={axis.rowId}className="grid grid-cols-[1fr_1fr_2fr_auto] gap-2">
+                  <Input aria-label={`분류 축 ${index + 1} 키`} placeholder="key" value={axis.key} onChange={(event) => setGameFormAxes((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, key: event.target.value } : item))} />
+                  <Input aria-label={`분류 축 ${index + 1} 이름`} placeholder="표시명" value={axis.label} onChange={(event) => setGameFormAxes((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))} />
+                  <Input aria-label={`분류 축 ${index + 1} 옵션`} placeholder="옵션1, 옵션2" value={axis.options} onChange={(event) => setGameFormAxes((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, options: event.target.value } : item))} />
+                  <Button type="button" variant="ghost" onClick={() => setGameFormAxes((current) => current.filter((_, itemIndex) => itemIndex !== index))}>삭제</Button>
+                </div>
+              ))}
+            </div>
+
+            {gameFormWarning && (
+              <div role="alert" className="p-3 bg-warning/15 text-warning rounded text-sm border border-warning/30">
+                {gameFormWarning}
+              </div>
+            )}
+
             {gameFormError && (
               <div role="alert" className="p-3 bg-danger/20 text-danger rounded text-sm border border-danger/30">
                 {gameFormError}
@@ -1660,6 +2062,72 @@ export default function AdminPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={deletingCharacter !== null} onOpenChange={(open) => !open && !isDeletingCharacter && setDeletingCharacter(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>캐릭터 삭제 확인</DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              캐릭터를 삭제하면 모든 사용자의 보유 정보와 프리셋 슬롯에서도 제거되며 복구할 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-content-secondary">
+            <strong className="font-medium text-content">&apos;{deletingCharacter?.name}&apos;</strong> 캐릭터를 정말 삭제하시겠습니까?
+          </p>
+          <DialogFooter className="gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setDeletingCharacter(null)} disabled={isDeletingCharacter}>취소</Button>
+            <Button type="button" variant="destructive" onClick={() => void handleDeleteCharacter()} disabled={isDeletingCharacter}>
+              {isDeletingCharacter ? "삭제 중..." : "삭제"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isCharacterModalOpen} onOpenChange={setIsCharacterModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingCharacter ? "캐릭터 수정" : "캐릭터 추가"}</DialogTitle>
+            <DialogDescription>게임별 캐릭터와 분류 정보를 등록함.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveCharacter} className="space-y-4">
+            <div>
+              <label htmlFor="character-form-game" className="mb-1 block text-sm font-medium">대상 게임</label>
+              <select id="character-form-game" className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormGameId} onChange={(event) => { setCharacterFormGameId(event.target.value); setCharacterFormRarity(""); setCharacterFormAttributes({}) }}>
+                <option value="">게임을 선택하세요</option>
+                {games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="character-form-name" className="mb-1 block text-sm font-medium">캐릭터 이름</label>
+              <Input id="character-form-name" maxLength={100} value={characterFormName} onChange={(event) => setCharacterFormName(event.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="character-form-rarity" className="mb-1 block text-sm font-medium">성급</label>
+              <select id="character-form-rarity" className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormRarity} onChange={(event) => setCharacterFormRarity(event.target.value)}>
+                <option value="">성급 없음</option>
+                {getGameSchema(characterFormGameId).rarities.map((rarity) => <option key={rarity} value={rarity}>{rarity}</option>)}
+              </select>
+            </div>
+            {getGameSchema(characterFormGameId).axes.map((axis) => (
+              <div key={axis.key}>
+                <label htmlFor={`character-form-axis-${axis.key}`} className="mb-1 block text-sm font-medium">{axis.label}</label>
+                <select id={`character-form-axis-${axis.key}`} className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormAttributes[axis.key] ?? ""} onChange={(event) => setCharacterFormAttributes((current) => ({ ...current, [axis.key]: event.target.value }))}>
+                  <option value="">선택하지 않음</option>
+                  {axis.options.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+              </div>
+            ))}
+            <div>
+              <label htmlFor="character-form-icon-url" className="mb-1 block text-sm font-medium">기본 아이콘 URL</label>
+              <Input id="character-form-icon-url" value={characterFormIconUrl.startsWith("data:image/webp;base64,") ? "" : characterFormIconUrl} onPaste={handleCharacterIconPaste} onChange={(event) => { setCharacterFormIconUrl(event.target.value); setCharacterFormIconFile(null) }} placeholder="https://..." />
+              <Input id="character-form-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 기본 아이콘 파일" onChange={(event) => setCharacterFormIconFile(event.target.files?.[0] ?? null)} className="mt-2" />
+            </div>
+            {characterFormError && <div role="alert" className="rounded border border-danger/30 bg-danger/20 p-3 text-sm text-danger">{characterFormError}</div>}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCharacterModalOpen(false)}>취소</Button>
+              <Button type="submit" disabled={isSubmittingCharacter}>{isSubmittingCharacter ? "저장 중..." : "저장"}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

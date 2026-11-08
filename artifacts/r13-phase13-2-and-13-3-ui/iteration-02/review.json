@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r13-phase13-2-and-13-3-ui",
+  "iteration": 2,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "fe8a7762404a1b119cb879d1ae4fe624aa370ef7",
+  "target_sha": "e07cc6a98c8366458d366ac2c97d9f2b23afeec6",
+  "status": "findings",
+  "created_at": "2026-11-09T04:10:00+09:00",
+  "findings": [
+    {
+      "id": "R13UI-09",
+      "severity": "P4",
+      "file": "src/app/admin/page.tsx",
+      "line": 1981,
+      "evidence": "`<div key={axis.rowId}className=...>` has no space between attributes; the same commit also has `handleCharacterIconPaste =(event` (src/components/game/request-submission-modal.tsx:117) and `!characterName.trim()||` (line 242). tsc and ESLint accept them.",
+      "impact": "Formatting only; no runtime effect. Inconsistent with the surrounding code style.",
+      "recommendation": "Insert the missing spaces in a later cleanup commit (for example together with the non-blocking normalizeClassificationSchema consolidation). Not required for merge."
+    }
+  ]
+}

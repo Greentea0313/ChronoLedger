@@ -4,12 +4,29 @@ import { Simulate } from "react-dom/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { RequestSubmissionModal } from "./request-submission-modal"
 
-const { from, useAuth, insertGame, insertSchedule } = vi.hoisted(() => ({ from: vi.fn(), useAuth: vi.fn(), insertGame: vi.fn(), insertSchedule: vi.fn() }))
+const { from, useAuth, insertGame, insertSchedule, insertCharacter } = vi.hoisted(() => ({
+  from: vi.fn(),
+  useAuth: vi.fn(),
+  insertGame: vi.fn(),
+  insertSchedule: vi.fn(),
+  insertCharacter: vi.fn(),
+}))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
 
-const games = [{ id: "game-1", name: "Sample RPG" }]
+const games = [{
+  id: "game-1",
+  name: "Sample RPG",
+  classification_schema: {
+    rarities: ["5★", "4★"],
+    axes: [{ key: "element", label: "속성", options: ["불", "물"] }],
+  },
+}]
+const characters = [
+  { id: "char-1", game_id: "game-1", name: "Alice", rarity: "5★", attributes: { element: "불" } },
+  { id: "char-2", game_id: "game-1", name: "Legacy", rarity: "3★", attributes: { element: "바람" } },
+]
 const schedules = [{
   id: "schedule-1",
   game_id: "game-1",
@@ -26,10 +43,16 @@ function createQuery(table: string) {
   query.select.mockReturnValue(query)
   query.eq.mockReturnValue(query)
   query.order.mockResolvedValue({
-    data: table === "games" ? games : table === "game_schedules" ? schedules : [],
+    data: table === "games" ? games : table === "game_schedules" ? schedules : table === "game_characters" ? characters : [],
     error: null,
   })
-  query.insert = table === "game_requests" ? insertGame : table === "schedule_requests" ? insertSchedule : vi.fn()
+  query.insert = table === "game_requests"
+    ? insertGame
+    : table === "schedule_requests"
+      ? insertSchedule
+      : table === "character_requests"
+        ? insertCharacter
+        : vi.fn()
   return query
 }
 
@@ -45,6 +68,7 @@ describe("RequestSubmissionModal", () => {
     useAuth.mockReturnValue({ user: { id: "authenticated-user" } })
     insertGame.mockResolvedValue({ error: null })
     insertSchedule.mockResolvedValue({ error: null })
+    insertCharacter.mockResolvedValue({ error: null })
     from.mockImplementation((table: string) => createQuery(table))  })
 
   afterEach(async () => {
@@ -179,6 +203,75 @@ describe("RequestSubmissionModal", () => {
 
     expect(document.body.textContent).toContain("종료일은 시작일보다 빠를 수 없습니다.")
     expect(insertSchedule).not.toHaveBeenCalled()
+  })
+
+  it("prefills name, rarity and classification when an UPDATE target character is selected", async () => {
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-request-mode", "UPDATE")
+    await change("#character-game", "game-1")
+    await change("#target-character", "char-1")
+
+    expect((document.body.querySelector("#character-name") as HTMLInputElement).value).toBe("Alice")
+    expect((document.body.querySelector("#character-rarity") as HTMLSelectElement).value).toBe("5★")
+    expect((document.body.querySelector("#character-axis-element") as HTMLSelectElement).value).toBe("불")
+
+    await submit()
+
+    expect(insertCharacter).toHaveBeenCalledWith({
+      user_id: "authenticated-user",
+      game_id: "game-1",
+      target_character_id: "char-1",
+      name: "Alice",
+      rarity: "5★",
+      attributes: { element: "불" },
+      default_icon_url: null,
+      memo: null,
+    })
+  })
+
+  it("drops prefilled values that are no longer in the game classification schema", async () => {
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-request-mode", "UPDATE")
+    await change("#character-game", "game-1")
+    await change("#target-character", "char-2")
+    await submit()
+
+    expect(insertCharacter).toHaveBeenCalledWith(expect.objectContaining({
+      target_character_id: "char-2",
+      name: "Legacy",
+      rarity: null,
+      attributes: {},
+    }))
+  })
+
+  it("shows a dedicated message when an UPDATE request has no target character", async () => {
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-request-mode", "UPDATE")
+    await change("#character-game", "game-1")
+    await change("#character-name", "Alice")
+    await submit()
+
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("수정할 캐릭터를 선택해 주세요.")
+    expect(insertCharacter).not.toHaveBeenCalled()
+  })
+
+  it("omits classification axes that were reset to 'no selection' before submitting", async () => {
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-game", "game-1")
+    await change("#character-name", "Bob")
+    await change("#character-axis-element", "물")
+    await change("#character-axis-element", "")
+    await submit()
+
+    expect(insertCharacter).toHaveBeenCalledWith(expect.objectContaining({
+      target_character_id: null,
+      name: "Bob",
+      attributes: {},
+    }))
   })
 
   it("surfaces database submission failures", async () => {
