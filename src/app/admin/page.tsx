@@ -62,15 +62,60 @@ interface GameOption {
   classification_schema: ClassificationSchema
 }
 
-interface ClassificationAxis {
+type ClassificationAxis = {
   key: string
   label: string
   options: string[]
 }
 
-interface ClassificationSchema {
+type ClassificationSchema = {
   rarities: string[]
   axes: ClassificationAxis[]
+}
+
+const DEFAULT_MAX_PRESET_SLOTS = 4
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+}
+
+// Normalizes a raw DB value so malformed or missing schemas never crash the UI.
+function normalizeClassificationSchema(raw: unknown): ClassificationSchema {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { rarities: [], axes: [] }
+  }
+  const source = raw as { rarities?: unknown; axes?: unknown }
+  const axes: ClassificationAxis[] = []
+  if (Array.isArray(source.axes)) {
+    source.axes.forEach((axis) => {
+      if (!axis || typeof axis !== "object") return
+      const { key, label, options } = axis as { key?: unknown; label?: unknown; options?: unknown }
+      if (typeof key !== "string" || typeof label !== "string") return
+      axes.push({ key, label, options: toStringArray(options) })
+    })
+  }
+  return { rarities: toStringArray(source.rarities), axes }
+}
+
+function normalizeGameRow(row: {
+  id: string
+  name: string
+  default_icon_url?: string | null
+  created_at?: string | null
+  max_preset_slots?: number | null
+  classification_schema?: unknown
+}): GameOption {
+  return {
+    id: row.id,
+    name: row.name,
+    default_icon_url: row.default_icon_url ?? null,
+    created_at: row.created_at ?? null,
+    max_preset_slots:
+      typeof row.max_preset_slots === "number" && row.max_preset_slots >= 1
+        ? row.max_preset_slots
+        : DEFAULT_MAX_PRESET_SLOTS,
+    classification_schema: normalizeClassificationSchema(row.classification_schema),
+  }
 }
 
 interface CharacterItem {
@@ -235,7 +280,7 @@ export default function AdminPage() {
     if (error) {
       setMessage({ type: "error", text: "게임 목록을 불러오지 못했습니다: " + error.message })
     } else if (data) {
-      setGames(data as GameOption[])
+      setGames(data.map(normalizeGameRow))
     }
     setIsLoadingGames(false)
   }, [])
