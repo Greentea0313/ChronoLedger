@@ -15,7 +15,7 @@ import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-r
 import { validateGameRequest, validateScheduleRequest } from "./request-validation"
 
 type Game = { id: string; name: string; classification_schema?: { rarities?: string[]; axes?: Array<{ key: string; label: string; options: string[] }> } }
-type Character = { id: string; game_id: string; name: string }
+type Character = { id: string; game_id: string; name: string; rarity: string | null; attributes: Record<string, string> }
 type Schedule = {
   id: string
   game_id: string
@@ -99,7 +99,22 @@ export function RequestSubmissionModal({
 
   const schedulesForGame = useMemo(() => schedules.filter((item) => item.game_id === gameId), [gameId, schedules])
   const gameNames = useMemo(() => new Map(games.map((game) => [game.id, game.name])), [games])
-  const handleCharacterIconPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+  // UPDATE requests overwrite the whole character, so prefill current values (only those still valid in the game schema).
+  const handleTargetCharacterChange = (characterId: string) => {
+    setTargetCharacterId(characterId)
+    setSubmitError(null)
+    const target = characters.find((character) => character.id === characterId)
+    if (!target) return
+    const schema = games.find((game) => game.id === target.game_id)?.classification_schema
+    setCharacterName(target.name)
+    setCharacterRarity(target.rarity && (schema?.rarities ?? []).includes(target.rarity) ? target.rarity : "")
+    setCharacterAttributes(Object.fromEntries(
+      Object.entries(target.attributes).filter(([key, value]) => (
+        (schema?.axes ?? []).some((axis) => axis.key === key && axis.options.includes(value))
+      )),
+    ))
+  }
+  const handleCharacterIconPaste =(event: React.ClipboardEvent<HTMLInputElement>) => {
     const file = getClipboardImageFile(event.clipboardData)
     if (!file) return
     event.preventDefault()
@@ -118,7 +133,7 @@ export function RequestSubmissionModal({
       const [gamesResult, schedulesResult, charactersResult] = await Promise.all([
         supabase.from("games").select("id, name, classification_schema").order("name"),
         supabase.from("game_schedules").select("*").order("start_date"),
-        supabase.from("game_characters").select("id, game_id, name").order("name"),
+        supabase.from("game_characters").select("id, game_id, name, rarity, attributes").order("name"),
       ])
       if (gamesResult.error) setCatalogError("게임 카탈로그를 불러오지 못했습니다.")
       else setGames((gamesResult.data ?? []).map((game) => {
@@ -140,7 +155,15 @@ export function RequestSubmissionModal({
           },
         }
       }))
-      setCharacters(charactersResult.data ?? [])
+      setCharacters((charactersResult.data ?? []).map((character) => ({
+        id: character.id,
+        game_id: character.game_id,
+        name: character.name,
+        rarity: character.rarity ?? null,
+        attributes: (character.attributes && typeof character.attributes === "object" && !Array.isArray(character.attributes))
+          ? Object.fromEntries(Object.entries(character.attributes).filter(([, value]) => typeof value === "string")) as Record<string, string>
+          : {},
+      })))
       if (schedulesResult.error) setCatalogError("일정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.")
       else setSchedules(schedulesResult.data ?? [])
     } catch {
@@ -216,7 +239,7 @@ export function RequestSubmissionModal({
       ? validateGameRequest(name)
       : requestKind === "schedule"
         ? validateScheduleRequest({ requestMode, gameId, targetScheduleId, title, scheduleType, startDate, endDate })
-        : (!gameId ? "게임을 선택해 주세요." : !characterName.trim() || characterName.trim().length > 100 ? "캐릭터 이름을 1~100자로 입력해 주세요." : characterMemo.length > 500 ? "메모는 500자 이내로 입력해 주세요." : null)
+        : (!gameId ? "게임을 선택해 주세요." : characterRequestMode === "UPDATE" && !targetCharacterId ? "수정할 캐릭터를 선택해 주세요." : !characterName.trim()|| characterName.trim().length > 100 ? "캐릭터 이름을 1~100자로 입력해 주세요." : characterMemo.length > 500 ? "메모는 500자 이내로 입력해 주세요." : null)
     if (validationError) {
       setSubmitError(validationError)
       return
@@ -244,7 +267,7 @@ export function RequestSubmissionModal({
             target_character_id: characterRequestMode === "UPDATE" ? targetCharacterId : null,
             name: characterName.trim(),
             rarity: characterRarity || null,
-            attributes: characterAttributes,
+            attributes: Object.fromEntries(Object.entries(characterAttributes).filter(([, value]) => value.trim())),
             default_icon_url: characterIconFile || characterIconUrl
               ? await convertIconSourceToDataUrl(characterIconFile ?? characterIconUrl)
               : null,
@@ -350,7 +373,7 @@ export function RequestSubmissionModal({
                   {characterRequestMode === "UPDATE" && (
                     <div className="space-y-2">
                       <label htmlFor="target-character" className="text-sm font-medium text-content">수정할 캐릭터</label>
-                      <select id="target-character" className={selectClassName} value={targetCharacterId} onChange={(event) => setTargetCharacterId(event.target.value)}>
+                      <select id="target-character" className={selectClassName} value={targetCharacterId} onChange={(event) => handleTargetCharacterChange(event.target.value)}>
                         <option value="">캐릭터를 선택하세요</option>
                         {characters.filter((character) => character.game_id === gameId).map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
                       </select>

@@ -81,8 +81,50 @@ describe("AdminRequestsPage", () => {
       games: { name: "Sample RPG" },
     },
   ]
+  const characterRequests = [
+    {
+      id: "char-req-1",
+      game_id: "game-1",
+      target_character_id: null,
+      name: "Hero",
+      rarity: "5★",
+      attributes: { element: "불" },
+      default_icon_url: "data:image/webp;base64,requested",
+      memo: null,
+      request_status: "PENDING",
+      created_at: "2026-01-02T00:00:00.000Z",
+      games: { name: "Sample RPG" },
+    },
+    {
+      id: "char-req-2",
+      game_id: "game-1",
+      target_character_id: null,
+      name: "NoIcon",
+      rarity: null,
+      attributes: {},
+      default_icon_url: null,
+      memo: null,
+      request_status: "PENDING",
+      created_at: "2026-01-03T00:00:00.000Z",
+      games: { name: "Sample RPG" },
+    },
+    {
+      id: "char-req-3",
+      game_id: "game-1",
+      target_character_id: "char-existing",
+      name: "Updater",
+      rarity: "4★",
+      attributes: {},
+      default_icon_url: null,
+      memo: null,
+      request_status: "PENDING",
+      created_at: "2026-01-04T00:00:00.000Z",
+      games: { name: "Sample RPG" },
+    },
+  ]
   let gameQuery: ReturnType<typeof createQueryBuilder>
   let scheduleQuery: ReturnType<typeof createQueryBuilder>
+  let characterQuery: ReturnType<typeof createQueryBuilder>
   let container: HTMLDivElement
   let root: Root
 
@@ -93,13 +135,18 @@ describe("AdminRequestsPage", () => {
     root = createRoot(container)
     gameQuery = createQueryBuilder({ data: gameRequests, error: null })
     scheduleQuery = createQueryBuilder({ data: scheduleRequests, error: null })
+    characterQuery = createQueryBuilder({ data: characterRequests, error: null })
     useAuth.mockReturnValue({
       user: { id: "admin-1", app_metadata: { role: "admin" } },
       isLoading: false,
     })
     convertIconSourceToDataUrl.mockResolvedValue("data:image/webp;base64,converted")
     from.mockImplementation((table: string) =>
-      table === "game_requests" ? gameQuery : scheduleQuery,
+      table === "game_requests"
+        ? gameQuery
+        : table === "character_requests"
+          ? characterQuery
+          : scheduleQuery,
     )
     rpc.mockResolvedValue({ error: null })
   })
@@ -180,6 +227,138 @@ describe("AdminRequestsPage", () => {
       p_request_id: "game-request-1",
       p_default_icon_url: "data:image/webp;base64,converted",
     })
+  })
+
+  async function openCharacterTab() {
+    await renderPage()
+    const tab = Array.from(container.querySelectorAll('[role="tab"]')).find((element) =>
+      element.textContent?.includes("캐릭터 요청"),
+    )
+    if (!tab) throw new Error("Expected the character request tab.")
+    await act(async () => {
+      Simulate.mouseDown(tab, { button: 0, ctrlKey: false })
+    })
+  }
+
+  function byLabel<T extends HTMLElement>(label: string): T {
+    const element = container.querySelector(`[aria-label="${label}"]`)
+    if (!element) throw new Error(`Expected element with aria-label ${label}`)
+    return element as T
+  }
+
+  async function click(element: HTMLElement) {
+    await act(async () => {
+      element.click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+
+  it("lists pending character requests with ADD/UPDATE badges and a requested-icon preview", async () => {
+    await openCharacterTab()
+
+    expect(characterQuery.select).toHaveBeenCalledWith("*, games(name)")
+    expect(container.textContent).toContain("Hero")
+    expect(container.textContent).toContain("ADD")
+    expect(container.textContent).toContain("UPDATE")
+    expect(container.querySelector('img[alt="Hero 아이콘 미리보기"]')?.getAttribute("src")).toBe(
+      "data:image/webp;base64,requested",
+    )
+    expect(container.querySelector('img[alt="NoIcon 아이콘 미리보기"]')).toBeNull()
+  })
+
+  it("approves a character request without sending an icon when the requested icon is kept", async () => {
+    await openCharacterTab()
+
+    await click(byLabel("Hero 캐릭터 요청 승인"))
+
+    expect(rpc).toHaveBeenCalledWith("approve_character_request", { p_request_id: "char-req-1" })
+    expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
+    expect(container.textContent).toContain("캐릭터 요청을 승인했습니다.")
+  })
+
+  it("passes an admin replacement icon URL to approve_character_request as p_default_icon_url", async () => {
+    await openCharacterTab()
+
+    const urlInput = byLabel<HTMLInputElement>("Hero 캐릭터 아이콘 URL")
+    await act(async () => {
+      urlInput.value = "https://example.test/hero.png"
+      Simulate.change(urlInput)
+    })
+    await click(byLabel("Hero 캐릭터 요청 승인"))
+
+    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.test/hero.png")
+    expect(rpc).toHaveBeenCalledWith("approve_character_request", {
+      p_request_id: "char-req-1",
+      p_default_icon_url: "data:image/webp;base64,converted",
+    })
+  })
+
+  it("converts an uploaded replacement icon file before approving", async () => {
+    await openCharacterTab()
+
+    const fileInput = byLabel<HTMLInputElement>("Hero 캐릭터 아이콘 파일")
+    const iconFile = new File(["image"], "hero.png", { type: "image/png" })
+    await act(async () => {
+      Simulate.change(fileInput, { target: { files: [iconFile] } } as unknown as Record<string, unknown>)
+    })
+    await click(byLabel("Hero 캐릭터 요청 승인"))
+
+    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(iconFile)
+    expect(rpc).toHaveBeenCalledWith("approve_character_request", {
+      p_request_id: "char-req-1",
+      p_default_icon_url: "data:image/webp;base64,converted",
+    })
+  })
+
+  it("disables approval for an ADD request without any icon until the admin supplies one", async () => {
+    await openCharacterTab()
+
+    const approve = byLabel<HTMLButtonElement>("NoIcon 캐릭터 요청 승인")
+    expect(approve.disabled).toBe(true)
+    expect(container.textContent).toContain("아이콘이 없는 신규 캐릭터 요청은 아이콘을 지정해야 승인할 수 있음")
+    // UPDATE requests keep the existing catalog icon, so they stay approvable without one.
+    expect(byLabel<HTMLButtonElement>("Updater 캐릭터 요청 승인").disabled).toBe(false)
+
+    const urlInput = byLabel<HTMLInputElement>("NoIcon 캐릭터 아이콘 URL")
+    await act(async () => {
+      urlInput.value = "https://example.test/noicon.png"
+      Simulate.change(urlInput)
+    })
+    expect(byLabel<HTMLButtonElement>("NoIcon 캐릭터 요청 승인").disabled).toBe(false)
+
+    await click(byLabel("NoIcon 캐릭터 요청 승인"))
+    expect(rpc).toHaveBeenCalledWith("approve_character_request", {
+      p_request_id: "char-req-2",
+      p_default_icon_url: "data:image/webp;base64,converted",
+    })
+  })
+
+  it("rejects an invalid replacement icon URL without calling the RPC", async () => {
+    await openCharacterTab()
+
+    const urlInput = byLabel<HTMLInputElement>("Hero 캐릭터 아이콘 URL")
+    await act(async () => {
+      urlInput.value = "ftp://example.test/hero.png"
+      Simulate.change(urlInput)
+    })
+    await click(byLabel("Hero 캐릭터 요청 승인"))
+
+    expect(rpc).not.toHaveBeenCalled()
+    expect(container.textContent).toContain("캐릭터 아이콘 URL은 http 또는 https 주소여야 합니다.")
+  })
+
+  it("rejects a character request via reject_character_request and removes it from the list", async () => {
+    await openCharacterTab()
+
+    await click(byLabel("Hero 캐릭터 요청 반려"))
+
+    expect(rpc).toHaveBeenCalledWith("reject_character_request", {
+      p_request_id: "char-req-1",
+      p_admin_memo: null,
+    })
+    expect(container.textContent).toContain("캐릭터 요청을 반려했습니다.")
+    expect(container.querySelector('[aria-label="Hero 캐릭터 요청 승인"]')).toBeNull()
   })
 
   it("does not show the duplicate direct-game registration card", async () => {

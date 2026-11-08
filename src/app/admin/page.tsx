@@ -75,6 +75,12 @@ type ClassificationSchema = {
 
 const DEFAULT_MAX_PRESET_SLOTS = 4
 
+type GameFormAxis = { rowId: string; key: string; label: string; options: string }
+
+// Stable React key for axis rows so editing `key` does not remount (and blur) the input.
+let axisRowSequence = 0
+const nextAxisRowId = () => `axis-row-${++axisRowSequence}`
+
 function toStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
 }
@@ -174,7 +180,11 @@ export default function AdminPage() {
   const [gameFormError, setGameFormError] = useState<string | null>(null)
   const [gameFormMaxPresetSlots, setGameFormMaxPresetSlots] = useState("4")
   const [gameFormRarities, setGameFormRarities] = useState("")
-  const [gameFormAxes, setGameFormAxes] = useState<Array<{ key: string; label: string; options: string }>>([])
+  const [gameFormAxes, setGameFormAxes] = useState<GameFormAxis[]>([])
+  const [acknowledgedRemovalWarning, setAcknowledgedRemovalWarning] = useState<string | null>(null)
+  const [gameFormWarning, setGameFormWarning] = useState<string | null>(null)
+  const [deletingCharacter, setDeletingCharacter] = useState<CharacterItem | null>(null)
+  const [isDeletingCharacter, setIsDeletingCharacter] = useState(false)
   const [isSubmittingGame, setIsSubmittingGame] = useState(false)
   const [deletingGame, setDeletingGame] = useState<GameOption | null>(null)
   const [isDeletingGame, setIsDeletingGame] = useState(false)
@@ -544,6 +554,8 @@ export default function AdminPage() {
     setGameFormMaxPresetSlots("4")
     setGameFormRarities("")
     setGameFormAxes([])
+    setGameFormWarning(null)
+    setAcknowledgedRemovalWarning(null)
     setIsGameModalOpen(true)
   }
 
@@ -557,10 +569,13 @@ export default function AdminPage() {
     setGameFormMaxPresetSlots(String(game.max_preset_slots ?? 4))
     setGameFormRarities(schema.rarities.join(", "))
     setGameFormAxes(schema.axes.map((axis) => ({
+      rowId: nextAxisRowId(),
       key: axis.key,
       label: axis.label,
       options: axis.options.join(", "),
     })))
+    setGameFormWarning(null)
+    setAcknowledgedRemovalWarning(null)
     setIsGameModalOpen(true)
   }
 
@@ -610,6 +625,10 @@ export default function AdminPage() {
       setCharacterFormError("대상 게임과 캐릭터 이름(1~100자)을 입력해 주세요.")
       return
     }
+    if (!characterFormIconFile && !characterFormIconUrl.trim()) {
+      setCharacterFormError("캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")
+      return
+    }
     if (isOffline()) {
       setCharacterFormError(OFFLINE_WRITE_MESSAGE)
       return
@@ -625,9 +644,7 @@ export default function AdminPage() {
     setIsSubmittingCharacter(true)
     setCharacterFormError(null)
     try {
-      const iconUrl = characterFormIconFile || characterFormIconUrl
-        ? await convertIconSourceToDataUrl(characterFormIconFile ?? characterFormIconUrl)
-        : ""
+      const iconUrl = await convertIconSourceToDataUrl(characterFormIconFile ?? characterFormIconUrl.trim())
       const payload = {
         game_id: characterFormGameId,
         name,
@@ -664,6 +681,45 @@ export default function AdminPage() {
       })
   }
 
+  // Lists removed rarities/axis options that existing catalog characters still use (spec §7.3.4).
+  const describeRemovedOptionUsage = (game: GameOption, nextRarities: string[], nextAxes: ClassificationAxis[]) => {
+    const usage: string[] = []
+    const gameCharacters = characters.filter((character) => character.game_id === game.id)
+    game.classification_schema.rarities.forEach((rarity) => {
+      if (nextRarities.includes(rarity)) return
+      const count = gameCharacters.filter((character) => character.rarity === rarity).length
+      if (count > 0) usage.push(`성급 '${rarity}' ${count}명`)
+    })
+    game.classification_schema.axes.forEach((axis) => {
+      const nextAxis = nextAxes.find((item) => item.key === axis.key)
+      axis.options.forEach((option) => {
+        if (nextAxis?.options.includes(option)) return
+        const count = gameCharacters.filter((character) => character.attributes[axis.key] === option).length
+        if (count > 0) usage.push(`${axis.label} '${option}' ${count}명`)
+      })
+    })
+    return usage
+  }
+
+  const handleDeleteCharacter = async () => {
+    if (!deletingCharacter) return
+    if (isOffline()) {
+      setMessage({ type: "error", text: OFFLINE_WRITE_MESSAGE })
+      setDeletingCharacter(null)
+      return
+    }
+    setIsDeletingCharacter(true)
+    const { error } = await supabase.from("game_characters").delete().eq("id", deletingCharacter.id)
+    setIsDeletingCharacter(false)
+    if (error) {
+      setMessage({ type: "error", text: "캐릭터 삭제에 실패했습니다: " + error.message })
+    } else {
+      setMessage({ type: "success", text: `캐릭터 '${deletingCharacter.name}'을(를) 삭제했습니다.` })
+      await fetchCharacters()
+    }
+    setDeletingCharacter(null)
+  }
+
   const handleSaveGame = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmedName = gameFormName.trim()
@@ -695,6 +751,19 @@ export default function AdminPage() {
       }
       axes.push({ key, label, options })
     }
+    if (editingGame) {
+      const removedUsage = describeRemovedOptionUsage(editingGame, rarities, axes)
+      if (removedUsage.length > 0) {
+        const warning = `제거되는 분류 값을 사용 중인 캐릭터가 있음: ${removedUsage.join(", ")}. 해당 캐릭터의 값은 그대로 남으며 로스터에서 '기타'로 표시됨. 계속하려면 [수정 저장]을 다시 누름.`
+        if (acknowledgedRemovalWarning !== warning) {
+          setGameFormError(null)
+          setGameFormWarning(warning)
+          setAcknowledgedRemovalWarning(warning)
+          return
+        }
+      }
+    }
+    setGameFormWarning(null)
     if (!trimmedIconUrl && !gameFormIconFile) {
       setGameFormError("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해주세요.")
       return
@@ -1386,15 +1455,7 @@ export default function AdminPage() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={async () => {
-                        if (isOffline()) {
-                          setMessage({ type: "error", text: OFFLINE_WRITE_MESSAGE })
-                          return
-                        }
-                        const { error } = await supabase.from("game_characters").delete().eq("id", character.id)
-                        if (error) setMessage({ type: "error", text: "캐릭터 삭제에 실패했습니다: " + error.message })
-                        else await fetchCharacters()
-                      }}
+                      onClick={() => setDeletingCharacter(character)}
                     >
                       삭제
                     </Button>
@@ -1914,10 +1975,10 @@ export default function AdminPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-medium">분류 축 (최대 3개)</label>
-                <Button type="button" size="sm" variant="outline" onClick={() => setGameFormAxes((current) => current.length >= 3 ? current : [...current, { key: "", label: "", options: "" }])}>축 추가</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setGameFormAxes((current) => current.length >= 3 ? current : [...current, { rowId: nextAxisRowId(), key: "", label: "", options: "" }])}>축 추가</Button>
               </div>
               {gameFormAxes.map((axis, index) => (
-                <div key={`${axis.key}-${index}`} className="grid grid-cols-[1fr_1fr_2fr_auto] gap-2">
+                <div key={axis.rowId}className="grid grid-cols-[1fr_1fr_2fr_auto] gap-2">
                   <Input aria-label={`분류 축 ${index + 1} 키`} placeholder="key" value={axis.key} onChange={(event) => setGameFormAxes((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, key: event.target.value } : item))} />
                   <Input aria-label={`분류 축 ${index + 1} 이름`} placeholder="표시명" value={axis.label} onChange={(event) => setGameFormAxes((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))} />
                   <Input aria-label={`분류 축 ${index + 1} 옵션`} placeholder="옵션1, 옵션2" value={axis.options} onChange={(event) => setGameFormAxes((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, options: event.target.value } : item))} />
@@ -1925,6 +1986,12 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+
+            {gameFormWarning && (
+              <div role="alert" className="p-3 bg-warning/15 text-warning rounded text-sm border border-warning/30">
+                {gameFormWarning}
+              </div>
+            )}
 
             {gameFormError && (
               <div role="alert" className="p-3 bg-danger/20 text-danger rounded text-sm border border-danger/30">
@@ -1995,6 +2062,25 @@ export default function AdminPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={deletingCharacter !== null} onOpenChange={(open) => !open && !isDeletingCharacter && setDeletingCharacter(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>캐릭터 삭제 확인</DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              캐릭터를 삭제하면 모든 사용자의 보유 정보와 프리셋 슬롯에서도 제거되며 복구할 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-content-secondary">
+            <strong className="font-medium text-content">&apos;{deletingCharacter?.name}&apos;</strong> 캐릭터를 정말 삭제하시겠습니까?
+          </p>
+          <DialogFooter className="gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setDeletingCharacter(null)} disabled={isDeletingCharacter}>취소</Button>
+            <Button type="button" variant="destructive" onClick={() => void handleDeleteCharacter()} disabled={isDeletingCharacter}>
+              {isDeletingCharacter ? "삭제 중..." : "삭제"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog open={isCharacterModalOpen} onOpenChange={setIsCharacterModalOpen}>

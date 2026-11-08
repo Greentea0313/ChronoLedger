@@ -235,8 +235,32 @@ export default function AdminRequestsPage() {
           }
         }
       } else if (type === "character") {
+        let replacementIcon: string | undefined
+        if (isApprove) {
+          const iconFile = defaultIconFiles[id]
+          const iconSource = defaultIconUrls[id]?.trim()
+          if (iconFile || iconSource) {
+            if (!iconFile && !iconSource!.startsWith("data:image/webp;base64,")) {
+              let parsedUrl: URL
+              try {
+                parsedUrl = new URL(iconSource!)
+              } catch {
+                throw new Error("캐릭터 아이콘 URL은 http 또는 https 주소여야 합니다.")
+              }
+              if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+                throw new Error("캐릭터 아이콘 URL은 http 또는 https 주소여야 합니다.")
+              }
+            }
+            replacementIcon = await convertIconSourceToDataUrl(iconFile ?? iconSource!)
+          }
+        }
         const { error: rpcError } = isApprove
-          ? await supabase.rpc("approve_character_request", { p_request_id: id })
+          ? await supabase.rpc(
+              "approve_character_request",
+              replacementIcon
+                ? { p_request_id: id, p_default_icon_url: replacementIcon }
+                : { p_request_id: id },
+            )
           : await supabase.rpc("reject_character_request", { p_request_id: id, p_admin_memo: null })
         if (rpcError) throw rpcError
       } else {
@@ -472,24 +496,86 @@ export default function AdminRequestsPage() {
         <TabsContent value="characters" className="space-y-4">
           {characterRequests.length === 0 ? (
             <p className="rounded-lg bg-surface-2/50 py-8 text-center text-content-secondary">대기 중인 캐릭터 요청이 없습니다.</p>
-          ) : characterRequests.map((req) => (
-            <Card key={req.id} className="bg-surface border-line">
-              <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded bg-primary/15 px-2 py-1 text-xs text-primary">{req.target_character_id ? "UPDATE" : "ADD"}</span>
-                    <h3 className="text-lg font-bold text-content">{req.name}</h3>
+          ) : characterRequests.map((req) => {
+            const replacementPreview = defaultIconUrls[req.id]?.startsWith("data:image/webp;base64,")
+              ? defaultIconUrls[req.id]
+              : null
+            const previewSrc = replacementPreview ?? req.default_icon_url
+            const hasIcon = !!(req.default_icon_url?.trim() || defaultIconFiles[req.id] || defaultIconUrls[req.id]?.trim())
+            const needsIcon = !req.target_character_id && !hasIcon
+            return (
+              <Card key={req.id} className="bg-surface border-line">
+                <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-start gap-3">
+                    {previewSrc && (
+                      <Image
+                        src={previewSrc}
+                        alt={`${req.name} 아이콘 미리보기`}
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 shrink-0 rounded border border-line object-cover"
+                      />
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded bg-primary/15 px-2 py-1 text-xs text-primary">{req.target_character_id ? "UPDATE" : "ADD"}</span>
+                        <h3 className="text-lg font-bold text-content">{req.name}</h3>
+                      </div>
+                      <p className="text-sm text-content-secondary">{req.games?.name ?? "알 수 없음"} · {req.rarity ?? "성급 없음"} · {Object.values(req.attributes ?? {}).join(", ")}</p>
+                      {req.memo && <p className="mt-1 text-sm text-content-muted">메모: {req.memo}</p>}
+                    </div>
                   </div>
-                  <p className="text-sm text-content-secondary">{req.games?.name ?? "알 수 없음"} · {req.rarity ?? "성급 없음"} · {Object.values(req.attributes ?? {}).join(", ")}</p>
-                  {req.memo && <p className="mt-1 text-sm text-content-muted">메모: {req.memo}</p>}
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="border-success/60 text-success" onClick={() => processRequest("character", req.id, true)} disabled={processingId === req.id || !isOnline}>승인</Button>
-                  <Button variant="outline" className="border-danger/60 text-danger" onClick={() => processRequest("character", req.id, false)} disabled={processingId === req.id || !isOnline}>반려</Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex w-full flex-col gap-2 md:w-auto">
+                    <label className="text-xs text-content-secondary">
+                      아이콘 교체 파일
+                      <Input
+                        type="file"
+                        aria-label={`${req.name} 캐릭터 아이콘 파일`}
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          if (file) {
+                            setDefaultIconFiles((current) => ({ ...current, [req.id]: file }))
+                            setDefaultIconUrls((current) => ({ ...current, [req.id]: "" }))
+                          }
+                        }}
+                        disabled={processingId === req.id || !isOnline}
+                        className="mt-1 border-line bg-surface-2 text-content"
+                      />
+                    </label>
+                    <Input
+                      type="text"
+                      aria-label={`${req.name} 캐릭터 아이콘 URL`}
+                      placeholder="또는 아이콘 URL / 이미지 붙여넣기"
+                      value={defaultIconUrls[req.id]?.startsWith("data:image/webp;base64,")
+                        ? ""
+                        : defaultIconUrls[req.id] ?? ""}
+                      onPaste={(event) => handleGameIconPaste(event, req.id)}
+                      onChange={(event) => {
+                        setDefaultIconUrls((current) => ({ ...current, [req.id]: event.target.value }))
+                        setDefaultIconFiles((current) => {
+                          const next = { ...current }
+                          delete next[req.id]
+                          return next
+                        })
+                      }}
+                      disabled={processingId === req.id || !isOnline}
+                      className="border-line bg-surface-2 text-content truncate"
+                    />
+                    {needsIcon && (
+                      <p role="alert" className="text-[11px] text-warning">
+                        아이콘이 없는 신규 캐릭터 요청은 아이콘을 지정해야 승인할 수 있음
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button variant="outline" aria-label={`${req.name} 캐릭터 요청 승인`} className="border-success/60 text-success" onClick={() => processRequest("character", req.id, true)} disabled={processingId === req.id || !isOnline || needsIcon}>승인</Button>
+                      <Button variant="outline" aria-label={`${req.name} 캐릭터 요청 반려`} className="border-danger/60 text-danger" onClick={() => processRequest("character", req.id, false)} disabled={processingId === req.id || !isOnline}>반려</Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </TabsContent>
 
         <TabsContent value="schedules" className="space-y-4">

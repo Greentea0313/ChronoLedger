@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import AdminPage from "./page"
 
@@ -642,5 +642,227 @@ describe("AdminPage - 일정 관리", () => {
       expect(schedulesBuilder.delete).toHaveBeenCalled()
       expect(schedulesBuilder.eq).toHaveBeenCalledWith("id", "past-schedule-1")
     })
+  })
+})
+
+describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", () => {
+  const schemaGame = {
+    id: "game-1",
+    name: "원신",
+    default_icon_url: "data:image/webp;base64,own",
+    max_preset_slots: 4,
+    classification_schema: {
+      rarities: ["5★", "4★"],
+      axes: [{ key: "element", label: "속성", options: ["불", "물"] }],
+    },
+  }
+  const mockCharacters = [
+    { id: "char-1", game_id: "game-1", name: "알리스", rarity: "5★", attributes: { element: "불" }, default_icon_url: "data:image/webp;base64,a" },
+    { id: "char-2", game_id: "game-1", name: "보리스", rarity: "4★", attributes: { element: "물" }, default_icon_url: "data:image/webp;base64,b" },
+    { id: "char-3", game_id: "game-1", name: "카린", rarity: "4★", attributes: { element: "불" }, default_icon_url: "data:image/webp;base64,c" },
+  ]
+
+  let gamesBuilder: ReturnType<typeof createQueryBuilder>
+  let charactersBuilder: ReturnType<typeof createQueryBuilder>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetKstToday.mockReturnValue("2026-09-01")
+    convertIconSourceToDataUrl.mockResolvedValue("data:image/webp;base64,converted")
+    useAuth.mockReturnValue({
+      user: { id: "admin-1", app_metadata: { role: "admin" } },
+      role: "admin",
+      isLoading: false,
+    })
+    gamesBuilder = createQueryBuilder()
+    gamesBuilder.order.mockResolvedValue({ data: [schemaGame], error: null })
+    gamesBuilder.eq.mockResolvedValue({ error: null })
+    charactersBuilder = createQueryBuilder()
+    charactersBuilder.order.mockResolvedValue({ data: mockCharacters, error: null })
+    const schedulesBuilder = createQueryBuilder()
+    schedulesBuilder.order.mockResolvedValue({ data: [], error: null })
+    from.mockImplementation((table: string) => {
+      if (table === "games") return gamesBuilder
+      if (table === "game_characters") return charactersBuilder
+      if (table === "game_schedules") return schedulesBuilder
+      return createQueryBuilder()
+    })
+  })
+
+  async function openGameEditModal() {
+    render(<AdminPage />)
+    fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
+    fireEvent.click(await screen.findByRole("button", { name: "게임 수정: 원신" }))
+    expect(screen.getByRole("heading", { name: "게임 정보 수정" })).toBeTruthy()
+  }
+
+  async function openCharacterTab() {
+    render(<AdminPage />)
+    fireEvent.click(await screen.findByRole("tab", { name: /캐릭터 관리/ }))
+    expect(await screen.findByText("알리스")).toBeTruthy()
+  }
+
+  it("게임 수정 모달이 슬롯·성급·분류 축을 불러오고 변경값을 classification_schema로 저장한다", async () => {
+    await openGameEditModal()
+
+    expect((screen.getByLabelText("최대 프리셋 슬롯") as HTMLInputElement).value).toBe("4")
+    expect((screen.getByLabelText("성급 목록") as HTMLInputElement).value).toBe("5★, 4★")
+    expect((screen.getByLabelText("분류 축 1 키") as HTMLInputElement).value).toBe("element")
+    expect((screen.getByLabelText("분류 축 1 옵션") as HTMLInputElement).value).toBe("불, 물")
+
+    fireEvent.change(screen.getByLabelText("최대 프리셋 슬롯"), { target: { value: "6" } })
+    fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★, 4★, 3★" } })
+    fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "불, 물, 바람" } })
+    fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+    await waitFor(() => {
+      expect(gamesBuilder.update).toHaveBeenCalledWith(expect.objectContaining({
+        max_preset_slots: 6,
+        classification_schema: {
+          rarities: ["5★", "4★", "3★"],
+          axes: [{ key: "element", label: "속성", options: ["불", "물", "바람"] }],
+        },
+      }))
+    })
+  })
+
+  it("성급이 10개를 초과하면 저장하지 않는다", async () => {
+    await openGameEditModal()
+
+    fireEvent.change(screen.getByLabelText("성급 목록"), {
+      target: { value: "1★, 2★, 3★, 4★, 5★, 6★, 7★, 8★, 9★, 10★, 11★" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+    expect(await screen.findByText("성급은 비어 있지 않은 문자열을 최대 10개까지 입력할 수 있습니다.")).toBeTruthy()
+    expect(gamesBuilder.update).not.toHaveBeenCalled()
+  })
+
+  it("분류 축 키를 입력해도 입력란이 다시 마운트되지 않는다 (안정적인 행 key)", async () => {
+    await openGameEditModal()
+
+    const keyInput = screen.getByLabelText("분류 축 1 키") as HTMLInputElement
+    fireEvent.change(keyInput, { target: { value: "elem" } })
+    fireEvent.change(keyInput, { target: { value: "element2" } })
+
+    const afterInput = screen.getByLabelText("분류 축 1 키") as HTMLInputElement
+    expect(afterInput).toBe(keyInput)
+    expect(keyInput.isConnected).toBe(true)
+    expect(afterInput.value).toBe("element2")
+  })
+
+  it("기존 캐릭터가 쓰는 성급·분류 옵션을 제거하면 사용 인원 경고를 보이고 재확인 후 저장한다 (§7.3.4)", async () => {
+    await openGameEditModal()
+
+    fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★" } })
+    fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "불" } })
+    fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+    const warning = await screen.findByText(/제거되는 분류 값을 사용 중인 캐릭터가 있음/)
+    expect(warning.textContent).toContain("성급 '4★' 2명")
+    expect(warning.textContent).toContain("속성 '물' 1명")
+    expect(gamesBuilder.update).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+    await waitFor(() => {
+      expect(gamesBuilder.update).toHaveBeenCalledWith(expect.objectContaining({
+        classification_schema: {
+          rarities: ["5★"],
+          axes: [{ key: "element", label: "속성", options: ["불"] }],
+        },
+      }))
+    })
+  })
+
+  it("사용 중이지 않은 옵션만 변경하면 경고 없이 바로 저장한다", async () => {
+    await openGameEditModal()
+
+    fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★, 4★, 3★" } })
+    fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+    await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalled())
+    expect(screen.queryByText(/제거되는 분류 값을 사용 중인 캐릭터가 있음/)).toBeNull()
+  })
+
+  it("캐릭터 관리 탭에서 성급 필터와 이름 검색으로 목록을 좁힌다", async () => {
+    await openCharacterTab()
+    expect(screen.getByText("보리스")).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText("캐릭터 성급 필터"), { target: { value: "4★" } })
+    expect(screen.queryByText("알리스")).toBeNull()
+    expect(screen.getByText("보리스")).toBeTruthy()
+    expect(screen.getByText("카린")).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText("캐릭터 이름 검색"), { target: { value: "카" } })
+    expect(screen.queryByText("보리스")).toBeNull()
+    expect(screen.getByText("카린")).toBeTruthy()
+  })
+
+  it("캐릭터 삭제는 영향 안내가 포함된 확인 다이얼로그를 거친 뒤에만 실행된다", async () => {
+    charactersBuilder.delete.mockReturnValue(charactersBuilder)
+    charactersBuilder.eq.mockResolvedValue({ error: null })
+    await openCharacterTab()
+
+    const characterRow = screen.getByText("알리스").closest("div.flex.items-center.justify-between") as HTMLElement
+    fireEvent.click(within(characterRow).getByRole("button", { name: "삭제" }))
+
+    expect(screen.getByRole("heading", { name: "캐릭터 삭제 확인" })).toBeTruthy()
+    expect(screen.getByText(/보유 정보와 프리셋 슬롯에서도 제거되며 복구할 수 없습니다/)).toBeTruthy()
+    expect(charactersBuilder.delete).not.toHaveBeenCalled()
+
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제" }))
+
+    await waitFor(() => {
+      expect(charactersBuilder.delete).toHaveBeenCalled()
+      expect(charactersBuilder.eq).toHaveBeenCalledWith("id", "char-1")
+    })
+  })
+
+  it("캐릭터 삭제 확인에서 취소하면 삭제하지 않는다", async () => {
+    charactersBuilder.delete.mockReturnValue(charactersBuilder)
+    await openCharacterTab()
+
+    const characterRow = screen.getByText("알리스").closest("div.flex.items-center.justify-between") as HTMLElement
+    fireEvent.click(within(characterRow).getByRole("button", { name: "삭제" }))
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "취소" }))
+
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "캐릭터 삭제 확인" })).toBeNull())
+    expect(charactersBuilder.delete).not.toHaveBeenCalled()
+  })
+
+  it("아이콘 없이 캐릭터를 저장하면 폼 단계에서 막고 DB를 호출하지 않는다", async () => {
+    charactersBuilder.insert.mockResolvedValue({ error: null })
+    await openCharacterTab()
+
+    fireEvent.click(screen.getByRole("button", { name: "캐릭터 추가" }))
+    fireEvent.change(screen.getByLabelText("캐릭터 이름"), { target: { value: "신규" } })
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    expect(await screen.findByText("캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")).toBeTruthy()
+    expect(charactersBuilder.insert).not.toHaveBeenCalled()
+    expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
+  })
+
+  it("아이콘 URL이 있으면 캐릭터를 WebP Data URL·성급·분류와 함께 등록한다", async () => {
+    charactersBuilder.insert.mockResolvedValue({ error: null })
+    await openCharacterTab()
+
+    fireEvent.click(screen.getByRole("button", { name: "캐릭터 추가" }))
+    fireEvent.change(screen.getByLabelText("캐릭터 이름"), { target: { value: "신규" } })
+    fireEvent.change(screen.getByLabelText("성급"), { target: { value: "5★" } })
+    fireEvent.change(screen.getByLabelText("속성"), { target: { value: "물" } })
+    fireEvent.change(screen.getByLabelText("기본 아이콘 URL"), { target: { value: "https://example.com/new.png" } })
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    await waitFor(() => {
+      expect(charactersBuilder.insert).toHaveBeenCalledWith({
+        game_id: "game-1",
+        name: "신규",
+        rarity: "5★",
+        attributes: { element: "물" },
+        default_icon_url: "data:image/webp;base64,converted",
+      })
+    })
+    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.com/new.png")
   })
 })
