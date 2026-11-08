@@ -82,6 +82,25 @@
 | **2** | `⏳ WAITING` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Roster, Storage & Presets UI)` | `Phase 13.3`: `.worktrees/r13-phase13-2-and-13-3-ui`에서 `storage-upload.ts` 캐릭터 커스텀 아이콘 헬퍼, `CharacterPresetModal`(보유 캐릭터 로스터·미보유 명도 감쇠·캐릭터 메모·조합 프리셋 빌더), `/dashboard/games` 카드 연동 및 단위 테스트 구현 (`src/lib/storage-upload.ts`, `src/components/game/character-preset-modal.tsx`, `src/components/game/character-preset-modal.test.tsx`, `src/app/dashboard/games/page.tsx`, `docs/to-do.md`) | `⏳ Step 1 완료 후 진행` |
 | **3** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `fe8a7762404a1b119cb879d1ae4fe624aa370ef7` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 2 완료 후 진행` |
 
+### 🚦 병행 과제: 경쟁 서비스 비교 분석 및 R32~R40 로드맵 리뷰 (2026-11-09 등록)
+
+- **과제 ID**: `competitive-analysis-pickupgg-review` *(문서 전용, 코드 변경 없음. 위 R13 Run과 독립이며 파일 충돌 없음)*
+- **작성 주체**: Claude Opus (사용자 직접 요청으로 분석 문서 작성 및 로드맵 등록)
+- **작업 브랜치**: `claude/project-feature-review-comparison-2974fa` *(Claude Code 워크트리 `.claude/worktrees/project-feature-review-comparison-2974fa`. 아직 `main` 미병합·미push 상태라 다른 환경에서 리뷰하려면 사용자가 브랜치 push 또는 `main` 병합을 먼저 수행해야 함)*
+- **리뷰 비교 범위**: Base `a63fc4f` ↔ Target `14eb539` (`docs: add pickupgg competitive analysis and register R32-R40 roadmap items`)
+- **대상 파일**: `docs/competitive-analysis-pickupgg.md`(신규), `docs/to-do.md`(R32~R40 추가), `docs/changelog.md`
+- **수용 기준 (Acceptance Criteria)**:
+  1. `docs/competitive-analysis-pickupgg.md` §1 ChronoLedger 기능 현황이 `docs/spec/SRS.md`·`SPEC.md`·`docs/to-do.md`·`src/` 실제 상태와 일치하는지 검증함(과장·누락 지적).
+  2. §3 강점·§4 개선점의 타당성과 §5 포지셔닝(“게임 일정 기반 개인 과금 가계부”) 방향 승인 또는 수정 지시함.
+  3. `docs/to-do.md` R32~R40 각 항목의 우선순위·범위·담당 모델 후보·Opus 승격 조건(① DB/RLS 변경: R33·R35·R37) 표기를 검토하고 확정 또는 조정함.
+  4. 착수할 항목을 선정하면 수용 기준을 구체화하고 신규 Run 등록 계획(Worktree·담당 모델·Step 구성)을 수립함. R13 Run(Phase 13.2/13.3) 진행과의 순서도 결정함.
+  5. 리뷰 결과를 이 섹션 하단과 `docs/progress.md`에 한국어 개조식으로 기록하고, 필요 시 분석 문서·`to-do.md`를 수정함. 문서 전용 과제이므로 `review.json` 산출은 선택 사항임.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: 14eb539)`** | **Claude Opus** | `Analyst (Docs)` | pickupgg.com 기능 조사, ChronoLedger 기능 현황 점검, 강점·개선점 정리 및 R32~R40 로드맵 등록 (`docs/competitive-analysis-pickupgg.md`, `docs/to-do.md`, `docs/changelog.md`) | `docs/competitive-analysis-pickupgg.md` |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Orchestrator & Architect (Review)` | Base `a63fc4f` ↔ Target `14eb539` 분석 문서·로드맵 리뷰, R32~R40 우선순위·담당 확정, 착수 항목 Run 등록 계획 수립 (`docs/**`만 수정 허용, `src/**` 수정 금지) | `⏳ 리뷰 결과 기록 대기` |
+
 ### 🗂️ 이전 Run 기록 (완료): r13-phase13-1-db-and-r30-icon-resave
 
 - **Run ID**: `r13-phase13-1-db-and-r30-icon-resave` *(2026-11-04 재생성, R13 `Phase 13.1` 캐릭터·프리셋 DB 스키마/마이그레이션/스모크 테스트/TypeScript 타입 & `Phase 12.34 (R30)` 관리자 외부 아이콘 URL Data URL 재저장)*

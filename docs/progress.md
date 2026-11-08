@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## 경쟁 서비스(픽업지지) 비교 분석 및 R32~R40 로드맵 등록 (2026-11-09)
+
+- **수행 주체**: Claude Opus (사용자 직접 요청)
+- **커밋**: `14eb539` (브랜치 `claude/project-feature-review-comparison-2974fa`, `main` 미병합)
+- **완료 내용**: `docs/competitive-analysis-pickupgg.md` 신설(기능 현황 점검, pickupgg.com 기능 조사, 강점·개선점·포지셔닝), `docs/to-do.md`에 개선 후보 R32~R40 등록함. 코드 변경 없음.
+- **다음 단계**: `docs/handoff.md` 병행 과제 `competitive-analysis-pickupgg-review` Step 2를 Gemini 4 Argon에 `▶ READY`로 배정함. Argon이 분석·로드맵 리뷰 후 착수 항목 Run 등록 계획 수립 예정임.
+
 ## 신규 격리 협업 Run 등록: r13-phase13-2-and-13-3-ui (2026-11-04)
 
 - **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
