@@ -6,7 +6,14 @@ vi.mock("@/lib/storage-upload", () => ({
   PROFILE_AVATAR_CHANGED_EVENT: "cl-profile-avatar-changed",
 }))
 
-import { resolveProfile } from "@/components/layout/topbar"
+import { resolveProfile, TOPBAR_NAV_ITEMS } from "@/components/layout/topbar"
+
+describe("TOPBAR_NAV_ITEMS", () => {
+  it("exposes 홈, 소비, 게임 and 캐릭터 in order", () => {
+    expect(TOPBAR_NAV_ITEMS.map((item) => item.label)).toEqual(["홈", "소비", "게임", "캐릭터"])
+    expect(TOPBAR_NAV_ITEMS[3].href).toBe("/dashboard/characters")
+  })
+})
 
 describe("resolveProfile", () => {
   it("uses the Google name and picture", () => {

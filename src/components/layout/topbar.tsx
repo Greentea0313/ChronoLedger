@@ -11,6 +11,7 @@ export const TOPBAR_NAV_ITEMS = [
   { href: "/dashboard", label: "홈" },
   { href: "/dashboard/expenses", label: "소비" },
   { href: "/dashboard/games", label: "게임" },
+  { href: "/dashboard/characters", label: "캐릭터" },
 ] as const
 
 function readString(value: unknown): string | null {

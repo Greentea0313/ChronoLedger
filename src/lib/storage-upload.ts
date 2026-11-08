@@ -15,12 +15,10 @@ export function clearUserIconCache(): void {
 }
 
 /**
- * 256x256 WebP 변환이 완료된 Blob 이미지를 Supabase user-icons 버킷에 업로드합니다.
- * 기존 이미지가 있을 경우 덮어씁니다 (upsert).
+ * Uploads a pre-converted blob to the private user-icons bucket (upsert) and refreshes the object URL cache.
+ * `cacheKey` must be unique per object path so different icon kinds never share cache entries.
  */
-export async function uploadUserIcon(userId: string, gameId: string, imageBlob: Blob): Promise<void> {
-  const filePath = `${userId}/${gameId}.webp`
-
+async function uploadIconObject(filePath: string, cacheKey: string, imageBlob: Blob): Promise<void> {
   const { error } = await supabase.storage
     .from('user-icons')
     .upload(filePath, imageBlob, {
@@ -33,7 +31,6 @@ export async function uploadUserIcon(userId: string, gameId: string, imageBlob: 
   }
 
   // 캐시 갱신
-  const cacheKey = `${userId}/${gameId}`
   const oldUrl = userIconCache.get(cacheKey)
   if (oldUrl && typeof window !== "undefined") {
     URL.revokeObjectURL(oldUrl)
@@ -44,11 +41,10 @@ export async function uploadUserIcon(userId: string, gameId: string, imageBlob: 
 }
 
 /**
- * 비공개 user-icons 버킷에서 로그인한 사용자의 커스텀 아이콘을 Blob 형태로 다운로드한 후,
- * 브라우저에서 렌더링할 수 있는 임시 Object URL로 반환합니다.
+ * Downloads an object from the private user-icons bucket and returns a temporary Object URL.
+ * A missing object is cached as null so callers fall back to the default icon.
  */
-export async function downloadUserIcon(userId: string, gameId: string): Promise<string | null> {
-  const cacheKey = `${userId}/${gameId}`
+async function downloadIconObject(filePath: string, cacheKey: string): Promise<string | null> {
   if (userIconCache.has(cacheKey)) {
     return userIconCache.get(cacheKey) ?? null
   }
@@ -56,8 +52,6 @@ export async function downloadUserIcon(userId: string, gameId: string): Promise<
   if (!supabase.storage) {
     return null
   }
-
-  const filePath = `${userId}/${gameId}.webp`
 
   const { data, error } = await supabase.storage
     .from('user-icons')
@@ -79,11 +73,9 @@ export async function downloadUserIcon(userId: string, gameId: string): Promise<
 }
 
 /**
- * 게임 구독을 해지하거나 커스텀 아이콘을 초기화할 때 Storage 객체를 삭제합니다.
+ * Removes an object from the private user-icons bucket and clears its cache entry.
  */
-export async function deleteUserIcon(userId: string, gameId: string): Promise<void> {
-  const filePath = `${userId}/${gameId}.webp`
-
+async function deleteIconObject(filePath: string, cacheKey: string): Promise<void> {
   const { error } = await supabase.storage
     .from('user-icons')
     .remove([filePath])
@@ -93,12 +85,59 @@ export async function deleteUserIcon(userId: string, gameId: string): Promise<vo
   }
 
   // 캐시 삭제 및 Object URL 정리
-  const cacheKey = `${userId}/${gameId}`
   const oldUrl = userIconCache.get(cacheKey)
   if (oldUrl && typeof window !== "undefined") {
     URL.revokeObjectURL(oldUrl)
   }
   userIconCache.delete(cacheKey)
+}
+
+/**
+ * 256x256 WebP 변환이 완료된 Blob 이미지를 Supabase user-icons 버킷에 업로드합니다.
+ * 기존 이미지가 있을 경우 덮어씁니다 (upsert).
+ */
+export function uploadUserIcon(userId: string, gameId: string, imageBlob: Blob): Promise<void> {
+  return uploadIconObject(`${userId}/${gameId}.webp`, `${userId}/${gameId}`, imageBlob)
+}
+
+/**
+ * 비공개 user-icons 버킷에서 로그인한 사용자의 커스텀 아이콘을 Blob 형태로 다운로드한 후,
+ * 브라우저에서 렌더링할 수 있는 임시 Object URL로 반환합니다.
+ */
+export function downloadUserIcon(userId: string, gameId: string): Promise<string | null> {
+  return downloadIconObject(`${userId}/${gameId}.webp`, `${userId}/${gameId}`)
+}
+
+/**
+ * 게임 구독을 해지하거나 커스텀 아이콘을 초기화할 때 Storage 객체를 삭제합니다.
+ */
+export function deleteUserIcon(userId: string, gameId: string): Promise<void> {
+  return deleteIconObject(`${userId}/${gameId}.webp`, `${userId}/${gameId}`)
+}
+
+/**
+ * R13: private user-icons object path of a user's custom character icon.
+ * Must match the `user_characters.custom_icon_path` CHECK constraint.
+ */
+export function getCustomCharacterIconPath(userId: string, characterId: string): string {
+  return `${userId}/characters/${characterId}.webp`
+}
+
+// Character icons are cached by the full object path (`{userId}/characters/{characterId}.webp`),
+// which can never equal a game icon cache key (`{userId}/{gameId}`).
+export function uploadCustomCharacterIcon(userId: string, characterId: string, imageBlob: Blob): Promise<void> {
+  const filePath = getCustomCharacterIconPath(userId, characterId)
+  return uploadIconObject(filePath, filePath, imageBlob)
+}
+
+export function getCustomCharacterIconUrl(userId: string, characterId: string): Promise<string | null> {
+  const filePath = getCustomCharacterIconPath(userId, characterId)
+  return downloadIconObject(filePath, filePath)
+}
+
+export function deleteCustomCharacterIcon(userId: string, characterId: string): Promise<void> {
+  const filePath = getCustomCharacterIconPath(userId, characterId)
+  return deleteIconObject(filePath, filePath)
 }
 
 // 프로필 사진은 게임 아이콘과 같은 비공개 버킷의 사용자 폴더에 `profile.webp`로 저장한다.

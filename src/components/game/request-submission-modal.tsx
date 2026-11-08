@@ -55,9 +55,11 @@ const statusLabels = { PENDING: "검토 대기", APPROVED: "승인", REJECTED: "
 export function RequestSubmissionModal({
   triggerText = "+ 추가 요청",
   className,
+  initialKind,
 }: {
   triggerText?: string
   className?: string
+  initialKind?: RequestKind
 } = {}) {
   const { user } = useAuth()
   const isOnline = useOnlineStatus()
@@ -179,11 +181,12 @@ export function RequestSubmissionModal({
   useEffect(() => {
     if (!isOpen) return
     setActiveTab("submit")
+    if (initialKind) setRequestKind(initialKind)
     setSubmitError(null)
     setSuccessMessage(null)
     void loadCatalog()
     void loadRequests()
-  }, [isOpen, loadCatalog, loadRequests])
+  }, [isOpen, initialKind, loadCatalog, loadRequests])
 
   useEffect(() => {
     if (requestKind !== "schedule" || requestMode !== "EDIT" || !targetScheduleId) return
