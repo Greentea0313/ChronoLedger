@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-09 (R46 운영 마이그레이션 적용)
+
+- 운영 DB에 `MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql` 적용 및 확인 쿼리 검증 완료됨(사용자 수동). `docs/to-do.md` `R46` 완료 처리함.
+
 ## 2026-11-09 (schedule-rerun-and-broadcast iteration-02 수정·재리뷰 및 `main` 병합)
 
 - iteration-02(`8c64d98`)에서 R33 UI 회귀 테스트 추가, 수정 시 원본이 복각일 때만 `is_rerun: false` 전송, 사이드바 묶음 일정 복각 배지, 내 요청 카드 4종 라벨·복각 표시, 캘린더 배너 영문 표기 통일을 반영함.

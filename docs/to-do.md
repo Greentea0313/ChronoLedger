@@ -657,7 +657,7 @@
 - [x] R43 (`Phase 13.4`). 캐릭터 로스터 UX 개편(`/dashboard/characters` & `/admin`): ① 캐릭터별 텍스트 메모(`memo`) UI 제거, ② 긴 가로형 카드를 아이콘 중심 컴팩트 타일 그리드로 개편, ③ 즐겨찾기(`is_favorite`) 체크 시 금색 테두리(`ring-2 ring-amber-400`) 표시 및 목록 최상단 노출, ④ 관리자가 게임별 최대 돌파 단계(`games.max_breakthrough`, `0~12`, 기본 `6`)를 지정하고 캐릭터 아이콘 클릭 시 보유·즐겨찾기·돌파 단계(`0..max_breakthrough`)·커스텀 아이콘을 설정하며 보유 캐릭터 아이콘 좌하단에 `n★` 배지로 표시함 (`ba49f13` DB/Types + `8ff4f42` UI, `main` 병합 `ce4bed2`)
 - [x] R44 (`Phase 12.36`). 대시보드·게임·소비 페이지 전반의 카드 여백·테두리·타이포그래피 밀도 개선으로 한 화면 정보 가독성 향상 (`d5b75eb`, `main` 병합 `ce4bed2`)
 - [x] R45. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 완료, 사용자 수동) (`완료` - 2026-11-09 사용자 적용 확인)
-- [ ] R46. [운영 · 배포 전 필수] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인. **반드시 R33 포함 빌드 배포(push) 전에 적용**함 (미적용 배포 시 내 요청 내역 로드 실패·BROADCAST/복각 저장 실패, 사용자 수동)
+- [x] R46. [운영 · 배포 전 필수] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인. **반드시 R33 포함 빌드 배포(push) 전에 적용**함 (미적용 배포 시 내 요청 내역 로드 실패·BROADCAST/복각 저장 실패, 사용자 수동) (`완료` - 2026-11-09 사용자 적용·검증 확인)
 - [ ] R47. [후속 · R33 리뷰 이관] ① `src/components/game/user-requests-card.tsx` `schedule_requests` 조회가 `is_rerun` 컬럼 부재(`42703`/`PGRST204`) 시 해당 컬럼 없이 재조회하도록 폴백 추가(`R33-REV-006`, P3), ② 관리자 일정 폼 복각 토글·`originalIsRerun` 수정 페이로드, `RequestSubmissionModal` EDIT 모드 `is_rerun: false` 분기, R33 마이그레이션 오류 문구, `/dashboard/games` ScheduleTree 배지 테스트 보강(`R33-REV-007`, P4) (담당: Claude Sonnet, Fallback: GitHub Copilot)
 
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)

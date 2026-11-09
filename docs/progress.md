@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## R46 운영 DB 마이그레이션 적용 완료 (2026-11-09)
+
+- 사용자가 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql`을 실행하고 `sql/README.md` B표 확인 쿼리로 검증 완료함.
+- R33(`BROADCAST`·PICKUP 복각) 포함 `main` 빌드는 마이그레이션 선행 조건을 충족해 push·배포 가능 상태임. 배포는 미수행임.
+- 남은 후속 과제: `R47`(내 요청 카드 `is_rerun` 조회 폴백, R33 테스트 보강)임.
+
 ## schedule-rerun-and-broadcast iteration-02 재리뷰 및 `main` 병합 마감 (2026-11-09)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.

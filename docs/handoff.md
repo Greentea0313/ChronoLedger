@@ -79,7 +79,7 @@
 | **4** | **`✅ DONE (SHA: 8c64d98)`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (iteration-02 Review Fix)` | 수용 기준 Step 4(`R33-REV-001`~`005`) 수정 및 테스트 추가. 허용 파일: Step 2 대상 파일 + `src/components/game/user-requests-card.tsx`·`.test.tsx` | `✅ 원본 복각 상태 기반 payload 생략/해제, 묶음 사이드바 복각 배지, 내 요청 카드 4종 라벨, R33 UI 회귀 테스트 6개 파일 추가·보강. tsc/lint, 전체 Vitest 51파일/420개, diff-check 통과함` |
 | **5** | **`✅ DONE (iteration-02 리뷰 findings 조건부 승인, 산출물 SHA: f0a5a58·ea645f6, main 병합 7436a3b)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d09ba5c` ↔ Target `8c64d98` iteration-02 재리뷰, `run.json` 마감, `main` 병합, `R46` 등록 및 `docs/` 동기화 | `✅ R33-REV-001~005 해소 확인. 신규 R33-REV-006 P3(내 요청 카드 is_rerun 명시 조회 → 마이그레이션 미적용 시 요청 내역 로드 실패), R33-REV-007 P4(관리자 폼·ScheduleTree 등 테스트 일부 미보강) → 사용자 결정으로 R47 후속 과제 이관, R46에 '마이그레이션 먼저 적용 후 배포' 필수 순서 명시. TESTS.sql 31 PASS(2종), tsc/lint 통과, Vitest 51파일/420개 통과, 스키마 검증 통과. main 병합 7436a3b.` |
 
-> **⚠️ 운영 DB 마이그레이션 적용 필요 (`R46`)**: 배포(push) **전에** 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql`을 적용하고 `sql/README.md` B표 확인 쿼리로 검증해야 함. 미적용 상태로 배포 시 '내 요청 내역' 로드 실패(`R33-REV-006`) 및 BROADCAST/복각 저장 실패가 발생함.
+> **✅ 운영 DB 마이그레이션 적용 완료 (`R46`, 2026-11-09)**: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql` 적용 및 `sql/README.md` B표 확인 쿼리 검증이 완료됨(사용자 확인). R33 포함 빌드 push·배포 가능 상태임.
 
 ### 🗂️ 이전 Run 기록 (완료): dashboard-summary-dday-and-week-list
 
