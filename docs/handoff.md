@@ -54,8 +54,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Badge & Weekly Group UI)` | `Phase 12.39 (R48·R49)`: 수용 기준 Step 1. 공용 `ScheduleTypeBadge`, 복각 칩 높이 정렬, 사이드바 묶음 키 분리, 주차별 리스트 게임별 묶음 및 테스트 | `▶ 대기` |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 1 완료 후 진행` |
+| **1** | **`✅ DONE (SHA: d51fba80798fcea554ca050b0b6fa8eeb97580b3)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Badge & Weekly Group UI)` | `Phase 12.39 (R48·R49)`: 수용 기준 Step 1. 공용 `ScheduleTypeBadge`, 복각 칩 높이 정렬, 사이드바 묶음 키 분리, 주차별 리스트 게임별 묶음 및 테스트 | `✅ d51fba8: 공용 ScheduleTypeBadge([픽업 [복각]], 복각 칩 수직 패딩 0·leading-none), admin·games·사이드바·주차 리스트 적용, 사이드바 묶음 키에 is_rerun 포함, 주차별 리스트 게임별 묶음(기타 마지막, 지출 별도 섹션). tsc/lint 통과, Vitest 52파일/430개 통과.` |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: d51fba80798fcea554ca050b0b6fa8eeb97580b3` |
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
