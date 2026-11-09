@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r38-onboarding-and-game-order",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "static-review",
+  "base_sha": "4ffd9014bee327e2fddd4e13f8e3506a1ed24893",
+  "target_sha": "c1cb27b4d41af75832c76dd006c02c93f5e906b7",
+  "status": "findings",
+  "created_at": "2026-11-09T05:50:00Z",
+  "findings": [
+    {
+      "id": "R38-REV-001",
+      "severity": "P4",
+      "file": "src/components/game/game-onboarding-modal.tsx",
+      "line": 87,
+      "evidence": "Bulk subscription uses a plain `supabase.from(\"user_games\").insert(...)`; `user_games` has `UNIQUE(user_id, game_id)`. If the same user subscribes to a game in another tab or device after the modal opened, the whole insert fails and the modal shows `게임 구독에 실패했습니다`.",
+      "impact": "Rare multi-tab race leaves the user unable to complete onboarding without manually deselecting the already-subscribed game; no data corruption (RLS and the unique constraint hold).",
+      "recommendation": "Use `upsert(..., { onConflict: \"user_id,game_id\", ignoreDuplicates: true })` for the bulk subscription in a follow-up."
+    },
+    {
+      "id": "R38-REV-002",
+      "severity": "P4",
+      "file": "src/lib/game-order-storage.ts",
+      "line": 3,
+      "evidence": "Order and onboarding keys (`chronoledger:game-order:<userId>`, `chronoledger:game-onboarding-dismissed:<userId>`) are never removed on logout or account deletion, unlike the account-deletion token cleanup in `src/lib/auth-context.tsx:137`.",
+      "impact": "Low-sensitivity game ids and a dismissal flag persist in the browser after logout/deletion on shared devices; a re-created account gets a new user id, so behaviour is unaffected.",
+      "recommendation": "Optionally clear `chronoledger:game-*:<userId>` keys on sign-out and account deletion; can be folded into the R50 auth security review."
+    }
+  ]
+}
