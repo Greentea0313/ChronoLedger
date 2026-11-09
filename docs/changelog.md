@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Phase 12.42 Step 3 — iteration-01 리뷰, `6c913c2`)
+
+- `r35-favorite-schedules-and-r51-followup` iteration-01 통합 리뷰(`33829c9` ↔ `13ca8fa`) 결과 `R35-REV-001`(P2)·`002`(P3)·`003`(P4)를 기록하고 `review.json`·`test.json`·`run.json`(`target_sha`)을 커밋함.
+- Dispatch Queue에 Step 4(iteration-02 수정, Claude Opus)·Step 5(재리뷰·병합) 등록함.
+- `docs/known-pitfalls.md`에 예정 지출 편집 모드의 버전 패스 판정 함정 및 산출물 검증기 의존성(`jsonschema`) 항목 추가함.
+
 ## 2026-11-10 (Phase 12.42 Step 2 — `R35` 관심 일정 UI·프리필 및 `R51` 후속 보완, `13ca8fa`)
 
 - 관심 일정 별 토글(`aria-pressed`/`aria-label`)을 대시보드 사이드바·모바일 드로어·주차별 리스트·게임별 일정 모달에 추가하고, `/dashboard`·게임 일정 모달에 `관심 일정만` 필터를 추가함(게스트 미노출, 오프라인 쓰기 차단, 테이블 미적용 시 빈 집합 폴백).

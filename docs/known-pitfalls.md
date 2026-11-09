@@ -120,3 +120,9 @@
 35. **루트 Vitest가 Claude 세션 워크트리까지 수집**
     - 증상: 루트에서 `npx vitest run`을 실행하면 `.claude/worktrees/<session>/` 아래 Claude 데스크톱 세션 워크트리의 테스트까지 수집되어 파일·테스트 수가 배수로 늘어남(2026-11-09, 48파일/385개 → 138파일/1007개). `vitest.config.ts`는 `.worktrees/**`만 제외함.
     - 방어책: `main` 단독 검증은 `npx vitest run --dir src`로 실행하고 보고하는 수치를 이 기준으로 맞춤. 근본 해결(exclude에 `.claude/worktrees/**` 추가)은 to-do 13.2-F3에서 처리함.
+36. **예정 지출 편집 모드의 버전 패스 판정 (`start_date ≠ end_date`)**
+    - 증상: `ExpenseModal` 편집 모드는 `start_date !== end_date`만으로 버전 패스로 판정함. 버전 패스가 아닌데 기간을 저장한 예정 지출(R35 관심 일정 프리필, `target_date = start_date`)을 편집하면 저장 시 날짜가 매칭 VERSION 기간·종료일로 바뀌고 예산 귀속월이 이동함(2026-11-10, `R35-REV-001`).
+    - 방어책: 기간을 가진 비패스 예정 지출을 새로 만들 때는 편집 모드 판정과 저장 분기(`isVersionPass && matchingVersion`)를 함께 확인함. 버전 패스 행은 `target_date = end_date`로 저장되므로 판정에 이 조건을 포함함.
+37. **산출물 검증기 `validate_collaboration_artifact.py` 실행 의존성**
+    - 증상: Python에 `jsonschema`가 없으면 `ModuleNotFoundError`로 실패함. 인자는 위치 인자가 아니라 `--artifact <json> --schema artifacts/schemas/<kind>.schema.json`임(2026-11-10).
+    - 방어책: 사용자 환경을 바꾸지 않으려면 `py -m pip install --target <임시 폴더> jsonschema` 후 `PYTHONPATH=<임시 폴더>`로 실행함.

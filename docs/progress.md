@@ -1,4 +1,14 @@
 # 프로젝트 진행 현황
+## Phase 12.42 Step 3 iteration-01 리뷰 — 수정 요청 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임.
+- **결과**: Base `33829c9` ↔ Target `13ca8fa` 리뷰 판정 `findings`(P2 1건·P3 1건·P4 1건), 산출물 `6c913c2`임. `main` 병합 보류함.
+  - `R35-REV-001`(P2): 관심 일정 프리필로 만든 예정 지출을 편집하면 버전 패스로 오인되어 날짜·예산 귀속월이 바뀜.
+  - `R35-REV-002`(P3): VERSION 프리필이 경계일이 겹치는 이전 버전을 연결할 수 있음.
+  - `R35-REV-003`(P4): 토글 로직 중복·진행 중 재클릭 방지 없음.
+- **동적 검증**: tsc·lint·Vitest 620개·PGlite SQL 2시나리오 통과. PostgreSQL 17은 미설치로 미실행임.
+- **다음 단계**: Step 4(`Claude Opus`, iteration-02 수정) `▶ READY` → Step 5 재리뷰·병합·운영 마이그레이션 `R54` 등록임.
+
 ## Phase 12.42 Step 2 (`R35` 관심 일정 UI·필터·예정 지출 프리필 + `R51` 후속 보완) 완료 (2026-11-10)
 
 - **수행 주체**: Claude Sonnet (`Maker (Favorite Schedule UI & R51 Follow-ups)`)임.
