@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-09 (배포 확인 피드백 Run `weekly-game-group-and-rerun-badge` 등록)
+
+- R33 배포 확인 피드백으로 `R48`(주차별 리스트 게임별 묶음)·`R49`(`[픽업 [복각]]` 배지 통합·높이 정렬)을 등록하고 격리 Run(Base `742e58f`)과 Dispatch Queue 2단계 배정(Claude Sonnet → Gemini 4 Argon)을 기록함.
+- 완료된 `schedule-rerun-and-broadcast` Run 블록을 이전 Run 기록으로 이동함.
+
 ## 2026-11-09 (R46 운영 마이그레이션 적용)
 
 - 운영 DB에 `MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql` 적용 및 확인 쿼리 검증 완료됨(사용자 수동). `docs/to-do.md` `R46` 완료 처리함.

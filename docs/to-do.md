@@ -659,6 +659,8 @@
 - [x] R45. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 완료, 사용자 수동) (`완료` - 2026-11-09 사용자 적용 확인)
 - [x] R46. [운영 · 배포 전 필수] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인. **반드시 R33 포함 빌드 배포(push) 전에 적용**함 (미적용 배포 시 내 요청 내역 로드 실패·BROADCAST/복각 저장 실패, 사용자 수동) (`완료` - 2026-11-09 사용자 적용·검증 확인)
 - [ ] R47. [후속 · R33 리뷰 이관] ① `src/components/game/user-requests-card.tsx` `schedule_requests` 조회가 `is_rerun` 컬럼 부재(`42703`/`PGRST204`) 시 해당 컬럼 없이 재조회하도록 폴백 추가(`R33-REV-006`, P3), ② 관리자 일정 폼 복각 토글·`originalIsRerun` 수정 페이로드, `RequestSubmissionModal` EDIT 모드 `is_rerun: false` 분기, R33 마이그레이션 오류 문구, `/dashboard/games` ScheduleTree 배지 테스트 보강(`R33-REV-007`, P4) (담당: Claude Sonnet, Fallback: GitHub Copilot)
+- [ ] R48 (`Phase 12.39`). [진행 중 Run (`weekly-game-group-and-rerun-badge`), Step 1 Claude Sonnet `▶ READY`] 대시보드 주차별 리스트를 주차 카드 안에서 게임별 하위 그룹(아이콘·게임명 헤더, 시작일순 일정, 미연결 `기타`)으로 묶음 (2026-11-09 사용자 피드백, 담당: Claude Sonnet, Fallback: GitHub Copilot / Gemini 3.8 Flash)
+- [ ] R49 (`Phase 12.39`). [진행 중 Run (`weekly-game-group-and-rerun-badge`)] 공용 `ScheduleTypeBadge`로 일정 종류·복각 배지를 `[픽업 [복각]]` 형태로 통일하고 복각 칩 높이·기준선 불일치 해소(관리자 목록·게임 ScheduleTree·사이드바·주차 리스트), 사이드바 묶음 키에 복각 여부 포함 (2026-11-09 사용자 피드백)
 
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)
 

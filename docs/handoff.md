@@ -31,6 +31,34 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
+- **Run ID**: `weekly-game-group-and-rerun-badge` *(2026-11-09, `Phase 12.39` R48 주차별 리스트 게임별 묶음 + R49 일정 종류·복각 배지 `[픽업 [복각]]` 통합 및 높이 정렬)*
+- **Orchestrator**: Gemini 4 Argon *(본 Run 등록은 Claude Opus가 1순위 대체로 수행)*
+- **Worktree 경로**: `.worktrees/weekly-game-group-and-rerun-badge` (브랜치: `collab/weekly-game-group-and-rerun-badge`)
+- **리뷰 비교 범위**: Base `742e58ff77fcf0f404e9979ea0a65fa8d71497d7` ↔ Target `(Step 1 Maker 커밋 후 기록)` *(manifest 커밋 `a8f9a1d`)*
+- **배경 (사용자 피드백, 2026-11-09 배포 확인)**: 주차별 리스트는 게임별로 묶고 하위에 일정을 표시하는 편이 가시성이 좋음. 사이드바 복각 배지는 관리자 페이지처럼 `[픽업 [복각]]` 형태로 표시하되, 현재 `[복각]` 부분의 높이가 맞지 않는 문제를 검토함.
+- **원인 분석 (Orchestrator)**:
+  - 관리자·게임 ScheduleTree의 복각 칩은 `inline` 부모 배지(`text-xs py-0.5`) 안에 별도 `py-0.5 text-[10px]` 칩을 중첩해, 작은 글자가 부모 기준선에 붙고 칩 배경이 위아래로 비대칭으로 늘어남 → 높이 불일치의 원인임.
+  - 사이드바는 종류 배지와 분리된 제목 줄에 복각 칩을 붙이고, 묶음 키(`gameKey|schedule_type|start|end`)에 복각 여부가 없어 신규·복각 PICKUP이 한 묶음으로 합쳐짐.
+- **수용 기준 (Acceptance Criteria)**:
+  1. **Step 1 — 일정 종류 배지 통합·주차별 리스트 게임 묶음 (Claude Sonnet)**:
+     - **대상 파일 (`.worktrees/weekly-game-group-and-rerun-badge` 내부)**: `src/components/calendar/schedule-type-badge.tsx`(신규), `src/components/calendar/schedule-type-badge.test.tsx`(신규), `src/app/admin/page.tsx`, `src/app/dashboard/games/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/app/dashboard/page.tsx`, `docs/to-do.md`
+     - **구현 요구사항**:
+       - ① **공용 `ScheduleTypeBadge`**: `schedule_type`·`is_rerun`·크기(`sm` 사이드바/주차 리스트, `md` 관리자/게임 목록)를 받아 기존 종류별 색상(시맨틱 토큰 + 기존 CONTENTS 색상 유지)과 라벨(버전/픽업/콘텐츠/특별방송)을 렌더링함. 복각이면 같은 배지 안에 `[복각]` 칩을 넣어 `[픽업 [복각]]` 형태로 표시함.
+       - ② **높이 정렬**: 바깥 배지는 `inline-flex items-center gap-1 leading-none`, 안쪽 복각 칩은 세로 패딩 없이(`py-px` 이하) `leading-none`으로 맞춰 칩이 바깥 배지 높이를 늘리거나 기준선에서 어긋나지 않게 함. 복각 유무에 따라 바깥 배지 높이가 같아야 함.
+       - ③ **적용 범위**: `/admin` 일정 목록 2곳, `/dashboard/games` ScheduleTree, 사이드바(`HeroSidebarContent`, 모바일 드로어 공통), 주차별 리스트의 종류 배지를 `ScheduleTypeBadge`로 교체하고 기존 별도 복각 칩은 제거함. `/admin/requests`·내 요청 카드는 범위 외임.
+       - ④ **사이드바 묶음 키**: `is_rerun`을 묶음 키에 포함해 복각·신규 PICKUP을 별도 카드로 분리하고, 카드 상단 종류 배지에 `[픽업 [복각]]`을 표시함. 묶음 내부 항목별 복각 칩은 제거함.
+       - ⑤ **주차별 리스트 게임별 묶음**: 각 주차 카드 안에서 일정을 게임별 하위 그룹으로 묶음. 그룹 헤더에 게임 아이콘·게임명(가나다순), 하위에 `ScheduleTypeBadge`·제목·기간·`D-n`(시작일순)을 표시함. 게임 식별은 `gameId` 기준(`WeeklyScheduleEntry`에 `gameId` 추가, `page.tsx` 매핑 반영)이며 게임 미연결 일정은 `기타` 그룹으로 마지막에 둠. 지출 항목은 기존처럼 주차 하단 별도 `지출` 섹션으로 유지하고, 클릭 시 선택일·지출 상세 연동, `aria-pressed`, 이번 주 강조·소계는 그대로 유지함.
+       - ⑥ **테스트·문서**: 배지(라벨·복각 칩·크기), 사이드바 복각/신규 분리, 주차별 게임 그룹 헤더·정렬·`기타` 그룹 테스트를 추가하고 `docs/to-do.md` `R48`·`R49` 상태를 갱신함. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 커밋하고 Target SHA를 기록함.
+  2. **Step 2 — 정적 리뷰 및 Run 마감 (Gemini 4 Argon)**:
+     - Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Badge & Weekly Group UI)` | `Phase 12.39 (R48·R49)`: 수용 기준 Step 1. 공용 `ScheduleTypeBadge`, 복각 칩 높이 정렬, 사이드바 묶음 키 분리, 주차별 리스트 게임별 묶음 및 테스트 | `▶ 대기` |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 1 완료 후 진행` |
+
+### 🗂️ 이전 Run 기록 (완료): schedule-rerun-and-broadcast
+
 - **Run ID**: `schedule-rerun-and-broadcast` *(2026-11-09, `Phase 12.38` R33 일정 분류 세분화: `PICKUP` 복각 플래그 `is_rerun` + `BROADCAST`(특별방송) 일정 종류)*
 - **Orchestrator**: Gemini 4 Argon *(본 Run 등록은 Claude Opus가 1순위 대체로 수행)*
 - **Worktree 경로**: `.worktrees/schedule-rerun-and-broadcast` (브랜치: `collab/schedule-rerun-and-broadcast`)

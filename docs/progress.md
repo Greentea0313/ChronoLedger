@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## 배포 확인 피드백 반영 Run 등록: weekly-game-group-and-rerun-badge (R48·R49, 2026-11-09)
+
+- **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 1순위 대체)임.
+- **사용자 배포 확인 결과**: 관리자 일정 폼 특별방송 옵션·복각 체크박스, 내 요청 카드 종류 라벨 정상 확인됨.
+- **피드백**: ① 주차별 리스트를 게임별로 묶어 하위에 일정 표시(`R48`), ② 사이드바 복각 배지를 관리자 페이지처럼 `[픽업 [복각]]`로 표시하고 `[복각]` 높이 불일치 검토(`R49`)임.
+- **원인 분석**: 복각 칩이 `inline` 부모 배지 안에 별도 세로 패딩·작은 글자로 중첩되어 기준선이 어긋남. 사이드바 묶음 키에 복각 여부가 없어 신규·복각 PICKUP이 합쳐짐.
+- **격리 Worktree 생성**: `.worktrees/weekly-game-group-and-rerun-badge` (Base `742e58f`, manifest 커밋 `a8f9a1d`)임.
+- **과제 배정**: Step 1 UI (**Claude Sonnet** `▶ READY`) → Step 2 리뷰·병합 (**Gemini 4 Argon** `⏳ WAITING`, Fallback Claude Opus)임.
+
 ## R46 운영 DB 마이그레이션 적용 완료 (2026-11-09)
 
 - 사용자가 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql`을 실행하고 `sql/README.md` B표 확인 쿼리로 검증 완료함.
