@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "run_id": "r38-onboarding-and-game-order",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "dynamic-test",
+  "base_sha": "4ffd9014bee327e2fddd4e13f8e3506a1ed24893",
+  "target_sha": "c1cb27b4d41af75832c76dd006c02c93f5e906b7",
+  "status": "passed",
+  "created_at": "2026-11-09T05:45:58Z",
+  "finished_at": "2026-11-09T05:47:20Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Whitespace check of Base..Target diff", "command": "git diff --check 4ffd901 c1cb27b", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (54 files, 485 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}

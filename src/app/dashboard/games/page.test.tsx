@@ -86,6 +86,7 @@ describe("GamesPage", () => {
   let root: Root
 
   beforeEach(() => {
+    window.localStorage.clear()
     ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
     container = document.createElement("div")
     document.body.append(container)
@@ -612,6 +613,130 @@ describe("GamesPage", () => {
     expect(document.body.textContent).toContain(
       "관리자가 등록한 픽업, 버전 및 콘텐츠 업데이트 일정입니다."
     )
+  })
+
+  describe("R38 game order and onboarding", () => {
+    const cardTitles = () => Array.from(container.querySelectorAll("h3.truncate")).map((el) => el.textContent)
+    const orderButton = (kind: "위로" | "아래로", name: string) =>
+      container.querySelector(`button[aria-label="순서 ${kind}: ${name}"]`) as HTMLButtonElement
+
+    it("sorts my games by name by default and disables the outer move buttons", async () => {
+      await act(async () => root.render(<GamesPage />))
+
+      expect(cardTitles()).toEqual(["붕괴: 스타레일", "원신"])
+      expect(orderButton("위로", "붕괴: 스타레일").disabled).toBe(true)
+      expect(orderButton("아래로", "붕괴: 스타레일").disabled).toBe(false)
+      expect(orderButton("위로", "원신").disabled).toBe(false)
+      expect(orderButton("아래로", "원신").disabled).toBe(true)
+    })
+
+    it("moves a game and persists the new order for the user", async () => {
+      await act(async () => root.render(<GamesPage />))
+      await act(async () => {
+        Simulate.click(orderButton("위로", "원신"))
+      })
+
+      expect(cardTitles()).toEqual(["원신", "붕괴: 스타레일"])
+      expect(JSON.parse(window.localStorage.getItem("chronoledger:game-order:test-user-id") ?? "[]")).toEqual(["game-1", "game-2"])
+    })
+
+    it("applies a stored order on load and keeps unlisted games after it by name", async () => {
+      window.localStorage.setItem("chronoledger:game-order:test-user-id", JSON.stringify(["game-1"]))
+      await act(async () => root.render(<GamesPage />))
+
+      expect(cardTitles()).toEqual(["원신", "붕괴: 스타레일"])
+    })
+
+    describe("onboarding modal", () => {
+      const withNoSubscriptions = () => {
+        const insert = vi.fn().mockResolvedValue({ error: null })
+        from.mockImplementation((table: string) => {
+          const q = createQuery(table)
+          if (table === "user_games") {
+            q.then = vi.fn((resolve: (val: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve))
+            q.insert = insert
+          }
+          if (table === "games") {
+            q.order = vi.fn().mockResolvedValue({ data: [{ id: "game-1", name: "원신", default_icon_url: null }], error: null })
+          }
+          return q
+        })
+        return insert
+      }
+      const flushAll = async () => {
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 0))
+        })
+      }
+
+      beforeEach(() => {
+        window.localStorage.clear()
+      })
+
+      it("opens automatically for a signed-in user without subscriptions", async () => {
+        withNoSubscriptions()
+        await act(async () => root.render(<GamesPage />))
+        await flushAll()
+
+        expect(document.body.textContent).toContain("구독할 게임을 선택하세요")
+      })
+
+      it("stays closed once dismissed", async () => {
+        withNoSubscriptions()
+        window.localStorage.setItem("chronoledger:game-onboarding-dismissed:test-user-id", "1")
+        await act(async () => root.render(<GamesPage />))
+        await flushAll()
+
+        expect(document.body.textContent).not.toContain("구독할 게임을 선택하세요")
+      })
+
+      it("stays closed when the user already has subscriptions", async () => {
+        await act(async () => root.render(<GamesPage />))
+        await flushAll()
+
+        expect(document.body.textContent).not.toContain("구독할 게임을 선택하세요")
+      })
+
+      it("does not open for guests", async () => {
+        useAuth.mockReturnValue({ user: null, role: null })
+        await act(async () => root.render(<GamesPage />))
+        await flushAll()
+
+        expect(document.body.textContent).not.toContain("구독할 게임을 선택하세요")
+      })
+
+      it("subscribes in bulk, saves the order, closes and reloads the games", async () => {
+        const insert = withNoSubscriptions()
+        await act(async () => root.render(<GamesPage />))
+        await flushAll()
+        const userGamesLoadsBefore = from.mock.calls.filter(([table]) => table === "user_games").length
+
+        const start = Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent?.includes("선택한 게임 구독 시작")) as HTMLButtonElement
+        await act(async () => {
+          Simulate.click(start)
+        })
+        await flushAll()
+
+        expect(insert).toHaveBeenCalledWith([{ user_id: "test-user-id", game_id: "game-1" }])
+        expect(window.localStorage.getItem("chronoledger:game-order:test-user-id")).toBe('["game-1"]')
+        expect(document.body.textContent).not.toContain("구독할 게임을 선택하세요")
+        expect(from.mock.calls.filter(([table]) => table === "user_games").length).toBeGreaterThan(userGamesLoadsBefore)
+      })
+
+      it("dismisses via 나중에 직접 선택 and does not reopen", async () => {
+        withNoSubscriptions()
+        await act(async () => root.render(<GamesPage />))
+        await flushAll()
+        const later = Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent?.trim() === "나중에 직접 선택") as HTMLButtonElement
+        await act(async () => {
+          Simulate.click(later)
+        })
+        await flushAll()
+
+        expect(window.localStorage.getItem("chronoledger:game-onboarding-dismissed:test-user-id")).toBe("1")
+        expect(document.body.textContent).not.toContain("구독할 게임을 선택하세요")
+      })
+    })
   })
 
   describe("R36 game detail view", () => {

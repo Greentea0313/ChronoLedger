@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GameSelectModal } from "@/components/game/game-select-modal"
 import { RequestSubmissionModal } from "@/components/game/request-submission-modal"
+import { GameOnboardingModal } from "@/components/game/game-onboarding-modal"
+import { isGameOnboardingDismissed, loadGameOrder, moveGameInOrder, saveGameOrder, sortByGameOrder } from "@/lib/game-order-storage"
 import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-upload"
 import { resizeImageToWebP } from "@/lib/image-resizer"
 import { getKstToday } from "@/lib/dashboard-date"
@@ -20,7 +22,7 @@ import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
-import { Calendar, Check, ChevronLeft, ChevronRight, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
+import { Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
 
 const GAMES_PER_PAGE = 12
 
@@ -417,14 +419,25 @@ export default function GamesPage() {
       })
   }, [userId])
 
-  // 게임 이름 기준 가나다순 정렬
-  const sortedUserGames = useMemo(() => {
-    return [...userGames].sort((a, b) => {
-      const nameA = a.games?.name || ""
-      const nameB = b.games?.name || ""
-      return nameA.localeCompare(nameB, "ko")
-    })
-  }, [userGames])
+  // 사용자가 지정한 순서(localStorage)를 우선하고, 지정되지 않은 게임은 가나다순으로 뒤에 배치
+  const [gameOrder, setGameOrder] = useState<string[]>([])
+  // null = not read yet (localStorage is only available on the client)
+  const [onboardingDismissed, setOnboardingDismissed] = useState<boolean | null>(null)
+  useEffect(() => {
+    setGameOrder(loadGameOrder(userId))
+    setOnboardingDismissed(userId ? isGameOnboardingDismissed(userId) : null)
+  }, [userId])
+
+  const sortedUserGames = useMemo(
+    () => sortByGameOrder(userGames, gameOrder, (g) => g.game_id, (g) => g.games?.name || ""),
+    [userGames, gameOrder],
+  )
+
+  const handleMoveGame = (gameId: string, direction: "up" | "down") => {
+    const nextOrder = moveGameInOrder(sortedUserGames.map((g) => g.game_id), gameId, direction)
+    setGameOrder(nextOrder)
+    saveGameOrder(userId, nextOrder)
+  }
 
   const totalGamePages = Math.max(1, Math.ceil(sortedUserGames.length / GAMES_PER_PAGE))
 
@@ -764,6 +777,32 @@ export default function GamesPage() {
                           <h3 className="font-semibold text-content text-base truncate">{gameName}</h3>
                           <p className="text-xs text-content-secondary mt-0.5">공용 일정 연동 중</p>
                         </div>
+
+                        {/* 내 게임 표시 순서 변경 (전체 목록 기준) */}
+                        <div className="flex shrink-0 flex-col">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            aria-label={`순서 위로: ${gameName}`}
+                            disabled={sortedUserGames[0]?.id === ug.id}
+                            onClick={() => handleMoveGame(ug.game_id, "up")}
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            aria-label={`순서 아래로: ${gameName}`}
+                            disabled={sortedUserGames[sortedUserGames.length - 1]?.id === ug.id}
+                            onClick={() => handleMoveGame(ug.game_id, "down")}
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
 
                         {/* 게임별 상시 메모 영역 (고정 높이 h-20 + 스크롤) */}
@@ -931,6 +970,19 @@ export default function GamesPage() {
       </Card>
 
 
+
+      {userId && (
+        <GameOnboardingModal
+          open={!isLoading && !scheduleError && userGames.length === 0 && onboardingDismissed === false}
+          userId={userId}
+          onClose={() => setOnboardingDismissed(true)}
+          onSubscribed={() => {
+            setOnboardingDismissed(true)
+            setGameOrder(loadGameOrder(userId))
+            void loadGames()
+          }}
+        />
+      )}
 
       {/* 공식 일정 중앙 팝업 다이얼로그 */}
       <ScheduleDialog

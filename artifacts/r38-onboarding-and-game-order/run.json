@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "run_id": "r38-onboarding-and-game-order",
+  "created_at": "2026-11-09T05:32:39.7998714+00:00",
+  "objective": "Implement R38 (Phase 12.41 First-visit batch game subscription onboarding modal when subscribed games === 0 and custom subscribed game ordering reflected in /dashboard/games and /dashboard calendar icons & filter)",
+  "acceptance_criteria": [
+    "Step 1 (R38 UI & Storage, Claude Sonnet): Add game-order-storage.ts (loadGameOrder, saveGameOrder, sortByGameOrder, moveGameInOrder, onboarding dismiss helpers) with unit tests; add GameOnboardingModal for batch subscribing catalog games when a logged-in user has 0 subscribed games; add up/down game reorder controls in /dashboard/games and apply custom game order to /dashboard calendar day icons and gameFilterOptions; add Vitest tests."
+  ],
+  "base_sha": "4ffd9014bee327e2fddd4e13f8e3506a1ed24893",
+  "target_sha": "c1cb27b4d41af75832c76dd006c02c93f5e906b7",
+  "branch": "collab/r38-onboarding-and-game-order",
+  "worktree_path": ".worktrees/r38-onboarding-and-game-order",
+  "max_iterations": 3,
+  "status": "completed"
+}
