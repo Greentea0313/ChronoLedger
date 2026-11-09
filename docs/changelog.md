@@ -1,4 +1,11 @@
 # 변경 이력
+## 2026-11-09 (R33 UI Step 2 완료 — `BROADCAST`·PICKUP 복각 표시)
+
+- 관리자 일정 등록/수정 및 사용자 일정 요청에 `BROADCAST` 특별방송 옵션과 PICKUP 전용 복각 토글을 추가함.
+- 관리자 요청/과거 일정, 캘린더 배너·사이드바·주차 목록, 게임 일정 트리에 특별방송 라벨과 복각 배지를 반영함.
+- 미적용 R33 마이그레이션의 컬럼 부재·CHECK 오류 안내와 수정 시 복각 해제 처리를 반영함.
+- 검증: tsc·lint, Vitest 50파일/415개, diff-check 통과함. 워크트리 커밋 `5ce5d22`임.
+
 ## 2026-11-09 (R33 DB Step 1 완료 — `BROADCAST` 일정 종류·PICKUP 복각 `is_rerun`)
 
 - `MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql`(멱등) 및 `SCHEMA.sql`에 `BROADCAST` 일정 종류, PICKUP 전용 `is_rerun` 컬럼·CHECK, 승인 RPC `is_rerun` 복사, 예정 지출 동기화 트리거 `BROADCAST` 포함을 반영함.

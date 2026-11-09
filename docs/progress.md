@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## R33 UI Maker 인계 완료: schedule-rerun-and-broadcast Step 2 (2026-11-09)
+
+- **수행 주체**: GitHub Copilot (Maker - General)임.
+- **커밋**: `.worktrees/schedule-rerun-and-broadcast`의 `5ce5d22`임.
+- **완료 내용**: 관리자·사용자 요청 폼에 `BROADCAST` 특별방송 및 PICKUP 복각 입력을 추가하고, 관리자 요청/과거 일정·캘린더·사이드바·주차 목록·게임 일정 트리에 라벨·배지를 반영함. 미적용 R33 마이그레이션 오류 안내와 수정 시 복각 해제 payload도 반영함.
+- **검증**: `npx tsc --noEmit`, `npm run lint`, 대상 테스트 7파일/96개, 전체 Vitest 50파일/415개, `git diff --check` 통과함.
+- **다음 단계**: Claude Opus가 Base `d09ba5c`와 Target `5ce5d22`를 비교해 통합 리뷰·산출물 마감·`main` 병합을 수행함.
+
 ## R33 DB Maker 인계 완료: schedule-rerun-and-broadcast Step 1 (2026-11-09)
 
 - **수행 주체**: Claude Opus (GPT Codex 1순위 대체, `⚠️ HANDOVER_NEEDED` 인수)임.
