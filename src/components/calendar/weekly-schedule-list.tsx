@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import { PickupAvatars, type PickupAvatar } from "@/components/calendar/pickup-avatars"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, groupDatesByWeek } from "@/lib/calendar-utils"
 import { cn } from "@/lib/utils"
@@ -11,6 +12,7 @@ export interface WeeklyScheduleEntry {
   title: string
   schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   is_rerun?: boolean
+  pickupAvatars?: PickupAvatar[]
   start_date: string
   end_date: string
   gameId?: string | null
@@ -180,6 +182,7 @@ export function WeeklyScheduleList({
                                 aria-pressed={selectedDate === targetDate}
                                 className="flex w-full flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
                               >
+                                <PickupAvatars avatars={schedule.pickupAvatars} size={24} />
                                 <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="sm" />
                                 <span className="min-w-0 flex-1 truncate font-medium text-content">{schedule.title}</span>
                                 <span className="text-xs text-content-muted">{`${schedule.start_date} ~ ${schedule.end_date}`}</span>

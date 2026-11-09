@@ -740,6 +740,7 @@ describe("GamesPage", () => {
   })
 
   describe("R36 game detail view", () => {
+    let pickupLookup: { select: ReturnType<typeof vi.fn>; in: ReturnType<typeof vi.fn> }
     const scheduleRows = [
       { id: "ver-now", game_id: "game-1", title: "1.0 버전", schedule_type: "VERSION", start_date: "2026-11-01", end_date: "2026-11-30", memo: null },
       { id: "air-1", game_id: "game-1", title: "진행 픽업", schedule_type: "PICKUP", is_rerun: true, start_date: "2026-11-05", end_date: "2026-11-15", memo: null },
@@ -755,9 +756,17 @@ describe("GamesPage", () => {
       { id: "e4", title: "취소됨", final_amount: 99999, status: "CANCELLED", target_date: "2026-11-04", end_date: null },
     ]
 
-    async function openSchedules(options: { expenses?: unknown; schedules?: unknown[] } = {}) {
+    async function openSchedules(options: { expenses?: unknown; schedules?: unknown[]; characters?: unknown[] | Error } = {}) {
       const queries: Record<string, ReturnType<typeof createQuery>> = {}
+      const characterLookup = { select: vi.fn(), in: vi.fn() }
+      characterLookup.select.mockReturnValue(characterLookup)
+      characterLookup.in.mockImplementation(() =>
+        options.characters instanceof Error
+          ? Promise.reject(options.characters)
+          : Promise.resolve({ data: options.characters ?? [], error: null }))
+      pickupLookup = characterLookup
       from.mockImplementation((table: string) => {
+        if (table === "game_characters") return characterLookup
         const q = createQuery(table)
         queries[table] = q
         if (table === "game_schedules") {
@@ -894,6 +903,48 @@ describe("GamesPage", () => {
       const labels = byTestId("schedule-type-badge").map((el) => el.textContent)
       expect(labels).toContain("특별방송")
       expect(labels).toContain("픽업복각")
+    })
+
+    describe("pickup avatars (R52)", () => {
+      const pickupSchedules = [
+        { id: "pk1", game_id: "game-1", title: "카프카 · 블랙 스완 픽업", schedule_type: "PICKUP", start_date: "2026-11-05", end_date: "2026-11-15", memo: null, pickup_character_ids: ["c1", "c2"], pickup_image_url: null },
+        { id: "pk2", game_id: "game-1", title: "이미지 픽업", schedule_type: "PICKUP", start_date: "2026-11-20", end_date: "2026-11-25", memo: null, pickup_character_ids: [], pickup_image_url: "data:image/webp;base64,own" },
+        { id: "pk3", game_id: "game-1", title: "레거시 픽업", schedule_type: "PICKUP", start_date: "2026-11-26", end_date: "2026-11-28", memo: null },
+      ]
+      const characters = [
+        { id: "c1", name: "카프카", default_icon_url: "data:image/webp;base64,a" },
+        { id: "c2", name: "블랙 스완", default_icon_url: "data:image/webp;base64,b" },
+      ]
+
+      it("looks up only the referenced characters with explicit columns and shows their avatars on PICKUP cards", async () => {
+        await openSchedules({ schedules: pickupSchedules, characters, expenses: [] })
+
+        expect(pickupLookup.select).toHaveBeenCalledWith("id, name, default_icon_url")
+        expect(pickupLookup.in).toHaveBeenCalledWith("id", ["c1", "c2"])
+        expect(document.body.querySelectorAll('img[alt="카프카"]').length).toBeGreaterThan(0)
+        expect(document.body.querySelectorAll('img[alt="블랙 스완"]').length).toBeGreaterThan(0)
+        expect((document.body.querySelector('img[alt="카프카"]') as HTMLImageElement).style.width).toBe("28px")
+      })
+
+      it("shows a directly uploaded pickup image as a single avatar and leaves legacy PICKUP cards plain", async () => {
+        await openSchedules({ schedules: pickupSchedules, characters, expenses: [] })
+
+        expect(document.body.querySelector('img[alt="이미지 픽업"]')?.getAttribute("src")).toBe("data:image/webp;base64,own")
+        const legacyCard = Array.from(document.body.querySelectorAll("div.rounded-lg")).find((el) => el.textContent?.includes("레거시 픽업")) as HTMLElement
+        expect(legacyCard.querySelector('[data-testid="pickup-avatars"]')).toBeNull()
+      })
+
+      it("does not query characters when no schedule references one", async () => {
+        await openSchedules({ schedules: scheduleRows, expenses: [] })
+        expect(pickupLookup.in).not.toHaveBeenCalled()
+      })
+
+      it("keeps the schedules usable when the character lookup fails", async () => {
+        await openSchedules({ schedules: pickupSchedules, characters: new Error("network"), expenses: [] })
+
+        expect(document.body.textContent).toContain("카프카 · 블랙 스완 픽업")
+        expect(document.body.querySelector('img[alt="카프카"]')).toBeNull()
+      })
     })
   })
 })

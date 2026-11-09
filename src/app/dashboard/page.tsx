@@ -15,6 +15,7 @@ import {
 } from "@/lib/calendar-bg-storage"
 import { HeroSidebar, type HeroExpenseItem, type HeroScheduleItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
+import { getPickupAvatars } from "@/components/calendar/pickup-avatars"
 import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, groupDatesByWeek, parseLocalDate } from "@/lib/calendar-utils"
 import { WeeklyScheduleList, type WeeklyExpenseEntry, type WeeklyScheduleEntry } from "@/components/calendar/weekly-schedule-list"
 import { GameOnboardingModal } from "@/components/game/game-onboarding-modal"
@@ -43,6 +44,8 @@ interface ScheduleRow {
   game_id: string
   is_official?: boolean
   is_rerun?: boolean
+  pickup_character_ids?: string[] | null
+  pickup_image_url?: string | null
   memo?: string | null
 }
 
@@ -551,6 +554,33 @@ export default function DashboardPage() {
     [schedules, activeGameIdSet],
   )
 
+  // Pickup avatars (spec §5.2, NR-10): only the characters referenced by the loaded schedules are fetched, with explicit
+  // columns so guests can read them too. A failed lookup just leaves the schedules without avatars.
+  const [pickupCharacters, setPickupCharacters] = useState<Record<string, { name: string; iconUrl: string | null }>>({})
+  const pickupIdsKey = useMemo(
+    () => Array.from(new Set(schedules.flatMap((schedule) => schedule.pickup_character_ids ?? []))).sort().join(","),
+    [schedules],
+  )
+  useEffect(() => {
+    if (!pickupIdsKey) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const result = await supabase.from("game_characters").select("id, name, default_icon_url").in("id", pickupIdsKey.split(","))
+        if (cancelled || !result || result.error || !Array.isArray(result.data)) return
+        setPickupCharacters((prev) => ({
+          ...prev,
+          ...Object.fromEntries(result.data.map((character) => [character.id, { name: character.name, iconUrl: character.default_icon_url ?? null }])),
+        }))
+      } catch {
+        // Avatars are optional.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [pickupIdsKey])
+
   const daySchedules = useMemo<HeroScheduleItem[]>(() => {
     const currentDaySchedules = subscribedSchedules
       .filter((s) => baseDate >= s.start_date && baseDate <= s.end_date)
@@ -568,6 +598,7 @@ export default function DashboardPage() {
           schedule_type: s.schedule_type,
           is_official: s.is_official ?? true,
           is_rerun: s.is_rerun === true,
+          pickupAvatars: getPickupAvatars(s, pickupCharacters),
           start_date: s.start_date,
           end_date: s.end_date,
           gameId: s.game_id,
@@ -577,7 +608,7 @@ export default function DashboardPage() {
         }
       })
     },
-    [baseDate, subscribedSchedules, allGamesMap, userGamesMap, gameIcons],
+    [baseDate, subscribedSchedules, allGamesMap, userGamesMap, gameIcons, pickupCharacters],
   )
 
   const handleSaveMemo = async (content: string) => {
@@ -690,6 +721,7 @@ export default function DashboardPage() {
           title: s.title,
           schedule_type: s.schedule_type,
           is_rerun: s.is_rerun === true,
+          pickupAvatars: getPickupAvatars(s, pickupCharacters),
           start_date: s.start_date,
           end_date: s.end_date,
           gameId: s.game_id || null,
@@ -697,7 +729,7 @@ export default function DashboardPage() {
           iconUrl: (s.game_id ? gameIcons[s.game_id] : undefined) || gameInfo?.iconUrl,
         }
       }),
-    [subscribedSchedules, allGamesMap, userGamesMap, gameIcons],
+    [subscribedSchedules, allGamesMap, userGamesMap, gameIcons, pickupCharacters],
   )
 
   const weeklyExpenses = useMemo<WeeklyExpenseEntry[] | null>(() => {

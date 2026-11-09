@@ -121,6 +121,20 @@ describe("WeeklyScheduleList", () => {
     expect(within(current).getByRole("region", { name: "게임 가 일정" }).contains(section)).toBe(false)
   })
 
+  it("shows 24px pickup avatars on PICKUP rows only", () => {
+    renderList({
+      schedules: [
+        { id: "p", title: "카프카 픽업", schedule_type: "PICKUP", start_date: "2026-11-09", end_date: "2026-11-12", gameId: "g1", gameName: "게임 가", pickupAvatars: [{ id: "c1", name: "카프카", iconUrl: "data:image/webp;base64,a" }] },
+        { id: "v", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-11-09", end_date: "2026-11-30", gameId: "g1", gameName: "게임 가" },
+      ],
+    })
+    const current = screen.getAllByTestId("week-group").find((group) => group.getAttribute("data-current-week") === "true") as HTMLElement
+
+    const avatar = within(current).getByAltText("카프카") as HTMLImageElement
+    expect(avatar.style.width).toBe("24px")
+    expect(within(current).getAllByTestId("pickup-avatars")).toHaveLength(1)
+  })
+
   it("hides expenses and subtotals in guest mode (expenses = null)", () => {
     renderList({ expenses: null })
     expect(screen.queryByTestId("week-subtotal")).toBeNull()
