@@ -34,7 +34,7 @@
 - **Run ID**: `r13-4-breakthrough-guest-and-schedule-tree` *(2026-11-09, `Phase 13.4` R43 캐릭터 메모 제거·컴팩트 타일 그리드·즐겨찾기 금색 테두리/상단 노출·게임별 최대 돌파 `max_breakthrough` 및 좌하단 `n★` 배지 + `Phase 12.35` R41 게스트 모드 공식 일정 열람·R42 게임별 일정 `ON AIR` 상단 고정 & 버전별 아코디언 트리 + `Phase 12.36` R44 UI 밀도 개선)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree` (브랜치: `collab/r13-4-breakthrough-guest-and-schedule-tree`)
-- **리뷰 비교 범위**: Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Target `<Step 3 완료 시 커밋 SHA>` *(Step 4 Orchestrator/Reviewer가 manifest `target_sha` 기록. 다중 PC 전환 시 미병합 Worktree 브랜치도 `git push -u origin collab/r13-4-breakthrough-guest-and-schedule-tree`로 원격 동기화 권장)*
+- **리뷰 비교 범위**: Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Target `d5b75ebeff65a48e6f86c90a3ec74921809be30b` *(Step 4 Orchestrator/Reviewer가 manifest `target_sha` 기록. 다중 PC 전환 시 미병합 Worktree 브랜치도 `git push -u origin collab/r13-4-breakthrough-guest-and-schedule-tree`로 원격 동기화 권장)*
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — `Phase 13.4-DB & R41-RLS` 게임별 최대 돌파·캐릭터 즐겨찾기/돌파 컬럼·트리거 및 게스트 공식 일정 읽기 RLS 구현 (GPT Codex)**:
      - **권위 명세**: [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) **§8 Phase 13.4 Specification Amendment**.
@@ -89,9 +89,9 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: ba49f135582d44fa4c9458fc45a76752baf07fd9)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.4-DB & R41-RLS`: `max_breakthrough`, 캐릭터 즐겨찾기/돌파 단계와 상한 트리거, 게스트 승인 게임·공식 일정 SELECT 정책, 타입·문서·SQL 스모크 구현함. | `✅ ba49f13: 신규 SCHEMA 적용, migration 2회 멱등성 및 전체 TESTS.sql PASS. tsc/lint 통과, Vitest 48파일/385개 통과. 임시 PostgreSQL 17 stub DB만 사용함.`
-| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Character UI & Admin)` | `Phase 13.4-UI (R43)`: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree`에서 `/admin` 게임 `max_breakthrough` 설정, 캐릭터 메모 UI 제거, 컴팩트 타일 그리드, 즐겨찾기 금색 테두리·상단 노출, 좌하단 `n★` 배지 및 클릭 설정 모달/팝오버 + 테스트 구현 | `▶ Step 1 완료. 동일 Worktree에서 진행 가능.`
-| **3** | `⏳ WAITING` | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Guest Mode, Schedule Tree & UI Density)` | `Phase 12.35 & 12.36 (R41·R42·R44)`: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree`에서 비로그인 게스트 모드 일정 열람, `/dashboard/games` 일정 모달 `ON AIR` 상단 고정 + `VERSION` 아코디언 하위 트리, 대시보드/게임/소비 카드 여백·밀도 개선 및 단위 테스트 구현 | `⏳ Step 2 완료 후 진행` |
-| **4** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Step 3 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 3 완료 후 진행` |
+| **2** | **`✅ DONE (SHA: 8ff4f4229049ea783e956a228966e4252943457c)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Character UI & Admin)` | `Phase 13.4-UI (R43)`: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree`에서 `/admin` 게임 `max_breakthrough` 설정, 캐릭터 메모 UI 제거, 컴팩트 타일 그리드, 즐겨찾기 금색 테두리·상단 노출, 좌하단 `n★` 배지 및 클릭 설정 모달/팝오버 + 테스트 구현 | `✅ 8ff4f42: 관리자 max_breakthrough 입력, 메모 제거, 컴팩트 타일 그리드, 즐겨찾기 금색 테두리·상단 정렬, 좌하단 n★ 배지, 클릭 설정 모달(보유·즐겨찾기·돌파·아이콘) 구현. tsc/lint 통과, Vitest 48파일/394개 중 character·admin 테스트 통과(전체 실행 시 admin 1건 수정 후 해당 파일 재통과).`
+| **3** | **`✅ DONE (SHA: d5b75ebeff65a48e6f86c90a3ec74921809be30b)`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Guest Mode, Schedule Tree & UI Density)` | `Phase 12.35 & 12.36 (R41·R42·R44)` 구현함. 게스트 공식 일정 열람, 게임 일정 ON AIR·VERSION 트리, 소비 로그인 안내, UI 밀도 조정함. | `✅ d5b75eb: tsc/lint 통과, Vitest 48파일/394개 통과, diff --check 통과함.` |
+| **4** | **`▶ READY`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Target `d5b75ebeff65a48e6f86c90a3ec74921809be30b` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 3 완료. manifest target_sha 기록 및 정확한 SHA 기준 리뷰 필요함.` |
 
 ### 🗂️ 이전 Run 기록 (완료): r13-phase13-2-and-13-3-ui
 
