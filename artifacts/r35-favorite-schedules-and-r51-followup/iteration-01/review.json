@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "run_id": "r35-favorite-schedules-and-r51-followup",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "33829c96c43a23dec9301be466b3a59ab25edb98",
+  "target_sha": "13ca8fa7f4f8a2b6501996ea0417f69b90987204",
+  "status": "findings",
+  "created_at": "2026-11-10T02:10:00Z",
+  "findings": [
+    {
+      "id": "R35-REV-001",
+      "severity": "P2",
+      "file": "src/components/expense/expense-modal.tsx",
+      "line": 217,
+      "evidence": "The new favourite prefill (lines 269-276, 567-570) saves a planned game expense whose start_date/end_date are the schedule period while target_date is schedule.start_date, and schedule_id is the official VERSION that contains that date (matchingVersion, line 554). When that expense is later edited from /dashboard/expenses (expenses/page.tsx:641-654 passes start_date/end_date), edit mode infers `isVersionPass = start_date !== end_date` (lines 217-222). On save, `isVersionPass && matchingVersion` (line 563) rewrites start/end to the VERSION period and target_date to the VERSION end_date; if no version matches, the else branch collapses the period to the payment date because prefillPeriod is reset to null on open. Example: PICKUP 11-12..11-25 inside VERSION 11-05..12-03 -> saved as 11-12..11-25 (target 11-12); editing only the price saves 11-05..12-03 with target 12-03.",
+      "impact": "Editing any planned expense created from a favourite non-pass schedule silently moves its payment/target date and period (and with it the budget month it is attributed to) and shows the version-pass checkbox as checked, although the user never chose a version pass.",
+      "recommendation": "Make edit-mode pass detection distinguish real version passes (e.g. treat as pass only when start_date !== end_date AND target_date === end_date, which is how version-pass rows are written at line 566), and keep a non-pass row's stored start/end period on edit while its date is unchanged (same rule as prefillPeriod). Add a Vitest case: open edit mode with {target 11-12, start 11-12, end 11-25} and a matching VERSION, save, and assert the update payload keeps target/start/end and that the pass checkbox is unchecked."
+    },
+    {
+      "id": "R35-REV-002",
+      "severity": "P3",
+      "file": "src/components/expense/expense-modal.tsx",
+      "line": 362,
+      "evidence": "For a favourite VERSION schedule the spec requires `schedule_id = schedule.id`, but the prefill only sets the date and relies on `matchingVersion = schedules.find(s => s.start_date <= paymentDate && paymentDate <= s.end_date)` over versions ordered by start_date. If the previous version's end_date is on or after the favourite version's start_date (versions that hand over on maintenance day), the previous version is found first. ExpensePrefill (lines 67-75) does not carry the schedule id, so the modal cannot prefer it.",
+      "impact": "The planned expense can be linked to and labelled with the wrong (previous) version, and later version date edits sync it through the wrong schedule.",
+      "recommendation": "Add an optional `schedule_id` to ExpensePrefill (set only for VERSION schedules) and let matchingVersion prefer that schedule while paymentDate lies within its period; cover the touching-boundary case in expense-modal.test.tsx."
+    },
+    {
+      "id": "R35-REV-003",
+      "severity": "P4",
+      "file": "src/app/dashboard/page.tsx",
+      "line": 598,
+      "evidence": "handleToggleFavorite, the favourite loader and the missing-table check are duplicated almost verbatim in src/app/dashboard/games/page.tsx:470-540. Neither copy guards in-flight writes, so a quick second click on the same star sends delete and insert concurrently and the optimistic local state can end opposite to the server until reload.",
+      "impact": "Low: rare visual mismatch after rapid double clicks, and two copies to keep in sync.",
+      "recommendation": "Optionally extract a small shared hook (e.g. useFavoriteSchedules(userId)) and ignore toggles for a schedule id whose write is still pending. Can be deferred."
+    }
+  ]
+}
