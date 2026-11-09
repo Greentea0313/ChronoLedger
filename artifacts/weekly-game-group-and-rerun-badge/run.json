@@ -1,0 +1,16 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "weekly-game-group-and-rerun-badge",
+    "created_at":  "2026-11-09T04:41:55.2161752+00:00",
+    "objective":  "Group the dashboard weekly list by game and unify schedule type/rerun badges as [type [rerun]] with aligned height across admin, games, sidebar and weekly list",
+    "acceptance_criteria":  [
+                                "Step 1 (UI, Claude Sonnet): add a shared ScheduleTypeBadge (src/components/calendar/schedule-type-badge.tsx) rendering [type [rerun]] with the rerun chip vertically centred inside the type badge (inline-flex items-center, leading-none, no extra vertical padding); use it in admin schedule lists, games ScheduleTree, hero sidebar and weekly list; hero sidebar groups by is_rerun as well and drops the separate per-item rerun chip; weekly list groups each week\u0027s schedules by game (icon + name header, game order by name, schedules sorted by start date) with expenses kept in a separate section; add Vitest tests.",
+                                "Step 2 (Review, Gemini 4 Argon): static review of Base..Target, review.json/test.json/run.json schema validation, main merge and docs closeout."
+                            ],
+    "base_sha":  "742e58ff77fcf0f404e9979ea0a65fa8d71497d7",
+    "target_sha":  null,
+    "branch":  "collab/weekly-game-group-and-rerun-badge",
+    "worktree_path":  ".worktrees/weekly-game-group-and-rerun-badge",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
