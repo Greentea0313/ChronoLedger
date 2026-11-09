@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Phase 12.35~12.36 게스트 모드·일정 트리 Maker 완료 (2026-11-09)
+
+- **수행 주체**: GitHub Copilot (Maker - General)임.
+- **커밋**: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree`의 `d5b75ebeff65a48e6f86c90a3ec74921809be30b`임.
+- **완료 내용**: 비로그인 게스트 대시보드·게임 목록 공식 일정 열람, 로그인 안내, 게임 일정 ON AIR 및 VERSION 아코디언 트리, 소비 화면 로그인 빈 상태, UI 밀도 조정함.
+- **검증**: `npm run lint`, `npx tsc --noEmit`, Vitest 48파일/394개, `git diff --check` 통과함.
+- **다음 단계**: Claude Opus / Gemini 4 Argon이 Base `6295a0e` ↔ Target `d5b75eb` 통합 리뷰 및 Run 마감 수행함.
+
 ## Phase 13.4 DB 및 R41 게스트 일정 RLS Maker 완료 (2026-11-09)
 
 - **수행 주체**: GPT Codex (Maker - Core & SQL/Types)임.
