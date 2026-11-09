@@ -33,6 +33,8 @@ type ScheduleRequest = {
   memo: string | null
   is_official?: boolean
   is_rerun?: boolean
+  pickup_character_ids?: string[] | null
+  pickup_image_url?: string | null
   admin_memo?: string | null
   request_status: string
   created_at: string | null
@@ -52,6 +54,16 @@ type CharacterRequest = {
   games?: { name: string } | null
 }
 
+// Fallback (RPC unavailable) copy of the pickup avatar source; only PICKUP requests carry it and only when present.
+function getPickupFallbackFields(request: ScheduleRequest) {
+  if (request.schedule_type !== "PICKUP") return {}
+  const ids = request.pickup_character_ids ?? []
+  return {
+    ...(ids.length > 0 ? { pickup_character_ids: ids } : {}),
+    ...(request.pickup_image_url ? { pickup_image_url: request.pickup_image_url } : {}),
+  }
+}
+
 export default function AdminRequestsPage() {
   const { user, role, isLoading: authLoading } = useAuth()
   const { replace } = useRouter()
@@ -64,6 +76,7 @@ export default function AdminRequestsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const isOnline = useOnlineStatus()
+  const [pickupCharacters, setPickupCharacters] = useState<Record<string, { name: string; iconUrl: string | null }>>({})
   const [defaultIconUrls, setDefaultIconUrls] = useState<Record<string, string>>({})
   const [defaultIconFiles, setDefaultIconFiles] = useState<Record<string, File>>({})
 
@@ -123,6 +136,24 @@ export default function AdminRequestsPage() {
 
       if (sError) throw sError
       setScheduleRequests(sData || [])
+
+      // Pickup avatars are decoration: look up only the referenced characters and never block the list on failure (NR-10).
+      const pickupIds = Array.from(new Set((sData ?? []).flatMap((request: ScheduleRequest) => request.pickup_character_ids ?? [])))
+      if (pickupIds.length > 0) {
+        try {
+          const { data: pickupData, error: pickupError } = await supabase
+            .from("game_characters")
+            .select("id, name, default_icon_url")
+            .in("id", pickupIds)
+          if (!pickupError && pickupData) {
+            setPickupCharacters(Object.fromEntries(
+              pickupData.map((character) => [character.id, { name: character.name, iconUrl: character.default_icon_url ?? null }]),
+            ))
+          }
+        } catch {
+          // Names fall back to a count in the card.
+        }
+      }
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "알 수 없는 오류"
@@ -286,6 +317,7 @@ export default function AdminRequestsPage() {
                   end_date: targetReq.end_date,
                   memo: targetReq.memo,
                   is_official: targetReq.is_official ?? true,
+                  ...getPickupFallbackFields(targetReq),
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", targetReq.target_schedule_id)
@@ -303,6 +335,7 @@ export default function AdminRequestsPage() {
                   end_date: targetReq.end_date,
                   memo: targetReq.memo,
                   is_official: targetReq.is_official ?? true,
+                  ...getPickupFallbackFields(targetReq),
                 })
 
               if (insertSchedErr) throw rpcError
@@ -597,6 +630,26 @@ export default function AdminRequestsPage() {
                     </div>
                     <p className="text-sm text-content-secondary">대상 게임: <span className="font-semibold text-content">{req.games?.name || '알 수 없음'}</span></p>
                     <p className="text-sm text-content-secondary mt-1">기간: {req.start_date || '미정'} ~ {req.end_date || '미정'}</p>
+                    {req.schedule_type === "PICKUP" && (req.pickup_character_ids?.length ?? 0) > 0 && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2" data-testid="pickup-request-characters">
+                        {(req.pickup_character_ids ?? []).map((characterId) => {
+                          const character = pickupCharacters[characterId]
+                          return (
+                            <span key={characterId} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 py-0.5 pl-0.5 pr-2 text-xs text-content">
+                              {character?.iconUrl && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={character.iconUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+                              )}
+                              {character?.name ?? "캐릭터"}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {req.schedule_type === "PICKUP" && req.pickup_image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={req.pickup_image_url} alt="픽업 캐릭터 이미지" className="mt-2 h-12 w-12 rounded-lg border border-line object-cover" />
+                    )}
                     {req.memo && <p className="text-sm text-content-secondary mt-2">메모: {req.memo}</p>}
                   </div>
                   <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">

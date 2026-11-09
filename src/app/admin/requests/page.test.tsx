@@ -361,6 +361,110 @@ describe("AdminRequestsPage", () => {
     expect(container.querySelector('[aria-label="Hero 캐릭터 요청 승인"]')).toBeNull()
   })
 
+  describe("pickup avatar source of schedule requests (R52)", () => {
+    const pickupRequest = {
+      id: "schedule-request-pickup",
+      game_id: "game-1",
+      target_schedule_id: null,
+      title: "카프카 픽업",
+      schedule_type: "PICKUP",
+      start_date: "2026-01-10",
+      end_date: "2026-01-20",
+      memo: null,
+      is_official: true,
+      pickup_character_ids: ["c1", "c2"],
+      pickup_image_url: null,
+      request_status: "PENDING",
+      created_at: "2026-01-02T00:00:00.000Z",
+      games: { name: "Sample RPG" },
+    }
+    const imageRequest = { ...pickupRequest, id: "schedule-request-image", title: "이미지 픽업", pickup_character_ids: [], pickup_image_url: "data:image/webp;base64,pk" }
+
+    function mockQueries(options: { schedules: unknown[]; characters?: { data: unknown[]; error: unknown } | "throw" }) {
+      scheduleQuery = createQueryBuilder({ data: options.schedules, error: null })
+      const lookup = {
+        select: vi.fn(),
+        in: vi.fn(),
+      }
+      lookup.select.mockReturnValue(lookup)
+      if (options.characters === "throw") lookup.in.mockRejectedValue(new Error("network"))
+      else lookup.in.mockResolvedValue(options.characters ?? { data: [], error: null })
+      from.mockImplementation((table: string) =>
+        table === "game_requests" ? gameQuery
+          : table === "character_requests" ? characterQuery
+            : table === "game_characters" ? lookup
+              : scheduleQuery,
+      )
+      return lookup
+    }
+    async function openScheduleTab() {
+      await renderPage()
+      const tab = Array.from(container.querySelectorAll('[role="tab"]')).find((element) => element.textContent?.includes("일정 요청"))
+      if (!tab) throw new Error("Expected the schedule request tab.")
+      await act(async () => {
+        Simulate.mouseDown(tab, { button: 0, ctrlKey: false })
+      })
+    }
+
+    it("looks up only the referenced characters and shows their names and icons", async () => {
+      const lookup = mockQueries({
+        schedules: [pickupRequest],
+        characters: { data: [
+          { id: "c1", name: "카프카", default_icon_url: "data:image/webp;base64,a" },
+          { id: "c2", name: "블랙 스완", default_icon_url: "data:image/webp;base64,b" },
+        ], error: null },
+      })
+      await openScheduleTab()
+
+      expect(lookup.select).toHaveBeenCalledWith("id, name, default_icon_url")
+      expect(lookup.in).toHaveBeenCalledWith("id", ["c1", "c2"])
+      const chips = container.querySelector('[data-testid="pickup-request-characters"]') as HTMLElement
+      expect(chips.textContent).toContain("카프카")
+      expect(chips.textContent).toContain("블랙 스완")
+      expect(chips.querySelectorAll("img")).toHaveLength(2)
+    })
+
+    it("does not query characters when no request references any", async () => {
+      const lookup = mockQueries({ schedules: [scheduleRequests[0]] })
+      await openScheduleTab()
+
+      expect(lookup.in).not.toHaveBeenCalled()
+      expect(container.querySelector('[data-testid="pickup-request-characters"]')).toBeNull()
+    })
+
+    it("keeps listing the request when the character lookup fails", async () => {
+      mockQueries({ schedules: [pickupRequest], characters: "throw" })
+      await openScheduleTab()
+
+      expect(container.textContent).toContain("카프카 픽업")
+      expect(container.querySelector('[data-testid="pickup-request-characters"]')?.textContent).toContain("캐릭터")
+      expect(container.textContent).not.toContain("데이터를 불러오는 중 오류가 발생했습니다")
+    })
+
+    it("previews a directly uploaded pickup image", async () => {
+      mockQueries({ schedules: [imageRequest] })
+      await openScheduleTab()
+
+      expect(container.querySelector('img[alt="픽업 캐릭터 이미지"]')?.getAttribute("src")).toBe("data:image/webp;base64,pk")
+    })
+
+    it("copies the pickup fields in the direct-insert fallback when the approve RPC fails", async () => {
+      mockQueries({ schedules: [pickupRequest], characters: { data: [], error: null } })
+      rpc.mockResolvedValueOnce({ error: new Error("rpc down") })
+      await openScheduleTab()
+
+      const approve = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.trim() === "승인")
+      await click(approve as HTMLElement)
+
+      expect(scheduleQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
+        game_id: "game-1",
+        schedule_type: "PICKUP",
+        pickup_character_ids: ["c1", "c2"],
+      }))
+      expect(scheduleQuery.insert.mock.calls[0][0]).not.toHaveProperty("pickup_image_url")
+    })
+  })
+
   it("does not show the duplicate direct-game registration card", async () => {
     await renderPage()
     expect(container.textContent).not.toContain("관리자 직접 게임 추가")
