@@ -20,7 +20,7 @@ type Schedule = {
   id: string
   game_id: string
   title: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   is_official?: boolean
   start_date: string
   end_date: string
@@ -38,7 +38,7 @@ type ScheduleRequest = {
   game_id: string
   target_schedule_id: string | null
   title: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   is_official: boolean
   start_date: string
   end_date: string
@@ -80,7 +80,7 @@ export function RequestSubmissionModal({
   const [gameId, setGameId] = useState("")
   const [targetScheduleId, setTargetScheduleId] = useState("")
   const [title, setTitle] = useState("")
-  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS">("VERSION")
+  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST">("VERSION")
   const [isOfficial, setIsOfficial] = useState(true)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")

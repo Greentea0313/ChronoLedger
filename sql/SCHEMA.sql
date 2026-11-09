@@ -421,14 +421,16 @@ CREATE TABLE public.game_schedules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     title VARCHAR(150) NOT NULL,
-    schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS')),
+    schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS', 'BROADCAST')),
+    is_rerun BOOLEAN NOT NULL DEFAULT false,
     is_official BOOLEAN NOT NULL DEFAULT true,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     memo TEXT,
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT chk_schedule_dates CHECK (end_date >= start_date)
+    CONSTRAINT chk_schedule_dates CHECK (end_date >= start_date),
+    CONSTRAINT chk_game_schedules_rerun_pickup CHECK (is_rerun = false OR schedule_type = 'PICKUP')
 );
 
 -- 6. 일반 유저 일정 추가/수정 건의 요청 테이블
@@ -438,7 +440,8 @@ CREATE TABLE public.schedule_requests (
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     target_schedule_id UUID REFERENCES public.game_schedules(id) ON DELETE SET NULL, -- 수정 요청 시 대상 일정
     title VARCHAR(150) NOT NULL,
-    schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS')),
+    schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS', 'BROADCAST')),
+    is_rerun BOOLEAN NOT NULL DEFAULT false,
     is_official BOOLEAN NOT NULL DEFAULT true,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -446,7 +449,8 @@ CREATE TABLE public.schedule_requests (
     memo TEXT,
     admin_memo TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT chk_req_dates CHECK (end_date >= start_date)
+    CONSTRAINT chk_req_dates CHECK (end_date >= start_date),
+    CONSTRAINT chk_schedule_requests_rerun_pickup CHECK (is_rerun = false OR schedule_type = 'PICKUP')
 );
 
 -- 7. 유저 개인 캘린더 메모 (타일 도트 힌트용)
@@ -1462,7 +1466,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 CREATE OR REPLACE FUNCTION public.sync_version_expenses_trigger() 
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS')
+    IF NEW.schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS', 'BROADCAST')
        AND (NEW.start_date IS DISTINCT FROM OLD.start_date OR NEW.end_date IS DISTINCT FROM OLD.end_date) THEN
         UPDATE public.expenses
         SET start_date = NEW.start_date,
@@ -1500,13 +1504,13 @@ BEGIN
         RAISE EXCEPTION '승인 대기 중인 일정 요청이 아닙니다.';
     END IF;
     IF v_request.target_schedule_id IS NULL THEN
-        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo, is_official)
-        VALUES (v_request.game_id, v_request.title, v_request.schedule_type, v_request.start_date, v_request.end_date, v_request.memo, v_request.is_official);
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo, is_official, is_rerun)
+        VALUES (v_request.game_id, v_request.title, v_request.schedule_type, v_request.start_date, v_request.end_date, v_request.memo, v_request.is_official, v_request.is_rerun);
     ELSE
         UPDATE public.game_schedules
         SET title = v_request.title, schedule_type = v_request.schedule_type,
             start_date = v_request.start_date, end_date = v_request.end_date, memo = v_request.memo,
-            is_official = v_request.is_official,
+            is_official = v_request.is_official, is_rerun = v_request.is_rerun,
             updated_at = NOW()
         WHERE id = v_request.target_schedule_id AND game_id = v_request.game_id;
         IF NOT FOUND THEN RAISE EXCEPTION '요청 대상 일정이 없거나 게임이 일치하지 않습니다.'; END IF;

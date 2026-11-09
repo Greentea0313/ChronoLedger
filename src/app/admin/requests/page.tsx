@@ -27,7 +27,7 @@ type ScheduleRequest = {
   game_id: string
   target_schedule_id?: string | null
   title: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   start_date: string
   end_date: string
   memo: string | null
