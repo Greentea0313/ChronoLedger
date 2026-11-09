@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "run_id": "dashboard-summary-dday-and-week-list",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "static-review",
+  "base_sha": "d56d211bb9d75ba9016e885dc646c201cdca0ed6",
+  "target_sha": "ab930c5baa8b2211e25aeae2ceb725c194a6a9dc",
+  "status": "findings",
+  "created_at": "2026-11-09T02:52:00Z",
+  "findings": [
+    {
+      "id": "DSW-REV-001",
+      "severity": "P2",
+      "file": "src/app/dashboard/page.tsx",
+      "line": 658,
+      "evidence": "The R32 summary strip derives today/this-week counts and the this-week PLANNED total from `subscribedSchedules` and `expenses`, but both are loaded only for the viewed month grid (`getGridRange(year, month)` in `load`, lines 245-299: `game_schedules` `.lt(start_date, endDateExclusive).gte(end_date, startDate)`, `expenses` filtered by `target_date`/`end_date` inside the grid). The summary itself is keyed to KST today (`todayDate`) and never re-fetches its own range.",
+      "impact": "After the user navigates with the prev/next month controls (calendar or weekly list), the strip labelled `오늘 시작/오늘 마감/이번 주 진행/이번 주 예정 지출` silently shows 0 or a partial value whenever the viewed grid no longer covers today's week (e.g. two or more months away). This misreports the current week's planned spending and schedule counts, violating AC ② (summary must reflect KST today regardless of the viewed month).",
+      "recommendation": "Make the summary independent of the viewed month: either (a) in `load`, fetch a dedicated this-week range (schedules overlapping the Sunday-start week containing today and PLANNED expenses whose `end_date ?? target_date` falls in that week, applying the same official/unofficial and game-filter rules) into separate state used only by the summary, or (b) when the viewed grid does not contain today's week, reuse the last summary computed while it did instead of the view-month data. Add a page test that navigates months away and asserts the strip keeps today's values."
+    },
+    {
+      "id": "DSW-REV-002",
+      "severity": "P3",
+      "file": "src/components/calendar/weekly-schedule-list.tsx",
+      "line": 133,
+      "evidence": "`aria-pressed={selectedDate === schedule.start_date}` while the click handler selects `schedule.start_date >= week.weekStart ? schedule.start_date : week.weekStart`.",
+      "impact": "For schedules carried over from a previous week, clicking selects the week start, so the button never reports a pressed state and assistive technology announces an inconsistent toggle state.",
+      "recommendation": "Compute the select date once (e.g. `const selectDate = max(schedule.start_date, week.weekStart)`) and use it for both `onClick` and `aria-pressed`."
+    },
+    {
+      "id": "DSW-REV-003",
+      "severity": "P4",
+      "file": "src/components/calendar/weekly-schedule-list.tsx",
+      "line": 125,
+      "evidence": "Every empty week renders `EmptyState message=\"이번 주 일정이 없습니다.\"`, including weeks other than the KST current week.",
+      "impact": "Copy says `이번 주` (this week) on past/future weeks, which conflicts with the `이번 주` highlight badge semantics.",
+      "recommendation": "Use neutral copy such as `이 주에는 일정이 없습니다.` for all weeks."
+    }
+  ]
+}
