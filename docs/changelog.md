@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-09 (Phase 13.4 DB 및 R41 게스트 일정 RLS)
+
+- `games.max_breakthrough`, `user_characters.is_favorite`·`breakthrough_level`과 게임별 돌파 상한 트리거를 추가함. 기존 돌파 값은 상한 축소만으로 낮추지 않으며 사용자 증가/게임 변경은 상한 검증함.
+- 게스트 조회를 위해 anon에 승인 게임 및 공식 일정 SELECT 권한을 부여하고, 일정 RLS는 공식 일정만 허용함.
+- 신규 설치 SCHEMA, 재실행 migration, SQL 회귀 테스트, DB 타입과 SRS/SPEC/README를 동기화함.
+- 검증: tsc·lint·Vitest 48파일/385개, PostgreSQL 17 신규 스키마·migration 2회·전체 TESTS.sql 통과함. 커밋 `ba49f135582d44fa4c9458fc45a76752baf07fd9`임.
 
 ## 2026-11-09 (신규 협업 Run r13-4-breakthrough-guest-and-schedule-tree 등록 — R41~R44)
 

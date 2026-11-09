@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Phase 13.4 DB 및 R41 게스트 일정 RLS Maker 완료 (2026-11-09)
+
+- **수행 주체**: GPT Codex (Maker - Core & SQL/Types)임.
+- **커밋**: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree`의 `ba49f135582d44fa4c9458fc45a76752baf07fd9`임.
+- **완료 내용**: 게임 최대 돌파 상한, 사용자 즐겨찾기/돌파 컬럼 및 상한 검증 트리거, 게스트의 승인 게임·공식 일정 SELECT 권한, 회귀 SQL과 타입/SRS/SPEC/README 반영함.
+- **검증**: `tsc --noEmit`, `npm run lint`, Vitest 48파일/385개 통과함. 임시 PostgreSQL 17에서 신규 `SCHEMA.sql` 적용, migration 2회 실행, 전체 `TESTS.sql` 통과함. stub 환경 검증이며 운영 DB는 사용하지 않음.
+- **다음 단계**: Claude Sonnet이 Phase 13.4 캐릭터/관리자 UI 구현함. Step 2가 `▶ READY`임.
 
 ## 사용자 추가 요구사항(R41~R44) 구체화 및 신규 Run 등록: r13-4-breakthrough-guest-and-schedule-tree (2026-11-09)
 
