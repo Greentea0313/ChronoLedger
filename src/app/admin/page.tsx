@@ -21,7 +21,13 @@ import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
-import { normalizeMaxBreakthrough } from "@/lib/character-utils"
+import {
+  isCharacterTemplateActive,
+  normalizeClassificationSchema,
+  normalizeMaxBreakthrough,
+  type ClassificationAxis,
+  type ClassificationSchema,
+} from "@/lib/character-utils"
 import {
   Plus,
   Pencil,
@@ -65,46 +71,18 @@ interface GameOption {
   classification_schema: ClassificationSchema
 }
 
-type ClassificationAxis = {
-  key: string
-  label: string
-  options: string[]
-}
-
-type ClassificationSchema = {
-  rarities: string[]
-  axes: ClassificationAxis[]
-}
-
 const DEFAULT_MAX_PRESET_SLOTS = 4
+const MAX_PICKUP_CHARACTERS = 8
+const PICKUP_IMAGE_SIZE = 96
+const DEFAULT_CHARACTER_LABEL = "캐릭터"
+
+const getCharacterLabel = (schema: ClassificationSchema | undefined) => schema?.character_label || DEFAULT_CHARACTER_LABEL
 
 type GameFormAxis = { rowId: string; key: string; label: string; options: string }
 
 // Stable React key for axis rows so editing `key` does not remount (and blur) the input.
 let axisRowSequence = 0
 const nextAxisRowId = () => `axis-row-${++axisRowSequence}`
-
-function toStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
-}
-
-// Normalizes a raw DB value so malformed or missing schemas never crash the UI.
-function normalizeClassificationSchema(raw: unknown): ClassificationSchema {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { rarities: [], axes: [] }
-  }
-  const source = raw as { rarities?: unknown; axes?: unknown }
-  const axes: ClassificationAxis[] = []
-  if (Array.isArray(source.axes)) {
-    source.axes.forEach((axis) => {
-      if (!axis || typeof axis !== "object") return
-      const { key, label, options } = axis as { key?: unknown; label?: unknown; options?: unknown }
-      if (typeof key !== "string" || typeof label !== "string") return
-      axes.push({ key, label, options: toStringArray(options) })
-    })
-  }
-  return { rarities: toStringArray(source.rarities), axes }
-}
 
 function normalizeGameRow(row: {
   id: string
@@ -148,6 +126,8 @@ interface ScheduleItem {
   memo: string | null
   is_official?: boolean
   is_rerun?: boolean
+  pickup_character_ids?: string[] | null
+  pickup_image_url?: string | null
   games?: { id?: string; name?: string; default_icon_url?: string | null } | null
 }
 
@@ -187,6 +167,9 @@ export default function AdminPage() {
   const [gameFormMaxPresetSlots, setGameFormMaxPresetSlots] = useState("4")
   const [gameFormMaxBreakthrough, setGameFormMaxBreakthrough] = useState("6")
   const [gameFormRarities, setGameFormRarities] = useState("")
+  const [gameFormCharacterLabel, setGameFormCharacterLabel] = useState("")
+  // Game whose "create template" flow is open: after saving, the first character form opens automatically.
+  const [templateFlowGameId, setTemplateFlowGameId] = useState<string | null>(null)
   const [gameFormAxes, setGameFormAxes] = useState<GameFormAxis[]>([])
   const [acknowledgedRemovalWarning, setAcknowledgedRemovalWarning] = useState<string | null>(null)
   const [gameFormWarning, setGameFormWarning] = useState<string | null>(null)
@@ -238,6 +221,13 @@ export default function AdminPage() {
   const [gameId, setGameId] = useState("")
   const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST">("VERSION")
   const [isRerun, setIsRerun] = useState(false)
+  const [pickupCharacterIds, setPickupCharacterIds] = useState<string[]>([])
+  const [pickupImageSource, setPickupImageSource] = useState("")
+  const [pickupImageFile, setPickupImageFile] = useState<File | null>(null)
+  const [pickupSearch, setPickupSearch] = useState("")
+  const [originalPickupIds, setOriginalPickupIds] = useState<string[]>([])
+  const [originalPickupImage, setOriginalPickupImage] = useState<string | null>(null)
+  const [isTitleAutoFilled, setIsTitleAutoFilled] = useState(false)
   const [originalIsRerun, setOriginalIsRerun] = useState<boolean | null>(null)
   const [isOfficial, setIsOfficial] = useState(true)
   const [isSingleDate, setIsSingleDate] = useState(false)
@@ -380,10 +370,21 @@ export default function AdminPage() {
     void fetchPastSchedules()
   }
 
+  const resetPickupState = (ids: string[] = [], image: string | null = null) => {
+    setPickupCharacterIds(ids)
+    setPickupImageSource(image ?? "")
+    setPickupImageFile(null)
+    setPickupSearch("")
+    setIsTitleAutoFilled(false)
+  }
+
   const openAddModal = () => {
     setEditingScheduleId(null)
     setIsDuplicating(false)
     setOriginalIsRerun(null)
+    setOriginalPickupIds([])
+    setOriginalPickupImage(null)
+    resetPickupState()
     setGameId(selectedGameFilter || "")
     setScheduleType("VERSION")
     setIsRerun(false)
@@ -402,6 +403,9 @@ export default function AdminPage() {
     setEditingScheduleId(null)
     setIsDuplicating(true)
     setOriginalIsRerun(null)
+    setOriginalPickupIds([])
+    setOriginalPickupImage(null)
+    resetPickupState(schedule.pickup_character_ids ?? [], schedule.pickup_image_url ?? null)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
     setIsRerun(schedule.is_rerun === true)
@@ -419,6 +423,9 @@ export default function AdminPage() {
     setEditingScheduleId(schedule.id)
     setIsDuplicating(false)
     setOriginalIsRerun(schedule.is_rerun === true)
+    setOriginalPickupIds(schedule.pickup_character_ids ?? [])
+    setOriginalPickupImage(schedule.pickup_image_url ?? null)
+    resetPickupState(schedule.pickup_character_ids ?? [], schedule.pickup_image_url ?? null)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
     setIsRerun(schedule.is_rerun === true)
@@ -475,6 +482,25 @@ export default function AdminPage() {
 
     setIsSubmitting(true)
     setFormError(null)
+
+    // Pickup avatar source (spec §5.1): mode A stores character ids, mode B a 96x96 WebP data URL; never both (NR-03).
+    const isPickup = scheduleType === "PICKUP"
+    const nextPickupIds = isPickup ? pickupCharacterIds : []
+    let nextPickupImage: string | null = null
+    if (isPickup && nextPickupIds.length === 0 && (pickupImageFile || pickupImageSource.trim())) {
+      try {
+        nextPickupImage = await convertIconSourceToDataUrl(pickupImageFile ?? pickupImageSource.trim(), PICKUP_IMAGE_SIZE)
+      } catch (error: unknown) {
+        setIsSubmitting(false)
+        setFormError(error instanceof Error ? error.message : "픽업 캐릭터 이미지를 변환하지 못했습니다.")
+        return
+      }
+    }
+    // Write only what exists, and clear only what the original had (R33-REV-002 pattern, NR-11).
+    const pickupPayload = {
+      ...(nextPickupIds.length > 0 ? { pickup_character_ids: nextPickupIds } : editingScheduleId && originalPickupIds.length > 0 ? { pickup_character_ids: [] as string[] } : {}),
+      ...(nextPickupImage ? { pickup_image_url: nextPickupImage } : editingScheduleId && originalPickupImage ? { pickup_image_url: null } : {}),
+    }
     const schedulePayload = {
       game_id: gameId,
       schedule_type: scheduleType,
@@ -484,6 +510,17 @@ export default function AdminPage() {
       end_date: finalEndDate,
       memo: memo.trim() || null,
       ...(isRerun ? { is_rerun: true } : editingScheduleId && originalIsRerun ? { is_rerun: false } : {}),
+      ...pickupPayload,
+    }
+
+    const describeWriteError = (error: { code?: string; message?: string }, fallback: string) => {
+      const migrationError = error.code === "42703" || error.code === "PGRST204" || error.code === "23514"
+      if (Object.keys(pickupPayload).length > 0 && (migrationError || (error.message ?? "").includes("픽업 캐릭터"))) {
+        return "R52 마이그레이션이 적용되지 않았거나 픽업 캐릭터 조건(같은 게임의 캐릭터·최대 8명·픽업 일정 전용)을 위반했습니다. 관리자에게 DB 마이그레이션 적용을 요청해 주세요."
+      }
+      return migrationError
+        ? "R33 마이그레이션이 적용되지 않았거나 복각 조건이 올바르지 않습니다. 관리자에게 DB 마이그레이션 적용을 요청해 주세요."
+        : fallback + error.message
     }
 
     if (editingScheduleId) {
@@ -499,8 +536,7 @@ export default function AdminPage() {
       setIsSubmitting(false)
 
       if (error) {
-        const migrationError = error.code === "42703" || error.code === "PGRST204" || error.code === "23514"
-        setFormError(migrationError ? "R33 마이그레이션이 적용되지 않았거나 복각 조건이 올바르지 않습니다. 관리자에게 DB 마이그레이션 적용을 요청해 주세요." : "일정 수정에 실패했습니다: " + error.message)
+        setFormError(describeWriteError(error, "일정 수정에 실패했습니다: "))
       } else {
         setMessage({ type: "success", text: "일정이 성공적으로 수정되었습니다." })
         setIsModalOpen(false)
@@ -518,8 +554,7 @@ export default function AdminPage() {
       setIsSubmitting(false)
 
       if (error) {
-        const migrationError = error.code === "42703" || error.code === "PGRST204" || error.code === "23514"
-        setFormError(migrationError ? "R33 마이그레이션이 적용되지 않았거나 복각 조건이 올바르지 않습니다. 관리자에게 DB 마이그레이션 적용을 요청해 주세요." : "일정 추가에 실패했습니다: " + error.message)
+        setFormError(describeWriteError(error, "일정 추가에 실패했습니다: "))
       } else {
         setMessage({ type: "success", text: "일정이 성공적으로 추가되었습니다." })
         setIsModalOpen(false)
@@ -567,6 +602,7 @@ export default function AdminPage() {
     setGameFormMaxPresetSlots("4")
     setGameFormMaxBreakthrough("6")
     setGameFormRarities("")
+    setGameFormCharacterLabel("")
     setGameFormAxes([])
     setGameFormWarning(null)
     setAcknowledgedRemovalWarning(null)
@@ -580,6 +616,7 @@ export default function AdminPage() {
     setGameFormIconFile(null)
     setGameFormError(null)
     const schema = game.classification_schema ?? { rarities: [], axes: [] }
+    setGameFormCharacterLabel(schema.character_label && schema.character_label !== DEFAULT_CHARACTER_LABEL ? schema.character_label : "")
     setGameFormMaxPresetSlots(String(game.max_preset_slots ?? 4))
     setGameFormMaxBreakthrough(String(game.max_breakthrough ?? 6))
     setGameFormRarities(schema.rarities.join(", "))
@@ -597,10 +634,16 @@ export default function AdminPage() {
   const getGameSchema = (gameId: string): ClassificationSchema =>
     games.find((game) => game.id === gameId)?.classification_schema ?? { rarities: [], axes: [] }
 
-  const handleOpenAddCharacter = () => {
+  // "Create template" / "edit template" both reuse the game form, which holds label, ranks, classes, slots and breakthrough.
+  const handleOpenTemplate = (game: GameOption) => {
+    handleOpenEditGame(game)
+    setTemplateFlowGameId(game.id)
+  }
+
+  const handleOpenAddCharacter = (targetGameId?: string) => {
     const firstGame = games[0]
     setEditingCharacter(null)
-    setCharacterFormGameId(firstGame?.id ?? "")
+    setCharacterFormGameId(targetGameId ?? (characterGameFilter || firstGame?.id) ?? "")
     setCharacterFormName("")
     setCharacterFormRarity("")
     setCharacterFormAttributes({})
@@ -649,8 +692,19 @@ export default function AdminPage() {
       return
     }
     const schema = getGameSchema(characterFormGameId)
+    const characterLabel = getCharacterLabel(schema)
     if (characterFormRarity && !schema.rarities.includes(characterFormRarity)) {
-      setCharacterFormError("선택한 성급이 해당 게임 설정에 없습니다.")
+      setCharacterFormError("선택한 등급이 해당 게임 설정에 없습니다.")
+      return
+    }
+    // Ranks are required only once the game has a rank list (NR-09); legacy games without ranks stay editable.
+    if (schema.rarities.length >= 1 && !characterFormRarity) {
+      setCharacterFormError(`${characterLabel} 등급을 선택해 주세요.`)
+      return
+    }
+    const missingAxis = schema.axes.find((axis) => !characterFormAttributes[axis.key]?.trim())
+    if (missingAxis) {
+      setCharacterFormError(`${missingAxis.label}을(를) 선택해 주세요.`)
       return
     }
     const attributes = Object.fromEntries(
@@ -672,7 +726,7 @@ export default function AdminPage() {
         : await supabase.from("game_characters").insert(payload)
       if (result.error) throw result.error
       setIsCharacterModalOpen(false)
-      setMessage({ type: "success", text: `캐릭터 '${name}'을(를) 저장했습니다.` })
+      setMessage({ type: "success", text: `${characterLabel} '${name}'을(를) 저장했습니다.` })
       await fetchCharacters()
     } catch (error: unknown) {
       setCharacterFormError(error instanceof Error ? error.message : "캐릭터 저장에 실패했습니다.")
@@ -754,13 +808,18 @@ export default function AdminPage() {
       setGameFormError("최대 돌파 단계는 0~12 사이의 정수여야 합니다.")
       return
     }
+    const characterLabel = gameFormCharacterLabel.trim()
+    if (characterLabel.length > 20) {
+      setGameFormError("캐릭터 시스템 명칭은 20자 이내로 입력해 주세요.")
+      return
+    }
     const rarities = gameFormRarities.split(",").map((value) => value.trim()).filter(Boolean)
     if (rarities.length > 10 || rarities.some((value) => value.length > 20)) {
       setGameFormError("성급은 비어 있지 않은 문자열을 최대 10개까지 입력할 수 있습니다.")
       return
     }
     const axes: ClassificationAxis[] = []
-    for (let index = 0; index < Math.min(gameFormAxes.length, 3); index += 1) {
+    for (let index = 0; index < Math.min(gameFormAxes.length, 2); index += 1) {
       const axis = gameFormAxes[index]
       const options = axis.options.split(",").map((value) => value.trim()).filter(Boolean)
       const key = axis.key.trim() || `axis_${index + 1}`
@@ -771,6 +830,7 @@ export default function AdminPage() {
       }
       axes.push({ key, label, options })
     }
+    const classificationSchema = { ...(characterLabel ? { character_label: characterLabel } : {}), rarities, axes }
     if (editingGame) {
       const removedUsage = describeRemovedOptionUsage(editingGame, rarities, axes)
       if (removedUsage.length > 0) {
@@ -821,7 +881,7 @@ export default function AdminPage() {
           default_icon_url: defaultIconUrl,
           max_preset_slots: maxPresetSlots,
           max_breakthrough: maxBreakthrough,
-          classification_schema: { rarities, axes },
+          classification_schema: classificationSchema,
         })
         .eq("id", editingGame.id)
 
@@ -832,6 +892,15 @@ export default function AdminPage() {
       } else {
         setMessage({ type: "success", text: `'${trimmedName}' 게임 정보가 수정되었습니다.` })
         setIsGameModalOpen(false)
+        const continueWithFirstCharacter = templateFlowGameId === editingGame.id && rarities.length >= 1
+        setTemplateFlowGameId(null)
+        if (continueWithFirstCharacter) {
+          // Reflect the new template locally so the first character form already uses it.
+          setGames((prev) => prev.map((game) => (game.id === editingGame.id
+            ? { ...game, max_preset_slots: maxPresetSlots, max_breakthrough: maxBreakthrough, classification_schema: normalizeClassificationSchema(classificationSchema) }
+            : game)))
+          handleOpenAddCharacter(editingGame.id)
+        }
         void fetchGames()
       }
     } else {
@@ -841,7 +910,7 @@ export default function AdminPage() {
         default_icon_url: defaultIconUrl,
         max_preset_slots: maxPresetSlots,
         max_breakthrough: maxBreakthrough,
-        classification_schema: { rarities, axes },
+        classification_schema: classificationSchema,
         status: "APPROVED",
         created_by: user?.id ?? null,
       })
@@ -929,6 +998,55 @@ export default function AdminPage() {
     if (characterRarityFilter && character.rarity !== characterRarityFilter) return false
     return !characterSearchQuery.trim() || character.name.toLowerCase().includes(characterSearchQuery.trim().toLowerCase())
   })
+
+  const selectedCharacterGame = games.find((game) => game.id === characterGameFilter) ?? null
+  const selectedSchema = selectedCharacterGame?.classification_schema
+  const selectedCharacterCount = selectedCharacterGame
+    ? characters.filter((character) => character.game_id === selectedCharacterGame.id).length
+    : 0
+  const isSelectedTemplateActive = selectedCharacterGame ? isCharacterTemplateActive(selectedCharacterGame, selectedCharacterCount) : false
+  const selectedCharacterLabel = getCharacterLabel(selectedSchema)
+  const rankOrder = (rarity: string | null) => {
+    const index = rarity ? (selectedSchema?.rarities.indexOf(rarity) ?? -1) : -1
+    return index < 0 ? Number.MAX_SAFE_INTEGER : index
+  }
+  const tableCharacters = [...filteredCharacters].sort(
+    (a, b) => rankOrder(a.rarity) - rankOrder(b.rarity) || a.name.localeCompare(b.name, "ko"),
+  )
+
+  // Pickup avatar source of the schedule form: characters of the chosen game (mode A) or direct image (mode B).
+  const pickupGameCharacters = characters.filter((character) => character.game_id === gameId)
+  const pickupLabel = getCharacterLabel(games.find((game) => game.id === gameId)?.classification_schema)
+  const visiblePickupCharacters = pickupGameCharacters.filter((character) =>
+    !pickupSearch.trim() || character.name.toLowerCase().includes(pickupSearch.trim().toLowerCase()),
+  )
+
+  const togglePickupCharacter = (characterId: string) => {
+    const next = pickupCharacterIds.includes(characterId)
+      ? pickupCharacterIds.filter((id) => id !== characterId)
+      : pickupCharacterIds.length >= MAX_PICKUP_CHARACTERS ? pickupCharacterIds : [...pickupCharacterIds, characterId]
+    setPickupCharacterIds(next)
+    setPickupImageSource("")
+    setPickupImageFile(null)
+    // Auto-complete the title while it is empty or still the previous auto-generated one; manual edits stop it.
+    const names = next.map((id) => characters.find((character) => character.id === id)?.name).filter((name): name is string => !!name)
+    const autoTitle = names.length > 0 ? `${names.join(" · ")} 픽업` : ""
+    if (!title.trim() || isTitleAutoFilled) {
+      setTitle(autoTitle)
+      setIsTitleAutoFilled(autoTitle !== "")
+    }
+  }
+
+  const handlePickupImagePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const file = getClipboardImageFile(event.clipboardData)
+    if (!file) return
+    event.preventDefault()
+    setPickupImageFile(null)
+    setPickupImageSource("")
+    void convertIconSourceToDataUrl(file, PICKUP_IMAGE_SIZE)
+      .then(setPickupImageSource)
+      .catch((error: unknown) => setFormError(error instanceof Error ? error.message : "픽업 캐릭터 이미지를 변환하지 못했습니다."))
+  }
 
   const paginatedSchedules = filteredSchedules.slice(
     (currentSchedulePage - 1) * SCHEDULES_PER_PAGE,
@@ -1442,38 +1560,100 @@ export default function AdminPage() {
               aria-label="캐릭터 이름 검색"
               className="h-9 bg-surface-2"
             />
-            <Button className="sm:ml-auto" onClick={handleOpenAddCharacter}><Plus className="mr-1 h-4 w-4" />캐릭터 추가</Button>
+            <div className="flex gap-2 sm:ml-auto">
+              {selectedCharacterGame && isSelectedTemplateActive && (
+                <Button variant="outline" onClick={() => handleOpenTemplate(selectedCharacterGame)}>템플릿 설정 수정</Button>
+              )}
+              {(!selectedCharacterGame || isSelectedTemplateActive) && (
+                <Button onClick={() => handleOpenAddCharacter(selectedCharacterGame?.id)}>
+                  <Plus className="mr-1 h-4 w-4" />{selectedCharacterGame ? selectedCharacterLabel : DEFAULT_CHARACTER_LABEL} 추가
+                </Button>
+              )}
+            </div>
           </div>
-          <Card>
-            <CardHeader><CardTitle className="text-base">캐릭터 카탈로그</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              {filteredCharacters.length === 0 ? (
-                <p className="py-8 text-center text-sm text-content-secondary">조건에 맞는 캐릭터가 없습니다.</p>
-              ) : filteredCharacters.map((character) => (
-                <div key={character.id} className="flex items-center justify-between gap-3 rounded-lg border border-line p-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-content">{character.name}</p>
-                      <p className="text-xs text-content-secondary">
-                        {games.find((game) => game.id === character.game_id)?.name ?? "알 수 없음"} · {character.rarity ?? "성급 없음"} · {Object.values(character.attributes).join(", ")}
-                      </p>
+
+          {selectedCharacterGame && !isSelectedTemplateActive ? (
+            <Card>
+              <CardContent className="space-y-3 py-10 text-center">
+                <p className="text-sm text-content-secondary">{`${selectedCharacterGame.name}의 캐릭터 테이블이 아직 생성되지 않았습니다.`}</p>
+                <Button onClick={() => handleOpenTemplate(selectedCharacterGame)}>
+                  <Plus className="mr-1 h-4 w-4" />캐릭터 템플릿 생성
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader><CardTitle className="text-base">{selectedCharacterGame ? `${selectedCharacterLabel} 카탈로그` : "캐릭터 카탈로그"}</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                {selectedCharacterGame && (selectedSchema?.rarities.length ?? 0) === 0 && (
+                  <p role="status" className="rounded border border-warning/30 bg-warning/15 p-3 text-xs text-warning">
+                    등급이 설정되지 않은 게임입니다. [템플릿 설정 수정]에서 등급·분류 기준을 등록하면 등급별로 정리됩니다.
+                  </p>
+                )}
+                {filteredCharacters.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-content-secondary">조건에 맞는 캐릭터가 없습니다.</p>
+                ) : selectedCharacterGame && selectedSchema ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm" data-testid="character-table">
+                      <thead>
+                        <tr className="border-b border-line text-left text-xs text-content-secondary">
+                          <th className="py-2 pr-2">아이콘</th>
+                          <th className="py-2 pr-2">{`${selectedCharacterLabel} 이름`}</th>
+                          <th className="py-2 pr-2">등급</th>
+                          {selectedSchema.axes.map((axis) => <th key={axis.key} className="py-2 pr-2">{axis.label}</th>)}
+                          <th className="py-2 text-right">관리</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tableCharacters.map((character) => (
+                          <tr key={character.id} className="border-b border-line/60">
+                            <td className="py-2 pr-2">
+                              <div className="h-10 w-10 overflow-hidden rounded-lg border border-line">
+                                <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
+                              </div>
+                            </td>
+                            <td className="py-2 pr-2 font-semibold text-content">{character.name}</td>
+                            <td className="py-2 pr-2 text-content-secondary">{character.rarity ?? "-"}</td>
+                            {selectedSchema.axes.map((axis) => (
+                              <td key={axis.key} className="py-2 pr-2 text-content-secondary">{character.attributes[axis.key] ?? "-"}</td>
+                            ))}
+                            <td className="py-2">
+                              <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="outline" aria-label={`${character.name} 수정`} onClick={() => handleOpenEditCharacter(character)}>수정</Button>
+                                <Button size="sm" variant="destructive" aria-label={`${character.name} 삭제`} onClick={() => setDeletingCharacter(character)}>삭제</Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : filteredCharacters.map((character) => (
+                  <div key={character.id} className="flex items-center justify-between gap-3 rounded-lg border border-line p-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-content">{character.name}</p>
+                        <p className="text-xs text-content-secondary">
+                          {games.find((game) => game.id === character.game_id)?.name ?? "알 수 없음"} · {character.rarity ?? "성급 없음"} · {Object.values(character.attributes).join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleOpenEditCharacter(character)}>수정</Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setDeletingCharacter(character)}
+                      >
+                        삭제
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex shrink-0 gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleOpenEditCharacter(character)}>수정</Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => setDeletingCharacter(character)}
-                    >
-                      삭제
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -1689,7 +1869,10 @@ export default function AdminPage() {
                 id="schedule-game-select"
                 className="w-full bg-surface-2 border border-line rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 value={gameId}
-                onChange={(e) => setGameId(e.target.value)}
+                onChange={(e) => {
+                  setGameId(e.target.value)
+                  resetPickupState()
+                }}
                 required
               >
                 <option value="">게임을 선택하세요</option>
@@ -1710,7 +1893,10 @@ export default function AdminPage() {
                 onChange={(e) => {
                   const nextType = e.target.value as "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
                   setScheduleType(nextType)
-                  if (nextType !== "PICKUP") setIsRerun(false)
+                  if (nextType !== "PICKUP") {
+                    setIsRerun(false)
+                    resetPickupState()
+                  }
                 }}
               >
                 <option value="VERSION">버전 (VERSION)</option>
@@ -1725,6 +1911,65 @@ export default function AdminPage() {
                 복각 일정
               </label>
             )}
+            {scheduleType === "PICKUP" && gameId && (pickupGameCharacters.length > 0 ? (
+              <section aria-label={`픽업 ${pickupLabel} 선택`} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{`픽업 ${pickupLabel} 선택 (단일 또는 복수)`}</p>
+                  <span className="text-xs text-content-secondary">{`${pickupCharacterIds.length} / ${MAX_PICKUP_CHARACTERS}`}</span>
+                </div>
+                <Input
+                  aria-label="픽업 캐릭터 검색"
+                  value={pickupSearch}
+                  onChange={(event) => setPickupSearch(event.target.value)}
+                  placeholder={`${pickupLabel} 이름 검색`}
+                  className="h-8 bg-surface-2"
+                />
+                <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto" data-testid="pickup-character-picker">
+                  {visiblePickupCharacters.map((character) => {
+                    const selected = pickupCharacterIds.includes(character.id)
+                    return (
+                      <button
+                        key={character.id}
+                        type="button"
+                        aria-pressed={selected}
+                        disabled={!selected && pickupCharacterIds.length >= MAX_PICKUP_CHARACTERS}
+                        onClick={() => togglePickupCharacter(character.id)}
+                        className={`rounded-full border px-2.5 py-1 text-xs transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-50 ${
+                          selected ? "border-primary bg-primary/15 text-primary" : "border-line bg-surface-2 text-content-secondary hover:text-content"
+                        }`}
+                      >
+                        {character.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            ) : (
+              <div className="space-y-1.5">
+                <label htmlFor="schedule-pickup-image-url" className="block text-sm font-medium">픽업 캐릭터 이미지 (선택)</label>
+                <Input
+                  id="schedule-pickup-image-url"
+                  value={pickupImageSource.startsWith("data:image/webp;base64,") ? "" : pickupImageSource}
+                  onPaste={handlePickupImagePaste}
+                  onChange={(event) => {
+                    setPickupImageSource(event.target.value)
+                    setPickupImageFile(null)
+                  }}
+                  placeholder="https://... 또는 이미지 붙여넣기"
+                />
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  aria-label="픽업 캐릭터 이미지 파일"
+                  onChange={(event) => setPickupImageFile(event.target.files?.[0] ?? null)}
+                />
+                {pickupImageSource.startsWith("data:image/webp;base64,") && (
+                  <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
+                    <GameIcon src={pickupImageSource} alt="픽업 캐릭터 이미지 미리보기" />
+                  </div>
+                )}
+              </div>
+            ))}
 
             <div>
               <label htmlFor="schedule-official-select" className="block text-sm font-medium mb-1">일정 분류 *</label>
@@ -1744,7 +1989,10 @@ export default function AdminPage() {
               <Input
                 id="schedule-title-input"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value)
+                  setIsTitleAutoFilled(false)
+                }}
                 placeholder="일정 제목을 입력하세요"
                 required
               />
@@ -1890,7 +2138,7 @@ export default function AdminPage() {
       </Dialog>
 
       {/* 게임 등록 및 수정 모달 다이얼로그 */}
-      <Dialog open={isGameModalOpen} onOpenChange={setIsGameModalOpen}>
+      <Dialog open={isGameModalOpen} onOpenChange={(open) => { setIsGameModalOpen(open); if (!open) setTemplateFlowGameId(null) }}>
         <DialogContent className="max-w-md w-full overflow-hidden">
           <DialogHeader>
             <DialogTitle>
@@ -1971,6 +2219,16 @@ export default function AdminPage() {
               </div>
             )}
 
+            <div>
+              <label htmlFor="game-form-character-label" className="block text-sm font-medium mb-1">캐릭터 시스템 명칭</label>
+              <Input
+                id="game-form-character-label"
+                maxLength={20}
+                value={gameFormCharacterLabel}
+                onChange={(event) => setGameFormCharacterLabel(event.target.value)}
+                placeholder="공명자, 오퍼레이터, 에이전트 (비우면 '캐릭터')"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="game-form-max-slots" className="block text-sm font-medium mb-1">최대 프리셋 슬롯</label>
@@ -1982,13 +2240,13 @@ export default function AdminPage() {
               </div>
               <div>
                 <label htmlFor="game-form-rarities" className="block text-sm font-medium mb-1">성급 목록</label>
-                <Input id="game-form-rarities" value={gameFormRarities} onChange={(event) => setGameFormRarities(event.target.value)} placeholder="5★, 4★" />
+                <Input id="game-form-rarities" value={gameFormRarities} onChange={(event) => setGameFormRarities(event.target.value)} placeholder="5★, 4★ (최고 등급부터)" />
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium">분류 축 (최대 3개)</label>
-                <Button type="button" size="sm" variant="outline" onClick={() => setGameFormAxes((current) => current.length >= 3 ? current : [...current, { rowId: nextAxisRowId(), key: "", label: "", options: "" }])}>축 추가</Button>
+                <label className="block text-sm font-medium">분류 기준 (최대 2개)</label>
+                <Button type="button" size="sm" variant="outline" onClick={() => setGameFormAxes((current) => current.length >= 2 ? current : [...current, { rowId: nextAxisRowId(), key: `class${current.length + 1}`, label: "", options: "" }])}>축 추가</Button>
               </div>
               {gameFormAxes.map((axis, index) => (
                 <div key={axis.rowId}className="grid grid-cols-[1fr_1fr_2fr_auto] gap-2">
@@ -2098,49 +2356,58 @@ export default function AdminPage() {
       </Dialog>
       <Dialog open={isCharacterModalOpen} onOpenChange={setIsCharacterModalOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingCharacter ? "캐릭터 수정" : "캐릭터 추가"}</DialogTitle>
-            <DialogDescription>게임별 캐릭터와 분류 정보를 등록함.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSaveCharacter} className="space-y-4">
-            <div>
-              <label htmlFor="character-form-game" className="mb-1 block text-sm font-medium">대상 게임</label>
-              <select id="character-form-game" className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormGameId} onChange={(event) => { setCharacterFormGameId(event.target.value); setCharacterFormRarity(""); setCharacterFormAttributes({}) }}>
-                <option value="">게임을 선택하세요</option>
-                {games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="character-form-name" className="mb-1 block text-sm font-medium">캐릭터 이름</label>
-              <Input id="character-form-name" maxLength={100} value={characterFormName} onChange={(event) => setCharacterFormName(event.target.value)} />
-            </div>
-            <div>
-              <label htmlFor="character-form-rarity" className="mb-1 block text-sm font-medium">성급</label>
-              <select id="character-form-rarity" className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormRarity} onChange={(event) => setCharacterFormRarity(event.target.value)}>
-                <option value="">성급 없음</option>
-                {getGameSchema(characterFormGameId).rarities.map((rarity) => <option key={rarity} value={rarity}>{rarity}</option>)}
-              </select>
-            </div>
-            {getGameSchema(characterFormGameId).axes.map((axis) => (
-              <div key={axis.key}>
-                <label htmlFor={`character-form-axis-${axis.key}`} className="mb-1 block text-sm font-medium">{axis.label}</label>
-                <select id={`character-form-axis-${axis.key}`} className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormAttributes[axis.key] ?? ""} onChange={(event) => setCharacterFormAttributes((current) => ({ ...current, [axis.key]: event.target.value }))}>
-                  <option value="">선택하지 않음</option>
-                  {axis.options.map((option) => <option key={option} value={option}>{option}</option>)}
-                </select>
-              </div>
-            ))}
-            <div>
-              <label htmlFor="character-form-icon-url" className="mb-1 block text-sm font-medium">기본 아이콘 URL</label>
-              <Input id="character-form-icon-url" value={characterFormIconUrl.startsWith("data:image/webp;base64,") ? "" : characterFormIconUrl} onPaste={handleCharacterIconPaste} onChange={(event) => { setCharacterFormIconUrl(event.target.value); setCharacterFormIconFile(null) }} placeholder="https://..." />
-              <Input id="character-form-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 기본 아이콘 파일" onChange={(event) => setCharacterFormIconFile(event.target.files?.[0] ?? null)} className="mt-2" />
-            </div>
-            {characterFormError && <div role="alert" className="rounded border border-danger/30 bg-danger/20 p-3 text-sm text-danger">{characterFormError}</div>}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsCharacterModalOpen(false)}>취소</Button>
-              <Button type="submit" disabled={isSubmittingCharacter}>{isSubmittingCharacter ? "저장 중..." : "저장"}</Button>
-            </DialogFooter>
-          </form>
+          {(() => {
+            const formGame = games.find((game) => game.id === characterFormGameId)
+            const formSchema = formGame?.classification_schema ?? { rarities: [], axes: [] }
+            const formLabel = getCharacterLabel(formSchema)
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{`${formGame ? `${formGame.name} ` : ""}${formLabel} ${editingCharacter ? "수정" : "추가"}`}</DialogTitle>
+                  <DialogDescription>{`게임별 ${formLabel}와 등급·분류 정보를 등록함.`}</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSaveCharacter} className="space-y-4">
+                  <div>
+                    <label htmlFor="character-form-game" className="mb-1 block text-sm font-medium">대상 게임</label>
+                    <select id="character-form-game" className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormGameId} onChange={(event) => { setCharacterFormGameId(event.target.value); setCharacterFormRarity(""); setCharacterFormAttributes({}) }}>
+                      <option value="">게임을 선택하세요</option>
+                      {games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="character-form-name" className="mb-1 block text-sm font-medium">{`${formLabel} 이름 *`}</label>
+                    <Input id="character-form-name" maxLength={100} value={characterFormName} onChange={(event) => setCharacterFormName(event.target.value)} />
+                  </div>
+                  <div>
+                    <label htmlFor="character-form-rarity" className="mb-1 block text-sm font-medium">{formSchema.rarities.length >= 1 ? "등급 *" : "등급"}</label>
+                    <select id="character-form-rarity" className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormRarity} onChange={(event) => setCharacterFormRarity(event.target.value)}>
+                      <option value="">{formSchema.rarities.length >= 1 ? "등급 선택" : "등급 없음"}</option>
+                      {formSchema.rarities.map((rarity) => <option key={rarity} value={rarity}>{rarity}</option>)}
+                    </select>
+                  </div>
+                  {formSchema.axes.map((axis) => (
+                    <div key={axis.key}>
+                      <label htmlFor={`character-form-axis-${axis.key}`} className="mb-1 block text-sm font-medium">{`${axis.label} *`}</label>
+                      <select id={`character-form-axis-${axis.key}`} className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormAttributes[axis.key] ?? ""} onChange={(event) => setCharacterFormAttributes((current) => ({ ...current, [axis.key]: event.target.value }))}>
+                        <option value="">{`${axis.label} 선택`}</option>
+                        {axis.options.map((option) => <option key={option} value={option}>{option}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                  <div>
+                    <label htmlFor="character-form-icon-url" className="mb-1 block text-sm font-medium">{`${formLabel} 아이콘 *`}</label>
+                    <Input id="character-form-icon-url" value={characterFormIconUrl.startsWith("data:image/webp;base64,") ? "" : characterFormIconUrl} onPaste={handleCharacterIconPaste} onChange={(event) => { setCharacterFormIconUrl(event.target.value); setCharacterFormIconFile(null) }} placeholder="https://... 또는 이미지 붙여넣기" aria-label="기본 아이콘 URL" />
+                    <Input id="character-form-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 기본 아이콘 파일" onChange={(event) => setCharacterFormIconFile(event.target.files?.[0] ?? null)} className="mt-2" />
+                  </div>
+                  {characterFormError && <div role="alert" className="rounded border border-danger/30 bg-danger/20 p-3 text-sm text-danger">{characterFormError}</div>}
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsCharacterModalOpen(false)}>취소</Button>
+                    <Button type="submit" disabled={isSubmittingCharacter}>{isSubmittingCharacter ? "저장 중..." : "저장"}</Button>
+                  </DialogFooter>
+                </form>
+              </>
+            )
+          })()}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,12 +1,13 @@
 const MAX_INPUT_SIZE = 5 * 1024 * 1024;
 const IMAGE_FETCH_TIMEOUT_MS = 10_000;
 const IMAGE_PROXY_BASE_URL = "https://wsrv.nl/";
+const DEFAULT_OUTPUT_SIZE = 256;
 
 /**
  * 5MB 이하의 PNG/JPG/JPEG/WebP 이미지를 입력받아
- * 1:1 중앙 크롭 후 256x256 해상도의 WebP(100KB 이하)로 변환합니다.
+ * 1:1 중앙 크롭 후 outputSize(기본 256) 정방형 해상도의 WebP(100KB 이하)로 변환합니다.
  */
-export async function resizeImageToWebP(file: File): Promise<Blob> {
+export async function resizeImageToWebP(file: File, outputSize: number = DEFAULT_OUTPUT_SIZE): Promise<Blob> {
   // 1. 초기 용량(5MB 이하) 및 확장자 검사
   if (file.size > MAX_INPUT_SIZE) {
     throw new Error("원본 이미지는 5MB 이하만 업로드 가능합니다.");
@@ -25,18 +26,18 @@ export async function resizeImageToWebP(file: File): Promise<Blob> {
   const startX = (image.width - size) / 2;
   const startY = (image.height - size) / 2;
 
-  // 4. Canvas 설정 (256x256)
+  // 4. Canvas 설정 (outputSize x outputSize)
   const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = outputSize;
+  canvas.height = outputSize;
   const ctx = canvas.getContext("2d");
 
   if (!ctx) {
     throw new Error("Canvas를 지원하지 않는 브라우저입니다.");
   }
 
-  // 중앙 크롭 후 256x256으로 캔버스에 렌더링
-  ctx.drawImage(image, startX, startY, size, size, 0, 0, 256, 256);
+  // 중앙 크롭 후 outputSize로 캔버스에 렌더링
+  ctx.drawImage(image, startX, startY, size, size, 0, 0, outputSize, outputSize);
 
   // 5. WebP 변환 (품질 0.8~0.9 수준으로 압축)
   const blob = await new Promise<Blob | null>((resolve) => {
@@ -58,13 +59,17 @@ export async function resizeImageToWebP(file: File): Promise<Blob> {
   return blob;
 }
 
-export async function convertIconSourceToDataUrl(source: File | string): Promise<string> {
+/**
+ * File 또는 URL을 정방형 WebP Data URL로 변환합니다. 이미 WebP Data URL이면 그대로 반환하므로
+ * 기본 크기(256)가 아닌 outputSize를 쓰는 호출자는 자신이 만든 Data URL만 다시 넘겨야 합니다.
+ */
+export async function convertIconSourceToDataUrl(source: File | string, outputSize: number = DEFAULT_OUTPUT_SIZE): Promise<string> {
   if (typeof source === "string" && source.startsWith("data:image/webp;base64,")) {
     return source;
   }
 
-  const file = typeof source === "string" ? await fetchImageFile(source) : source;
-  const blob = await resizeImageToWebP(file);
+  const file = typeof source === "string" ? await fetchImageFile(source, outputSize) : source;
+  const blob = await resizeImageToWebP(file, outputSize);
   return readBlobAsDataUrl(blob);
 }
 
@@ -83,7 +88,7 @@ export function getClipboardImageFile(clipboardData: DataTransfer): File | null 
   return null;
 }
 
-async function fetchImageFile(url: string): Promise<File> {
+async function fetchImageFile(url: string, outputSize: number = DEFAULT_OUTPUT_SIZE): Promise<File> {
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(url);
@@ -100,8 +105,8 @@ async function fetchImageFile(url: string): Promise<File> {
   } catch {
     const proxyUrl = new URL(IMAGE_PROXY_BASE_URL);
     proxyUrl.searchParams.set("url", parsedUrl.toString());
-    proxyUrl.searchParams.set("w", "256");
-    proxyUrl.searchParams.set("h", "256");
+    proxyUrl.searchParams.set("w", String(outputSize));
+    proxyUrl.searchParams.set("h", String(outputSize));
     proxyUrl.searchParams.set("fit", "cover");
     proxyUrl.searchParams.set("output", "webp");
 

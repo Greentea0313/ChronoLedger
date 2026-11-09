@@ -249,6 +249,199 @@ describe("AdminPage - 일정 관리", () => {
     })
   })
 
+  describe("픽업 캐릭터 아바타 (R52)", () => {
+    const pickupCharacters = [
+      { id: "c1", game_id: "game-1", name: "카프카", rarity: null, attributes: {}, default_icon_url: "data:image/webp;base64,a" },
+      { id: "c2", game_id: "game-1", name: "블랙 스완", rarity: null, attributes: {}, default_icon_url: "data:image/webp;base64,b" },
+    ]
+    let charactersBuilder: ReturnType<typeof createQueryBuilder>
+
+    function renderWithCharacters(characters = pickupCharacters, schedules: unknown[] = mockSchedules) {
+      charactersBuilder = createQueryBuilder()
+      charactersBuilder.order.mockResolvedValue({ data: characters, error: null })
+      schedulesBuilder.order.mockResolvedValue({ data: schedules, error: null })
+      schedulesBuilder.insert.mockResolvedValue({ error: null })
+      schedulesBuilder.update.mockReturnValue(schedulesBuilder)
+      schedulesBuilder.eq.mockResolvedValue({ error: null })
+      from.mockImplementation((table: string) => {
+        if (table === "games") return gamesBuilder
+        if (table === "game_schedules") return schedulesBuilder
+        if (table === "game_characters") return charactersBuilder
+        return createQueryBuilder()
+      })
+      render(<AdminPage />)
+    }
+
+    async function openNewPickupForm(gameValue: string) {
+      fireEvent.click(await screen.findByRole("button", { name: "새 일정 등록" }))
+      fireEvent.change(screen.getByLabelText("게임 선택 *"), { target: { value: gameValue } })
+      fireEvent.change(screen.getByLabelText("일정 타입 *"), { target: { value: "PICKUP" } })
+    }
+    const fillDates = () => {
+      fireEvent.change(screen.getByLabelText("시작일 *"), { target: { value: "2026-10-01" } })
+      fireEvent.change(screen.getByLabelText("종료일 *"), { target: { value: "2026-10-20" } })
+    }
+
+    it("캐릭터가 등록된 게임은 캐릭터 피커를 보여주고 선택에 맞춰 제목을 자동 완성한다", async () => {
+      renderWithCharacters()
+      await openNewPickupForm("game-1")
+
+      expect(screen.getByText("픽업 캐릭터 선택 (단일 또는 복수)")).toBeTruthy()
+      expect(screen.queryByLabelText("픽업 캐릭터 이미지 파일")).toBeNull()
+      fireEvent.click(screen.getByRole("button", { name: "카프카" }))
+      expect((screen.getByLabelText("타이틀 *") as HTMLInputElement).value).toBe("카프카 픽업")
+      fireEvent.click(screen.getByRole("button", { name: "블랙 스완" }))
+      expect((screen.getByLabelText("타이틀 *") as HTMLInputElement).value).toBe("카프카 · 블랙 스완 픽업")
+      expect(screen.getByRole("button", { name: "카프카" }).getAttribute("aria-pressed")).toBe("true")
+    })
+
+    it("제목을 직접 수정하면 이후 선택이 제목을 덮어쓰지 않는다", async () => {
+      renderWithCharacters()
+      await openNewPickupForm("game-1")
+
+      fireEvent.click(screen.getByRole("button", { name: "카프카" }))
+      fireEvent.change(screen.getByLabelText("타이틀 *"), { target: { value: "직접 입력한 제목" } })
+      fireEvent.click(screen.getByRole("button", { name: "블랙 스완" }))
+
+      expect((screen.getByLabelText("타이틀 *") as HTMLInputElement).value).toBe("직접 입력한 제목")
+    })
+
+    it("선택한 캐릭터 ID를 순서대로 저장하고 이미지 키는 보내지 않는다", async () => {
+      renderWithCharacters()
+      await openNewPickupForm("game-1")
+      fireEvent.click(screen.getByRole("button", { name: "블랙 스완" }))
+      fireEvent.click(screen.getByRole("button", { name: "카프카" }))
+      fillDates()
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+      await waitFor(() => expect(schedulesBuilder.insert).toHaveBeenCalled())
+      const payload = schedulesBuilder.insert.mock.calls[0][0]
+      expect(payload).toMatchObject({ game_id: "game-1", schedule_type: "PICKUP", pickup_character_ids: ["c2", "c1"] })
+      expect(payload).not.toHaveProperty("pickup_image_url")
+      expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
+    })
+
+    it("픽업 캐릭터는 최대 8명까지만 선택할 수 있다", async () => {
+      const many = Array.from({ length: 9 }, (_, index) => ({ ...pickupCharacters[0], id: `m${index}`, name: `캐릭터${index}` }))
+      renderWithCharacters(many)
+      await openNewPickupForm("game-1")
+      many.slice(0, 8).forEach((character) => fireEvent.click(screen.getByRole("button", { name: character.name })))
+
+      expect((screen.getByRole("button", { name: "캐릭터8" }) as HTMLButtonElement).disabled).toBe(true)
+      expect(screen.getByText("8 / 8")).toBeTruthy()
+    })
+
+    it("캐릭터 검색으로 피커 목록을 좁힌다", async () => {
+      renderWithCharacters()
+      await openNewPickupForm("game-1")
+      fireEvent.change(screen.getByLabelText("픽업 캐릭터 검색"), { target: { value: "블랙" } })
+
+      expect(screen.queryByRole("button", { name: "카프카" })).toBeNull()
+      expect(screen.getByRole("button", { name: "블랙 스완" })).toBeTruthy()
+    })
+
+    it("캐릭터가 없는 게임은 이미지 입력란을 보여주고 96x96 WebP로 변환해 저장한다", async () => {
+      convertIconSourceToDataUrl.mockResolvedValue("data:image/webp;base64,pickup96")
+      renderWithCharacters([])
+      await openNewPickupForm("game-2")
+
+      expect(screen.queryByText("픽업 캐릭터 선택 (단일 또는 복수)")).toBeNull()
+      fireEvent.change(screen.getByLabelText("픽업 캐릭터 이미지 (선택)"), { target: { value: "https://example.com/pickup.png" } })
+      fireEvent.change(screen.getByLabelText("타이틀 *"), { target: { value: "수동 픽업" } })
+      fillDates()
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+      await waitFor(() => expect(schedulesBuilder.insert).toHaveBeenCalled())
+      expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.com/pickup.png", 96)
+      const payload = schedulesBuilder.insert.mock.calls[0][0]
+      expect(payload).toMatchObject({ pickup_image_url: "data:image/webp;base64,pickup96" })
+      expect(payload).not.toHaveProperty("pickup_character_ids")
+    })
+
+    it("이미지 변환에 실패하면 저장하지 않고 오류를 보여준다", async () => {
+      convertIconSourceToDataUrl.mockRejectedValue(new Error("이미지 URL을 가져오지 못했습니다."))
+      renderWithCharacters([])
+      await openNewPickupForm("game-2")
+      fireEvent.change(screen.getByLabelText("픽업 캐릭터 이미지 (선택)"), { target: { value: "https://bad.example/x.png" } })
+      fireEvent.change(screen.getByLabelText("타이틀 *"), { target: { value: "수동 픽업" } })
+      fillDates()
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+      expect(await screen.findByText("이미지 URL을 가져오지 못했습니다.")).toBeTruthy()
+      expect(schedulesBuilder.insert).not.toHaveBeenCalled()
+    })
+
+    it("PICKUP이 아닌 타입으로 바꾸면 픽업 선택을 비우고 페이로드에서 제외한다", async () => {
+      renderWithCharacters()
+      await openNewPickupForm("game-1")
+      fireEvent.click(screen.getByRole("button", { name: "카프카" }))
+      fireEvent.change(screen.getByLabelText("일정 타입 *"), { target: { value: "CONTENTS" } })
+      expect(screen.queryByText("픽업 캐릭터 선택 (단일 또는 복수)")).toBeNull()
+      fireEvent.change(screen.getByLabelText("타이틀 *"), { target: { value: "이벤트" } })
+      fillDates()
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+      await waitFor(() => expect(schedulesBuilder.insert).toHaveBeenCalled())
+      expect(schedulesBuilder.insert.mock.calls[0][0]).not.toHaveProperty("pickup_character_ids")
+    })
+
+    it("수정 시 원본에 있던 픽업 캐릭터를 비우면 빈 배열로 초기화하고, 타입을 바꾸면 함께 비운다", async () => {
+      const pickupSchedule = {
+        id: "schedule-pk",
+        game_id: "game-1",
+        schedule_type: "PICKUP",
+        title: "카프카 픽업",
+        start_date: "2026-09-01",
+        end_date: "2026-09-30",
+        memo: null,
+        pickup_character_ids: ["c1"],
+        pickup_image_url: null,
+        games: { id: "game-1", name: "원신" },
+      }
+      renderWithCharacters(pickupCharacters, [pickupSchedule])
+      fireEvent.click(await screen.findByRole("button", { name: "일정 수정: 카프카 픽업" }))
+      expect(screen.getByRole("button", { name: "카프카" }).getAttribute("aria-pressed")).toBe("true")
+
+      fireEvent.click(screen.getByRole("button", { name: "카프카" }))
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+      await waitFor(() => expect(schedulesBuilder.update).toHaveBeenCalled())
+      expect(schedulesBuilder.update.mock.calls[0][0]).toMatchObject({ pickup_character_ids: [] })
+    })
+
+    it("수정 시 원본에 이미지가 있고 캐릭터 모드로 바꾸면 이미지를 null로 비운다 (모드 상호 배타)", async () => {
+      const imageSchedule = {
+        id: "schedule-img",
+        game_id: "game-1",
+        schedule_type: "PICKUP",
+        title: "이미지 픽업",
+        start_date: "2026-09-01",
+        end_date: "2026-09-30",
+        memo: null,
+        pickup_character_ids: [],
+        pickup_image_url: "data:image/webp;base64,old",
+        games: { id: "game-1", name: "원신" },
+      }
+      renderWithCharacters(pickupCharacters, [imageSchedule])
+      fireEvent.click(await screen.findByRole("button", { name: "일정 수정: 이미지 픽업" }))
+      fireEvent.click(screen.getByRole("button", { name: "카프카" }))
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => expect(schedulesBuilder.update).toHaveBeenCalled())
+      expect(schedulesBuilder.update.mock.calls[0][0]).toMatchObject({ pickup_character_ids: ["c1"], pickup_image_url: null })
+    })
+
+    it("픽업 필드를 보낸 저장이 마이그레이션 오류나 트리거 예외로 실패하면 R52 안내를 보여준다", async () => {
+      renderWithCharacters()
+      schedulesBuilder.insert.mockResolvedValue({ error: { code: "P0001", message: "픽업 캐릭터는 같은 게임의 카탈로그에 있어야 합니다." } })
+      await openNewPickupForm("game-1")
+      fireEvent.click(screen.getByRole("button", { name: "카프카" }))
+      fillDates()
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+      expect(await screen.findByText(/R52 마이그레이션이 적용되지 않았거나 픽업 캐릭터 조건/)).toBeTruthy()
+    })
+  })
+
   describe("복각(is_rerun) 처리 (R33 회귀)", () => {
     const rerunSchedule = {
       id: "schedule-3",
@@ -931,7 +1124,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     await openCharacterTab()
 
     fireEvent.click(screen.getByRole("button", { name: "캐릭터 추가" }))
-    fireEvent.change(screen.getByLabelText("캐릭터 이름"), { target: { value: "신규" } })
+    fireEvent.change(screen.getByLabelText("캐릭터 이름 *"), { target: { value: "신규" } })
     fireEvent.click(screen.getByRole("button", { name: "저장" }))
 
     expect(await screen.findByText("캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")).toBeTruthy()
@@ -944,9 +1137,9 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     await openCharacterTab()
 
     fireEvent.click(screen.getByRole("button", { name: "캐릭터 추가" }))
-    fireEvent.change(screen.getByLabelText("캐릭터 이름"), { target: { value: "신규" } })
-    fireEvent.change(screen.getByLabelText("성급"), { target: { value: "5★" } })
-    fireEvent.change(screen.getByLabelText("속성"), { target: { value: "물" } })
+    fireEvent.change(screen.getByLabelText("캐릭터 이름 *"), { target: { value: "신규" } })
+    fireEvent.change(screen.getByLabelText("등급 *"), { target: { value: "5★" } })
+    fireEvent.change(screen.getByLabelText("속성 *"), { target: { value: "물" } })
     fireEvent.change(screen.getByLabelText("기본 아이콘 URL"), { target: { value: "https://example.com/new.png" } })
     fireEvent.click(screen.getByRole("button", { name: "저장" }))
 
@@ -960,5 +1153,192 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       })
     })
     expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.com/new.png")
+  })
+
+  describe("R52 동적 캐릭터 템플릿", () => {
+    const labeledGame = {
+      ...schemaGame,
+      classification_schema: {
+        character_label: "공명자",
+        rarities: ["5성", "4성"],
+        axes: [
+          { key: "element", label: "속성", options: ["기류", "전도"] },
+          { key: "weapon", label: "무기", options: ["직검", "권총"] },
+        ],
+      },
+    }
+    const labeledCharacters = [
+      { id: "c-low", game_id: "game-1", name: "가 낮은 등급", rarity: "4성", attributes: { element: "기류", weapon: "직검" }, default_icon_url: "data:image/webp;base64,a" },
+      { id: "c-high", game_id: "game-1", name: "나 높은 등급", rarity: "5성", attributes: { element: "전도", weapon: "권총" }, default_icon_url: "data:image/webp;base64,b" },
+    ]
+    const emptyGame = { id: "game-2", name: "신규게임", default_icon_url: "data:image/webp;base64,own", max_preset_slots: 4, max_breakthrough: 6, classification_schema: { rarities: [], axes: [] } }
+
+    async function openCharacterTabWith(games: unknown[], characters: unknown[]) {
+      gamesBuilder.order.mockResolvedValue({ data: games, error: null })
+      charactersBuilder.order.mockResolvedValue({ data: characters, error: null })
+      render(<AdminPage />)
+      fireEvent.click(await screen.findByRole("tab", { name: /캐릭터 관리/ }))
+      await screen.findByLabelText("캐릭터 게임 필터")
+    }
+    const selectGame = (id: string) => fireEvent.change(screen.getByLabelText("캐릭터 게임 필터"), { target: { value: id } })
+
+    it("게임을 선택하면 character_label 이름·등급·분류 컬럼의 동적 테이블을 등급 순서대로 보여준다", async () => {
+      await openCharacterTabWith([labeledGame], labeledCharacters)
+      selectGame("game-1")
+
+      const table = await screen.findByTestId("character-table")
+      const headers = Array.from(table.querySelectorAll("th")).map((th) => th.textContent)
+      expect(headers).toEqual(["아이콘", "공명자 이름", "등급", "속성", "무기", "관리"])
+      const names = Array.from(table.querySelectorAll("tbody tr td:nth-child(2)")).map((td) => td.textContent)
+      expect(names).toEqual(["나 높은 등급", "가 낮은 등급"])
+      expect(screen.getByRole("button", { name: "공명자 추가" })).toBeTruthy()
+      expect(screen.getByRole("button", { name: "템플릿 설정 수정" })).toBeTruthy()
+    })
+
+    it("설정되지 않은 분류 기준 컬럼은 숨기고 character_label이 없으면 캐릭터를 쓴다", async () => {
+      await openCharacterTabWith([schemaGame], mockCharacters)
+      selectGame("game-1")
+
+      const table = await screen.findByTestId("character-table")
+      expect(Array.from(table.querySelectorAll("th")).map((th) => th.textContent)).toEqual(["아이콘", "캐릭터 이름", "등급", "속성", "관리"])
+    })
+
+    it("템플릿이 없고 캐릭터도 없는 게임은 안내 카드와 캐릭터 템플릿 생성 버튼만 보여준다", async () => {
+      await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
+      selectGame("game-2")
+
+      expect(await screen.findByText("신규게임의 캐릭터 테이블이 아직 생성되지 않았습니다.")).toBeTruthy()
+      expect(screen.getByRole("button", { name: "캐릭터 템플릿 생성" })).toBeTruthy()
+      expect(screen.queryByRole("button", { name: "캐릭터 추가" })).toBeNull()
+      expect(screen.queryByTestId("character-table")).toBeNull()
+    })
+
+    it("등급 없이 캐릭터만 있는 기존 게임은 템플릿 활성으로 보고 설정 유도 배너를 보여준다 (NR-09)", async () => {
+      const legacyGame = { ...schemaGame, classification_schema: { rarities: [], axes: [] } }
+      await openCharacterTabWith([legacyGame], [{ ...mockCharacters[0], rarity: null, attributes: {} }])
+      selectGame("game-1")
+
+      expect(await screen.findByTestId("character-table")).toBeTruthy()
+      expect(screen.getByRole("status").textContent).toContain("등급이 설정되지 않은 게임입니다")
+      expect(screen.getByRole("button", { name: "캐릭터 추가" })).toBeTruthy()
+    })
+
+    it("템플릿 생성 후 저장하면 character_label을 포함한 스키마를 저장하고 첫 캐릭터 폼을 자동으로 연다", async () => {
+      gamesBuilder.update.mockReturnValue(gamesBuilder)
+      await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
+      selectGame("game-2")
+      fireEvent.click(await screen.findByRole("button", { name: "캐릭터 템플릿 생성" }))
+
+      expect(screen.getByRole("heading", { name: "게임 정보 수정" })).toBeTruthy()
+      fireEvent.change(screen.getByLabelText("캐릭터 시스템 명칭"), { target: { value: "오퍼레이터" } })
+      fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "S급, A급" } })
+      fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
+      fireEvent.change(screen.getByLabelText("분류 축 1 이름"), { target: { value: "직군" } })
+      fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "선봉, 중무장" } })
+      // The refetch after saving returns the persisted template.
+      gamesBuilder.order.mockResolvedValue({
+        data: [schemaGame, { ...emptyGame, classification_schema: { character_label: "오퍼레이터", rarities: ["S급", "A급"], axes: [{ key: "class1", label: "직군", options: ["선봉", "중무장"] }] } }],
+        error: null,
+      })
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => {
+        expect(gamesBuilder.update).toHaveBeenCalledWith(expect.objectContaining({
+          classification_schema: {
+            character_label: "오퍼레이터",
+            rarities: ["S급", "A급"],
+            axes: [{ key: "class1", label: "직군", options: ["선봉", "중무장"] }],
+          },
+        }))
+      })
+      expect(await screen.findByRole("heading", { name: "신규게임 오퍼레이터 추가" })).toBeTruthy()
+      expect(screen.getByLabelText("오퍼레이터 이름 *")).toBeTruthy()
+      expect(screen.getByLabelText("직군 *")).toBeTruthy()
+    })
+
+    it("템플릿 생성 모달을 저장 없이 닫으면 첫 캐릭터 폼을 열지 않는다", async () => {
+      await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
+      selectGame("game-2")
+      fireEvent.click(await screen.findByRole("button", { name: "캐릭터 템플릿 생성" }))
+      fireEvent.click(screen.getByRole("button", { name: "취소" }))
+
+      await waitFor(() => expect(screen.queryByRole("heading", { name: "게임 정보 수정" })).toBeNull())
+      expect(screen.queryByRole("heading", { name: /캐릭터 추가/ })).toBeNull()
+    })
+
+    it("기존 character_label은 게임 수정 시 그대로 불러오고 유지한다", async () => {
+      gamesBuilder.update.mockReturnValue(gamesBuilder)
+      gamesBuilder.order.mockResolvedValue({ data: [labeledGame], error: null })
+      render(<AdminPage />)
+      fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
+      fireEvent.click(await screen.findByRole("button", { name: "게임 수정: 원신" }))
+
+      expect((screen.getByLabelText("캐릭터 시스템 명칭") as HTMLInputElement).value).toBe("공명자")
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => {
+        expect(gamesBuilder.update).toHaveBeenCalledWith(expect.objectContaining({
+          classification_schema: expect.objectContaining({
+            character_label: "공명자",
+            axes: [
+              { key: "element", label: "속성", options: ["기류", "전도"] },
+              { key: "weapon", label: "무기", options: ["직검", "권총"] },
+            ],
+          }),
+        }))
+      })
+    })
+
+    it("분류 기준은 최대 2개까지만 추가할 수 있다", async () => {
+      await openGameEditModal()
+      fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
+      fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
+
+      expect(screen.getByLabelText("분류 축 2 키")).toBeTruthy()
+      expect(screen.queryByLabelText("분류 축 3 키")).toBeNull()
+      expect(screen.getByText("분류 기준 (최대 2개)")).toBeTruthy()
+    })
+
+    it("캐릭터 시스템 명칭이 20자를 넘으면 저장하지 않는다", async () => {
+      await openGameEditModal()
+      fireEvent.change(screen.getByLabelText("캐릭터 시스템 명칭"), { target: { value: "가".repeat(21) } })
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      expect(await screen.findByText("캐릭터 시스템 명칭은 20자 이내로 입력해 주세요.")).toBeTruthy()
+      expect(gamesBuilder.update).not.toHaveBeenCalled()
+    })
+
+    it("등급이 정의된 게임은 등급과 분류를 필수로 선택해야 저장된다", async () => {
+      charactersBuilder.insert.mockResolvedValue({ error: null })
+      await openCharacterTabWith([labeledGame], labeledCharacters)
+      selectGame("game-1")
+      fireEvent.click(await screen.findByRole("button", { name: "공명자 추가" }))
+
+      expect(screen.getByRole("heading", { name: "원신 공명자 추가" })).toBeTruthy()
+      fireEvent.change(screen.getByLabelText("공명자 이름 *"), { target: { value: "신규" } })
+      fireEvent.change(screen.getByLabelText("기본 아이콘 URL"), { target: { value: "https://example.com/new.png" } })
+      fireEvent.click(screen.getByRole("button", { name: "저장" }))
+      expect(await screen.findByText("공명자 등급을 선택해 주세요.")).toBeTruthy()
+
+      fireEvent.change(screen.getByLabelText("등급 *"), { target: { value: "5성" } })
+      fireEvent.click(screen.getByRole("button", { name: "저장" }))
+      expect(await screen.findByText("속성을(를) 선택해 주세요.")).toBeTruthy()
+
+      fireEvent.change(screen.getByLabelText("속성 *"), { target: { value: "기류" } })
+      fireEvent.click(screen.getByRole("button", { name: "저장" }))
+      expect(await screen.findByText("무기을(를) 선택해 주세요.")).toBeTruthy()
+      expect(charactersBuilder.insert).not.toHaveBeenCalled()
+
+      fireEvent.change(screen.getByLabelText("무기 *"), { target: { value: "직검" } })
+      fireEvent.click(screen.getByRole("button", { name: "저장" }))
+      await waitFor(() => {
+        expect(charactersBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({
+          game_id: "game-1",
+          name: "신규",
+          rarity: "5성",
+          attributes: { element: "기류", weapon: "직검" },
+        }))
+      })
+    })
   })
 })

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer";
+import { convertIconSourceToDataUrl, getClipboardImageFile, resizeImageToWebP } from "@/lib/image-resizer";
 
 function imageResponse(contentType = "image/png") {
   return new Response(new Blob(["image"], { type: contentType }), {
@@ -85,6 +85,38 @@ describe("convertIconSourceToDataUrl", () => {
     expect(proxyUrl.searchParams.get("h")).toBe("256");
     expect(proxyUrl.searchParams.get("fit")).toBe("cover");
     expect(proxyUrl.searchParams.get("output")).toBe("webp");
+  });
+
+  it("asks the proxy for the requested output size", async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    fetchMock.mockResolvedValueOnce(imageResponse("image/webp"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await convertIconSourceToDataUrl("https://example.test/pickup.png", 96);
+
+    const proxyUrl = new URL(fetchMock.mock.calls[1][0]);
+    expect(proxyUrl.searchParams.get("w")).toBe("96");
+    expect(proxyUrl.searchParams.get("h")).toBe("96");
+  });
+
+  it("renders the canvas at 256x256 by default and at the requested size when given", async () => {
+    const drawImage = vi.fn();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
+    const canvases: HTMLCanvasElement[] = [];
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
+      const element = createElement(tag);
+      if (tag === "canvas") canvases.push(element as HTMLCanvasElement);
+      return element;
+    });
+    const file = new File(["x"], "icon.png", { type: "image/png" });
+
+    await resizeImageToWebP(file);
+    await resizeImageToWebP(file, 96);
+
+    expect([canvases[0].width, canvases[0].height]).toEqual([256, 256]);
+    expect([canvases[1].width, canvases[1].height]).toEqual([96, 96]);
+    expect(drawImage).toHaveBeenLastCalledWith(expect.anything(), 0, 0, 256, 256, 0, 0, 96, 96);
   });
 
   it("rejects a non-image proxy response with paste/upload guidance", async () => {
