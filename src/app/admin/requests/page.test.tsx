@@ -361,7 +361,7 @@ describe("AdminRequestsPage", () => {
     expect(container.querySelector('[aria-label="Hero 캐릭터 요청 승인"]')).toBeNull()
   })
 
-  describe("pickup avatar source of schedule requests (R52)", () => {
+  describe("pickup characters of schedule requests (R52 A1)", () => {
     const pickupRequest = {
       id: "schedule-request-pickup",
       game_id: "game-1",
@@ -373,12 +373,18 @@ describe("AdminRequestsPage", () => {
       memo: null,
       is_official: true,
       pickup_character_ids: ["c1", "c2"],
-      pickup_image_url: null,
+      pickup_new_characters: [],
       request_status: "PENDING",
       created_at: "2026-01-02T00:00:00.000Z",
       games: { name: "Sample RPG" },
     }
-    const imageRequest = { ...pickupRequest, id: "schedule-request-image", title: "이미지 픽업", pickup_character_ids: [], pickup_image_url: "data:image/webp;base64,pk" }
+    const proposalRequest = {
+      ...pickupRequest,
+      id: "schedule-request-proposal",
+      title: "제안 픽업",
+      pickup_character_ids: ["c1"],
+      pickup_new_characters: [{ name: "신규 캐릭", icon_url: "data:image/webp;base64,np" }, { name: "이미지 없는 신규", icon_url: null }],
+    }
 
     function mockQueries(options: { schedules: unknown[]; characters?: { data: unknown[]; error: unknown } | "throw" }) {
       scheduleQuery = createQueryBuilder({ data: options.schedules, error: null })
@@ -405,6 +411,100 @@ describe("AdminRequestsPage", () => {
         Simulate.mouseDown(tab, { button: 0, ctrlKey: false })
       })
     }
+
+    async function clickApprove() {
+      const approve = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.trim() === "승인")
+      await click(approve as HTMLElement)
+    }
+
+    it("shows proposed new characters with a 신규 badge, their image or an initial avatar", async () => {
+      mockQueries({ schedules: [proposalRequest], characters: { data: [{ id: "c1", name: "카프카", default_icon_url: null }], error: null } })
+      await openScheduleTab()
+
+      const proposals = container.querySelector('[data-testid="pickup-request-proposals"]') as HTMLElement
+      expect(proposals.textContent).toContain("신규 캐릭")
+      expect(proposals.textContent).toContain("이미지 없는 신규")
+      expect(proposals.querySelectorAll("li")).toHaveLength(2)
+      expect(proposals.textContent?.match(/신규(?!\s*캐릭)/g)?.length).toBeGreaterThanOrEqual(2)
+      expect(proposals.querySelector('img[alt="신규 캐릭 제안 이미지"]')?.getAttribute("src")).toBe("data:image/webp;base64,np")
+      // The image-less proposal and the icon-less selected character fall back to initials.
+      expect(proposals.textContent).toContain("이")
+      expect(container.querySelector('[data-testid="pickup-request-characters"]')?.textContent).toContain("카")
+    })
+
+    it("ignores malformed pickup_new_characters values", async () => {
+      mockQueries({ schedules: [{ ...pickupRequest, pickup_new_characters: [{ name: 5 }, null, "x", { name: "정상", icon_url: 3 }] }] })
+      await openScheduleTab()
+
+      const proposals = container.querySelector('[data-testid="pickup-request-proposals"]') as HTMLElement
+      expect(proposals.querySelectorAll("li")).toHaveLength(1)
+      expect(proposals.textContent).toContain("정상")
+    })
+
+    it("approves only through the RPC and shows the real RPC error instead of falling back (R52-REV-003)", async () => {
+      mockQueries({ schedules: [pickupRequest], characters: { data: [], error: null } })
+      rpc.mockResolvedValueOnce({ error: { code: "P0001", message: "픽업 캐릭터는 같은 게임의 카탈로그에 있어야 합니다." } })
+      await openScheduleTab()
+      await clickApprove()
+
+      expect(rpc).toHaveBeenCalledWith("approve_schedule_request", { p_request_id: "schedule-request-pickup" })
+      expect(scheduleQuery.insert).not.toHaveBeenCalled()
+      expect(scheduleQuery.update).not.toHaveBeenCalled()
+      expect(container.textContent).toContain("픽업 캐릭터는 같은 게임의 카탈로그에 있어야 합니다.")
+      expect(container.textContent).toContain("카프카 픽업")
+    })
+
+    it.each(["PGRST202", "42883"])("falls back to a direct write and copies pickup ids only when the approve RPC is missing (%s)", async (code) => {
+      mockQueries({ schedules: [pickupRequest], characters: { data: [], error: null } })
+      rpc.mockResolvedValueOnce({ error: { code, message: "function not found" } })
+      await openScheduleTab()
+      await clickApprove()
+
+      expect(scheduleQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
+        game_id: "game-1",
+        schedule_type: "PICKUP",
+        pickup_character_ids: ["c1", "c2"],
+      }))
+      expect(scheduleQuery.insert.mock.calls[0][0]).not.toHaveProperty("pickup_image_url")
+      expect(scheduleQuery.insert.mock.calls[0][0]).not.toHaveProperty("pickup_new_characters")
+    })
+
+    it("does not fall back when the request carries new-character proposals the RPC alone can register", async () => {
+      mockQueries({ schedules: [proposalRequest], characters: { data: [], error: null } })
+      rpc.mockResolvedValueOnce({ error: { code: "PGRST202", message: "function not found" } })
+      await openScheduleTab()
+      await clickApprove()
+
+      expect(scheduleQuery.insert).not.toHaveBeenCalled()
+      expect(container.textContent).toContain("function not found")
+    })
+
+    it("uses the same 'name 대기열 (n)' heading in all three request tabs", async () => {
+      mockQueries({ schedules: [pickupRequest] })
+      await renderPage()
+      expect(container.textContent).toContain("게임 요청 대기열 (1)")
+
+      const open = async (label: string) => {
+        const tab = Array.from(container.querySelectorAll('[role="tab"]')).find((element) => element.textContent?.includes(label)) as HTMLElement
+        await act(async () => {
+          Simulate.mouseDown(tab, { button: 0, ctrlKey: false })
+        })
+      }
+      await open("일정 요청")
+      expect(container.textContent).toContain("일정 요청 대기열 (1)")
+      await open("캐릭터 요청")
+      expect(container.textContent).toContain("캐릭터 요청 대기열 (3)")
+    })
+
+    it("keeps the three tabs on one scrollable non-wrapping row on small screens (U-01)", async () => {
+      mockQueries({ schedules: [] })
+      await renderPage()
+
+      expect(container.querySelector('[role="tablist"]')?.className).toContain("overflow-x-auto")
+      const tabs = Array.from(container.querySelectorAll('[role="tab"]'))
+      expect(tabs).toHaveLength(3)
+      expect(tabs.every((tab) => tab.className.includes("shrink-0") && tab.className.includes("whitespace-nowrap"))).toBe(true)
+    })
 
     it("looks up only the referenced characters and shows their names and icons", async () => {
       const lookup = mockQueries({
@@ -441,28 +541,6 @@ describe("AdminRequestsPage", () => {
       expect(container.textContent).not.toContain("데이터를 불러오는 중 오류가 발생했습니다")
     })
 
-    it("previews a directly uploaded pickup image", async () => {
-      mockQueries({ schedules: [imageRequest] })
-      await openScheduleTab()
-
-      expect(container.querySelector('img[alt="픽업 캐릭터 이미지"]')?.getAttribute("src")).toBe("data:image/webp;base64,pk")
-    })
-
-    it("copies the pickup fields in the direct-insert fallback when the approve RPC fails", async () => {
-      mockQueries({ schedules: [pickupRequest], characters: { data: [], error: null } })
-      rpc.mockResolvedValueOnce({ error: new Error("rpc down") })
-      await openScheduleTab()
-
-      const approve = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.trim() === "승인")
-      await click(approve as HTMLElement)
-
-      expect(scheduleQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
-        game_id: "game-1",
-        schedule_type: "PICKUP",
-        pickup_character_ids: ["c1", "c2"],
-      }))
-      expect(scheduleQuery.insert.mock.calls[0][0]).not.toHaveProperty("pickup_image_url")
-    })
   })
 
   it("does not show the duplicate direct-game registration card", async () => {
