@@ -17,6 +17,8 @@ import { HeroSidebar, type HeroExpenseItem, type HeroScheduleItem, type HeroWall
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
 import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, groupDatesByWeek, parseLocalDate } from "@/lib/calendar-utils"
 import { WeeklyScheduleList, type WeeklyExpenseEntry, type WeeklyScheduleEntry } from "@/components/calendar/weekly-schedule-list"
+import { GameOnboardingModal } from "@/components/game/game-onboarding-modal"
+import { isGameOnboardingDismissed, loadGameOrder, sortByGameOrder } from "@/lib/game-order-storage"
 import { ExpenseModal } from "@/components/expense/expense-modal"
 import { ExpenseDetailModal } from "@/components/expense/expense-detail-modal"
 import { OverduePlannedModal, type OverduePlannedExpense } from "@/components/expense/overdue-planned-modal"
@@ -505,6 +507,16 @@ export default function DashboardPage() {
         }),
     [baseDate, expenses, userGamesMap, allGamesMap, gameIcons],
   )
+  // 로그인 사용자의 "내 게임" 순서(localStorage). 게스트는 기존 가나다순을 유지한다.
+  const [gameOrder, setGameOrder] = useState<string[]>([])
+  // null = not read yet (localStorage is client-only)
+  const [onboardingDismissed, setOnboardingDismissed] = useState<boolean | null>(null)
+  const userId = user?.id
+  useEffect(() => {
+    setGameOrder(loadGameOrder(userId))
+    setOnboardingDismissed(userId ? isGameOnboardingDismissed(userId) : null)
+  }, [userId])
+
   const gameFilterOptions = useMemo<GameFilterOption[]>(() => {
     const options = user
       ? userGames.map((ug) => ({
@@ -517,9 +529,8 @@ export default function DashboardPage() {
           name: game.name,
           iconUrl: game.default_icon_url,
         }))
-    return options
-      .sort((a, b) => a.name.localeCompare(b.name, "ko"))
-  }, [allGames, gameIcons, user, userGames])
+    return sortByGameOrder(options, user ? gameOrder : [], (option) => option.id, (option) => option.name)
+  }, [allGames, gameIcons, gameOrder, user, userGames])
 
   const allUserGameIds = useMemo(
     () => (user ? userGames.map((g) => g.game_id) : allGames.map((g) => g.id)),
@@ -738,7 +749,6 @@ export default function DashboardPage() {
             iconUrl: gameIcons[gameId] || gameInfo.iconUrl,
           }
         })
-        .sort((a, b) => a.label.localeCompare(b.label, "ko"))
 
       return {
         ...cell,
@@ -750,11 +760,11 @@ export default function DashboardPage() {
           is_start_date: schedule.start_date === cell.date,
           game_id: schedule.game_id,
         })),
-        icons: dayIcons,
+        icons: sortByGameOrder(dayIcons, user ? gameOrder : [], (icon) => icon.gameId, (icon) => icon.label),
         hasMemo: memoDates.has(cell.date),
       }
     })
-  }, [allGamesMap, userGamesMap, gameIcons, dateGameIcons, memoDates, month, ready, scheduleDates, year])
+  }, [allGamesMap, userGamesMap, gameIcons, gameOrder, dateGameIcons, memoDates, month, ready, scheduleDates, user, year])
 
   if (authLoading || (!hasLoadedInitial && isLoading) || !ready) {
     return <DashboardSkeleton />
@@ -775,6 +785,18 @@ export default function DashboardPage() {
         <div className="flex items-center justify-end">
           <span className="text-sm text-warning">{`기한 지난 예정 ${overdueExpenses.length}건을 정리해야 합니다.`}</span>
         </div>
+      )}
+      {user && (
+        <GameOnboardingModal
+          open={hasLoadedInitial && !error && userGames.length === 0 && onboardingDismissed === false}
+          userId={user.id}
+          onClose={() => setOnboardingDismissed(true)}
+          onSubscribed={() => {
+            setOnboardingDismissed(true)
+            setGameOrder(loadGameOrder(user.id))
+            void load()
+          }}
+        />
       )}
       <ExpenseModal open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen} initialDate={baseDate} onCompleted={() => void load()} />
       <ExpenseModal

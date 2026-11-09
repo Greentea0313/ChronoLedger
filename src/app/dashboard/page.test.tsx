@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import DashboardPage from "./page"
 import { getGridRange } from "@/lib/calendar-utils"
@@ -50,6 +50,9 @@ function createThenableBuilder(data: unknown[]) {
 
 describe("DashboardPage", () => {
   beforeEach(() => {
+    window.localStorage.clear()
+    // Most scenarios use a user without subscribed games; keep the R38 onboarding modal out of their way.
+    window.localStorage.setItem("chronoledger:game-onboarding-dismissed:user-1", "1")
     loadSchedulePreference.mockResolvedValue({ showUnofficialSchedules: false, isAvailable: true })
   })
 
@@ -473,6 +476,133 @@ describe("DashboardPage", () => {
 
     // 가나다순: 림버스 컴퍼니 -> 명일방주 -> 원신
     expect(iconLabels).toEqual(["림버스 컴퍼니", "명일방주", "원신"])
+  })
+
+  it("저장된 내 게임 순서가 있으면 달력 타일 아이콘이 그 순서를 따르고 나머지는 가나다순으로 뒤에 온다", async () => {
+    const now = new Date()
+    const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-15`
+    const endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-25`
+    window.localStorage.setItem("chronoledger:game-order:user-1", JSON.stringify(["game-genshin", "game-arknights"]))
+
+    useAuth.mockReturnValue({ user: { id: "user-1" }, isLoading: false })
+    ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+
+    const single = (data: unknown) => {
+      const query = createQueryBuilder()
+      query.maybeSingle.mockResolvedValue({ data, error: null })
+      return query
+    }
+    from.mockImplementation((table: string) => {
+      switch (table) {
+        case "user_finances": return single({ total_asset: 1, default_budget: 1 })
+        case "monthly_budgets": return single(null)
+        case "game_schedules": {
+          const q = createQueryBuilder()
+          q.gte.mockResolvedValue({
+            data: [
+              { id: "s1", schedule_type: "VERSION", start_date: startDate, end_date: endDate, game_id: "game-genshin" },
+              { id: "s2", schedule_type: "PICKUP", start_date: startDate, end_date: endDate, game_id: "game-limbus" },
+              { id: "s3", schedule_type: "PICKUP", start_date: startDate, end_date: endDate, game_id: "game-arknights" },
+            ],
+            error: null,
+          })
+          return q
+        }
+        case "games": {
+          const q = createQueryBuilder()
+          q.select.mockResolvedValue({
+            data: [
+              { id: "game-genshin", name: "원신", default_icon_url: "/genshin.webp" },
+              { id: "game-limbus", name: "림버스 컴퍼니", default_icon_url: "/limbus.webp" },
+              { id: "game-arknights", name: "명일방주", default_icon_url: "/arknights.webp" },
+            ],
+            error: null,
+          })
+          return q
+        }
+        case "user_games": {
+          const q = createQueryBuilder()
+          q.eq.mockResolvedValue({
+            data: [
+              { game_id: "game-genshin", games: { name: "원신", default_icon_url: "/genshin.webp" } },
+              { game_id: "game-limbus", games: { name: "림버스 컴퍼니", default_icon_url: "/limbus.webp" } },
+              { game_id: "game-arknights", games: { name: "명일방주", default_icon_url: "/arknights.webp" } },
+            ],
+            error: null,
+          })
+          return q
+        }
+        default: return createThenableBuilder([])
+      }
+    })
+
+    render(<DashboardPage />)
+
+    expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+    const iconLabels = Array.from(screen.getByRole("button", { name: startDate }).querySelectorAll("span[aria-label]")).map((span) =>
+      span.getAttribute("aria-label"),
+    )
+    expect(iconLabels).toEqual(["원신", "명일방주", "림버스 컴퍼니"])
+  })
+
+  describe("R38 onboarding modal", () => {
+    function mockUserWithoutGames() {
+      const insert = vi.fn().mockResolvedValue({ error: null })
+      useAuth.mockReturnValue({ user: { id: "user-1" }, isLoading: false })
+      ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+      from.mockImplementation((table: string) => {
+        if (table === "user_finances" || table === "monthly_budgets") {
+          const query = createQueryBuilder()
+          query.maybeSingle.mockResolvedValue({ data: table === "user_finances" ? { total_asset: 1, default_budget: 1 } : null, error: null })
+          return query
+        }
+        const query = createThenableBuilder(table === "games" ? [{ id: "game-1", name: "원신", default_icon_url: null }] : [])
+        if (table === "games") Object.assign(query, { order: vi.fn().mockResolvedValue({ data: [{ id: "game-1", name: "원신", default_icon_url: null }], error: null }) })
+        if (table === "user_games") Object.assign(query, { insert })
+        return query
+      })
+      return insert
+    }
+
+    it("opens for a signed-in user without subscribed games", async () => {
+      window.localStorage.removeItem("chronoledger:game-onboarding-dismissed:user-1")
+      mockUserWithoutGames()
+      render(<DashboardPage />)
+
+      expect(await screen.findByText("구독할 게임을 선택하세요")).toBeTruthy()
+    })
+
+    it("stays closed once dismissed", async () => {
+      mockUserWithoutGames()
+      render(<DashboardPage />)
+
+      expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+      expect(screen.queryByText("구독할 게임을 선택하세요")).toBeNull()
+    })
+
+    it("subscribes in bulk, closes and reloads the dashboard data", async () => {
+      window.localStorage.removeItem("chronoledger:game-onboarding-dismissed:user-1")
+      const insert = mockUserWithoutGames()
+      render(<DashboardPage />)
+
+      const start = await screen.findByRole("button", { name: /선택한 게임 구독 시작/ })
+      const loadsBefore = from.mock.calls.filter(([table]) => table === "user_games").length
+      fireEvent.click(start)
+
+      await waitFor(() => expect(insert).toHaveBeenCalledWith([{ user_id: "user-1", game_id: "game-1" }]))
+      await waitFor(() => expect(screen.queryByText("구독할 게임을 선택하세요")).toBeNull())
+      expect(window.localStorage.getItem("chronoledger:game-order:user-1")).toBe('["game-1"]')
+      await waitFor(() => expect(from.mock.calls.filter(([table]) => table === "user_games").length).toBeGreaterThan(loadsBefore))
+    })
+
+    it("does not open for guests", async () => {
+      useAuth.mockReturnValue({ user: null, isLoading: false })
+      from.mockImplementation(() => createThenableBuilder([]))
+      render(<DashboardPage />)
+
+      expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+      expect(screen.queryByText("구독할 게임을 선택하세요")).toBeNull()
+    })
   })
 
   it("사용자 지정 게임 아이콘이 있으면 달력 타일에 기본 아이콘 대신 커스텀 아이콘을 표시한다", async () => {
