@@ -32,6 +32,24 @@ interface ScheduleRequestItem {
   games: { name: string } | null
 }
 
+const SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN = "id, game_id, target_schedule_id, title, schedule_type, start_date, end_date, memo, request_status, admin_memo, created_at, games(name)"
+const SCHEDULE_REQUEST_COLUMNS = SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN.replace("schedule_type, ", "schedule_type, is_rerun, ")
+
+type ScheduleRequestResult = { data: unknown; error: { code?: string; message?: string } | null }
+
+// Tolerates an unapplied R33 migration: retries without the missing is_rerun column.
+async function fetchScheduleRequests(userId: string): Promise<ScheduleRequestResult> {
+  const query = (columns: string): PromiseLike<ScheduleRequestResult> =>
+    supabase.from("schedule_requests").select(columns).eq("user_id", userId).order("created_at", { ascending: false })
+  const first = await query(SCHEDULE_REQUEST_COLUMNS)
+  if (first.error && isMissingRerunColumnError(first.error)) return query(SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN)
+  return first
+}
+
+function isMissingRerunColumnError(error: { code?: string; message?: string }): boolean {
+  return error.code === "42703" || error.code === "PGRST204" || (error.message ?? "").includes("is_rerun")
+}
+
 const statusBadgeStyles = {
   PENDING: "bg-warning/15 text-warning border-warning/30",
   APPROVED: "bg-success/15 text-success border-success/30",
@@ -52,8 +70,9 @@ export function UserRequestsCard() {
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<"ALL" | "GAME" | "SCHEDULE">("ALL")
 
+  const userId = user?.id
   const loadRequests = useCallback(async () => {
-    if (!user) return
+    if (!userId) return
     setIsLoading(true)
     setError(null)
 
@@ -62,13 +81,9 @@ export function UserRequestsCard() {
         supabase
           .from("game_requests")
           .select("id, name, memo, request_status, admin_memo, created_at")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .order("created_at", { ascending: false }),
-        supabase
-          .from("schedule_requests")
-          .select("id, game_id, target_schedule_id, title, schedule_type, is_rerun, start_date, end_date, memo, request_status, admin_memo, created_at, games(name)")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
+        fetchScheduleRequests(userId),
       ])
 
       if (gRes.error || sRes.error) {
@@ -82,7 +97,7 @@ export function UserRequestsCard() {
     } finally {
       setIsLoading(false)
     }
-  }, [user])
+  }, [userId])
 
   useEffect(() => {
     void loadRequests()

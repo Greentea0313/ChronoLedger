@@ -13,6 +13,7 @@ import { RequestSubmissionModal } from "@/components/game/request-submission-mod
 import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-upload"
 import { resizeImageToWebP } from "@/lib/image-resizer"
 import { getKstToday } from "@/lib/dashboard-date"
+import { getDdayLabel, getPeriodProgress } from "@/lib/calendar-utils"
 import { loadSchedulePreference } from "@/lib/schedule-preferences"
 import { GameIcon } from "@/components/ui/game-icon"
 import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
@@ -60,17 +61,59 @@ interface GameScheduleRow {
   is_rerun?: boolean
 }
 
+interface GameExpenseRow {
+  id: string
+  title: string
+  final_amount: number
+  status: "PLANNED" | "CONFIRMED" | "CANCELLED"
+  target_date: string
+  end_date: string | null
+}
+
+/** KST date string shifted by `days` (calendar arithmetic on YYYY-MM-DD). */
+function shiftDate(date: string, days: number): string {
+  const [year, month, day] = date.split("-").map(Number)
+  const shifted = new Date(year, month - 1, day + days)
+  return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-${String(shifted.getDate()).padStart(2, "0")}`
+}
+
+const PAST_SCHEDULE_DAYS = 180
+
+function sumExpenses(expenses: GameExpenseRow[], predicate: (expense: GameExpenseRow) => boolean): number {
+  return expenses.filter(predicate).reduce((sum, expense) => sum + expense.final_amount, 0)
+}
+
+/** Confirmed (by payment date) and planned (by end_date ?? target_date) spending inside [startDate, endDate]. */
+function summarizeExpensesInRange(expenses: GameExpenseRow[], startDate: string, endDate: string) {
+  return {
+    confirmed: sumExpenses(expenses, (e) => e.status === "CONFIRMED" && e.target_date >= startDate && e.target_date <= endDate),
+    planned: sumExpenses(expenses, (e) => {
+      const due = e.end_date ?? e.target_date
+      return e.status === "PLANNED" && due >= startDate && due <= endDate
+    }),
+  }
+}
+
 interface CatalogGame {
   id: string
   name: string
   default_icon_url: string | null
 }
 
-function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
+function ScheduleTree({ schedules: allSchedules, expenses }: { schedules: GameScheduleRow[]; expenses: GameExpenseRow[] | null }) {
   const today = getKstToday()
+  // Past schedules (end_date < today) live in their own collapsed record; the trees only hold current/future ones.
+  const pastSchedules = useMemo(
+    () => allSchedules.filter((schedule) => schedule.end_date < today).sort((a, b) => b.end_date.localeCompare(a.end_date)),
+    [allSchedules, today],
+  )
+  // Memoized: the effect below depends on this array's identity.
+  const schedules = useMemo(() => allSchedules.filter((schedule) => schedule.end_date >= today), [allSchedules, today])
+  const [isPastExpanded, setIsPastExpanded] = useState(false)
   const onAir = schedules.filter((schedule) =>
     schedule.start_date <= today && schedule.end_date >= today,
   )
+  const upcoming = schedules.filter((schedule) => schedule.start_date > today)
   const versions = schedules.filter((schedule) => schedule.schedule_type === "VERSION")
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     () => Object.fromEntries(versions.filter((version) => version.start_date <= today && version.end_date >= today).map((version) => [version.id, true])),
@@ -85,7 +128,7 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
       return next
     })
   }, [schedules, today])
-  const renderSchedule = (schedule: GameScheduleRow) => (
+  const renderSchedule = (schedule: GameScheduleRow, withCountdown = false) => (
     <div key={schedule.id} className="rounded-lg border border-line bg-surface-2 p-3 space-y-1.5">
       <div className="flex items-start justify-between gap-2.5">
         <span className="min-w-0 flex-1 break-words text-sm font-semibold text-content">
@@ -113,6 +156,28 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
           ? `${schedule.start_date} (단일)`
           : `${schedule.start_date} ~ ${schedule.end_date}`}
       </p>
+      {withCountdown && (
+        <div className="flex items-center gap-2">
+          <span data-testid="dday-badge" className="shrink-0 rounded border border-line bg-surface px-1.5 py-0.5 text-[10px] font-bold text-content">
+            {getDdayLabel(today, schedule.end_date)}
+          </span>
+          {schedule.start_date < schedule.end_date && (
+            <div
+              role="progressbar"
+              aria-label="일정 진행률"
+              aria-valuenow={getPeriodProgress(today, schedule.start_date, schedule.end_date)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface"
+            >
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${getPeriodProgress(today, schedule.start_date, schedule.end_date)}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
       {schedule.memo && (
         <p className="text-xs text-content-muted mt-1 whitespace-pre-wrap">
           {schedule.memo.includes("/")
@@ -147,7 +212,17 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
       {onAir.length > 0 && (
         <section aria-label="진행 중인 일정">
           <h3 className="mb-2 text-sm font-bold text-primary">진행 중인 일정 · ON AIR</h3>
-          <div className="space-y-2">{onAir.map(renderSchedule)}</div>
+          <div className="space-y-2">{onAir.map((schedule) => renderSchedule(schedule, true))}</div>
+        </section>
+      )}
+      {upcoming.length > 0 && (
+        <section aria-label="다음 예정 일정">
+          <h3 className="mb-2 text-sm font-bold text-content">다음 예정 일정</h3>
+          <div className="space-y-2">
+            {[...upcoming]
+              .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.end_date.localeCompare(b.end_date))
+              .map((schedule) => renderSchedule(schedule))}
+          </div>
         </section>
       )}
       {versions.length > 0 && (
@@ -157,6 +232,7 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
             {versions.map((version) => {
               const children = versionChildren.get(version.id) ?? []
               const isExpanded = expanded[version.id] ?? false
+              const versionExpense = expenses ? summarizeExpensesInRange(expenses, version.start_date, version.end_date) : null
               return (
                 <div key={version.id} className="rounded-lg border border-line bg-surface-2">
                   <button
@@ -177,13 +253,18 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
                       <span className="text-xs font-normal text-content-secondary">
                         {version.start_date} ~ {version.end_date}
                       </span>
+                      {versionExpense && (
+                        <span data-testid="version-expense-summary" className="text-xs font-normal text-content-secondary">
+                          {`확정 ${versionExpense.confirmed.toLocaleString()}원 · 예정 ${versionExpense.planned.toLocaleString()}원`}
+                        </span>
+                      )}
                     </div>
                     <span aria-hidden="true">{isExpanded ? "−" : "+"}</span>
                   </button>
                   {isExpanded && (
                     <div className="space-y-2 border-t border-line p-2 pl-5">
                       {children.length > 0 ? (
-                        children.map(renderSchedule)
+                        children.map((child) => renderSchedule(child))
                       ) : (
                         <p className="text-xs text-content-secondary">하위 일정이 없습니다.</p>
                       )}
@@ -198,7 +279,21 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
       {schedules.filter((schedule) => schedule.schedule_type !== "VERSION" && !grouped.has(schedule.id)).length > 0 && (
         <section>
           <h3 className="mb-2 text-sm font-bold text-content">기타 일정</h3>
-          <div className="space-y-2">{schedules.filter((schedule) => schedule.schedule_type !== "VERSION" && !grouped.has(schedule.id)).map(renderSchedule)}</div>
+          <div className="space-y-2">{schedules.filter((schedule) => schedule.schedule_type !== "VERSION" && !grouped.has(schedule.id)).map((schedule) => renderSchedule(schedule))}</div>
+        </section>
+      )}
+      {pastSchedules.length > 0 && (
+        <section aria-label="지난 일정 기록">
+          <button
+            type="button"
+            className="flex min-h-11 w-full items-center justify-between rounded-lg border border-line bg-surface-2 px-3 text-left text-sm font-semibold text-content"
+            aria-expanded={isPastExpanded}
+            onClick={() => setIsPastExpanded((prev) => !prev)}
+          >
+            <span>{`지난 일정 기록 (${pastSchedules.length}건)`}</span>
+            <span aria-hidden="true">{isPastExpanded ? "−" : "+"}</span>
+          </button>
+          {isPastExpanded && <div className="mt-2 space-y-2">{pastSchedules.map((schedule) => renderSchedule(schedule))}</div>}
         </section>
       )}
     </div>
@@ -214,6 +309,7 @@ function ScheduleDialog({
   scheduleError,
   isSchedulesLoading,
   schedules,
+  expenses,
 }: {
   selectedGame: { id: string; name: string } | null
   isSheetOpen: boolean
@@ -223,7 +319,10 @@ function ScheduleDialog({
   scheduleError: string | null
   isSchedulesLoading: boolean
   schedules: GameScheduleRow[]
+  /** null for guests: the billing summary and per-version subtotals are hidden. */
+  expenses: GameExpenseRow[] | null
 }) {
+  const today = getKstToday()
   return (
     <Dialog open={isSheetOpen} onOpenChange={(open) => { setIsSheetOpen(open); if (!open) setSelectedGame(null) }}>
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto border-line bg-surface text-content">
@@ -236,12 +335,34 @@ function ScheduleDialog({
         <div className="mt-4 space-y-3">
           {schedulePreferenceNotice && <p role="status" className="text-xs text-content-secondary">{schedulePreferenceNotice}</p>}
           {scheduleError && <p role="alert" className="text-sm text-danger">{scheduleError}</p>}
+          {expenses && (
+            <section data-testid="game-expense-summary" aria-label="게임 과금 요약" className="grid grid-cols-3 gap-2 rounded-lg border border-line bg-surface-2 p-3 text-xs">
+              <p className="space-y-0.5">
+                <span className="block text-content-secondary">이번 달 확정 과금</span>
+                <strong data-testid="summary-month-confirmed" className="text-sm text-content">
+                  {`${sumExpenses(expenses, (e) => e.status === "CONFIRMED" && e.target_date.startsWith(today.slice(0, 7))).toLocaleString()}원`}
+                </strong>
+              </p>
+              <p className="space-y-0.5">
+                <span className="block text-content-secondary">누적 확정 과금</span>
+                <strong data-testid="summary-total-confirmed" className="text-sm text-content">
+                  {`${sumExpenses(expenses, (e) => e.status === "CONFIRMED").toLocaleString()}원`}
+                </strong>
+              </p>
+              <p className="space-y-0.5">
+                <span className="block text-content-secondary">예정 지출</span>
+                <strong data-testid="summary-planned" className="text-sm text-content">
+                  {`${sumExpenses(expenses, (e) => e.status === "PLANNED").toLocaleString()}원`}
+                </strong>
+              </p>
+            </section>
+          )}
           {isSchedulesLoading ? (
             <p className="text-sm text-content-secondary">불러오는 중...</p>
           ) : schedules.length === 0 ? (
             <p className="py-8 text-center text-sm text-content-secondary">표시할 일정이 없습니다.</p>
           ) : (
-            <ScheduleTree schedules={schedules} />
+            <ScheduleTree schedules={schedules} expenses={expenses} />
           )}
         </div>
       </DialogContent>
@@ -270,6 +391,7 @@ export default function GamesPage() {
   const [selectedGame, setSelectedGame] = useState<{ id: string; name: string } | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [schedules, setSchedules] = useState<GameScheduleRow[]>([])
+  const [gameExpenses, setGameExpenses] = useState<GameExpenseRow[]>([])
   const [isSchedulesLoading, setIsSchedulesLoading] = useState(false)
   const [showUnofficialSchedules, setShowUnofficialSchedules] = useState(false)
   const [schedulePreferenceNotice, setSchedulePreferenceNotice] = useState<string | null>(null)
@@ -382,12 +504,12 @@ export default function GamesPage() {
     const fetchSchedules = async () => {
       setIsSchedulesLoading(true)
       setScheduleError(null)
-      const today = getKstToday()
+      const sixMonthsAgo = shiftDate(getKstToday(), -PAST_SCHEDULE_DAYS)
       const { data, error } = await supabase
         .from("game_schedules")
         .select("*")
         .eq("game_id", selectedGame.id)
-        .gte("end_date", today)
+        .gte("end_date", sixMonthsAgo)
         .order("start_date", { ascending: true })
       if (error) {
         setScheduleError(`일정을 불러오지 못했습니다: ${error.message}`)
@@ -403,8 +525,26 @@ export default function GamesPage() {
       }
       setIsSchedulesLoading(false)
     }
+    // Spending is a best-effort extra: a failed or unavailable query never blocks the schedule list.
+    const fetchExpenses = async () => {
+      if (!userId) {
+        setGameExpenses([])
+        return
+      }
+      try {
+        const result = await supabase
+          .from("expenses")
+          .select("id, title, final_amount, status, target_date, end_date")
+          .eq("user_id", userId)
+          .eq("game_id", selectedGame.id)
+        setGameExpenses(!result || result.error || !Array.isArray(result.data) ? [] : (result.data as GameExpenseRow[]))
+      } catch {
+        setGameExpenses([])
+      }
+    }
     void fetchSchedules()
-  }, [selectedGame, isSheetOpen, showUnofficialSchedules])
+    void fetchExpenses()
+  }, [selectedGame, isSheetOpen, showUnofficialSchedules, userId])
 
   const handleIconUpload = async (gameId: string, file: File) => {
     if (!user) return
@@ -546,6 +686,7 @@ export default function GamesPage() {
           scheduleError={scheduleError}
           isSchedulesLoading={isSchedulesLoading}
           schedules={schedules}
+          expenses={userId ? gameExpenses : null}
         />
       </div>
     )
@@ -801,6 +942,7 @@ export default function GamesPage() {
         scheduleError={scheduleError}
         isSchedulesLoading={isSchedulesLoading}
         schedules={schedules}
+        expenses={userId ? gameExpenses : null}
       />
       {/* 게임별 상시 메모 작성/수정 중앙 팝업 모달 */}
       <Dialog
