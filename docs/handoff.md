@@ -34,7 +34,7 @@
 - **Run ID**: `weekly-game-group-and-rerun-badge` *(2026-11-09, `Phase 12.39` R48 주차별 리스트 게임별 묶음 + R49 일정 종류·복각 배지 `[픽업 [복각]]` 통합 및 높이 정렬)*
 - **Orchestrator**: Gemini 4 Argon *(본 Run 등록은 Claude Opus가 1순위 대체로 수행)*
 - **Worktree 경로**: `.worktrees/weekly-game-group-and-rerun-badge` (브랜치: `collab/weekly-game-group-and-rerun-badge`)
-- **리뷰 비교 범위**: Base `742e58ff77fcf0f404e9979ea0a65fa8d71497d7` ↔ Target `(Step 1 Maker 커밋 후 기록)` *(manifest 커밋 `a8f9a1d`)*
+- **리뷰 비교 범위**: Base `742e58ff77fcf0f404e9979ea0a65fa8d71497d7` ↔ Target `d51fba80798fcea554ca050b0b6fa8eeb97580b3` *(iteration-01 `clean`, 산출물 커밋 `696f23f`, **`main` 병합 `23d2699` 완료**)*
 - **배경 (사용자 피드백, 2026-11-09 배포 확인)**: 주차별 리스트는 게임별로 묶고 하위에 일정을 표시하는 편이 가시성이 좋음. 사이드바 복각 배지는 관리자 페이지처럼 `[픽업 [복각]]` 형태로 표시하되, 현재 `[복각]` 부분의 높이가 맞지 않는 문제를 검토함.
 - **원인 분석 (Orchestrator)**:
   - 관리자·게임 ScheduleTree의 복각 칩은 `inline` 부모 배지(`text-xs py-0.5`) 안에 별도 `py-0.5 text-[10px]` 칩을 중첩해, 작은 글자가 부모 기준선에 붙고 칩 배경이 위아래로 비대칭으로 늘어남 → 높이 불일치의 원인임.
@@ -55,7 +55,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: d51fba80798fcea554ca050b0b6fa8eeb97580b3)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Badge & Weekly Group UI)` | `Phase 12.39 (R48·R49)`: 수용 기준 Step 1. 공용 `ScheduleTypeBadge`, 복각 칩 높이 정렬, 사이드바 묶음 키 분리, 주차별 리스트 게임별 묶음 및 테스트 | `✅ d51fba8: 공용 ScheduleTypeBadge([픽업 [복각]], 복각 칩 수직 패딩 0·leading-none), admin·games·사이드바·주차 리스트 적용, 사이드바 묶음 키에 is_rerun 포함, 주차별 리스트 게임별 묶음(기타 마지막, 지출 별도 섹션). tsc/lint 통과, Vitest 52파일/430개 통과.` |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: d51fba80798fcea554ca050b0b6fa8eeb97580b3` |
+| **2** | **`✅ DONE (iteration-01 clean, 산출물 696f23f, main 병합 23d2699)`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ DONE: Base 742e58f ↔ Target d51fba8 정적 리뷰 clean(지적 0건). tsc/lint 및 Vitest 52파일/430개 통과, 스키마 검증 통과(696f23f), main 병합(23d2699) 완료함.` |
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
@@ -79,7 +79,7 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **A1** | **`📝 AGENDA`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Security Reviewer (Read-only)` | 위 수용 기준 1~4. 허용 파일: `docs/auth-security-review.md`(신규), `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md`, `docs/handoff.md` | `📝 등록됨: 활성 Run 종료 후 또는 사용자 지목 시 착수` |
+| **A1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Security Reviewer (Read-only)` | 위 수용 기준 1~4. 허용 파일: `docs/auth-security-review.md`(신규), `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md`, `docs/handoff.md` | `▶ weekly-game-group-and-rerun-badge Run 병합 마감에 따라 활성 대기 상태로 전환됨` |
 | **A2** | **`⏳ WAITING`** | **사용자** | `Owner (Dashboard Confirmation)` | A1 체크리스트 기준 Supabase 대시보드 설정 확인·변경 및 결과 회신 | `⏳ A1 완료 후 진행` |
 
 

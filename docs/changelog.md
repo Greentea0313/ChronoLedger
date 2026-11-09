@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-09 (weekly-game-group-and-rerun-badge 정적 리뷰 및 `main` 병합 마감 — R48·R49)
+
+- Base `742e58f` ↔ Target `d51fba8` 정적 코드 리뷰 결과 `clean`(지적 0건) 판정함(`artifacts/weekly-game-group-and-rerun-badge/iteration-01/review.json`).
+- `tsc --noEmit`, `npm run lint`, `vitest run --dir src`(52파일/430개 테스트) 통과 및 `run.json`·`review.json`·`test.json` 공식 스키마 검증 완료 후 산출물 커밋(`696f23f`) 및 `main` 병합(`23d2699`)을 완료함.
+- 활성 Run 마감에 따라 `R50`(`auth-security-settings-review`, Claude Opus) 안건을 `▶ READY`로 전환함.
+
 ## 2026-11-09 (Phase 12.39 — R48 주차별 게임 묶음, R49 일정 종류·복각 배지)
 
 - 공용 `ScheduleTypeBadge`를 추가해 `/admin` 일정 목록 2곳, `/dashboard/games` 일정 트리, 사이드바, 주차별 리스트의 종류 배지를 통합함. 복각은 `[픽업 [복각]]`처럼 배지 안에 중첩하며, 칩의 수직 패딩 제거·`leading-none`으로 복각 유무와 무관하게 바깥 배지 높이가 같아짐.

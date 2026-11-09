@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## weekly-game-group-and-rerun-badge 정적 리뷰 및 `main` 병합 마감 (R48·R49, 2026-11-09)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator, Step 2)임.
+- **정적 리뷰 결과 (`742e58f` $\leftrightarrow$ `d51fba8`)**:
+  - `src/components/calendar/schedule-type-badge.tsx` 공용 배지(`inline-flex items-center gap-1 leading-none`, 내부 복각 칩 `py-0 leading-none`으로 외부 배지 높이 변화 원천 차단), `/admin` 일정 목록 2곳·`/dashboard/games` `ScheduleTree`·`HeroSidebarContent`·`WeeklyScheduleList` 적용, 사이드바 묶음 키 `is_rerun` 분리, 주차별 리스트 게임별 그룹화(가나다순, 미연결 `기타` 마지막, 지출 섹션 분리) 및 단위 테스트 8+3건 추가를 모두 확인하여 `clean`(P1~P4 지적 0건) 판정함.
+- **검증 및 병합**:
+  - `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src`(52개 파일, 430개 테스트 통과) 및 `validate_collaboration_artifact.py` 스키마 검증(`run.json`, `iteration-01/review.json`, `iteration-01/test.json`)을 통과하고 워크트리 커밋(`696f23f`) 후 `main`에 병합(`23d2699`)함.
+- **다음 단계**: 활성 Run 종료에 따라 `docs/handoff.md`의 병행 검토 안건 `A1`(`auth-security-settings-review`, `R50` 인증 보안 설정 점검, 담당: **Claude Opus** `▶ READY`)을 실행 대기 상태로 전환함.
+
 ## 인증 보안 설정 점검 안건 등록 (R50, 2026-11-09)
 
 - **수행 주체**: Claude Opus (사용자 요청으로 안건 등록)임.
