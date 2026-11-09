@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r36-game-detail-and-r47-followup",
+  "iteration": 1,
+  "agent": "Gemini 4 Argon",
+  "role": "static-review",
+  "base_sha": "b5ca5d8b2ab538cc19af84238e89095fc0456c53",
+  "target_sha": "4fdf99aeb93ce3580ae876fb8bb814d63b677f18",
+  "status": "clean",
+  "created_at": "2026-11-09T05:28:30Z",
+  "findings": []
+}
