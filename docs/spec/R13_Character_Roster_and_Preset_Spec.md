@@ -339,3 +339,31 @@ This section records the outcome of the §6 checklist. It is normative: Phase 13
 - Deleting a game with characters and presets succeeds.
 - `custom_icon_path` rejects paths outside `{user_id}/characters/{character_id}.webp`.
 - A pending-deletion user cannot write to the three new user tables.
+
+---
+
+## 8. Phase 13.4 Specification Amendment (2026-11-09 User Requirements Update)
+
+Following user review of the initial R13 deployment, the following amendments supersede §2.1, §2.4, and §4.2 for the Character Roster UI and per-character state model:
+
+1. **Per-Character Memo UI Removal**:
+   - Remove the free-text `memo` `<Textarea>` from individual character cards in `CharacterRoster` (`src/components/character/character-roster.tsx`). The `user_characters.memo` column remains nullable in the database for backward compatibility, but is no longer rendered or edited in the UI.
+2. **Per-Game Maximum Breakthrough Stage (`public.games.max_breakthrough`)**:
+   - Extend `public.games` with `max_breakthrough SMALLINT NOT NULL DEFAULT 6 CHECK (max_breakthrough BETWEEN 0 AND 12)`.
+   - In `/admin` Game Add/Edit modal, allow the administrator to configure **최대 돌파 단계 (`max_breakthrough`, `0 ~ 12`, default `6`)** alongside `max_preset_slots`.
+3. **User Character Favorite & Breakthrough State (`public.user_characters`)**:
+   - Extend `public.user_characters` with `is_favorite BOOLEAN NOT NULL DEFAULT false` and `breakthrough_level SMALLINT NOT NULL DEFAULT 0 CHECK (breakthrough_level BETWEEN 0 AND 12)`.
+   - Update `public.validate_user_character_game()` so that on `INSERT` or when `NEW.breakthrough_level > OLD.breakthrough_level` (or `NEW.game_id IS DISTINCT FROM OLD.game_id`), `NEW.breakthrough_level` cannot exceed the game's `max_breakthrough` (`RAISE EXCEPTION '캐릭터 돌파 단계가 게임의 최대 돌파 단계를 초과합니다.'`). Reducing `games.max_breakthrough` is non-destructive for existing `user_characters` rows until the user increases `breakthrough_level`.
+4. **Compact Icon Tile Grid & Click-to-Configure Popover/Dialog (`/dashboard/characters`)**:
+   - Replace the tall horizontal character card list with a **compact icon-centric tile grid** (`grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5`).
+   - **Sorting Order**: Characters with `is_favorite = true` are always pinned to the top of the roster and preset character picker (`is_favorite DESC`, then `name ASC` in Korean locale).
+   - **Visual Indicators on `CharacterIcon` / Tile**:
+     - **Unowned (`is_owned = false`)**: Dimmed brightness (`brightness-50 saturate-50 opacity-65`).
+     - **Favorite (`is_favorite = true`)**: Gold highlight border (`ring-2 ring-amber-400 border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.35)]`).
+     - **Breakthrough Badge (`is_owned = true`)**: Display a compact bottom-left overlay badge `n★` (e.g., `0★`, `1★`, `2★`, ..., `6★` corresponding to `breakthrough_level`) at the bottom-left corner of the character icon so the breakthrough stage is immediately scannable in both the Character Roster and Party Preset slots.
+   - **Character Icon Click Action**:
+     - Clicking a character tile opens a compact configuration dialog/popover (`DialogTitle` + `DialogDescription` included) allowing the user to:
+       - Toggle **보유 여부 (`is_owned`)**,
+       - Toggle **즐겨찾기 (`is_favorite`)** (gold border + top sort),
+       - Select **돌파 단계 (`breakthrough_level`: `0★ (명함)` .. `${game.max_breakthrough}★`)**,
+       - Upload or restore **커스텀 아이콘 (`[아이콘 변경]` / `[기본 복원]`)**.
