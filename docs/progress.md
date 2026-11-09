@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## dashboard-summary-dday-and-week-list iteration-02 재리뷰 및 `main` 병합 마감 (2026-11-09)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.
+- **재리뷰 (`d56d211` ↔ `be57e71`)**: `DSW-REV-001`(요약 전용 이번 주 일정·`PLANNED` 지출 별도 조회, 공식/비공식 설정·게임 필터 동일 적용), `DSW-REV-002`(선택일 계산 통일), `DSW-REV-003`(중립 문구) 해소 확인, 신규 지적 0건으로 `clean` 판정함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `vitest run --dir src`(49파일/412개) 통과함. `run.json`(`target_sha: be57e71`, `status: completed`), `iteration-02/review.json`, `iteration-02/test.json` 스키마 검증 통과 및 산출물 커밋(`4ececa5`) 완료함.
+- **`main` 병합**: `collab/dashboard-summary-dday-and-week-list`를 `main`에 병합(`590085a`)함. push는 미수행임.
+- **다음 단계**: 차기 Run 2(`R33`, `schedule-rerun-and-broadcast`) 등록 필요함(Orchestrator 담당, 현재 Dispatch Queue에 `▶ READY` 과제 없음).
+
 ## dashboard-summary-dday-and-week-list iteration-01 통합 정적 리뷰 (2026-11-09)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.

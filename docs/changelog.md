@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-09 (dashboard-summary-dday-and-week-list iteration-02 수정·재리뷰 및 `main` 병합)
+
+- 요약 스트립이 조회 월과 무관하게 KST 이번 주(일요일 시작) 범위 일정·예정 지출을 별도 조회하도록 수정됨(`DSW-REV-001`, `be57e71`).
+- 주차별 리스트 이월 일정의 선택일·`aria-pressed` 기준을 통일하고 빈 주차 문구를 `"이 주에는 일정이 없습니다."`로 변경함(`DSW-REV-002`·`003`).
+- iteration-02 재리뷰 `clean`, Vitest 49파일/412개 통과, 산출물 스키마 검증 후 `main` 병합(`590085a`)함.
+
 ## 2026-11-09 (dashboard-summary-dday-and-week-list iteration-01 리뷰)
 
 - Base `d56d211` ↔ Target `ab930c5` 통합 정적 리뷰 결과 `findings` 판정함(`DSW-REV-001` P2 요약 스트립 조회 월 데이터 의존, `DSW-REV-002` P3 `aria-pressed` 불일치, `DSW-REV-003` P4 빈 주차 문구).
