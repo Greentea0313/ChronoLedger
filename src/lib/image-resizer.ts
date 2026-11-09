@@ -73,6 +73,22 @@ export async function convertIconSourceToDataUrl(source: File | string, outputSi
   return readBlobAsDataUrl(blob);
 }
 
+/** Same cap as the game_characters.default_icon_url CHECK (150,000 characters). */
+export const MAX_ICON_DATA_URL_LENGTH = 150_000;
+
+/**
+ * Pasted/URL-supplied WebP data URLs skip the resize (see convertIconSourceToDataUrl), so an oversized one would only
+ * fail later at the database CHECK with a generic message. Fails early with an image-size specific hint (R52-REV-004).
+ */
+export function assertIconDataUrlSize(dataUrl: string): string {
+  if (dataUrl.length > MAX_ICON_DATA_URL_LENGTH) {
+    throw new Error(
+      `이미지 용량이 너무 큽니다(약 ${Math.round(dataUrl.length / 1024)}KB, 최대 약 ${Math.round(MAX_ICON_DATA_URL_LENGTH / 1024)}KB). 더 작은 이미지를 사용하거나 파일 업로드로 다시 시도해 주세요.`,
+    );
+  }
+  return dataUrl;
+}
+
 export function getClipboardImageFile(clipboardData: DataTransfer): File | null {
   const clipboardFile = Array.from(clipboardData.files).find((file) =>
     file.type.toLowerCase().startsWith("image/"),

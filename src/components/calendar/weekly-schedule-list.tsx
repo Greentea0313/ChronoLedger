@@ -1,6 +1,7 @@
 "use client"
 
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useState } from "react"
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { PickupAvatars, type PickupAvatar } from "@/components/calendar/pickup-avatars"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
@@ -83,6 +84,20 @@ function groupSchedulesByGame(schedules: WeeklyScheduleEntry[]): GameScheduleGro
   })
 }
 
+/** Distinct pickup avatars of a group in schedule order (shown in the collapsed header). */
+function collectGroupAvatars(group: GameScheduleGroup): PickupAvatar[] {
+  const seen = new Set<string>()
+  const avatars: PickupAvatar[] = []
+  group.items.forEach((item) => {
+    item.pickupAvatars?.forEach((avatar) => {
+      if (seen.has(avatar.id)) return
+      seen.add(avatar.id)
+      avatars.push(avatar)
+    })
+  })
+  return avatars
+}
+
 export function WeeklyScheduleList({
   year,
   month,
@@ -96,6 +111,11 @@ export function WeeklyScheduleList({
   onNextMonth,
 }: WeeklyScheduleListProps) {
   const weeks = groupDatesByWeek(year, month, todayDate)
+  // Open state is screen-local only: the current week starts open, other weeks collapsed; user toggles override that.
+  const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({})
+  const isOpen = (key: string, defaultOpen: boolean) => openOverrides[key] ?? defaultOpen
+  const toggle = (key: string, defaultOpen: boolean) =>
+    setOpenOverrides((prev) => ({ ...prev, [key]: !(prev[key] ?? defaultOpen) }))
 
   return (
     <section className="rounded-lg border border-line bg-surface p-3 shadow-card md:p-4" aria-label="주차별 리스트">
@@ -132,6 +152,9 @@ export function WeeklyScheduleList({
             .sort((a, b) => a.date.localeCompare(b.date))
           const planned = weekExpenses.filter((e) => e.status === "PLANNED").reduce((sum, e) => sum + e.amount, 0)
           const confirmed = weekExpenses.filter((e) => e.status === "CONFIRMED").reduce((sum, e) => sum + e.amount, 0)
+          const defaultOpen = week.isCurrentWeek
+          const expenseKey = `${week.weekStart}|expenses`
+          const expensesOpen = isOpen(expenseKey, defaultOpen)
 
           return (
             <article
@@ -161,61 +184,94 @@ export function WeeklyScheduleList({
                 <EmptyState message="이 주에는 일정이 없습니다." />
               ) : (
                 <div className="space-y-3">
-                  {gameGroups.map((group) => (
-                    <section key={group.key} data-testid="game-group" aria-label={`${group.name} 일정`} className="space-y-1.5">
-                      <h4 data-testid="game-group-header" className="flex items-center gap-1.5 text-xs font-semibold text-content-secondary">
-                        {group.iconUrl && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={group.iconUrl} alt="" className="h-5 w-5 rounded object-cover" />
+                  {gameGroups.map((group) => {
+                    const groupKey = `${week.weekStart}|game|${group.key}`
+                    const open = isOpen(groupKey, defaultOpen)
+                    const panelId = `week-panel-${groupKey}`
+                    return (
+                      <section key={group.key} data-testid="game-group" aria-label={`${group.name} 일정`} className="space-y-1.5">
+                        <h4>
+                          <button
+                            type="button"
+                            data-testid="game-group-header"
+                            aria-expanded={open}
+                            aria-controls={panelId}
+                            onClick={() => toggle(groupKey, defaultOpen)}
+                            className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-xs font-semibold text-content-secondary hover:bg-surface"
+                          >
+                            <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", !open && "-rotate-90")} aria-hidden="true" />
+                            {group.iconUrl && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={group.iconUrl} alt="" className="h-5 w-5 rounded object-cover" />
+                            )}
+                            <span className="truncate">{group.name}</span>
+                            <span className="shrink-0 font-normal text-content-muted">{`${group.items.length}건`}</span>
+                            <PickupAvatars avatars={collectGroupAvatars(group)} size={20} className="ml-auto" />
+                          </button>
+                        </h4>
+                        {open && (
+                          <ul id={panelId} className="space-y-1.5">
+                            {group.items.map((schedule) => {
+                              // Schedules carried over from a previous week select this week's first day.
+                              const targetDate = schedule.start_date >= week.weekStart ? schedule.start_date : week.weekStart
+                              return (
+                                <li key={schedule.id}>
+                                  <button
+                                    type="button"
+                                    onClick={() => onSelectDate(targetDate)}
+                                    aria-pressed={selectedDate === targetDate}
+                                    className="flex w-full flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
+                                  >
+                                    <PickupAvatars avatars={schedule.pickupAvatars} size={20} />
+                                    <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="sm" />
+                                    <span className="min-w-0 flex-1 truncate font-medium text-content">{schedule.title}</span>
+                                    <span className="text-xs text-content-muted">{`${schedule.start_date} ~ ${schedule.end_date}`}</span>
+                                    <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
+                                      {getDdayLabel(todayDate, schedule.end_date)}
+                                    </span>
+                                  </button>
+                                </li>
+                              )
+                            })}
+                          </ul>
                         )}
-                        {group.name}
+                      </section>
+                    )
+                  })}
+
+                  {expenses !== null && weekExpenses.length > 0 && (
+                    <section data-testid="expense-section" aria-label="지출" className="space-y-1.5">
+                      <h4>
+                        <button
+                          type="button"
+                          data-testid="expense-section-header"
+                          aria-expanded={expensesOpen}
+                          aria-controls={`week-panel-${expenseKey}`}
+                          onClick={() => toggle(expenseKey, defaultOpen)}
+                          className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-xs font-semibold text-content-secondary hover:bg-surface"
+                        >
+                          <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", !expensesOpen && "-rotate-90")} aria-hidden="true" />
+                          {`지출 ${weekExpenses.length}건 · 예정 ${planned.toLocaleString()}원 · 확정 ${confirmed.toLocaleString()}원`}
+                        </button>
                       </h4>
-                      <ul className="space-y-1.5">
-                        {group.items.map((schedule) => {
-                          // Schedules carried over from a previous week select this week's first day.
-                          const targetDate = schedule.start_date >= week.weekStart ? schedule.start_date : week.weekStart
-                          return (
-                            <li key={schedule.id}>
+                      {expensesOpen && (
+                        <ul id={`week-panel-${expenseKey}`} className="space-y-1.5">
+                          {weekExpenses.map((expense) => (
+                            <li key={`expense-${expense.id}`}>
                               <button
                                 type="button"
-                                onClick={() => onSelectDate(targetDate)}
-                                aria-pressed={selectedDate === targetDate}
-                                className="flex w-full flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
+                                onClick={() => onSelectExpense?.(expense.id)}
+                                aria-label={`${expense.title} 상세`}
+                                className="flex w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
                               >
-                                <PickupAvatars avatars={schedule.pickupAvatars} size={24} />
-                                <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="sm" />
-                                <span className="min-w-0 flex-1 truncate font-medium text-content">{schedule.title}</span>
-                                <span className="text-xs text-content-muted">{`${schedule.start_date} ~ ${schedule.end_date}`}</span>
-                                <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
-                                  {getDdayLabel(todayDate, schedule.end_date)}
-                                </span>
+                                <span className="min-w-0 flex-1 truncate text-content">{expense.title}</span>
+                                <span className="text-xs text-content-muted">{expense.status === "PLANNED" ? "예정" : "확정"}</span>
+                                <span className="font-semibold text-info">{`${expense.amount.toLocaleString()} 원`}</span>
                               </button>
                             </li>
-                          )
-                        })}
-                      </ul>
-                    </section>
-                  ))}
-
-                  {weekExpenses.length > 0 && (
-                    <section data-testid="expense-section" aria-label="지출" className="space-y-1.5">
-                      <h4 className="text-xs font-semibold text-content-secondary">지출</h4>
-                      <ul className="space-y-1.5">
-                        {weekExpenses.map((expense) => (
-                          <li key={`expense-${expense.id}`}>
-                            <button
-                              type="button"
-                              onClick={() => onSelectExpense?.(expense.id)}
-                              aria-label={`${expense.title} 상세`}
-                              className="flex w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
-                            >
-                              <span className="min-w-0 flex-1 truncate text-content">{expense.title}</span>
-                              <span className="text-xs text-content-muted">{expense.status === "PLANNED" ? "예정" : "확정"}</span>
-                              <span className="font-semibold text-info">{`${expense.amount.toLocaleString()} 원`}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
+                          ))}
+                        </ul>
+                      )}
                     </section>
                   )}
                 </div>

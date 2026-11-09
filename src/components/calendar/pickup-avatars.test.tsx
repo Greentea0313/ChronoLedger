@@ -7,34 +7,27 @@ const characters = {
   c2: { name: "블랙 스완", iconUrl: "data:image/webp;base64,b" },
   noicon: { name: "아이콘 없음", iconUrl: null },
 }
-const base = { id: "s1", title: "픽업 일정", schedule_type: "PICKUP" }
+const base = { schedule_type: "PICKUP" }
 
 describe("getPickupAvatars", () => {
-  it("returns catalog icons in the saved order and skips unknown or icon-less ids", () => {
-    const avatars = getPickupAvatars({ ...base, pickup_character_ids: ["c2", "missing", "noicon", "c1"] }, characters)
+  it("returns catalog characters in the saved order and skips ids that are no longer in the catalog", () => {
+    const avatars = getPickupAvatars({ ...base, pickup_character_ids: ["c2", "missing", "c1"] }, characters)
     expect(avatars).toEqual([
       { id: "c2", name: "블랙 스완", iconUrl: "data:image/webp;base64,b" },
       { id: "c1", name: "카프카", iconUrl: "data:image/webp;base64,a" },
     ])
   })
 
-  it("uses the directly uploaded image as a single avatar when no character resolves", () => {
-    expect(getPickupAvatars({ ...base, pickup_character_ids: [], pickup_image_url: "data:image/webp;base64,pk" }, characters)).toEqual([
-      { id: "s1", name: "픽업 일정", iconUrl: "data:image/webp;base64,pk" },
+  it("keeps characters without an icon so they can render as an initial avatar", () => {
+    expect(getPickupAvatars({ ...base, pickup_character_ids: ["noicon"] }, characters)).toEqual([
+      { id: "noicon", name: "아이콘 없음", iconUrl: null },
     ])
-    // Every referenced character was deleted: fall back to the image, otherwise to nothing.
-    expect(getPickupAvatars({ ...base, pickup_character_ids: ["missing"], pickup_image_url: "data:image/webp;base64,pk" }, characters)).toHaveLength(1)
-    expect(getPickupAvatars({ ...base, pickup_character_ids: ["missing"] }, characters)).toEqual([])
   })
 
   it("keeps legacy PICKUP schedules and non-PICKUP schedules avatar-free", () => {
     expect(getPickupAvatars({ ...base }, characters)).toEqual([])
-    expect(getPickupAvatars({ ...base, schedule_type: "CONTENTS", pickup_character_ids: ["c1"] }, characters)).toEqual([])
-  })
-
-  it("prefers catalog characters over the image", () => {
-    const avatars = getPickupAvatars({ ...base, pickup_character_ids: ["c1"], pickup_image_url: "data:image/webp;base64,pk" }, characters)
-    expect(avatars.map((avatar) => avatar.id)).toEqual(["c1"])
+    expect(getPickupAvatars({ ...base, pickup_character_ids: [] }, characters)).toEqual([])
+    expect(getPickupAvatars({ schedule_type: "CONTENTS", pickup_character_ids: ["c1"] }, characters)).toEqual([])
   })
 })
 
@@ -56,7 +49,17 @@ describe("PickupAvatars", () => {
   })
 
   it("applies the requested size", () => {
-    render(<PickupAvatars avatars={four.slice(0, 1)} size={24} />)
-    expect((screen.getByRole("img") as HTMLImageElement).style.height).toBe("24px")
+    render(<PickupAvatars avatars={four.slice(0, 1)} size={20} />)
+    expect((screen.getByRole("img") as HTMLImageElement).style.height).toBe("20px")
+  })
+
+  it("renders a first-letter avatar for characters without an icon", () => {
+    render(<PickupAvatars avatars={[{ id: "n", name: "노이콘", iconUrl: null }]} size={20} />)
+
+    const initial = screen.getByTestId("pickup-avatar-initial")
+    expect(initial.textContent).toBe("노")
+    expect(initial.getAttribute("aria-label")).toBe("노이콘")
+    expect(initial.style.width).toBe("20px")
+    expect(document.body.querySelector("img")).toBeNull()
   })
 })

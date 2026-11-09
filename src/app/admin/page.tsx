@@ -18,7 +18,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
-import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
+import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import {
@@ -73,7 +73,6 @@ interface GameOption {
 
 const DEFAULT_MAX_PRESET_SLOTS = 4
 const MAX_PICKUP_CHARACTERS = 8
-const PICKUP_IMAGE_SIZE = 96
 const DEFAULT_CHARACTER_LABEL = "캐릭터"
 
 const getCharacterLabel = (schema: ClassificationSchema | undefined) => schema?.character_label || DEFAULT_CHARACTER_LABEL
@@ -113,7 +112,9 @@ interface CharacterItem {
   name: string
   rarity: string | null
   attributes: Record<string, string>
-  default_icon_url: string
+  default_icon_url: string | null
+  /** Characters registered only to show on pickup schedules (no roster/preset use); false when the column is not migrated yet. */
+  is_pickup_only: boolean
 }
 
 interface ScheduleItem {
@@ -127,7 +128,6 @@ interface ScheduleItem {
   is_official?: boolean
   is_rerun?: boolean
   pickup_character_ids?: string[] | null
-  pickup_image_url?: string | null
   games?: { id?: string; name?: string; default_icon_url?: string | null } | null
 }
 
@@ -222,11 +222,17 @@ export default function AdminPage() {
   const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST">("VERSION")
   const [isRerun, setIsRerun] = useState(false)
   const [pickupCharacterIds, setPickupCharacterIds] = useState<string[]>([])
-  const [pickupImageSource, setPickupImageSource] = useState("")
-  const [pickupImageFile, setPickupImageFile] = useState<File | null>(null)
   const [pickupSearch, setPickupSearch] = useState("")
   const [originalPickupIds, setOriginalPickupIds] = useState<string[]>([])
-  const [originalPickupImage, setOriginalPickupImage] = useState<string | null>(null)
+  // Inline "new pickup-only character" registration inside the schedule form (A1 U-04).
+  const [isNewPickupOpen, setIsNewPickupOpen] = useState(false)
+  const [newPickupName, setNewPickupName] = useState("")
+  const [newPickupImageSource, setNewPickupImageSource] = useState("")
+  const [newPickupImageFile, setNewPickupImageFile] = useState<File | null>(null)
+  const [newPickupError, setNewPickupError] = useState<string | null>(null)
+  const [isSavingNewPickup, setIsSavingNewPickup] = useState(false)
+  const [characterKindFilter, setCharacterKindFilter] = useState<"" | "roster" | "pickup">("")
+  const [characterFormPromote, setCharacterFormPromote] = useState(false)
   const [isTitleAutoFilled, setIsTitleAutoFilled] = useState(false)
   const [originalIsRerun, setOriginalIsRerun] = useState<boolean | null>(null)
   const [isOfficial, setIsOfficial] = useState(true)
@@ -295,15 +301,19 @@ export default function AdminPage() {
   }, [])
 
   const fetchCharacters = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("game_characters")
-      .select("id, game_id, name, rarity, attributes, default_icon_url")
-      .order("name")
+    const columns = "id, game_id, name, rarity, attributes, default_icon_url"
+    let result = await supabase.from("game_characters").select(`${columns}, is_pickup_only`).order("name")
+    // Not migrated yet (D-08): every character is a regular roster character.
+    if (result.error && (result.error.code === "42703" || result.error.code === "PGRST204")) {
+      result = (await supabase.from("game_characters").select(columns).order("name")) as typeof result
+    }
+    const { data, error } = result
     if (error) {
       setMessage({ type: "error", text: "캐릭터 목록을 불러오지 못했습니다: " + error.message })
     } else {
       setCharacters((data ?? []).map((item) => ({
         ...item,
+        is_pickup_only: (item as { is_pickup_only?: boolean }).is_pickup_only === true,
         attributes: (item.attributes && typeof item.attributes === "object" && !Array.isArray(item.attributes))
           ? item.attributes as Record<string, string>
           : {},
@@ -370,12 +380,15 @@ export default function AdminPage() {
     void fetchPastSchedules()
   }
 
-  const resetPickupState = (ids: string[] = [], image: string | null = null) => {
+  const resetPickupState = (ids: string[] = []) => {
     setPickupCharacterIds(ids)
-    setPickupImageSource(image ?? "")
-    setPickupImageFile(null)
     setPickupSearch("")
     setIsTitleAutoFilled(false)
+    setIsNewPickupOpen(false)
+    setNewPickupName("")
+    setNewPickupImageSource("")
+    setNewPickupImageFile(null)
+    setNewPickupError(null)
   }
 
   const openAddModal = () => {
@@ -383,7 +396,6 @@ export default function AdminPage() {
     setIsDuplicating(false)
     setOriginalIsRerun(null)
     setOriginalPickupIds([])
-    setOriginalPickupImage(null)
     resetPickupState()
     setGameId(selectedGameFilter || "")
     setScheduleType("VERSION")
@@ -404,8 +416,7 @@ export default function AdminPage() {
     setIsDuplicating(true)
     setOriginalIsRerun(null)
     setOriginalPickupIds([])
-    setOriginalPickupImage(null)
-    resetPickupState(schedule.pickup_character_ids ?? [], schedule.pickup_image_url ?? null)
+    resetPickupState(schedule.pickup_character_ids ?? [])
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
     setIsRerun(schedule.is_rerun === true)
@@ -424,8 +435,7 @@ export default function AdminPage() {
     setIsDuplicating(false)
     setOriginalIsRerun(schedule.is_rerun === true)
     setOriginalPickupIds(schedule.pickup_character_ids ?? [])
-    setOriginalPickupImage(schedule.pickup_image_url ?? null)
-    resetPickupState(schedule.pickup_character_ids ?? [], schedule.pickup_image_url ?? null)
+    resetPickupState(schedule.pickup_character_ids ?? [])
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
     setIsRerun(schedule.is_rerun === true)
@@ -483,24 +493,14 @@ export default function AdminPage() {
     setIsSubmitting(true)
     setFormError(null)
 
-    // Pickup avatar source (spec §5.1): mode A stores character ids, mode B a 96x96 WebP data URL; never both (NR-03).
-    const isPickup = scheduleType === "PICKUP"
-    const nextPickupIds = isPickup ? pickupCharacterIds : []
-    let nextPickupImage: string | null = null
-    if (isPickup && nextPickupIds.length === 0 && (pickupImageFile || pickupImageSource.trim())) {
-      try {
-        nextPickupImage = await convertIconSourceToDataUrl(pickupImageFile ?? pickupImageSource.trim(), PICKUP_IMAGE_SIZE)
-      } catch (error: unknown) {
-        setIsSubmitting(false)
-        setFormError(error instanceof Error ? error.message : "픽업 캐릭터 이미지를 변환하지 못했습니다.")
-        return
-      }
-    }
-    // Write only what exists, and clear only what the original had (R33-REV-002 pattern, NR-11).
-    const pickupPayload = {
-      ...(nextPickupIds.length > 0 ? { pickup_character_ids: nextPickupIds } : editingScheduleId && originalPickupIds.length > 0 ? { pickup_character_ids: [] as string[] } : {}),
-      ...(nextPickupImage ? { pickup_image_url: nextPickupImage } : editingScheduleId && originalPickupImage ? { pickup_image_url: null } : {}),
-    }
+    // Pickup characters are catalog ids only (A1 D-03); write them when present and clear only what the original had (NR-11).
+    const nextPickupIds = scheduleType === "PICKUP" ? pickupCharacterIds : []
+    const pickupPayload: { pickup_character_ids?: string[] } =
+      nextPickupIds.length > 0
+        ? { pickup_character_ids: nextPickupIds }
+        : editingScheduleId && originalPickupIds.length > 0
+          ? { pickup_character_ids: [] as string[] }
+          : {}
     const schedulePayload = {
       game_id: gameId,
       schedule_type: scheduleType,
@@ -649,6 +649,7 @@ export default function AdminPage() {
     setCharacterFormAttributes({})
     setCharacterFormIconUrl("")
     setCharacterFormIconFile(null)
+    setCharacterFormPromote(false)
     setCharacterFormError(null)
     setIsCharacterModalOpen(true)
   }
@@ -659,8 +660,9 @@ export default function AdminPage() {
     setCharacterFormName(character.name)
     setCharacterFormRarity(character.rarity ?? "")
     setCharacterFormAttributes(character.attributes)
-    setCharacterFormIconUrl(character.default_icon_url)
+    setCharacterFormIconUrl(character.default_icon_url ?? "")
     setCharacterFormIconFile(null)
+    setCharacterFormPromote(false)
     setCharacterFormError(null)
     setIsCharacterModalOpen(true)
   }
@@ -683,7 +685,10 @@ export default function AdminPage() {
       setCharacterFormError("대상 게임과 캐릭터 이름(1~100자)을 입력해 주세요.")
       return
     }
-    if (!characterFormIconFile && !characterFormIconUrl.trim()) {
+    // Editing a pickup-only character without promoting it changes only name and image (A1 U-05).
+    const pickupOnlyEdit = editingCharacter?.is_pickup_only === true && !characterFormPromote
+    const hasIconSource = !!characterFormIconFile || !!characterFormIconUrl.trim()
+    if (!pickupOnlyEdit && !hasIconSource) {
       setCharacterFormError("캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")
       return
     }
@@ -693,19 +698,21 @@ export default function AdminPage() {
     }
     const schema = getGameSchema(characterFormGameId)
     const characterLabel = getCharacterLabel(schema)
-    if (characterFormRarity && !schema.rarities.includes(characterFormRarity)) {
-      setCharacterFormError("선택한 등급이 해당 게임 설정에 없습니다.")
-      return
-    }
-    // Ranks are required only once the game has a rank list (NR-09); legacy games without ranks stay editable.
-    if (schema.rarities.length >= 1 && !characterFormRarity) {
-      setCharacterFormError(`${characterLabel} 등급을 선택해 주세요.`)
-      return
-    }
-    const missingAxis = schema.axes.find((axis) => !characterFormAttributes[axis.key]?.trim())
-    if (missingAxis) {
-      setCharacterFormError(`${missingAxis.label}을(를) 선택해 주세요.`)
-      return
+    if (!pickupOnlyEdit) {
+      if (characterFormRarity && !schema.rarities.includes(characterFormRarity)) {
+        setCharacterFormError("선택한 등급이 해당 게임 설정에 없습니다.")
+        return
+      }
+      // Ranks are required only once the game has a rank list (NR-09); legacy games without ranks stay editable.
+      if (schema.rarities.length >= 1 && !characterFormRarity) {
+        setCharacterFormError(`${characterLabel} 등급을 선택해 주세요.`)
+        return
+      }
+      const missingAxis = schema.axes.find((axis) => !characterFormAttributes[axis.key]?.trim())
+      if (missingAxis) {
+        setCharacterFormError(`${missingAxis.label}을(를) 선택해 주세요.`)
+        return
+      }
     }
     const attributes = Object.fromEntries(
       Object.entries(characterFormAttributes).filter(([, value]) => value.trim()),
@@ -713,20 +720,31 @@ export default function AdminPage() {
     setIsSubmittingCharacter(true)
     setCharacterFormError(null)
     try {
-      const iconUrl = await convertIconSourceToDataUrl(characterFormIconFile ?? characterFormIconUrl.trim())
-      const payload = {
-        game_id: characterFormGameId,
-        name,
-        rarity: characterFormRarity || null,
-        attributes,
-        default_icon_url: iconUrl,
-      }
+      // An oversized pasted WebP skips the resize, so check the size here for a clear message (R52-REV-004).
+      const iconUrl = hasIconSource
+        ? assertIconDataUrlSize(await convertIconSourceToDataUrl(characterFormIconFile ?? characterFormIconUrl.trim()))
+        : null
+      const payload = pickupOnlyEdit
+        ? { game_id: characterFormGameId, name, ...(iconUrl ? { default_icon_url: iconUrl } : {}) }
+        : {
+            game_id: characterFormGameId,
+            name,
+            rarity: characterFormRarity || null,
+            attributes,
+            default_icon_url: iconUrl as string,
+            ...(editingCharacter?.is_pickup_only ? { is_pickup_only: false } : {}),
+          }
       const result = editingCharacter
         ? await supabase.from("game_characters").update(payload).eq("id", editingCharacter.id)
         : await supabase.from("game_characters").insert(payload)
       if (result.error) throw result.error
       setIsCharacterModalOpen(false)
-      setMessage({ type: "success", text: `${characterLabel} '${name}'을(를) 저장했습니다.` })
+      setMessage({
+        type: "success",
+        text: editingCharacter?.is_pickup_only && characterFormPromote
+          ? `픽업 전용 '${name}'을(를) 정식 ${characterLabel}(으)로 승격했습니다.`
+          : `${characterLabel} '${name}'을(를) 저장했습니다.`,
+      })
       await fetchCharacters()
     } catch (error: unknown) {
       setCharacterFormError(error instanceof Error ? error.message : "캐릭터 저장에 실패했습니다.")
@@ -996,15 +1014,18 @@ export default function AdminPage() {
   const filteredCharacters = characters.filter((character) => {
     if (characterGameFilter && character.game_id !== characterGameFilter) return false
     if (characterRarityFilter && character.rarity !== characterRarityFilter) return false
+    if (characterKindFilter === "roster" && character.is_pickup_only) return false
+    if (characterKindFilter === "pickup" && !character.is_pickup_only) return false
     return !characterSearchQuery.trim() || character.name.toLowerCase().includes(characterSearchQuery.trim().toLowerCase())
   })
 
   const selectedCharacterGame = games.find((game) => game.id === characterGameFilter) ?? null
   const selectedSchema = selectedCharacterGame?.classification_schema
-  const selectedCharacterCount = selectedCharacterGame
-    ? characters.filter((character) => character.game_id === selectedCharacterGame.id).length
+  // Template/support checks count regular roster characters only; pickup-only ones do not activate a template (D-06).
+  const selectedRosterCount = selectedCharacterGame
+    ? characters.filter((character) => character.game_id === selectedCharacterGame.id && !character.is_pickup_only).length
     : 0
-  const isSelectedTemplateActive = selectedCharacterGame ? isCharacterTemplateActive(selectedCharacterGame, selectedCharacterCount) : false
+  const isSelectedTemplateActive = selectedCharacterGame ? isCharacterTemplateActive(selectedCharacterGame, selectedRosterCount) : false
   const selectedCharacterLabel = getCharacterLabel(selectedSchema)
   const rankOrder = (rarity: string | null) => {
     const index = rarity ? (selectedSchema?.rarities.indexOf(rarity) ?? -1) : -1
@@ -1021,15 +1042,15 @@ export default function AdminPage() {
     !pickupSearch.trim() || character.name.toLowerCase().includes(pickupSearch.trim().toLowerCase()),
   )
 
-  const togglePickupCharacter = (characterId: string) => {
+  const togglePickupCharacter = (characterId: string, knownName?: string) => {
     const next = pickupCharacterIds.includes(characterId)
       ? pickupCharacterIds.filter((id) => id !== characterId)
       : pickupCharacterIds.length >= MAX_PICKUP_CHARACTERS ? pickupCharacterIds : [...pickupCharacterIds, characterId]
     setPickupCharacterIds(next)
-    setPickupImageSource("")
-    setPickupImageFile(null)
     // Auto-complete the title while it is empty or still the previous auto-generated one; manual edits stop it.
-    const names = next.map((id) => characters.find((character) => character.id === id)?.name).filter((name): name is string => !!name)
+    const names = next
+      .map((id) => (id === characterId && knownName ? knownName : characters.find((character) => character.id === id)?.name))
+      .filter((name): name is string => !!name)
     const autoTitle = names.length > 0 ? `${names.join(" · ")} 픽업` : ""
     if (!title.trim() || isTitleAutoFilled) {
       setTitle(autoTitle)
@@ -1037,15 +1058,74 @@ export default function AdminPage() {
     }
   }
 
-  const handlePickupImagePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+  const handleNewPickupImagePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
     const file = getClipboardImageFile(event.clipboardData)
     if (!file) return
     event.preventDefault()
-    setPickupImageFile(null)
-    setPickupImageSource("")
-    void convertIconSourceToDataUrl(file, PICKUP_IMAGE_SIZE)
-      .then(setPickupImageSource)
-      .catch((error: unknown) => setFormError(error instanceof Error ? error.message : "픽업 캐릭터 이미지를 변환하지 못했습니다."))
+    setNewPickupImageFile(null)
+    setNewPickupImageSource("")
+    void convertIconSourceToDataUrl(file)
+      .then((dataUrl) => setNewPickupImageSource(assertIconDataUrlSize(dataUrl)))
+      .catch((error: unknown) => setNewPickupError(error instanceof Error ? error.message : "이미지를 변환하지 못했습니다."))
+  }
+
+  // Registers a pickup-only character for the schedule's game right away and adds it to the selection (U-04).
+  const handleRegisterNewPickupCharacter = async () => {
+    const name = newPickupName.trim()
+    if (!gameId) {
+      setNewPickupError("먼저 게임을 선택해 주세요.")
+      return
+    }
+    if (!name || name.length > 100) {
+      setNewPickupError("캐릭터 이름을 1~100자로 입력해 주세요.")
+      return
+    }
+    if (pickupCharacterIds.length >= MAX_PICKUP_CHARACTERS) {
+      setNewPickupError(`픽업 캐릭터는 최대 ${MAX_PICKUP_CHARACTERS}명까지 선택할 수 있습니다.`)
+      return
+    }
+    if (characters.some((character) => character.game_id === gameId && character.name === name)) {
+      setNewPickupError("같은 이름의 캐릭터가 이미 있습니다. 목록에서 선택해 주세요.")
+      return
+    }
+    if (isOffline()) {
+      setNewPickupError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
+    setIsSavingNewPickup(true)
+    setNewPickupError(null)
+    try {
+      const source = newPickupImageFile ?? newPickupImageSource.trim()
+      const iconUrl = source ? assertIconDataUrlSize(await convertIconSourceToDataUrl(source)) : null
+      const { data, error } = await supabase
+        .from("game_characters")
+        .insert({ game_id: gameId, name, default_icon_url: iconUrl, is_pickup_only: true })
+        .select("id, game_id, name, rarity, attributes, default_icon_url, is_pickup_only")
+        .single()
+      if (error || !data) {
+        const duplicate = error?.code === "23505"
+        throw new Error(duplicate ? "같은 이름의 캐릭터가 이미 있습니다." : `픽업 캐릭터를 등록하지 못했습니다: ${error?.message ?? "알 수 없는 오류"}`)
+      }
+      const created: CharacterItem = {
+        id: data.id,
+        game_id: data.game_id,
+        name: data.name,
+        rarity: data.rarity ?? null,
+        attributes: {},
+        default_icon_url: data.default_icon_url ?? null,
+        is_pickup_only: true,
+      }
+      setCharacters((prev) => [...prev, created])
+      togglePickupCharacter(created.id, created.name)
+      setIsNewPickupOpen(false)
+      setNewPickupName("")
+      setNewPickupImageSource("")
+      setNewPickupImageFile(null)
+    } catch (error: unknown) {
+      setNewPickupError(error instanceof Error ? error.message : "픽업 캐릭터를 등록하지 못했습니다.")
+    } finally {
+      setIsSavingNewPickup(false)
+    }
   }
 
   const paginatedSchedules = filteredSchedules.slice(
@@ -1078,25 +1158,25 @@ export default function AdminPage() {
         onValueChange={(val) => setAdminTab(val as "schedules" | "games" | "characters")}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-3 bg-surface-2 mb-6">
+        <TabsList className="mb-6 flex w-full justify-start overflow-x-auto bg-surface-2 md:grid md:grid-cols-3">
           <TabsTrigger
             value="schedules"
             onClick={() => setAdminTab("schedules")}
-            className="data-[state=active]:bg-surface data-[state=active]:text-content"
+            className="shrink-0 whitespace-nowrap data-[state=active]:bg-surface data-[state=active]:text-content"
           >
             일정 관리 ({schedules.length})
           </TabsTrigger>
           <TabsTrigger
             value="games"
             onClick={() => setAdminTab("games")}
-            className="data-[state=active]:bg-surface data-[state=active]:text-content"
+            className="shrink-0 whitespace-nowrap data-[state=active]:bg-surface data-[state=active]:text-content"
           >
             등록된 게임 목록 ({games.length})
           </TabsTrigger>
           <TabsTrigger
             value="characters"
             onClick={() => setAdminTab("characters")}
-            className="data-[state=active]:bg-surface data-[state=active]:text-content"
+            className="shrink-0 whitespace-nowrap data-[state=active]:bg-surface data-[state=active]:text-content"
           >
             캐릭터 관리 ({characters.length})
           </TabsTrigger>
@@ -1107,7 +1187,7 @@ export default function AdminPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-4 rounded-xl border border-line">
             <div className="flex items-center gap-3">
               <Filter className="h-4 w-4 text-content-secondary" />
-              <span className="text-sm font-medium">게임 필터:</span>
+              <span className="whitespace-nowrap text-sm font-medium">게임 필터:</span>
               <select
                 className="bg-surface-2 border border-line rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 value={selectedGameFilter}
@@ -1553,6 +1633,16 @@ export default function AdminPage() {
                 <option key={rarity} value={rarity}>{rarity}</option>
               ))}
             </select>
+            <select
+              className="h-9 rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content"
+              value={characterKindFilter}
+              onChange={(event) => setCharacterKindFilter(event.target.value as "" | "roster" | "pickup")}
+              aria-label="캐릭터 구분 필터"
+            >
+              <option value="">전체 구분</option>
+              <option value="roster">정식 캐릭터</option>
+              <option value="pickup">픽업 전용</option>
+            </select>
             <Input
               value={characterSearchQuery}
               onChange={(event) => setCharacterSearchQuery(event.target.value)}
@@ -1573,14 +1663,38 @@ export default function AdminPage() {
           </div>
 
           {selectedCharacterGame && !isSelectedTemplateActive ? (
-            <Card>
-              <CardContent className="space-y-3 py-10 text-center">
-                <p className="text-sm text-content-secondary">{`${selectedCharacterGame.name}의 캐릭터 테이블이 아직 생성되지 않았습니다.`}</p>
-                <Button onClick={() => handleOpenTemplate(selectedCharacterGame)}>
-                  <Plus className="mr-1 h-4 w-4" />캐릭터 템플릿 생성
-                </Button>
-              </CardContent>
-            </Card>
+            <>
+              <Card>
+                <CardContent className="space-y-3 py-10 text-center">
+                  <p className="text-sm text-content-secondary">{`${selectedCharacterGame.name}의 캐릭터 테이블이 아직 생성되지 않았습니다.`}</p>
+                  <Button onClick={() => handleOpenTemplate(selectedCharacterGame)}>
+                    <Plus className="mr-1 h-4 w-4" />캐릭터 템플릿 생성
+                  </Button>
+                </CardContent>
+              </Card>
+              {filteredCharacters.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-base">픽업 전용 캐릭터</CardTitle></CardHeader>
+                  <CardContent className="space-y-2" data-testid="pickup-only-list">
+                    {filteredCharacters.map((character) => (
+                      <div key={character.id} className="flex items-center justify-between gap-3 rounded-lg border border-line p-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-line">
+                            <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
+                          </div>
+                          <p className="truncate font-semibold text-content">{character.name}</p>
+                          <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning">픽업 전용</span>
+                        </div>
+                        <div className="flex shrink-0 gap-2">
+                          <Button size="sm" variant="outline" aria-label={`${character.name} 수정`} onClick={() => handleOpenEditCharacter(character)}>수정</Button>
+                          <Button size="sm" variant="destructive" aria-label={`${character.name} 삭제`} onClick={() => setDeletingCharacter(character)}>삭제</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </>
           ) : (
             <Card>
               <CardHeader><CardTitle className="text-base">{selectedCharacterGame ? `${selectedCharacterLabel} 카탈로그` : "캐릭터 카탈로그"}</CardTitle></CardHeader>
@@ -1612,7 +1726,10 @@ export default function AdminPage() {
                                 <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
                               </div>
                             </td>
-                            <td className="py-2 pr-2 font-semibold text-content">{character.name}</td>
+                            <td className="py-2 pr-2 font-semibold text-content">
+                              {character.name}
+                              {character.is_pickup_only && <span className="ml-1.5 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-normal text-warning">픽업 전용</span>}
+                            </td>
                             <td className="py-2 pr-2 text-content-secondary">{character.rarity ?? "-"}</td>
                             {selectedSchema.axes.map((axis) => (
                               <td key={axis.key} className="py-2 pr-2 text-content-secondary">{character.attributes[axis.key] ?? "-"}</td>
@@ -1633,7 +1750,10 @@ export default function AdminPage() {
                     <div className="flex min-w-0 items-center gap-3">
                       <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-content">{character.name}</p>
+                        <p className="truncate font-semibold text-content">
+                          {character.name}
+                          {character.is_pickup_only && <span className="ml-1.5 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-normal text-warning">픽업 전용</span>}
+                        </p>
                         <p className="text-xs text-content-secondary">
                           {games.find((game) => game.id === character.game_id)?.name ?? "알 수 없음"} · {character.rarity ?? "성급 없음"} · {Object.values(character.attributes).join(", ")}
                         </p>
@@ -1911,19 +2031,21 @@ export default function AdminPage() {
                 복각 일정
               </label>
             )}
-            {scheduleType === "PICKUP" && gameId && (pickupGameCharacters.length > 0 ? (
+            {scheduleType === "PICKUP" && gameId && (
               <section aria-label={`픽업 ${pickupLabel} 선택`} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">{`픽업 ${pickupLabel} 선택 (단일 또는 복수)`}</p>
                   <span className="text-xs text-content-secondary">{`${pickupCharacterIds.length} / ${MAX_PICKUP_CHARACTERS}`}</span>
                 </div>
-                <Input
-                  aria-label="픽업 캐릭터 검색"
-                  value={pickupSearch}
-                  onChange={(event) => setPickupSearch(event.target.value)}
-                  placeholder={`${pickupLabel} 이름 검색`}
-                  className="h-8 bg-surface-2"
-                />
+                {pickupGameCharacters.length > 0 && (
+                  <Input
+                    aria-label="픽업 캐릭터 검색"
+                    value={pickupSearch}
+                    onChange={(event) => setPickupSearch(event.target.value)}
+                    placeholder={`${pickupLabel} 이름 검색`}
+                    className="h-8 bg-surface-2"
+                  />
+                )}
                 <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto" data-testid="pickup-character-picker">
                   {visiblePickupCharacters.map((character) => {
                     const selected = pickupCharacterIds.includes(character.id)
@@ -1934,42 +2056,60 @@ export default function AdminPage() {
                         aria-pressed={selected}
                         disabled={!selected && pickupCharacterIds.length >= MAX_PICKUP_CHARACTERS}
                         onClick={() => togglePickupCharacter(character.id)}
-                        className={`rounded-full border px-2.5 py-1 text-xs transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-50 ${
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-50 ${
                           selected ? "border-primary bg-primary/15 text-primary" : "border-line bg-surface-2 text-content-secondary hover:text-content"
                         }`}
                       >
                         {character.name}
+                        {character.is_pickup_only && <span className="rounded bg-warning/15 px-1 text-[10px] text-warning">픽업 전용</span>}
                       </button>
                     )
                   })}
+                  {pickupGameCharacters.length === 0 && (
+                    <p className="text-xs text-content-secondary">등록된 캐릭터가 없습니다. 아래에서 새 픽업 캐릭터를 등록해 주세요.</p>
+                  )}
                 </div>
-              </section>
-            ) : (
-              <div className="space-y-1.5">
-                <label htmlFor="schedule-pickup-image-url" className="block text-sm font-medium">픽업 캐릭터 이미지 (선택)</label>
-                <Input
-                  id="schedule-pickup-image-url"
-                  value={pickupImageSource.startsWith("data:image/webp;base64,") ? "" : pickupImageSource}
-                  onPaste={handlePickupImagePaste}
-                  onChange={(event) => {
-                    setPickupImageSource(event.target.value)
-                    setPickupImageFile(null)
-                  }}
-                  placeholder="https://... 또는 이미지 붙여넣기"
-                />
-                <Input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  aria-label="픽업 캐릭터 이미지 파일"
-                  onChange={(event) => setPickupImageFile(event.target.files?.[0] ?? null)}
-                />
-                {pickupImageSource.startsWith("data:image/webp;base64,") && (
-                  <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
-                    <GameIcon src={pickupImageSource} alt="픽업 캐릭터 이미지 미리보기" />
+                {!isNewPickupOpen ? (
+                  <Button type="button" size="sm" variant="outline" onClick={() => setIsNewPickupOpen(true)}>
+                    + 새 픽업 캐릭터
+                  </Button>
+                ) : (
+                  <div className="space-y-2 rounded-lg border border-line bg-surface-2 p-3" data-testid="new-pickup-character-form">
+                    <label htmlFor="new-pickup-name" className="block text-xs font-medium">새 픽업 캐릭터 이름 *</label>
+                    <Input id="new-pickup-name" maxLength={100} value={newPickupName} onChange={(event) => setNewPickupName(event.target.value)} />
+                    <label htmlFor="new-pickup-image-url" className="block text-xs font-medium">이미지 (선택)</label>
+                    <Input
+                      id="new-pickup-image-url"
+                      value={newPickupImageSource.startsWith("data:image/webp;base64,") ? "" : newPickupImageSource}
+                      onPaste={handleNewPickupImagePaste}
+                      onChange={(event) => {
+                        setNewPickupImageSource(event.target.value)
+                        setNewPickupImageFile(null)
+                      }}
+                      placeholder="https://... 또는 이미지 붙여넣기"
+                    />
+                    <Input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      aria-label="새 픽업 캐릭터 이미지 파일"
+                      onChange={(event) => setNewPickupImageFile(event.target.files?.[0] ?? null)}
+                    />
+                    {newPickupImageSource.startsWith("data:image/webp;base64,") && (
+                      <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
+                        <GameIcon src={newPickupImageSource} alt="새 픽업 캐릭터 이미지 미리보기" />
+                      </div>
+                    )}
+                    {newPickupError && <p role="alert" className="text-xs text-danger">{newPickupError}</p>}
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" size="sm" variant="ghost" disabled={isSavingNewPickup} onClick={() => { setIsNewPickupOpen(false); setNewPickupError(null) }}>취소</Button>
+                      <Button type="button" size="sm" disabled={isSavingNewPickup} onClick={() => void handleRegisterNewPickupCharacter()}>
+                        {isSavingNewPickup ? "등록 중..." : "등록"}
+                      </Button>
+                    </div>
                   </div>
                 )}
-              </div>
-            ))}
+              </section>
+            )}
 
             <div>
               <label htmlFor="schedule-official-select" className="block text-sm font-medium mb-1">일정 분류 *</label>
@@ -2360,6 +2500,9 @@ export default function AdminPage() {
             const formGame = games.find((game) => game.id === characterFormGameId)
             const formSchema = formGame?.classification_schema ?? { rarities: [], axes: [] }
             const formLabel = getCharacterLabel(formSchema)
+            const isPickupOnlyEdit = editingCharacter?.is_pickup_only === true
+            const canPromote = isPickupOnlyEdit && isCharacterTemplateActive(formGame, characters.filter((character) => character.game_id === formGame?.id && !character.is_pickup_only).length)
+            const showClassification = !isPickupOnlyEdit || characterFormPromote
             return (
               <>
                 <DialogHeader>
@@ -2378,14 +2521,25 @@ export default function AdminPage() {
                     <label htmlFor="character-form-name" className="mb-1 block text-sm font-medium">{`${formLabel} 이름 *`}</label>
                     <Input id="character-form-name" maxLength={100} value={characterFormName} onChange={(event) => setCharacterFormName(event.target.value)} />
                   </div>
-                  <div>
+                  {isPickupOnlyEdit && (
+                    <div className="space-y-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+                      <p>픽업 전용 캐릭터는 이름과 이미지만 수정할 수 있으며 보유 체크·프리셋에는 쓰이지 않음.</p>
+                      {canPromote && (
+                        <label className="flex items-center gap-2 text-sm text-content">
+                          <input type="checkbox" checked={characterFormPromote} onChange={(event) => setCharacterFormPromote(event.target.checked)} />
+                          정식 캐릭터로 승격 (등급·분류 입력)
+                        </label>
+                      )}
+                    </div>
+                  )}
+                  {showClassification && <div>
                     <label htmlFor="character-form-rarity" className="mb-1 block text-sm font-medium">{formSchema.rarities.length >= 1 ? "등급 *" : "등급"}</label>
                     <select id="character-form-rarity" className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormRarity} onChange={(event) => setCharacterFormRarity(event.target.value)}>
                       <option value="">{formSchema.rarities.length >= 1 ? "등급 선택" : "등급 없음"}</option>
                       {formSchema.rarities.map((rarity) => <option key={rarity} value={rarity}>{rarity}</option>)}
                     </select>
-                  </div>
-                  {formSchema.axes.map((axis) => (
+                  </div>}
+                  {showClassification && formSchema.axes.map((axis) => (
                     <div key={axis.key}>
                       <label htmlFor={`character-form-axis-${axis.key}`} className="mb-1 block text-sm font-medium">{`${axis.label} *`}</label>
                       <select id={`character-form-axis-${axis.key}`} className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormAttributes[axis.key] ?? ""} onChange={(event) => setCharacterFormAttributes((current) => ({ ...current, [axis.key]: event.target.value }))}>
@@ -2395,7 +2549,7 @@ export default function AdminPage() {
                     </div>
                   ))}
                   <div>
-                    <label htmlFor="character-form-icon-url" className="mb-1 block text-sm font-medium">{`${formLabel} 아이콘 *`}</label>
+                    <label htmlFor="character-form-icon-url" className="mb-1 block text-sm font-medium">{isPickupOnlyEdit && !characterFormPromote ? `${formLabel} 아이콘 (선택)` : `${formLabel} 아이콘 *`}</label>
                     <Input id="character-form-icon-url" value={characterFormIconUrl.startsWith("data:image/webp;base64,") ? "" : characterFormIconUrl} onPaste={handleCharacterIconPaste} onChange={(event) => { setCharacterFormIconUrl(event.target.value); setCharacterFormIconFile(null) }} placeholder="https://... 또는 이미지 붙여넣기" aria-label="기본 아이콘 URL" />
                     <Input id="character-form-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 기본 아이콘 파일" onChange={(event) => setCharacterFormIconFile(event.target.files?.[0] ?? null)} className="mt-2" />
                   </div>

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { convertIconSourceToDataUrl, getClipboardImageFile, resizeImageToWebP } from "@/lib/image-resizer";
+import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile, MAX_ICON_DATA_URL_LENGTH, resizeImageToWebP } from "@/lib/image-resizer";
 
 function imageResponse(contentType = "image/png") {
   return new Response(new Blob(["image"], { type: contentType }), {
@@ -164,5 +164,25 @@ describe("getClipboardImageFile", () => {
     } as unknown as DataTransfer;
 
     expect(getClipboardImageFile(clipboardData)).toBe(imageFile);
+  });
+});
+
+describe("assertIconDataUrlSize", () => {
+  it("returns data URLs up to the 150,000 character cap unchanged", () => {
+    const atLimit = "d".repeat(MAX_ICON_DATA_URL_LENGTH);
+    expect(assertIconDataUrlSize(atLimit)).toBe(atLimit);
+    expect(assertIconDataUrlSize("data:image/webp;base64,small")).toBe("data:image/webp;base64,small");
+  });
+
+  it("rejects an oversized data URL with an image-size hint instead of a database error", () => {
+    expect(() => assertIconDataUrlSize("d".repeat(MAX_ICON_DATA_URL_LENGTH + 1))).toThrow("이미지 용량이 너무 큽니다");
+    expect(() => assertIconDataUrlSize("d".repeat(MAX_ICON_DATA_URL_LENGTH + 1))).toThrow("더 작은 이미지");
+  });
+
+  it("is exposed so a pasted WebP data URL that skips the resize can still be size-checked", async () => {
+    const huge = `data:image/webp;base64,${"A".repeat(MAX_ICON_DATA_URL_LENGTH)}`;
+    const converted = await convertIconSourceToDataUrl(huge);
+    expect(converted).toBe(huge);
+    expect(() => assertIconDataUrlSize(converted)).toThrow("이미지 용량이 너무 큽니다");
   });
 });
