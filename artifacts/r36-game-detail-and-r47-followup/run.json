@@ -1,0 +1,15 @@
+{
+    "schema_version":  1,
+    "run_id":  "r36-game-detail-and-r47-followup",
+    "created_at":  "2026-11-09T05:03:33.1255113+00:00",
+    "objective":  "Implement R36 (Phase 12.40 Game Schedule \u0026 Expense Integrated Detail View in /dashboard/games with ON AIR D-day/progress bar, upcoming schedules, past 6-month schedule archive, and per-game/per-version expense summary) and R47 (R33 follow-up: user-requests-card.tsx is_rerun column fallback and R33 UI regression tests)",
+    "acceptance_criteria":  [
+                                "Step 1 (R36 \u0026 R47 UI \u0026 Tests, Claude Sonnet): Add is_rerun column-missing fallback query in user-requests-card.tsx and unit test; expand R33 unit tests in admin/page.test.tsx, request-submission-modal.test.tsx, and games/page.test.tsx; enhance /dashboard/games ScheduleDialog \u0026 ScheduleTree with ON AIR D-n badge \u0026 progress bar, Upcoming Schedules section, Past 6-Month Schedules collapsible section, and authenticated per-game (this month confirmed, cumulative confirmed, planned) \u0026 per-version expense summaries with unit tests."
+                            ],
+    "base_sha":  "b5ca5d8b2ab538cc19af84238e89095fc0456c53",
+    "target_sha":  null,
+    "branch":  "collab/r36-game-detail-and-r47-followup",
+    "worktree_path":  ".worktrees/r36-game-detail-and-r47-followup",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
