@@ -4,8 +4,9 @@ import { Simulate } from "react-dom/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import GamesPage from "./page"
 
-const { from, useAuth, downloadUserIcon, deleteUserIcon, loadSchedulePreference } = vi.hoisted(() => ({
+const { from, useAuth, downloadUserIcon, deleteUserIcon, loadSchedulePreference, getKstToday } = vi.hoisted(() => ({
   from: vi.fn(),
+  getKstToday: vi.fn(),
   useAuth: vi.fn(),
   downloadUserIcon: vi.fn(),
   deleteUserIcon: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("@/lib/storage-upload", () => ({
   uploadUserIcon: vi.fn(),
 }))
 vi.mock("@/lib/schedule-preferences", () => ({ loadSchedulePreference }))
+vi.mock("@/lib/dashboard-date", () => ({ getKstToday }))
 
 const mockUserGames = [
   {
@@ -77,6 +79,8 @@ function createQuery(table: string) {
   return query as MockQuery
 }
 
+const countOccurrences = (text: string) => (document.body.textContent ?? "").split(text).length - 1
+
 describe("GamesPage", () => {
   let container: HTMLDivElement
   let root: Root
@@ -86,6 +90,7 @@ describe("GamesPage", () => {
     container = document.createElement("div")
     document.body.append(container)
     root = createRoot(container)
+    getKstToday.mockReturnValue("2026-11-09")
     useAuth.mockReturnValue({ user: { id: "test-user-id" } })
     downloadUserIcon.mockResolvedValue(null)
     deleteUserIcon.mockResolvedValue(undefined)
@@ -220,6 +225,7 @@ describe("GamesPage", () => {
   })
 
   it("renders schedule title and memo with slash separated into block elements for line breaks", async () => {
+    getKstToday.mockReturnValue("2026-10-15")
     from.mockImplementation((table: string) => {
       const q = createQuery(table)
       if (table === "game_schedules") {
@@ -537,14 +543,15 @@ describe("GamesPage", () => {
     )
     expect(ver1Btn).toBeDefined()
     expect(ver1Btn?.getAttribute("aria-expanded")).toBe("true")
-    expect(document.body.textContent).toContain("픽업 캐릭터 A")
+    // 버전 트리 하위 + 다음 예정 일정 섹션에 각각 한 번씩 노출된다
+    expect(countOccurrences("픽업 캐릭터 A")).toBe(2)
 
     const ver2Btn = Array.from(document.body.querySelectorAll("button")).find((b) =>
       b.textContent?.includes("2.0 버전 업데이트")
     )
     expect(ver2Btn).toBeDefined()
     expect(ver2Btn?.getAttribute("aria-expanded")).toBe("false")
-    expect(document.body.textContent).not.toContain("신규 지역 탐험")
+    expect(countOccurrences("신규 지역 탐험")).toBe(1)
 
     // ver-2 아코디언 확장 클릭
     await act(async () => {
@@ -552,7 +559,7 @@ describe("GamesPage", () => {
       await Promise.resolve()
     })
     expect(ver2Btn?.getAttribute("aria-expanded")).toBe("true")
-    expect(document.body.textContent).toContain("신규 지역 탐험")
+    expect(countOccurrences("신규 지역 탐험")).toBe(2)
 
     // ver-1 아코디언 접기 클릭
     await act(async () => {
@@ -560,7 +567,7 @@ describe("GamesPage", () => {
       await Promise.resolve()
     })
     expect(ver1Btn?.getAttribute("aria-expanded")).toBe("false")
-    expect(document.body.textContent).not.toContain("픽업 캐릭터 A")
+    expect(countOccurrences("픽업 캐릭터 A")).toBe(1)
 
     // 3. 기타 일정
     expect(document.body.textContent).toContain("기타 일정")
@@ -605,5 +612,163 @@ describe("GamesPage", () => {
     expect(document.body.textContent).toContain(
       "관리자가 등록한 픽업, 버전 및 콘텐츠 업데이트 일정입니다."
     )
+  })
+
+  describe("R36 game detail view", () => {
+    const scheduleRows = [
+      { id: "ver-now", game_id: "game-1", title: "1.0 버전", schedule_type: "VERSION", start_date: "2026-11-01", end_date: "2026-11-30", memo: null },
+      { id: "air-1", game_id: "game-1", title: "진행 픽업", schedule_type: "PICKUP", is_rerun: true, start_date: "2026-11-05", end_date: "2026-11-15", memo: null },
+      { id: "next-b", game_id: "game-1", title: "예정 B", schedule_type: "BROADCAST", start_date: "2026-11-25", end_date: "2026-11-25", memo: null },
+      { id: "next-a", game_id: "game-1", title: "예정 A", schedule_type: "CONTENTS", start_date: "2026-11-12", end_date: "2026-11-14", memo: null },
+      { id: "old-1", game_id: "game-1", title: "지난 픽업", schedule_type: "PICKUP", start_date: "2026-10-01", end_date: "2026-10-10", memo: null },
+      { id: "old-2", game_id: "game-1", title: "더 지난 콘텐츠", schedule_type: "CONTENTS", start_date: "2026-08-01", end_date: "2026-08-20", memo: null },
+    ]
+    const expenseRows = [
+      { id: "e1", title: "이번 달 확정", final_amount: 10000, status: "CONFIRMED", target_date: "2026-11-03", end_date: null },
+      { id: "e2", title: "지난달 확정", final_amount: 5000, status: "CONFIRMED", target_date: "2026-10-20", end_date: null },
+      { id: "e3", title: "예정 결제", final_amount: 7000, status: "PLANNED", target_date: "2026-11-20", end_date: "2026-11-22" },
+      { id: "e4", title: "취소됨", final_amount: 99999, status: "CANCELLED", target_date: "2026-11-04", end_date: null },
+    ]
+
+    async function openSchedules(options: { expenses?: unknown; schedules?: unknown[] } = {}) {
+      const queries: Record<string, ReturnType<typeof createQuery>> = {}
+      from.mockImplementation((table: string) => {
+        const q = createQuery(table)
+        queries[table] = q
+        if (table === "game_schedules") {
+          q.then = vi.fn((resolve: (val: unknown) => unknown) =>
+            Promise.resolve({ data: options.schedules ?? scheduleRows, error: null }).then(resolve))
+        }
+        if (table === "expenses" && options.expenses !== undefined) {
+          q.then = vi.fn((resolve: (val: unknown) => unknown, reject?: (reason: unknown) => unknown) =>
+            options.expenses instanceof Error
+              ? Promise.reject(options.expenses).then(resolve, reject)
+              : Promise.resolve({ data: options.expenses, error: null }).then(resolve))
+        }
+        return q
+      })
+      await act(async () => root.render(<GamesPage />))
+      const scheduleBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("일정 보기"))
+      expect(scheduleBtn).toBeDefined()
+      await act(async () => {
+        Simulate.click(scheduleBtn!)
+        await Promise.resolve()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+      return queries
+    }
+
+    const byTestId = (id: string) => Array.from(document.body.querySelectorAll(`[data-testid="${id}"]`))
+
+    it("queries schedules from 180 days before KST today and the user's expenses for the game", async () => {
+      const queries = await openSchedules({ expenses: expenseRows })
+
+      const scheduleCalls = (queries.game_schedules.gte as ReturnType<typeof vi.fn>).mock.calls
+      expect(scheduleCalls).toContainEqual(["end_date", "2026-05-13"])
+      expect(queries.expenses.select).toHaveBeenCalledWith("id, title, final_amount, status, target_date, end_date")
+      expect(queries.expenses.eq).toHaveBeenCalledWith("user_id", "test-user-id")
+      const gameId = (queries.game_schedules.eq as ReturnType<typeof vi.fn>).mock.calls.find(([column]) => column === "game_id")?.[1]
+      expect(gameId).toEqual(expect.any(String))
+      expect(queries.expenses.eq).toHaveBeenCalledWith("game_id", gameId)
+    })
+
+    it("shows the D-n badge and progress bar only for ON AIR schedules", async () => {
+      await openSchedules({ expenses: [] })
+
+      const onAir = document.body.querySelector('section[aria-label="진행 중인 일정"]') as HTMLElement
+      expect(onAir.textContent).toContain("진행 픽업")
+      const card = Array.from(onAir.querySelectorAll("div.rounded-lg")).find((el) => el.textContent?.includes("진행 픽업")) as HTMLElement
+      expect(card.querySelector('[data-testid="dday-badge"]')?.textContent).toBe("D-6")
+      expect(card.querySelector('[role="progressbar"]')?.getAttribute("aria-valuenow")).toBe("40")
+      // 1.0 버전(11-01~11-30)도 진행 중이므로 ON AIR 카드는 2개, 그 외 섹션에는 배지가 없다
+      expect(byTestId("dday-badge")).toHaveLength(2)
+    })
+
+    it("lists upcoming schedules by start date ascending", async () => {
+      await openSchedules({ expenses: [] })
+
+      const upcoming = document.body.querySelector('section[aria-label="다음 예정 일정"]') as HTMLElement
+      expect(upcoming).not.toBeNull()
+      const titles = Array.from(upcoming.querySelectorAll("span.break-words")).map((el) => el.textContent)
+      expect(titles).toEqual(["예정 A", "예정 B"])
+      expect(upcoming.textContent).not.toContain("진행 픽업")
+    })
+
+    it("separates past schedules into a collapsed record that expands on click", async () => {
+      await openSchedules({ expenses: [] })
+
+      const record = document.body.querySelector('section[aria-label="지난 일정 기록"]') as HTMLElement
+      const toggle = record.querySelector("button") as HTMLButtonElement
+      expect(toggle.textContent).toContain("지난 일정 기록 (2건)")
+      expect(toggle.getAttribute("aria-expanded")).toBe("false")
+      expect(record.textContent).not.toContain("지난 픽업")
+      expect(countOccurrences("지난 픽업")).toBe(0)
+
+      await act(async () => {
+        Simulate.click(toggle)
+      })
+      expect(toggle.getAttribute("aria-expanded")).toBe("true")
+      const titles = Array.from(record.querySelectorAll("span.break-words")).map((el) => el.textContent)
+      expect(titles).toEqual(["지난 픽업", "더 지난 콘텐츠"])
+    })
+
+    it("hides the past record when there are no past schedules", async () => {
+      await openSchedules({ expenses: [], schedules: scheduleRows.slice(0, 4) })
+      expect(document.body.querySelector('section[aria-label="지난 일정 기록"]')).toBeNull()
+    })
+
+    it("shows the game billing summary and per-version subtotals for logged-in users", async () => {
+      await openSchedules({ expenses: expenseRows })
+
+      const summary = byTestId("game-expense-summary")[0] as HTMLElement
+      expect(summary.querySelector('[data-testid="summary-month-confirmed"]')?.textContent).toBe("10,000원")
+      expect(summary.querySelector('[data-testid="summary-total-confirmed"]')?.textContent).toBe("15,000원")
+      expect(summary.querySelector('[data-testid="summary-planned"]')?.textContent).toBe("7,000원")
+      // 1.0 버전(11-01~11-30): 확정은 target_date, 예정은 end_date 기준
+      expect(byTestId("version-expense-summary").map((el) => el.textContent)).toEqual(["확정 10,000원 · 예정 7,000원"])
+    })
+
+    it("hides the billing summary and subtotals in guest mode and skips the expenses query", async () => {
+      useAuth.mockReturnValue({ user: null, role: null })
+      from.mockImplementation((table: string) => {
+        const q = createQuery(table)
+        if (table === "games") {
+          q.then = vi.fn((resolve: (val: unknown) => unknown) =>
+            Promise.resolve({ data: [{ id: "game-1", name: "원신", default_icon_url: null }], error: null }).then(resolve))
+        }
+        if (table === "game_schedules") {
+          q.then = vi.fn((resolve: (val: unknown) => unknown) => Promise.resolve({ data: scheduleRows, error: null }).then(resolve))
+        }
+        return q
+      })
+      await act(async () => root.render(<GamesPage />))
+      const scheduleBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("일정 보기"))
+      await act(async () => {
+        Simulate.click(scheduleBtn!)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(document.body.textContent).toContain("1.0 버전")
+      expect(byTestId("game-expense-summary")).toHaveLength(0)
+      expect(byTestId("version-expense-summary")).toHaveLength(0)
+      expect(from).not.toHaveBeenCalledWith("expenses")
+    })
+
+    it.each([["rejected query", new Error("boom")], ["non-array data", null]])("keeps showing schedules when the expenses query fails (%s)", async (_label, failure) => {
+      await openSchedules({ expenses: failure })
+
+      expect(document.body.textContent).toContain("1.0 버전")
+      expect(byTestId("game-expense-summary")[0]?.querySelector('[data-testid="summary-total-confirmed"]')?.textContent).toBe("0원")
+    })
+
+    it("renders 특별방송 and 복각 badges inside the schedule tree", async () => {
+      await openSchedules({ expenses: [] })
+
+      const labels = byTestId("schedule-type-badge").map((el) => el.textContent)
+      expect(labels).toContain("특별방송")
+      expect(labels).toContain("픽업복각")
+    })
   })
 })
