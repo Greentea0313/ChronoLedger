@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-09 (R52 Amendment A1 — 픽업 전용 캐릭터·UI 피드백 반영 설계)
+
+- R52 명세에 `§8 Amendment A1`을 추가함: `game_characters.is_pickup_only`, `schedule_requests.pickup_new_characters`와 승인 시 자동 등록, `pickup_image_url` 제거, 관리자 탭 겹침·요청 대기열 제목·주차별 리스트 게임별 접기/펼치기 개선.
+- Dispatch Queue R52 Step 5~7을 DB(GPT Codex)·UI(Claude Sonnet)·재리뷰(Claude Opus)로 재구성함.
+
 ## 2026-11-09 (r52-character-template-and-pickup-avatar iteration-01 리뷰)
 
 - Base `0c09a20` ↔ Target `4ff5295` 통합 리뷰 결과 `findings` 판정함(`R52-REV-001`·`002` P2 SQL 스모크 테스트 결함과 anon REVOKE 누락, `REV-003` P3 승인 폴백, `REV-004` P4 이미지 크기 우회).

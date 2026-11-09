@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## R52 사용자 피드백 반영 보완(Amendment A1) 및 큐 재구성 (2026-11-09)
+
+- **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 1순위 대체)임.
+- **사용자 피드백**: ① 관리자 모바일 탭 텍스트 겹침, ② 요청 대기열 제목이 게임 요청 탭에만 표시, ③ 주차별 리스트 가시성 부족(게임별 접기/펼치기·작은 캐릭터 이미지 요청), ④ 캐릭터 미지원 게임도 픽업 캐릭터 이름·이미지를 게임별로 저장 필요임.
+- **사용자 결정**: 픽업 캐릭터는 `game_characters` 같은 테이블 + `is_pickup_only` 구분값으로 저장, 사용자 요청은 기존 선택 + 새 캐릭터 제안 허용, R52 Run에 합쳐 진행함.
+- **명세 보완**: `§8 Amendment A1` 추가(워크트리 `af39b72`). `pickup_image_url` 방식(NR-03·NR-04) 폐기, 픽업 전용 캐릭터·제안 승인 RPC·정식/픽업 전용 경계 DB 강제·UI 개선 U-01~U-08 확정함.
+- **큐 재구성**: Step 5 DB(**GPT Codex** `▶ READY`) → Step 6 UI(**Claude Sonnet** `⏳ WAITING`) → Step 7 재리뷰·병합(**Claude Opus** `⏳ WAITING`)임. iteration-01 지적 `R52-REV-001`~`004`는 Step 5·6에 포함함.
+
 ## r52-character-template-and-pickup-avatar iteration-01 통합 리뷰 (Step 4, 2026-11-09)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)임. Step 1 명세 리뷰도 같은 모델이 수행했으므로 명세 해석 부분의 독립성은 제한됨.
