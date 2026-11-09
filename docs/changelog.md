@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-09 (인증 보안 설정 점검 안건 `R50` 등록)
+
+- `docs/handoff.md`에 병행 검토 안건 `auth-security-settings-review`(상태 `📝 AGENDA`, 자동 실행 제외)를 수용 기준과 함께 등록하고 `docs/to-do.md` `R50`을 추가함.
+
 ## 2026-11-09 (배포 확인 피드백 Run `weekly-game-group-and-rerun-badge` 등록)
 
 - R33 배포 확인 피드백으로 `R48`(주차별 리스트 게임별 묶음)·`R49`(`[픽업 [복각]]` 배지 통합·높이 정렬)을 등록하고 격리 Run(Base `742e58f`)과 Dispatch Queue 2단계 배정(Claude Sonnet → Gemini 4 Argon)을 기록함.

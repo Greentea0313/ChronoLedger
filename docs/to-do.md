@@ -661,6 +661,7 @@
 - [ ] R47. [후속 · R33 리뷰 이관] ① `src/components/game/user-requests-card.tsx` `schedule_requests` 조회가 `is_rerun` 컬럼 부재(`42703`/`PGRST204`) 시 해당 컬럼 없이 재조회하도록 폴백 추가(`R33-REV-006`, P3), ② 관리자 일정 폼 복각 토글·`originalIsRerun` 수정 페이로드, `RequestSubmissionModal` EDIT 모드 `is_rerun: false` 분기, R33 마이그레이션 오류 문구, `/dashboard/games` ScheduleTree 배지 테스트 보강(`R33-REV-007`, P4) (담당: Claude Sonnet, Fallback: GitHub Copilot)
 - [ ] R48 (`Phase 12.39`). [진행 중 Run (`weekly-game-group-and-rerun-badge`), Step 1 Claude Sonnet `▶ READY`] 대시보드 주차별 리스트를 주차 카드 안에서 게임별 하위 그룹(아이콘·게임명 헤더, 시작일순 일정, 미연결 `기타`)으로 묶음 (2026-11-09 사용자 피드백, 담당: Claude Sonnet, Fallback: GitHub Copilot / Gemini 3.8 Flash)
 - [ ] R49 (`Phase 12.39`). [진행 중 Run (`weekly-game-group-and-rerun-badge`)] 공용 `ScheduleTypeBadge`로 일정 종류·복각 배지를 `[픽업 [복각]]` 형태로 통일하고 복각 칩 높이·기준선 불일치 해소(관리자 목록·게임 ScheduleTree·사이드바·주차 리스트), 사이드바 묶음 키에 복각 여부 포함 (2026-11-09 사용자 피드백)
+- [ ] R50. [보안 검토 안건 · `📝 AGENDA` (`auth-security-settings-review`)] 인증 보안 설정 점검: 클라이언트 인증 흐름·키 관리·RLS/`SECURITY DEFINER` 권한 경계 읽기 전용 점검, Supabase 대시보드 Auth 설정 체크리스트(사용자 확인용) 작성, 문자열 컬럼 암호화 미도입 권장 근거 기록 → `docs/auth-security-review.md` (담당: Claude Opus, Fallback: Gemini 4 Argon / GitHub Copilot, 코드 수정은 별도 R 항목으로 분리)
 
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)
 

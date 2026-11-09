@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## 인증 보안 설정 점검 안건 등록 (R50, 2026-11-09)
+
+- **수행 주체**: Claude Opus (사용자 요청으로 안건 등록)임.
+- **배경**: 비밀번호 저장 방식(Supabase Auth bcrypt 해시, 앱 테이블 미저장)·문자열 암호화(미도입 권장) 질의 답변 결과를 근거로 에이전트 검토 안건화함.
+- **등록 내용**: `docs/handoff.md` 「병행 검토 안건」에 `auth-security-settings-review`(A1 Claude Opus 읽기 전용 점검 `📝 AGENDA` → A2 사용자 대시보드 확인) 등록, `docs/to-do.md` `R50` 추가함.
+- **실행 조건**: 자동 실행 대상 아님. 활성 Run(`weekly-game-group-and-rerun-badge`)에 대기 과제가 없을 때 또는 사용자 지목 시 착수함.
+
 ## 배포 확인 피드백 반영 Run 등록: weekly-game-group-and-rerun-badge (R48·R49, 2026-11-09)
 
 - **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 1순위 대체)임.

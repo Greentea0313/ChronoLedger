@@ -57,6 +57,32 @@
 | **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Badge & Weekly Group UI)` | `Phase 12.39 (R48·R49)`: 수용 기준 Step 1. 공용 `ScheduleTypeBadge`, 복각 칩 높이 정렬, 사이드바 묶음 키 분리, 주차별 리스트 게임별 묶음 및 테스트 | `▶ 대기` |
 | **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 1 완료 후 진행` |
 
+### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
+
+> **실행 규칙**: 상태 `📝 AGENDA`는 `"인수인계 문서를 확인해"` 자동 실행 대상이 아님. 위 활성 Run에 `⚠️ HANDOVER_NEEDED`·`▶ READY` 과제가 없을 때, 또는 사용자가 **"인증 보안 점검 안건 진행"**처럼 이 안건을 직접 지목할 때 담당 모델이 착수하고 상태를 `🔄 IN_PROGRESS`로 바꿈. 위 Run과 파일 충돌 없음(문서 전용).
+
+- **과제 ID**: `auth-security-settings-review` *(문서 전용·읽기 전용 점검, 코드·DB·운영 설정 변경 없음)*
+- **배경**: 사용자 질의(비밀번호 저장·문자열 암호화)에 대한 1차 답변(2026-11-09, Claude Opus) 결과를 근거로 함.
+  - 비밀번호는 앱 `public` 테이블에 저장하지 않으며 Supabase Auth `auth.users.encrypted_password`에 bcrypt 해시로 저장됨. OAuth 계정은 비밀번호 없음.
+  - 메모·템플릿명 등 앱 전체 문자열 컬럼 암호화는 정적 export 구조(키 보관 위치)·RPC 텍스트 복사·길이 CHECK·검색 불가·키 분실 위험 대비 실익이 낮아 **미도입 권장**함. 대안으로 인증 설정·RLS 정기 점검을 우선함.
+  - 사전 확인: 저장소 내 `service_role` 키·추적 중인 `.env*` 파일 없음. 가입 화면 비밀번호 입력은 `minLength={6}`(`src/app/auth/signup/page.tsx:103`)임.
+- **담당 모델**: **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* — 보안·RLS·`SECURITY DEFINER` 감사는 Opus 승격 조건 ①에 해당함.
+- **산출물**: `docs/auth-security-review.md`(신규, 한국어 개조식), 필요 시 `docs/to-do.md`에 후속 코드 수정 항목(R5x) 등록. 기계 판독 `review.json`은 선택 사항임.
+- **수용 기준 (Acceptance Criteria)**:
+  1. **코드·설정 점검 (에이전트 수행, 근거 파일·행 명시)**:
+     - 클라이언트 인증 흐름: 이메일/비밀번호·OAuth(PKCE)·Tauri implicit+딥링크(`src/lib/tauri-auth.ts`)의 리다이렉트 처리, 로그아웃 시 세션 정리와 Service Worker `CLEAR_CACHES` 호출, 비밀번호 최소 길이 등 클라이언트 검증과 Supabase 서버 설정의 일치 여부.
+     - 키·비밀 관리: 저장소·빌드 산출물(`out/`)·`public/`·`src-tauri/`에 `service_role` 키나 비밀 값이 없는지, `.env.local` 미추적 여부.
+     - 권한 경계: `sql/SCHEMA.sql`의 모든 `public` 테이블 RLS 활성화·정책 존재, `SECURITY DEFINER` 함수의 `SET search_path`·`PUBLIC`/`anon` 실행 권한 회수, 관리자 판정(`app_metadata.role` + `users.role` 병행 검사)과 `MIGRATION_USERS_ROLE_GUARD.sql`의 `users.role` 자가 승격 차단 정합성, `user-icons` 버킷 비공개·`getPublicUrl` 미사용.
+  2. **Supabase 대시보드 설정 체크리스트 작성 (사용자 확인용)**: 에이전트는 대시보드에 접근하지 않음. 권장값·확인 위치·위험도를 표로 정리함 — 최소 비밀번호 길이·문자 조건, 유출 비밀번호 차단(요금제 의존), 이메일 확인 필수, 이메일 변경 이중 확인, MFA(TOTP) 허용, Site URL·Redirect URL 허용 목록(웹·Tauri 스킴), JWT 만료·리프레시 토큰 회전/재사용 간격, 인증 Rate Limit, CAPTCHA(선택), Google OAuth 클라이언트 리다이렉트 제한.
+  3. **문자열 암호화 결정 기록**: 위 미도입 권장 근거와 장기 후보(개인 메모 선택적 E2E 암호화)를 문서에 남기고, 채택 여부는 사용자 결정 사항으로 표시함.
+  4. **결과 기록**: 지적 사항을 P1~P4로 분류해 `docs/auth-security-review.md`에 기록하고, 코드 수정이 필요한 항목은 `docs/to-do.md`에 별도 R 항목으로 등록함(이 안건에서 코드 수정 금지). `docs/progress.md`·`docs/changelog.md` 동기화함.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **A1** | **`📝 AGENDA`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Security Reviewer (Read-only)` | 위 수용 기준 1~4. 허용 파일: `docs/auth-security-review.md`(신규), `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md`, `docs/handoff.md` | `📝 등록됨: 활성 Run 종료 후 또는 사용자 지목 시 착수` |
+| **A2** | **`⏳ WAITING`** | **사용자** | `Owner (Dashboard Confirmation)` | A1 체크리스트 기준 Supabase 대시보드 설정 확인·변경 및 결과 회신 | `⏳ A1 완료 후 진행` |
+
+
 ### 🗂️ 이전 Run 기록 (완료): schedule-rerun-and-broadcast
 
 - **Run ID**: `schedule-rerun-and-broadcast` *(2026-11-09, `Phase 12.38` R33 일정 분류 세분화: `PICKUP` 복각 플래그 `is_rerun` + `BROADCAST`(특별방송) 일정 종류)*
