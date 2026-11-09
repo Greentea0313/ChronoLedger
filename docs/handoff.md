@@ -31,67 +31,51 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `r13-4-breakthrough-guest-and-schedule-tree` *(2026-11-09, `Phase 13.4` R43 캐릭터 메모 제거·컴팩트 타일 그리드·즐겨찾기 금색 테두리/상단 노출·게임별 최대 돌파 `max_breakthrough` 및 좌하단 `n★` 배지 + `Phase 12.35` R41 게스트 모드 공식 일정 열람·R42 게임별 일정 `ON AIR` 상단 고정 & 버전별 아코디언 트리 + `Phase 12.36` R44 UI 밀도 개선)*
+- **Run ID**: `dashboard-summary-dday-and-week-list` *(2026-11-09, `Phase 12.37` R32 대시보드 오늘/이번 주 요약 카드 및 사이드바 일정·예정 지출 `D-n`·기간 진행률 바 + R34 대시보드 월간 캘린더 ↔ 주차별 리스트 뷰 토글)*
 - **Orchestrator**: Gemini 4 Argon
-- **Worktree 경로**: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree` (브랜치: `collab/r13-4-breakthrough-guest-and-schedule-tree`)
-- **리뷰 비교 범위**: Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Target `d5b75ebeff65a48e6f86c90a3ec74921809be30b` *(Step 4 Orchestrator/Reviewer가 manifest `target_sha` 기록. 다중 PC 전환 시 미병합 Worktree 브랜치도 `git push -u origin collab/r13-4-breakthrough-guest-and-schedule-tree`로 원격 동기화 권장)*
+- **Worktree 경로**: `.worktrees/dashboard-summary-dday-and-week-list` (브랜치: `collab/dashboard-summary-dday-and-week-list`)
+- **리뷰 비교 범위**: Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Target `(Maker 커밋 후 기록)` *(Step 2 Orchestrator/Reviewer가 manifest `target_sha` 기록)*
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Step 1 — `Phase 13.4-DB & R41-RLS` 게임별 최대 돌파·캐릭터 즐겨찾기/돌파 컬럼·트리거 및 게스트 공식 일정 읽기 RLS 구현 (GPT Codex)**:
-     - **권위 명세**: [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) **§8 Phase 13.4 Specification Amendment**.
-     - **대상 파일 (`.worktrees/r13-4-breakthrough-guest-and-schedule-tree` 내부)**: `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql`(신규), `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/SPEC.md`
+  1. **Step 1 — `Phase 12.37 (R32 & R34)` 대시보드 오늘/이번 주 요약 카드, 일정·예정 지출 `D-n`·진행률 바, 주차별 리스트 뷰 토글 및 단위 테스트 구현 (Claude Sonnet)**:
+     - **대상 파일 (`.worktrees/dashboard-summary-dday-and-week-list` 내부)**: `src/lib/calendar-utils.ts`, `src/lib/calendar-utils.test.ts`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/weekly-schedule-list.tsx`(신규 허용), `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `docs/to-do.md`
      - **구현 요구사항**:
-       - ① **`public.games` 최대 돌파 컬럼 추가**: `max_breakthrough SMALLINT NOT NULL DEFAULT 6 CHECK (max_breakthrough BETWEEN 0 AND 12)` 컬럼을 `public.games`에 추가함.
-       - ② **`public.user_characters` 즐겨찾기 및 돌파 단계 컬럼·트리거 확장**:
-         - `is_favorite BOOLEAN NOT NULL DEFAULT false` 및 `breakthrough_level SMALLINT NOT NULL DEFAULT 0 CHECK (breakthrough_level BETWEEN 0 AND 12)` 컬럼을 `public.user_characters`에 추가함.
-         - `public.validate_user_character_game()` 트리거 함수를 갱신하여, 기존 `game_id` 일치 검사에 더해 `TG_OP = 'INSERT' OR NEW.game_id IS DISTINCT FROM OLD.game_id OR NEW.breakthrough_level > OLD.breakthrough_level`일 때 `NEW.breakthrough_level > v_max_breakthrough`이면 `RAISE EXCEPTION '캐릭터 돌파 단계가 게임의 최대 돌파 단계를 초과합니다.'`로 거부함(관리자가 `max_breakthrough`를 낮춘 경우 기존 행의 유지·축소 저장은 허용하는 비파괴 규칙 적용).
-       - ③ **게스트 모드(`anon`) 공식 일정 읽기 RLS 정책 추가 (`R41`)**:
-         - `public.game_schedules`에 비로그인(`anon`) 사용자가 공식 일정(`is_official = true`)만 조회할 수 있도록 `CREATE POLICY "Allow anon read official schedules" ON public.game_schedules FOR SELECT TO anon USING (is_official = true);` 정책을 추가함(`public.games`는 이미 `PUBLIC` 대상 `status = 'APPROVED'` 읽기 정책이 존재함).
-       - ④ **스모크 테스트(`sql/tests/TESTS.sql`), 문서 및 TypeScript 타입 동기화**:
-         - `sql/tests/TESTS.sql`에 ① `max_breakthrough` 초과 `breakthrough_level` 거부 및 상한 축소 후 비파괴 유지/축소 허용, ② `anon` 역할이 `is_official = true` 일정만 조회 가능하고 `is_official = false` 비공식 일정은 조회되지 않음을 검증하는 스모크 테스트를 추가하고 로컬 PostgreSQL(또는 PGlite)에서 마이그레이션 2회 멱등 실행 및 `TESTS.sql` 통과를 확인함.
-         - `sql/README.md` B표에 `MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 확인 쿼리를 추가하고, `src/types/database.types.ts`(`games.max_breakthrough`, `user_characters.is_favorite`, `user_characters.breakthrough_level`) 및 `docs/spec/SRS.md`·`SPEC.md`를 동기화함.
-  2. **Step 2 — `Phase 13.4-UI (R43)` 캐릭터 메모 제거, 컴팩트 아이콘 타일 그리드, 즐겨찾기(금색 테두리·상단 노출) 및 아이콘 클릭 돌파(`n★`) 설정 구현 (Claude Sonnet)**:
-     - **권위 명세**: [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) **§8 Phase 13.4 Specification Amendment**.
-     - **대상 파일 (`.worktrees/r13-4-breakthrough-guest-and-schedule-tree` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `src/components/character/character-icon.tsx`, `src/components/character/character-roster.tsx`, `src/components/character/preset-list.tsx`, `src/components/character/preset-editor-dialog.tsx`, `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`
-     - **구현 요구사항**:
-       - ① **관리자 게임 모달 `max_breakthrough` 설정 (`src/app/admin/page.tsx`)**:
-         - 게임 등록/수정 모달에 **최대 돌파 단계 (`max_breakthrough`, `0 ~ 12`, 기본값 `6`)** 숫자 입력란을 `max_preset_slots` 옆에 추가하고 `games` insert/update 및 `normalizeMaxBreakthrough` 정규화를 연결함.
-       - ② **캐릭터 메모 UI 제거 & 컴팩트 아이콘 타일 그리드 개편 (`character-roster.tsx`, `character-icon.tsx`)**:
-         - 개별 캐릭터 카드에서 자유 텍스트 `memo` 입력란(`<Textarea>`)을 완전히 제거함.
-         - 기존의 긴 가로형 카드 리스트를 **아이콘 중심의 컴팩트 그리드 타일**(`grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5`)로 개편함.
-       - ③ **즐겨찾기(금색 테두리 & 목록 최상단 정렬) 및 좌하단 `n★` 돌파 배지**:
-         - **정렬(`character-utils.ts`)**: 로스터 및 프리셋 캐릭터 피커 정렬 시 **즐겨찾기(`is_favorite = true`) 캐릭터를 최상단에 우선 배치**한 뒤 이름 가나다순으로 정렬함(`is_favorite DESC`, `name ASC`).
-         - **즐겨찾기 시각 표시**: `is_favorite = true`인 캐릭터 타일/아이콘에 **금색 테두리(`ring-2 ring-amber-400 border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.35)]`)**를 표시함.
-         - **돌파 단계 좌하단 `n★` 표시**: 보유(`is_owned = true`) 캐릭터 아이콘의 **좌하단 모서리에 `${breakthrough_level}★` 배지**(예: `0★`, `1★`, `2★`, ..., `6★`)를 오버레이로 표시하여 로스터 타일과 조합 프리셋 슬롯 양쪽에서 돌파 단계를 즉시 확인할 수 있게 함(미보유 캐릭터는 명도 감쇠 `brightness-50 saturate-50 opacity-65` 유지 및 돌파 배지 미표시).
-       - ④ **캐릭터 아이콘(타일) 클릭 시 설정 팝오버/모달 오픈**:
-         - 캐릭터 타일을 클릭하면 컴팩트 설정 모달/팝오버(Radix `Dialog` 사용 시 `DialogTitle`·`DialogDescription` 필수 포함)가 열리며, 내부에서 **보유 여부 토글(`is_owned`)**, **즐겨찾기 토글(`is_favorite`)**, **돌파 단계 선택 버튼 그리드(`0★` ~ `${game.max_breakthrough}★`)**, **커스텀 아이콘 변경/기본 복원**을 즉시 조작할 수 있도록 구현함(`isOffline()` 가드 포함).
-       - ⑤ **단위 테스트 갱신 및 보강**:
-         - `character-utils.test.ts`, `src/app/dashboard/characters/page.test.tsx`, `src/app/admin/page.test.tsx`를 갱신하여 메모 제거, 즐겨찾기 상단 정렬 및 금색 테두리, 아이콘 클릭 모달 내 보유·즐겨찾기·돌파 단계(`n★`) 변경 및 좌하단 `n★` 배지 표시, 관리자 `max_breakthrough` 저장을 검증함.
-  3. **Step 3 — `Phase 12.35 (R41·R42) & Phase 12.36 (R44)` 비로그인 게스트 모드, 게임별 일정 `ON AIR` 상단 고정 + 버전별 아코디언 트리, 전체 UI 밀도 개편 (GitHub Copilot)**:
-     - **대상 파일 (`.worktrees/r13-4-breakthrough-guest-and-schedule-tree` 내부)**: `src/app/page.tsx`, `src/app/auth/page.tsx`, `src/app/auth/page.test.tsx`(필요 시), `src/app/dashboard/layout.tsx`, `src/components/layout/topbar.tsx`, `src/components/layout/topbar.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`(신규 또는 보강), `src/app/dashboard/expenses/page.tsx`, `docs/to-do.md`
-     - **구현 요구사항**:
-       - ① **비로그인 게스트 모드 (`R41`)**:
-         - `DashboardLayout`(`src/app/dashboard/layout.tsx`)에서 비로그인(`!user`) 사용자를 `/auth`로 강제 리다이렉트하지 않고 **게스트 읽기 전용 모드**로 진입을 허용함(`/auth` 로그인 카드 하단에도 `[게스트로 일정 둘러보기]` 버튼을 추가해 `/dashboard`로 이동 지원).
-         - `Topbar`: 게스트 상태일 때 우측에 `[게스트 모드]` 배지 및 `[로그인]` 버튼(`/auth` 이동)을 표시함.
-         - `/dashboard` (홈 캘린더): 게스트 상태일 때 승인된 전체 게임(`games`)의 **공식 일정(`is_official = true`)**을 캘린더와 선택일 사이드바에 표시하며, 예산/총자산 요약 및 지출 추가/개인 메모 입력 대신 상단에 컴팩트한 `"게스트 모드로 공식 게임 일정을 열람 중입니다. 로그인하면 내 구독 게임 필터링과 과금 가계부를 이용할 수 있습니다."` 배너 + `[로그인]` 버튼을 표시함.
-         - `/dashboard/games`: 게스트 상태에서도 등록된 전체 게임 목록 검색 및 각 게임의 **`[일정 보기]` 모달 열람**을 허용하고, 내 구독 게임 추가/상시 메모 영역에는 로그인 안내를 표시함.
-         - `/dashboard/expenses` 및 `/dashboard/characters`: 게스트 진입 시 개인화 기능 안내 `EmptyState` + `[로그인하러 가기]` 버튼을 표시함.
-       - ② **게임별 일정 보기 모달 — `ON AIR` 상단 고정 + 버전별(`VERSION`) 아코디언 하위 트리 (`R42`, `src/app/dashboard/games/page.tsx`)**:
-         - 기존의 평면(flat) 일정 나열을 개편하여:
-           1. **상단 고정 영역 (`진행 중인 일정 · ON AIR`)**: KST 오늘(`start_date <= todayKST && end_date >= todayKST`) 진행 중인 일정들을 상단 강조 섹션에 고정 노출함(종료 `D-n` 배지 포함).
-           2. **하단 버전별 아코디언 트리 목록 (`버전별 일정`)**: `schedule_type === 'VERSION'`인 일정을 버전 아코디언 헤더(현재 진행 중인 버전은 기본 펼침 `expanded`, 나머지는 접힘)로 표시하고, 버전을 클릭해 펼치면 해당 버전 기간(`sch.start_date <= version.end_date && sch.end_date >= version.start_date`)과 겹치는 `PICKUP`·`CONTENTS` 상세 일정들이 하위 트리 목록으로 들여쓰기되어 나타나도록 구현함. 어떤 `VERSION` 기간에도 속하지 않는 일정은 하단 `'기타 일정'` 아코디언 그룹으로 묶어 누락 없이 표시함.
-       - ③ **전반적인 UI 밀도(카드 여백·테두리·타이포그래피) 다듬기 (`R44`)**:
-         - `/dashboard`, `/dashboard/games`, `/dashboard/expenses`의 과도한 카드 패딩(`p-6` $\to$ `p-4`/`p-5`), 섹션 간격(`gap-6` $\to$ `gap-4`), 헤더 여백을 컴팩트하게 정돈하여 한 화면에 더 많은 일정과 통계 정보가 깔끔하게 들어오도록 개선함.
-       - ④ **단위 테스트 및 문서 갱신**:
-         - 게스트 모드 진입·배너 표시, 게임별 일정 모달의 `ON AIR` 상단 섹션 및 `VERSION` 아코디언 클릭 시 하위 일정 펼침/접힘 동작에 대한 단위 테스트를 추가하고 `docs/to-do.md`의 `R41`~`R44`를 갱신함.
-  4. **Step 4 — 통합 정적 코드 리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
-     - Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Step 3 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
+       - ① **날짜·D-day·기간 진행률·주차 그룹화 순수 헬퍼 추가 (`src/lib/calendar-utils.ts`)**:
+         - KST 기준 날짜(`todayDate: YYYY-MM-DD`)와 대상 날짜/기간(`startDate`, `endDate`)을 비교하여 종료/결제 잔여일 배지 라벨(`D-Day`, `D-n`, 만료 시 `D+n`)과 기간 진행률 퍼센트(`0~100%`, 단일 일자 또는 시작 전/종료 후 경계 안전 처리)를 계산하는 순수 함수를 추가함.
+         - 현재 조회 중인 연·월(`year`, `month`)의 날짜들을 주차 단위(일요일~토요일 또는 월요일~일요일 일관된 주간 범위)로 묶고 KST 오늘(`todayDate`)이 포함된 주차를 `isCurrentWeek: true`로 표시하는 헬퍼를 추가함.
+       - ② **대시보드 상단 오늘/이번 주 요약 바 (`R32`, `src/app/dashboard/page.tsx`)**:
+         - 대시보드 상단에 컴팩트한 요약 카드/스트립을 배치하여 KST 오늘(`getTodayLocalDate()`) 기준 **오늘 시작 일정 수**, **오늘 마감 일정 수**, **이번 주 진행 중 일정 수**, 그리고 로그인 사용자의 경우 **이번 주 예정 지출(`PLANNED`) 합계 금액**(게스트 모드에서는 `-` 또는 숨김)을 한눈에 표시함.
+       - ③ **사이드바·모바일 드로어 일정 및 예정 지출(`PLANNED`) 카드에 `D-n` 배지 & 기간 진행률 바 표시 (`R32`, `hero-sidebar.tsx`, `mobile-drawer.tsx`)**:
+         - `HeroSidebarContent`(데스크톱 사이드바 및 `MobileDrawer` 공통)의 **게임 일정 카드**에 종료일 기준 `D-n`(`D-Day`) 배지와 시작일~종료일 대비 경과율을 보여주는 얇은 진행률 바(`h-1.5 rounded-full`)를 표시함.
+         - **지출 내역 탭**의 `status === "PLANNED"` 예정 지출 항목에도 결제 예정일(`end_date ?? target_date`) 기준 `D-n` 배지(및 `start_date`~`end_date` 기간이 있는 경우 진행률 바)를 표시하여 결제 마감 체감도를 높임.
+       - ④ **월간 캘린더형 ↔ 주차별 리스트형 뷰 토글 (`R34`, `src/app/dashboard/page.tsx`, `weekly-schedule-list.tsx`)**:
+         - 대시보드 캘린더 상단 컨트롤 영역에 **`[캘린더형]` / `[주차별 리스트]`** 뷰 전환 토글 버튼을 추가함.
+         - `[주차별 리스트]` 선택 시 해당 월의 주차별 그룹 카드를 렌더링하며, **KST "이번 주" 그룹을 상단 배지·테두리로 강조**하고 각 주차 헤더에 **주간 예정(`PLANNED`) / 확정(`CONFIRMED`) 지출 소계**(로그인 시)를 표시함.
+         - 각 주차 내부에는 해당 주간과 기간이 겹치는 활성 필터 게임 일정(게임 아이콘, 제목, 유형 배지, 기간, 종료 `D-n`)과 예정/확정 지출 항목을 가독성 높게 나열하고, 날짜나 항목 클릭 시 선택일(`selectedDate`) 연동 또는 지출 상세 모달이 동작하도록 연결함.
+       - ⑤ **단위 테스트 및 문서 갱신**:
+         - `calendar-utils.test.ts`, `hero-sidebar.test.tsx`, `src/app/dashboard/page.test.tsx`에 D-day/진행률 계산, 오늘/이번 주 요약 카드 렌더링, 일정·예정 지출 `D-n` 및 진행률 바 표시, `[주차별 리스트]` 뷰 토글 및 이번 주 강조·소계 표시 단위 테스트를 추가하고 `docs/to-do.md`의 `R32`·`R34` 상태를 갱신함.
+  2. **Step 2 — 통합 정적 코드 리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
+     - Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Step 1 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: ba49f135582d44fa4c9458fc45a76752baf07fd9)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.4-DB & R41-RLS`: `max_breakthrough`, 캐릭터 즐겨찾기/돌파 단계와 상한 트리거, 게스트 승인 게임·공식 일정 SELECT 정책, 타입·문서·SQL 스모크 구현함. | `✅ ba49f13: 신규 SCHEMA 적용, migration 2회 멱등성 및 전체 TESTS.sql PASS. tsc/lint 통과, Vitest 48파일/385개 통과. 임시 PostgreSQL 17 stub DB만 사용함.`
-| **2** | **`✅ DONE (SHA: 8ff4f4229049ea783e956a228966e4252943457c)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Character UI & Admin)` | `Phase 13.4-UI (R43)`: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree`에서 `/admin` 게임 `max_breakthrough` 설정, 캐릭터 메모 UI 제거, 컴팩트 타일 그리드, 즐겨찾기 금색 테두리·상단 노출, 좌하단 `n★` 배지 및 클릭 설정 모달/팝오버 + 테스트 구현 | `✅ 8ff4f42: 관리자 max_breakthrough 입력, 메모 제거, 컴팩트 타일 그리드, 즐겨찾기 금색 테두리·상단 정렬, 좌하단 n★ 배지, 클릭 설정 모달(보유·즐겨찾기·돌파·아이콘) 구현. tsc/lint 통과, Vitest 48파일/394개 중 character·admin 테스트 통과(전체 실행 시 admin 1건 수정 후 해당 파일 재통과).`
-| **3** | **`✅ DONE (SHA: d5b75ebeff65a48e6f86c90a3ec74921809be30b)`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Guest Mode, Schedule Tree & UI Density)` | `Phase 12.35 & 12.36 (R41·R42·R44)` 구현함. 게스트 공식 일정 열람, 게임 일정 ON AIR·VERSION 트리, 소비 로그인 안내, UI 밀도 조정함. | `✅ d5b75eb: tsc/lint 통과, Vitest 48파일/394개 통과, diff --check 통과함.` |
-| **4** | **`▶ READY`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Target `d5b75ebeff65a48e6f86c90a3ec74921809be30b` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 3 완료. manifest target_sha 기록 및 정확한 SHA 기준 리뷰 필요함.` |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Dashboard Summary, D-Day & Weekly List UI)` | `Phase 12.37 (R32 & R34)`: `.worktrees/dashboard-summary-dday-and-week-list`에서 대시보드 오늘/이번 주 요약 카드, 사이드바 일정·예정 지출 `D-n` 배지 및 진행률 바, 월간 캘린더 ↔ 주차별 리스트 뷰 토글 및 단위 테스트 구현 | `-` |
+| **2** | **`⏳ WAITING`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `-` |
+
+> **📢 운영 DB 수동 적용 안내 (`R45`)**: 직전 Run(`r13-4-breakthrough-guest-and-schedule-tree`, `main` 병합 `ce4bed2`)에서 추가된 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql`을 운영 Supabase SQL Editor에서 실행한 뒤 `sql/README.md` B표 확인 쿼리로 적용 여부를 확인해 주십시오(차기 Run `dashboard-summary-dday-and-week-list`는 DB 변경이 없으므로 병행 진행 가능함).
+
+### 🗂️ 이전 Run 기록 (완료): r13-4-breakthrough-guest-and-schedule-tree
+
+- **Run ID**: `r13-4-breakthrough-guest-and-schedule-tree` *(2026-11-09, `Phase 13.4` R43 캐릭터 메모 제거·컴팩트 타일 그리드·즐겨찾기 금색 테두리/상단 노출·게임별 최대 돌파 `max_breakthrough` 및 좌하단 `n★` 배지 + `Phase 12.35` R41 게스트 모드 공식 일정 열람·R42 게임별 일정 `ON AIR` 상단 고정 & 버전별 아코디언 트리 + `Phase 12.36` R44 UI 밀도 개선)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree` (브랜치: `collab/r13-4-breakthrough-guest-and-schedule-tree`)
+- **리뷰 비교 범위**: iteration-01 Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Target `d5b75ebeff65a48e6f86c90a3ec74921809be30b` (`R134-REV-001` P2 1건 식별). iteration-02 Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Target `29443b4fc6f1be0ae4b4f65e32cfa073461f58f2` (`clean`, 산출물 커밋 `dd94e63`). **Run 마감: `main` 병합 `ce4bed2` 완료**
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: ba49f135582d44fa4c9458fc45a76752baf07fd9)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.4-DB & R41-RLS`: `max_breakthrough`, 캐릭터 즐겨찾기/돌파 단계와 상한 트리거, 게스트 승인 게임·공식 일정 SELECT 정책, 타입·문서·SQL 스모크 구현함. | `✅ ba49f13: 신규 SCHEMA 적용, migration 2회 멱등성 및 전체 TESTS.sql PASS. tsc/lint 통과, Vitest 48파일/385개 통과.` |
+| **2** | **`✅ DONE (SHA: 8ff4f4229049ea783e956a228966e4252943457c)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Character UI & Admin)` | `Phase 13.4-UI (R43)`: `/admin` 게임 `max_breakthrough` 설정, 캐릭터 메모 UI 제거, 컴팩트 타일 그리드, 즐겨찾기 금색 테두리·상단 노출, 좌하단 `n★` 배지 및 클릭 설정 모달 + 테스트 구현 | `✅ 8ff4f42: 관리자 max_breakthrough 입력, 메모 제거, 컴팩트 타일 그리드, 즐겨찾기 금색 테두리·상단 정렬, 좌하단 n★ 배지, 클릭 설정 모달 구현. tsc/lint/Vitest 통과.` |
+| **3** | **`✅ DONE (SHA: d5b75ebeff65a48e6f86c90a3ec74921809be30b)`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Guest Mode, Schedule Tree & UI Density)` | `Phase 12.35 & 12.36 (R41·R42·R44)` 구현함. 게스트 공식 일정 열람, 게임 일정 ON AIR·VERSION 트리, 소비 로그인 안내, UI 밀도 조정함. | `✅ d5b75eb: tsc/lint 통과, Vitest 48파일/394개 통과.` |
+| **4** | **`✅ DONE (iteration-01 리뷰 → iteration-02 29443b4 수정 → 재리뷰 clean, main 병합 ce4bed2)`** | **Gemini 4 Argon** & **Gemini 3.8 Flash** | `Reviewer & Orchestrator (+ Fast UI Subagent)` | Base `6295a0e` ↔ Target `d5b75eb`(iteration-01) 및 `29443b4`(iteration-02) 정적 리뷰·검증(`dd94e63`) 및 `main` 병합(`ce4bed2`) | `✅ DONE: iteration-01에서 발견한 인증 뷰 ScheduleDialog 미연결(R134-REV-001, P2)을 iteration-02(29443b4)에서 일원화·해소함. tsc/lint 및 Vitest 48파일/396개 통과, 스키마 검증 통과, main 병합(ce4bed2) 완료함.` |
 
 ### 🗂️ 이전 Run 기록 (완료): r13-phase13-2-and-13-3-ui
 
