@@ -1,4 +1,14 @@
 # 변경 이력
+## 2026-11-09 (r13-4-breakthrough-guest-and-schedule-tree 통합 리뷰·수정 및 `main` 병합 마감)
+
+- **Iteration 1 리뷰 및 Iteration 2 수정 (`29443b4`, Gemini 4 Argon & Gemini 3.8 Flash)**:
+  - `src/app/dashboard/games/page.tsx`에서 인증 사용자 뷰의 중복 인라인 일정 다이얼로그를 제거하고 게스트 뷰와 동일한 `<ScheduleDialog>`(`ScheduleTree`)로 일원화함(`R134-REV-001` P2 해소).
+  - `ScheduleTree`에 `[비공식]` 배지, 제목·메모 `"/"` 구분 줄바꿈(`<span className="block">`), 단일 일자 `(단일)` 표기, 일정 유형별 배지 색상, 버전 아코디언 헤더 기간 표시 및 `versions.length > 0` 조건부 렌더링을 보강하고 단위 테스트 2건을 추가함.
+- **산출물 검증 및 `main` 병합 (`dd94e63` $\to$ `ce4bed2`)**:
+  - `artifacts/r13-4-breakthrough-guest-and-schedule-tree/` 하위 `run.json`, `iteration-01/{review,test}.json`, `iteration-02/{review,test}.json`을 공식 스키마 검증기(`validate_collaboration_artifact.py`)로 검증 완료함.
+  - `tsc --noEmit`, `npm run lint`, `vitest run --dir src`(48파일/396개 테스트) 전체 통과 후 `main`에 병합(`ce4bed2`)함.
+  - 차기 격리 협업 Run `dashboard-summary-dday-and-week-list`(`R32 + R34`, Claude Sonnet `▶ READY`)를 생성·등록함.
+
 ## 2026-11-09 (Phase 12.35~12.36 게스트 일정 열람 및 UI 밀도)
 
 - 비로그인 사용자가 `/dashboard`와 `/dashboard/games`에서 승인된 공식 게임 일정만 열람하도록 게스트 모드를 추가함.
