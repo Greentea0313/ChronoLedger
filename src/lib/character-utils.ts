@@ -5,7 +5,8 @@ export const DEFAULT_MAX_PRESET_SLOTS = 4
 export const PRESET_SLOT_HARD_LIMIT = 12
 export const PRESET_TITLE_MAX = 80
 export const PRESET_MEMO_MAX = 300
-export const CHARACTER_MEMO_MAX = 200
+export const DEFAULT_MAX_BREAKTHROUGH = 6
+export const BREAKTHROUGH_HARD_LIMIT = 12
 
 /** Filter value that matches values missing from the current game schema (spec §7.3.4). */
 export const OTHER_FILTER_VALUE = "__other__"
@@ -13,6 +14,9 @@ export const OTHER_FILTER_LABEL = "기타"
 
 /** Dimming applied to icons of characters the user does not own. */
 export const UNOWNED_ICON_CLASS = "brightness-50 saturate-50 opacity-65"
+
+/** Gold ring marking favorite characters. */
+export const FAVORITE_ICON_CLASS = "ring-2 ring-amber-400 border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.35)]"
 
 export type ClassificationAxis = {
   key: string
@@ -36,7 +40,8 @@ export type GameCharacter = {
 
 export type UserCharacterState = {
   is_owned: boolean
-  memo: string | null
+  is_favorite: boolean
+  breakthrough_level: number
   custom_icon_path: string | null
 }
 
@@ -82,6 +87,23 @@ export function normalizeMaxPresetSlots(value: unknown): number {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= PRESET_SLOT_HARD_LIMIT
     ? value
     : DEFAULT_MAX_PRESET_SLOTS
+}
+
+export function normalizeMaxBreakthrough(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= BREAKTHROUGH_HARD_LIMIT
+    ? value
+    : DEFAULT_MAX_BREAKTHROUGH
+}
+
+/** Favorites first, then name ascending (ko). Returns a new array. */
+export function sortCharactersFavoriteFirst(
+  characters: GameCharacter[],
+  isFavorite: (characterId: string) => boolean,
+): GameCharacter[] {
+  return [...characters].sort((a, b) => {
+    const favoriteDiff = Number(isFavorite(b.id)) - Number(isFavorite(a.id))
+    return favoriteDiff !== 0 ? favoriteDiff : a.name.localeCompare(b.name, "ko")
+  })
 }
 
 export function normalizeAttributes(raw: unknown): Record<string, string> {

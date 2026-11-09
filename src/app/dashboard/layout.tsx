@@ -1,28 +1,19 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase/client'
 import { AccountDeletionStatusScreen } from '@/components/auth/account-deletion-status'
 import { Topbar } from '@/components/layout/topbar'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
   const {
-    user,
     isLoading,
     isAccountDeletionStatusLoading,
     accountDeletionStatus,
   } = useAuth()
   const [logoutError, setLogoutError] = useState<string | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-  useEffect(() => {
-    if (!isLoading && !user && !accountDeletionStatus) {
-      router.replace('/auth')
-    }
-  }, [accountDeletionStatus, isLoading, router, user])
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -34,7 +25,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setLogoutError(`로그아웃하지 못했습니다: ${error.message}`)
         return
       }
-      router.replace('/auth')
     } catch (cause: unknown) {
       const description = cause instanceof Error ? cause.message : String(cause)
       setLogoutError(`로그아웃 중 오류가 발생했습니다: ${description}`)
@@ -50,7 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!hasMountedChildren.current) {
-    if (isLoading || isAccountDeletionStatusLoading || !user) {
+    if (isLoading || isAccountDeletionStatusLoading) {
       return (
         <main className="flex min-h-screen items-center justify-center bg-app text-content">
           <p role="status">인증 확인 중...</p>

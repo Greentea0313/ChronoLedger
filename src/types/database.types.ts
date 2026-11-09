@@ -129,14 +129,14 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "classification_schema": Json,"created_at": string | null,"created_by": string | null,"default_icon_url": string,"id": string,"max_preset_slots": number,"name": string,"status": string
+                    "classification_schema": Json,"created_at": string | null,"created_by": string | null,"default_icon_url": string,"id": string,"max_breakthrough": number,"max_preset_slots": number,"name": string,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"default_icon_url": string,"id"?: string,"max_preset_slots"?: number,"name": string,"status"?: string
+                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"default_icon_url": string,"id"?: string,"max_breakthrough"?: number,"max_preset_slots"?: number,"name": string,"status"?: string
                   }
                   Update: {
-                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"default_icon_url"?: string,"id"?: string,"max_preset_slots"?: number,"name"?: string,"status"?: string
+                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"default_icon_url"?: string,"id"?: string,"max_breakthrough"?: number,"max_preset_slots"?: number,"name"?: string,"status"?: string
                   }
                   Relationships: [
                     
@@ -265,14 +265,14 @@ isOneToOne: false
                   ]
                 },"user_characters": {
                   Row: {
-                    "character_id": string,"created_at": string,"custom_icon_path": string | null,"game_id": string,"id": string,"is_owned": boolean,"memo": string | null,"updated_at": string,"user_id": string
+                    "breakthrough_level": number,"character_id": string,"created_at": string,"custom_icon_path": string | null,"game_id": string,"id": string,"is_favorite": boolean,"is_owned": boolean,"memo": string | null,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "character_id": string,"created_at"?: string,"custom_icon_path"?: string | null,"game_id": string,"id"?: string,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id": string
+                    "breakthrough_level"?: number,"character_id": string,"created_at"?: string,"custom_icon_path"?: string | null,"game_id": string,"id"?: string,"is_favorite"?: boolean,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "character_id"?: string,"created_at"?: string,"custom_icon_path"?: string | null,"game_id"?: string,"id"?: string,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id"?: string
+                    "breakthrough_level"?: number,"character_id"?: string,"created_at"?: string,"custom_icon_path"?: string | null,"game_id"?: string,"id"?: string,"is_favorite"?: boolean,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     { foreignKeyName: "user_characters_character_id_fkey"; columns: ["character_id"]; isOneToOne: false; referencedRelation: "game_characters"; referencedColumns: ["id"] },

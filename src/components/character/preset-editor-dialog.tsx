@@ -26,6 +26,7 @@ import {
   isPresetOverLimit,
   moveCharacterInPreset,
   removeCharacterFromPreset,
+  sortCharactersFavoriteFirst,
   type CharacterFilters,
   type ClassificationSchema,
   type GameCharacter,
@@ -102,7 +103,11 @@ export function PresetEditorDialog({
   }, [characters])
 
   const pickerCharacters = useMemo(
-    () => filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false),
+    () =>
+      sortCharactersFavoriteFirst(
+        filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false),
+        (id) => states[id]?.is_favorite ?? false,
+      ),
     [characters, filters, schema, states],
   )
 
@@ -194,6 +199,8 @@ export function PresetEditorDialog({
                       customIconUrl={customIconUrls[characterId]}
                       defaultIconUrl={character?.default_icon_url}
                       dimmed={!isOwned}
+                      favorite={states[characterId]?.is_favorite ?? false}
+                      breakthroughLevel={isOwned ? (states[characterId]?.breakthrough_level ?? 0) : null}
                       className="h-10 w-10"
                     />
                     <span className="min-w-0 flex-1 truncate text-sm text-content">{character?.name ?? "알 수 없는 캐릭터"}</span>
@@ -263,6 +270,8 @@ export function PresetEditorDialog({
                           customIconUrl={customIconUrls[character.id]}
                           defaultIconUrl={character.default_icon_url}
                           dimmed={!(states[character.id]?.is_owned ?? false)}
+                          favorite={states[character.id]?.is_favorite ?? false}
+                          breakthroughLevel={states[character.id]?.is_owned ? (states[character.id]?.breakthrough_level ?? 0) : null}
                           className="h-12 w-12"
                         />
                         <span className="w-full truncate text-center">{character.name}</span>

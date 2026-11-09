@@ -49,6 +49,7 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   const userId = user?.id
   const avatarUrl = customAvatarUrl ?? googleAvatarUrl
+  const isGuest = !user
   const displayName = nickname || name
 
   useEffect(() => {
@@ -145,6 +146,17 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
 
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle className="rounded-[9px] bg-surface-2" />
+          {isGuest && (
+            <>
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                게스트 모드
+              </span>
+              <Link href="/auth" className={`${controlClass} bg-primary text-primary-foreground`}>
+                로그인
+              </Link>
+            </>
+          )}
+          {!isGuest && (
           <div ref={menuRef} className="relative">
             <button
               type="button"
@@ -199,8 +211,9 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
                   {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
                 </button>
               </div>
-            )}
+              )}
           </div>
+          )}
         </div>
       </div>
       {logoutError && (

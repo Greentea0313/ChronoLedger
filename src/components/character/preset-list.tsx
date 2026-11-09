@@ -110,6 +110,8 @@ export function PresetList({
                           customIconUrl={customIconUrls[characterId]}
                           defaultIconUrl={character?.default_icon_url}
                           dimmed={!isOwned}
+                          favorite={states[characterId]?.is_favorite ?? false}
+                          breakthroughLevel={isOwned ? (states[characterId]?.breakthrough_level ?? 0) : null}
                           className="h-12 w-12"
                         />
                         <span className="w-full truncate text-center text-xs text-content">{character?.name ?? "알 수 없음"}</span>

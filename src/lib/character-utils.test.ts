@@ -12,7 +12,9 @@ import {
   isPresetOverLimit,
   moveCharacterInPreset,
   normalizeClassificationSchema,
+  normalizeMaxBreakthrough,
   normalizeMaxPresetSlots,
+  sortCharactersFavoriteFirst,
   removeCharacterFromPreset,
   validatePresetInput,
   type CharacterFilters,
@@ -155,5 +157,25 @@ describe("preset helpers", () => {
     expect(validatePresetInput({ title: "ok", memo: "", characterIds: ["a", "a"] })).toContain("중복")
     expect(validatePresetInput({ title: "ok", memo: "", characterIds: Array.from({ length: 13 }, (_, i) => `c${i}`) })).toContain("최대 12명")
     expect(validatePresetInput({ title: "ok", memo: "m".repeat(300), characterIds: ["a", "b"] })).toBeNull()
+  })
+})
+
+describe("breakthrough and favorites", () => {
+  it("normalizes max_breakthrough to 0..12 and defaults to 6", () => {
+    expect(normalizeMaxBreakthrough(0)).toBe(0)
+    expect(normalizeMaxBreakthrough(12)).toBe(12)
+    expect(normalizeMaxBreakthrough(13)).toBe(6)
+    expect(normalizeMaxBreakthrough(-1)).toBe(6)
+    expect(normalizeMaxBreakthrough(2.5)).toBe(6)
+    expect(normalizeMaxBreakthrough(undefined)).toBe(6)
+  })
+
+  it("puts favorites first and sorts by name within each group without mutating the input", () => {
+    const input = [makeCharacter("a", "다", null), makeCharacter("b", "가", null), makeCharacter("c", "나", null), makeCharacter("d", "라", null)]
+    const favorites = new Set(["c", "d"])
+    const sorted = sortCharactersFavoriteFirst(input, (id) => favorites.has(id))
+
+    expect(sorted.map((item) => item.name)).toEqual(["나", "라", "가", "다"])
+    expect(input.map((item) => item.name)).toEqual(["다", "가", "나", "라"])
   })
 })

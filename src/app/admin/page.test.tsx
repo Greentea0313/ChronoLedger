@@ -651,6 +651,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     name: "원신",
     default_icon_url: "data:image/webp;base64,own",
     max_preset_slots: 4,
+    max_breakthrough: 5,
     classification_schema: {
       rarities: ["5★", "4★"],
       axes: [{ key: "element", label: "속성", options: ["불", "물"] }],
@@ -723,6 +724,22 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
           axes: [{ key: "element", label: "속성", options: ["불", "물", "바람"] }],
         },
       }))
+    })
+  })
+
+  it("게임 수정 모달이 최대 돌파 단계를 불러오고 저장하며 범위를 벗어나면 저장하지 않는다", async () => {
+    await openGameEditModal()
+
+    expect((screen.getByLabelText("최대 돌파 단계") as HTMLInputElement).value).toBe("5")
+
+    fireEvent.change(screen.getByLabelText("최대 돌파 단계"), { target: { value: "13" } })
+    fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+    expect(gamesBuilder.update).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText("최대 돌파 단계"), { target: { value: "0" } })
+    fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+    await waitFor(() => {
+      expect(gamesBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ max_breakthrough: 0 }))
     })
   })
 

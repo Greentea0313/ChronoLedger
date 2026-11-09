@@ -54,3 +54,10 @@
 - 분류 스키마는 DB에서 검증한다. 프리셋은 중복·NULL 캐릭터와 다른 게임 소속 캐릭터를 거부하며 게임 최대 슬롯을 초과할 수 없다. 슬롯 축소나 캐릭터 삭제는 기존 프리셋을 보존 가능한 범위에서 비파괴적으로 정리한다.
 - 캐릭터 승인·반려는 null-safe 관리자 권한 확인을 수행하는 `SECURITY DEFINER` RPC로만 처리한다. 계정 탈퇴 진행 중인 사용자는 요청·보유 캐릭터·프리셋을 변경할 수 없다.
 - 상세 DB 수용 기준은 승인된 [R13 캐릭터·프리셋 명세](R13_Character_Roster_and_Preset_Spec.md)를 따른다.
+
+### 7.1 Phase 13.4 DB 및 게스트 일정 접근
+
+- 게임별 `max_breakthrough`는 0~12 범위이며 기본값은 6임.
+- 사용자 캐릭터는 `is_favorite`과 `breakthrough_level`을 저장함. 돌파 단계 INSERT/증가 또는 게임 변경 때 해당 게임의 최대 돌파 상한을 검증하며, 상한을 낮춰도 기존 값은 사용자가 줄이기 전까지 보존함.
+- 비로그인 `anon` 사용자는 `game_schedules` 중 `is_official = true`인 행만 읽을 수 있으며 비공식 일정 조회 및 쓰기는 허용하지 않음.
+- 상세 기준은 승인된 [R13 캐릭터·프리셋 명세](R13_Character_Roster_and_Preset_Spec.md) §8을 따름.

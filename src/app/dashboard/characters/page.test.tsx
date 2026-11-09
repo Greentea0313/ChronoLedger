@@ -70,7 +70,7 @@ function execute(table: string, ctx: { op: string; filters: Record<string, unkno
   if (table === "user_characters" && ctx.op === "upsert") {
     const existing = db.userCharacters.find((row) => row.character_id === payload.character_id)
     if (existing) Object.assign(existing, payload)
-    else db.userCharacters.push({ memo: null, custom_icon_path: null, ...payload })
+    else db.userCharacters.push({ is_favorite: false, breakthrough_level: 0, custom_icon_path: null, ...payload })
   }
   if (table === "user_character_presets") {
     if (ctx.op === "insert") db.presets.push({ id: `preset-new-${++presetSeq}`, created_at: "2026-11-09T00:00:00Z", ...payload })
@@ -148,8 +148,8 @@ function seed() {
     "game-b": [],
   }
   db.userCharacters = [
-    { character_id: "c1", game_id: "game-a", is_owned: true, memo: "2돌", custom_icon_path: null },
-    { character_id: "c3", game_id: "game-a", is_owned: true, memo: null, custom_icon_path: null },
+    { character_id: "c1", game_id: "game-a", is_owned: true, is_favorite: false, breakthrough_level: 0, custom_icon_path: null },
+    { character_id: "c3", game_id: "game-a", is_owned: true, is_favorite: false, breakthrough_level: 0, custom_icon_path: null },
   ]
   db.presets = [
     {
@@ -211,9 +211,11 @@ describe("CharactersPage", () => {
   const buttonByText = (text: string, scope: ParentNode = document.body) =>
     Array.from(scope.querySelectorAll("button")).find((b) => b.textContent?.trim() === text)
 
+  const pickerButton = (name: string, scope: ParentNode) =>
+    Array.from(scope.querySelectorAll("button")).find((b) => b.querySelector("span.truncate")?.textContent === name) as HTMLButtonElement
   const cards = () => Array.from(container.querySelectorAll('[data-testid="character-card"]'))
-  const cardNames = () => cards().map((card) => card.querySelector("p.font-semibold")?.textContent)
-  const cardByName = (name: string) => cards().find((card) => card.querySelector("p.font-semibold")?.textContent === name) as HTMLElement
+  const cardNames = () => cards().map((card) => card.querySelector("span.truncate")?.textContent)
+  const cardByName = (name: string) => cards().find((card) => card.querySelector("span.truncate")?.textContent === name) as HTMLElement
   const chip = (group: string, label: string) =>
     buttonByText(label, container.querySelector(`[data-testid="${group}"]`) as HTMLElement)
   const gameChip = (name: string) =>
@@ -256,7 +258,7 @@ describe("CharactersPage", () => {
       expect(container.textContent).toContain("보유 캐릭터 0 / 0명 · 프리셋 0개")
       expect(gameChip("가나게임")?.getAttribute("aria-pressed")).toBe("true")
       expect(gameChip("다라게임")?.getAttribute("aria-pressed")).toBe("false")
-      expect(cardNames()).toEqual(["아케론", "칼리", "구캐릭터", "라이덴"])
+      expect(cardNames()).toEqual(["구캐릭터", "라이덴", "아케론", "칼리"])
       expect(buttonByText("+ 캐릭터 추가·수정 요청", container)).toBeTruthy()
     })
 
@@ -298,6 +300,13 @@ describe("CharactersPage", () => {
   })
 
   describe("roster tab", () => {
+    const openSettings = async (name: string) => {
+      await click(container.querySelector(`button[aria-label="${name} 설정"]`))
+      return document.body.querySelector('[role="dialog"]') as HTMLElement
+    }
+    const badge = (card: Element | undefined) => card?.querySelector('[data-testid="breakthrough-badge"]')?.textContent
+    const isFavoriteIcon = (card: Element | undefined) => card?.querySelector('[data-testid="character-icon"]')?.getAttribute("data-favorite")
+
     it("dims unowned characters with the unowned icon classes only", async () => {
       await renderPage()
 
@@ -306,6 +315,35 @@ describe("CharactersPage", () => {
       expect(isDimmed(cardByName("칼리"))).toBe(true)
       expect(isDimmed(cardByName("라이덴"))).toBe(true)
       expect(cardByName("칼리").getAttribute("data-owned")).toBe("false")
+    })
+
+    it("renders a compact tile grid without any memo field", async () => {
+      await renderPage()
+
+      const list = container.querySelector('[data-testid="character-roster-list"]') as HTMLElement
+      expect(list.className).toContain("grid-cols-3")
+      expect(list.className).toContain("lg:grid-cols-8")
+      expect(container.querySelector("textarea")).toBeNull()
+    })
+
+    it("shows the n★ badge at the bottom-left of owned characters only", async () => {
+      db.userCharacters[0].breakthrough_level = 2
+      await renderPage()
+
+      expect(badge(cardByName("아케론"))).toBe("2★")
+      expect(badge(cardByName("구캐릭터"))).toBe("0★")
+      expect(badge(cardByName("칼리"))).toBeUndefined()
+      expect(cardByName("아케론").querySelector('[data-testid="breakthrough-badge"]')?.className).toContain("bottom-0 left-0")
+    })
+
+    it("lists favorites first with a gold ring, then sorts by name", async () => {
+      db.userCharacters.push({ character_id: "c2", game_id: "game-a", is_owned: false, is_favorite: true, breakthrough_level: 0, custom_icon_path: null })
+      await renderPage()
+
+      expect(cardNames()).toEqual(["칼리", "구캐릭터", "라이덴", "아케론"])
+      expect(isFavoriteIcon(cardByName("칼리"))).toBe("true")
+      expect(isFavoriteIcon(cardByName("아케론"))).toBe("false")
+      expect(cardByName("칼리").querySelector('[data-testid="character-icon"]')?.className).toContain("ring-amber-400")
     })
 
     it("falls back to an initial avatar when no icon is available", async () => {
@@ -317,7 +355,7 @@ describe("CharactersPage", () => {
     })
 
     it("shows the custom icon before the default icon", async () => {
-      db.userCharacters = [{ character_id: "c1", game_id: "game-a", is_owned: true, memo: null, custom_icon_path: `${USER_ID}/characters/c1.webp` }]
+      db.userCharacters = [{ character_id: "c1", game_id: "game-a", is_owned: true, custom_icon_path: `${USER_ID}/characters/c1.webp` }]
       await renderPage()
 
       expect(getCustomCharacterIconUrl).toHaveBeenCalledWith(USER_ID, "c1")
@@ -364,10 +402,20 @@ describe("CharactersPage", () => {
       expect(cardNames()).toEqual(["칼리"])
     })
 
-    it("upserts ownership with game_id and the user/character conflict target, then updates counts", async () => {
+    it("opens a settings dialog with a description when a tile is clicked", async () => {
       await renderPage()
+      const dialog = await openSettings("아케론")
 
-      await toggle(cardByName("칼리").querySelector('input[role="switch"]'))
+      expect(dialog.querySelector("h2")?.textContent).toBe("아케론")
+      expect(dialog.getAttribute("aria-describedby")).toBeTruthy()
+      expect(dialog.textContent).toContain("5★ · 속성: 얼음")
+    })
+
+    it("upserts ownership from the dialog with game_id and the conflict target, then updates counts", async () => {
+      await renderPage()
+      const dialog = await openSettings("칼리")
+
+      await toggle(dialog.querySelector('input[role="switch"]'))
 
       const write = writes.find((item) => item.table === "user_characters")
       expect(write?.op).toBe("upsert")
@@ -378,11 +426,53 @@ describe("CharactersPage", () => {
       expect(container.textContent).toContain("보유 캐릭터 3 / 4명 · 프리셋 1개")
     })
 
+    it("toggles favorite without flipping an unowned character to owned", async () => {
+      await renderPage()
+      const dialog = await openSettings("칼리")
+
+      await click(dialog.querySelector('button[aria-label="칼리 즐겨찾기"]'))
+
+      expect(writes[0].payload).toEqual({ user_id: USER_ID, game_id: "game-a", character_id: "c2", is_owned: false, is_favorite: true })
+      expect(cardByName("칼리").getAttribute("data-owned")).toBe("false")
+      expect(isFavoriteIcon(cardByName("칼리"))).toBe("true")
+      expect(cardNames()[0]).toBe("칼리")
+    })
+
+    it("offers breakthrough buttons 0★ to max_breakthrough for owned characters and saves the level", async () => {
+      db.userGames[0].games = { ...(db.userGames[0].games as Row), max_breakthrough: 3 }
+      await renderPage()
+      const dialog = await openSettings("아케론")
+
+      const labels = Array.from(dialog.querySelectorAll('section[aria-label="돌파 단계"] button')).map((b) => b.textContent)
+      expect(labels).toEqual(["0★", "1★", "2★", "3★"])
+
+      await click(dialog.querySelector('button[aria-label="돌파 2★"]'))
+
+      expect(writes[0].payload).toEqual({ user_id: USER_ID, game_id: "game-a", character_id: "c1", is_owned: true, breakthrough_level: 2 })
+      expect(badge(cardByName("아케론"))).toBe("2★")
+    })
+
+    it("defaults max_breakthrough to 6 when the game does not define it", async () => {
+      await renderPage()
+      const dialog = await openSettings("아케론")
+
+      expect(dialog.querySelectorAll('section[aria-label="돌파 단계"] button')).toHaveLength(7)
+    })
+
+    it("does not offer breakthrough or icon controls for unowned characters", async () => {
+      await renderPage()
+      const dialog = await openSettings("칼리")
+
+      expect(dialog.querySelector('section[aria-label="돌파 단계"]')).toBeNull()
+      expect(dialog.querySelector('button[aria-label="칼리 아이콘 변경"]')).toBeNull()
+    })
+
     it("does not write while offline", async () => {
       await renderPage()
+      const dialog = await openSettings("칼리")
       Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
 
-      await toggle(cardByName("칼리").querySelector('input[role="switch"]'))
+      await toggle(dialog.querySelector('input[role="switch"]'))
 
       expect(writes.filter((item) => item.table === "user_characters")).toHaveLength(0)
       expect(container.textContent).toContain("오프라인 상태에서는 저장할 수 없습니다")
@@ -391,62 +481,22 @@ describe("CharactersPage", () => {
 
     it("shows the write error and keeps the previous state when saving fails", async () => {
       await renderPage()
+      const dialog = await openSettings("칼리")
       db.writeError = { message: "rls denied" }
 
-      await toggle(cardByName("칼리").querySelector('input[role="switch"]'))
+      await toggle(dialog.querySelector('input[role="switch"]'))
 
       expect(container.textContent).toContain("rls denied")
       expect(cardByName("칼리").getAttribute("data-owned")).toBe("false")
     })
 
-    it("inserts a tab character in the memo on Tab and saves it on blur", async () => {
+    it("uploads a custom icon to the character icon path for owned characters", async () => {
       await renderPage()
-      const textarea = cardByName("아케론").querySelector("textarea") as HTMLTextAreaElement
-      expect(textarea.value).toBe("2돌")
-      expect(textarea.maxLength).toBe(200)
-
-      await change(textarea, "ab")
-      textarea.setSelectionRange(1, 1)
-      const preventDefault = vi.fn()
-      await act(async () => {
-        Simulate.keyDown(textarea, { key: "Tab", preventDefault })
-      })
-      expect(preventDefault).toHaveBeenCalled()
-      expect(textarea.value).toBe("a\tb")
-
-      await act(async () => {
-        Simulate.blur(textarea)
-      })
-      await flush()
-      const write = writes.find((item) => item.table === "user_characters")
-      expect(write?.payload).toEqual({ user_id: USER_ID, game_id: "game-a", character_id: "c1", is_owned: true, memo: "a\tb" })
-    })
-
-    it("does not save an unchanged memo and keeps an unowned character unowned when saving a memo", async () => {
-      await renderPage()
-      const owned = cardByName("아케론").querySelector("textarea") as HTMLTextAreaElement
-      await act(async () => {
-        Simulate.blur(owned)
-      })
-      expect(writes).toHaveLength(0)
-
-      const unowned = cardByName("칼리").querySelector("textarea") as HTMLTextAreaElement
-      await change(unowned, "뽑기 예정")
-      await act(async () => {
-        Simulate.blur(unowned)
-      })
-      await flush()
-      expect(writes[0].payload).toEqual({ user_id: USER_ID, game_id: "game-a", character_id: "c2", is_owned: false, memo: "뽑기 예정" })
-      expect(cardByName("칼리").getAttribute("data-owned")).toBe("false")
-    })
-
-    it("offers icon change only for owned characters and uploads to the character icon path", async () => {
-      await renderPage()
-      expect(cardByName("칼리").querySelector('button[aria-label="칼리 아이콘 변경"]')).toBeNull()
-      expect(cardByName("아케론").querySelector('button[aria-label="아케론 기본 아이콘 복원"]')).toBeNull()
+      const dialog = await openSettings("아케론")
+      expect(dialog.querySelector('button[aria-label="아케론 기본 아이콘 복원"]')).toBeNull()
 
       const file = new File(["x"], "icon.png", { type: "image/png" })
-      const input = cardByName("아케론").querySelector('input[type="file"]') as HTMLInputElement
+      const input = dialog.querySelector('input[type="file"]') as HTMLInputElement
       await act(async () => {
         Simulate.change(input, { target: { files: [file] } as unknown as EventTarget })
       })
@@ -463,19 +513,20 @@ describe("CharactersPage", () => {
         custom_icon_path: `${USER_ID}/characters/c1.webp`,
       })
       expect(cardByName("아케론").querySelector("img")?.getAttribute("src")).toBe("blob:custom")
-      expect(cardByName("아케론").querySelector('button[aria-label="아케론 기본 아이콘 복원"]')).toBeTruthy()
+      expect(dialog.querySelector('button[aria-label="아케론 기본 아이콘 복원"]')).toBeTruthy()
     })
 
     it("restores the default icon by clearing the path and deleting the object", async () => {
-      db.userCharacters = [{ character_id: "c1", game_id: "game-a", is_owned: true, memo: null, custom_icon_path: `${USER_ID}/characters/c1.webp` }]
+      db.userCharacters = [{ character_id: "c1", game_id: "game-a", is_owned: true, custom_icon_path: `${USER_ID}/characters/c1.webp` }]
       await renderPage()
+      const dialog = await openSettings("아케론")
 
-      await click(cardByName("아케론").querySelector('button[aria-label="아케론 기본 아이콘 복원"]'))
+      await click(dialog.querySelector('button[aria-label="아케론 기본 아이콘 복원"]'))
 
       expect(writes.find((item) => item.table === "user_characters")?.payload).toMatchObject({ character_id: "c1", custom_icon_path: null })
       expect(deleteCustomCharacterIcon).toHaveBeenCalledWith(USER_ID, "c1")
       expect(cardByName("아케론").querySelector("img")?.getAttribute("src")).toBe("https://example.com/c1.png")
-      expect(cardByName("아케론").querySelector('button[aria-label="아케론 기본 아이콘 복원"]')).toBeNull()
+      expect(dialog.querySelector('button[aria-label="아케론 기본 아이콘 복원"]')).toBeNull()
     })
   })
 
@@ -522,7 +573,7 @@ describe("CharactersPage", () => {
 
       await change(dialog.querySelector("#preset-title"), "  신규 파티  ")
       const picker = () => dialog.querySelector('[data-testid="preset-picker-list"]') as HTMLElement
-      const pick = (name: string) => buttonByText(name, picker()) as HTMLButtonElement
+      const pick = (name: string) => pickerButton(name, picker())
 
       await click(pick("아케론"))
       await click(pick("칼리"))
@@ -569,7 +620,7 @@ describe("CharactersPage", () => {
       await openPresets()
       await click(buttonByText("새 프리셋 추가", container))
       const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
-      await click(buttonByText("아케론", dialog.querySelector('[data-testid="preset-picker-list"]') as HTMLElement))
+      await click(pickerButton("아케론", dialog.querySelector('[data-testid="preset-picker-list"]') as HTMLElement))
       await click(buttonByText("저장", dialog))
 
       expect(dialog.textContent).toContain("프리셋 제목은 1~80자")

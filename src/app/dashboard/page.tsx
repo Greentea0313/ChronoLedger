@@ -232,7 +232,7 @@ export default function DashboardPage() {
   const ready = viewMonth !== null
 
   const load = useCallback(async () => {
-    if (!user || !ready) return
+    if (!ready) return
     if (!hasLoadedInitial) {
       setIsLoading(true)
     }
@@ -240,6 +240,34 @@ export default function DashboardPage() {
 
     try {
       const today = getKstToday()
+      const { startDate, endDateExclusive } = getGridRange(year, month)
+      if (!user) {
+        const [scheduleResult, allGamesResult] = await Promise.all([
+          supabase
+            .from("game_schedules")
+            .select("*")
+            .lt("start_date", endDateExclusive)
+            .gte("end_date", startDate)
+            .eq("is_official", true),
+          supabase.from("games").select("id, name, default_icon_url"),
+        ])
+        if (scheduleResult.error) throw scheduleResult.error
+        if (allGamesResult.error) throw allGamesResult.error
+        setSchedules(((scheduleResult.data ?? []) as ScheduleRow[]).map((schedule) => ({
+          ...schedule,
+          is_official: true,
+        })))
+        setAllGames((allGamesResult.data ?? []) as AllGameRow[])
+        setUserGames([])
+        setExpenses([])
+        setMemos([])
+        setWallets([])
+        setTotalAsset(null)
+        setBudgetAmount(0)
+        setOverdueExpenses([])
+        setSchedulePreferenceNotice(null)
+        return
+      }
       if (!isOffline()) {
         try {
           await ensureMonthlySubscriptionExpenses(user.id, year, month)
@@ -247,8 +275,6 @@ export default function DashboardPage() {
           console.warn("구독 자동 생성 건너뜀 (비차단):", subErr)
         }
       }
-      const { startDate, endDateExclusive } = getGridRange(year, month)
-
       const [
         financeResult,
         budgetResult,
@@ -371,7 +397,7 @@ export default function DashboardPage() {
   }, [hasLoadedInitial, month, ready, user, year])
 
   useEffect(() => {
-    if (!authLoading && user && ready) {
+    if (!authLoading && ready) {
       void load()
     }
   }, [authLoading, load, ready, user])
@@ -431,16 +457,25 @@ export default function DashboardPage() {
     [baseDate, expenses, userGamesMap, allGamesMap, gameIcons],
   )
   const gameFilterOptions = useMemo<GameFilterOption[]>(() => {
-    return userGames
-      .map((ug) => ({
-        id: ug.game_id,
-        name: ug.games?.name || "게임",
-        iconUrl: gameIcons[ug.game_id] || ug.games?.default_icon_url || null,
-      }))
+    const options = user
+      ? userGames.map((ug) => ({
+          id: ug.game_id,
+          name: ug.games?.name || "게임",
+          iconUrl: gameIcons[ug.game_id] || ug.games?.default_icon_url || null,
+        }))
+      : allGames.map((game) => ({
+          id: game.id,
+          name: game.name,
+          iconUrl: game.default_icon_url,
+        }))
+    return options
       .sort((a, b) => a.name.localeCompare(b.name, "ko"))
-  }, [userGames, gameIcons])
+  }, [allGames, gameIcons, user, userGames])
 
-  const allUserGameIds = useMemo(() => userGames.map((g) => g.game_id), [userGames])
+  const allUserGameIds = useMemo(
+    () => (user ? userGames.map((g) => g.game_id) : allGames.map((g) => g.id)),
+    [allGames, user, userGames],
+  )
 
   const effectiveSelectedGameIds = useMemo(() => {
     if (selectedGameIds === null) return allUserGameIds
@@ -621,12 +656,16 @@ export default function DashboardPage() {
   if (authLoading || (!hasLoadedInitial && isLoading) || !ready) {
     return <DashboardSkeleton />
   }
-  if (!user) {
-    return <div className="p-6 text-content">로그인이 필요합니다.</div>
-  }
-
   return (
     <div className="space-y-4 animate-fade-in">
+      {!user && (
+        <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-content sm:flex-row sm:items-center sm:justify-between">
+          <p>게스트 모드로 공식 게임 일정을 열람 중입니다. 로그인하면 내 구독 게임 필터링과 과금 가계부를 이용할 수 있습니다.</p>
+          <a href="/auth" className="inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 font-semibold text-primary-foreground">
+            로그인
+          </a>
+        </div>
+      )}
       {error && <p role="alert" className="text-danger">{error}</p>}
       {schedulePreferenceNotice && <p role="status" className="text-xs text-content-secondary">{schedulePreferenceNotice}</p>}
       {overdueExpenses.length > 0 && (

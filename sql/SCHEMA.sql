@@ -113,6 +113,7 @@ CREATE TABLE public.games (
     default_icon_url TEXT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'APPROVED' CHECK (status = 'APPROVED'),
     created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    max_breakthrough SMALLINT NOT NULL DEFAULT 6 CHECK (max_breakthrough BETWEEN 0 AND 12),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -223,6 +224,8 @@ CREATE TABLE IF NOT EXISTS public.user_characters (
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     character_id UUID NOT NULL REFERENCES public.game_characters(id) ON DELETE CASCADE,
     is_owned BOOLEAN NOT NULL DEFAULT true,
+    is_favorite BOOLEAN NOT NULL DEFAULT false,
+    breakthrough_level SMALLINT NOT NULL DEFAULT 0 CHECK (breakthrough_level BETWEEN 0 AND 12),
     custom_icon_path TEXT CHECK (custom_icon_path IS NULL OR custom_icon_path = user_id::text || '/characters/' || character_id::text || '.webp'),
     memo VARCHAR(200),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -246,11 +249,18 @@ CREATE INDEX IF NOT EXISTS idx_user_character_presets_user_game ON public.user_c
 
 CREATE OR REPLACE FUNCTION public.validate_user_character_game()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_game_id UUID;
+DECLARE v_game_id UUID; v_max_breakthrough SMALLINT;
 BEGIN
     SELECT game_id INTO v_game_id FROM public.game_characters WHERE id = NEW.character_id;
     IF NOT FOUND OR v_game_id IS DISTINCT FROM NEW.game_id THEN
         RAISE EXCEPTION '캐릭터가 선택한 게임에 속하지 않습니다.';
+    END IF;
+    SELECT max_breakthrough INTO v_max_breakthrough FROM public.games WHERE id = NEW.game_id;
+    IF TG_OP = 'INSERT' OR NEW.game_id IS DISTINCT FROM OLD.game_id
+       OR NEW.breakthrough_level > OLD.breakthrough_level THEN
+        IF NEW.breakthrough_level > v_max_breakthrough THEN
+            RAISE EXCEPTION '캐릭터 돌파 단계가 게임의 최대 돌파 단계를 초과합니다.';
+        END IF;
     END IF;
     RETURN NEW;
 END;
@@ -1689,6 +1699,7 @@ ALTER TABLE public.store_point_transactions ENABLE ROW LEVEL SECURITY;
 
 -- games 정책
 CREATE POLICY "Allow public read approved games" ON public.games FOR SELECT USING (status = 'APPROVED');
+GRANT SELECT ON public.games TO anon;
 CREATE POLICY "Allow admin manage games" ON public.games FOR ALL TO authenticated
     USING (
         (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
@@ -1728,6 +1739,8 @@ CREATE POLICY "Admin manage game requests" ON public.game_requests FOR ALL TO au
 
 -- game_schedules 정책 (공용 읽기, 관리자만 쓰기)
 CREATE POLICY "Allow public read schedules" ON public.game_schedules FOR SELECT TO authenticated USING (true);
+GRANT SELECT ON public.game_schedules TO anon;
+CREATE POLICY "Allow anon read official schedules" ON public.game_schedules FOR SELECT TO anon USING (is_official = true);
 CREATE POLICY "Allow admin manage schedules" ON public.game_schedules FOR ALL TO authenticated
     USING (
         (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'

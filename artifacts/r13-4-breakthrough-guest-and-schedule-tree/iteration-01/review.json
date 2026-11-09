@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r13-4-breakthrough-guest-and-schedule-tree",
+  "iteration": 1,
+  "agent": "Gemini 4 Argon (Claude Opus Fallback)",
+  "role": "static-review",
+  "base_sha": "6295a0e6f0bec385abe16c7f4b962840a5ea85ce",
+  "target_sha": "d5b75ebeff65a48e6f86c90a3ec74921809be30b",
+  "status": "findings",
+  "created_at": "2026-11-09T01:49:30Z",
+  "findings": [
+    {
+      "id": "R134-REV-001",
+      "severity": "P2",
+      "file": "src/app/dashboard/games/page.tsx",
+      "line": 716,
+      "evidence": "ScheduleDialog (which renders ScheduleTree with ON AIR, VERSION accordion tree, and 기타 일정) is only mounted inside the unauthenticated guest return branch (`if (!user)` at line 461). The authenticated return branch at lines 716-801 still renders an inline Dialog with a flat `schedules.map(...)` list. Additionally, `ScheduleTree.renderSchedule` (lines 86-97) drops the `[비공식]` badge (`schedule.is_official === false`), slash-separated `<span className=\"block\">` line breaks for `title` and `memo`, single-day date formatting (`start_date === end_date`), and type-specific badge colors, and renders the `버전별 일정` section even when `versions.length === 0`.",
+      "impact": "Authenticated users clicking [일정 보기] on /dashboard/games still see the legacy flat schedule list instead of the R42 ON AIR + VERSION accordion tree, and ScheduleTree lacks unofficial badges and slash-separated line-break formatting.",
+      "recommendation": "Replace the duplicate inline schedule Dialog in the authenticated view (lines 716-801) with `<ScheduleDialog>` (updating its description to cover both guest and authenticated contexts), and update `ScheduleTree` to preserve `[비공식]` badges, slash-separated `<span className=\"block\">` line breaks for `title` and `memo`, single-day `(단일)` date formatting, schedule_type badge styling, version date range display on accordion headers, and conditional rendering of `버전별 일정` when `versions.length > 0`."
+    }
+  ]
+}

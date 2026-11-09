@@ -838,11 +838,23 @@ export default function ExpensesPage() {
     void loadExpenses()
   }
 
+  if (!user) {
+    return (
+      <div className="space-y-4 animate-fade-in">
+        <h1 className="text-2xl font-bold text-primary">소비</h1>
+        <EmptyState
+          message="소비 기록은 로그인 후 이용할 수 있습니다."
+          hint="로그인하면 지출, 정기 구독, 예산 및 통계를 관리할 수 있습니다."
+        />
+        <div className="flex justify-center">
+          <Button onClick={() => { window.location.href = "/auth" }}>로그인하러 가기</Button>
+        </div>
+      </div>
+    )
+  }
   if (isLoading && !hasLoadedInitialRef.current) return <ExpensesPageSkeleton />
-  if (!user) return <div className="p-6 text-content">로그인이 필요합니다.</div>
-
   return (
-    <div className="w-full overflow-x-hidden space-y-6 animate-fade-in">
+    <div className="w-full overflow-x-hidden space-y-4 animate-fade-in">
       {/* 헤더 */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>
@@ -892,7 +904,7 @@ export default function ExpensesPage() {
         </TabsList>
 
         {/* 탭 1: 지출 내역 및 통계 */}
-        <TabsContent value="expenses" className="space-y-6 mt-6">
+        <TabsContent value="expenses" className="space-y-4 mt-4">
           <div className="grid gap-4 lg:grid-cols-2">
             {/* 카테고리별 지출 비중 (원그래프) */}
             <Card className="flex flex-col">
@@ -1127,7 +1139,7 @@ export default function ExpensesPage() {
                   hint="게임 카테고리의 확정 지출이 등록되면 게임별 과금액 통계가 표시됩니다."
                 />
               ) : (
-                <div className="grid gap-6 lg:grid-cols-12 items-start">
+                <div className="grid gap-4 lg:grid-cols-12 items-start">
                   {/* 가로 막대 차트 (좌측 7컬럼) */}
                   <div className="lg:col-span-7 space-y-2 min-w-0 w-full overflow-hidden">
                     <p className="text-xs font-medium text-content-secondary">게임별 과금액 (원)</p>

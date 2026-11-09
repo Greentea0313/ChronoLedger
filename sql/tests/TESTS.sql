@@ -75,6 +75,8 @@
 --   R13-06 DB fixture 역할         캐릭터 삭제 시 preset 배열 정리/빈 preset 삭제,
 --                                  캐릭터와 preset이 남은 게임 삭제 성공.
 --   R13-07 authenticated / A       custom icon path 제한 및 pending deletion 쓰기 차단.
+--   R43-DB authenticated / A       max_breakthrough 초과 거부, 상한 축소 후 기존 값 유지·축소 허용.
+--   R41-RLS anon                   공식 일정 SELECT 허용, 비공식 일정 행 은닉.
 --   WAL-03 authenticated / A       일치하는 tier/rate 변경 성공, 불일치/음수 잔액 거부.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
@@ -1344,6 +1346,39 @@ DO $$ BEGIN
 END $$;
 \echo PASS: deleting game with characters and presets succeeds
 
+-- 게임별 최대 돌파 상한 검증 및 상한 축소 시 기존 행 보존 동작을 확인한다.
+UPDATE public.games SET max_breakthrough = 2 WHERE id = current_setting('chronoledger.r13_game_id')::uuid;
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+    BEGIN
+        INSERT INTO public.user_characters(user_id, game_id, character_id, breakthrough_level)
+        VALUES (auth.uid(), current_setting('chronoledger.r13_game_id')::uuid, current_setting('chronoledger.r13_character_3_id')::uuid, 3);
+        RAISE EXCEPTION 'FAIL: breakthrough insert exceeded game limit';
+    EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+END $$;
+RESET ROLE;
+INSERT INTO public.user_characters(user_id, game_id, character_id, breakthrough_level)
+VALUES (:'test_user_id', :'r13_game_id', :'r13_character_3', 2);
+UPDATE public.games SET max_breakthrough = 1 WHERE id = :'r13_game_id';
+SET LOCAL ROLE authenticated;
+UPDATE public.user_characters SET is_favorite = true WHERE user_id = auth.uid() AND character_id = current_setting('chronoledger.r13_character_3_id')::uuid;
+UPDATE public.user_characters SET breakthrough_level = 1 WHERE user_id = auth.uid() AND character_id = current_setting('chronoledger.r13_character_3_id')::uuid;
+DO $$ BEGIN
+    BEGIN
+        UPDATE public.user_characters SET breakthrough_level = 2
+        WHERE user_id = auth.uid() AND character_id = current_setting('chronoledger.r13_character_3_id')::uuid;
+        RAISE EXCEPTION 'FAIL: breakthrough increase exceeded reduced game limit';
+    EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+END $$;
+RESET ROLE;
+DO $$ BEGIN
+    IF (SELECT breakthrough_level FROM public.user_characters WHERE user_id = current_setting('chronoledger.test_user_id')::uuid AND character_id = current_setting('chronoledger.r13_character_3_id')::uuid) <> 1
+       OR NOT (SELECT is_favorite FROM public.user_characters WHERE user_id = current_setting('chronoledger.test_user_id')::uuid AND character_id = current_setting('chronoledger.r13_character_3_id')::uuid) THEN
+        RAISE EXCEPTION 'FAIL: breakthrough reduction/favorite update was not preserved';
+    END IF;
+END $$;
+\echo PASS: game breakthrough cap rejects excess values and preserves existing values on cap reduction
+
 INSERT INTO public.account_deletion_requests(user_id, status_token_hash, status) VALUES (:'test_user_id', repeat('a', 64), 'PENDING');
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated')::text, true);
 SET LOCAL ROLE authenticated;
@@ -1367,6 +1402,10 @@ END $$;
 RESET ROLE;
 \echo PASS: pending deletion user is blocked from writes to all R13 personal tables
 
+INSERT INTO public.game_schedules(game_id, title, schedule_type, is_official, start_date, end_date)
+VALUES (:'r13_game_id', 'R41 official guest schedule', 'VERSION', true, CURRENT_DATE, CURRENT_DATE),
+       (:'r13_game_id', 'R41 unofficial guest schedule', 'CONTENTS', false, CURRENT_DATE, CURRENT_DATE);
+
 -- SECURITY DEFINER RPC execute 권한은 authenticated에만 있어야 한다.
 SELECT set_config(
     'request.jwt.claims',
@@ -1375,6 +1414,15 @@ SELECT set_config(
 );
 SELECT set_config('request.jwt.claim.sub', '', true);
 SET LOCAL ROLE anon;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.games WHERE id = current_setting('chronoledger.r13_game_id')::uuid AND status = 'APPROVED')
+       OR (SELECT count(*) FROM public.game_schedules WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid AND title LIKE 'R41 %') <> 1
+       OR NOT EXISTS (SELECT 1 FROM public.game_schedules WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid AND title = 'R41 official guest schedule')
+       OR EXISTS (SELECT 1 FROM public.game_schedules WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid AND title = 'R41 unofficial guest schedule') THEN
+        RAISE EXCEPTION 'FAIL: anon schedule policy did not expose official schedules only';
+    END IF;
+END $$;
+\echo PASS: anon can read approved games and official schedules but not unofficial schedules
 DO $$
 BEGIN
     BEGIN
