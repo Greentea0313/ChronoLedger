@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "run_id": "schedule-rerun-and-broadcast",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "static-review",
+  "base_sha": "d09ba5c131838872fa8423c9ce80cd31d345106f",
+  "target_sha": "5ce5d2221a99c0ece57b70b71420121fa9066abc",
+  "status": "findings",
+  "created_at": "2026-11-09T03:45:00Z",
+  "findings": [
+    {
+      "id": "R33-REV-001",
+      "severity": "P2",
+      "file": "src/app/admin/page.tsx",
+      "line": 481,
+      "evidence": "`git diff --stat 9e33ac9 5ce5d22 -- '*.test.ts' '*.test.tsx'` is empty: the Step 2 UI commit adds no tests, and the Vitest total stays at 50 files / 415 tests (identical to Step 1). No test covers the BROADCAST option, the PICKUP-only rerun checkbox and its reset on type change, rerun/BROADCAST badges, or the R33 migration error message.",
+      "impact": "Acceptance criterion Step 2 item 4 (tests for BROADCAST option, rerun toggle visibility/reset, badge rendering and unapplied-migration error copy) is not met, so regressions in the new form state and payload rules would go undetected.",
+      "recommendation": "Add tests to the listed Step 2 test files: admin page and RequestSubmissionModal (BROADCAST option present; rerun checkbox shown only for PICKUP; switching away resets it; payload includes is_rerun only per rule; 42703/PGRST204/23514 shows the R33 message), hero-sidebar/weekly-schedule-list/games ScheduleTree/desktop-calendar (특별방송 label and 복각 badge)."
+    },
+    {
+      "id": "R33-REV-002",
+      "severity": "P3",
+      "file": "src/app/admin/page.tsx",
+      "line": 481,
+      "evidence": "Edit payloads always send `is_rerun: false` when the checkbox is off (`editingScheduleId ? { is_rerun: false } : {}`); the same pattern is in `src/components/game/request-submission-modal.tsx:263` for EDIT requests.",
+      "impact": "Until the R33 migration is applied, every admin schedule edit and every user schedule-edit request fails with PGRST204 because the column does not exist, even for schedules that never had a rerun flag. This contradicts AC Step 2 item 3 (include is_rerun only when true) and blocks unrelated edits during the deploy-to-migration window.",
+      "recommendation": "Send `is_rerun: false` only when the edited source schedule had `is_rerun === true` (track the loaded value), otherwise omit the key; keep sending `true` when checked. Add a test for both branches."
+    },
+    {
+      "id": "R33-REV-003",
+      "severity": "P3",
+      "file": "src/components/calendar/hero-sidebar.tsx",
+      "line": 389,
+      "evidence": "The 복각 badge is rendered only in the single-item branch (`group.items[0].is_rerun`); the grouped branch (`isGrouped`, items with the same game/type/dates) renders `[비공식]` per item but never checks `item.is_rerun`.",
+      "impact": "When two PICKUP schedules of the same game share dates (a common rerun + new banner pairing), the sidebar and mobile drawer hide which one is the rerun.",
+      "recommendation": "Render the same 복각 badge next to the per-item `[비공식]` badge in the grouped list and cover it with a hero-sidebar test."
+    },
+    {
+      "id": "R33-REV-004",
+      "severity": "P3",
+      "file": "src/components/game/user-requests-card.tsx",
+      "line": 216,
+      "evidence": "`req.schedule_type === \"VERSION\" ? \"버전\" : \"픽업\"` labels every non-VERSION request as 픽업. This file was not in the Step 2 allowed list (Orchestrator omission).",
+      "impact": "Users viewing their own request history see BROADCAST (and pre-existing CONTENTS) requests labelled as 픽업, and no 복각 indication.",
+      "recommendation": "Add this file to the fix iteration scope and use the same four-way label (버전/픽업/콘텐츠/특별방송) plus the 복각 badge."
+    },
+    {
+      "id": "R33-REV-005",
+      "severity": "P4",
+      "file": "src/components/calendar/schedule-banner.tsx",
+      "line": 19,
+      "evidence": "Calendar tile banners print the raw English type for VERSION/PICKUP/CONTENTS but the Korean `특별방송` for BROADCAST.",
+      "impact": "Mixed-language banner labels on the same tile; minor visual inconsistency.",
+      "recommendation": "Use `BROADCAST` (or a short English label such as `LIVE`) for consistency with the other banners, or localize all four together in a separate change."
+    }
+  ]
+}

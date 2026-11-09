@@ -9,7 +9,7 @@
                                 "Step 3 (Review, Claude Opus): integrated static review of Base..Target, review.json/test.json/run.json schema validation, main merge and docs closeout, plus production migration checklist."
                             ],
     "base_sha":  "d09ba5c131838872fa8423c9ce80cd31d345106f",
-    "target_sha":  null,
+    "target_sha": "5ce5d2221a99c0ece57b70b71420121fa9066abc",
     "branch":  "collab/schedule-rerun-and-broadcast",
     "worktree_path":  ".worktrees/schedule-rerun-and-broadcast",
     "max_iterations":  3,

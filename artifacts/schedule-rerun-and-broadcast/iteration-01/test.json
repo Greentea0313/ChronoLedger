@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "run_id": "schedule-rerun-and-broadcast",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "dynamic-test",
+  "base_sha": "d09ba5c131838872fa8423c9ce80cd31d345106f",
+  "target_sha": "5ce5d2221a99c0ece57b70b71420121fa9066abc",
+  "status": "passed",
+  "created_at": "2026-11-09T03:40:48Z",
+  "finished_at": "2026-11-09T03:42:10Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Local PostgreSQL 17 with Supabase stubs: base SCHEMA.sql + R33 migration twice, then TESTS.sql (31 PASS)", "command": "psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Local PostgreSQL 17 with Supabase stubs: new SCHEMA.sql + R33 migration twice, then TESTS.sql (31 PASS)", "command": "psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (50 files, 415 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}
