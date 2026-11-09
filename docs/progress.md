@@ -1,11 +1,18 @@
 # 프로젝트 진행 현황
+## R52 Amendment A1 DB/RLS/RPC Maker 완료 (Step 5, 2026-11-09)
+
+- **커밋**: `.worktrees/r52-character-template-and-pickup-avatar` `51a686f49a884bf720deddef184b95d83d8f5756`임.
+- **반영**: 픽업 전용 캐릭터와 제안 JSON 검증·원자 승인, 사용자 보유/프리셋/수정요청 경계, anon 권한 회수, `pickup_image_url` 제거 및 DB 타입 갱신 완료함. `R52-REV-001`·`002` 보정과 SQL 회귀 테스트 보강 포함함.
+- **검증**: 신규·기존 임시 PostgreSQL에서 마이그레이션 2회 및 `TESTS.sql` 전체 통과, lint 통과, Vitest 55파일/547개 통과함. `tsc`는 Step 6 UI 파일의 nullable 아이콘 처리 1곳 및 폐기 필드 참조 2곳에서 실패함.
+- **다음 단계**: Claude Sonnet이 Step 6 UI를 구현하며 위 3개 타입 오류를 정리하고 전체 tsc/lint/Vitest를 통과시켜야 함. 이후 Claude Opus Step 7 재리뷰임.
+
 ## R52 사용자 피드백 반영 보완(Amendment A1) 및 큐 재구성 (2026-11-09)
 
 - **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 1순위 대체)임.
 - **사용자 피드백**: ① 관리자 모바일 탭 텍스트 겹침, ② 요청 대기열 제목이 게임 요청 탭에만 표시, ③ 주차별 리스트 가시성 부족(게임별 접기/펼치기·작은 캐릭터 이미지 요청), ④ 캐릭터 미지원 게임도 픽업 캐릭터 이름·이미지를 게임별로 저장 필요임.
 - **사용자 결정**: 픽업 캐릭터는 `game_characters` 같은 테이블 + `is_pickup_only` 구분값으로 저장, 사용자 요청은 기존 선택 + 새 캐릭터 제안 허용, R52 Run에 합쳐 진행함.
 - **명세 보완**: `§8 Amendment A1` 추가(워크트리 `af39b72`). `pickup_image_url` 방식(NR-03·NR-04) 폐기, 픽업 전용 캐릭터·제안 승인 RPC·정식/픽업 전용 경계 DB 강제·UI 개선 U-01~U-08 확정함.
-- **큐 재구성**: Step 5 DB(**GPT Codex** `▶ READY`) → Step 6 UI(**Claude Sonnet** `⏳ WAITING`) → Step 7 재리뷰·병합(**Claude Opus** `⏳ WAITING`)임. iteration-01 지적 `R52-REV-001`~`004`는 Step 5·6에 포함함.
+- **큐 상태**: Step 5 DB(**GPT Codex** `✅ DONE`, `51a686f`) → Step 6 UI(**Claude Sonnet** `▶ READY`) → Step 7 재리뷰·병합(**Claude Opus** `⏳ WAITING`)임. iteration-01 지적 `R52-REV-001`~`004`는 Step 5·6에 반영함.
 
 ## r52-character-template-and-pickup-avatar iteration-01 통합 리뷰 (Step 4, 2026-11-09)
 

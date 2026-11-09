@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-09 (R52 Amendment A1 DB/RLS/RPC 재작업)
+
+- `is_pickup_only` 및 아이콘 없는 픽업 전용 캐릭터, 일정 요청의 `pickup_new_characters`, 승인 RPC 자동 등록·이름 재사용·순서 유지·상한 초과 원자 롤백을 반영함.
+- `pickup_image_url`과 관련 제약을 제거하고 개인/요청 테이블 anon 권한을 명시적으로 회수함. 신규 설치·기존 업그레이드 테스트를 보강함(`51a686f`).
+- Step 5 완료 후 Step 6 UI를 READY로 전환함. UI의 nullable 아이콘·폐기 필드 참조가 정리된 뒤 전체 타입 검사를 마쳐야 함.
+
 ## 2026-11-09 (R52 Amendment A1 — 픽업 전용 캐릭터·UI 피드백 반영 설계)
 
 - R52 명세에 `§8 Amendment A1`을 추가함: `game_characters.is_pickup_only`, `schedule_requests.pickup_new_characters`와 승인 시 자동 등록, `pickup_image_url` 제거, 관리자 탭 겹침·요청 대기열 제목·주차별 리스트 게임별 접기/펼치기 개선.
