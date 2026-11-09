@@ -48,6 +48,7 @@ const db = {
   userCharacters: [] as Row[],
   presets: [] as Row[],
   writeError: null as { message: string } | null,
+  countErrorGames: [] as string[],
 }
 let writes: Write[] = []
 let presetSeq = 0
@@ -57,6 +58,7 @@ function execute(table: string, ctx: { op: string; filters: Record<string, unkno
     if (table === "user_games") return { data: db.userGames, error: null }
     if (table === "game_characters") {
       const rows = db.characters[String(ctx.filters.game_id)] ?? []
+      if (ctx.head && db.countErrorGames.includes(String(ctx.filters.game_id))) return { data: null, count: null, error: { message: "count failed" } }
       return ctx.head ? { data: null, count: rows.length, error: null } : { data: rows, error: null }
     }
     if (table === "user_characters") return { data: db.userCharacters, error: null }
@@ -145,7 +147,7 @@ function seed() {
       character("c3", "구캐릭터", "3★", "바람"),
       character("c4", "라이덴", "5★", "화염"),
     ],
-    "game-b": [],
+    "game-b": [{ ...character("d1", "다라전용", null), game_id: "game-b" }],
   }
   db.userCharacters = [
     { character_id: "c1", game_id: "game-a", is_owned: true, is_favorite: false, breakthrough_level: 0, custom_icon_path: null },
@@ -163,6 +165,7 @@ function seed() {
     },
   ]
   db.writeError = null
+  db.countErrorGames = []
 }
 
 describe("CharactersPage", () => {
@@ -255,7 +258,7 @@ describe("CharactersPage", () => {
       await renderPage()
 
       expect(container.textContent).toContain("보유 캐릭터 2 / 4명 · 프리셋 1개")
-      expect(container.textContent).toContain("보유 캐릭터 0 / 0명 · 프리셋 0개")
+      expect(container.textContent).toContain("보유 캐릭터 0 / 1명 · 프리셋 0개")
       expect(gameChip("가나게임")?.getAttribute("aria-pressed")).toBe("true")
       expect(gameChip("다라게임")?.getAttribute("aria-pressed")).toBe("false")
       expect(cardNames()).toEqual(["구캐릭터", "라이덴", "아케론", "칼리"])
@@ -269,9 +272,57 @@ describe("CharactersPage", () => {
       await click(gameChip("다라게임"))
 
       expect(gameChip("다라게임")?.getAttribute("aria-pressed")).toBe("true")
-      expect(cards()).toHaveLength(0)
-      expect(container.textContent).toContain("등록된 캐릭터가 없습니다.")
+      expect(cardNames()).toEqual(["다라전용"])
       expect(container.querySelector('[data-testid="roster-rarity-filter"]')).toBeNull()
+    })
+
+    it("hides subscribed games without any catalog character from the game bar", async () => {
+      db.characters["game-b"] = []
+      await renderPage()
+
+      expect(gameChip("가나게임")).toBeTruthy()
+      expect(gameChip("다라게임")).toBeUndefined()
+      expect(container.textContent).not.toContain("다라게임")
+    })
+
+    it("falls back to the first supported game when ?gameId= points to an unsupported game", async () => {
+      db.characters["game-b"] = []
+      window.history.pushState({}, "", "/dashboard/characters?gameId=game-b")
+      await renderPage()
+
+      expect(gameChip("가나게임")?.getAttribute("aria-pressed")).toBe("true")
+    })
+
+    it("shows the unsupported-games empty state when no subscribed game has characters", async () => {
+      db.characters["game-a"] = []
+      db.characters["game-b"] = []
+      await renderPage()
+
+      expect(container.textContent).toContain("현재 구독 중인 게임 중 캐릭터·프리셋 기능을 지원하는 게임이 없습니다.")
+      expect(container.textContent).toContain("보유 캐릭터 체크 및 조합 프리셋은 관리자가 캐릭터 카탈로그를 등록한 게임에서만 제공됩니다.")
+      expect(container.textContent).not.toContain("구독 중인 게임이 없습니다.")
+      expect(container.querySelector('nav[aria-label="구독 게임 선택"]')).toBeNull()
+    })
+
+    it("keeps a game visible when its catalog count query fails", async () => {
+      db.characters["game-b"] = []
+      db.countErrorGames = ["game-b"]
+      await renderPage()
+
+      expect(gameChip("다라게임")).toBeTruthy()
+    })
+
+    it("uses the admin character_label in the summary, roster tab and request button", async () => {
+      db.userGames[0] = {
+        ...db.userGames[0],
+        games: { ...(db.userGames[0].games as Row), classification_schema: { ...schemaA, character_label: "공명자" } },
+      }
+      await renderPage()
+
+      expect(container.textContent).toContain("보유 공명자 2 / 4명 · 프리셋 1개")
+      const tab = Array.from(container.querySelectorAll('[role="tab"]')).find((el) => el.textContent === "보유 공명자")
+      expect(tab).toBeTruthy()
+      expect(buttonByText("+ 공명자 추가·수정 요청", container)).toBeTruthy()
     })
 
     it("preselects the game from the ?gameId= query", async () => {

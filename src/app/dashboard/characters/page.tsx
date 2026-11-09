@@ -14,6 +14,7 @@ import { PresetEditorDialog, type PresetDraft, type PresetEditorTarget } from "@
 import { PresetList, type PresetRow } from "@/components/character/preset-list"
 import {
   PRESET_SLOT_HARD_LIMIT,
+  isCharacterSupported,
   normalizeCharacterRow,
   normalizeClassificationSchema,
   normalizeMaxBreakthrough,
@@ -55,6 +56,8 @@ interface GameEntry {
   maxPresetSlots: number
   maxBreakthrough: number
   schema: ClassificationSchema
+  /** Character system name set by the admin template (e.g. 공명자); defaults to 캐릭터. */
+  characterLabel: string
 }
 
 interface UserCharacterRow extends UserCharacterState {
@@ -113,6 +116,10 @@ export default function CharactersPage() {
     const entries: GameEntry[] = []
     userGameRows.forEach((row) => {
       if (!row.games) return
+      // Roster and presets exist only for games whose admin catalog has at least one character (spec §4.1).
+      // A failed count query leaves the key unset; such games stay visible rather than disappearing.
+      const knownCount = catalogCounts[row.game_id]
+      if (knownCount !== undefined && !isCharacterSupported(knownCount)) return
       entries.push({
         gameId: row.game_id,
         name: row.games.name,
@@ -120,10 +127,11 @@ export default function CharactersPage() {
         maxPresetSlots: normalizeMaxPresetSlots(row.games.max_preset_slots),
         maxBreakthrough: normalizeMaxBreakthrough(row.games.max_breakthrough),
         schema: normalizeClassificationSchema(row.games.classification_schema),
+        characterLabel: normalizeClassificationSchema(row.games.classification_schema).character_label || "캐릭터",
       })
     })
     return entries.sort((a, b) => a.name.localeCompare(b.name, "ko"))
-  }, [userGameRows])
+  }, [catalogCounts, userGameRows])
 
   const selectedGame = useMemo(
     () => gameEntries.find((entry) => entry.gameId === selectedGameId) ?? gameEntries[0] ?? null,
@@ -149,7 +157,6 @@ export default function CharactersPage() {
       return
     }
     const rows = (data as unknown as UserGameRow[]) ?? []
-    setUserGameRows(rows)
     preloadImages(rows.map((row) => row.games?.default_icon_url))
 
     // Header counts: one cheap count query per game keeps the totals exact beyond the PostgREST row limit.
@@ -160,10 +167,12 @@ export default function CharactersPage() {
           .from("game_characters")
           .select("id", { count: "exact", head: true })
           .eq("game_id", row.game_id)
-        counts[row.game_id] = result.count ?? 0
+        if (!result.error) counts[row.game_id] = result.count ?? 0
       }),
     )
+    // Set together so the supported-game filter never runs against missing counts.
     setCatalogCounts(counts)
+    setUserGameRows(rows)
 
     const iconMap: Record<string, string> = {}
     await Promise.all(
@@ -297,7 +306,7 @@ export default function CharactersPage() {
     const ownedCount = userCharacterRows.filter((row) => row.game_id === entry.gameId && row.is_owned).length
     const total = catalogCounts[entry.gameId] ?? 0
     const presetCount = presets.filter((preset) => preset.game_id === entry.gameId).length
-    return `보유 캐릭터 ${ownedCount} / ${total}명 · 프리셋 ${presetCount}개`
+    return `보유 ${entry.characterLabel} ${ownedCount} / ${total}명 · 프리셋 ${presetCount}개`
   }
 
   const setBusy = (characterId: string, busy: boolean) =>
@@ -480,7 +489,7 @@ export default function CharactersPage() {
         </div>
         <RequestSubmissionModal
           initialKind="character"
-          triggerText="+ 캐릭터 추가·수정 요청"
+          triggerText={`+ ${selectedGame?.characterLabel ?? "캐릭터"} 추가·수정 요청`}
           className="h-10 border-line font-medium text-content hover:bg-surface-2"
         />
       </header>
@@ -495,12 +504,19 @@ export default function CharactersPage() {
       )}
 
       {gameEntries.length === 0 ? (
-        <div className="space-y-3 text-center">
-          <EmptyState message="구독 중인 게임이 없습니다." hint="게임을 구독하면 캐릭터와 프리셋을 관리할 수 있습니다." />
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/games">게임 구독하러 가기</Link>
-          </Button>
-        </div>
+        userGameRows.length > 0 ? (
+          <EmptyState
+            message="현재 구독 중인 게임 중 캐릭터·프리셋 기능을 지원하는 게임이 없습니다."
+            hint="보유 캐릭터 체크 및 조합 프리셋은 관리자가 캐릭터 카탈로그를 등록한 게임에서만 제공됩니다."
+          />
+        ) : (
+          <div className="space-y-3 text-center">
+            <EmptyState message="구독 중인 게임이 없습니다." hint="게임을 구독하면 캐릭터와 프리셋을 관리할 수 있습니다." />
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard/games">게임 구독하러 가기</Link>
+            </Button>
+          </div>
+        )
       ) : (
         <>
           <nav aria-label="구독 게임 선택" className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
@@ -531,7 +547,7 @@ export default function CharactersPage() {
           {selectedGame && (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full max-w-sm grid-cols-2 border border-line bg-surface-2">
-                <TabsTrigger value="roster">보유 캐릭터</TabsTrigger>
+                <TabsTrigger value="roster">{`보유 ${selectedGame.characterLabel}`}</TabsTrigger>
                 <TabsTrigger value="presets">조합 프리셋</TabsTrigger>
               </TabsList>
 
