@@ -607,12 +607,13 @@ describe("DashboardPage", () => {
       expect(avatars).toEqual(["블랙 스완", "카프카"])
     })
 
-    it("shows the directly uploaded pickup image without querying characters", async () => {
-      const lookup = setup({ schedule: { pickup_character_ids: [], pickup_image_url: "data:image/webp;base64,own" } })
+    it("shows an initial avatar for a pickup character without an icon", async () => {
+      setup({ schedule: { pickup_character_ids: ["c9"] }, characters: [{ id: "c9", name: "노이콘", default_icon_url: null }] })
       render(<DashboardPage />)
 
-      expect((await screen.findAllByAltText("카프카 픽업")).length).toBeGreaterThan(0)
-      expect(lookup.in).not.toHaveBeenCalled()
+      const initials = await screen.findAllByTestId("pickup-avatar-initial")
+      expect(initials[0].textContent).toBe("노")
+      expect(initials[0].getAttribute("aria-label")).toBe("노이콘")
     })
 
     it("still renders the schedule without avatars when the character lookup fails", async () => {

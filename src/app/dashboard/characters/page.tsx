@@ -163,10 +163,15 @@ export default function CharactersPage() {
     const counts: Record<string, number> = {}
     await Promise.all(
       rows.map(async (row) => {
-        const result = await supabase
+        // Pickup-only characters are not part of the roster (A1 D-02/D-06); an unmigrated DB (D-08) counts everything.
+        let result = await supabase
           .from("game_characters")
           .select("id", { count: "exact", head: true })
           .eq("game_id", row.game_id)
+          .eq("is_pickup_only", false)
+        if (result.error && (result.error.code === "42703" || result.error.code === "PGRST204")) {
+          result = await supabase.from("game_characters").select("id", { count: "exact", head: true }).eq("game_id", row.game_id)
+        }
         if (!result.error) counts[row.game_id] = result.count ?? 0
       }),
     )
@@ -233,18 +238,23 @@ export default function CharactersPage() {
     if (!activeGameId) return
     let cancelled = false
     const loadCatalog = async () => {
-      const { data, error } = await supabase
-        .from("game_characters")
-        .select("id, game_id, name, rarity, attributes, default_icon_url")
-        .eq("game_id", activeGameId)
-        .order("name")
+      const columns = "id, game_id, name, rarity, attributes, default_icon_url"
+      let result = await supabase.from("game_characters").select(`${columns}, is_pickup_only`).eq("game_id", activeGameId).order("name")
+      // Not migrated yet (D-08): every character is a regular roster character.
+      if (result.error && (result.error.code === "42703" || result.error.code === "PGRST204")) {
+        result = (await supabase.from("game_characters").select(columns).eq("game_id", activeGameId).order("name")) as typeof result
+      }
+      const { data, error } = result
       if (cancelled) return
       if (error) {
         setNotice({ type: "error", text: `캐릭터 목록을 불러오지 못했습니다: ${error.message}` })
         setLoadedCatalog({ gameId: activeGameId, items: [] })
         return
       }
-      const items = (data ?? []).map(normalizeCharacterRow)
+      // Pickup-only characters exist for schedule avatars only: no ownership check, no presets (U-08).
+      const items = (data ?? [])
+        .filter((row) => (row as { is_pickup_only?: boolean }).is_pickup_only !== true)
+        .map(normalizeCharacterRow)
       preloadImages(items.map((character) => character.default_icon_url))
       setLoadedCatalog({ gameId: activeGameId, items })
     }

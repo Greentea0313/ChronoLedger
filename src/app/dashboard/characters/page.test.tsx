@@ -49,15 +49,21 @@ const db = {
   presets: [] as Row[],
   writeError: null as { message: string } | null,
   countErrorGames: [] as string[],
+  pickupColumnMissing: false,
 }
 let writes: Write[] = []
 let presetSeq = 0
 
-function execute(table: string, ctx: { op: string; filters: Record<string, unknown>; head: boolean; payload: unknown; options: unknown }) {
+function execute(table: string, ctx: { op: string; filters: Record<string, unknown>; head: boolean; payload: unknown; options: unknown; columns: string }) {
   if (ctx.op === "select") {
     if (table === "user_games") return { data: db.userGames, error: null }
     if (table === "game_characters") {
-      const rows = db.characters[String(ctx.filters.game_id)] ?? []
+      // Unmigrated DB: any use of is_pickup_only (selected column or filter) fails with 42703.
+      if (db.pickupColumnMissing && (ctx.columns.includes("is_pickup_only") || "is_pickup_only" in ctx.filters)) {
+        return { data: null, count: null, error: { code: "42703", message: 'column "is_pickup_only" does not exist' } }
+      }
+      const allRows = db.characters[String(ctx.filters.game_id)] ?? []
+      const rows = ctx.head && ctx.filters.is_pickup_only === false ? allRows.filter((row) => row.is_pickup_only !== true) : allRows
       if (ctx.head && db.countErrorGames.includes(String(ctx.filters.game_id))) return { data: null, count: null, error: { message: "count failed" } }
       return ctx.head ? { data: null, count: rows.length, error: null } : { data: rows, error: null }
     }
@@ -83,7 +89,7 @@ function execute(table: string, ctx: { op: string; filters: Record<string, unkno
 }
 
 function createQuery(table: string) {
-  const ctx = { op: "select", filters: {} as Record<string, unknown>, head: false, payload: undefined as unknown, options: undefined as unknown }
+  const ctx = { op: "select", filters: {} as Record<string, unknown>, head: false, payload: undefined as unknown, options: undefined as unknown, columns: "" }
   const record = (op: Write["op"], payload?: unknown, options?: unknown) => {
     ctx.op = op
     ctx.payload = payload
@@ -91,8 +97,11 @@ function createQuery(table: string) {
     writes.push({ table, op, payload, options, filters: ctx.filters })
   }
   const query: Record<string, unknown> = {}
-  query.select = vi.fn((_columns?: string, options?: { head?: boolean }) => {
-    if (ctx.op === "select") ctx.head = !!options?.head
+  query.select = vi.fn((columns?: string, options?: { head?: boolean }) => {
+    if (ctx.op === "select") {
+      ctx.head = !!options?.head
+      ctx.columns = columns ?? ""
+    }
     return query
   })
   query.eq = vi.fn((column: string, value: unknown) => {
@@ -166,6 +175,7 @@ function seed() {
   ]
   db.writeError = null
   db.countErrorGames = []
+  db.pickupColumnMissing = false
 }
 
 describe("CharactersPage", () => {
@@ -291,6 +301,32 @@ describe("CharactersPage", () => {
       await renderPage()
 
       expect(gameChip("가나게임")?.getAttribute("aria-pressed")).toBe("true")
+    })
+
+    it("does not count pickup-only characters: a game with only pickup-only characters is hidden", async () => {
+      db.characters["game-b"] = [{ ...character("po1", "픽업 전용", null), game_id: "game-b", is_pickup_only: true }]
+      await renderPage()
+
+      expect(gameChip("가나게임")).toBeTruthy()
+      expect(gameChip("다라게임")).toBeUndefined()
+    })
+
+    it("never lists pickup-only characters in the roster or presets", async () => {
+      db.characters["game-a"] = [...db.characters["game-a"], { ...character("po2", "픽업전용A", null), is_pickup_only: true }]
+      await renderPage()
+
+      expect(cardNames()).toEqual(["구캐릭터", "라이덴", "아케론", "칼리"])
+      expect(container.textContent).not.toContain("픽업전용A")
+      expect(container.textContent).toContain("보유 캐릭터 2 / 4명")
+    })
+
+    it("treats every character as a roster character when is_pickup_only is not migrated yet (D-08)", async () => {
+      db.pickupColumnMissing = true
+      await renderPage()
+
+      expect(cardNames()).toEqual(["구캐릭터", "라이덴", "아케론", "칼리"])
+      expect(container.textContent).toContain("보유 캐릭터 2 / 4명")
+      expect(container.textContent).not.toContain("캐릭터 목록을 불러오지 못했습니다")
     })
 
     it("shows the unsupported-games empty state when no subscribed game has characters", async () => {

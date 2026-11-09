@@ -907,29 +907,32 @@ describe("GamesPage", () => {
 
     describe("pickup avatars (R52)", () => {
       const pickupSchedules = [
-        { id: "pk1", game_id: "game-1", title: "카프카 · 블랙 스완 픽업", schedule_type: "PICKUP", start_date: "2026-11-05", end_date: "2026-11-15", memo: null, pickup_character_ids: ["c1", "c2"], pickup_image_url: null },
-        { id: "pk2", game_id: "game-1", title: "이미지 픽업", schedule_type: "PICKUP", start_date: "2026-11-20", end_date: "2026-11-25", memo: null, pickup_character_ids: [], pickup_image_url: "data:image/webp;base64,own" },
+        { id: "pk1", game_id: "game-1", title: "카프카 · 블랙 스완 픽업", schedule_type: "PICKUP", start_date: "2026-11-05", end_date: "2026-11-15", memo: null, pickup_character_ids: ["c1", "c2"] },
+        { id: "pk2", game_id: "game-1", title: "아이콘 없는 픽업", schedule_type: "PICKUP", start_date: "2026-11-20", end_date: "2026-11-25", memo: null, pickup_character_ids: ["c3"] },
         { id: "pk3", game_id: "game-1", title: "레거시 픽업", schedule_type: "PICKUP", start_date: "2026-11-26", end_date: "2026-11-28", memo: null },
       ]
       const characters = [
         { id: "c1", name: "카프카", default_icon_url: "data:image/webp;base64,a" },
         { id: "c2", name: "블랙 스완", default_icon_url: "data:image/webp;base64,b" },
+        { id: "c3", name: "노이콘", default_icon_url: null },
       ]
 
       it("looks up only the referenced characters with explicit columns and shows their avatars on PICKUP cards", async () => {
         await openSchedules({ schedules: pickupSchedules, characters, expenses: [] })
 
         expect(pickupLookup.select).toHaveBeenCalledWith("id, name, default_icon_url")
-        expect(pickupLookup.in).toHaveBeenCalledWith("id", ["c1", "c2"])
+        expect(pickupLookup.in).toHaveBeenCalledWith("id", ["c1", "c2", "c3"])
         expect(document.body.querySelectorAll('img[alt="카프카"]').length).toBeGreaterThan(0)
         expect(document.body.querySelectorAll('img[alt="블랙 스완"]').length).toBeGreaterThan(0)
         expect((document.body.querySelector('img[alt="카프카"]') as HTMLImageElement).style.width).toBe("28px")
       })
 
-      it("shows a directly uploaded pickup image as a single avatar and leaves legacy PICKUP cards plain", async () => {
+      it("shows an initial avatar for characters without an icon and leaves legacy PICKUP cards plain", async () => {
         await openSchedules({ schedules: pickupSchedules, characters, expenses: [] })
 
-        expect(document.body.querySelector('img[alt="이미지 픽업"]')?.getAttribute("src")).toBe("data:image/webp;base64,own")
+        const initial = document.body.querySelector('[data-testid="pickup-avatar-initial"]') as HTMLElement
+        expect(initial.textContent).toBe("노")
+        expect(initial.getAttribute("aria-label")).toBe("노이콘")
         const legacyCard = Array.from(document.body.querySelectorAll("div.rounded-lg")).find((el) => el.textContent?.includes("레거시 픽업")) as HTMLElement
         expect(legacyCard.querySelector('[data-testid="pickup-avatars"]')).toBeNull()
       })

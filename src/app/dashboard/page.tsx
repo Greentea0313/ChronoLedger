@@ -45,7 +45,6 @@ interface ScheduleRow {
   is_official?: boolean
   is_rerun?: boolean
   pickup_character_ids?: string[] | null
-  pickup_image_url?: string | null
   memo?: string | null
 }
 
