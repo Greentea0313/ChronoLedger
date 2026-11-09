@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-09 (r36-game-detail-and-r47-followup 리뷰·병합 마감 및 r38-onboarding-and-game-order Run 등록 — R36·R47·R38)
+
+- Base `b5ca5d8` ↔ Target `4fdf99a` 통합 정적 코드 리뷰 결과 `clean`(지적 0건) 판정함(`artifacts/r36-game-detail-and-r47-followup/iteration-01/review.json`).
+- `tsc --noEmit`, `npm run lint`, `vitest run --dir src`(52파일/453개 테스트) 통과 및 아티팩트 스키마 검증 완료 후 워크트리 커밋(`e3a4acc`) 및 `main` 병합(`4ffd901`)을 완료함.
+- 차기 기능 과제 `R38`(신규 가입 게임 일괄 구독 온보딩 모달 및 내 게임 순서 변경·캘린더 아이콘 정렬 연동)을 격리 Run `r38-onboarding-and-game-order`(Base `4ffd901`, manifest `12486d9`, Step 1 `Claude Sonnet` `▶ READY`)로 등록함(`A1` `R50`은 `📝 AGENDA` 유지).
+
 ## 2026-11-09 (Phase 12.40 — R36 게임 상세 뷰, R47 R33 후속)
 
 - `user-requests-card.tsx`: `schedule_requests` 조회가 `is_rerun` 컬럼 부재(`42703`/`PGRST204`/메시지 포함)로 실패하면 해당 컬럼을 뺀 목록으로 재조회함. 조회 의존성을 `user?.id`로 바꿔 불필요한 재조회 루프를 제거함.

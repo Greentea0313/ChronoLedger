@@ -31,42 +31,42 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `r36-game-detail-and-r47-followup` *(2026-11-09, `Phase 12.40` R36 게임별 일정·과금 통합 상세 뷰 + R47 `user-requests-card.tsx` `is_rerun` 폴백 및 R33 UI 회귀 테스트 보강)*
+- **Run ID**: `r38-onboarding-and-game-order` *(2026-11-09, `Phase 12.41` R38 신규 가입 첫 진입 게임 일괄 구독 온보딩 모달 및 내 게임 순서 변경·캘린더 아이콘 정렬 연동)*
 - **Orchestrator**: Gemini 4 Argon
-- **Worktree 경로**: `.worktrees/r36-game-detail-and-r47-followup` (브랜치: `collab/r36-game-detail-and-r47-followup`)
-- **리뷰 비교 범위**: Base `b5ca5d8b2ab538cc19af84238e89095fc0456c53` ↔ Target `(Step 1 Maker 커밋 후 기록)` *(Step 2 Orchestrator/Reviewer가 manifest `target_sha` 기록)*
+- **Worktree 경로**: `.worktrees/r38-onboarding-and-game-order` (브랜치: `collab/r38-onboarding-and-game-order`, manifest `12486d9`)
+- **리뷰 비교 범위**: Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Target `(Step 1 Maker 커밋 후 기록)` *(Step 2 Orchestrator/Reviewer가 manifest `target_sha` 기록)*
+- **설계 결정 (Orchestrator 확정 — DB 변경 없음 · Opus 승격 조건 미해당)**:
+  - 내 게임 표시 순서와 온보딩 모달 닫기 여부는 DB 컬럼 추가 없이 `localStorage`(`src/lib/game-order-storage.ts`, 사용자 `userId` 키 격리)에 저장하여 운영 SQL 마이그레이션 선행 조건을 만들지 않고 즉시 배포 가능하도록 구성함.
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Step 1 — `Phase 12.40 (R36 & R47)` 게임별 일정·과금 통합 상세 뷰 및 R33 후속 폴백·회귀 테스트 구현 (Claude Sonnet)**:
-     - **대상 파일 (`.worktrees/r36-game-detail-and-r47-followup` 내부)**: `src/components/game/user-requests-card.tsx`, `src/components/game/user-requests-card.test.tsx`, `src/app/admin/page.test.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `docs/to-do.md`
+  1. **Step 1 — `Phase 12.41 (R38)` 신규 가입 첫 진입 게임 일괄 구독 온보딩 모달 및 내 게임 순서 변경 구현 (Claude Sonnet)**:
+     - **대상 파일 (`.worktrees/r38-onboarding-and-game-order` 내부)**: `src/lib/game-order-storage.ts`(신규), `src/lib/game-order-storage.test.ts`(신규), `src/components/game/game-onboarding-modal.tsx`(신규), `src/components/game/game-onboarding-modal.test.ts*`(신규), `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`(필요 시), `docs/to-do.md`
      - **구현 요구사항**:
-       - ① **`R47-1` 내 요청 내역(`user-requests-card.tsx`) `is_rerun` 미적용 폴백 조회 (`R33-REV-006`, P3)**:
-         - `src/components/game/user-requests-card.tsx`에서 `schedule_requests` 1차 조회(`select("id, game_id, target_schedule_id, title, schedule_type, is_rerun, start_date, end_date, memo, request_status, admin_memo, created_at, games(name)")`)가 `is_rerun` 컬럼 부재 오류(코드 `42703`/`PGRST204` 또는 메시지에 `is_rerun` 포함)로 실패하면, `is_rerun`을 제외한 기본 컬럼 목록으로 즉시 재조회하여 요청 목록이 정상 표시되도록 폴백을 추가함.
-         - `src/components/game/user-requests-card.test.tsx`에 `is_rerun` 컬럼 부재 오류 시 폴백 재조회로 일정 요청 내역이 정상 렌더링되는 단위 테스트를 추가함.
-       - ② **`R47-2` R33 UI 회귀 테스트 보강 (`R33-REV-007`, P4)**:
-         - `src/app/admin/page.test.tsx`: 관리자 일정 폼에서 `PICKUP` 선택 시 복각 토글 노출 및 일정 수정 시 원본이 `is_rerun: true`였을 때 해제하면 `is_rerun: false`를 전송하고 원본이 `false`이면 `is_rerun` 키를 생략하는지 검증하는 테스트 추가.
-         - `src/components/game/request-submission-modal.test.tsx`: 일정 수정 요청(EDIT 모드)에서 복각 해제 시 `is_rerun: false` 전송 분기 및 R33 마이그레이션 미적용 오류(`42703`/`PGRST204`/`23514`) 안내 메시지 표시 테스트 추가.
-       - ③ **`R36-1` `/dashboard/games` 일정 모달 조회 범위 확장 (최근 6개월 지난 일정 + 해당 게임 지출 요약)**:
-         - `src/app/dashboard/games/page.tsx`의 `fetchSchedules`에서 KST 오늘(`today = getKstToday()`) 기준 180일(6개월) 전 날짜(`sixMonthsAgo`)를 계산하여 `.gte("end_date", sixMonthsAgo)`로 `game_schedules`를 조회함.
-         - 로그인 사용자(`userId` 존재)인 경우 `expenses` 테이블에서 `.select("id, title, final_amount, status, target_date, end_date").eq("user_id", userId).eq("game_id", selectedGame.id)`를 함께 조회하여 해당 게임의 지출 내역을 로드함(`expenses` 조회가 실패하거나 모킹되지 않은 경우에도 일정 표시를 차단하지 않고 빈 배열로 안전 폴백함).
-       - ④ **`R36-2` 해당 게임 과금 요약 카드 (로그인 사용자 전용, `ScheduleDialog`)**:
-         - 로그인 사용자일 때 `ScheduleDialog` 상단에 **`게임 과금 요약`** 카드(`data-testid="game-expense-summary"`)를 표시함(게스트 모드에서는 미표시):
-           - **이번 달 확정 과금**: `status === "CONFIRMED"`이고 `target_date.startsWith(today.slice(0, 7))`인 `final_amount` 합계
-           - **누적 확정 과금**: 해당 게임 전체 `status === "CONFIRMED"` `final_amount` 합계
-           - **예정 지출**: 해당 게임 `status === "PLANNED"` `final_amount` 합계
-       - ⑤ **`R36-3` `ScheduleTree` 고도화 — `ON AIR`(`D-n`·진행 바) / `다음 예정 일정` / `버전별 일정`(버전별 과금 소계) / `지난 일정 기록 (최근 6개월)`**:
-         - **`진행 중인 일정 · ON AIR` (`start_date <= today && end_date >= today`)**: 각 일정 카드에 종료일 기준 `getDdayLabel(today, schedule.end_date)` 배지(`data-testid="dday-badge"`)와 기간 일정(`start_date < end_date`)의 경과율 진행 바(`getPeriodProgress(today, schedule.start_date, schedule.end_date)`, `role="progressbar"`)를 표시함.
-         - **`다음 예정 일정` (`start_date > today`)**: KST 오늘 이후 시작하는 예정 일정이 있을 때 `<section aria-label="다음 예정 일정">` 섹션에 시작일 오름차순으로 표시함.
-         - **`버전별 일정` (`schedule_type === "VERSION"`, `end_date >= today`인 현재·예정 버전)**: 기존 아코디언 트리를 유지하되, 로그인 사용자일 때 해당 버전 기간(`version.start_date <= date && date <= version.end_date`, 확정 지출은 `target_date`, 예정 지출은 `end_date ?? target_date`)에 속하는 지출을 집계하여 버전 행에 **`확정 n원 · 예정 m원`**(`data-testid="version-expense-summary"`) 버전별 과금 소계를 함께 표시함.
-         - **`지난 일정 기록 (최근 6개월)` (`end_date < today`)**: 이미 종료된 최근 6개월 일정을 현재/미래 버전 트리 및 기타 일정에서 분리하여 하단 접기/펼치기 아코디언 섹션(`<section aria-label="지난 일정 기록">`, 기본 접힘 `expanded = false`, 토글 버튼 `지난 일정 기록 (${pastSchedules.length}건)`)으로 제공함.
-       - ⑥ **단위 테스트 및 문서 갱신**:
-         - `src/app/dashboard/games/page.test.tsx`에 `ON AIR` `D-n`·진행률 바, `다음 예정 일정`, `지난 일정 기록` 펼침/접힘, 로그인 시 `게임 과금 요약`(이번 달/누적 확정/예정) 및 버전별 과금 소계 표시(게스트 모드 시 숨김), `ScheduleTree` 내 `특별방송`/`복각` 배지 렌더링 테스트를 추가하고 `docs/to-do.md`의 `R36`·`R47` 상태를 갱신함.
+       - ① **`R38-1` 내 게임 순서 및 온보딩 상태 로컬 저장소 유틸리티 (`src/lib/game-order-storage.ts` & `src/lib/game-order-storage.test.ts`)**:
+         - `loadGameOrder(userId: string | null | undefined): string[]`: `localStorage.getItem(\`chronoledger:game-order:\${userId}\`)`에서 중복 없는 문자열 배열을 안전하게 파싱해 반환함(비로그인·SSR·손상 데이터 시 `[]` 반환).
+         - `saveGameOrder(userId: string | null | undefined, orderedGameIds: string[]): void`: 중복 제거된 `orderedGameIds`를 JSON 문자열로 저장함(`userId` 없으면 무동작).
+         - `sortByGameOrder<T>(items: readonly T[], orderedGameIds: readonly string[], getId: (item: T) => string, getName: (item: T) => string): T[]`: `orderedGameIds`에 포함된 항목은 해당 인덱스 오름차순으로 먼저 배치하고, 포함되지 않은 항목은 그 뒤에 `getName(a).localeCompare(getName(b), "ko")` 가나다순으로 정렬해 새 배열로 반환함.
+         - `moveGameInOrder(currentOrderedIds: readonly string[], gameId: string, direction: "up" | "down"): string[]`: `currentOrderedIds`에서 `gameId`를 위(`index - 1`) 또는 아래(`index + 1`) 항목과 맞바꾼 새 배열을 반환함(경계 밖이거나 없으면 원본 복사본 반환).
+         - `isGameOnboardingDismissed(userId: string | null | undefined): boolean` 및 `dismissGameOnboarding(userId: string | null | undefined): void`: `localStorage` 키 `chronoledger:game-onboarding-dismissed:${userId}`(`"1"`)를 조회·기록함.
+       - ② **`R38-2` 신규 가입 첫 진입 시(구독 게임 0개) 게임 일괄 구독 온보딩 모달 (`src/components/game/game-onboarding-modal.tsx` & 단위 테스트)**:
+         - Props: `{ open: boolean; userId: string; onClose: () => void; onSubscribed: (selectedGameIds: string[]) => void }`.
+         - `open === true`일 때 `games` 테이블(`.select("id, name, default_icon_url").order("name")`)에서 공용 게임 카탈로그를 조회하고, 기본값으로 전체 게임을 체크 선택 상태로 표시함(상단에 `전체 선택` / `전체 해제` 토글 버튼 제공).
+         - 각 게임 항목은 체크박스(또는 선택 토글 버튼)와 `GameIcon`·게임명을 표시하며 클릭 시 선택 여부가 토글됨.
+         - **`선택한 게임 구독 시작 (N개)`** 버튼(`selectedIds.length === 0`이거나 오프라인/저장 중일 때 비활성화): `supabase.from("user_games").insert(selectedIds.map((game_id) => ({ user_id: userId, game_id })))`로 일괄 구독 등록 후 `saveGameOrder(userId, selectedIds)` 및 `dismissGameOnboarding(userId)`를 호출하고 `onSubscribed(selectedIds)`를 실행함.
+         - **`나중에 직접 선택`** 버튼(또는 모달 닫기): `dismissGameOnboarding(userId)`를 호출하고 `onClose()`를 실행해 이후 재방문 시 자동으로 다시 뜨지 않게 함.
+       - ③ **`R38-3` `/dashboard/games` 내 게임 순서 변경 버튼 및 온보딩 모달 연동 (`src/app/dashboard/games/page.tsx` & `page.test.tsx`)**:
+         - `userId` 변경 시 `loadGameOrder(userId)`로 `gameOrder` 상태를 초기화하고, `sortedUserGames` 계산 시 `sortByGameOrder(userGames, gameOrder, (g) => g.game_id, (g) => g.games?.name || "")`를 적용함.
+         - 구독 중인 내 게임 카드마다 순서 이동 버튼 2개(`aria-label={\`순서 위로: \${gameName}\`}`, `aria-label={\`순서 아래로: \${gameName}\`}`, 첫 번째 항목은 위로 버튼 `disabled`, 마지막 항목은 아래로 버튼 `disabled`)를 추가함. 클릭 시 현재 `sortedUserGames.map((g) => g.game_id)` 기준으로 `moveGameInOrder`를 수행해 `gameOrder` 상태와 `saveGameOrder(userId, nextOrder)`를 즉시 갱신함.
+         - 로그인 상태(`Boolean(userId)`)이고 초기 로드가 끝났으며(`!isLoading && !scheduleError`) `userGames.length === 0`이고 `!isGameOnboardingDismissed(userId)`이면 `GameOnboardingModal`을 자동 표시함(일괄 구독 완료 시 `loadGames()` 및 `gameOrder` 갱신).
+       - ④ **`R38-4` 대시보드(`/dashboard`) 캘린더 아이콘·필터 정렬 및 온보딩 연동 (`src/app/dashboard/page.tsx`)**:
+         - 로그인 사용자일 때 `loadGameOrder(user?.id)`를 읽어 `gameFilterOptions`(게임 필터 칩 순서)와 `days` 내 각 날짜 셀의 `dayIcons`(캘린더 타일 게임 아이콘 순서) 정렬에 `sortByGameOrder`를 적용함(게스트 모드는 기존 가나다순 유지).
+         - 로그인 상태이고 초기 로드가 정상 완료되었으며(`hasLoadedInitial && !error`) `userGames.length === 0`이고 `!isGameOnboardingDismissed(user.id)`일 때 `GameOnboardingModal`을 자동 표시하고 일괄 구독 완료 시 `load()`를 재호출함.
   2. **Step 2 — 통합 정적 코드 리뷰 및 Run 마감 (Gemini 4 Argon / Claude Opus)**:
-     - Base `b5ca5d8b2ab538cc19af84238e89095fc0456c53` ↔ Step 1 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
+     - Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Step 1 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: 4fdf99aeb93ce3580ae876fb8bb814d63b677f18)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Game Detail View & R33 Follow-up)` | `Phase 12.40 (R36 & R47)`: `.worktrees/r36-game-detail-and-r47-followup`에서 `user-requests-card.tsx` `is_rerun` 폴백, R33 회귀 테스트 보강, `/dashboard/games` 일정·과금 통합 상세 뷰(`ON AIR` D-day/진행 바, 다음 예정, 최근 6개월 지난 일정, 게임·버전별 과금 요약) 및 단위 테스트 구현 | `✅ 4fdf99a: R47-1 user-requests-card is_rerun 폴백(+userId 의존성), R47-2 admin·요청 모달 R33 회귀 테스트, R36 일정 모달 180일 조회·게임 과금 요약·ON AIR D-n/진행 바·다음 예정·버전별 과금 소계·지난 일정 기록. tsc/lint 통과, Vitest 52파일/453개 통과.` |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** / **Claude Opus** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `b5ca5d8b2ab538cc19af84238e89095fc0456c53` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: 4fdf99aeb93ce3580ae876fb8bb814d63b677f18` |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Onboarding & Game Order UI)` | `Phase 12.41 (R38)`: `.worktrees/r38-onboarding-and-game-order`에서 `game-order-storage.ts`, `GameOnboardingModal`, `/dashboard/games` 순서 변경 UI, `/dashboard` 캘린더 아이콘·필터 정렬 반영 및 단위 테스트 구현 | `⏳ 대기 중` |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 1 완료 후 진행` |
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
@@ -93,6 +93,17 @@
 | **A1** | **`📝 AGENDA`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Security Reviewer (Read-only)` | 위 수용 기준 1~4. 허용 파일: `docs/auth-security-review.md`(신규), `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md`, `docs/handoff.md` | `📝 등록됨: 사용자가 별도 요청할 때만 ▶ READY로 전환하여 착수함` |
 | **A2** | **`⏳ WAITING`** | **사용자** | `Owner (Dashboard Confirmation)` | A1 체크리스트 기준 Supabase 대시보드 설정 확인·변경 및 결과 회신 | `⏳ A1 완료 후 진행` |
 
+### 🗂️ 이전 Run 기록 (완료): r36-game-detail-and-r47-followup
+
+- **Run ID**: `r36-game-detail-and-r47-followup` *(2026-11-09, `Phase 12.40` R36 게임별 일정·과금 통합 상세 뷰 + R47 `user-requests-card.tsx` `is_rerun` 폴백 및 R33 UI 회귀 테스트 보강)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `.worktrees/r36-game-detail-and-r47-followup` (브랜치: `collab/r36-game-detail-and-r47-followup`)
+- **리뷰 비교 범위**: Base `b5ca5d8b2ab538cc19af84238e89095fc0456c53` ↔ Target `4fdf99aeb93ce3580ae876fb8bb814d63b677f18` *(iteration-01 `clean`, 산출물 커밋 `e3a4acc`, **`main` 병합 `4ffd901` 완료**)*
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: 4fdf99aeb93ce3580ae876fb8bb814d63b677f18)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Game Detail View & R33 Follow-up)` | `Phase 12.40 (R36 & R47)`: `user-requests-card.tsx` `is_rerun` 폴백, R33 회귀 테스트 보강, `/dashboard/games` 일정·과금 통합 상세 뷰 및 단위 테스트 구현 | `✅ 4fdf99a: tsc/lint 통과, Vitest 52파일/453개 통과.` |
+| **2** | **`✅ DONE (iteration-01 clean, 산출물 e3a4acc, main 병합 4ffd901)`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `b5ca5d8` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ DONE: 정적 리뷰 clean(지적 0건). tsc/lint 및 Vitest 52파일/453개 통과, 스키마 검증 통과(e3a4acc), main 병합(4ffd901) 완료함.` |
 
 ### 🗂️ 이전 Run 기록 (완료): weekly-game-group-and-rerun-badge
 

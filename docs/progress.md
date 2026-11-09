@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## r36-game-detail-and-r47-followup 정적 리뷰·병합 마감 및 r38-onboarding-and-game-order Run 등록 (R36·R47·R38, 2026-11-09)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator, Step 2 마감 및 차기 Run 등록)임.
+- **`r36-game-detail-and-r47-followup` 정적 리뷰 및 병합 (`b5ca5d8` $\leftrightarrow$ `4fdf99a`)**:
+  - `R47-1`(`user-requests-card.tsx` `is_rerun` 컬럼 부재 `42703`/`PGRST204` 시 제외 재조회 폴백 및 `userId` 의존성 안정화), `R47-2`(관리자 일정 폼·수정 요청 모달 R33 복각 회귀 테스트 9건), `R36`(`/dashboard/games` 180일 일정 조회, 로그인 전용 `게임 과금 요약` 카드, `ON AIR` `D-n` 배지·진행률 바, `다음 예정 일정`, 버전별 과금 소계, `지난 일정 기록` 접기/펼치기 아코디언 및 단위 테스트 9건)을 모두 검증하여 `clean`(지적 0건) 판정함.
+  - `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src`(52파일, 453개 테스트 통과) 및 `run.json`·`review.json`·`test.json` 스키마 검증 완료 후 산출물 커밋(`e3a4acc`) 및 `main` 병합(`4ffd901`)을 완료함.
+- **차기 기능 Run `r38-onboarding-and-game-order` (`Phase 12.41`: `R38`) 등록**:
+  - `A1`(`R50`)은 사용자 지시에 따라 `📝 AGENDA` 상태로 유지하고, DB 마이그레이션 없이 즉시 배포 가능한 차기 중간 우선순위 기능 과제 **`R38`**(신규 가입 첫 진입 시 구독 게임 0개일 때 공용 게임 일괄 구독 온보딩 모달 자동 표시 + 내 게임 순서 변경 및 캘린더 아이콘·필터 정렬 연동)을 격리 Worktree `.worktrees/r38-onboarding-and-game-order`(Base `4ffd901`, manifest `12486d9`)로 생성하고 Step 1(**Claude Sonnet** `▶ READY`)에 배정함.
+
 ## r36-game-detail-and-r47-followup Run 등록 및 R50 안건 상태 전환 원칙 반영 (R36·R47·R50, 2026-11-09)
 
 - **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)임.
