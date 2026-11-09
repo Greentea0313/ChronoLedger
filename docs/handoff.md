@@ -61,7 +61,7 @@
 | **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Dashboard Summary, D-Day & Weekly List UI)` | `Phase 12.37 (R32 & R34)`: `.worktrees/dashboard-summary-dday-and-week-list`에서 대시보드 오늘/이번 주 요약 카드, 사이드바 일정·예정 지출 `D-n` 배지 및 진행률 바, 월간 캘린더 ↔ 주차별 리스트 뷰 토글 및 단위 테스트 구현 | `-` |
 | **2** | **`⏳ WAITING`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `-` |
 
-> **📢 운영 DB 수동 적용 안내 (`R45`)**: 직전 Run(`r13-4-breakthrough-guest-and-schedule-tree`, `main` 병합 `ce4bed2`)에서 추가된 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql`을 운영 Supabase SQL Editor에서 실행한 뒤 `sql/README.md` B표 확인 쿼리로 적용 여부를 확인해 주십시오(차기 Run `dashboard-summary-dday-and-week-list`는 DB 변경이 없으므로 병행 진행 가능함).
+> **✅ 운영 DB 마이그레이션 적용 완료 (`R45`, 2026-11-09)**: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 적용 및 확인이 완료됨.
 
 ### 🗂️ 이전 Run 기록 (완료): r13-4-breakthrough-guest-and-schedule-tree
 

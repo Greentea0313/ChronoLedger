@@ -656,7 +656,7 @@
 - [x] R42 (`Phase 12.35`). 게임별 일정 보기 모달 구조 개편(`/dashboard/games`): 상단에 현재 진행 중(`ON AIR`) 일정을 고정 노출하고, 하단에 버전(`VERSION`) 일정을 아코디언 헤더(진행 중 버전 기본 펼침)로 묶어 클릭 시 해당 버전 기간에 속하는 픽업(`PICKUP`)·콘텐츠(`CONTENTS`) 상세 일정이 하위 트리 목록으로 펼쳐지도록 개편함(버전 외 일정은 `기타 일정` 그룹 분리; `d5b75eb` 구현 + `29443b4` iteration-02 게스트·로그인 뷰 `ScheduleDialog` 일원화 및 `ScheduleTree` 보강, `main` 병합 `ce4bed2`)
 - [x] R43 (`Phase 13.4`). 캐릭터 로스터 UX 개편(`/dashboard/characters` & `/admin`): ① 캐릭터별 텍스트 메모(`memo`) UI 제거, ② 긴 가로형 카드를 아이콘 중심 컴팩트 타일 그리드로 개편, ③ 즐겨찾기(`is_favorite`) 체크 시 금색 테두리(`ring-2 ring-amber-400`) 표시 및 목록 최상단 노출, ④ 관리자가 게임별 최대 돌파 단계(`games.max_breakthrough`, `0~12`, 기본 `6`)를 지정하고 캐릭터 아이콘 클릭 시 보유·즐겨찾기·돌파 단계(`0..max_breakthrough`)·커스텀 아이콘을 설정하며 보유 캐릭터 아이콘 좌하단에 `n★` 배지로 표시함 (`ba49f13` DB/Types + `8ff4f42` UI, `main` 병합 `ce4bed2`)
 - [x] R44 (`Phase 12.36`). 대시보드·게임·소비 페이지 전반의 카드 여백·테두리·타이포그래피 밀도 개선으로 한 화면 정보 가독성 향상 (`d5b75eb`, `main` 병합 `ce4bed2`)
-- [ ] R45. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 완료, 사용자 수동)
+- [x] R45. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 완료, 사용자 수동) (`완료` - 2026-11-09 사용자 적용 확인)
 
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)
 
