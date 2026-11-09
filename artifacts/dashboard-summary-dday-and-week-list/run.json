@@ -7,9 +7,9 @@
     "Step 1 (R32 & R34 UI & Helpers): Add KST D-day, period progress percentage, and weekly grouping helpers in src/lib/calendar-utils.ts; render compact Today/This-Week Summary Card above the dashboard calendar (today starting schedules, today ending schedules, this-week planned expense total); display D-n badge and progress bar on schedule and PLANNED expense cards in HeroSidebar/MobileDrawer; add Monthly Calendar <-> Weekly List view toggle on /dashboard with current-week highlight and weekly planned/confirmed subtotals; add Vitest unit tests."
   ],
   "base_sha": "d56d211bb9d75ba9016e885dc646c201cdca0ed6",
-  "target_sha": "ab930c5baa8b2211e25aeae2ceb725c194a6a9dc",
+  "target_sha": "be57e7149b65b7e15e4da3f3181ad99cff24d996",
   "branch": "collab/dashboard-summary-dday-and-week-list",
   "worktree_path": ".worktrees/dashboard-summary-dday-and-week-list",
   "max_iterations": 3,
-  "status": "in_progress"
+  "status": "completed"
 }
