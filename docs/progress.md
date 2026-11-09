@@ -1,4 +1,17 @@
 # 프로젝트 진행 현황
+## r13-4-breakthrough-guest-and-schedule-tree 통합 리뷰·iteration-02 수정 및 `main` 병합 마감 (2026-11-09)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator, Step 4) + Gemini 3.8 Flash (`gemini-flash-maker`, iteration-02 UI 수정)임.
+- **Iteration 1 정적 리뷰 (`6295a0e` $\leftrightarrow$ `d5b75eb`)**:
+  - `src/app/dashboard/games/page.tsx`에서 `ScheduleDialog`(`ScheduleTree`)가 비로그인 게스트 뷰에만 연결되고 인증 사용자 뷰(716~801행)에는 기존 평면 일정 목록 다이얼로그가 중복 남아 있는 문제(`R134-REV-001`, Severity `P2`)를 식별함.
+  - `iteration-01/review.json`(`status: "findings"`) 및 `iteration-01/test.json`(`passed`, 48파일/394개)을 작성하고 `validate_collaboration_artifact.py` 스키마 검증을 통과함.
+- **Iteration 2 수정 및 재리뷰 (`6295a0e` $\leftrightarrow$ `29443b4`)**:
+  - `gemini-flash-maker` 서브에이전트가 `src/app/dashboard/games/page.tsx`의 게스트·인증 뷰 일정 다이얼로그를 `<ScheduleDialog>`로 일원화하고, `ScheduleTree`에 `[비공식]` 배지·슬래시(`/`) 다중 줄바꿈·단일 일자 `(단일)` 포맷·유형별 배지 색상·버전 아코디언 기간 표시를 보강하며 단위 테스트 2건을 추가함(커밋 `29443b4fc6f1be0ae4b4f65e32cfa073461f58f2`).
+  - 재리뷰 결과 `clean`(P1~P4 지적 0건) 판정함. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src`(48개 파일, 396개 테스트 통과) 검증 후 `run.json`(`target_sha: "29443b4..."`, `status: "completed"`), `iteration-02/review.json`, `iteration-02/test.json` 스키마 검증 및 아티팩트 커밋(`dd94e63`)을 완료함.
+- **`main` 병합 및 차기 Run 착수**:
+  - `collab/r13-4-breakthrough-guest-and-schedule-tree`를 `main`에 병합(`ce4bed21ce24faeacbddb9345ae63f034208deb2`) 완료함.
+  - 운영 DB에 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql`을 적용하는 수동 체크리스트(`R45`)를 `docs/to-do.md`에 등록하고, 차기 Run `dashboard-summary-dday-and-week-list`(`R32 + R34`, 담당: **Claude Sonnet** `▶ READY`) 워크트리 생성 및 Dispatch Queue 배정을 완료함.
+
 ## Phase 12.35~12.36 게스트 모드·일정 트리 Maker 완료 (2026-11-09)
 
 - **수행 주체**: GitHub Copilot (Maker - General)임.
