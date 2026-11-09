@@ -63,6 +63,17 @@ function resolveStorePlatform(
   return "GOOGLE_PLAY"
 }
 
+/** R35: values for a new planned expense started from a favourite schedule (category is always 게임). */
+export interface ExpensePrefill {
+  game_id: string
+  title: string
+  /** Becomes the payment/target date (the schedule's start date). */
+  target_date: string
+  /** Schedule period kept as start/end date of the new planned expense while the date is unchanged. */
+  start_date: string
+  end_date: string
+}
+
 interface ExpenseModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -70,6 +81,7 @@ interface ExpenseModalProps {
   plannedExpense?: PlannedExpenseInput | null
   editingExpense?: PlannedExpenseEditInput | null
   initialDate?: string
+  prefill?: ExpensePrefill | null
 }
 
 interface GameOption {
@@ -131,6 +143,7 @@ export function ExpenseModal({
   plannedExpense = null,
   editingExpense = null,
   initialDate,
+  prefill = null,
 }: ExpenseModalProps) {
   const isOnline = useOnlineStatus()
   const { user } = useAuth()
@@ -166,6 +179,7 @@ export function ExpenseModal({
   const prevPlannedExpenseIdRef = useRef<string | null>(null)
   const prevEditingExpenseIdRef = useRef<string | null>(null)
   const prevGameIdRef = useRef<string>("")
+  const [prefillPeriod, setPrefillPeriod] = useState<ExpensePrefill | null>(null)
   const titleRef = useRef(title)
   titleRef.current = title
 
@@ -248,12 +262,24 @@ export function ExpenseModal({
         prevGameIdRef.current = plannedExpense?.game_id ?? ""
         setSchedules([])
         setIsVersionPass(false)
+        setPrefillPeriod(null)
+
+        // R35: start from a favourite schedule. Setting the date to the schedule start lets the existing
+        // matchingVersion lookup auto-select the VERSION schedule_id; other types only carry the period.
+        if (prefill && !plannedExpense) {
+          setPaymentDate(prefill.target_date)
+          setTitle(prefill.title)
+          setCategory("게임")
+          setGameId(prefill.game_id)
+          prevGameIdRef.current = prefill.game_id
+          setPrefillPeriod(prefill)
+        }
       }
     }
     prevOpenRef.current = open
     prevPlannedExpenseIdRef.current = plannedId
     prevEditingExpenseIdRef.current = editingId
-  }, [open, plannedExpense, editingExpense, initialDate])
+  }, [open, plannedExpense, editingExpense, initialDate, prefill])
 
   const userId = user?.id
 
@@ -538,6 +564,10 @@ export function ExpenseModal({
         effectiveStartDate = matchingVersion.start_date
         effectiveEndDate = matchingVersion.end_date
         effectiveTargetDate = matchingVersion.end_date
+      } else if (prefillPeriod && isGameCategory && input.paymentDate === prefillPeriod.target_date) {
+        // Keep the favourite schedule's period while the user has not moved the date.
+        effectiveStartDate = prefillPeriod.start_date
+        effectiveEndDate = prefillPeriod.end_date
       }
 
       if (actionType === "EDIT_PLAN") {

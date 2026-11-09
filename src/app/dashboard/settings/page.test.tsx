@@ -114,6 +114,36 @@ describe("SettingsPage", () => {
     })
   })
 
+  it("clears the user's local game order and onboarding keys once the deletion request is accepted", async () => {
+    window.localStorage.setItem("chronoledger:game-order:user-123", '["g1"]')
+    window.localStorage.setItem("chronoledger:game-onboarding-dismissed:user-123", "1")
+    window.localStorage.setItem("chronoledger:game-order:someone-else", '["g2"]')
+    requestAccountDeletion.mockResolvedValueOnce("test-status-token")
+
+    render(<SettingsPage />)
+    await screen.findByText("총 자산 (원)")
+    fireEvent.change(screen.getByLabelText(/확인을 위해 로그인 이메일/), { target: { value: "test@example.com" } })
+    fireEvent.click(screen.getByRole("button", { name: "계정 삭제 요청" }))
+
+    await waitFor(() => expect(mockBeginAccountDeletionTracking).toHaveBeenCalledWith("test-status-token"))
+    expect(window.localStorage.getItem("chronoledger:game-order:user-123")).toBeNull()
+    expect(window.localStorage.getItem("chronoledger:game-onboarding-dismissed:user-123")).toBeNull()
+    expect(window.localStorage.getItem("chronoledger:game-order:someone-else")).toBe('["g2"]')
+  })
+
+  it("keeps the local game order when the deletion request fails", async () => {
+    window.localStorage.setItem("chronoledger:game-order:user-123", '["g1"]')
+    requestAccountDeletion.mockRejectedValueOnce(new Error("network"))
+
+    render(<SettingsPage />)
+    await screen.findByText("총 자산 (원)")
+    fireEvent.change(screen.getByLabelText(/확인을 위해 로그인 이메일/), { target: { value: "test@example.com" } })
+    fireEvent.click(screen.getByRole("button", { name: "계정 삭제 요청" }))
+
+    await screen.findByText(/계정 삭제 요청을 접수하지 못했습니다/)
+    expect(window.localStorage.getItem("chronoledger:game-order:user-123")).toBe('["g1"]')
+  })
+
   it("persists the unofficial schedule display toggle", async () => {
     render(<SettingsPage />)
     const toggle = await screen.findByRole("switch", { name: "비공식 일정(테스트 서버·유출 등) 표시" })

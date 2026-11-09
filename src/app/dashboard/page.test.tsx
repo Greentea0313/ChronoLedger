@@ -648,7 +648,7 @@ describe("DashboardPage", () => {
         }
         const query = createThenableBuilder(table === "games" ? [{ id: "game-1", name: "원신", default_icon_url: null }] : [])
         if (table === "games") Object.assign(query, { order: vi.fn().mockResolvedValue({ data: [{ id: "game-1", name: "원신", default_icon_url: null }], error: null }) })
-        if (table === "user_games") Object.assign(query, { insert })
+        if (table === "user_games") Object.assign(query, { upsert: insert })
         return query
       })
       return insert
@@ -679,7 +679,7 @@ describe("DashboardPage", () => {
       const loadsBefore = from.mock.calls.filter(([table]) => table === "user_games").length
       fireEvent.click(start)
 
-      await waitFor(() => expect(insert).toHaveBeenCalledWith([{ user_id: "user-1", game_id: "game-1" }]))
+      await waitFor(() => expect(insert).toHaveBeenCalledWith([{ user_id: "user-1", game_id: "game-1" }], { onConflict: "user_id,game_id", ignoreDuplicates: true }))
       await waitFor(() => expect(screen.queryByText("구독할 게임을 선택하세요")).toBeNull())
       expect(window.localStorage.getItem("chronoledger:game-order:user-1")).toBe('["game-1"]')
       await waitFor(() => expect(from.mock.calls.filter(([table]) => table === "user_games").length).toBeGreaterThan(loadsBefore))
@@ -816,5 +816,202 @@ describe("DashboardPage", () => {
       Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: originalInnerWidth })
       Object.defineProperty(window, "matchMedia", { writable: true, configurable: true, value: originalMatchMedia })
     }
+  })
+})
+
+describe("DashboardPage favourite schedules (R35)", () => {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+
+  function setup(options: {
+    signedIn?: boolean
+    favoriteRows?: { schedule_id: string }[]
+    favoriteError?: { code: string; message: string } | null
+    insertResult?: { error: { code: string } | null }
+    deleteResult?: { error: { code: string } | null }
+  } = {}) {
+    const { signedIn = true, favoriteRows = [{ schedule_id: "s1" }], favoriteError = null } = options
+    useAuth.mockReturnValue({ user: signedIn ? { id: "user-1" } : null, isLoading: false })
+    ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+
+    const finance = createQueryBuilder()
+    finance.maybeSingle.mockResolvedValue({ data: { total_asset: 0, default_budget: 0 }, error: null })
+    const budget = createQueryBuilder()
+    budget.maybeSingle.mockResolvedValue({ data: null, error: null })
+    const wallets = createQueryBuilder()
+    wallets.eq.mockResolvedValue({ data: [], error: null })
+    const schedules = createQueryBuilder() as ReturnType<typeof createQueryBuilder> & { in: ReturnType<typeof vi.fn>; order: ReturnType<typeof vi.fn> }
+    schedules.gte.mockResolvedValue({
+      data: [
+        { id: "s1", title: "관심 픽업", schedule_type: "PICKUP", start_date: today, end_date: today, game_id: "game-1", is_official: true },
+        { id: "s2", title: "일반 콘텐츠", schedule_type: "CONTENTS", start_date: today, end_date: today, game_id: "game-1", is_official: true },
+      ],
+      error: null,
+    })
+    schedules.in = vi.fn().mockReturnValue(schedules)
+    schedules.order = vi.fn().mockResolvedValue({ data: [], error: null })
+    const memos = createQueryBuilder()
+    memos.lt.mockResolvedValue({ data: [], error: null })
+    const expenses = createQueryBuilder()
+    expenses.lt.mockResolvedValue({ data: [], error: null })
+    const userGames = createQueryBuilder()
+    userGames.eq.mockResolvedValue({ data: [{ game_id: "game-1" }], error: null })
+    const games = createQueryBuilder() as ReturnType<typeof createQueryBuilder> & { order: ReturnType<typeof vi.fn> }
+    games.order = vi.fn().mockResolvedValue({ data: [{ id: "game-1", name: "원신" }], error: null })
+
+    const insert = vi.fn().mockResolvedValue(options.insertResult ?? { error: null })
+    const deleteEq = vi.fn().mockResolvedValue(options.deleteResult ?? { error: null })
+    const del = vi.fn().mockReturnValue({ eq: deleteEq })
+    const favorites = {
+      select: vi.fn().mockResolvedValue(favoriteError ? { data: null, error: favoriteError } : { data: favoriteRows, error: null }),
+      insert,
+      delete: del,
+    }
+
+    from.mockImplementation((table: string) => {
+      switch (table) {
+        case "user_finances": return finance
+        case "monthly_budgets": return budget
+        case "store_wallets": return wallets
+        case "game_schedules": return schedules
+        case "personal_memos": return memos
+        case "expenses": return expenses
+        case "user_games": return userGames
+        case "games": return games
+        case "user_favorite_schedules": return favorites
+        default: return createQueryBuilder()
+      }
+    })
+    return { insert, deleteEq, favorites }
+  }
+
+  async function renderWeekly() {
+    render(<DashboardPage />)
+    expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "주차별 리스트" }))
+  }
+
+  it("loads the user's favourites and marks them pressed in the list and sidebar", async () => {
+    const { favorites } = setup()
+    await renderWeekly()
+
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "관심 픽업 관심 일정 해제" }).length).toBeGreaterThan(0))
+    expect(favorites.select).toHaveBeenCalledWith("schedule_id")
+    screen.getAllByRole("button", { name: "관심 픽업 관심 일정 해제" }).forEach((button) => {
+      expect(button.getAttribute("aria-pressed")).toBe("true")
+    })
+    screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" }).forEach((button) => {
+      expect(button.getAttribute("aria-pressed")).toBe("false")
+    })
+    expect(screen.getAllByRole("button", { name: "관심 픽업 예정 지출 추가" }).length).toBeGreaterThan(0)
+    expect(screen.queryByRole("button", { name: "일반 콘텐츠 예정 지출 추가" })).toBeNull()
+  })
+
+  it("filters to favourite schedules with the 관심 일정만 toggle", async () => {
+    setup()
+    await renderWeekly()
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "관심 픽업 관심 일정 해제" }).length).toBeGreaterThan(0))
+    expect(screen.getAllByText("일반 콘텐츠").length).toBeGreaterThan(0)
+
+    const filter = screen.getByRole("button", { name: "관심 일정만" })
+    expect(filter.getAttribute("aria-pressed")).toBe("false")
+    fireEvent.click(filter)
+
+    expect(filter.getAttribute("aria-pressed")).toBe("true")
+    expect(screen.queryAllByText("일반 콘텐츠")).toHaveLength(0)
+    expect(screen.getAllByText("관심 픽업").length).toBeGreaterThan(0)
+  })
+
+  it("inserts a favourite on toggle and deletes it on a second toggle", async () => {
+    const { insert, deleteEq } = setup()
+    await renderWeekly()
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" }).length).toBeGreaterThan(0))
+
+    fireEvent.click(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" })[0])
+    await waitFor(() => expect(insert).toHaveBeenCalledWith({ user_id: "user-1", schedule_id: "s2" }))
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 해제" }).length).toBeGreaterThan(0))
+
+    fireEvent.click(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 해제" })[0])
+    await waitFor(() => expect(deleteEq).toHaveBeenCalledWith("schedule_id", "s2"))
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" }).length).toBeGreaterThan(0))
+  })
+
+  it("rolls the toggle back and shows an error when saving fails", async () => {
+    const { insert } = setup({ insertResult: { error: { code: "42501" } } })
+    await renderWeekly()
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" }).length).toBeGreaterThan(0))
+
+    fireEvent.click(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" })[0])
+    await waitFor(() => expect(insert).toHaveBeenCalled())
+    expect((await screen.findByRole("alert")).textContent).toContain("관심 일정을 저장하지 못했습니다.")
+    expect(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" }).length).toBeGreaterThan(0)
+  })
+
+  it("treats a duplicate insert (23505) as already favourited", async () => {
+    setup({ insertResult: { error: { code: "23505" } } })
+    await renderWeekly()
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" }).length).toBeGreaterThan(0))
+
+    fireEvent.click(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" })[0])
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 해제" }).length).toBeGreaterThan(0))
+    expect(screen.queryByRole("alert")).toBeNull()
+  })
+
+  it("blocks toggling while offline", async () => {
+    const { insert } = setup()
+    await renderWeekly()
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" }).length).toBeGreaterThan(0))
+
+    Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+    try {
+      fireEvent.click(screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" })[0])
+      expect(await screen.findByRole("alert")).toBeTruthy()
+      expect(insert).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+    }
+  })
+
+  it("falls back to an empty favourite set without blocking when the table is not migrated", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    setup({ favoriteError: { code: "42P01", message: "relation does not exist" } })
+    await renderWeekly()
+
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "관심 픽업 관심 일정 등록" }).length).toBeGreaterThan(0))
+    expect(screen.queryByRole("alert")).toBeNull()
+    expect(consoleSpy).not.toHaveBeenCalled()
+    consoleSpy.mockRestore()
+  })
+
+  it("hides the toggles and the filter for guests", async () => {
+    setup({ signedIn: false })
+    const guestSchedules = createThenableBuilder([
+      { id: "s1", title: "관심 픽업", schedule_type: "PICKUP", start_date: today, end_date: today, game_id: "game-1", is_official: true },
+    ])
+    const guestGames = createThenableBuilder([{ id: "game-1", name: "원신", default_icon_url: null }])
+    from.mockImplementation((table: string) => {
+      if (table === "game_schedules") return guestSchedules
+      if (table === "games") return guestGames
+      return createThenableBuilder([])
+    })
+    await renderWeekly()
+
+    expect(await screen.findAllByText("관심 픽업")).not.toHaveLength(0)
+    expect(screen.queryByRole("button", { name: /관심 일정/ })).toBeNull()
+    expect(screen.queryByRole("button", { name: /예정 지출 추가/ })).toBeNull()
+  })
+
+  it("opens the expense modal prefilled from a favourite schedule", async () => {
+    setup()
+    await renderWeekly()
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "관심 픽업 예정 지출 추가" }).length).toBeGreaterThan(0))
+
+    fireEvent.click(screen.getAllByRole("button", { name: "관심 픽업 예정 지출 추가" })[0])
+
+    const dialog = await screen.findByRole("dialog")
+    await waitFor(() => expect((dialog.querySelector("#expense-title") as HTMLInputElement).value).toBe("관심 픽업"))
+    expect((dialog.querySelector("#expense-category") as HTMLSelectElement).value).toBe("게임")
+    expect((dialog.querySelector("#expense-date") as HTMLInputElement).value).toBe(today)
+    await waitFor(() => expect((dialog.querySelector("#expense-game") as HTMLSelectElement).value).toBe("game-1"))
   })
 })

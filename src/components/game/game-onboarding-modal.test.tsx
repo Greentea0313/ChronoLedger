@@ -17,7 +17,7 @@ const catalog = [
 describe("GameOnboardingModal", () => {
   let container: HTMLDivElement
   let root: Root
-  let insert: ReturnType<typeof vi.fn>
+  let upsert: ReturnType<typeof vi.fn>
   const onClose = vi.fn()
   const onSubscribed = vi.fn()
 
@@ -48,7 +48,7 @@ describe("GameOnboardingModal", () => {
     container = document.createElement("div")
     document.body.append(container)
     root = createRoot(container)
-    insert = vi.fn().mockResolvedValue({ error: null })
+    upsert = vi.fn().mockResolvedValue({ error: null })
     from.mockImplementation((table: string) => {
       if (table === "games") {
         const query = { select: vi.fn(), order: vi.fn() }
@@ -56,7 +56,7 @@ describe("GameOnboardingModal", () => {
         query.order.mockResolvedValue({ data: catalog, error: null })
         return query
       }
-      return { insert }
+      return { upsert }
     })
   })
 
@@ -109,18 +109,21 @@ describe("GameOnboardingModal", () => {
     await click(startButton())
 
     expect(from).toHaveBeenCalledWith("user_games")
-    expect(insert).toHaveBeenCalledWith([
-      { user_id: "user-1", game_id: "g1" },
-      { user_id: "user-1", game_id: "g3" },
-    ])
+    expect(upsert).toHaveBeenCalledWith(
+      [
+        { user_id: "user-1", game_id: "g1" },
+        { user_id: "user-1", game_id: "g3" },
+      ],
+      { onConflict: "user_id,game_id", ignoreDuplicates: true },
+    )
     expect(loadGameOrder("user-1")).toEqual(["g1", "g3"])
     expect(isGameOnboardingDismissed("user-1")).toBe(true)
     expect(onSubscribed).toHaveBeenCalledWith(["g1", "g3"])
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it("keeps the modal open with an error and stores nothing when the insert fails", async () => {
-    insert.mockResolvedValue({ error: { message: "rls" } })
+  it("keeps the modal open with an error and stores nothing when the upsert fails", async () => {
+    upsert.mockResolvedValue({ error: { message: "rls" } })
     await renderModal()
     await click(startButton())
 
@@ -141,7 +144,7 @@ describe("GameOnboardingModal", () => {
     await act(async () => {
       Simulate.click(startButton())
     })
-    expect(insert).not.toHaveBeenCalled()
+    expect(upsert).not.toHaveBeenCalled()
   })
 
   it("dismisses permanently and closes on 나중에 직접 선택", async () => {
@@ -150,7 +153,7 @@ describe("GameOnboardingModal", () => {
 
     expect(isGameOnboardingDismissed("user-1")).toBe(true)
     expect(onClose).toHaveBeenCalledTimes(1)
-    expect(insert).not.toHaveBeenCalled()
+    expect(upsert).not.toHaveBeenCalled()
   })
 
   it("shows an error when the catalog cannot be loaded", async () => {

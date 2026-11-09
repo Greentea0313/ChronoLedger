@@ -62,20 +62,24 @@ function createQuery(table: string) {
     select: ReturnType<typeof vi.fn>
     eq: ReturnType<typeof vi.fn>
     gte: ReturnType<typeof vi.fn>
+    in: ReturnType<typeof vi.fn>
     order: ReturnType<typeof vi.fn>
     delete: ReturnType<typeof vi.fn>
     insert: ReturnType<typeof vi.fn>
+    upsert: ReturnType<typeof vi.fn>
     then: ReturnType<typeof vi.fn>
   }
   const query: Partial<MockQuery> = {}
   const select = vi.fn().mockReturnValue(query)
   const eq = vi.fn().mockReturnValue(query)
   const gte = vi.fn().mockReturnValue(query)
+  const inFilter = vi.fn().mockReturnValue(query)
   const order = vi.fn().mockReturnValue(query)
   const del = vi.fn().mockReturnValue(query)
   const insert = vi.fn()
+  const upsert = vi.fn()
   const then = vi.fn((resolve: (val: unknown) => unknown) => Promise.resolve(getResult()).then(resolve))
-  Object.assign(query, { select, eq, gte, order, delete: del, insert, then })
+  Object.assign(query, { select, eq, gte, in: inFilter, order, delete: del, insert, upsert, then })
   return query as MockQuery
 }
 
@@ -654,7 +658,7 @@ describe("GamesPage", () => {
           const q = createQuery(table)
           if (table === "user_games") {
             q.then = vi.fn((resolve: (val: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve))
-            q.insert = insert
+            q.upsert = insert
           }
           if (table === "games") {
             q.order = vi.fn().mockResolvedValue({ data: [{ id: "game-1", name: "원신", default_icon_url: null }], error: null })
@@ -717,7 +721,7 @@ describe("GamesPage", () => {
         })
         await flushAll()
 
-        expect(insert).toHaveBeenCalledWith([{ user_id: "test-user-id", game_id: "game-1" }])
+        expect(insert).toHaveBeenCalledWith([{ user_id: "test-user-id", game_id: "game-1" }], { onConflict: "user_id,game_id", ignoreDuplicates: true })
         expect(window.localStorage.getItem("chronoledger:game-order:test-user-id")).toBe('["game-1"]')
         expect(document.body.textContent).not.toContain("구독할 게임을 선택하세요")
         expect(from.mock.calls.filter(([table]) => table === "user_games").length).toBeGreaterThan(userGamesLoadsBefore)
@@ -756,7 +760,7 @@ describe("GamesPage", () => {
       { id: "e4", title: "취소됨", final_amount: 99999, status: "CANCELLED", target_date: "2026-11-04", end_date: null },
     ]
 
-    async function openSchedules(options: { expenses?: unknown; schedules?: unknown[]; characters?: unknown[] | Error } = {}) {
+    async function openSchedules(options: { expenses?: unknown; schedules?: unknown[]; characters?: unknown[] | Error; favorites?: unknown } = {}) {
       const queries: Record<string, ReturnType<typeof createQuery>> = {}
       const characterLookup = { select: vi.fn(), in: vi.fn() }
       characterLookup.select.mockReturnValue(characterLookup)
@@ -767,6 +771,7 @@ describe("GamesPage", () => {
       pickupLookup = characterLookup
       from.mockImplementation((table: string) => {
         if (table === "game_characters") return characterLookup
+        if (table === "user_favorite_schedules" && options.favorites) return options.favorites
         const q = createQuery(table)
         queries[table] = q
         if (table === "game_schedules") {
@@ -903,6 +908,130 @@ describe("GamesPage", () => {
       const labels = byTestId("schedule-type-badge").map((el) => el.textContent)
       expect(labels).toContain("특별방송")
       expect(labels).toContain("픽업복각")
+    })
+
+    describe("favourite schedules (R35)", () => {
+      function createFavorites(rows: { schedule_id: string }[], overrides: { insertResult?: unknown } = {}) {
+        const insert = vi.fn().mockResolvedValue(overrides.insertResult ?? { error: null })
+        const deleteEq = vi.fn().mockResolvedValue({ error: null })
+        return {
+          select: vi.fn().mockResolvedValue({ data: rows, error: null }),
+          insert,
+          delete: vi.fn().mockReturnValue({ eq: deleteEq }),
+          deleteEq,
+        }
+      }
+      const ariaButton = (label: string) =>
+        document.body.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement | null
+      const filterButton = () =>
+        Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "관심 일정만") as HTMLButtonElement | undefined
+      const flushAll = async () => {
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 0))
+        })
+      }
+
+      it("marks favourites with aria-pressed and offers + 예정 지출 추가 only for them", async () => {
+        const favorites = createFavorites([{ schedule_id: "air-1" }])
+        await openSchedules({ expenses: [], favorites })
+        await flushAll()
+
+        expect(favorites.select).toHaveBeenCalledWith("schedule_id")
+        expect(ariaButton("진행 픽업 관심 일정 해제")?.getAttribute("aria-pressed")).toBe("true")
+        expect(ariaButton("예정 A 관심 일정 등록")?.getAttribute("aria-pressed")).toBe("false")
+        expect(ariaButton("진행 픽업 예정 지출 추가")).not.toBeNull()
+        expect(ariaButton("예정 A 예정 지출 추가")).toBeNull()
+      })
+
+      it("filters the schedule tree with 관심 일정만 and explains an empty result", async () => {
+        const favorites = createFavorites([{ schedule_id: "air-1" }])
+        await openSchedules({ expenses: [], favorites })
+        await flushAll()
+        expect(document.body.textContent).toContain("예정 A")
+
+        await act(async () => {
+          Simulate.click(filterButton()!)
+        })
+        expect(filterButton()!.getAttribute("aria-pressed")).toBe("true")
+        expect(document.body.textContent).toContain("진행 픽업")
+        expect(document.body.textContent).not.toContain("예정 A")
+      })
+
+      it("shows the empty-favourites message when nothing is favourited", async () => {
+        await openSchedules({ expenses: [], favorites: createFavorites([]) })
+        await flushAll()
+        await act(async () => {
+          Simulate.click(filterButton()!)
+        })
+
+        expect(document.body.textContent).toContain("관심 일정으로 등록한 일정이 없습니다.")
+      })
+
+      it("inserts on toggle, deletes on a second toggle and rolls back with an error when saving fails", async () => {
+        const favorites = createFavorites([])
+        await openSchedules({ expenses: [], favorites })
+        await flushAll()
+
+        await act(async () => {
+          Simulate.click(ariaButton("예정 A 관심 일정 등록")!)
+        })
+        await flushAll()
+        expect(favorites.insert).toHaveBeenCalledWith({ user_id: "test-user-id", schedule_id: "next-a" })
+        expect(ariaButton("예정 A 관심 일정 해제")?.getAttribute("aria-pressed")).toBe("true")
+
+        await act(async () => {
+          Simulate.click(ariaButton("예정 A 관심 일정 해제")!)
+        })
+        await flushAll()
+        expect(favorites.deleteEq).toHaveBeenCalledWith("schedule_id", "next-a")
+        expect(ariaButton("예정 A 관심 일정 등록")).not.toBeNull()
+
+        favorites.insert.mockResolvedValue({ error: { code: "42501" } })
+        await act(async () => {
+          Simulate.click(ariaButton("예정 B 관심 일정 등록")!)
+        })
+        await flushAll()
+        expect(document.body.textContent).toContain("관심 일정을 저장하지 못했습니다.")
+        expect(ariaButton("예정 B 관심 일정 등록")).not.toBeNull()
+      })
+
+      it("falls back to no favourites when the table is not migrated", async () => {
+        const favorites = createFavorites([])
+        favorites.select.mockResolvedValue({ data: null, error: { code: "PGRST205", message: "missing" } })
+        await openSchedules({ expenses: [], favorites })
+        await flushAll()
+
+        expect(ariaButton("진행 픽업 관심 일정 등록")).not.toBeNull()
+        expect(document.body.textContent).not.toContain("관심 일정을 저장하지 못했습니다.")
+      })
+
+      it("closes the schedule dialog and opens the expense modal prefilled from the favourite schedule", async () => {
+        const favorites = createFavorites([{ schedule_id: "air-1" }])
+        await openSchedules({ expenses: [], favorites })
+        await flushAll()
+
+        await act(async () => {
+          Simulate.click(ariaButton("진행 픽업 예정 지출 추가")!)
+        })
+        await flushAll()
+
+        expect(document.body.textContent).not.toContain("원신 일정")
+        const title = document.body.querySelector("#expense-title") as HTMLInputElement
+        expect(title.value).toBe("진행 픽업")
+        expect((document.body.querySelector("#expense-category") as HTMLSelectElement).value).toBe("게임")
+        expect((document.body.querySelector("#expense-date") as HTMLInputElement).value).toBe("2026-11-05")
+      })
+
+      it("hides the toggles, the expense action and the filter for guests", async () => {
+        useAuth.mockReturnValue({ user: null, role: null })
+        await openSchedules({ expenses: [], favorites: createFavorites([{ schedule_id: "air-1" }]) })
+        await flushAll()
+
+        expect(document.body.textContent).toContain("진행 픽업")
+        expect(document.body.querySelector('button[aria-label*="관심 일정"]')).toBeNull()
+        expect(document.body.querySelector('button[aria-label*="예정 지출 추가"]')).toBeNull()
+        expect(filterButton()).toBeUndefined()
+      })
     })
 
     describe("pickup avatars (R52)", () => {

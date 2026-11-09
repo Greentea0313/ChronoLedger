@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
+  clearUserGameOrderStorage,
   dismissGameOnboarding,
   isGameOnboardingDismissed,
   loadGameOrder,
@@ -53,6 +54,30 @@ describe("game order storage", () => {
     expect(() => dismissGameOnboarding("u1")).not.toThrow()
     expect(loadGameOrder("u1")).toEqual([])
     expect(isGameOnboardingDismissed("u1")).toBe(false)
+  })
+
+  it("clears only the given user's order and onboarding keys", () => {
+    saveGameOrder("u1", ["a"])
+    dismissGameOnboarding("u1")
+    saveGameOrder("u2", ["x"])
+    dismissGameOnboarding("u2")
+    window.localStorage.setItem("unrelated", "keep")
+
+    clearUserGameOrderStorage("u1")
+
+    expect(loadGameOrder("u1")).toEqual([])
+    expect(isGameOnboardingDismissed("u1")).toBe(false)
+    expect(loadGameOrder("u2")).toEqual(["x"])
+    expect(isGameOnboardingDismissed("u2")).toBe(true)
+    expect(window.localStorage.getItem("unrelated")).toBe("keep")
+    expect(() => clearUserGameOrderStorage(null)).not.toThrow()
+  })
+
+  it("does not throw when clearing fails", () => {
+    vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
+      throw new Error("blocked")
+    })
+    expect(() => clearUserGameOrderStorage("u1")).not.toThrow()
   })
 
   it("tracks onboarding dismissal per user", () => {

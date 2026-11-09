@@ -424,3 +424,45 @@ describe("HeroSidebarContent", () => {
     expect(screen.queryByText("[위험: 예산 초과]")).toBeNull()
   })
 })
+
+describe("HeroSidebarContent favourite schedules (R35)", () => {
+  const base = { totalAsset: 0, budgetAmount: 0, expectedExpense: 0, wallets: [], memos: [], expenses: [] }
+  const schedules: HeroScheduleItem[] = [
+    { id: "a", title: "카프카 픽업", schedule_type: "PICKUP", start_date: "2026-11-15", end_date: "2026-11-20", gameId: "g", gameName: "게임" },
+    { id: "b", title: "블랙 스완 픽업", schedule_type: "PICKUP", start_date: "2026-11-15", end_date: "2026-11-20", gameId: "g", gameName: "게임" },
+    { id: "c", title: "단독 방송", schedule_type: "BROADCAST", start_date: "2026-11-15", end_date: "2026-11-15", gameId: "h", gameName: "다른 게임" },
+  ]
+
+  it("hides the controls for guests", () => {
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-15" todayDate="2026-11-15" schedules={schedules} />)
+    expect(screen.queryByRole("button", { name: /관심 일정/ })).toBeNull()
+  })
+
+  it("toggles favourites on grouped and single cards and offers + 예정 지출 추가 only for favourites", () => {
+    const onToggleFavorite = vi.fn()
+    const onAddPlannedExpense = vi.fn()
+    render(
+      <HeroSidebarContent
+        {...base}
+        selectedDateLabel="2026-11-15"
+        todayDate="2026-11-15"
+        schedules={schedules}
+        favoriteScheduleIds={new Set(["b", "c"])}
+        onToggleFavorite={onToggleFavorite}
+        onAddPlannedExpense={onAddPlannedExpense}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: "카프카 픽업 관심 일정 등록" }).getAttribute("aria-pressed")).toBe("false")
+    expect(screen.getByRole("button", { name: "블랙 스완 픽업 관심 일정 해제" }).getAttribute("aria-pressed")).toBe("true")
+    expect(screen.getAllByRole("button", { name: /예정 지출 추가$/ }).map((b) => b.getAttribute("aria-label")).sort()).toEqual([
+      "단독 방송 예정 지출 추가",
+      "블랙 스완 픽업 예정 지출 추가",
+    ])
+
+    fireEvent.click(screen.getByRole("button", { name: "카프카 픽업 관심 일정 등록" }))
+    expect(onToggleFavorite).toHaveBeenCalledWith("a")
+    fireEvent.click(screen.getByRole("button", { name: "단독 방송 예정 지출 추가" }))
+    expect(onAddPlannedExpense).toHaveBeenCalledWith("c")
+  })
+})

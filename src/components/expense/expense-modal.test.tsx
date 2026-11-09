@@ -579,6 +579,90 @@ describe("ExpenseModal", () => {
     }))
   })
 
+  describe("favourite schedule prefill (R35)", () => {
+    it("prefills game/title/date from a VERSION schedule and links its schedule_id", async () => {
+      const onCompleted = vi.fn()
+      const today = getKstToday()
+      render(
+        <ExpenseModal
+          open
+          onOpenChange={vi.fn()}
+          onCompleted={onCompleted}
+          prefill={{ game_id: "g1", title: "버전 1.0", target_date: today, start_date: today, end_date: today }}
+        />,
+      )
+
+      await screen.findByRole("option", { name: "버전 1.0" })
+      expect((screen.getByLabelText("카테고리") as HTMLSelectElement).value).toBe("게임")
+      expect((screen.getByLabelText("게임") as HTMLSelectElement).value).toBe("g1")
+      expect((screen.getByLabelText("항목명") as HTMLInputElement).value).toBe("버전 1.0")
+      expect((screen.getByLabelText("결제일 / 예정일") as HTMLInputElement).value).toBe(today)
+
+      fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "11000" } })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+        game_id: "g1",
+        category: "게임",
+        title: "버전 1.0",
+        schedule_id: "s1",
+        pickup_schedule_id: null,
+        status: "PLANNED",
+      }))
+    })
+
+    it("keeps the schedule period for non-VERSION schedules while the date is unchanged, without linking a schedule", async () => {
+      const onCompleted = vi.fn()
+      render(
+        <ExpenseModal
+          open
+          onOpenChange={vi.fn()}
+          onCompleted={onCompleted}
+          prefill={{ game_id: "g1", title: "신규 픽업", target_date: "2030-01-01", start_date: "2030-01-01", end_date: "2030-01-10" }}
+        />,
+      )
+
+      await screen.findByRole("option", { name: "Sample RPG" })
+      await waitFor(() => expect((screen.getByLabelText("항목명") as HTMLInputElement).value).toBe("신규 픽업"))
+      fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "55000" } })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+        schedule_id: null,
+        pickup_schedule_id: null,
+        target_date: "2030-01-01",
+        start_date: "2030-01-01",
+        end_date: "2030-01-10",
+      }))
+    })
+
+    it("drops the prefilled period once the user changes the date", async () => {
+      const onCompleted = vi.fn()
+      render(
+        <ExpenseModal
+          open
+          onOpenChange={vi.fn()}
+          onCompleted={onCompleted}
+          prefill={{ game_id: "g1", title: "신규 픽업", target_date: "2030-01-01", start_date: "2030-01-01", end_date: "2030-01-10" }}
+        />,
+      )
+
+      await screen.findByRole("option", { name: "Sample RPG" })
+      fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "55000" } })
+      fireEvent.change(screen.getByLabelText("결제일 / 예정일"), { target: { value: "2030-01-05" } })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+        target_date: "2030-01-05",
+        start_date: "2030-01-05",
+        end_date: "2030-01-05",
+      }))
+    })
+  })
+
   it("updates target_date when edited in planned expense edit mode", async () => {
     setup()
     const onCompleted = vi.fn()

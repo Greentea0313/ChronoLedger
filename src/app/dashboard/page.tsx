@@ -20,13 +20,13 @@ import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, gro
 import { WeeklyScheduleList, type WeeklyExpenseEntry, type WeeklyScheduleEntry } from "@/components/calendar/weekly-schedule-list"
 import { GameOnboardingModal } from "@/components/game/game-onboarding-modal"
 import { isGameOnboardingDismissed, loadGameOrder, sortByGameOrder } from "@/lib/game-order-storage"
-import { ExpenseModal } from "@/components/expense/expense-modal"
+import { ExpenseModal, type ExpensePrefill } from "@/components/expense/expense-modal"
 import { ExpenseDetailModal } from "@/components/expense/expense-detail-modal"
 import { OverduePlannedModal, type OverduePlannedExpense } from "@/components/expense/overdue-planned-modal"
 import { calculateConfirmedExpense, calculateExpectedExpense, findOverduePlannedExpenses } from "@/lib/budget-calculations"
 import { getKstToday } from "@/lib/dashboard-date"
 import { useOnlineStatus } from "@/lib/use-online-status"
-import { isOffline } from "@/lib/offline-guard"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
 import { DashboardSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
@@ -88,6 +88,12 @@ interface AllGameRow {
   default_icon_url: string | null
 }
 
+/** `user_favorite_schedules` not migrated yet (R35): fall back to an empty favourite set instead of failing the page. */
+function isMissingFavoriteTable(error: { code?: string; message?: string } | null | undefined): boolean {
+  const code = error?.code ?? ""
+  return code === "42P01" || code === "PGRST205"
+}
+
 function getCurrentWeekRange(todayDate: string): { weekStart: string; weekEnd: string; weekEndExclusive: string } {
   const today = parseLocalDate(todayDate)
   const week = groupDatesByWeek(today.getFullYear(), today.getMonth() + 1, todayDate).find((w) => w.isCurrentWeek)
@@ -121,6 +127,10 @@ export default function DashboardPage() {
   const [selectedGameIds, setSelectedGameIds] = useState<string[] | null>(null)
 
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
+  // R35: favourite schedules (own rows only via RLS), "관심 일정만" filter and the favourite -> planned-expense prefill.
+  const [favoriteScheduleIds, setFavoriteScheduleIds] = useState<ReadonlySet<string>>(() => new Set())
+  const [onlyFavorites, setOnlyFavorites] = useState(false)
+  const [expensePrefill, setExpensePrefill] = useState<ExpensePrefill | null>(null)
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false)
   const [detailExpenseId, setDetailExpenseId] = useState<string | null>(null)
   const isOnline = useOnlineStatus()
@@ -549,9 +559,90 @@ export default function DashboardPage() {
 
   // 사용자가 구독하고 게임 필터에서 활성화한 게임의 일정만 캘린더 및 사이드바에 표시
   const subscribedSchedules = useMemo(
-    () => schedules.filter((s) => !s.game_id || activeGameIdSet.has(s.game_id)),
-    [schedules, activeGameIdSet],
+    () =>
+      schedules.filter(
+        (s) => (!s.game_id || activeGameIdSet.has(s.game_id)) && (!onlyFavorites || favoriteScheduleIds.has(s.id)),
+      ),
+    [schedules, activeGameIdSet, onlyFavorites, favoriteScheduleIds],
   )
+
+  useEffect(() => {
+    if (!userId) {
+      setFavoriteScheduleIds(new Set())
+      setOnlyFavorites(false)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const { data, error: favoriteError } = await supabase.from("user_favorite_schedules").select("schedule_id")
+        if (cancelled) return
+        if (favoriteError) {
+          if (!isMissingFavoriteTable(favoriteError)) console.error("관심 일정을 불러오지 못했습니다:", favoriteError)
+          setFavoriteScheduleIds(new Set())
+          return
+        }
+        setFavoriteScheduleIds(new Set((data ?? []).map((row: { schedule_id: string }) => row.schedule_id)))
+      } catch (cause) {
+        if (!cancelled) {
+          console.error("관심 일정을 불러오지 못했습니다:", cause)
+          setFavoriteScheduleIds(new Set())
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
+  const handleToggleFavorite = async (scheduleId: string) => {
+    if (!userId) return
+    if (isOffline()) {
+      setError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
+    const wasFavorite = favoriteScheduleIds.has(scheduleId)
+    const applyLocal = (favorite: boolean) =>
+      setFavoriteScheduleIds((prev) => {
+        const next = new Set(prev)
+        if (favorite) next.add(scheduleId)
+        else next.delete(scheduleId)
+        return next
+      })
+    setError(null)
+    applyLocal(!wasFavorite)
+    try {
+      const result = wasFavorite
+        ? await supabase.from("user_favorite_schedules").delete().eq("schedule_id", scheduleId)
+        : await supabase.from("user_favorite_schedules").insert({ user_id: userId, schedule_id: scheduleId })
+      // A duplicate insert (23505) means another tab already favourited it, which is the desired end state.
+      if (result.error && !(result.error as { code?: string }).code?.startsWith("23505")) {
+        applyLocal(wasFavorite)
+        setError("관심 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+      }
+    } catch {
+      applyLocal(wasFavorite)
+      setError("관심 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+    }
+  }
+
+  const handleAddPlannedExpenseFromSchedule = (scheduleId: string) => {
+    const schedule = schedules.find((item) => item.id === scheduleId)
+    if (!schedule) return
+    setExpensePrefill({
+      game_id: schedule.game_id,
+      title: schedule.title,
+      target_date: schedule.start_date,
+      start_date: schedule.start_date,
+      end_date: schedule.end_date,
+    })
+    setIsExpenseModalOpen(true)
+  }
+
+  const handleRegisterExpense = () => {
+    setExpensePrefill(null)
+    setIsExpenseModalOpen(true)
+  }
 
   // Pickup avatars (spec §5.2, NR-10): only the characters referenced by the loaded schedules are fetched, with explicit
   // columns so guests can read them too. A failed lookup just leaves the schedules without avatars.
@@ -829,7 +920,16 @@ export default function DashboardPage() {
           }}
         />
       )}
-      <ExpenseModal open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen} initialDate={baseDate} onCompleted={() => void load()} />
+      <ExpenseModal
+        open={isExpenseModalOpen}
+        onOpenChange={(open) => {
+          setIsExpenseModalOpen(open)
+          if (!open) setExpensePrefill(null)
+        }}
+        initialDate={baseDate}
+        prefill={expensePrefill}
+        onCompleted={() => void load()}
+      />
       <ExpenseModal
         open={payingExpense !== null}
         onOpenChange={(open) => { if (!open) setPayingExpense(null) }}
@@ -855,18 +955,30 @@ export default function DashboardPage() {
       </section>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">
-          <div role="group" aria-label="보기 방식" className="inline-flex rounded-md border border-line bg-surface-2 p-0.5 text-sm">
-            {([["calendar", "캘린더형"], ["weekly", "주차별 리스트"]] as const).map(([mode, label]) => (
+          <div className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="보기 방식" className="inline-flex rounded-md border border-line bg-surface-2 p-0.5 text-sm">
+              {([["calendar", "캘린더형"], ["weekly", "주차별 리스트"]] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={viewMode === mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`min-h-8 rounded px-3 transition-colors duration-fast ${viewMode === mode ? "bg-primary text-primary-foreground" : "text-content-secondary hover:text-content"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {user && (
               <button
-                key={mode}
                 type="button"
-                aria-pressed={viewMode === mode}
-                onClick={() => setViewMode(mode)}
-                className={`min-h-8 rounded px-3 transition-colors duration-fast ${viewMode === mode ? "bg-primary text-primary-foreground" : "text-content-secondary hover:text-content"}`}
+                aria-pressed={onlyFavorites}
+                onClick={() => setOnlyFavorites((prev) => !prev)}
+                className={`min-h-8 rounded-md border px-3 text-sm transition-colors duration-fast ${onlyFavorites ? "border-primary bg-primary text-primary-foreground" : "border-line bg-surface-2 text-content-secondary hover:text-content"}`}
               >
-                {label}
+                관심 일정만
               </button>
-            ))}
+            )}
           </div>
           {viewMode === "weekly" ? (
             <WeeklyScheduleList
@@ -883,6 +995,9 @@ export default function DashboardPage() {
                 }
               }}
               onSelectExpense={setDetailExpenseId}
+              favoriteScheduleIds={favoriteScheduleIds}
+              onToggleFavorite={user ? (id) => void handleToggleFavorite(id) : undefined}
+              onAddPlannedExpense={user ? handleAddPlannedExpenseFromSchedule : undefined}
               onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
               onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}
             />
@@ -943,11 +1058,14 @@ export default function DashboardPage() {
             memos={dayMemos}
             memoContent={currentDayMemo}
             onSelectExpense={setDetailExpenseId}
-            onRegisterExpense={() => setIsExpenseModalOpen(true)}
+            onRegisterExpense={handleRegisterExpense}
             onSaveMemo={handleSaveMemo}
             registerDisabled={!isOnline}
             onIncomeAdded={() => void load()}
             todayDate={todayDate}
+            favoriteScheduleIds={favoriteScheduleIds}
+            onToggleFavorite={user ? (id) => void handleToggleFavorite(id) : undefined}
+            onAddPlannedExpense={user ? handleAddPlannedExpenseFromSchedule : undefined}
           />
         </div>
         <HeroSidebar
@@ -962,11 +1080,14 @@ export default function DashboardPage() {
           memos={dayMemos}
           memoContent={currentDayMemo}
           onSelectExpense={setDetailExpenseId}
-          onRegisterExpense={() => setIsExpenseModalOpen(true)}
+          onRegisterExpense={handleRegisterExpense}
           onSaveMemo={handleSaveMemo}
           registerDisabled={!isOnline}
           onIncomeAdded={() => void load()}
           todayDate={todayDate}
+          favoriteScheduleIds={favoriteScheduleIds}
+          onToggleFavorite={user ? (id) => void handleToggleFavorite(id) : undefined}
+          onAddPlannedExpense={user ? handleAddPlannedExpenseFromSchedule : undefined}
         />
       </div>
     </div>
