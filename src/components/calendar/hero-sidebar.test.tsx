@@ -2,6 +2,47 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { HeroSidebarContent, type HeroExpenseItem, type HeroScheduleItem } from "./hero-sidebar"
 
+describe("HeroSidebarContent pickup avatars (R52)", () => {
+  const base = { totalAsset: 0, budgetAmount: 0, expectedExpense: 0, wallets: [], memos: [] }
+  const avatar = (id: string, name: string) => ({ id, name, iconUrl: `data:image/webp;base64,${id}` })
+
+  it("shows the pickup character avatars next to a single PICKUP card title", () => {
+    const schedules: HeroScheduleItem[] = [{
+      id: "p",
+      title: "카프카 픽업",
+      schedule_type: "PICKUP",
+      start_date: "2026-11-15",
+      end_date: "2026-11-20",
+      gameName: "게임",
+      pickupAvatars: [avatar("c1", "카프카")],
+    }]
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-15" todayDate="2026-11-15" schedules={schedules} expenses={[]} />)
+
+    expect(screen.getByAltText("카프카")).toBeTruthy()
+    expect((screen.getByAltText("카프카") as HTMLImageElement).style.width).toBe("28px")
+  })
+
+  it("shows each grouped PICKUP item's own avatars", () => {
+    const schedules: HeroScheduleItem[] = [
+      { id: "a", title: "카프카 픽업", schedule_type: "PICKUP", start_date: "2026-11-15", end_date: "2026-11-20", gameId: "g", gameName: "게임", pickupAvatars: [avatar("c1", "카프카")] },
+      { id: "b", title: "블랙 스완 픽업", schedule_type: "PICKUP", start_date: "2026-11-15", end_date: "2026-11-20", gameId: "g", gameName: "게임", pickupAvatars: [avatar("c2", "블랙 스완")] },
+    ]
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-15" todayDate="2026-11-15" schedules={schedules} expenses={[]} />)
+
+    expect(screen.getAllByTestId("pickup-avatars")).toHaveLength(2)
+    expect(screen.getByAltText("카프카")).toBeTruthy()
+    expect(screen.getByAltText("블랙 스완")).toBeTruthy()
+  })
+
+  it("keeps legacy PICKUP cards without avatars unchanged", () => {
+    const schedules: HeroScheduleItem[] = [{ id: "p", title: "레거시 픽업", schedule_type: "PICKUP", start_date: "2026-11-15", end_date: "2026-11-20", gameName: "게임" }]
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-15" todayDate="2026-11-15" schedules={schedules} expenses={[]} />)
+
+    expect(screen.queryByTestId("pickup-avatars")).toBeNull()
+    expect(screen.getByText("레거시 픽업")).toBeTruthy()
+  })
+})
+
 describe("HeroSidebarContent D-n badge and period progress bar", () => {
   const base = { totalAsset: 0, budgetAmount: 0, expectedExpense: 0, wallets: [], memos: [] }
 

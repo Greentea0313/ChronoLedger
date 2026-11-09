@@ -12,6 +12,10 @@ const expenses: WeeklyExpenseEntry[] = [
   { id: "e3", title: "다른 주", status: "PLANNED", amount: 700, date: "2026-11-20" },
 ]
 
+const currentWeek = () =>
+  screen.getAllByTestId("week-group").find((group) => group.getAttribute("data-current-week") === "true") as HTMLElement
+const otherWeeks = () => screen.getAllByTestId("week-group").filter((group) => group.getAttribute("data-current-week") !== "true")
+
 function renderList(overrides: Partial<React.ComponentProps<typeof WeeklyScheduleList>> = {}) {
   const props = {
     year: 2026,
@@ -67,8 +71,10 @@ describe("WeeklyScheduleList", () => {
     expect(within(current[0]).getByText("D-3")).toBeTruthy()
   })
 
-  it("lists a multi-week schedule in every week it overlaps", () => {
+  it("lists a multi-week schedule in every week it overlaps once the weeks are expanded", () => {
     renderList()
+    // Only the current week is open by default; expanding the other weeks reveals the same schedule there.
+    otherWeeks().forEach((week) => within(week).getAllByTestId("game-group-header").forEach((header) => fireEvent.click(header)))
     expect(screen.getAllByText("버전 1.0").length).toBeGreaterThan(3)
   })
 
@@ -98,11 +104,12 @@ describe("WeeklyScheduleList", () => {
       ],
     })
     const current = screen.getAllByTestId("week-group").find((group) => group.getAttribute("data-current-week") === "true") as HTMLElement
-    const headers = within(current).getAllByTestId("game-group-header").map((h) => h.textContent)
+    const headers = within(current).getAllByTestId("game-group-header").map((h) => h.querySelector("span.truncate")?.textContent)
     expect(headers).toEqual(["가 게임", "나 게임", "기타"])
+    expect(within(current).getAllByTestId("game-group-header").map((h) => h.textContent)).toEqual(["가 게임1건", "나 게임2건", "기타1건"])
 
     const nGroup = within(current).getByRole("region", { name: "나 게임 일정" })
-    const rows = within(nGroup).getAllByRole("button")
+    const rows = within(nGroup).getAllByRole("listitem").map((item) => item.querySelector("button") as HTMLElement)
     expect(rows.map((row) => row.textContent)).toEqual([
       expect.stringContaining("나 전반"),
       expect.stringContaining("나 후반"),
@@ -119,6 +126,135 @@ describe("WeeklyScheduleList", () => {
     expect(within(section).getByText("예정 패키지")).toBeTruthy()
     expect(within(section).getByText("확정 패키지")).toBeTruthy()
     expect(within(current).getByRole("region", { name: "게임 가 일정" }).contains(section)).toBe(false)
+  })
+
+  it("shows 20px pickup avatars on PICKUP rows only", () => {
+    renderList({
+      schedules: [
+        { id: "p", title: "카프카 픽업", schedule_type: "PICKUP", start_date: "2026-11-09", end_date: "2026-11-12", gameId: "g1", gameName: "게임 가", pickupAvatars: [{ id: "c1", name: "카프카", iconUrl: "data:image/webp;base64,a" }] },
+        { id: "v", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-11-09", end_date: "2026-11-30", gameId: "g1", gameName: "게임 가" },
+      ],
+    })
+    const rows = within(currentWeek()).getAllByRole("listitem").map((item) => item.querySelector("button") as HTMLElement)
+    const pickupRow = rows.find((row) => row.textContent?.includes("카프카 픽업")) as HTMLElement
+    const versionRow = rows.find((row) => row.textContent?.includes("버전 1.0")) as HTMLElement
+
+    expect((within(pickupRow).getByAltText("카프카") as HTMLImageElement).style.width).toBe("20px")
+    expect(within(versionRow).queryByTestId("pickup-avatars")).toBeNull()
+  })
+
+  describe("collapsible game groups and expense section (A1 U-03)", () => {
+    const avatar = (id: string, name: string) => ({ id, name, iconUrl: `data:image/webp;base64,${id}` })
+    const avatarSchedules: WeeklyScheduleEntry[] = [
+      { id: "p1", title: "A 픽업", schedule_type: "PICKUP", start_date: "2026-11-09", end_date: "2026-11-12", gameId: "g1", gameName: "게임 가", pickupAvatars: [avatar("c1", "캐릭1"), avatar("c2", "캐릭2")] },
+      { id: "p2", title: "B 픽업", schedule_type: "PICKUP", start_date: "2026-11-10", end_date: "2026-11-12", gameId: "g1", gameName: "게임 가", pickupAvatars: [avatar("c2", "캐릭2"), avatar("c3", "캐릭3"), avatar("c4", "캐릭4")] },
+      { id: "v", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-11-01", end_date: "2026-11-30", gameId: "g1", gameName: "게임 가" },
+    ]
+
+    it("opens the current week's groups and expense section by default and collapses the other weeks", () => {
+      renderList()
+
+      const headers = within(currentWeek()).getAllByTestId("game-group-header")
+      expect(headers.every((header) => header.getAttribute("aria-expanded") === "true")).toBe(true)
+      expect(within(currentWeek()).getByText("픽업 A")).toBeTruthy()
+      expect(within(currentWeek()).getByTestId("expense-section-header").getAttribute("aria-expanded")).toBe("true")
+
+      otherWeeks().forEach((week) => {
+        within(week).queryAllByTestId("game-group-header").forEach((header) => expect(header.getAttribute("aria-expanded")).toBe("false"))
+        expect(within(week).queryByText("픽업 A")).toBeNull()
+      })
+      const collapsedExpense = otherWeeks().map((week) => within(week).queryByTestId("expense-section-header")).find(Boolean) as HTMLElement
+      expect(collapsedExpense.getAttribute("aria-expanded")).toBe("false")
+      expect(screen.queryByText("다른 주")).toBeNull()
+    })
+
+    it("toggles a game group with aria-expanded and keeps other groups untouched", () => {
+      renderList({
+        schedules: [
+          ...schedules,
+          { id: "o", title: "나 게임 일정", schedule_type: "CONTENTS", start_date: "2026-11-09", end_date: "2026-11-10", gameId: "g2", gameName: "나 게임" },
+        ],
+      })
+      const [first, second] = within(currentWeek()).getAllByTestId("game-group-header")
+
+      fireEvent.click(first)
+      expect(first.getAttribute("aria-expanded")).toBe("false")
+      expect(within(currentWeek()).queryByText("픽업 A")).toBeNull()
+      expect(second.getAttribute("aria-expanded")).toBe("true")
+      expect(within(currentWeek()).getByText("나 게임 일정")).toBeTruthy()
+
+      fireEvent.click(first)
+      expect(first.getAttribute("aria-expanded")).toBe("true")
+      expect(within(currentWeek()).getByText("픽업 A")).toBeTruthy()
+    })
+
+    it("lets the user open a collapsed week's group", () => {
+      renderList()
+      const week = otherWeeks().find((candidate) => within(candidate).queryAllByTestId("game-group-header").length > 0) as HTMLElement
+      const header = within(week).getAllByTestId("game-group-header")[0]
+
+      fireEvent.click(header)
+
+      expect(header.getAttribute("aria-expanded")).toBe("true")
+      expect(within(week).getByText("버전 1.0")).toBeTruthy()
+    })
+
+    it("shows the schedule count and up to three distinct 20px pickup avatars with +n in the group header", () => {
+      renderList({ schedules: avatarSchedules })
+      const header = within(currentWeek()).getAllByTestId("game-group-header")[0]
+
+      expect(header.textContent).toContain("3건")
+      const avatars = within(header).getByTestId("pickup-avatars")
+      expect(avatars.querySelectorAll("img")).toHaveLength(3)
+      expect(within(avatars).getByText("+1")).toBeTruthy()
+      expect((avatars.querySelector("img") as HTMLImageElement).style.width).toBe("20px")
+      // c2 appears in both schedules but is counted once: c1, c2, c3, c4 -> 4 distinct.
+      expect(avatars.getAttribute("title")).toBe("캐릭1, 캐릭2, 캐릭3, 캐릭4")
+    })
+
+    it("keeps the header avatars visible while the group is collapsed", () => {
+      renderList({ schedules: avatarSchedules })
+      const header = within(currentWeek()).getAllByTestId("game-group-header")[0]
+      fireEvent.click(header)
+
+      expect(header.getAttribute("aria-expanded")).toBe("false")
+      expect(within(header).getByTestId("pickup-avatars")).toBeTruthy()
+      expect(within(currentWeek()).queryByText("A 픽업")).toBeNull()
+    })
+
+    it("collapses and expands the expense section on its own with count and subtotals in its header", () => {
+      renderList()
+      const header = within(currentWeek()).getByTestId("expense-section-header")
+
+      expect(header.textContent).toBe("지출 2건 · 예정 5,000원 · 확정 3,000원")
+      expect(within(currentWeek()).getByText("예정 패키지")).toBeTruthy()
+
+      fireEvent.click(header)
+      expect(header.getAttribute("aria-expanded")).toBe("false")
+      expect(within(currentWeek()).queryByText("예정 패키지")).toBeNull()
+      // Game groups stay open: the expense section toggles independently.
+      expect(within(currentWeek()).getAllByTestId("game-group-header")[0].getAttribute("aria-expanded")).toBe("true")
+      expect(within(currentWeek()).getByText("픽업 A")).toBeTruthy()
+
+      fireEvent.click(header)
+      expect(within(currentWeek()).getByText("예정 패키지")).toBeTruthy()
+    })
+
+    it("never shows the expense section in guest mode and omits it for weeks without expenses", () => {
+      renderList({ expenses: null })
+      expect(screen.queryByTestId("expense-section")).toBeNull()
+      expect(screen.queryByTestId("expense-section-header")).toBeNull()
+
+      document.body.innerHTML = ""
+      renderList({ expenses: [] })
+      expect(screen.queryByTestId("expense-section")).toBeNull()
+    })
+
+    it("still opens the expense detail from an expanded section", () => {
+      const props = renderList()
+      fireEvent.click(within(currentWeek()).getByRole("button", { name: "확정 패키지 상세" }))
+      expect(props.onSelectExpense).toHaveBeenCalledWith("e2")
+    })
   })
 
   it("hides expenses and subtotals in guest mode (expenses = null)", () => {

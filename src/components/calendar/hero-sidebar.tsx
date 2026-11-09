@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pencil, Check, X } from "lucide-react"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
+import { PickupAvatars, type PickupAvatar } from "@/components/calendar/pickup-avatars"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, getPeriodProgress, getTodayLocalDate } from "@/lib/calendar-utils"
 
@@ -55,6 +56,7 @@ export interface HeroScheduleItem {
   end_date: string
   is_official?: boolean
   is_rerun?: boolean
+  pickupAvatars?: PickupAvatar[]
   gameId?: string | null
   gameName?: string | null
   iconUrl?: string
@@ -374,6 +376,7 @@ export function HeroSidebarContent({
                           {group.items.map((item) => (
                             <li key={item.id} className="leading-snug">
                               <div className="font-bold text-sm text-content">
+                                <PickupAvatars avatars={item.pickupAvatars} size={28} className="mr-1.5 align-middle" />
                                 {item.is_official === false && (
                                   <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
                                     [비공식]
@@ -399,6 +402,7 @@ export function HeroSidebarContent({
                       ) : (
                         <>
                           <div className="relative z-10 font-bold text-sm text-content leading-snug">
+                            <PickupAvatars avatars={group.items[0].pickupAvatars} size={28} className="mr-2 align-middle" />
                             {group.items[0].is_official === false && (
                               <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
                                 [비공식]

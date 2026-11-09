@@ -33,6 +33,8 @@ type ScheduleRequest = {
   memo: string | null
   is_official?: boolean
   is_rerun?: boolean
+  pickup_character_ids?: string[] | null
+  pickup_new_characters?: Array<{ name: string; icon_url: string | null }> | null
   admin_memo?: string | null
   request_status: string
   created_at: string | null
@@ -52,6 +54,28 @@ type CharacterRequest = {
   games?: { name: string } | null
 }
 
+// Fallback (approve RPC missing) copy of the pickup characters; only PICKUP requests carry them and only when present.
+function getPickupFallbackFields(request: ScheduleRequest) {
+  if (request.schedule_type !== "PICKUP") return {}
+  const ids = request.pickup_character_ids ?? []
+  return ids.length > 0 ? { pickup_character_ids: ids } : {}
+}
+
+/** Defensive parse of the JSONB column: keeps only well-formed `{ name, icon_url }` entries. */
+function normalizeProposals(raw: unknown): Array<{ name: string; icon_url: string | null }> {
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== "object") return []
+    const { name, icon_url: iconUrl } = item as { name?: unknown; icon_url?: unknown }
+    return typeof name === "string" && name.trim() ? [{ name, icon_url: typeof iconUrl === "string" ? iconUrl : null }] : []
+  })
+}
+
+/** The direct-write fallback is only for a deployment where the RPC does not exist (R52-REV-003). */
+function isMissingRpcError(error: { code?: string } | null | undefined): boolean {
+  return error?.code === "PGRST202" || error?.code === "42883"
+}
+
 export default function AdminRequestsPage() {
   const { user, role, isLoading: authLoading } = useAuth()
   const { replace } = useRouter()
@@ -64,6 +88,7 @@ export default function AdminRequestsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const isOnline = useOnlineStatus()
+  const [pickupCharacters, setPickupCharacters] = useState<Record<string, { name: string; iconUrl: string | null }>>({})
   const [defaultIconUrls, setDefaultIconUrls] = useState<Record<string, string>>({})
   const [defaultIconFiles, setDefaultIconFiles] = useState<Record<string, File>>({})
 
@@ -122,7 +147,30 @@ export default function AdminRequestsPage() {
         .order("created_at", { ascending: true })
 
       if (sError) throw sError
-      setScheduleRequests(sData || [])
+      setScheduleRequests(
+        (sData ?? []).map((request) => ({
+          ...request,
+          pickup_new_characters: normalizeProposals(request.pickup_new_characters),
+        })) as unknown as ScheduleRequest[],
+      )
+
+      // Pickup avatars are decoration: look up only the referenced characters and never block the list on failure (NR-10).
+      const pickupIds = Array.from(new Set((sData ?? []).flatMap((request) => request.pickup_character_ids ?? [])))
+      if (pickupIds.length > 0) {
+        try {
+          const { data: pickupData, error: pickupError } = await supabase
+            .from("game_characters")
+            .select("id, name, default_icon_url")
+            .in("id", pickupIds)
+          if (!pickupError && pickupData) {
+            setPickupCharacters(Object.fromEntries(
+              pickupData.map((character) => [character.id, { name: character.name, iconUrl: character.default_icon_url ?? null }]),
+            ))
+          }
+        } catch {
+          // Names fall back to a count in the card.
+        }
+      }
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "알 수 없는 오류"
@@ -272,9 +320,12 @@ export default function AdminRequestsPage() {
           })
 
           if (rpcError) {
-            // 폴백: game_schedules 테이블 직접 삽입/수정 및 schedule_requests 상태 갱신
+            // 폴백: 함수 부재(PGRST202/42883)일 때만 game_schedules 직접 삽입/수정 및 schedule_requests 상태 갱신
+            // 그 외 RPC 오류(이미 처리됨, 픽업 캐릭터 검증 실패 등)는 그대로 표시한다 (R52-REV-003).
             const targetReq = scheduleRequests.find((r) => r.id === id)
-            if (!targetReq) throw rpcError
+            if (!isMissingRpcError(rpcError) || !targetReq) throw rpcError
+            // New-character proposals are registered by the RPC only; a direct write would silently drop them.
+            if ((targetReq.pickup_new_characters?.length ?? 0) > 0) throw rpcError
 
             if (targetReq.target_schedule_id) {
               const { error: updateSchedErr } = await supabase
@@ -286,6 +337,7 @@ export default function AdminRequestsPage() {
                   end_date: targetReq.end_date,
                   memo: targetReq.memo,
                   is_official: targetReq.is_official ?? true,
+                  ...getPickupFallbackFields(targetReq),
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", targetReq.target_schedule_id)
@@ -303,6 +355,7 @@ export default function AdminRequestsPage() {
                   end_date: targetReq.end_date,
                   memo: targetReq.memo,
                   is_official: targetReq.is_official ?? true,
+                  ...getPickupFallbackFields(targetReq),
                 })
 
               if (insertSchedErr) throw rpcError
@@ -353,7 +406,8 @@ export default function AdminRequestsPage() {
             : (isApprove ? "일정 추가 요청을 승인했습니다." : "일정 추가 요청을 반려했습니다.")
       )
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "알 수 없는 오류"
+      // Supabase/PostgREST errors are plain objects with a message, not Error instances.
+      const message = err instanceof Error ? err.message : typeof (err as { message?: unknown } | null)?.message === "string" ? (err as { message: string }).message : "알 수 없는 오류"
       setError(`처리 중 오류가 발생했습니다: ${message}`)
     } finally {
       setProcessingId(null)
@@ -387,14 +441,14 @@ export default function AdminRequestsPage() {
       )}
 
       <Tabs defaultValue="games" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-surface-2 mb-6">
-          <TabsTrigger value="games" className="data-[state=active]:bg-surface-3 data-[state=active]:text-content">
+        <TabsList className="mb-6 flex w-full justify-start overflow-x-auto bg-surface-2 md:grid md:grid-cols-3">
+          <TabsTrigger value="games" className="shrink-0 whitespace-nowrap data-[state=active]:bg-surface-3 data-[state=active]:text-content">
             게임 요청 ({gameRequests.length})
           </TabsTrigger>
-          <TabsTrigger value="schedules" className="data-[state=active]:bg-surface-3 data-[state=active]:text-content">
+          <TabsTrigger value="schedules" className="shrink-0 whitespace-nowrap data-[state=active]:bg-surface-3 data-[state=active]:text-content">
             일정 요청 ({scheduleRequests.length})
           </TabsTrigger>
-          <TabsTrigger value="characters" className="data-[state=active]:bg-surface-3 data-[state=active]:text-content">
+          <TabsTrigger value="characters" className="shrink-0 whitespace-nowrap data-[state=active]:bg-surface-3 data-[state=active]:text-content">
             캐릭터 요청 ({characterRequests.length})
           </TabsTrigger>
         </TabsList>
@@ -402,7 +456,7 @@ export default function AdminRequestsPage() {
         <TabsContent value="games" className="space-y-6">
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-content">
-              유저 추가 건의 대기열 ({gameRequests.length})
+              게임 요청 대기열 ({gameRequests.length})
             </h3>
             {gameRequests.length === 0 ? (
               <p className="text-content-secondary text-center py-8 bg-surface-2/50 rounded-lg">대기 중인 게임 요청이 없습니다.</p>
@@ -495,6 +549,7 @@ export default function AdminRequestsPage() {
         </TabsContent>
 
         <TabsContent value="characters" className="space-y-4">
+          <h3 className="text-sm font-semibold text-content">캐릭터 요청 대기열 ({characterRequests.length})</h3>
           {characterRequests.length === 0 ? (
             <p className="rounded-lg bg-surface-2/50 py-8 text-center text-content-secondary">대기 중인 캐릭터 요청이 없습니다.</p>
           ) : characterRequests.map((req) => {
@@ -580,6 +635,7 @@ export default function AdminRequestsPage() {
         </TabsContent>
 
         <TabsContent value="schedules" className="space-y-4">
+          <h3 className="text-sm font-semibold text-content">일정 요청 대기열 ({scheduleRequests.length})</h3>
           {scheduleRequests.length === 0 ? (
             <p className="text-content-secondary text-center py-8 bg-surface-2/50 rounded-lg">대기 중인 일정 요청이 없습니다.</p>
           ) : (
@@ -597,6 +653,44 @@ export default function AdminRequestsPage() {
                     </div>
                     <p className="text-sm text-content-secondary">대상 게임: <span className="font-semibold text-content">{req.games?.name || '알 수 없음'}</span></p>
                     <p className="text-sm text-content-secondary mt-1">기간: {req.start_date || '미정'} ~ {req.end_date || '미정'}</p>
+                    {req.schedule_type === "PICKUP" && (req.pickup_character_ids?.length ?? 0) > 0 && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2" data-testid="pickup-request-characters">
+                        {(req.pickup_character_ids ?? []).map((characterId) => {
+                          const character = pickupCharacters[characterId]
+                          return (
+                            <span key={characterId} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 py-0.5 pl-0.5 pr-2 text-xs text-content">
+                              {character?.iconUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={character.iconUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+                              ) : (
+                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-surface text-[10px] font-semibold text-content-secondary">
+                                  {Array.from((character?.name ?? "?").trim())[0]?.toUpperCase() ?? "?"}
+                                </span>
+                              )}
+                              {character?.name ?? "캐릭터"}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {req.schedule_type === "PICKUP" && (req.pickup_new_characters?.length ?? 0) > 0 && (
+                      <ul className="mt-2 flex flex-wrap items-center gap-2" data-testid="pickup-request-proposals">
+                        {(req.pickup_new_characters ?? []).map((proposal) => (
+                          <li key={proposal.name} className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 py-0.5 pl-0.5 pr-2 text-xs text-primary">
+                            {proposal.icon_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={proposal.icon_url} alt={`${proposal.name} 제안 이미지`} className="h-6 w-6 rounded-full object-cover" />
+                            ) : (
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-surface text-[10px] font-semibold text-content-secondary">
+                                {Array.from(proposal.name.trim())[0]?.toUpperCase() ?? "?"}
+                              </span>
+                            )}
+                            {proposal.name}
+                            <span className="rounded bg-primary/20 px-1 text-[10px]">신규</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     {req.memo && <p className="text-sm text-content-secondary mt-2">메모: {req.memo}</p>}
                   </div>
                   <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">

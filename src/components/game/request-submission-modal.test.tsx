@@ -26,6 +26,7 @@ const games = [{
 const characters = [
   { id: "char-1", game_id: "game-1", name: "Alice", rarity: "5★", attributes: { element: "불" } },
   { id: "char-2", game_id: "game-1", name: "Legacy", rarity: "3★", attributes: { element: "바람" } },
+  { id: "char-po", game_id: "game-1", name: "Guest Star", rarity: null, attributes: {}, is_pickup_only: true },
 ]
 const schedules = [{
   id: "schedule-1",
@@ -341,19 +342,27 @@ describe("RequestSubmissionModal", () => {
     })
   })
 
-  it("drops prefilled values that are no longer in the game classification schema", async () => {
+  it("drops prefilled values that are no longer in the game classification schema so they must be re-selected", async () => {
     await openModal()
     await change("#request-kind", "character")
     await change("#character-request-mode", "UPDATE")
     await change("#character-game", "game-1")
     await change("#target-character", "char-2")
-    await submit()
 
+    expect((document.body.querySelector("#character-rarity") as HTMLSelectElement).value).toBe("")
+    expect((document.body.querySelector("#character-axis-element") as HTMLSelectElement).value).toBe("")
+    await submit()
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("캐릭터 등급을 선택해 주세요.")
+    expect(insertCharacter).not.toHaveBeenCalled()
+
+    await change("#character-rarity", "4★")
+    await change("#character-axis-element", "물")
+    await submit()
     expect(insertCharacter).toHaveBeenCalledWith(expect.objectContaining({
       target_character_id: "char-2",
       name: "Legacy",
-      rarity: null,
-      attributes: {},
+      rarity: "4★",
+      attributes: { element: "물" },
     }))
   })
 
@@ -369,20 +378,326 @@ describe("RequestSubmissionModal", () => {
     expect(insertCharacter).not.toHaveBeenCalled()
   })
 
-  it("omits classification axes that were reset to 'no selection' before submitting", async () => {
+  it("requires rank and every classification axis before a character request is submitted", async () => {
     await openModal()
     await change("#request-kind", "character")
     await change("#character-game", "game-1")
     await change("#character-name", "Bob")
+    await submit()
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("캐릭터 등급을 선택해 주세요.")
+
+    await change("#character-rarity", "5★")
+    await submit()
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("속성을(를) 선택해 주세요.")
+
+    // Resetting an axis to "no selection" blocks the submission again.
     await change("#character-axis-element", "물")
     await change("#character-axis-element", "")
     await submit()
+    expect(insertCharacter).not.toHaveBeenCalled()
 
+    await change("#character-axis-element", "물")
+    await submit()
     expect(insertCharacter).toHaveBeenCalledWith(expect.objectContaining({
       target_character_id: null,
       name: "Bob",
-      attributes: {},
+      rarity: "5★",
+      attributes: { element: "물" },
     }))
+  })
+
+  it("lists only games with an active character template in the character request form", async () => {
+    from.mockImplementation((table: string) => {
+      const q = createQuery(table)
+      if (table === "games") {
+        q.order.mockResolvedValue({
+          data: [
+            ...games,
+            { id: "game-empty", name: "Empty RPG", classification_schema: { rarities: [], axes: [] } },
+            { id: "game-legacy", name: "Legacy RPG", classification_schema: { rarities: [], axes: [] } },
+          ],
+          error: null,
+        })
+      }
+      if (table === "game_characters") {
+        q.order.mockResolvedValue({ data: [...characters, { id: "legacy-1", game_id: "game-legacy", name: "Old", rarity: null, attributes: {} }], error: null })
+      }
+      return q
+    })
+    await openModal()
+    await change("#request-kind", "character")
+
+    const options = Array.from(document.body.querySelectorAll("#character-game option")).map((option) => option.textContent)
+    expect(options).toEqual(["게임을 선택하세요", "Sample RPG", "Legacy RPG"])
+  })
+
+  it("uses the game's character_label in the character form", async () => {
+    from.mockImplementation((table: string) => {
+      const q = createQuery(table)
+      if (table === "games") {
+        q.order.mockResolvedValue({
+          data: [{ id: "game-1", name: "Sample RPG", classification_schema: { character_label: "공명자", rarities: ["5성"], axes: [] } }],
+          error: null,
+        })
+      }
+      return q
+    })
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-game", "game-1")
+
+    expect(document.body.querySelector('label[for="character-name"]')?.textContent).toBe("공명자 이름 *")
+    expect(document.body.querySelector('label[for="character-rarity"]')?.textContent).toBe("등급 *")
+  })
+
+  describe("pickup characters and new character proposals (R52 A1)", () => {
+    const click = async (el: Element) => {
+      await act(async () => {
+        Simulate.click(el)
+      })
+    }
+    const pickerButton = (name: string) =>
+      Array.from(document.body.querySelectorAll('[data-testid="pickup-character-picker"] button')).find((b) => b.textContent === name) as HTMLButtonElement
+
+    async function openPickupForm(gameValue = "game-1") {
+      await openModal()
+      await change("#request-kind", "schedule")
+      await change("#schedule-game", gameValue)
+      await change("#schedule-type", "PICKUP")
+    }
+
+    it("shows the character picker for games with characters and auto-completes the title", async () => {
+      await openPickupForm()
+
+      expect(document.body.textContent).toContain("픽업 캐릭터 선택 (단일 또는 복수)")
+      expect(document.body.querySelector("#pickup-image-url")).toBeNull()
+      await click(pickerButton("Alice"))
+      expect((document.body.querySelector("#schedule-title") as HTMLInputElement).value).toBe("Alice 픽업")
+      await click(pickerButton("Legacy"))
+      expect((document.body.querySelector("#schedule-title") as HTMLInputElement).value).toBe("Alice · Legacy 픽업")
+
+      await change("#schedule-title", "내 제목")
+      await click(pickerButton("Alice"))
+      expect((document.body.querySelector("#schedule-title") as HTMLInputElement).value).toBe("내 제목")
+    })
+
+    it("submits the selected character ids in order and no image", async () => {
+      await openPickupForm()
+      await click(pickerButton("Legacy"))
+      await click(pickerButton("Alice"))
+      await change("#schedule-start-date", "2026-02-01")
+      await change("#schedule-end-date", "2026-02-03")
+      await submit()
+
+      expect(insertSchedule.mock.calls[0][0]).toMatchObject({ schedule_type: "PICKUP", pickup_character_ids: ["char-2", "char-1"] })
+      expect(insertSchedule.mock.calls[0][0]).not.toHaveProperty("pickup_image_url")
+    })
+
+    const typeProposal = async (name: string, imageSource = "") => {
+      const openButton = Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "+ 새 캐릭터 제안") as HTMLElement
+      await click(openButton)
+      await change("#proposal-name", name)
+      if (imageSource) await change("#proposal-image-url", imageSource)
+      const add = Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "제안 추가") as HTMLElement
+      await click(add)
+    }
+
+    it("lists regular and pickup-only characters together and badges the pickup-only ones", async () => {
+      await openPickupForm()
+
+      expect(pickerButton("Guest Star")).toBeUndefined()
+      const guest = Array.from(document.body.querySelectorAll('[data-testid="pickup-character-picker"] button')).find((b) => b.textContent?.startsWith("Guest Star")) as HTMLElement
+      expect(guest.textContent).toContain("픽업 전용")
+    })
+
+    it("offers the picker and the proposal button even for a game without any character", async () => {
+      from.mockImplementation((table: string) => {
+        const q = createQuery(table)
+        if (table === "game_characters") q.order.mockResolvedValue({ data: [], error: null })
+        return q
+      })
+      await openPickupForm()
+
+      expect(document.body.textContent).toContain("등록된 캐릭터가 없습니다. 아래에서 새 캐릭터를 제안해 주세요.")
+      expect(Array.from(document.body.querySelectorAll("button")).some((b) => b.textContent === "+ 새 캐릭터 제안")).toBe(true)
+      expect(document.body.querySelector("#pickup-image-url")).toBeNull()
+    })
+
+    it("adds a proposal with an optional image, auto-completes the title and submits pickup_new_characters", async () => {
+      await openPickupForm()
+      await click(pickerButton("Alice"))
+      await typeProposal("신규 캐릭터", "data:image/webp;base64,prop")
+      await change("#schedule-start-date", "2026-02-01")
+      await change("#schedule-end-date", "2026-02-03")
+
+      expect(document.body.querySelector('[data-testid="pickup-proposals"]')?.textContent).toContain("신규 캐릭터")
+      expect(document.body.querySelector('[data-testid="pickup-proposals"]')?.textContent).toContain("신규 제안")
+      expect((document.body.querySelector("#schedule-title") as HTMLInputElement).value).toBe("Alice · 신규 캐릭터 픽업")
+      expect(document.body.textContent).toContain("2 / 8")
+      await submit()
+
+      expect(insertSchedule.mock.calls[0][0]).toMatchObject({
+        schedule_type: "PICKUP",
+        pickup_character_ids: ["char-1"],
+        pickup_new_characters: [{ name: "신규 캐릭터", icon_url: "data:image/webp;base64,prop" }],
+      })
+      expect(insertSchedule.mock.calls[0][0]).not.toHaveProperty("pickup_image_url")
+    })
+
+    it("accepts a proposal without an image (icon_url null)", async () => {
+      await openPickupForm()
+      await typeProposal("이미지 없음")
+      await change("#schedule-start-date", "2026-02-01")
+      await change("#schedule-end-date", "2026-02-03")
+      await submit()
+
+      expect(insertSchedule.mock.calls[0][0]).toMatchObject({ pickup_new_characters: [{ name: "이미지 없음", icon_url: null }] })
+      expect(insertSchedule.mock.calls[0][0]).not.toHaveProperty("pickup_character_ids")
+    })
+
+    it("validates proposals: required name, existing name, duplicate proposal and the 8 total limit", async () => {
+      await openPickupForm()
+      await click(Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "+ 새 캐릭터 제안") as HTMLElement)
+      const add = () => Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "제안 추가") as HTMLElement
+
+      await click(add())
+      expect(document.body.querySelector('[data-testid="pickup-proposal-form"] [role="alert"]')?.textContent).toBe("캐릭터 이름을 1~100자로 입력해 주세요.")
+
+      await change("#proposal-name", "Alice")
+      await click(add())
+      expect(document.body.querySelector('[data-testid="pickup-proposal-form"] [role="alert"]')?.textContent).toBe("이미 등록된 캐릭터입니다. 목록에서 선택해 주세요.")
+
+      await change("#proposal-name", "새로운")
+      await click(add())
+      await typeProposal("새로운")
+      expect(document.body.querySelector('[data-testid="pickup-proposal-form"] [role="alert"]')?.textContent).toBe("이미 제안한 이름입니다.")
+    })
+
+    it("counts selected characters and proposals together against the 8 limit", async () => {
+      from.mockImplementation((table: string) => {
+        const q = createQuery(table)
+        if (table === "game_characters") {
+          q.order.mockResolvedValue({
+            data: Array.from({ length: 8 }, (_, index) => ({ id: `m${index}`, game_id: "game-1", name: `캐릭${index}`, rarity: null, attributes: {} })),
+            error: null,
+          })
+        }
+        return q
+      })
+      await openPickupForm()
+      for (let index = 0; index < 7; index += 1) await click(pickerButton(`캐릭${index}`))
+      await typeProposal("여덟번째")
+
+      expect(document.body.textContent).toContain("8 / 8")
+      expect(pickerButton("캐릭7").disabled).toBe(true)
+      expect(document.body.textContent).toContain("합쳐서 최대 8명까지 가능합니다")
+      await click(Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "+ 새 캐릭터 제안") as HTMLElement)
+      await change("#proposal-name", "아홉번째")
+      await click(Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "제안 추가") as HTMLElement)
+      expect(document.body.querySelector('[data-testid="pickup-proposal-form"] [role="alert"]')?.textContent).toContain("합쳐서 최대 8명")
+    })
+
+    it("lets the user remove a proposal and rolls the auto title back", async () => {
+      await openPickupForm()
+      await typeProposal("지울 캐릭터")
+      expect((document.body.querySelector("#schedule-title") as HTMLInputElement).value).toBe("지울 캐릭터 픽업")
+      await click(document.body.querySelector('button[aria-label="지울 캐릭터 제안 취소"]') as HTMLElement)
+
+      expect(document.body.querySelector('[data-testid="pickup-proposals"]')).toBeNull()
+      expect((document.body.querySelector("#schedule-title") as HTMLInputElement).value).toBe("")
+    })
+
+    it("blocks an oversized proposal image with an image-size message (R52-REV-004)", async () => {
+      await openPickupForm()
+      await typeProposal("큰 이미지", `data:image/webp;base64,${"A".repeat(150_000)}`)
+
+      expect(document.body.querySelector('[data-testid="pickup-proposal-form"] [role="alert"]')?.textContent).toContain("이미지 용량이 너무 큽니다")
+      expect(document.body.querySelector('[data-testid="pickup-proposals"]')).toBeNull()
+    })
+
+    it("excludes pickup-only characters from character UPDATE targets and from the supported-game count", async () => {
+      await openModal()
+      await change("#request-kind", "character")
+      await change("#character-request-mode", "UPDATE")
+      await change("#character-game", "game-1")
+
+      const options = Array.from(document.body.querySelectorAll("#target-character option")).map((option) => option.textContent)
+      expect(options).toEqual(["캐릭터를 선택하세요", "Alice", "Legacy"])
+    })
+
+    it("treats a game with only pickup-only characters as having no character template", async () => {
+      from.mockImplementation((table: string) => {
+        const q = createQuery(table)
+        if (table === "games") q.order.mockResolvedValue({ data: [{ id: "game-x", name: "Pickup Only RPG", classification_schema: { rarities: [], axes: [] } }], error: null })
+        if (table === "game_characters") q.order.mockResolvedValue({ data: [{ id: "x1", game_id: "game-x", name: "Guest", rarity: null, attributes: {}, is_pickup_only: true }], error: null })
+        return q
+      })
+      await openModal()
+      await change("#request-kind", "character")
+
+      expect(Array.from(document.body.querySelectorAll("#character-game option")).map((option) => option.textContent)).toEqual(["게임을 선택하세요"])
+      expect(document.body.textContent).toContain("관리자가 캐릭터 템플릿을 만든 게임이 아직 없어")
+    })
+
+    it("falls back to a catalog query without is_pickup_only when the column is missing (D-08)", async () => {
+      const selects: string[] = []
+      from.mockImplementation((table: string) => {
+        const q = createQuery(table)
+        if (table === "game_characters") {
+          q.select.mockImplementation((columns: string) => {
+            selects.push(columns)
+            q.order.mockResolvedValue(columns.includes("is_pickup_only")
+              ? { data: null, error: { code: "42703", message: "no column" } }
+              : { data: characters, error: null })
+            return q
+          })
+        }
+        return q
+      })
+      await openPickupForm()
+
+      expect(selects.some((columns) => columns.includes("is_pickup_only"))).toBe(true)
+      expect(selects.some((columns) => !columns.includes("is_pickup_only"))).toBe(true)
+      expect(pickerButton("Alice")).toBeDefined()
+    })
+
+    it("blocks an oversized character request icon before the database is called", async () => {
+      await openModal()
+      await change("#request-kind", "character")
+      await change("#character-game", "game-1")
+      await change("#character-name", "큰 아이콘")
+      await change("#character-rarity", "5★")
+      await change("#character-axis-element", "불")
+      await change("#character-icon-url", `data:image/webp;base64,${"A".repeat(150_000)}`)
+      await submit()
+
+      expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("이미지 용량이 너무 큽니다")
+      expect(insertCharacter).not.toHaveBeenCalled()
+    })
+
+    it("clears the original pickup characters on an edit request when the user removes them", async () => {
+      await openModal()
+      await change("#request-kind", "schedule")
+      await change("#request-mode", "EDIT")
+      await change("#schedule-game", "game-1")
+      await change("#target-schedule", "schedule-2")
+      await act(async () => Promise.resolve())
+
+      expect(pickerButton("Alice")).toBeDefined()
+      await submit()
+      expect(insertSchedule.mock.calls[0][0]).not.toHaveProperty("pickup_character_ids")
+    })
+
+    it("shows the R52 guidance when a pickup submission fails with a migration or trigger error", async () => {
+      insertSchedule.mockResolvedValue({ error: { code: "P0001", message: "픽업 캐릭터는 같은 게임의 카탈로그에 있어야 합니다." } })
+      await openPickupForm()
+      await click(pickerButton("Alice"))
+      await change("#schedule-start-date", "2026-02-01")
+      await change("#schedule-end-date", "2026-02-03")
+      await submit()
+
+      expect(document.body.textContent).toContain("R52 마이그레이션이 적용되지 않았거나 픽업 캐릭터 조건")
+    })
   })
 
   it("surfaces database submission failures", async () => {

@@ -545,6 +545,96 @@ describe("DashboardPage", () => {
     expect(iconLabels).toEqual(["원신", "명일방주", "림버스 컴퍼니"])
   })
 
+  describe("pickup avatars (R52)", () => {
+    function setup(options: { characters?: unknown[] | Error; schedule?: Record<string, unknown> }) {
+      const now = new Date()
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+      useAuth.mockReturnValue({ user: { id: "user-1" }, isLoading: false })
+      ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+      const lookup = { select: vi.fn(), in: vi.fn() }
+      lookup.select.mockReturnValue(lookup)
+      lookup.in.mockImplementation(() =>
+        options.characters instanceof Error ? Promise.reject(options.characters) : Promise.resolve({ data: options.characters ?? [], error: null }))
+      const single = (data: unknown) => {
+        const query = createQueryBuilder()
+        query.maybeSingle.mockResolvedValue({ data, error: null })
+        return query
+      }
+      from.mockImplementation((table: string) => {
+        switch (table) {
+          case "user_finances": return single({ total_asset: 1, default_budget: 1 })
+          case "monthly_budgets": return single(null)
+          case "game_characters": return lookup
+          case "game_schedules": {
+            const q = createQueryBuilder()
+            q.gte.mockResolvedValue({
+              data: [{ id: "pk", title: "카프카 픽업", schedule_type: "PICKUP", start_date: today, end_date: today, game_id: "game-1", is_official: true, ...options.schedule }],
+              error: null,
+            })
+            return q
+          }
+          case "games": {
+            const q = createQueryBuilder()
+            q.select.mockResolvedValue({ data: [{ id: "game-1", name: "원신", default_icon_url: "/g.webp" }], error: null })
+            return q
+          }
+          case "user_games": {
+            const q = createQueryBuilder()
+            q.eq.mockResolvedValue({ data: [{ game_id: "game-1", games: { name: "원신", default_icon_url: "/g.webp" } }], error: null })
+            return q
+          }
+          default: return createThenableBuilder([])
+        }
+      })
+      return lookup
+    }
+
+    it("fetches only the referenced characters and shows their avatars in the selected-day sidebar", async () => {
+      const lookup = setup({
+        schedule: { pickup_character_ids: ["c2", "c1"] },
+        characters: [
+          { id: "c1", name: "카프카", default_icon_url: "data:image/webp;base64,a" },
+          { id: "c2", name: "블랙 스완", default_icon_url: "data:image/webp;base64,b" },
+        ],
+      })
+      render(<DashboardPage />)
+
+      expect((await screen.findAllByAltText("카프카")).length).toBeGreaterThan(0)
+      expect(lookup.select).toHaveBeenCalledWith("id, name, default_icon_url")
+      expect(lookup.in).toHaveBeenCalledWith("id", ["c1", "c2"])
+      // Saved order is kept: 블랙 스완 (c2) comes before 카프카 (c1).
+      const avatars = Array.from(screen.getAllByTestId("pickup-avatars")[0].querySelectorAll("img")).map((img) => img.getAttribute("alt"))
+      expect(avatars).toEqual(["블랙 스완", "카프카"])
+    })
+
+    it("shows an initial avatar for a pickup character without an icon", async () => {
+      setup({ schedule: { pickup_character_ids: ["c9"] }, characters: [{ id: "c9", name: "노이콘", default_icon_url: null }] })
+      render(<DashboardPage />)
+
+      const initials = await screen.findAllByTestId("pickup-avatar-initial")
+      expect(initials[0].textContent).toBe("노")
+      expect(initials[0].getAttribute("aria-label")).toBe("노이콘")
+    })
+
+    it("still renders the schedule without avatars when the character lookup fails", async () => {
+      setup({ schedule: { pickup_character_ids: ["c1"] }, characters: new Error("network") })
+      render(<DashboardPage />)
+
+      expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+      expect(screen.queryByTestId("pickup-avatars")).toBeNull()
+      expect(screen.queryByRole("alert")).toBeNull()
+    })
+
+    it("keeps legacy schedules without pickup data avatar-free", async () => {
+      const lookup = setup({})
+      render(<DashboardPage />)
+
+      expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+      expect(screen.queryByTestId("pickup-avatars")).toBeNull()
+      expect(lookup.in).not.toHaveBeenCalled()
+    })
+  })
+
   describe("R38 onboarding modal", () => {
     function mockUserWithoutGames() {
       const insert = vi.fn().mockResolvedValue({ error: null })

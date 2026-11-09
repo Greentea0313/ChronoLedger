@@ -22,6 +22,7 @@ import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
+import { getPickupAvatars, PickupAvatars } from "@/components/calendar/pickup-avatars"
 import { Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
 
 const GAMES_PER_PAGE = 12
@@ -61,7 +62,10 @@ interface GameScheduleRow {
   memo: string | null
   is_official?: boolean
   is_rerun?: boolean
+  pickup_character_ids?: string[] | null
 }
+
+type PickupCharacterMap = Record<string, { name: string; iconUrl: string | null }>
 
 interface GameExpenseRow {
   id: string
@@ -102,7 +106,15 @@ interface CatalogGame {
   default_icon_url: string | null
 }
 
-function ScheduleTree({ schedules: allSchedules, expenses }: { schedules: GameScheduleRow[]; expenses: GameExpenseRow[] | null }) {
+function ScheduleTree({
+  schedules: allSchedules,
+  expenses,
+  pickupCharacters,
+}: {
+  schedules: GameScheduleRow[]
+  expenses: GameExpenseRow[] | null
+  pickupCharacters: PickupCharacterMap
+}) {
   const today = getKstToday()
   // Past schedules (end_date < today) live in their own collapsed record; the trees only hold current/future ones.
   const pastSchedules = useMemo(
@@ -133,6 +145,7 @@ function ScheduleTree({ schedules: allSchedules, expenses }: { schedules: GameSc
   const renderSchedule = (schedule: GameScheduleRow, withCountdown = false) => (
     <div key={schedule.id} className="rounded-lg border border-line bg-surface-2 p-3 space-y-1.5">
       <div className="flex items-start justify-between gap-2.5">
+        <PickupAvatars avatars={getPickupAvatars(schedule, pickupCharacters)} size={28} />
         <span className="min-w-0 flex-1 break-words text-sm font-semibold text-content">
           {schedule.title.includes("/")
             ? schedule.title
@@ -312,6 +325,7 @@ function ScheduleDialog({
   isSchedulesLoading,
   schedules,
   expenses,
+  pickupCharacters,
 }: {
   selectedGame: { id: string; name: string } | null
   isSheetOpen: boolean
@@ -323,6 +337,7 @@ function ScheduleDialog({
   schedules: GameScheduleRow[]
   /** null for guests: the billing summary and per-version subtotals are hidden. */
   expenses: GameExpenseRow[] | null
+  pickupCharacters: PickupCharacterMap
 }) {
   const today = getKstToday()
   return (
@@ -364,7 +379,7 @@ function ScheduleDialog({
           ) : schedules.length === 0 ? (
             <p className="py-8 text-center text-sm text-content-secondary">표시할 일정이 없습니다.</p>
           ) : (
-            <ScheduleTree schedules={schedules} expenses={expenses} />
+            <ScheduleTree schedules={schedules} expenses={expenses} pickupCharacters={pickupCharacters} />
           )}
         </div>
       </DialogContent>
@@ -394,6 +409,7 @@ export default function GamesPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [schedules, setSchedules] = useState<GameScheduleRow[]>([])
   const [gameExpenses, setGameExpenses] = useState<GameExpenseRow[]>([])
+  const [pickupCharacters, setPickupCharacters] = useState<PickupCharacterMap>({})
   const [isSchedulesLoading, setIsSchedulesLoading] = useState(false)
   const [showUnofficialSchedules, setShowUnofficialSchedules] = useState(false)
   const [schedulePreferenceNotice, setSchedulePreferenceNotice] = useState<string | null>(null)
@@ -535,6 +551,20 @@ export default function GamesPage() {
             return a.end_date.localeCompare(b.end_date)
           })
         setSchedules(sorted)
+        // Pickup avatars are decoration: fetch only the referenced characters (explicit columns, anon-safe) and never block (NR-10).
+        const pickupIds = Array.from(new Set(sorted.flatMap((schedule) => schedule.pickup_character_ids ?? [])))
+        if (pickupIds.length > 0) {
+          try {
+            const result = await supabase.from("game_characters").select("id, name, default_icon_url").in("id", pickupIds)
+            if (result && !result.error && Array.isArray(result.data)) {
+              setPickupCharacters(Object.fromEntries(
+                result.data.map((character) => [character.id, { name: character.name, iconUrl: character.default_icon_url ?? null }]),
+              ))
+            }
+          } catch {
+            // Schedules without avatars are still fully usable.
+          }
+        }
       }
       setIsSchedulesLoading(false)
     }
@@ -700,6 +730,7 @@ export default function GamesPage() {
           isSchedulesLoading={isSchedulesLoading}
           schedules={schedules}
           expenses={userId ? gameExpenses : null}
+          pickupCharacters={pickupCharacters}
         />
       </div>
     )
@@ -995,6 +1026,7 @@ export default function GamesPage() {
         isSchedulesLoading={isSchedulesLoading}
         schedules={schedules}
         expenses={userId ? gameExpenses : null}
+        pickupCharacters={pickupCharacters}
       />
       {/* 게임별 상시 메모 작성/수정 중앙 팝업 모달 */}
       <Dialog

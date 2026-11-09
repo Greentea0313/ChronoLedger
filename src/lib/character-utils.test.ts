@@ -10,6 +10,8 @@ import {
   hasOtherAxisValue,
   hasOtherRarity,
   isPresetOverLimit,
+  isCharacterSupported,
+  isCharacterTemplateActive,
   moveCharacterInPreset,
   normalizeClassificationSchema,
   normalizeMaxBreakthrough,
@@ -49,9 +51,9 @@ function run(filters: Partial<CharacterFilters>): string[] {
 
 describe("normalizeClassificationSchema", () => {
   it("returns an empty schema for malformed values", () => {
-    expect(normalizeClassificationSchema(null)).toEqual({ rarities: [], axes: [] })
-    expect(normalizeClassificationSchema([])).toEqual({ rarities: [], axes: [] })
-    expect(normalizeClassificationSchema("x")).toEqual({ rarities: [], axes: [] })
+    expect(normalizeClassificationSchema(null)).toEqual({ character_label: "캐릭터", rarities: [], axes: [] })
+    expect(normalizeClassificationSchema([])).toEqual({ character_label: "캐릭터", rarities: [], axes: [] })
+    expect(normalizeClassificationSchema("x")).toEqual({ character_label: "캐릭터", rarities: [], axes: [] })
   })
 
   it("keeps valid parts and drops invalid axes and options", () => {
@@ -60,7 +62,7 @@ describe("normalizeClassificationSchema", () => {
         rarities: ["5★", 4, null],
         axes: [{ key: "e", label: "속성", options: ["a", 1] }, { key: 1 }, "bad"],
       }),
-    ).toEqual({ rarities: ["5★"], axes: [{ key: "e", label: "속성", options: ["a"] }] })
+    ).toEqual({ character_label: "캐릭터", rarities: ["5★"], axes: [{ key: "e", label: "속성", options: ["a"] }] })
   })
 })
 
@@ -177,5 +179,26 @@ describe("breakthrough and favorites", () => {
 
     expect(sorted.map((item) => item.name)).toEqual(["나", "라", "가", "다"])
     expect(input.map((item) => item.name)).toEqual(["다", "가", "나", "라"])
+  })
+})
+
+
+describe("R52 character template helpers", () => {
+  it("normalizes the character label and caps visible axes at two", () => {
+    expect(normalizeClassificationSchema({ character_label: "  요원 ", rarities: [], axes: [] }).character_label).toBe("요원")
+    expect(normalizeClassificationSchema({ character_label: "  ", rarities: [], axes: [] }).character_label).toBe("캐릭터")
+    expect(normalizeClassificationSchema({ rarities: [], axes: [schema.axes[0], schema.axes[1], { key: "third", label: "third", options: ["x"] }] }).axes).toHaveLength(2)
+  })
+
+  it("treats a game with rarities or existing characters as template-active", () => {
+    expect(isCharacterTemplateActive({ classification_schema: { rarities: ["5★"], axes: [] } }, 0)).toBe(true)
+    expect(isCharacterTemplateActive({ classification_schema: { rarities: [], axes: [] } }, 2)).toBe(true)
+    expect(isCharacterTemplateActive({ classification_schema: { rarities: [], axes: [] } }, 0)).toBe(false)
+    expect(isCharacterTemplateActive(null, 1)).toBe(true)
+  })
+
+  it("supports games with at least one character", () => {
+    expect(isCharacterSupported(1)).toBe(true)
+    expect(isCharacterSupported(0)).toBe(false)
   })
 })

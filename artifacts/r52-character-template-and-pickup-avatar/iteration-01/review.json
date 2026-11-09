@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "run_id": "r52-character-template-and-pickup-avatar",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "static-review",
+  "base_sha": "0c09a20392f4aa42fd39c118a590f5b6eb801968",
+  "target_sha": "4ff5295d378c84a43306c69f1dec62ccd902862c",
+  "status": "findings",
+  "created_at": "2026-11-09T08:20:00Z",
+  "findings": [
+    {
+      "id": "R52-REV-001",
+      "severity": "P2",
+      "file": "sql/tests/TESTS.sql",
+      "line": 1548,
+      "evidence": "The R52 block inserts schedule_requests as `chronoledger.test_user_id`, but that user already has a PENDING account_deletion_requests row (line 1424). `block_pending_account_data_mutations` raises `계정 삭제가 진행 중이므로 개인 데이터를 변경할 수 없습니다.` at line 1576, so TESTS.sql aborts on both an upgraded schema (base SCHEMA + migration x2) and a fresh SCHEMA (+ migration x2) on local PostgreSQL 17. Earlier request checks in the same block (e.g. cross-game, line 1553) are caught by `WHEN raise_exception` and pass vacuously for the wrong reason. The Step 2 record states TESTS.sql passed.",
+      "impact": "NR-02/§7.3 request-side validation (cross-game, external image, non-PICKUP) is not actually verified and the full smoke suite cannot reach its final ROLLBACK, so the SQL acceptance gate for the run is not met.",
+      "recommendation": "Use a fixture user without a pending deletion (e.g. `chronoledger.other_user_id`) or move the R52 request assertions before the account-deletion fixture, and make each negative check catch only the intended SQLSTATE/message."
+    },
+    {
+      "id": "R52-REV-002",
+      "severity": "P2",
+      "file": "sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql",
+      "line": 177,
+      "evidence": "TESTS.sql (lines 1607-1618) expects anon reads of user_characters, character_requests and schedule_requests to raise insufficient_privilege, but neither the migration nor SCHEMA.sql revokes anon table privileges on them. Supabase's default privileges grant anon table access in `public` and rely on RLS to hide rows, so the assertion fails (`FAIL: anon could read user_characters`, reproduced with Supabase-equivalent default privileges). Adding `REVOKE ALL ON public.user_characters, public.user_character_presets, public.character_requests, public.schedule_requests FROM anon;` makes the suite pass (33 PASS on both databases).",
+      "impact": "The anon boundary for personal and request tables currently depends on RLS alone, contrary to the defense-in-depth intent of NR-01, and the smoke suite fails even after R52-REV-001 is fixed.",
+      "recommendation": "Add the explicit anon REVOKE for user_characters, user_character_presets, character_requests and schedule_requests to the migration and SCHEMA.sql next to the game_characters column grant; keep the TESTS.sql insufficient_privilege assertions."
+    },
+    {
+      "id": "R52-REV-003",
+      "severity": "P3",
+      "file": "src/app/admin/requests/page.tsx",
+      "line": 305,
+      "evidence": "When `approve_schedule_request` returns any error, the page falls back to direct game_schedules insert/update plus a schedule_requests status update. This fallback pre-dates R52, but R52 extends it with `getPickupFallbackFields`. It runs for every RPC error (including '승인 대기 중인 일정 요청이 아닙니다.' or pickup validation errors), skips the RPC's PENDING lock and deleted-character filtering (NR-06), and never copies `is_rerun`.",
+      "impact": "Admins can produce non-atomic or inconsistent approvals (double approval races, rerun flag lost, stale pickup ids rejected only by the trigger) instead of seeing the real RPC error.",
+      "recommendation": "Limit the fallback to 'function missing' errors (PGRST202/42883) or remove it now that the RPC is deployed; surface other RPC errors to the admin. Track as a follow-up if out of this iteration's scope."
+    },
+    {
+      "id": "R52-REV-004",
+      "severity": "P4",
+      "file": "src/lib/image-resizer.ts",
+      "line": 67,
+      "evidence": "`convertIconSourceToDataUrl` returns any existing `data:image/webp;base64,` string unchanged, so a large WebP data URL pasted into the pickup image URL field skips the 96px resize.",
+      "impact": "The save then fails on the 30,000-character CHECK with the generic R52 migration message instead of an image-size hint.",
+      "recommendation": "Check `length <= 30000` before saving the pickup image in the admin form and request modal and show an image-size specific message."
+    }
+  ]
+}
