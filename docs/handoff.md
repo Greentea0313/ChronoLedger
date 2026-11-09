@@ -34,7 +34,7 @@
 - **Run ID**: `schedule-rerun-and-broadcast` *(2026-11-09, `Phase 12.38` R33 일정 분류 세분화: `PICKUP` 복각 플래그 `is_rerun` + `BROADCAST`(특별방송) 일정 종류)*
 - **Orchestrator**: Gemini 4 Argon *(본 Run 등록은 Claude Opus가 1순위 대체로 수행)*
 - **Worktree 경로**: `.worktrees/schedule-rerun-and-broadcast` (브랜치: `collab/schedule-rerun-and-broadcast`)
-- **리뷰 비교 범위**: Base `d09ba5c131838872fa8423c9ce80cd31d345106f` ↔ Target `5ce5d22` *(Step 3 Reviewer가 manifest `target_sha` 기록, manifest 커밋 `10ef476`, Step 1 커밋 `9e33ac9`)*
+- **리뷰 비교 범위**: iteration-01 Base `d09ba5c131838872fa8423c9ce80cd31d345106f` ↔ Target `5ce5d2221a99c0ece57b70b71420121fa9066abc` (manifest `target_sha` 기록, 산출물 커밋 `3a2d882`, `status: findings` — P2 1건·P3 3건·P4 1건). iteration-02 Base `d09ba5c` ↔ Target `(Step 4 Maker 커밋 후 기록)` *(manifest 커밋 `10ef476`, Step 1 커밋 `9e33ac9`)*
 - **설계 결정 (Orchestrator 확정)**:
   - `is_rerun`은 `PICKUP` 전용임. `game_schedules`·`schedule_requests` 양쪽에 `is_rerun BOOLEAN NOT NULL DEFAULT false` + `CHECK (is_rerun = false OR schedule_type = 'PICKUP')`를 적용함.
   - `BROADCAST`는 단일/기간 일정 모두 허용하며 예정 지출 동기화 트리거(`sync_version_expenses_trigger`) 대상에 포함함(`target_date = end_date` 규칙 동일, VERSION만 `start_date`).
@@ -59,12 +59,25 @@
        - ④ **테스트·문서**: 위 대상 테스트 파일에 BROADCAST 옵션·복각 토글 노출/초기화·배지 렌더링·미적용 오류 안내 테스트를 추가하고 `docs/to-do.md` `R33` 상태를 갱신함. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 커밋하고 Target SHA를 기록함.
   3. **Step 3 — 통합 정적 리뷰 및 Run 마감 (Claude Opus)**:
      - Base `d09ba5c` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`, SQL/RPC 권한·멱등성·원장 동기화 트리거 포함), `test.json`, `run.json` 스키마 검증, `main` 병합, 운영 DB 마이그레이션 수동 적용 체크리스트(`docs/to-do.md` `R46`) 등록 및 문서 마감.
+     - **결과 (iteration-01)**: `artifacts/schedule-rerun-and-broadcast/iteration-01/review.json` `status: findings`로 `main` 병합 보류, Step 4 수정 iteration 등록함. SQL·RPC·트리거 변경은 지적 없음(단, Step 1 일부를 리뷰어와 같은 Claude Opus가 인수·수정해 해당 부분 리뷰 독립성은 제한됨).
+  4. **Step 4 — iteration-02 리뷰 지적 수정 (GitHub Copilot)**:
+     - **대상 파일 (`.worktrees/schedule-rerun-and-broadcast` 내부)**: Step 2 대상 파일 전체 + `src/components/game/user-requests-card.tsx`, `src/components/game/user-requests-card.test.tsx`(신규 허용)
+     - **`R33-REV-001` (P2, 필수)**: Step 2 커밋에 테스트가 0건임. 관리자 페이지·`RequestSubmissionModal`(BROADCAST 옵션, PICKUP 전용 복각 체크박스 노출·종류 변경 시 초기화, `is_rerun` 페이로드 규칙, `42703`/`PGRST204`/`23514` 안내 문구)과 사이드바·주차 리스트·ScheduleTree·데스크톱 캘린더(`특별방송` 라벨·`복각` 배지) 테스트를 추가함.
+     - **`R33-REV-002` (P3)**: `admin/page.tsx:481`, `request-submission-modal.tsx:263`이 수정 시 항상 `is_rerun: false`를 보내 마이그레이션 미적용 상태에서 모든 일정 수정·수정 요청이 실패함 → 원본 일정이 `is_rerun === true`였을 때만 `false`를 보내고 그 외에는 키를 생략함.
+     - **`R33-REV-003` (P3)**: `hero-sidebar.tsx:389` 묶음 일정(같은 게임·종류·기간) 목록에 항목별 `복각` 배지가 없음 → 항목별 `[비공식]` 옆에 추가함.
+     - **`R33-REV-004` (P3)**: `user-requests-card.tsx:216`이 VERSION 외 요청을 모두 `픽업`으로 표시함 → 버전/픽업/콘텐츠/특별방송 4종 라벨과 `복각` 배지 적용함.
+     - **`R33-REV-005` (P4, 선택)**: `schedule-banner.tsx:19` 캘린더 배너가 다른 종류는 영문, BROADCAST만 한글 → 표기 통일 검토함.
+     - **검증**: `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 워크트리 커밋, Run 블록과 Step 4 행에 Target SHA 기록 후 Step 5를 `▶ READY`로 변경함.
+  5. **Step 5 — iteration-02 재리뷰 및 Run 마감 (Claude Opus)**:
+     - Base `d09ba5c` ↔ Step 4 Target SHA 재리뷰(`iteration-02/review.json`·`test.json`), `run.json` `status: completed`, 스키마 검증, `main` 병합, `R46` 운영 마이그레이션 체크리스트 등록(**마이그레이션 먼저 적용 후 배포** 순서 명시) 및 문서 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 9e33ac9d5bb5eb1a9dd9655329a0b1830ffbf134)`** | **~~GPT Codex~~ ➡️ Claude Opus** *(GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/RPC/Types)` | `Phase 12.38-DB (R33)`: 수용 기준 Step 1. 마이그레이션·`SCHEMA.sql`·`approve_schedule_request`·동기화 트리거·`TESTS.sql`·타입·요청 검증·SRS/SPEC *(범위 조정: tsc 통과를 위해 `src/app/admin/requests/page.tsx`·`src/components/game/request-submission-modal.tsx`의 로컬 `schedule_type` 타입 선언 4곳만 `BROADCAST` 확장, UI 동작 변경 없음)* | `✅ 9e33ac9: GPT Codex 초안 인수 후 TESTS.sql R33 블록 RLS 결함(authenticated 직접 INSERT) 수정, SRS FR-010 정리. 임시 PostgreSQL 17(Supabase auth/storage/cron 스텁)에서 기존 SCHEMA→migration 2회 및 신규 SCHEMA→migration 2회 적용, 두 DB 모두 TESTS.sql 31개 PASS. tsc/lint/diff-check 통과, Vitest 50파일/415개 통과.` |
 | **2** | **`✅ DONE (SHA: 5ce5d22)`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Type UI)` | `Phase 12.38-UI (R33)`: 수용 기준 Step 2. 관리자·요청 폼, 캘린더·사이드바·주차 리스트·ScheduleTree 배지, 미적용 마이그레이션 내성 | `✅ 관리자·요청 폼의 BROADCAST/복각 입력, 관리자 요청·과거 일정·캘린더·게임 일정 표시, 미적용 마이그레이션 오류 안내 반영. tsc/lint, 대상 7파일 96개 및 전체 50파일 415개 Vitest, diff-check 통과함` |
-| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d09ba5c` ↔ Target `5ce5d22` 통합 정적 리뷰, `run.json` 마감, `main` 병합, `R46` 운영 마이그레이션 체크리스트 등록 및 `docs/` 동기화 | `▶ Step 2 완료되어 리뷰 착수 가능함` |
+| **3** | **`✅ DONE (iteration-01 리뷰 findings, 산출물 SHA: 3a2d882)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d09ba5c` ↔ Target `5ce5d22` 통합 정적 리뷰, `run.json` `target_sha` 기록 | `✅ 3a2d882: review.json findings(R33-REV-001 P2 Step 2 테스트 0건, REV-002 P3 수정 시 is_rerun:false 상시 전송, REV-003 P3 묶음 일정 복각 배지 누락, REV-004 P3 내 요청 카드 라벨, REV-005 P4 배너 표기). 임시 PostgreSQL TESTS.sql 31 PASS(업그레이드·신규 2종), tsc/lint 통과, Vitest 50파일/415개 통과. 스키마 검증 3종 통과. main 병합 보류.` |
+| **4** | **`▶ READY`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (iteration-02 Review Fix)` | 수용 기준 Step 4(`R33-REV-001`~`005`) 수정 및 테스트 추가. 허용 파일: Step 2 대상 파일 + `src/components/game/user-requests-card.tsx`·`.test.tsx` | `▶ 대기: iteration-01 review.json 참조` |
+| **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d09ba5c` ↔ Step 4 Target SHA iteration-02 재리뷰, `run.json` 마감, `main` 병합, `R46` 등록 및 `docs/` 동기화 | `⏳ Step 4 완료 후 진행` |
 
 ### 🗂️ 이전 Run 기록 (완료): dashboard-summary-dday-and-week-list
 

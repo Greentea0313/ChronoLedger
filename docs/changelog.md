@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-09 (schedule-rerun-and-broadcast iteration-01 리뷰)
+
+- Base `d09ba5c` ↔ Target `5ce5d22` 통합 정적 리뷰 결과 `findings` 판정함(`R33-REV-001` P2 UI 테스트 누락, `REV-002`~`004` P3, `REV-005` P4).
+- `artifacts/schedule-rerun-and-broadcast/` `run.json`(`target_sha`), `iteration-01/{review,test}.json` 작성·스키마 검증 후 워크트리 커밋(`3a2d882`)함. iteration-02 수정 단계(Step 4)와 재리뷰(Step 5)를 Dispatch Queue에 등록함.
+
 ## 2026-11-09 (R33 UI Step 2 완료 — `BROADCAST`·PICKUP 복각 표시)
 
 - 관리자 일정 등록/수정 및 사용자 일정 요청에 `BROADCAST` 특별방송 옵션과 PICKUP 전용 복각 토글을 추가함.

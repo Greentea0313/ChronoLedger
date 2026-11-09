@@ -1,4 +1,17 @@
 # 프로젝트 진행 현황
+## schedule-rerun-and-broadcast iteration-01 통합 정적 리뷰 (2026-11-09)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)임. Step 1 일부를 같은 모델이 인수·수정해 SQL 부분 리뷰 독립성은 제한됨.
+- **리뷰 범위**: Base `d09ba5c` ↔ Target `5ce5d22`(Step 1 DB `9e33ac9` + Step 2 UI `5ce5d22`)임.
+- **지적 사항 (`status: findings`)**:
+  - `R33-REV-001` (P2): Step 2 UI 커밋에 테스트 추가 0건(수용 기준 ④ 미충족)임.
+  - `R33-REV-002` (P3): 일정 수정·수정 요청 시 `is_rerun: false`를 항상 보내 마이그레이션 미적용 상태에서 모든 수정이 실패함.
+  - `R33-REV-003` (P3): 사이드바 묶음 일정 목록에 항목별 `복각` 배지 누락임.
+  - `R33-REV-004` (P3): `user-requests-card.tsx`가 VERSION 외 요청을 모두 `픽업`으로 표시함(Step 2 허용 파일 누락은 Orchestrator 책임).
+  - `R33-REV-005` (P4): 캘린더 배너 표기 언어 불일치임.
+- **검증**: 임시 PostgreSQL 17에서 업그레이드·신규 스키마 모두 마이그레이션 2회 후 `TESTS.sql` 31개 PASS. tsc·lint 통과, Vitest 50파일/415개 통과함. 산출물 스키마 검증 통과 및 커밋(`3a2d882`) 완료함.
+- **다음 단계**: Step 4 수정(**GitHub Copilot** `▶ READY`) → Step 5 재리뷰·`main` 병합·`R46`(**Claude Opus** `⏳ WAITING`)임. `main` 병합 보류임.
+
 ## R33 UI Maker 인계 완료: schedule-rerun-and-broadcast Step 2 (2026-11-09)
 
 - **수행 주체**: GitHub Copilot (Maker - General)임.
