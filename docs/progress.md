@@ -1,4 +1,14 @@
 # 프로젝트 진행 현황
+## Phase 12.42 Step 5 iteration-02 재리뷰 — 수정 요청 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임.
+- **결과**: Base `33829c9` ↔ Target `129a118` 판정 `findings`, 산출물 `e9d9367`임. `main` 병합 보류함.
+  - `R35-REV-001`·`002`: 해소 확인함(`002`는 등록 경로 기준).
+  - `R35-REV-004`(P3): 편집 모드가 저장된 `schedule_id`를 모르기 때문에, 경계일에 연결된 VERSION 행을 편집하면 이전 버전으로 다시 연결됨(임시 테스트로 재현).
+  - `R35-REV-005`(P4): 기존 버전 날짜 동기화 트리거가 패스 행의 `target_date`를 시작일로 바꿈 → 범위 밖 SQL 후속 `R56`으로 등록함.
+- **동적 검증**: tsc·lint·Vitest 625개 통과, SQL 변경 없음. PostgreSQL 17은 미설치로 미실행임.
+- **다음 단계**: Step 6(`Claude Sonnet`, iteration-03 수정) `▶ READY` → Step 7(`Claude Opus`) 재리뷰·병합·`R54` 등록임.
+
 ## Phase 12.42 Step 4 iteration-02 수정 완료 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Maker (Expense Prefill Fix)`)임.

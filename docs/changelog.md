@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-10 (Phase 12.42 Step 5 — iteration-02 재리뷰, `e9d9367`)
+
+- `r35-favorite-schedules-and-r51-followup` iteration-02 재리뷰(`33829c9` ↔ `129a118`) 결과 `R35-REV-004`(P3)·`005`(P4)를 기록하고 `iteration-02/review.json`·`test.json`·`run.json`(`target_sha`)을 커밋함.
+- Dispatch Queue에 Step 6(iteration-03 수정, Claude Sonnet)·Step 7(재리뷰·병합, Claude Opus) 등록함. to-do에 `R56`(버전 동기화 트리거 패스 행 `target_date` 보존) 추가함.
+
 ## 2026-11-10 (Phase 12.42 Step 4 — iteration-02 수정, `129a118`)
 
 - `ExpenseModal` 편집 모드에서 `start_date ≠ end_date && target_date = end_date`일 때만 버전 패스로 판정하도록 수정함. 관심 일정 프리필 등 비패스 기간 행은 날짜를 바꾸지 않으면 저장된 기간을 유지함(`R35-REV-001`).
