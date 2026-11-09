@@ -13,5 +13,5 @@
     "branch":  "collab/schedule-rerun-and-broadcast",
     "worktree_path":  ".worktrees/schedule-rerun-and-broadcast",
     "max_iterations":  3,
-    "status":  "in_progress"
+    "status": "completed"
 }
