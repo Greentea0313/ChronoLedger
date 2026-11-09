@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "schedule-rerun-and-broadcast",
+  "iteration": 2,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "static-review",
+  "base_sha": "d09ba5c131838872fa8423c9ce80cd31d345106f",
+  "target_sha": "8c64d983d7a39cae72dd29ce0d4457d1f02358e1",
+  "status": "findings",
+  "created_at": "2026-11-09T04:25:00Z",
+  "findings": [
+    {
+      "id": "R33-REV-006",
+      "severity": "P3",
+      "file": "src/components/game/user-requests-card.tsx",
+      "line": 69,
+      "evidence": "The schedule_requests query now lists `is_rerun` explicitly in `.select(\"id, game_id, target_schedule_id, title, schedule_type, is_rerun, ...\")`; when that column does not exist PostgREST returns an error and the handler sets `요청 내역을 불러오지 못했습니다.` for both game and schedule requests (lines 74-76).",
+      "impact": "If the build is deployed before MIGRATION_R33 is applied, users cannot see any of their game or schedule request history. This contradicts AC Step 2 item 3 (reads treat a missing is_rerun as false). No impact when the migration is applied before deployment.",
+      "recommendation": "Retry the schedule_requests query without `is_rerun` on 42703/PGRST204 (existing user_games.memo fallback pattern), or enforce migration-before-deploy in the R46 checklist."
+    },
+    {
+      "id": "R33-REV-007",
+      "severity": "P4",
+      "file": "src/app/admin/page.tsx",
+      "line": 485,
+      "evidence": "iteration-02 adds R33 tests for RequestSubmissionModal (BROADCAST + rerun reset, ADD payload omits is_rerun), hero-sidebar grouped badge, weekly list, desktop calendar and user-requests-card, but none for the admin schedule form (rerun toggle, `originalIsRerun` edit payload branch), the games ScheduleTree badges, the EDIT-mode `is_rerun: false` branch in the modal, or the R33 migration error copy.",
+      "impact": "R33-REV-001 is resolved for the main surfaces; the remaining untested branches (admin edit payload and error message) could regress silently.",
+      "recommendation": "Add admin page and ScheduleTree tests for these branches in a follow-up."
+    }
+  ]
+}
