@@ -1,4 +1,17 @@
 # 프로젝트 진행 현황
+## r52-character-template-and-pickup-avatar iteration-01 통합 리뷰 (Step 4, 2026-11-09)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)임. Step 1 명세 리뷰도 같은 모델이 수행했으므로 명세 해석 부분의 독립성은 제한됨.
+- **리뷰 범위**: Base `0c09a20` ↔ Target `4ff5295`(DB `422f8ab` + UI `990c5b8`~`4ff5295`)임.
+- **SQL·RLS 확인**: NR-01~08 반영 확인함(anon 열 단위 권한, 배열 검증 트리거, 모드 상호 배타, Data URL 전용·30,000자, 삭제 정리, 승인 RPC 필터 복사, 사전 점검 중단, 축 키 보존). 게임 삭제 cascade 정상임.
+- **지적 사항**:
+  - `R52-REV-001` (P2): `TESTS.sql` R52 블록이 계정 삭제 대기 사용자로 요청을 INSERT해 1576행에서 중단됨. Step 2 기록의 "TESTS.sql 통과"와 불일치함.
+  - `R52-REV-002` (P2): Supabase 기본 권한 때문에 개인·요청 테이블 `anon` 검증이 실패함. 명시적 `REVOKE` 추가가 필요함.
+  - `R52-REV-003` (P3): 관리자 일정 승인 폴백이 모든 RPC 오류에서 직접 쓰기를 수행함(기존 코드, R52가 확장).
+  - `R52-REV-004` (P4): 대용량 WebP Data URL 붙여넣기 시 96px 변환 우회됨.
+- **검증**: 마이그레이션 2회 적용은 업그레이드·신규 모두 통과, 원본 `TESTS.sql`은 두 DB 모두 실패함(두 P2 보정 시 33개 PASS). tsc·lint 통과, Vitest 55파일/547개 통과함. 산출물 커밋 `7a2b1e5`임.
+- **다음 단계**: Step 5 수정(**GPT Codex** `▶ READY`, Fallback: Claude Opus / GitHub Copilot) → Step 6 재리뷰·병합(**Claude Opus** `⏳ WAITING`)임. `main` 병합 보류임.
+
 ## R52 DB/RLS/RPC/Types Maker 완료 (Phase 13.5-A, 2026-11-09)
 
 - **수행 주체**: GPT Codex Maker로 지정 Worktree에서 구현함.
