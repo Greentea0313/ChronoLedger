@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## R33 UI iteration-02 수정 완료: schedule-rerun-and-broadcast (2026-11-09)
+
+- **수행 주체**: GitHub Copilot (Step 4 Maker)임.
+- **커밋**: `.worktrees/schedule-rerun-and-broadcast`의 `8c64d98`임.
+- **수정 내용**: 수정 payload의 `is_rerun` 미적용 마이그레이션 내성을 보강하고, 묶음 일정 사이드바 복각 배지·내 요청 카드 일정 종류 라벨을 추가함. BROADCAST·복각·캘린더 표시 회귀 테스트를 추가함.
+- **검증**: `npx tsc --noEmit`, `npm run lint`, 전체 Vitest 51파일/420개, `git diff --check` 통과함.
+- **다음 단계**: Claude Opus가 Base `d09ba5c`와 Target `8c64d98`을 재리뷰하고 `main` 병합·R46 운영 마이그레이션 체크리스트를 마감함.
+
 ## schedule-rerun-and-broadcast iteration-01 통합 정적 리뷰 (2026-11-09)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)임. Step 1 일부를 같은 모델이 인수·수정해 SQL 부분 리뷰 독립성은 제한됨.

@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-09 (R33 UI iteration-02 리뷰 수정 완료)
+
+- 수정 대상 일정의 원본 `is_rerun` 상태를 기준으로 false payload를 조건부 전송하여 미적용 마이그레이션 호환성을 보강함.
+- 묶음 일정 사이드바와 사용자 요청 내역에 복각 배지·BROADCAST/CONTENTS 포함 4종 일정 라벨을 반영함.
+- R33 UI 회귀 테스트를 추가·보강함. 검증 결과는 Vitest 51파일/420개, tsc, lint, diff-check 통과이며 커밋은 `8c64d98`임.
+
 ## 2026-11-09 (schedule-rerun-and-broadcast iteration-01 리뷰)
 
 - Base `d09ba5c` ↔ Target `5ce5d22` 통합 정적 리뷰 결과 `findings` 판정함(`R33-REV-001` P2 UI 테스트 누락, `REV-002`~`004` P3, `REV-005` P4).
