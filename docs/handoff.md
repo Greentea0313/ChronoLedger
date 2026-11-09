@@ -58,8 +58,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Dashboard Summary, D-Day & Weekly List UI)` | `Phase 12.37 (R32 & R34)`: `.worktrees/dashboard-summary-dday-and-week-list`에서 대시보드 오늘/이번 주 요약 카드, 사이드바 일정·예정 지출 `D-n` 배지 및 진행률 바, 월간 캘린더 ↔ 주차별 리스트 뷰 토글 및 단위 테스트 구현 | `-` |
-| **2** | **`⏳ WAITING`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `-` |
+| **1** | **`✅ DONE (SHA: ab930c5baa8b2211e25aeae2ceb725c194a6a9dc)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Dashboard Summary, D-Day & Weekly List UI)` | `Phase 12.37 (R32 & R34)`: `.worktrees/dashboard-summary-dday-and-week-list`에서 대시보드 오늘/이번 주 요약 카드, 사이드바 일정·예정 지출 `D-n` 배지 및 진행률 바, 월간 캘린더 ↔ 주차별 리스트 뷰 토글 및 단위 테스트 구현 | `✅ ab930c5: calendar-utils D-day/진행률/주차 헬퍼, 대시보드 요약 스트립, 사이드바·드로어 D-n 배지·진행률 바, 주차별 리스트 토글(weekly-schedule-list.tsx) 구현. tsc/lint 통과, Vitest 49파일/410개 통과.` |
+| **2** | **`▶ READY`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: ab930c5baa8b2211e25aeae2ceb725c194a6a9dc` |
 
 > **✅ 운영 DB 마이그레이션 적용 완료 (`R45`, 2026-11-09)**: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 적용 및 확인이 완료됨.
 

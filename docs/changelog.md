@@ -1,4 +1,12 @@
 # 변경 이력
+## 2026-11-09 (Phase 12.37 — R32 요약 스트립·D-n, R34 주차별 리스트)
+
+- `calendar-utils.ts`에 `getDdayLabel`(D-Day/D-n/D+n), `getPeriodProgress`(0~100%, 단일일·경계 안전), `groupDatesByWeek`(일요일 시작 주차, 이번 주 표시) 헬퍼를 추가함.
+- 대시보드 상단에 오늘 시작·마감 일정 수, 이번 주 진행 일정 수, 이번 주 예정 지출 합계(게스트는 `-`) 요약 스트립을 추가함.
+- 사이드바·모바일 드로어 일정 카드에 종료일 `D-n` 배지와 진행률 바, 예정(`PLANNED`) 지출에 결제일 `D-n`(기간이 있으면 진행률 바)을 표시함.
+- `[캘린더형]`/`[주차별 리스트]` 뷰 토글과 `weekly-schedule-list.tsx`(이번 주 강조, 주간 예정/확정 소계, 게스트는 지출 숨김)를 추가함.
+- 검증: tsc·lint 통과, Vitest 49파일/410개 통과함. 워크트리 커밋 `ab930c5baa8b2211e25aeae2ceb725c194a6a9dc`임.
+
 ## 2026-11-09 (r13-4-breakthrough-guest-and-schedule-tree 통합 리뷰·수정 및 `main` 병합 마감)
 
 - **Iteration 1 리뷰 및 Iteration 2 수정 (`29443b4`, Gemini 4 Argon & Gemini 3.8 Flash)**:
