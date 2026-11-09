@@ -48,6 +48,8 @@ export interface PlannedExpenseEditInput {
   end_date?: string | null
   payment_method?: string
   game_id?: string | null
+  /** Stored VERSION link, preferred over date matching while the date stays inside that schedule's period. */
+  schedule_id?: string | null
   pickup_schedule_id?: string | null
   memo?: string | null
   point_platform?: string | null
@@ -242,7 +244,7 @@ export function ExpenseModal({
               }
             : null,
         )
-        setPreferredScheduleId(null)
+        setPreferredScheduleId(editingExpense.schedule_id ?? null)
 
         const method = editingExpense.payment_method
         const restoredPlatform = resolveStorePlatform(method, editingExpense.point_platform)

@@ -648,6 +648,7 @@ export default function ExpensesPage() {
       end_date: expense.end_date,
       payment_method: expense.payment_method,
       game_id: expense.game_id ?? null,
+      schedule_id: expense.schedule_id ?? null,
       pickup_schedule_id: expense.pickup_schedule_id ?? null,
       point_platform: expense.point_platform ?? null,
       memo: expense.memo ?? null,

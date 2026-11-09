@@ -788,6 +788,51 @@ describe("ExpenseModal", () => {
       expect(insert).toHaveBeenCalledWith(expect.objectContaining({ schedule_id: "v-new", target_date: "2030-01-15" }))
     })
 
+    const boundaryVersionRow = {
+      id: "exp-boundary",
+      title: "버전 1.1",
+      original_price: 11000,
+      category: "게임",
+      game_id: "g1",
+      schedule_id: "v-new",
+      target_date: "2030-01-15",
+      start_date: "2030-01-15",
+      end_date: "2030-02-10",
+      payment_method: "WALLET",
+    }
+
+    it("keeps the stored VERSION schedule_id when editing a boundary-day row (R35-REV-004)", async () => {
+      setupVersions(boundaryVersions)
+      const onCompleted = vi.fn()
+      render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} editingExpense={boundaryVersionRow} />)
+
+      await screen.findByRole("option", { name: "버전 1.1" })
+      fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "12000" } })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(update).toHaveBeenCalledWith(expect.objectContaining({
+        schedule_id: "v-new",
+        target_date: "2030-01-15",
+        start_date: "2030-01-15",
+        end_date: "2030-02-10",
+      }))
+    })
+
+    it("re-matches by date when an edited row moves outside its stored VERSION period", async () => {
+      setupVersions(boundaryVersions)
+      const onCompleted = vi.fn()
+      render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} editingExpense={boundaryVersionRow} />)
+
+      await screen.findByRole("option", { name: "버전 1.1" })
+      fireEvent.change(screen.getByLabelText("지출 예정일"), { target: { value: "2030-01-10" } })
+      await screen.findByRole("option", { name: "버전 1.0" })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(update).toHaveBeenCalledWith(expect.objectContaining({ schedule_id: "v-old", target_date: "2030-01-10" }))
+    })
+
     it("falls back to date matching when the date leaves the prefilled VERSION period", async () => {
       setupVersions(boundaryVersions)
       const onCompleted = vi.fn()

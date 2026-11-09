@@ -642,6 +642,56 @@ describe("ExpensesPage", () => {
     expect(screen.getByText("예정 지출 수정")).toBeTruthy()
   })
 
+  it("passes the stored schedule_id to the edit modal so a boundary-day VERSION link is kept (R35-REV-004)", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const plannedRow = {
+      id: "exp-boundary",
+      title: "버전 1.1 패키지",
+      category: "게임",
+      status: "PLANNED",
+      target_date: "2026-10-10",
+      start_date: "2026-10-10",
+      end_date: "2026-10-25",
+      game_id: "game-1",
+      schedule_id: "v-new",
+      pickup_schedule_id: null,
+      original_price: 11000,
+      discount_amount: 0,
+      point_discount_amount: 0,
+      used_points: 0,
+      earned_points: 0,
+      final_amount: 11000,
+      payment_method: "WALLET",
+      games: { name: "원신", default_icon_url: null },
+    }
+    const expenseBuilder = createExpenseQueryBuilder([plannedRow])
+    from.mockImplementation((table: string) => {
+      if (table === "expenses") return expenseBuilder
+      if (table === "games") return createExpenseQueryBuilder([{ id: "game-1", name: "원신" }])
+      if (table === "user_games") return createExpenseQueryBuilder([{ game_id: "game-1" }])
+      if (table === "game_schedules") {
+        return createExpenseQueryBuilder([
+          { id: "v-old", game_id: "game-1", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-10-01", end_date: "2026-10-10", is_official: true },
+          { id: "v-new", game_id: "game-1", title: "버전 1.1", schedule_type: "VERSION", start_date: "2026-10-10", end_date: "2026-10-31", is_official: true },
+        ])
+      }
+      return createExpenseQueryBuilder([])
+    })
+
+    render(<ExpensesPage />)
+
+    fireEvent.click((await screen.findAllByRole("button", { name: "수정" }))[0])
+    await screen.findByRole("option", { name: "버전 1.1" })
+    fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+    await waitFor(() => expect(expenseBuilder.update).toHaveBeenCalledWith(expect.objectContaining({
+      schedule_id: "v-new",
+      target_date: "2026-10-10",
+      start_date: "2026-10-10",
+      end_date: "2026-10-25",
+    })))
+  })
+
   it("CONFIRMED 항목에서 [상세 / 수정] 클릭 시 ExpenseDetailModal이 열린다", async () => {
     useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
     const builder = createExpenseQueryBuilder(sampleExpenses)
