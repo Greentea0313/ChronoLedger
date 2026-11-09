@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Phase 12.42 Step 4 — iteration-02 수정, `129a118`)
+
+- `ExpenseModal` 편집 모드에서 `start_date ≠ end_date && target_date = end_date`일 때만 버전 패스로 판정하도록 수정함. 관심 일정 프리필 등 비패스 기간 행은 날짜를 바꾸지 않으면 저장된 기간을 유지함(`R35-REV-001`).
+- `ExpensePrefill`에 선택 필드 `schedule_id`를 추가하고 VERSION 일정 프리필 시 설정함. 결제일이 그 일정 기간 안이면 `matchingVersion`이 해당 일정을 우선 선택함(`R35-REV-002`).
+- `expense-modal.test.tsx` 회귀 테스트 5건 추가(Vitest 625개 통과). `R35-REV-003`은 to-do `R55`로 이관함. Step 5(`Claude Opus`)를 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Phase 12.42 Step 3 — iteration-01 리뷰, `6c913c2`)
 
 - `r35-favorite-schedules-and-r51-followup` iteration-01 통합 리뷰(`33829c9` ↔ `13ca8fa`) 결과 `R35-REV-001`(P2)·`002`(P3)·`003`(P4)를 기록하고 `review.json`·`test.json`·`run.json`(`target_sha`)을 커밋함.

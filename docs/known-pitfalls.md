@@ -123,6 +123,7 @@
 36. **예정 지출 편집 모드의 버전 패스 판정 (`start_date ≠ end_date`)**
     - 증상: `ExpenseModal` 편집 모드는 `start_date !== end_date`만으로 버전 패스로 판정함. 버전 패스가 아닌데 기간을 저장한 예정 지출(R35 관심 일정 프리필, `target_date = start_date`)을 편집하면 저장 시 날짜가 매칭 VERSION 기간·종료일로 바뀌고 예산 귀속월이 이동함(2026-11-10, `R35-REV-001`).
     - 방어책: 기간을 가진 비패스 예정 지출을 새로 만들 때는 편집 모드 판정과 저장 분기(`isVersionPass && matchingVersion`)를 함께 확인함. 버전 패스 행은 `target_date = end_date`로 저장되므로 판정에 이 조건을 포함함.
+    - 조치: iteration-02 `129a118`에서 판정을 `start_date ≠ end_date && target_date = end_date`로 고치고, 비패스 기간 행은 날짜 미변경 시 저장된 기간(`keptPeriod`)을 유지하도록 수정함(Worktree 커밋, `main` 병합 전).
 37. **산출물 검증기 `validate_collaboration_artifact.py` 실행 의존성**
     - 증상: Python에 `jsonschema`가 없으면 `ModuleNotFoundError`로 실패함. 인자는 위치 인자가 아니라 `--artifact <json> --schema artifacts/schemas/<kind>.schema.json`임(2026-11-10).
     - 방어책: 사용자 환경을 바꾸지 않으려면 `py -m pip install --target <임시 폴더> jsonschema` 후 `PYTHONPATH=<임시 폴더>`로 실행함.

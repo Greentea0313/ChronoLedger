@@ -1,4 +1,14 @@
 # 프로젝트 진행 현황
+## Phase 12.42 Step 4 iteration-02 수정 완료 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Maker (Expense Prefill Fix)`)임.
+- **커밋 `129a118`** (`.worktrees/r35-favorite-schedules-and-r51-followup`, 미병합):
+  - `R35-REV-001`: 편집 모드 버전 패스 판정을 `target_date = end_date` 조건까지 보도록 고치고, 비패스 기간 행은 날짜 미변경 시 기간을 유지함.
+  - `R35-REV-002`: VERSION 프리필에 `schedule_id`를 실어 경계일에도 해당 버전을 우선 연결함.
+  - `R35-REV-003`(선택): 생략하고 to-do `R55`로 이관함.
+- **검증**: `tsc --noEmit`·`npm run lint` 통과, Vitest 56파일/625개 통과(+5)함. 브라우저 실사용 확인은 미수행임.
+- **다음 단계**: Step 5(`Claude Opus`, iteration-02 재리뷰·PG17 검증·`main` 병합·운영 마이그레이션 `R54` 등록) `▶ READY`임.
+
 ## Phase 12.42 Step 3 iteration-01 리뷰 — 수정 요청 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임.

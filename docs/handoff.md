@@ -42,8 +42,8 @@
 | **1** | **`✅ DONE (SHA: 865d0a7)`** | ~~GPT Codex~~ ➡️ **Claude Opus** *(GPT Codex 토큰 소진으로 1순위 대체 수행)* | `Maker (DB/RLS/Purge & Types)` | `Phase 12.42 (R35 DB)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/SCHEMA.sql`, `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql`, `sql/tests/TESTS.sql`, `sql/README.md`, `src/types/database.types.ts` | `✅ 865d0a7`: 마이그레이션·SCHEMA·README·TESTS.sql R35-01~04·타입 반영. `tsc --noEmit` 통과, PGlite(Supabase 스텁) 신규/Base 스키마 + 마이그레이션 2회 + `TESTS.sql` 전체 PASS (아래 Step 1 완료 기록 참고) |
 | **2** | **`✅ DONE (SHA: 13ca8fa)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Favorite Schedule UI & R51 Follow-ups)` | `Phase 12.42 (R35 UI & R51)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/app/dashboard/settings/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/game/game-onboarding-modal.tsx`, `src/components/game/game-onboarding-modal.test.tsx`, `src/lib/game-order-storage.ts`, `src/lib/game-order-storage.test.ts`, `src/lib/auth-context.tsx` | `✅ 13ca8fa`: 관심 일정 토글·`관심 일정만` 필터·`+ 예정 지출 추가` 프리필(`ExpenseModal prefill`) + `R51` 2건 반영. `tsc --noEmit`·`npm run lint` 통과, Vitest 56파일/620개 통과 (아래 Step 2 완료 기록 참고) |
 | **3** | **`✅ DONE (iteration-01 findings, 산출물 6c913c2)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `33829c9` ↔ Target `13ca8fa` iteration-01 통합 정적 리뷰 및 동적 검증 | `findings`: `R35-REV-001`(P2)·`002`(P3)·`003`(P4). tsc·lint·Vitest 620개·PGlite SQL 2시나리오 통과, PostgreSQL 17 미설치로 실행 불가(`artifacts/r35-favorite-schedules-and-r51-followup/iteration-01/`) |
-| **4** | **`▶ READY`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Expense Prefill Fix)` | iteration-02: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 4 수용 기준** 수행 (예정 지출 날짜·예산 귀속 변경 → Opus 승격 조건 ①). 허용 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, 신규 `src/lib/use-favorite-schedules.ts`(+테스트, `R35-REV-003` 반영 시에만) | `⏳ Step 4 Maker 커밋 후 Step 5를 ▶ READY로 전환` |
-| **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | iteration-02 재리뷰(Base `33829c9` ↔ Step 4 Target), 가능하면 PostgreSQL 17 검증, `main` 병합 및 운영 마이그레이션(`R54`: `MIGRATION_R35_FAVORITE_SCHEDULES.sql`) 체크리스트 등록 | `⏳ Step 4 완료 후 착수` |
+| **4** | **`✅ DONE (SHA: 129a118)`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Expense Prefill Fix)` | iteration-02: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 4 수용 기준** 수행 (예정 지출 날짜·예산 귀속 변경 → Opus 승격 조건 ①). 허용 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, 신규 `src/lib/use-favorite-schedules.ts`(+테스트, `R35-REV-003` 반영 시에만) | `✅ 129a118`: `R35-REV-001`·`002` 수정, `R35-REV-003`(선택)은 이번 반복에서 생략하고 to-do `R55`로 이관함. `tsc --noEmit`·`npm run lint` 통과, Vitest 56파일/625개 통과 (아래 Step 4 완료 기록 참고) |
+| **5** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | iteration-02 재리뷰(Base `33829c9` ↔ Step 4 Target), 가능하면 PostgreSQL 17 검증, `main` 병합 및 운영 마이그레이션(`R54`: `MIGRATION_R35_FAVORITE_SCHEDULES.sql`) 체크리스트 등록 | `⏳ Step 4 완료 후 착수` |
 
 #### 📌 `r35-favorite-schedules-and-r51-followup` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -91,6 +91,19 @@
 
 5. **Step 5 (`Claude Opus` — iteration-02 재리뷰 및 마감)**:
    - Base `33829c9` ↔ Step 4 Target 재리뷰(`iteration-02/review.json`·`test.json`), PostgreSQL 17 검증(불가 시 PGlite 하네스 결과와 함께 사유 명시), `main` 병합, 운영 마이그레이션 `R54`(`MIGRATION_R35_FAVORITE_SCHEDULES.sql`) 적용 안내 및 확인 쿼리 체크리스트 등록.
+
+#### ✅ Step 4 iteration-02 수정 완료 기록 (2026-11-10, Claude Opus)
+
+- **커밋**: `.worktrees/r35-favorite-schedules-and-r51-followup` `129a118` (산출물 `6c913c2` 위, Base `33829c9`)임. 아직 `main` 미병합임(Step 5에서 병합).
+- **`R35-REV-001` (P2)**: `ExpenseModal` 편집 모드 패스 판정을 `start_date ≠ end_date && target_date = end_date`로 변경함. 그 외 기간 행은 `keptPeriod`(기존 `prefillPeriod` 상태를 일반화)에 저장된 `target/start/end`를 담아, 결제일이 그대로면 기간을 유지하고 날짜를 바꾸면 기존처럼 단일 날짜로 저장함. 기존 버전 패스 행 동작은 그대로임.
+- **`R35-REV-002` (P3)**: `ExpensePrefill.schedule_id`(선택)를 추가하고 두 페이지에서 `schedule_type === "VERSION"`일 때만 설정함. `matchingVersion`은 결제일이 그 일정 기간 안이면 해당 일정을 우선 선택하고, 벗어나면 기존 날짜 매칭으로 돌아감.
+- **`R35-REV-003` (P4, 선택)**: 이번 반복에서 생략함. 두 페이지 공용 훅 추출·재클릭 방지는 `docs/to-do.md` `R55`로 남김.
+- **테스트**: `expense-modal.test.tsx`에 5건 추가함(비패스 프리필 행 편집 시 기간 유지·패스 체크박스 해제, 날짜 변경 시 단일 날짜, 기존 패스 행 유지, VERSION 경계일 `schedule_id` 우선, 기간 이탈 시 날짜 매칭 복귀). 수정 전 코드에서는 패스 행 유지 테스트를 뺀 4건이 실패함을 확인함.
+- **검증**: `tsc --noEmit` 통과, `npm run lint` 무경고, `git diff --check` 통과, Vitest 56파일/625개 통과(Node v24.22.2)함.
+- **Step 5 참고**:
+  - 페이지 단위 테스트(`page.test.tsx`)에는 `schedule_id` 전달 검증을 추가하지 않음(모달 단위 테스트로 대신함). 페이지 변경은 각 1줄임.
+  - 편집 입력(`PlannedExpenseEditInput`)에는 `schedule_id`가 없어, 이미 저장된 VERSION 연결 행을 경계일에 편집하면 여전히 날짜 매칭으로 이전 버전이 선택될 수 있음. 이번 수정 이전부터 있던 동작이며 범위 밖으로 둠(필요 시 후속 과제로 판단).
+  - 브라우저 실사용 확인은 미수행임.
 
 #### 🔍 Step 3 iteration-01 리뷰 기록 (2026-11-10, Claude Opus)
 
