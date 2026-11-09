@@ -1466,7 +1466,7 @@ DO $$ BEGIN
 END $$;
 \echo PASS: anon can read approved games and official schedules but not unofficial schedules
 
--- R52 Amendment A1: pickup-only catalog characters, user proposals, approval and anon boundary.
+-- R52 + Amendment A1: template validation, pickup references, deletion cleanup, pickup-only catalog characters, user proposals, approval and anon boundary.
 RESET ROLE;
 DO $$
 DECLARE
@@ -1474,13 +1474,87 @@ DECLARE
  v_other_game UUID := current_setting('chronoledger.r13_other_game_id')::uuid;
  v_user UUID := current_setting('chronoledger.other_user_id')::uuid;
  v_pickup UUID; v_guard UUID; v_canonical UUID := current_setting('chronoledger.r13_character_1_id')::uuid;
- v_request UUID; v_schedule UUID; v_ids UUID[]; v_before INTEGER;
+ v_cleanup_character UUID; v_approved_req UUID;
+ v_request UUID; v_schedule UUID; v_ids UUID[]; v_many UUID[]; v_before INTEGER;
 BEGIN
  UPDATE public.games SET classification_schema='{"character_label":"Operative","rarities":["5★"],"axes":[{"key":"element","label":"속성","options":["불"]}]}'::jsonb WHERE id=v_game;
  IF NOT public.is_valid_classification_schema('{"rarities":[],"axes":[]}'::jsonb)
  OR NOT public.is_valid_classification_schema('{"character_label":"Operative","rarities":[],"axes":[]}'::jsonb)
- OR public.is_valid_classification_schema('{"character_label":"","rarities":[],"axes":[]}')
+ OR public.is_valid_classification_schema('{"character_label":"","rarities":[],"axes":[]}'::jsonb)
+ OR public.is_valid_classification_schema('{"character_label":"123456789012345678901","rarities":[],"axes":[]}'::jsonb)
+ OR public.is_valid_classification_schema('{"character_label":7,"rarities":[],"axes":[]}'::jsonb)
+ OR public.is_valid_classification_schema('{"rarities":[],"axes":[{"key":"a","label":"a","options":["1"]},{"key":"b","label":"b","options":["1"]},{"key":"c","label":"c","options":["1"]}]}'::jsonb)
  THEN RAISE EXCEPTION 'FAIL: character template validation regression'; END IF;
+
+ v_ids := ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid, current_setting('chronoledger.r13_character_2_id')::uuid];
+ INSERT INTO public.game_schedules(game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+ VALUES(v_game,'R52 pickup characters','PICKUP',v_ids,CURRENT_DATE,CURRENT_DATE) RETURNING id INTO v_schedule;
+ BEGIN
+  INSERT INTO public.game_schedules(game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+  VALUES(v_game,'R52 non pickup','VERSION',v_ids,CURRENT_DATE,CURRENT_DATE);
+  RAISE EXCEPTION 'R52_EXPECTED_SCHEDULE_NON_PICKUP_REJECTION';
+ EXCEPTION WHEN check_violation THEN NULL; END;
+ BEGIN
+  INSERT INTO public.game_schedules(game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+  VALUES(v_game,'R52 bad character game','PICKUP',ARRAY[current_setting('chronoledger.r13_other_character_id')::uuid],CURRENT_DATE,CURRENT_DATE);
+  RAISE EXCEPTION 'R52_EXPECTED_SCHEDULE_CROSS_GAME_REJECTION';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM='R52_EXPECTED_SCHEDULE_CROSS_GAME_REJECTION' THEN RAISE; ELSIF SQLERRM NOT LIKE '%같은 게임의 카탈로그%' THEN RAISE; END IF; END;
+ BEGIN
+  INSERT INTO public.game_schedules(game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+  VALUES(v_game,'R52 duplicate characters','PICKUP',ARRAY[v_ids[1],v_ids[1]],CURRENT_DATE,CURRENT_DATE);
+  RAISE EXCEPTION 'R52_EXPECTED_SCHEDULE_DUPLICATE_REJECTION';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM='R52_EXPECTED_SCHEDULE_DUPLICATE_REJECTION' THEN RAISE; ELSIF SQLERRM NOT LIKE '%같은 게임의 카탈로그%' THEN RAISE; END IF; END;
+ BEGIN
+  INSERT INTO public.game_schedules(game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+  VALUES(v_game,'R52 null character ID','PICKUP',ARRAY[v_ids[1],NULL]::uuid[],CURRENT_DATE,CURRENT_DATE);
+  RAISE EXCEPTION 'R52_EXPECTED_SCHEDULE_NULL_ID_REJECTION';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM='R52_EXPECTED_SCHEDULE_NULL_ID_REJECTION' THEN RAISE; ELSIF SQLERRM NOT LIKE '%같은 게임의 카탈로그%' THEN RAISE; END IF; END;
+ BEGIN
+  INSERT INTO public.game_schedules(game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+  VALUES(v_game,'R52 missing character ID','PICKUP',ARRAY['ffffffff-ffff-ffff-ffff-ffffffffffff'::uuid],CURRENT_DATE,CURRENT_DATE);
+  RAISE EXCEPTION 'R52_EXPECTED_SCHEDULE_MISSING_ID_REJECTION';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM='R52_EXPECTED_SCHEDULE_MISSING_ID_REJECTION' THEN RAISE; ELSIF SQLERRM NOT LIKE '%같은 게임의 카탈로그%' THEN RAISE; END IF; END;
+ BEGIN
+  INSERT INTO public.schedule_requests(user_id,game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+  VALUES(v_user,v_game,'R52 request non pickup','VERSION',v_ids,CURRENT_DATE,CURRENT_DATE);
+  RAISE EXCEPTION 'R52_EXPECTED_REQUEST_NON_PICKUP_REJECTION';
+ EXCEPTION WHEN check_violation THEN NULL; END;
+ BEGIN
+  INSERT INTO public.schedule_requests(user_id,game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+  VALUES(v_user,v_game,'R52 request cross game','PICKUP',ARRAY[current_setting('chronoledger.r13_other_character_id')::uuid],CURRENT_DATE,CURRENT_DATE);
+  RAISE EXCEPTION 'R52_EXPECTED_REQUEST_CROSS_GAME_REJECTION';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM='R52_EXPECTED_REQUEST_CROSS_GAME_REJECTION' THEN RAISE; ELSIF SQLERRM NOT LIKE '%같은 게임의 카탈로그%' THEN RAISE; END IF; END;
+
+ INSERT INTO public.game_characters(game_id,name,default_icon_url)
+ SELECT v_game,'R52 many '||n,'https://example.invalid/extra.webp' FROM generate_series(1,9) n;
+ SELECT array_agg(id) INTO v_many FROM public.game_characters WHERE game_id=v_game AND name LIKE 'R52 many %';
+ BEGIN
+  INSERT INTO public.game_schedules(game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+  VALUES(v_game,'R52 too many characters','PICKUP',v_many,CURRENT_DATE,CURRENT_DATE);
+  RAISE EXCEPTION 'R52_EXPECTED_SCHEDULE_OVER_EIGHT_REJECTION';
+ EXCEPTION WHEN check_violation THEN NULL; END;
+ DELETE FROM public.game_characters WHERE game_id=v_game AND name LIKE 'R52 many %';
+
+ -- Deletion cleanup removes deleted IDs from schedules and PENDING requests while keeping APPROVED requests intact.
+ INSERT INTO public.game_characters(game_id,name,default_icon_url)
+ VALUES(v_game,'R52 cleanup character','https://example.invalid/cleanup.webp') RETURNING id INTO v_cleanup_character;
+ INSERT INTO public.game_schedules(game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+ VALUES(v_game,'R52 cleanup schedule','PICKUP',ARRAY[v_cleanup_character],CURRENT_DATE,CURRENT_DATE);
+ INSERT INTO public.schedule_requests(user_id,game_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+ VALUES(v_user,v_game,'R52 cleanup pending request','PICKUP',ARRAY[v_cleanup_character],CURRENT_DATE,CURRENT_DATE) RETURNING id INTO v_request;
+ INSERT INTO public.schedule_requests(user_id,game_id,title,schedule_type,pickup_character_ids,request_status,start_date,end_date)
+ VALUES(v_user,v_game,'R52 cleanup approved request','PICKUP',ARRAY[v_cleanup_character],'APPROVED',CURRENT_DATE,CURRENT_DATE) RETURNING id INTO v_approved_req;
+ DELETE FROM public.game_characters WHERE id=v_cleanup_character;
+ IF NOT EXISTS(SELECT 1 FROM public.game_schedules WHERE title='R52 cleanup schedule' AND cardinality(pickup_character_ids)=0) THEN
+  RAISE EXCEPTION 'FAIL: character deletion did not clean schedule references';
+ END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.schedule_requests WHERE id=v_request AND cardinality(pickup_character_ids)=0) THEN
+  RAISE EXCEPTION 'FAIL: character deletion did not clean pending request references';
+ END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.schedule_requests WHERE id=v_approved_req AND cardinality(pickup_character_ids)=1) THEN
+  RAISE EXCEPTION 'FAIL: character deletion mutated non-PENDING request history';
+ END IF;
+
  INSERT INTO public.game_characters(game_id,name,default_icon_url,is_pickup_only)
  VALUES(v_game,'R52 iconless pickup',NULL,true) RETURNING id INTO v_pickup;
  BEGIN
@@ -1536,12 +1610,19 @@ BEGIN
  VALUES(v_user,v_game,'R52 proposal approval','PICKUP',ARRAY[v_ids[1]],'[ {"name":"R52 proposed no icon","icon_url":null}, {"name":"R13 character 2","icon_url":null} ]',CURRENT_DATE,CURRENT_DATE)
  RETURNING id INTO v_request;
  PERFORM set_config('chronoledger.r52_approval_request',v_request::text,true);
+ INSERT INTO public.game_schedules(game_id,title,schedule_type,start_date,end_date)
+ VALUES(v_game,'R52 edit target','PICKUP',CURRENT_DATE,CURRENT_DATE) RETURNING id INTO v_schedule;
+ PERFORM set_config('chronoledger.r52_edit_target',v_schedule::text,true);
+ INSERT INTO public.schedule_requests(user_id,game_id,target_schedule_id,title,schedule_type,pickup_character_ids,start_date,end_date)
+ VALUES(v_user,v_game,v_schedule,'R52 edited pickup','PICKUP',ARRAY[v_ids[2]],CURRENT_DATE,CURRENT_DATE) RETURNING id INTO v_request;
+ PERFORM set_config('chronoledger.r52_edit_request',v_request::text,true);
 END $$;
 
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'other_user_id','role','authenticated','app_metadata',jsonb_build_object('role','admin'))::text,true);
 SELECT set_config('request.jwt.claim.sub', :'other_user_id', true);
 SET LOCAL ROLE authenticated;
 SELECT public.approve_schedule_request(current_setting('chronoledger.r52_approval_request')::uuid);
+SELECT public.approve_schedule_request(current_setting('chronoledger.r52_edit_request')::uuid);
 DO $$
 DECLARE v_game UUID := current_setting('chronoledger.r13_game_id')::uuid; v_new UUID; v_schedule UUID; v_result_ids UUID[];
 BEGIN
@@ -1549,6 +1630,7 @@ BEGIN
  IF v_new IS NULL OR (SELECT is_pickup_only OR default_icon_url IS NOT NULL FROM public.game_characters WHERE id=v_new) IS DISTINCT FROM true THEN RAISE EXCEPTION 'FAIL: proposal was not created as iconless pickup-only'; END IF;
  SELECT id,pickup_character_ids INTO v_schedule,v_result_ids FROM public.game_schedules WHERE title='R52 proposal approval';
  IF cardinality(v_result_ids)<>3 OR v_result_ids[1]<>current_setting('chronoledger.r13_character_1_id')::uuid OR v_result_ids[2]<>(SELECT id FROM public.game_characters WHERE game_id=v_game AND name='R52 proposed no icon') OR v_result_ids[3]<>current_setting('chronoledger.r13_character_2_id')::uuid THEN RAISE EXCEPTION 'FAIL: approval did not preserve selection/proposal order and reuse existing character'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.game_schedules WHERE id=current_setting('chronoledger.r52_edit_target')::uuid AND title='R52 edited pickup' AND pickup_character_ids=ARRAY[current_setting('chronoledger.r13_character_2_id')::uuid]) THEN RAISE EXCEPTION 'FAIL: edit approval did not copy pickup character references'; END IF;
 END $$;
 
 RESET ROLE;
@@ -1577,13 +1659,14 @@ ALTER TABLE public.schedule_requests ADD CONSTRAINT chk_schedule_requests_pickup
 SET LOCAL ROLE anon;
 DO $$ BEGIN
  IF NOT EXISTS(SELECT 1 FROM public.game_characters WHERE id=current_setting('chronoledger.r13_character_2_id')::uuid AND is_pickup_only IS NOT NULL) THEN RAISE EXCEPTION 'FAIL: anon could not read is_pickup_only'; END IF;
+ BEGIN PERFORM created_by FROM public.game_characters LIMIT 1; RAISE EXCEPTION 'R52_EXPECTED_ANON_CREATED_BY_DENIAL'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  BEGIN PERFORM 1 FROM public.user_characters LIMIT 1; RAISE EXCEPTION 'R52_EXPECTED_ANON_DENIAL'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  BEGIN PERFORM 1 FROM public.user_character_presets LIMIT 1; RAISE EXCEPTION 'R52_EXPECTED_ANON_DENIAL'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  BEGIN PERFORM 1 FROM public.character_requests LIMIT 1; RAISE EXCEPTION 'R52_EXPECTED_ANON_DENIAL'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  BEGIN PERFORM 1 FROM public.schedule_requests LIMIT 1; RAISE EXCEPTION 'R52_EXPECTED_ANON_DENIAL'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 END $$;
 RESET ROLE;
-\echo PASS: R52 Amendment A1 pickup-only catalog, proposals, atomic approval and anon boundary
+\echo PASS: R52 + Amendment A1 template validation, pickup references, deletion cleanup, proposals, atomic approval and anon boundary
 SET LOCAL ROLE anon;
 DO $$
 BEGIN
