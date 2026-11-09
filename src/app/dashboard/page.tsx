@@ -35,11 +35,12 @@ const EXPENSE_COLUMNS = "id, title, final_amount, status, target_date, start_dat
 interface ScheduleRow {
   id: string
   title: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   start_date: string
   end_date: string
   game_id: string
   is_official?: boolean
+  is_rerun?: boolean
   memo?: string | null
 }
 
@@ -555,6 +556,7 @@ export default function DashboardPage() {
           title: s.title,
           schedule_type: s.schedule_type,
           is_official: s.is_official ?? true,
+          is_rerun: s.is_rerun === true,
           start_date: s.start_date,
           end_date: s.end_date,
           gameId: s.game_id,
@@ -676,6 +678,7 @@ export default function DashboardPage() {
           id: s.id,
           title: s.title,
           schedule_type: s.schedule_type,
+          is_rerun: s.is_rerun === true,
           start_date: s.start_date,
           end_date: s.end_date,
           gameName: gameInfo ? gameInfo.name : null,

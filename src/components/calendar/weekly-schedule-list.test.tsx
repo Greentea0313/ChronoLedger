@@ -31,6 +31,31 @@ function renderList(overrides: Partial<React.ComponentProps<typeof WeeklySchedul
 }
 
 describe("WeeklyScheduleList", () => {
+  it("renders the BROADCAST label and rerun badge", () => {
+    render(
+      <WeeklyScheduleList
+        year={2026}
+        month={11}
+        todayDate="2026-11-10"
+        selectedDate="2026-11-10"
+        schedules={[{
+          id: "broadcast",
+          title: "특별 방송",
+          schedule_type: "BROADCAST",
+          is_rerun: false,
+          start_date: "2026-11-10",
+          end_date: "2026-11-10",
+          gameName: "게임",
+        }]}
+        expenses={null}
+        onSelectDate={vi.fn()}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText("특별방송")).toBeTruthy()
+  })
   it("highlights only the current KST week and shows per-week planned/confirmed subtotals", () => {
     renderList()
     const groups = screen.getAllByTestId("week-group")

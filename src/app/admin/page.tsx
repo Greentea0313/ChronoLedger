@@ -140,12 +140,13 @@ interface CharacterItem {
 interface ScheduleItem {
   id: string
   game_id: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   title: string
   start_date: string
   end_date: string
   memo: string | null
   is_official?: boolean
+  is_rerun?: boolean
   games?: { id?: string; name?: string; default_icon_url?: string | null } | null
 }
 
@@ -234,7 +235,9 @@ export default function AdminPage() {
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null)
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [gameId, setGameId] = useState("")
-  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS">("VERSION")
+  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST">("VERSION")
+  const [isRerun, setIsRerun] = useState(false)
+  const [originalIsRerun, setOriginalIsRerun] = useState<boolean | null>(null)
   const [isOfficial, setIsOfficial] = useState(true)
   const [isSingleDate, setIsSingleDate] = useState(false)
   const [title, setTitle] = useState("")
@@ -379,8 +382,10 @@ export default function AdminPage() {
   const openAddModal = () => {
     setEditingScheduleId(null)
     setIsDuplicating(false)
+    setOriginalIsRerun(null)
     setGameId(selectedGameFilter || "")
     setScheduleType("VERSION")
+    setIsRerun(false)
     setIsOfficial(true)
     setIsSingleDate(false)
     setTitle("")
@@ -395,8 +400,10 @@ export default function AdminPage() {
   const openDuplicateModal = (schedule: ScheduleItem) => {
     setEditingScheduleId(null)
     setIsDuplicating(true)
+    setOriginalIsRerun(null)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
+    setIsRerun(schedule.is_rerun === true)
     setIsOfficial(schedule.is_official ?? true)
     setIsSingleDate(schedule.start_date === schedule.end_date)
     setTitle(schedule.title)
@@ -410,8 +417,10 @@ export default function AdminPage() {
   const openEditModal = (schedule: ScheduleItem) => {
     setEditingScheduleId(schedule.id)
     setIsDuplicating(false)
+    setOriginalIsRerun(schedule.is_rerun === true)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
+    setIsRerun(schedule.is_rerun === true)
     setIsOfficial(schedule.is_official ?? true)
     setIsSingleDate(schedule.start_date === schedule.end_date)
     setTitle(schedule.title)
@@ -465,19 +474,23 @@ export default function AdminPage() {
 
     setIsSubmitting(true)
     setFormError(null)
+    const schedulePayload = {
+      game_id: gameId,
+      schedule_type: scheduleType,
+      is_official: isOfficial,
+      title: title.trim(),
+      start_date: startDate,
+      end_date: finalEndDate,
+      memo: memo.trim() || null,
+      ...(isRerun ? { is_rerun: true } : editingScheduleId && originalIsRerun ? { is_rerun: false } : {}),
+    }
 
     if (editingScheduleId) {
       // 기존 일정 수정
       const { error } = await supabase
         .from("game_schedules")
         .update({
-          game_id: gameId,
-          schedule_type: scheduleType,
-          is_official: isOfficial,
-          title: title.trim(),
-          start_date: startDate,
-          end_date: finalEndDate,
-          memo: memo.trim() || null,
+          ...schedulePayload,
           updated_at: new Date().toISOString(),
         })
         .eq("id", editingScheduleId)
@@ -485,7 +498,8 @@ export default function AdminPage() {
       setIsSubmitting(false)
 
       if (error) {
-        setFormError("일정 수정에 실패했습니다: " + error.message)
+        const migrationError = error.code === "42703" || error.code === "PGRST204" || error.code === "23514"
+        setFormError(migrationError ? "R33 마이그레이션이 적용되지 않았거나 복각 조건이 올바르지 않습니다. 관리자에게 DB 마이그레이션 적용을 요청해 주세요." : "일정 수정에 실패했습니다: " + error.message)
       } else {
         setMessage({ type: "success", text: "일정이 성공적으로 수정되었습니다." })
         setIsModalOpen(false)
@@ -498,20 +512,13 @@ export default function AdminPage() {
       }
     } else {
       // 새 일정 등록
-      const { error } = await supabase.from("game_schedules").insert({
-        game_id: gameId,
-        schedule_type: scheduleType,
-        is_official: isOfficial,
-        title: title.trim(),
-        start_date: startDate,
-        end_date: finalEndDate,
-        memo: memo.trim() || null,
-      })
+      const { error } = await supabase.from("game_schedules").insert(schedulePayload)
 
       setIsSubmitting(false)
 
       if (error) {
-        setFormError("일정 추가에 실패했습니다: " + error.message)
+        const migrationError = error.code === "42703" || error.code === "PGRST204" || error.code === "23514"
+        setFormError(migrationError ? "R33 마이그레이션이 적용되지 않았거나 복각 조건이 올바르지 않습니다. 관리자에게 DB 마이그레이션 적용을 요청해 주세요." : "일정 추가에 실패했습니다: " + error.message)
       } else {
         setMessage({ type: "success", text: "일정이 성공적으로 추가되었습니다." })
         setIsModalOpen(false)
@@ -1051,6 +1058,7 @@ export default function AdminPage() {
                       const iconUrl = schedule.games?.default_icon_url || matchedGame?.default_icon_url
                       const isVersion = schedule.schedule_type === "VERSION"
                       const isPickup = schedule.schedule_type === "PICKUP"
+                      const isBroadcast = schedule.schedule_type === "BROADCAST"
                       const isSingleDateItem = schedule.start_date === schedule.end_date
                       return (
                         <div
@@ -1084,10 +1092,13 @@ export default function AdminPage() {
                                     ? "bg-primary/20 text-primary border border-primary/30"
                                     : isPickup
                                       ? "bg-warning/20 text-warning border border-warning/30"
-                                      : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
+                                      : isBroadcast
+                                        ? "bg-info/15 text-info border border-info/30"
+                                        : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
                                 }`}
                               >
-                                {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
+                                {isVersion ? "버전" : isPickup ? "픽업" : isBroadcast ? "특별방송" : "콘텐츠"}
+                                {schedule.is_rerun && <span className="ml-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning">복각</span>}
                               </span>
                               {schedule.is_official === false && (
                                 <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-warning/15 text-warning border border-warning/30">
@@ -1555,6 +1566,7 @@ export default function AdminPage() {
                 const iconUrl = schedule.games?.default_icon_url || matchedGame?.default_icon_url
                 const isVersion = schedule.schedule_type === "VERSION"
                 const isPickup = schedule.schedule_type === "PICKUP"
+                const isBroadcast = schedule.schedule_type === "BROADCAST"
                 const isSingleDateItem = schedule.start_date === schedule.end_date
 
                 return (
@@ -1584,10 +1596,13 @@ export default function AdminPage() {
                               ? "bg-primary/20 text-primary border border-primary/30"
                               : isPickup
                                 ? "bg-warning/20 text-warning border border-warning/30"
-                                : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
+                                : isBroadcast
+                                  ? "bg-info/15 text-info border border-info/30"
+                                  : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
                           }`}
                         >
-                          {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
+                          {isVersion ? "버전" : isPickup ? "픽업" : isBroadcast ? "특별방송" : "콘텐츠"}
+                          {schedule.is_rerun && <span className="ml-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning">복각</span>}
                         </span>
                         {schedule.is_official === false && (
                           <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-warning/15 text-warning border border-warning/30">
@@ -1723,13 +1738,24 @@ export default function AdminPage() {
                 id="schedule-type-select"
                 className="w-full bg-surface-2 border border-line rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 value={scheduleType}
-                onChange={(e) => setScheduleType(e.target.value as "VERSION" | "PICKUP" | "CONTENTS")}
+                onChange={(e) => {
+                  const nextType = e.target.value as "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
+                  setScheduleType(nextType)
+                  if (nextType !== "PICKUP") setIsRerun(false)
+                }}
               >
                 <option value="VERSION">버전 (VERSION)</option>
                 <option value="PICKUP">픽업 (PICKUP)</option>
                 <option value="CONTENTS">콘텐츠 (CONTENTS)</option>
+                <option value="BROADCAST">특별방송 (BROADCAST)</option>
               </select>
             </div>
+            {scheduleType === "PICKUP" && (
+              <label className="flex items-center gap-2 text-sm text-content">
+                <input type="checkbox" checked={isRerun} onChange={(event) => setIsRerun(event.target.checked)} />
+                복각 일정
+              </label>
+            )}
 
             <div>
               <label htmlFor="schedule-official-select" className="block text-sm font-medium mb-1">일정 분류 *</label>

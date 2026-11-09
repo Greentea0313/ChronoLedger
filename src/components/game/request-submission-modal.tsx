@@ -20,7 +20,8 @@ type Schedule = {
   id: string
   game_id: string
   title: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
+  is_rerun?: boolean
   is_official?: boolean
   start_date: string
   end_date: string
@@ -38,7 +39,8 @@ type ScheduleRequest = {
   game_id: string
   target_schedule_id: string | null
   title: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
+  is_rerun?: boolean
   is_official: boolean
   start_date: string
   end_date: string
@@ -80,7 +82,8 @@ export function RequestSubmissionModal({
   const [gameId, setGameId] = useState("")
   const [targetScheduleId, setTargetScheduleId] = useState("")
   const [title, setTitle] = useState("")
-  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS">("VERSION")
+  const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST">("VERSION")
+  const [isRerun, setIsRerun] = useState(false)
   const [isOfficial, setIsOfficial] = useState(true)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
@@ -217,6 +220,7 @@ export function RequestSubmissionModal({
     if (!schedule) return
     setTitle(schedule.title)
     setScheduleType(schedule.schedule_type)
+    setIsRerun(schedule.is_rerun === true)
     setIsOfficial(schedule.is_official ?? true)
     setStartDate(schedule.start_date)
     setEndDate(schedule.end_date)
@@ -238,7 +242,7 @@ export function RequestSubmissionModal({
     const validationError = requestKind === "game"
       ? validateGameRequest(name)
       : requestKind === "schedule"
-        ? validateScheduleRequest({ requestMode, gameId, targetScheduleId, title, scheduleType, startDate, endDate })
+        ? validateScheduleRequest({ requestMode, gameId, targetScheduleId, title, scheduleType, isRerun, startDate, endDate })
         : (!gameId ? "게임을 선택해 주세요." : characterRequestMode === "UPDATE" && !targetCharacterId ? "수정할 캐릭터를 선택해 주세요." : !characterName.trim()|| characterName.trim().length > 100 ? "캐릭터 이름을 1~100자로 입력해 주세요." : characterMemo.length > 500 ? "메모는 500자 이내로 입력해 주세요." : null)
     if (validationError) {
       setSubmitError(validationError)
@@ -246,6 +250,9 @@ export function RequestSubmissionModal({
     }
 
     setIsSubmitting(true)
+    const originalSchedule = requestMode === "EDIT"
+      ? schedulesForGame.find((item) => item.id === targetScheduleId)
+      : undefined
     try {
       const result = requestKind === "game"
         ? await supabase.from("game_requests").insert({ user_id: user.id, name: name.trim(), memo: null })
@@ -256,6 +263,7 @@ export function RequestSubmissionModal({
             target_schedule_id: requestMode === "EDIT" ? targetScheduleId : null,
             title: title.trim(),
             schedule_type: scheduleType,
+            ...(isRerun ? { is_rerun: true } : originalSchedule?.is_rerun === true ? { is_rerun: false } : {}),
             is_official: isOfficial,
             start_date: startDate,
             end_date: endDate,
@@ -274,7 +282,10 @@ export function RequestSubmissionModal({
             memo: characterMemo.trim() || null,
           })
       if (result.error) {
-        setSubmitError("요청을 저장하지 못했습니다. 입력값과 로그인 상태를 확인한 뒤 다시 시도해 주세요.")
+        const migrationError = result.error.code === "42703" || result.error.code === "PGRST204" || result.error.code === "23514"
+        setSubmitError(migrationError
+          ? "R33 마이그레이션이 적용되지 않았거나 복각 조건이 올바르지 않습니다. 관리자에게 DB 마이그레이션 적용을 요청해 주세요."
+          : "요청을 저장하지 못했습니다. 입력값과 로그인 상태를 확인한 뒤 다시 시도해 주세요.")
         return
       }
       setSuccessMessage("요청을 제출했습니다. 관리자 검토 후 처리됩니다.")
@@ -287,6 +298,7 @@ export function RequestSubmissionModal({
         setEndDate("")
         setScheduleMemo("")
         setIsOfficial(true)
+        setIsRerun(false)
         setRequestMode("ADD")
       } else {
         setTargetCharacterId("")
@@ -486,12 +498,23 @@ export function RequestSubmissionModal({
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="schedule-type" className="text-sm font-medium text-content">일정 종류</label>
-                    <select id="schedule-type" className={selectClassName} value={scheduleType} onChange={(event) => setScheduleType(event.target.value as "VERSION" | "PICKUP" | "CONTENTS")}>
+                    <select id="schedule-type" className={selectClassName} value={scheduleType} onChange={(event) => {
+                      const nextType = event.target.value as "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
+                      setScheduleType(nextType)
+                      if (nextType !== "PICKUP") setIsRerun(false)
+                    }}>
                       <option value="VERSION">VERSION (버전)</option>
                       <option value="PICKUP">PICKUP (픽업)</option>
                       <option value="CONTENTS">CONTENTS (콘텐츠)</option>
+                      <option value="BROADCAST">BROADCAST (특별방송)</option>
                     </select>
                   </div>
+                  {scheduleType === "PICKUP" && (
+                    <label className="flex items-center gap-2 text-sm text-content">
+                      <input type="checkbox" checked={isRerun} onChange={(event) => setIsRerun(event.target.checked)} />
+                      복각 일정
+                    </label>
+                  )}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label htmlFor="schedule-start-date" className="text-sm font-medium text-content">시작일</label>

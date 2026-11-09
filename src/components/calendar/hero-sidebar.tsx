@@ -49,10 +49,11 @@ export interface HeroWalletItem {
 export interface HeroScheduleItem {
   id: string
   title: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   start_date: string
   end_date: string
   is_official?: boolean
+  is_rerun?: boolean
   gameId?: string | null
   gameName?: string | null
   iconUrl?: string
@@ -305,6 +306,7 @@ export function HeroSidebarContent({
                 scheduleGroups.map((group) => {
                   const isVersion = group.schedule_type === "VERSION"
                   const isPickup = group.schedule_type === "PICKUP"
+                  const isBroadcast = group.schedule_type === "BROADCAST"
                   const isSingle = group.start_date === group.end_date
                   const isGrouped = group.items.length > 1
                   return (
@@ -336,10 +338,12 @@ export function HeroSidebarContent({
                               ? "bg-primary/20 text-primary border-primary/30"
                               : isPickup
                                 ? "bg-warning/20 text-warning border-warning/30"
-                                : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                                : isBroadcast
+                                  ? "bg-info/15 text-info border-info/30"
+                                  : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
                           }`}
                         >
-                          {isVersion ? "버전" : isPickup ? "픽업" : "콘텐츠"}
+                          {isVersion ? "버전" : isPickup ? "픽업" : isBroadcast ? "특별방송" : "콘텐츠"}
                         </span>
                         <span className="text-xs font-semibold text-content">
                           {group.gameName ?? "게임"}
@@ -387,6 +391,11 @@ export function HeroSidebarContent({
                                     [비공식]
                                   </span>
                                 )}
+                                {item.is_rerun && (
+                                  <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                    복각
+                                  </span>
+                                )}
                                 {item.title.includes("/") ? (
                                   <span className="inline-flex items-center gap-1">
                                     <span>•</span>
@@ -411,6 +420,9 @@ export function HeroSidebarContent({
                               <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
                                 [비공식]
                               </span>
+                            )}
+                            {group.items[0].is_rerun && (
+                              <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">복각</span>
                             )}
                             <ScheduleTitleBadges title={group.items[0].title} />
                           </div>

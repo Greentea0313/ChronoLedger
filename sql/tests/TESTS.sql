@@ -622,6 +622,24 @@ END;
 $$;
 \echo PASS: schedule change synchronizes linked planned expense dates
 
+INSERT INTO public.game_schedules(game_id,title,schedule_type,start_date,end_date)
+VALUES (:'test_game_id'::uuid,'Codex SQL test broadcast sync','BROADCAST',CURRENT_DATE,CURRENT_DATE + 1)
+RETURNING id AS broadcast_schedule_id \gset
+INSERT INTO public.expenses(user_id,game_id,schedule_id,title,category,target_date,start_date,end_date)
+VALUES (:'test_user_id'::uuid, :'test_game_id'::uuid, :'broadcast_schedule_id'::uuid,
+        'Codex SQL test broadcast expense','게임',CURRENT_DATE + 1,CURRENT_DATE,CURRENT_DATE + 1)
+RETURNING id AS broadcast_expense_id \gset
+SELECT set_config('chronoledger.broadcast_expense_id', :'broadcast_expense_id', true);
+UPDATE public.game_schedules SET start_date=start_date + 2,end_date=end_date + 3 WHERE id=:'broadcast_schedule_id'::uuid;
+DO $$ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM public.expenses e JOIN public.game_schedules s ON s.id=e.schedule_id
+  WHERE e.id=current_setting('chronoledger.broadcast_expense_id')::uuid AND e.status='PLANNED'
+    AND e.start_date=s.start_date AND e.end_date=s.end_date AND e.target_date=s.end_date) THEN
+  RAISE EXCEPTION 'FAIL: BROADCAST date change did not synchronize planned expense';
+ END IF;
+END $$;
+\echo PASS: BROADCAST schedule change synchronizes linked planned expense dates
+
 -- SCH-02: 일정 날짜 변경 시 CONFIRMED/CANCELLED 지출은 보존되고 PLANNED만 동기화된다.
 INSERT INTO public.expenses (
     user_id, game_id, schedule_id, title, category, status, target_date,
@@ -754,12 +772,32 @@ VALUES (
 )
 RETURNING id AS rejected_game_request_id \gset
 
+-- R33 schedule kind and PICKUP-only rerun constraint coverage.
+-- Direct catalog writes are fixture-role only (authenticated is blocked by RLS);
+-- the savepoint discards these rows and restores the authenticated role afterwards.
+SAVEPOINT r33_direct_schedule_checks;
+RESET ROLE;
+INSERT INTO public.game_schedules(game_id,title,schedule_type,start_date,end_date)
+VALUES (:'test_game_id'::uuid,'Chrono broadcast insert','BROADCAST',CURRENT_DATE,CURRENT_DATE);
+INSERT INTO public.game_schedules(game_id,title,schedule_type,is_rerun,start_date,end_date)
+VALUES (:'test_game_id'::uuid,'Chrono pickup rerun','PICKUP',true,CURRENT_DATE,CURRENT_DATE);
+DO $$ BEGIN
+ BEGIN
+  INSERT INTO public.game_schedules(game_id,title,schedule_type,is_rerun,start_date,end_date)
+  VALUES (current_setting('chronoledger.test_game_id')::uuid,'Invalid rerun','BROADCAST',true,CURRENT_DATE,CURRENT_DATE);
+  RAISE EXCEPTION 'FAIL: non-PICKUP rerun was accepted';
+ EXCEPTION WHEN check_violation THEN NULL;
+ END;
+END $$;
+\echo PASS: BROADCAST and PICKUP rerun schedules insert; non-PICKUP rerun is rejected
+ROLLBACK TO SAVEPOINT r33_direct_schedule_checks;
+
 INSERT INTO public.schedule_requests (
     user_id, game_id, title, schedule_type, start_date, end_date, memo
 )
 VALUES (
     auth.uid(), :'test_game_id'::uuid,
-    'Chrono test schedule addition', 'VERSION',
+    'Chrono test schedule addition', 'BROADCAST',
     (now() AT TIME ZONE 'Asia/Seoul')::date + 40,
     (now() AT TIME ZONE 'Asia/Seoul')::date + 45,
     'rollback test'
@@ -768,14 +806,14 @@ RETURNING id AS schedule_add_request_id \gset
 
 INSERT INTO public.schedule_requests (
     user_id, game_id, target_schedule_id, title, schedule_type,
-    start_date, end_date, memo
+    start_date, end_date, memo, is_rerun
 )
 VALUES (
     auth.uid(), :'test_game_id'::uuid, :'test_schedule_id'::uuid,
     'Chrono test schedule edit', 'PICKUP',
     (now() AT TIME ZONE 'Asia/Seoul')::date + 50,
     (now() AT TIME ZONE 'Asia/Seoul')::date + 55,
-    'rollback test'
+    'rollback test', true
 )
 RETURNING id AS schedule_edit_request_id \gset
 
@@ -1059,6 +1097,10 @@ SELECT public.reject_game_request(
 );
 SELECT public.approve_schedule_request(:'schedule_add_request_id'::uuid);
 SELECT public.approve_schedule_request(:'schedule_edit_request_id'::uuid);
+DO $$ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM public.game_schedules WHERE title='Chrono test schedule addition' AND schedule_type='BROADCAST' AND is_rerun=false) THEN RAISE EXCEPTION 'FAIL: approved BROADCAST schedule fields were not copied'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM public.game_schedules WHERE id=current_setting('chronoledger.test_schedule_id')::uuid AND schedule_type='PICKUP' AND is_rerun=true) THEN RAISE EXCEPTION 'FAIL: approved PICKUP rerun fields were not copied'; END IF;
+END $$;
 SELECT public.reject_schedule_request(
     :'schedule_reject_request_id'::uuid,
     'insufficient detail'

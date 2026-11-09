@@ -37,6 +37,30 @@ describe("DesktopCalendar", () => {
     expect(memoDot.parentElement?.className).toContain("justify-center")
   })
 
+  it("renders a BROADCAST banner and mobile dot", () => {
+    render(
+      <DesktopCalendar
+        year={2026}
+        month={10}
+        selectedDate="2026-10-06"
+        onSelectDate={vi.fn()}
+        onPrevMonth={vi.fn()}
+        onNextMonth={vi.fn()}
+        days={[{
+          date: "2026-10-06",
+          day: 6,
+          inCurrentMonth: true,
+          schedules: [{ id: "broadcast", schedule_type: "BROADCAST", is_start_date: true, game_id: "g1" }],
+          icons: [],
+          hasMemo: false,
+        }]}
+      />,
+    )
+
+    expect(screen.getByText("BROADCAST")).toBeTruthy()
+    expect(screen.getByTitle("특별방송 일정 있음")).toBeTruthy()
+  })
+
   it("renders multiple banners strictly in order [VERSION], [PICKUP], [CONTENTS]", () => {
     render(
       <DesktopCalendar
@@ -336,4 +360,3 @@ describe("DesktopCalendar", () => {
     expect(customMobileMemoDot.className).toContain("shadow-[0_1px_2px_rgba(0,0,0,0.6)]")
   })
 })
-

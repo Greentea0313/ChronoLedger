@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "schedule-rerun-and-broadcast",
+    "created_at":  "2026-11-09T03:08:18.9319507+00:00",
+    "objective":  "Implement R33: PICKUP rerun flag (is_rerun) and BROADCAST (special broadcast) schedule type across DB/RPC/types and calendar, admin and request UI",
+    "acceptance_criteria":  [
+                                "Step 1 (DB/RPC/Types, GPT Codex): add idempotent sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql and mirror into sql/SCHEMA.sql: extend schedule_type CHECK on game_schedules and schedule_requests to VERSION/PICKUP/CONTENTS/BROADCAST; add is_rerun BOOLEAN NOT NULL DEFAULT false to both tables with CHECK (is_rerun = false OR schedule_type = \u0027PICKUP\u0027); approve_schedule_request copies is_rerun on insert/update; sync_version_expenses_trigger keeps working for BROADCAST; update database.types.ts, request-validation.ts (+tests), sql/tests/TESTS.sql, sql/README.md, SRS/SPEC.",
+                                "Step 2 (UI, GitHub Copilot): admin schedule form and RequestSubmissionModal support BROADCAST and a PICKUP-only rerun toggle (reset when type changes); admin requests page, desktop calendar banners, hero sidebar, weekly list and games ScheduleTree show BROADCAST label and a rerun badge using semantic tokens; existing game/official filters pass the new values through; writes tolerate an unapplied migration (omit is_rerun unless true, readable error on missing column or CHECK violation); Vitest tests added.",
+                                "Step 3 (Review, Claude Opus): integrated static review of Base..Target, review.json/test.json/run.json schema validation, main merge and docs closeout, plus production migration checklist."
+                            ],
+    "base_sha":  "d09ba5c131838872fa8423c9ce80cd31d345106f",
+    "target_sha": "8c64d983d7a39cae72dd29ce0d4457d1f02358e1",
+    "branch":  "collab/schedule-rerun-and-broadcast",
+    "worktree_path":  ".worktrees/schedule-rerun-and-broadcast",
+    "max_iterations":  3,
+    "status": "completed"
+}
