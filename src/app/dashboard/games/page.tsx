@@ -73,6 +73,16 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     () => Object.fromEntries(versions.filter((version) => version.start_date <= today && version.end_date >= today).map((version) => [version.id, true])),
   )
+  useEffect(() => {
+    const currentVersions = schedules.filter((schedule) => schedule.schedule_type === "VERSION")
+    setExpanded((prev) => {
+      const next = { ...prev }
+      currentVersions.forEach((version) => {
+        if (version.start_date <= today && version.end_date >= today) next[version.id] = true
+      })
+      return next
+    })
+  }, [schedules, today])
   const renderSchedule = (schedule: GameScheduleRow) => (
     <div key={schedule.id} className="rounded-lg border border-line bg-surface-2 p-3 space-y-1.5">
       <div className="flex items-start justify-between gap-2">
