@@ -31,42 +31,35 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `r38-onboarding-and-game-order` *(2026-11-09, `Phase 12.41` R38 신규 가입 첫 진입 게임 일괄 구독 온보딩 모달 및 내 게임 순서 변경·캘린더 아이콘 정렬 연동)*
+- **Run ID**: `r52-character-template-and-pickup-avatar` *(2026-11-09, `Phase 13.5` R52 게임별 캐릭터 시스템 템플릿 `character_label`/`character_rank`/`character_class1·2` 기반 동적 캐릭터 테이블·폼 재구성, 캐릭터 등록 게임 전용 로스터/프리셋 제한, 및 `PICKUP` 일정 캐릭터 이미지 연동)*
 - **Orchestrator**: Gemini 4 Argon
-- **Worktree 경로**: `.worktrees/r38-onboarding-and-game-order` (브랜치: `collab/r38-onboarding-and-game-order`, manifest `12486d9`)
-- **리뷰 비교 범위**: Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Target `c1cb27b4d41af75832c76dd006c02c93f5e906b7` (manifest `target_sha`·`status: completed` 기록, 산출물 커밋 `66c99f4`, `findings` P4 2건 — 비차단). **Run 마감: `main` 병합 `b8abcc6` 완료** *(push 미수행, DB 변경 없음)*
-- **설계 결정 (Orchestrator 확정 — DB 변경 없음 · Opus 승격 조건 미해당)**:
-  - 내 게임 표시 순서와 온보딩 모달 닫기 여부는 DB 컬럼 추가 없이 `localStorage`(`src/lib/game-order-storage.ts`, 사용자 `userId` 키 격리)에 저장하여 운영 SQL 마이그레이션 선행 조건을 만들지 않고 즉시 배포 가능하도록 구성함.
+- **Worktree 경로**: `.worktrees/r52-character-template-and-pickup-avatar` (브랜치: `collab/r52-character-template-and-pickup-avatar`, manifest `1abbb88`)
+- **리뷰 비교 범위**: Base `0c09a20392f4aa42fd39c118a590f5b6eb801968` ↔ Target `(Step 3 Maker 커밋 후 기록)` *(Step 4 Reviewer가 manifest `target_sha` 기록)*
+- **명세서 권위 문서**: [`docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`](spec/R52_Character_Template_and_Pickup_Avatar_Spec.md)
+- **Opus 승격 사유**: ① DB 스키마·RLS(`game_characters` `anon` SELECT)·`SECURITY DEFINER` RPC(`approve_schedule_request`)·CHECK 제약 조건 변경 포함, ③ 관리자/사용자 캐릭터·일정·캘린더 다중 모듈 연동 설계 리뷰 및 통합 리뷰 해당.
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Step 1 — `Phase 12.41 (R38)` 신규 가입 첫 진입 게임 일괄 구독 온보딩 모달 및 내 게임 순서 변경 구현 (Claude Sonnet)**:
-     - **대상 파일 (`.worktrees/r38-onboarding-and-game-order` 내부)**: `src/lib/game-order-storage.ts`(신규), `src/lib/game-order-storage.test.ts`(신규), `src/components/game/game-onboarding-modal.tsx`(신규), `src/components/game/game-onboarding-modal.test.ts*`(신규), `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`(필요 시), `docs/to-do.md`
-     - **구현 요구사항**:
-       - ① **`R38-1` 내 게임 순서 및 온보딩 상태 로컬 저장소 유틸리티 (`src/lib/game-order-storage.ts` & `src/lib/game-order-storage.test.ts`)**:
-         - `loadGameOrder(userId: string | null | undefined): string[]`: `localStorage.getItem(\`chronoledger:game-order:\${userId}\`)`에서 중복 없는 문자열 배열을 안전하게 파싱해 반환함(비로그인·SSR·손상 데이터 시 `[]` 반환).
-         - `saveGameOrder(userId: string | null | undefined, orderedGameIds: string[]): void`: 중복 제거된 `orderedGameIds`를 JSON 문자열로 저장함(`userId` 없으면 무동작).
-         - `sortByGameOrder<T>(items: readonly T[], orderedGameIds: readonly string[], getId: (item: T) => string, getName: (item: T) => string): T[]`: `orderedGameIds`에 포함된 항목은 해당 인덱스 오름차순으로 먼저 배치하고, 포함되지 않은 항목은 그 뒤에 `getName(a).localeCompare(getName(b), "ko")` 가나다순으로 정렬해 새 배열로 반환함.
-         - `moveGameInOrder(currentOrderedIds: readonly string[], gameId: string, direction: "up" | "down"): string[]`: `currentOrderedIds`에서 `gameId`를 위(`index - 1`) 또는 아래(`index + 1`) 항목과 맞바꾼 새 배열을 반환함(경계 밖이거나 없으면 원본 복사본 반환).
-         - `isGameOnboardingDismissed(userId: string | null | undefined): boolean` 및 `dismissGameOnboarding(userId: string | null | undefined): void`: `localStorage` 키 `chronoledger:game-onboarding-dismissed:${userId}`(`"1"`)를 조회·기록함.
-       - ② **`R38-2` 신규 가입 첫 진입 시(구독 게임 0개) 게임 일괄 구독 온보딩 모달 (`src/components/game/game-onboarding-modal.tsx` & 단위 테스트)**:
-         - Props: `{ open: boolean; userId: string; onClose: () => void; onSubscribed: (selectedGameIds: string[]) => void }`.
-         - `open === true`일 때 `games` 테이블(`.select("id, name, default_icon_url").order("name")`)에서 공용 게임 카탈로그를 조회하고, 기본값으로 전체 게임을 체크 선택 상태로 표시함(상단에 `전체 선택` / `전체 해제` 토글 버튼 제공).
-         - 각 게임 항목은 체크박스(또는 선택 토글 버튼)와 `GameIcon`·게임명을 표시하며 클릭 시 선택 여부가 토글됨.
-         - **`선택한 게임 구독 시작 (N개)`** 버튼(`selectedIds.length === 0`이거나 오프라인/저장 중일 때 비활성화): `supabase.from("user_games").insert(selectedIds.map((game_id) => ({ user_id: userId, game_id })))`로 일괄 구독 등록 후 `saveGameOrder(userId, selectedIds)` 및 `dismissGameOnboarding(userId)`를 호출하고 `onSubscribed(selectedIds)`를 실행함.
-         - **`나중에 직접 선택`** 버튼(또는 모달 닫기): `dismissGameOnboarding(userId)`를 호출하고 `onClose()`를 실행해 이후 재방문 시 자동으로 다시 뜨지 않게 함.
-       - ③ **`R38-3` `/dashboard/games` 내 게임 순서 변경 버튼 및 온보딩 모달 연동 (`src/app/dashboard/games/page.tsx` & `page.test.tsx`)**:
-         - `userId` 변경 시 `loadGameOrder(userId)`로 `gameOrder` 상태를 초기화하고, `sortedUserGames` 계산 시 `sortByGameOrder(userGames, gameOrder, (g) => g.game_id, (g) => g.games?.name || "")`를 적용함.
-         - 구독 중인 내 게임 카드마다 순서 이동 버튼 2개(`aria-label={\`순서 위로: \${gameName}\`}`, `aria-label={\`순서 아래로: \${gameName}\`}`, 첫 번째 항목은 위로 버튼 `disabled`, 마지막 항목은 아래로 버튼 `disabled`)를 추가함. 클릭 시 현재 `sortedUserGames.map((g) => g.game_id)` 기준으로 `moveGameInOrder`를 수행해 `gameOrder` 상태와 `saveGameOrder(userId, nextOrder)`를 즉시 갱신함.
-         - 로그인 상태(`Boolean(userId)`)이고 초기 로드가 끝났으며(`!isLoading && !scheduleError`) `userGames.length === 0`이고 `!isGameOnboardingDismissed(userId)`이면 `GameOnboardingModal`을 자동 표시함(일괄 구독 완료 시 `loadGames()` 및 `gameOrder` 갱신).
-       - ④ **`R38-4` 대시보드(`/dashboard`) 캘린더 아이콘·필터 정렬 및 온보딩 연동 (`src/app/dashboard/page.tsx`)**:
-         - 로그인 사용자일 때 `loadGameOrder(user?.id)`를 읽어 `gameFilterOptions`(게임 필터 칩 순서)와 `days` 내 각 날짜 셀의 `dayIcons`(캘린더 타일 게임 아이콘 순서) 정렬에 `sortByGameOrder`를 적용함(게스트 모드는 기존 가나다순 유지).
-         - 로그인 상태이고 초기 로드가 정상 완료되었으며(`hasLoadedInitial && !error`) `userGames.length === 0`이고 `!isGameOnboardingDismissed(user.id)`일 때 `GameOnboardingModal`을 자동 표시하고 일괄 구독 완료 시 `load()`를 재호출함.
-  2. **Step 2 — 통합 정적 코드 리뷰 및 Run 마감 (Gemini 4 Argon / Claude Opus)**:
-     - Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Step 1 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
+  1. **Step 1 — `Phase 13.5-Spec (R52)` 기능 명세서 아키텍처·보안·정합성 심층 리뷰 (Claude Opus)**:
+     - **대상 파일**: `.worktrees/r52-character-template-and-pickup-avatar/docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` 및 루트 `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` (양쪽 동일하게 유지 후 워크트리 커밋), `docs/handoff.md`
+     - **검토 요구사항**:
+       - ① `games.classification_schema` 확장(`character_label` 선택 문자열 `1~20자`, `rarities` `character_rank`, `axes` 최대 2개 `character_class1`·`character_class2`)과 `is_valid_classification_schema(jsonb)` 하위 호환성·무결성 검증.
+       - ② `game_schedules`·`schedule_requests`의 `pickup_character_ids UUID[]` 및 `pickup_image_url TEXT` 제약 조건, `approve_schedule_request` RPC의 `ADD`/`EDIT` 승인 시 원자적 복사·초기화 규칙, 캐릭터 삭제 시 `pickup_character_ids` 참조 안전성, 미적용 마이그레이션 환경에서의 클라이언트 폴백 전략 점검.
+       - ③ 비로그인 게스트 모드(`anon`)에서 공식 `PICKUP` 일정의 캐릭터 아바타 표시를 위한 `public.game_characters` `anon` `SELECT` 허용의 보안 경계 점검(공용 카탈로그 한정, `user_characters`·`character_requests` 비노출 유지).
+       - ④ 리뷰 결과 및 규범적 보완 결정(Normative Resolutions)을 `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` 하단 `## 7. Claude Opus 아키텍처 및 보안 리뷰 결과` 섹션으로 작성하고 문서 상태를 `APPROVED`로 갱신한 뒤, `.worktrees/r52-character-template-and-pickup-avatar`에 커밋하고 **Step 2(`GPT Codex`)를 `▶ READY`로 전환**함.
+  2. **Step 2 — `Phase 13.5-A (R52 DB/RLS/RPC/Types)` DB 마이그레이션 및 타입·유틸리티 구현 (GPT Codex)**:
+     - **대상 파일 (`.worktrees/r52-character-template-and-pickup-avatar` 내부)**: `sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql`(신규), `sql/SCHEMA.sql`, `sql/TESTS.sql`, `sql/README.md`, `src/types/database.types.ts`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`
+     - **구현 요구사항**: Step 1에서 `Claude Opus`가 `APPROVED`한 `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`(특히 `§2` 및 `§7` 규범 결정)를 준수하여 마이그레이션·스키마·스모크 테스트·타입·헬퍼(`character_label` 기본값 `"캐릭터"` 정규화, 2축 검증, 템플릿 활성화 여부 판정 등)를 구현하고 워크트리에 커밋한 뒤 **Step 3(`Claude Sonnet`)을 `▶ READY`로 전환**함.
+  3. **Step 3 — `Phase 13.5-B (R52 UI & Tests)` 관리자 동적 캐릭터 템플릿·테이블, 지원 게임 전용 로스터, 픽업 캐릭터 아바타 UI 구현 (Claude Sonnet)**:
+     - **대상 파일 (`.worktrees/r52-character-template-and-pickup-avatar` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar-content.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`
+     - **구현 요구사항**: `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` `§3 ~ §5` 및 `§7` 규범 결정을 준수하여 구현 및 단위 테스트 통과 후 워크트리에 커밋하고 **Step 4(`Claude Opus` / `Gemini 4 Argon`)를 `▶ READY`로 전환**함.
+  4. **Step 4 — 통합 정적 코드 리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
+     - Base `0c09a20392f4aa42fd39c118a590f5b6eb801968` ↔ Step 3 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, 로컬 PostgreSQL 마이그레이션·`TESTS.sql` 검증, `main` 병합 및 운영 마이그레이션 체크리스트 등록.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: c1cb27b4d41af75832c76dd006c02c93f5e906b7)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Onboarding & Game Order UI)` | `Phase 12.41 (R38)`: `.worktrees/r38-onboarding-and-game-order`에서 `game-order-storage.ts`, `GameOnboardingModal`, `/dashboard/games` 순서 변경 UI, `/dashboard` 캘린더 아이콘·필터 정렬 반영 및 단위 테스트 구현 | `✅ c1cb27b: game-order-storage 유틸, GameOnboardingModal(전체 선택 기본·일괄 구독·나중에 선택), /dashboard/games 순서 변경 버튼 및 온보딩 연동, /dashboard 필터·캘린더 아이콘 순서 적용 및 온보딩 연동. DB 변경 없음. tsc/lint 통과, Vitest 54파일/485개 통과.` |
-| **2** | **`✅ DONE (리뷰 P4 2건 비차단, 산출물 SHA: 66c99f4, main 병합 b8abcc6)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `4ffd901` ↔ Target `c1cb27b` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ P1~P3 0건. R38-REV-001 P4(온보딩 일괄 구독 insert가 타 탭 중복 구독 시 전체 실패 → upsert ignoreDuplicates 권장), R38-REV-002 P4(로그아웃·탈퇴 시 localStorage 게임 순서/온보딩 키 미삭제 → R50 안건에 포함) → R51 후속 등록. diff-check/tsc/lint 통과, Vitest 54파일/485개 통과, 스키마 검증 통과. main 병합 b8abcc6.` |
+| **1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect & Security Reviewer (Spec)` | `Phase 13.5-Spec (R52)`: `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` 아키텍처·RLS·RPC·제약 조건 심층 리뷰, `§7` 규범 결정 추가 및 `APPROVED` 확정 | `⏳ 대기 중` |
+| **2** | **`⏳ WAITING`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (DB/RLS/RPC/Types & Test)` | `Phase 13.5-A (R52)`: `.worktrees/r52-character-template-and-pickup-avatar`에서 `MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql`, `SCHEMA.sql`, `TESTS.sql`, `README.md`, `database.types.ts`, `character-utils.ts` 구현 | `⏳ Step 1 완료 후 진행` |
+| **3** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Dynamic Template & Pickup Avatar UI)` | `Phase 13.5-B (R52)`: `.worktrees/r52-character-template-and-pickup-avatar`에서 관리자 동적 캐릭터 템플릿/테이블, `/dashboard/characters` 지원 게임 필터링, `PICKUP` 일정 캐릭터 아바타 연동 및 테스트 구현 | `⏳ Step 2 완료 후 진행` |
+| **4** | **`⏳ WAITING`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `0c09a20` ↔ Step 3 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), 로컬 PG `TESTS.sql` 검증, `run.json` 마감 및 `main` 병합 | `⏳ Step 3 완료 후 진행` |
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
@@ -92,6 +85,18 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **A1** | **`📝 AGENDA`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Security Reviewer (Read-only)` | 위 수용 기준 1~4. 허용 파일: `docs/auth-security-review.md`(신규), `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md`, `docs/handoff.md` | `📝 등록됨: 사용자가 별도 요청할 때만 ▶ READY로 전환하여 착수함` |
 | **A2** | **`⏳ WAITING`** | **사용자** | `Owner (Dashboard Confirmation)` | A1 체크리스트 기준 Supabase 대시보드 설정 확인·변경 및 결과 회신 | `⏳ A1 완료 후 진행` |
+
+### 🗂️ 이전 Run 기록 (완료): r38-onboarding-and-game-order
+
+- **Run ID**: `r38-onboarding-and-game-order` *(2026-11-09, `Phase 12.41` R38 신규 가입 첫 진입 게임 일괄 구독 온보딩 모달 및 내 게임 순서 변경·캘린더 아이콘 정렬 연동)*
+- **Orchestrator**: Gemini 4 Argon *(Step 2 리뷰·마감: Claude Opus 1순위 대체 수행)*
+- **Worktree 경로**: `.worktrees/r38-onboarding-and-game-order` (브랜치: `collab/r38-onboarding-and-game-order`, manifest `12486d9`)
+- **리뷰 비교 범위**: Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Target `c1cb27b4d41af75832c76dd006c02c93f5e906b7` *(iteration-01 `findings` P4 2건 비차단 — `R51` 후속 등록, 산출물 커밋 `66c99f4`, **`main` 병합 `b8abcc6` 완료**)*
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: c1cb27b4d41af75832c76dd006c02c93f5e906b7)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Onboarding & Game Order UI)` | `Phase 12.41 (R38)`: `game-order-storage.ts`, `GameOnboardingModal`, `/dashboard/games` 순서 변경 UI, `/dashboard` 캘린더 아이콘·필터 정렬 반영 및 단위 테스트 구현 | `✅ c1cb27b: tsc/lint 통과, Vitest 54파일/485개 통과.` |
+| **2** | **`✅ DONE (리뷰 P4 2건 비차단, 산출물 66c99f4, main 병합 b8abcc6)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 수행)* | `Reviewer & Orchestrator` | Base `4ffd901` ↔ Target `c1cb27b` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ DONE: P1~P3 0건, P4 2건 R51 이관. main 병합(b8abcc6) 완료함.` |
 
 ### 🗂️ 이전 Run 기록 (완료): r36-game-detail-and-r47-followup
 

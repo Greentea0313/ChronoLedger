@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-09 (R52 게임별 동적 캐릭터 템플릿 및 픽업 캐릭터 아바타 명세서 작성 & Run 등록 — R52)
+
+- 사용자 Q&A(A1~A5)를 통해 구체화한 `R52` 기능 명세서(`docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`, 커밋 `0c09a20`)를 작성함.
+- 격리 Run `r52-character-template-and-pickup-avatar`(Base `0c09a20`, manifest `1abbb88`)를 생성하고 Step 1 명세 리뷰(`Claude Opus` `▶ READY`) → Step 2 DB/RPC(`GPT Codex`) → Step 3 UI(`Claude Sonnet`) → Step 4 통합 리뷰(`Claude Opus / Gemini 4 Argon`) 파이프라인을 `docs/handoff.md`에 등록함.
+
 ## 2026-11-09 (r38-onboarding-and-game-order 리뷰 및 `main` 병합)
 
 - R38 첫 진입 게임 일괄 구독 온보딩 모달과 사용자별 게임 표시 순서(localStorage) 기능을 리뷰(P4 2건, 비차단)하고 `main`에 병합(`b8abcc6`)함.

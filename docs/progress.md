@@ -1,4 +1,17 @@
 # 프로젝트 진행 현황
+## R52 기능 명세서 구체화 및 r52-character-template-and-pickup-avatar Run 등록 (R52, 2026-11-09)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)임.
+- **요구사항 구체화 (사용자 Q&A 5건 확정)**:
+  1. **픽업 캐릭터 이미지 노출 위치**: 월간 캘린더 날짜 칸 우상단은 기존 **게임 아이콘**을 유지하고, **우측 사이드바·주차별 리스트·게임별 일정 모달**의 `PICKUP` 일정 카드에 **캐릭터 아바타 이미지**를 표시함.
+  2. **캐릭터 지원 게임의 픽업 일정 등록**: 등록된 캐릭터 드롭다운에서 픽업 대상 캐릭터(**단일 또는 복수**, `pickup_character_ids UUID[]`)를 선택하면 캐릭터 이미지가 자동 연결되고 일정 제목도 자동 완성(수동 수정 가능)되며, 미지원 게임(등록 캐릭터 0명)은 `pickup_image_url`로 이미지를 직접 첨부함.
+  3. **분류 기준(`character_class1`, `character_class2`) 관리**: 템플릿 최초 생성 시 분류 기준 명칭과 선택지 목록을 함께 등록하여 이후 캐릭터 추가 시 드롭다운으로 선택함.
+  4. **DB 저장 구조**: 물리적 개별 테이블 DDL 생성 대신 `public.games.classification_schema`(`character_label`, `rarities`, `axes[0..1]`) + `public.game_characters` 기반 **논리적 동적 템플릿 방식**을 채택해 PostgREST·RLS·타입 안정성을 보장하고 관리자/사용자 UI가 전용 테이블·폼으로 동적 재구성되게 함.
+  5. **캐릭터 미지원 게임 필터링**: `/dashboard/characters` 상단 게임 선택 바에는 **관리자가 캐릭터를 1명 이상 등록한 구독 게임**만 노출하고, 사용자 캐릭터 추가 요청도 템플릿 생성 게임에만 허용함.
+- **산출물 및 Run 등록**:
+  - 명세서 [`docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`](spec/R52_Character_Template_and_Pickup_Avatar_Spec.md) 작성 및 커밋(`0c09a20`), 격리 Worktree `.worktrees/r52-character-template-and-pickup-avatar`(Base `0c09a20`, manifest `1abbb88`) 생성 완료함.
+  - **과제 배정**: Step 1 명세서 아키텍처·보안 리뷰 (**Claude Opus** `▶ READY`) → Step 2 DB/RLS/RPC/Types (**GPT Codex** `⏳ WAITING`) → Step 3 UI 구현 (**Claude Sonnet** `⏳ WAITING`) → Step 4 통합 리뷰 및 병합 (**Claude Opus / Gemini 4 Argon** `⏳ WAITING`)임.
+
 ## r38-onboarding-and-game-order 통합 리뷰 및 `main` 병합 마감 (2026-11-09)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.
