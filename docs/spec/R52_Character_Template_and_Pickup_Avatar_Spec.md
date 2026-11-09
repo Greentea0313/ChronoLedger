@@ -1,7 +1,7 @@
 # R52 기능 명세서: 게임별 동적 캐릭터 템플릿 및 픽업 일정 캐릭터 이미지 연동
 
 - **문서 ID**: `R52-SPEC-v1`
-- **상태**: `DRAFT — Claude Opus 아키텍처·보안·정합성 리뷰 대기 (Step 1 ▶ READY)`
+- **상태**: `APPROVED (Claude Opus 리뷰 완료, 2026-11-09) — §7 규범 결정(NR-01~NR-12)을 반영하는 조건부 승인이며, §2~§5와 §7이 충돌하면 §7이 우선함`
 - **작성일**: `2026-11-09`
 - **작성자**: `Gemini 4 Argon (Orchestrator & Architect)`
 - **리뷰어**: `Claude Opus (Reviewer & Deep Specialist)`
@@ -226,3 +226,61 @@ ALTER TABLE public.game_schedules
    - `/dashboard`(사이드바·주차별 리스트) 및 `/dashboard/games`(`ScheduleTree`) `PICKUP` 캐릭터 아바타 렌더링 및 Vitest 테스트 추가.
 4. **Step 4 (`Claude Opus` / `Gemini 4 Argon` — 통합 정적 코드 리뷰 및 마감)**:
    - Base ↔ Target SHA 통합 정적 리뷰(`review.json`), 로컬 PostgreSQL 마이그레이션/스모크 테스트 검증 및 `main` 병합 마감.
+
+---
+
+## 7. Claude Opus 아키텍처 및 보안 리뷰 결과
+
+- **리뷰어**: Claude Opus (Architect & Security Reviewer, Run `r52-character-template-and-pickup-avatar` Step 1)
+- **리뷰 일자**: 2026-11-09
+- **대조 기준**: `sql/SCHEMA.sql`(`is_valid_classification_schema`, `game_characters`, `cleanup_deleted_game_character_presets`, `approve_schedule_request`, `anon` 정책), `src/lib/image-resizer.ts`, `src/app/dashboard/page.tsx` 일정 조회, R33 리뷰 교훈(`R33-REV-002`·`R33-REV-006`)
+- **판정**: 논리적 동적 템플릿 방식(Q4)과 화면 노출 규칙(Q1·Q2·Q5)은 승인함. 다만 아래 보안·무결성·성능 결함은 구현 전에 보완이 필요하여 규범 결정으로 확정함.
+
+### 7.1 주요 지적 사항
+
+| ID | 심각도 | 대상 | 지적 내용 |
+| :--- | :--- | :--- | :--- |
+| `R52-SR-01` | P2 | §2.2 게스트 호환성 | `game_characters`에는 관리자 계정 UUID인 `created_by` 컬럼이 있음. 테이블 단위 `GRANT SELECT ... TO anon` + `USING (true)`는 비로그인 사용자에게 관리자 식별자를 노출함. |
+| `R52-SR-02` | P2 | §2.2 `pickup_character_ids` | 배열 컬럼은 FK가 없어 존재하지 않는 ID, 다른 게임 캐릭터 ID, NULL 요소, 중복 ID를 DB가 막지 못함. 일반 사용자가 `schedule_requests`에 임의 UUID를 넣을 수 있음. |
+| `R52-SR-03` | P2 | §2.1 검증 함수 | `CHECK` 제약에 쓰이는 함수를 `CREATE OR REPLACE`로 강화해도 기존 행은 재검증되지 않음. 축 3개·20자 초과 등급 등 기존 데이터가 남아 있으면 해당 게임은 이후 모든 수정이 실패하는 상태가 됨. |
+| `R52-SR-04` | P2 | §2.2 `pickup_image_url` | 사용자 요청 경로에 `https://` 외부 URL을 허용하면 승인 후 모든 사용자·게스트 브라우저가 외부 서버로 요청을 보내 추적·콘텐츠 변조 위험이 생김. 또한 대시보드는 `game_schedules`를 `select("*")`로 월 단위 조회하므로 일정당 최대 150,000자 이미지가 캘린더 로드 용량을 크게 늘림(표시 크기는 24~28px). |
+| `R52-SR-05` | P3 | §2.2 캐릭터 삭제 | "필요 시 정리"가 선택 사항으로 남아 있음. 삭제된 ID가 배열에 남으면 편집 저장 시 재검증이 실패할 수 있음. |
+| `R52-SR-06` | P3 | §2.2 승인 RPC | 요청 제출 후 승인 전에 캐릭터가 삭제되면, 승인 시 존재하지 않는 ID가 복사되어 승인 자체가 실패함. |
+| `R52-SR-07` | P3 | §2.1 `axes[].key` | 예시 JSON의 `key: "class1"/"class2"`를 기존 데이터에 강제하면 `game_characters.attributes`에 저장된 기존 키와 어긋나 분류 값이 고아가 됨. |
+| `R52-SR-08` | P3 | §3.1·§4 판정 기준 | "템플릿 활성"(`rarities ≥ 1`)과 "캐릭터 지원"(`캐릭터 ≥ 1`) 기준이 섹션마다 다르게 쓰이고, 등급 없이 캐릭터만 있는 R13 기존 게임의 처리 규칙이 없음. |
+| `R52-SR-09` | P3 | §5.2 커스텀 아이콘 우선 | 대시보드에서 픽업 아바타마다 비공개 `user-icons` Signed URL을 발급하면 일정 수만큼 Storage 요청이 늘고, 게스트·로그인 사용자 간 표시가 달라짐. |
+| `R52-SR-10` | P4 | §6·Run 블록 | 대상 경로 오기: `sql/TESTS.sql` → 실제 `sql/tests/TESTS.sql`, `hero-sidebar-content.tsx` → 실제 `src/components/calendar/hero-sidebar.tsx`. |
+
+### 7.2 규범 결정 (Normative Resolutions)
+
+- **NR-01 (게스트 노출 최소화, `R52-SR-01`)**: `anon`에는 테이블 단위가 아닌 **열 단위 권한**만 부여함 — `GRANT SELECT (id, game_id, name, default_icon_url, rarity, attributes) ON public.game_characters TO anon;` + `CREATE POLICY "Allow anon read game characters" ... FOR SELECT TO anon USING (true);`. `created_by`·`created_at`·`updated_at`은 `anon`에 노출하지 않음. 게스트 경로의 클라이언트 조회는 `select("*")` 대신 명시 컬럼(`id, game_id, name, default_icon_url`)만 사용함. `user_characters`·`user_character_presets`·`character_requests`·`schedule_requests`의 `anon` 권한은 추가하지 않음(`TESTS.sql`에 비노출 검증 포함).
+- **NR-02 (배열 참조 무결성, `R52-SR-02`)**: `public.validate_schedule_pickup_characters()` `BEFORE INSERT OR UPDATE` 트리거를 `game_schedules`·`schedule_requests` 양쪽에 둠. 검증 내용: NULL 요소 없음(`array_position(ids, NULL) IS NULL`), 중복 없음, 모든 ID가 `public.game_characters`에 존재하고 `game_id = NEW.game_id`. 위반 시 한국어 예외(`픽업 캐릭터는 같은 게임의 카탈로그에 있어야 합니다.`)를 발생시킴. `SET search_path = public`을 지정함. UPDATE에서는 `pickup_character_ids` 또는 `game_id`가 바뀐 경우에만 검증해, 처리 완료 요청의 반려 메모 갱신 등 무관한 수정이 과거 ID 때문에 실패하지 않게 함. 개수 상한 8명과 `PICKUP` 전용 조건은 §2.2 `CHECK` 그대로 유지함.
+- **NR-03 (모드 상호 배타)**: `CHECK (cardinality(pickup_character_ids) = 0 OR pickup_image_url IS NULL)`를 양쪽 테이블에 추가해 모드 A(캐릭터 선택)와 모드 B(직접 이미지)가 한 일정에 동시에 저장되지 않게 함.
+- **NR-04 (픽업 이미지 형식·용량, `R52-SR-04`)**: `pickup_image_url`은 **`data:image/webp;base64,`만 허용**하고 `https://` 외부 URL은 두 테이블 모두 허용하지 않음(외부 URL 입력은 클라이언트에서 기존 `convertIconSourceToDataUrl` 경로로 WebP Data URL 변환 후 저장). 출력 크기는 **96×96 WebP**, `CHECK length(pickup_image_url) <= 30000`으로 제한함. 구현은 `src/lib/image-resizer.ts`에 출력 크기 인자(기본 256 유지)를 추가하는 방식으로 하고, 기존 게임·캐릭터 아이콘 동작은 바꾸지 않음.
+- **NR-05 (캐릭터 삭제 정리, `R52-SR-05`)**: 기존 `public.cleanup_deleted_game_character_presets()`(SECURITY DEFINER) 함수에 `game_schedules`와 `schedule_requests`(`request_status = 'PENDING'`만)의 `pickup_character_ids = array_remove(pickup_character_ids, OLD.id)` 갱신을 추가함(`WHERE game_id = OLD.game_id AND OLD.id = ANY(pickup_character_ids)`, `game_schedules`는 `updated_at = NOW()` 포함). 날짜가 바뀌지 않으므로 `sync_version_expenses_trigger`는 무동작임. 처리 완료된 요청 이력은 보존하며 NR-02 검증은 이후 수정 시점에만 적용됨.
+- **NR-06 (승인 RPC 원자적 복사, `R52-SR-06`)**: `approve_schedule_request`는 기존 관리자 판정·`FOR UPDATE`·`is_rerun` 복사·`SECURITY DEFINER SET search_path = public`을 유지함. `PICKUP`이면 `pickup_character_ids`를 **현재 존재하고 같은 게임에 속한 ID만, 요청 순서대로** 걸러서 복사함(`ARRAY(SELECT c.id FROM unnest(v_request.pickup_character_ids) WITH ORDINALITY AS u(id, ord) JOIN public.game_characters c ON c.id = u.id AND c.game_id = v_request.game_id ORDER BY u.ord)`). `pickup_image_url`도 함께 복사하며, `PICKUP`이 아니면 `'{}'::uuid[]`·`NULL`로 초기화함. INSERT(신규)와 UPDATE(대상 일정 수정) 양쪽에 동일하게 적용함.
+- **NR-07 (검증 함수 강화 전 사전 점검, `R52-SR-03`)**: 마이그레이션은 함수 교체 **전에** 신규 규칙 위반 게임(축 3개 이상, 길이 1~20자 위반 등급, 잘못된 `character_label`)을 조회하고, 1건이라도 있으면 게임 ID 목록과 함께 `RAISE EXCEPTION`으로 중단함(자동 변환 금지, 운영자가 데이터 정리 후 재실행). `character_label` 검증은 키가 있을 때만 수행함(`p_schema ? 'character_label'`, `jsonb_typeof = 'string'`, `length(btrim(...)) BETWEEN 1 AND 20`). 축 선택지 개수(1~20)와 `key` 정규식(`^[a-z0-9_]{1,24}$`)은 기존 규칙을 유지함.
+- **NR-08 (분류 축 키 보존, `R52-SR-07`)**: `character_class1`·`character_class2`는 `axes[0]`·`axes[1]`의 **위치 명칭**일 뿐이며, 저장 키(`axes[].key`)는 기존 값을 그대로 유지함. 마이그레이션·UI는 기존 키를 `class1`/`class2`로 바꾸지 않음. 신규 템플릿 생성 시에만 UI가 `class1`/`class2`를 기본 키로 제안함.
+- **NR-09 (판정 기준 일원화, `R52-SR-08`)**: `src/lib/character-utils.ts`에 두 헬퍼를 두고 모든 화면이 이것만 사용함.
+  - `isCharacterTemplateActive(game, characterCount)` = `rarities.length >= 1 || characterCount >= 1` → 관리자 동적 테이블 노출, 사용자 캐릭터 추가·수정 요청 허용 기준. 등급 없이 캐릭터만 있는 R13 기존 게임은 활성으로 보고, 관리자 화면에 `[템플릿 설정 수정]` 유도 배너를 표시함. 이 경우 등급 입력은 필수가 아님.
+  - `isCharacterSupported(characterCount)` = `characterCount >= 1` → `/dashboard/characters` 게임 바 노출, 픽업 폼 모드 A 판정 기준.
+  - 등급 필수 입력(§3.3)은 `rarities.length >= 1`일 때만 UI·`character-utils` 검증으로 강제하며, 기존 `rarity IS NULL` 행 보호를 위해 DB 제약으로는 강제하지 않음.
+- **NR-10 (아바타 이미지 출처 단일화, `R52-SR-09`)**: 이번 Phase의 픽업 아바타는 **`game_characters.default_icon_url`만 사용**함(게스트·로그인 동일). 사용자 커스텀 아이콘 우선 표시는 후속 과제로 분리함. 대시보드·게임 일정 화면은 표시 중인 일정에서 참조하는 캐릭터 ID만 모아 `game_characters`를 `.in("id", ids)` + 명시 컬럼으로 **지연 조회**함. 조회 실패는 비차단(아바타만 생략)으로 처리함.
+- **NR-11 (미적용 마이그레이션 내성, R33 교훈)**: 읽기는 기존 `select("*")`를 유지해 컬럼 부재 시 `[]`·`null`로 간주함. 신규 컬럼을 명시 컬럼 목록에 넣는 조회는 `42703`/`PGRST204` 시 해당 컬럼 없이 재조회하는 폴백을 둠. 쓰기는 `pickup_character_ids`가 비어 있지 않을 때, `pickup_image_url`이 있을 때만 페이로드에 포함함. 수정 시에는 원본 값이 있었는데 사용자가 비운 경우에만 `[]`/`null`을 보냄(`R33-REV-002` 패턴). 일정 종류를 `PICKUP` 외로 바꾸면 두 필드를 함께 비움. 오류 `42703`/`PGRST204`/`23514`/트리거 예외는 "R52 마이그레이션 미적용 또는 픽업 캐릭터 조건 위반" 안내로 표시함.
+- **NR-12 (경로 정정·범위 보강, `R52-SR-10`)**: Step 2 대상에 `sql/tests/TESTS.sql`(정정)을, Step 3 대상에 `src/components/calendar/hero-sidebar.tsx`(정정)·`src/components/calendar/hero-sidebar.test.tsx`·`src/lib/image-resizer.ts`·`src/lib/image-resizer.test.ts`를 반영함.
+
+### 7.3 Step 2 SQL 회귀 테스트 필수 시나리오 (`sql/tests/TESTS.sql`)
+
+1. `character_label` 유효/무효(빈 문자열, 21자, 비문자열), 축 3개 거부, 키 없는 기존 스키마 통과.
+2. `pickup_character_ids`: 비PICKUP 거부, 9명 거부, NULL 요소·중복·타 게임 ID·미존재 ID 거부(일정·요청 양쪽), 정상 2명 저장.
+3. `pickup_image_url`: `https://` 거부, 30,000자 초과 거부, 비PICKUP 거부, 모드 A와 동시 저장 거부.
+4. 승인 RPC: 신규·수정 요청 복사, 승인 전 캐릭터 1명 삭제 시 나머지만 순서대로 복사, 비PICKUP 요청은 초기화, 비관리자 거부 유지.
+5. 캐릭터 삭제 시 일정·PENDING 요청 배열에서 제거, 처리 완료 요청은 보존, 연결 예정 지출 날짜 불변.
+6. `anon`: `game_characters`의 `id, name, default_icon_url` 조회 성공, `created_by` 조회 `insufficient_privilege`, `user_characters`·`character_requests`·`schedule_requests` 조회 거부.
+7. 마이그레이션 사전 점검: 위반 게임이 있으면 예외로 중단(픽스처 트랜잭션 내 확인 후 롤백), 2회 연속 적용 멱등.
+
+### 7.4 승인 조건 요약
+
+- §7.2 NR-01~NR-12를 Step 2(DB/RLS/RPC/Types)와 Step 3(UI)의 수용 기준에 포함함.
+- RLS·`SECURITY DEFINER`·CHECK 변경이 있으므로 Step 4 통합 리뷰는 Claude Opus가 수행하고, 로컬 PostgreSQL에서 업그레이드·신규 스키마 양쪽의 마이그레이션 2회 적용과 `TESTS.sql` PASS를 확인함.
+- 운영 반영 순서는 **마이그레이션 먼저 적용 후 배포**를 운영 체크리스트에 명시함.

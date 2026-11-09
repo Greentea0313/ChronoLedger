@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## R52 명세 아키텍처·보안 리뷰 및 APPROVED (r52-character-template-and-pickup-avatar Step 1, 2026-11-09)
+
+- **수행 주체**: Claude Opus (Architect & Security Reviewer)임.
+- **커밋**: `.worktrees/r52-character-template-and-pickup-avatar`의 `f1b3298`(명세 §7 추가·상태 `APPROVED`)임. 루트 `docs/spec/`에도 동일 내용 반영함.
+- **주요 지적 (P2 4건)**: ① `game_characters` 테이블 단위 anon 권한이 관리자 UUID(`created_by`) 노출, ② `pickup_character_ids` 배열 FK 부재로 타 게임·미존재 ID 저장 가능, ③ CHECK용 검증 함수 강화 시 기존 행 미재검증, ④ 사용자 요청 외부 URL 이미지 추적 위험 및 월간 일정 조회 용량 증가임.
+- **규범 결정**: NR-01~NR-12 확정함(anon 열 단위 GRANT, 배열 검증·삭제 정리 트리거, 모드 상호 배타 CHECK, 픽업 이미지 `data:image/webp` 96×96·30,000자, 승인 RPC 존재 캐릭터만 복사, 마이그레이션 사전 점검 중단, 축 키 보존, 판정 헬퍼 일원화, 아바타 기본 아이콘만·지연 조회, 미적용 마이그레이션 내성, 경로 정정).
+- **다음 단계**: Step 2 DB/RLS/RPC/Types (**GPT Codex** `▶ READY`, Fallback: Claude Opus / GitHub Copilot)임.
+
 ## R52 기능 명세서 구체화 및 r52-character-template-and-pickup-avatar Run 등록 (R52, 2026-11-09)
 
 - **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)임.

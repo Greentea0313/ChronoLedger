@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-09 (R52 명세 리뷰 및 승인)
+
+- `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`에 `§7 Claude Opus 아키텍처 및 보안 리뷰 결과`(지적 10건, 규범 결정 NR-01~NR-12, SQL 회귀 시나리오 7종)를 추가하고 상태를 조건부 `APPROVED`로 갱신함(워크트리 `f1b3298`).
+- Dispatch Queue Step 1 완료, Step 2(GPT Codex) `▶ READY` 전환 및 Step 2·3 대상 경로를 정정함.
+
 ## 2026-11-09 (R52 게임별 동적 캐릭터 템플릿 및 픽업 캐릭터 아바타 명세서 작성 & Run 등록 — R52)
 
 - 사용자 Q&A(A1~A5)를 통해 구체화한 `R52` 기능 명세서(`docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`, 커밋 `0c09a20`)를 작성함.
