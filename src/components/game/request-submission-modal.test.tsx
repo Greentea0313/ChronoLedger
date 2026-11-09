@@ -36,6 +36,16 @@ const schedules = [{
   end_date: "2026-01-20",
   memo: "Existing memo",
   is_official: true,
+}, {
+  id: "schedule-2",
+  game_id: "game-1",
+  title: "Rerun Pickup",
+  schedule_type: "PICKUP",
+  is_rerun: true,
+  start_date: "2026-03-01",
+  end_date: "2026-03-10",
+  memo: null,
+  is_official: true,
 }]
 
 function createQuery(table: string) {
@@ -193,6 +203,82 @@ describe("RequestSubmissionModal", () => {
       end_date: "2026-01-20",
       memo: "Existing memo",
     }))
+  })
+
+  it("sends is_rerun: false when an edit request clears the rerun flag of the original schedule", async () => {
+    await openModal()
+    await change("#request-kind", "schedule")
+    await change("#request-mode", "EDIT")
+    await change("#schedule-game", "game-1")
+    await change("#target-schedule", "schedule-2")
+    await act(async () => Promise.resolve())
+
+    const rerunCheckbox = document.body.querySelector('input[type="checkbox"]') as HTMLInputElement
+    expect(rerunCheckbox.checked).toBe(true)
+    await act(async () => {
+      rerunCheckbox.click()
+    })
+    await submit()
+
+    expect(insertSchedule).toHaveBeenCalledWith(expect.objectContaining({
+      target_schedule_id: "schedule-2",
+      schedule_type: "PICKUP",
+      is_rerun: false,
+    }))
+  })
+
+  it("keeps is_rerun: true for a rerun original in edit requests", async () => {
+    await openModal()
+    await change("#request-kind", "schedule")
+    await change("#request-mode", "EDIT")
+    await change("#schedule-game", "game-1")
+    await change("#target-schedule", "schedule-2")
+    await act(async () => Promise.resolve())
+    await submit()
+
+    expect(insertSchedule.mock.calls[0][0]).toMatchObject({ target_schedule_id: "schedule-2", is_rerun: true })
+  })
+
+  it("omits the is_rerun key for a non-rerun original in edit requests", async () => {
+    await openModal()
+    await change("#request-kind", "schedule")
+    await change("#request-mode", "EDIT")
+    await change("#schedule-game", "game-1")
+    await change("#target-schedule", "schedule-1")
+    await act(async () => Promise.resolve())
+    await submit()
+
+    expect(insertSchedule.mock.calls[0][0]).toMatchObject({ target_schedule_id: "schedule-1" })
+    expect(insertSchedule.mock.calls[0][0]).not.toHaveProperty("is_rerun")
+  })
+
+  it.each(["42703", "PGRST204", "23514"])("shows the R33 migration guidance for error code %s", async (code) => {
+    insertSchedule.mockResolvedValue({ error: { code, message: "boom" } })
+    await openModal()
+    await change("#request-kind", "schedule")
+    await change("#schedule-game", "game-1")
+    await change("#schedule-title", "복각 요청")
+    await change("#schedule-type", "PICKUP")
+    await change("#schedule-start-date", "2026-02-01")
+    await change("#schedule-end-date", "2026-02-03")
+    await submit()
+
+    expect(document.body.textContent).toContain("R33 마이그레이션이 적용되지 않았거나")
+    expect(document.body.textContent).not.toContain("요청을 제출했습니다.")
+  })
+
+  it("shows the generic save error for other failures", async () => {
+    insertSchedule.mockResolvedValue({ error: { code: "42501", message: "denied" } })
+    await openModal()
+    await change("#request-kind", "schedule")
+    await change("#schedule-game", "game-1")
+    await change("#schedule-title", "일반 오류")
+    await change("#schedule-start-date", "2026-02-01")
+    await change("#schedule-end-date", "2026-02-03")
+    await submit()
+
+    expect(document.body.textContent).toContain("요청을 저장하지 못했습니다.")
+    expect(document.body.textContent).not.toContain("R33 마이그레이션")
   })
 
   it("inserts a tab character into the schedule memo when Tab is pressed", async () => {

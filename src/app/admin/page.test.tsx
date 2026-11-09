@@ -249,6 +249,85 @@ describe("AdminPage - 일정 관리", () => {
     })
   })
 
+  describe("복각(is_rerun) 처리 (R33 회귀)", () => {
+    const rerunSchedule = {
+      id: "schedule-3",
+      game_id: "game-2",
+      schedule_type: "PICKUP",
+      is_rerun: true,
+      title: "복각 픽업 A",
+      start_date: "2026-09-01",
+      end_date: "2026-09-30",
+      memo: null,
+      games: { id: "game-2", name: "붕괴: 스타레일" },
+    }
+
+    it("PICKUP을 선택했을 때만 복각 토글이 노출된다", async () => {
+      render(<AdminPage />)
+      expect(await screen.findByText("등록된 일정")).toBeTruthy()
+
+      fireEvent.click(screen.getByRole("button", { name: /일정 추가|새 일정/ }))
+      const typeSelect = screen.getByLabelText("일정 타입 *") as HTMLSelectElement
+      expect(screen.queryByLabelText("복각 일정")).toBeNull()
+
+      fireEvent.change(typeSelect, { target: { value: "PICKUP" } })
+      expect(screen.getByLabelText("복각 일정")).toBeTruthy()
+
+      fireEvent.change(typeSelect, { target: { value: "CONTENTS" } })
+      expect(screen.queryByLabelText("복각 일정")).toBeNull()
+    })
+
+    it("원본이 복각이었던 일정을 수정에서 해제하면 is_rerun: false를 전송한다", async () => {
+      schedulesBuilder.order.mockResolvedValue({ data: [...mockSchedules, rerunSchedule], error: null })
+      schedulesBuilder.update.mockReturnValue(schedulesBuilder)
+      schedulesBuilder.eq.mockResolvedValue({ error: null })
+
+      render(<AdminPage />)
+      expect(await screen.findByText("등록된 일정")).toBeTruthy()
+
+      fireEvent.click(screen.getByRole("button", { name: "일정 수정: 복각 픽업 A" }))
+      const toggle = screen.getByLabelText("복각 일정") as HTMLInputElement
+      expect(toggle.checked).toBe(true)
+      fireEvent.click(toggle)
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => {
+        expect(schedulesBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ is_rerun: false }))
+      })
+    })
+
+    it("원본이 복각이 아니면 수정 저장 시 is_rerun 키를 보내지 않는다", async () => {
+      schedulesBuilder.update.mockReturnValue(schedulesBuilder)
+      schedulesBuilder.eq.mockResolvedValue({ error: null })
+
+      render(<AdminPage />)
+      expect(await screen.findByText("등록된 일정")).toBeTruthy()
+
+      fireEvent.click(screen.getByRole("button", { name: "일정 수정: 아케론 복각" }))
+      expect((screen.getByLabelText("복각 일정") as HTMLInputElement).checked).toBe(false)
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => expect(schedulesBuilder.update).toHaveBeenCalled())
+      expect(schedulesBuilder.update.mock.calls[0][0]).not.toHaveProperty("is_rerun")
+    })
+
+    it("복각이 유지된 채 수정하면 is_rerun: true를 전송한다", async () => {
+      schedulesBuilder.order.mockResolvedValue({ data: [...mockSchedules, rerunSchedule], error: null })
+      schedulesBuilder.update.mockReturnValue(schedulesBuilder)
+      schedulesBuilder.eq.mockResolvedValue({ error: null })
+
+      render(<AdminPage />)
+      expect(await screen.findByText("등록된 일정")).toBeTruthy()
+
+      fireEvent.click(screen.getByRole("button", { name: "일정 수정: 복각 픽업 A" }))
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => {
+        expect(schedulesBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ is_rerun: true }))
+      })
+    })
+  })
+
   it("일정 삭제 확인 모달을 통해 일정을 안전하게 삭제할 수 있다", async () => {
     schedulesBuilder.delete.mockReturnValue(schedulesBuilder)
     schedulesBuilder.eq.mockResolvedValue({ error: null })
