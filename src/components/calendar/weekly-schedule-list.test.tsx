@@ -47,6 +47,22 @@ describe("WeeklyScheduleList", () => {
     expect(screen.getAllByText("게임 가 · 버전 1.0").length).toBeGreaterThan(3)
   })
 
+  it("selects the week's first day for carried-over schedules and keeps aria-pressed consistent with it", () => {
+    const props = renderList({ selectedDate: "2026-11-08" })
+    // s2 started 2026-11-01, so in the 2026-11-08 week it maps to that week's first day.
+    const carried = screen.getAllByText("게임 가 · 버전 1.0")
+    const pressed = carried.map((node) => node.closest("button")).filter((button) => button?.getAttribute("aria-pressed") === "true")
+    expect(pressed).toHaveLength(1)
+    fireEvent.click(pressed[0] as HTMLElement)
+    expect(props.onSelectDate).toHaveBeenCalledWith("2026-11-08")
+  })
+
+  it("uses a neutral empty message for weeks without items", () => {
+    renderList({ schedules: [], expenses: [] })
+    expect(screen.queryByText("이번 주 일정이 없습니다.")).toBeNull()
+    expect(screen.getAllByText("이 주에는 일정이 없습니다.").length).toBeGreaterThan(0)
+  })
+
   it("hides expenses and subtotals in guest mode (expenses = null)", () => {
     renderList({ expenses: null })
     expect(screen.queryByTestId("week-subtotal")).toBeNull()

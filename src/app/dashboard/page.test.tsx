@@ -107,6 +107,17 @@ describe("DashboardPage", () => {
     expect(screen.getByTestId("summary-ongoing-week").textContent).toBe("2")
     expect(screen.getByTestId("summary-planned-week").textContent).toBe("5,000 원")
 
+    // DSW-REV-001: the summary stays tied to the KST current week while browsing other months.
+    fireEvent.click(screen.getByRole("button", { name: "다음 달" }))
+    fireEvent.click(screen.getByRole("button", { name: "다음 달" }))
+    expect(await screen.findByText(`${new Date(now.getFullYear(), now.getMonth() + 2, 1).getFullYear()}년 ${new Date(now.getFullYear(), now.getMonth() + 2, 1).getMonth() + 1}월`)).toBeTruthy()
+    expect(screen.getByTestId("summary-starts-today").textContent).toBe("1")
+    expect(screen.getByTestId("summary-ends-today").textContent).toBe("1")
+    expect(screen.getByTestId("summary-ongoing-week").textContent).toBe("2")
+    expect(screen.getByTestId("summary-planned-week").textContent).toBe("5,000 원")
+    fireEvent.click(screen.getByRole("button", { name: "이전 달" }))
+    fireEvent.click(screen.getByRole("button", { name: "이전 달" }))
+
     fireEvent.click(screen.getByRole("button", { name: "주차별 리스트" }))
     expect(screen.queryByLabelText("월간 캘린더")).toBeNull()
     const current = screen.getAllByTestId("week-group").filter((group) => group.getAttribute("data-current-week") === "true")
@@ -115,7 +126,7 @@ describe("DashboardPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "캘린더형" }))
     expect(screen.getByLabelText("월간 캘린더")).toBeTruthy()
-  })
+  }, 20000)
 
   it("일정 표시 설정 조회가 실패해도 대시보드를 그리고 공식 일정만 표시한다", async () => {
     const now = new Date()
@@ -164,7 +175,8 @@ describe("DashboardPage", () => {
     const overdueBuilder = createThenableBuilder([
       { id: "o1", title: "만료 예정", final_amount: 10000, status: "PLANNED", target_date: "2000-01-01", end_date: "2000-01-02", original_price: 10000 },
     ])
-    const expenseBuilders = [targetBuilder, endDateBuilder, overdueBuilder]
+    // Each load issues 3 grid queries followed by 2 current-week summary queries; the effect reloads once after the first load.
+    const expenseBuilders = [targetBuilder, endDateBuilder, overdueBuilder, createThenableBuilder([]), createThenableBuilder([])]
     const single = (data: unknown) => {
       const query = createQueryBuilder()
       query.maybeSingle.mockResolvedValue({ data, error: null })
@@ -179,7 +191,7 @@ describe("DashboardPage", () => {
       switch (table) {
         case "user_finances": return single({ total_asset: 1, default_budget: 1 })
         case "monthly_budgets": return single(null)
-        case "expenses": return expenseBuilders[expenseCall++]
+        case "expenses": return expenseBuilders[expenseCall++ % expenseBuilders.length]
         default: return list([])
       }
     })

@@ -122,15 +122,18 @@ export function WeeklyScheduleList({
               </div>
 
               {weekSchedules.length === 0 && weekExpenses.length === 0 ? (
-                <EmptyState message="이번 주 일정이 없습니다." />
+                <EmptyState message="이 주에는 일정이 없습니다." />
               ) : (
                 <ul className="space-y-1.5">
-                  {weekSchedules.map((schedule) => (
+                  {weekSchedules.map((schedule) => {
+                    // Schedules carried over from a previous week select this week's first day.
+                    const targetDate = schedule.start_date >= week.weekStart ? schedule.start_date : week.weekStart
+                    return (
                     <li key={schedule.id}>
                       <button
                         type="button"
-                        onClick={() => onSelectDate(schedule.start_date >= week.weekStart ? schedule.start_date : week.weekStart)}
-                        aria-pressed={selectedDate === schedule.start_date}
+                        onClick={() => onSelectDate(targetDate)}
+                        aria-pressed={selectedDate === targetDate}
                         className="flex w-full flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
                       >
                         {schedule.iconUrl && (
@@ -149,7 +152,8 @@ export function WeeklyScheduleList({
                         </span>
                       </button>
                     </li>
-                  ))}
+                    )
+                  })}
                   {weekExpenses.map((expense) => (
                     <li key={`expense-${expense.id}`}>
                       <button
