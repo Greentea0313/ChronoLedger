@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (R53 운영 DB 마이그레이션 확인, `sql/README.md`·`TESTS.sql` 복원 및 Phase 12.42 Run 등록)
+
+- [`sql/README.md`](../sql/README.md) B표 `MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql` 행에 사전 점검·5개 컬럼·4개 함수·`anon` 권한 확인 SQL 쿼리를 복원하고, [`sql/tests/TESTS.sql`](../sql/tests/TESTS.sql)에 누락되었던 §7.3 회귀 테스트 시나리오를 전수 복원하여 로컬 PostgreSQL 17 재검증을 완료함 (`33829c9`).
+- 운영 Supabase DB에 `R53` 마이그레이션 적용 및 확인 쿼리 3종(`5행`, `4행`, `true, false, false`) 검증을 완료함.
+- `Phase 12.42` (`R35` 관심 일정 즐겨찾기 + `R51` 온보딩·게임 순서 후속 보완) 격리 Run `r35-favorite-schedules-and-r51-followup`을 생성하고 Step 1(`GPT Codex`)을 `▶ READY`로 등록함.
+
 ## 2026-11-09 (r52-character-template-and-pickup-avatar iteration-02 재리뷰 및 `main` 병합 마감 — R52·R53)
 
 - Base `0c09a20` ↔ Target `634d481` iteration-02 통합 재리뷰 결과 `R52-REV-001`~`004` 해소 및 Amendment A1(D-01~D-08, U-01~U-08) 반영을 확인하여 `clean`(지적 0건) 판정함(`artifacts/r52-character-template-and-pickup-avatar/iteration-02/review.json`).

@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## R53 운영 DB 마이그레이션 확인 완료 및 Phase 12.42 (`R35` + `R51`) Run 등록 (2026-11-10)
+
+- **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`)임.
+- **R53 운영 DB 적용 및 확인 쿼리/회귀 테스트 보강 (`33829c9`)**:
+  - Step 5(`51a686f`)에서 축약되었던 [`sql/README.md`](../sql/README.md) B표 `MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql` 행에 사전 점검·5개 컬럼·4개 함수·`anon` 권한 확인 SQL 쿼리를 정식 복원하고, [`sql/tests/TESTS.sql`](../sql/tests/TESTS.sql)에서 일부 생략되었던 §7.3 회귀 테스트 시나리오(비PICKUP·타 게임·중복·`NULL`·미존재 ID·9명 초과 거부, 캐릭터 삭제 시 일정·`PENDING` 요청 정리 및 `APPROVED` 보존, `EDIT` 요청 승인 복사, `anon` `created_by` 조회 거부)를 전수 복원한 뒤 로컬 PostgreSQL 17에서 재검증함.
+  - 사용자가 운영 Supabase SQL Editor에서 3개 확인 쿼리(`5행`, `4행`, `true, false, false`) 모두 기대 결과와 동일함을 확인하여 `R53`을 완료 처리함.
+- **차기 Run 등록 (`r35-favorite-schedules-and-r51-followup`)**:
+  - `Phase 12.42` (`R35` 관심 일정 즐겨찾기 `user_favorite_schedules` DB/RLS/계정 탈퇴 정리 + 관심 일정 토글·필터·`[+ 예정 지출 추가]` 모달 프리필 연결 및 `R51` 온보딩·게임 순서 후속 보완) 격리 Worktree(`.worktrees/r35-favorite-schedules-and-r51-followup`) 생성 및 **Step 1(`GPT Codex`) `▶ READY`** 배정 완료함.
+
 ## r52-character-template-and-pickup-avatar iteration-02 재리뷰 및 `main` 병합 마감 (R52·R53, 2026-11-09)
 
 - **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator, Step 7 — Claude Opus 1순위 대체)임.

@@ -31,17 +31,55 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **현재 상태**: 활성 기능 Run `r52-character-template-and-pickup-avatar` (`Phase 13.5`: `R52`) iteration-02 재리뷰 `clean` 및 `main` 병합(`8a5b478`) 완료됨.
-- **🚨 운영 배포 전 필수 선행 과제 (`R53` — 사용자 수동)**:
-  - **반드시 `R52` 포함 `main` 빌드를 배포(push)하기 전에** 운영 Supabase SQL Editor에서 [`sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql`](../sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql)을 실행하고 [`sql/README.md`](../sql/README.md) B표 확인 쿼리로 반영 여부를 검증해야 함.
-- **차기 기능 후보 대기**:
-  - `R35` (관심 일정 즐겨찾기 `user_favorite_schedules` DB/RLS + `[+ 예정 지출 추가]` 모달 프리필 연결)
-  - `R51` (`R38` 리뷰 후속: `GameOnboardingModal` `upsert(..., { ignoreDuplicates: true })` 및 로그아웃·탈퇴 시 `localStorage` 키 정리)
-  - `A1` (`R50` 인증 보안 설정 점검 — 사용자가 별도로 요청할 때에만 `▶ READY` 전환)
+- **활성 Run ID**: `r35-favorite-schedules-and-r51-followup` *(`Phase 12.42`: `R35` 관심 일정 즐겨찾기 `user_favorite_schedules` DB/RLS/계정 탈퇴 정리 + 관심 일정 토글·필터·`[+ 예정 지출 추가]` 모달 프리필 연결 및 `R51` 온보딩·게임 순서 후속 보완)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `.worktrees/r35-favorite-schedules-and-r51-followup` (브랜치: `collab/r35-favorite-schedules-and-r51-followup`)
+- **Base SHA**: `33829c96c43a23dec9301be466b3a59ab25edb98`
+- **직전 운영 마이그레이션 (`R53`)**: 2026-11-10 사용자 적용 및 [`sql/README.md`](../sql/README.md) B표 3개 확인 쿼리(`5행`, `4행`, `true, false, false`) 검증 완료 (`✅ DONE`).
 
-| 순서 | 상태 | 담당 | 역할 | 수행 과제 | 비고 |
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **운영** | **`▶ READY (사용자 수동)`** | **사용자** | `Owner (Supabase SQL Editor)` | `R53`: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql` 실행 후 아래 확인 쿼리 검증 (배포 전 필수) | `⏳ 확인 후 차기 Run 착수` |
+| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (DB/RLS/Purge & Types)` | `Phase 12.42 (R35 DB)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/SCHEMA.sql`, `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql`, `sql/tests/TESTS.sql`, `sql/README.md`, `src/types/database.types.ts` | `⏳ 대기 중: GPT Codex가 Step 1 완료 및 커밋 후 Step 2를 ▶ READY로 전환` |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Favorite Schedule UI & R51 Follow-ups)` | `Phase 12.42 (R35 UI & R51)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/app/dashboard/settings/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/game/game-onboarding-modal.tsx`, `src/components/game/game-onboarding-modal.test.tsx`, `src/lib/game-order-storage.ts`, `src/lib/game-order-storage.test.ts`, `src/lib/auth-context.tsx` | `⏳ Step 1 완료 후 착수` |
+| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `33829c9` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), 로컬 PG 마이그레이션 및 `TESTS.sql` 검증, `main` 병합 및 운영 마이그레이션 체크리스트 마감 (소유자 테이블·RLS 변경 → Opus 승격 조건 ①·④) | `⏳ Step 2 완료 후 착수` |
+
+#### 📌 `r35-favorite-schedules-and-r51-followup` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`GPT Codex` — `R35` DB/RLS/계정 탈퇴 정리/타입 & SQL 테스트)**:
+   - `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql` 신규 작성(재실행 멱등 보장) 및 `sql/SCHEMA.sql` 동기화:
+     - `public.user_favorite_schedules` 테이블 생성:
+       - `id UUID PRIMARY KEY DEFAULT uuid_generate_v4()`
+       - `user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE`
+       - `schedule_id UUID NOT NULL REFERENCES public.game_schedules(id) ON DELETE CASCADE`
+       - `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+       - `CONSTRAINT uq_user_favorite_schedules_user_schedule UNIQUE (user_id, schedule_id)`
+       - 인덱스: `idx_user_favorite_schedules_user_id ON public.user_favorite_schedules(user_id)`, `idx_user_favorite_schedules_schedule_id ON public.user_favorite_schedules(schedule_id)`
+     - RLS 및 권한 경계:
+       - `ALTER TABLE public.user_favorite_schedules ENABLE ROW LEVEL SECURITY;`
+       - `REVOKE ALL ON public.user_favorite_schedules FROM PUBLIC, anon;`
+       - `GRANT SELECT, INSERT, DELETE ON public.user_favorite_schedules TO authenticated;`
+       - 본인 관리 정책: `"Manage own favorite schedules" ON public.user_favorite_schedules FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)`
+       - 계정 삭제 대기 사용자 차단: `RESTRICTIVE` 정책 `"Block account deletion users from user_favorite_schedules"` 및 `BEFORE INSERT OR UPDATE OR DELETE` 트리거 `block_pending_account_deletion_user_favorite_schedules` (`public.block_pending_account_data_mutations()`) 연결.
+       - 계정 탈퇴 영구 정리 연동: `public.purge_expired_account_deletion_requests(INTEGER)` 함수 내 개인 데이터 삭제 목록에 `DELETE FROM public.user_favorite_schedules WHERE user_id = v_req.user_id;` 추가.
+   - `sql/README.md` B표에 `MIGRATION_R35_FAVORITE_SCHEDULES.sql` 행 및 실행 가능한 확인 쿼리(테이블·RLS 정책·`anon` 차단 확인) 추가.
+   - `sql/tests/TESTS.sql`에 R35 회귀 테스트 추가 (본인 관심 일정 등록·조회·삭제 성공, 중복 등록 거부, 타 사용자 관심 일정 조회/삭제 차단, `anon` 접근 `insufficient_privilege`, 계정 삭제 대기 사용자 등록/삭제 차단, 일정 삭제 시 `ON DELETE CASCADE` 정리) 및 로컬 PostgreSQL 실행 검증.
+   - `src/types/database.types.ts`에 `user_favorite_schedules` (`Row`, `Insert`, `Update`, `Relationships`) 타입 반영 후 `npx tsc --noEmit` 통과 확인.
+
+2. **Step 2 (`Claude Sonnet` — `R35` 관심 일정 UI·필터·예정 지출 프리필 & `R51` 후속 보완)**:
+   - **관심 일정(즐겨찾기) 토글 및 필터 (`R35`)**:
+     - 로그인 사용자일 때 `user_favorite_schedules`에서 본인 `schedule_id` 목록을 조회하고(테이블 미적용 `42P01`/`PGRST205` 오류 시 빈 집합으로 비차단 폴백), 대시보드 우측 사이드바(`HeroSidebarContent`)·모바일 드로어(`MobileDrawer`)·주차별 리스트(`WeeklyScheduleList`) 및 게임별 일정 모달(`/dashboard/games` `ScheduleDialog`/`ScheduleTree`)의 각 일정 항목에 관심 일정 별표/북마크 토글 버튼(`aria-pressed`, `aria-label`)을 제공함 (오프라인 시 `OFFLINE_WRITE_MESSAGE` 안내, 비로그인 게스트에게는 토글 버튼 미노출).
+     - `/dashboard`(캘린더/주차별 리스트 상단 필터 바) 및 `/dashboard/games` 일정 보기 모달에 **`관심 일정만`** 필터 토글을 추가함(비로그인 게스트에게는 미노출).
+   - **관심 일정에서 바로 `[+ 예정 지출 추가]` 모달 프리필 연결 (`R35`)**:
+     - 로그인 사용자의 관심 일정 항목(또는 사이드바·일정 모달의 일정 카드 액션)에 `[+ 예정 지출 추가]` 버튼을 제공하여 클릭 시 `ExpenseModal`을 열고 다음 값을 프리필함:
+       - `category = "게임"`, `game_id = schedule.game_id`, `title = schedule.title`
+       - `schedule_type === "VERSION"`(공식 일정)인 경우 `schedule_id = schedule.id` 자동 선택, 그 외 일정은 일정 기간(`start_date`, `end_date`, `target_date = schedule.start_date`) 프리필 연결 (R11 정책에 따라 `pickup_schedule_id` 배너 바인딩은 사용하지 않음).
+   - **`R51` (`R38` 리뷰 후속 보완 2건)**:
+     - `src/components/game/game-onboarding-modal.tsx`: 일괄 구독 저장을 `.upsert(rows, { onConflict: "user_id,game_id", ignoreDuplicates: true })`로 변경해 다중 탭·기기 중복 구독 시 전체 실패 방지(`R38-REV-001`).
+     - `src/lib/game-order-storage.ts` 및 로그아웃/계정 탈퇴 경로(`src/lib/auth-context.tsx`, `src/app/dashboard/settings/page.tsx`): `clearUserGameOrderStorage(userId)` 헬퍼를 추가하여 `chronoledger:game-order:<userId>` 및 `chronoledger:game-onboarding-dismissed:<userId>` `localStorage` 키를 정리함(`R38-REV-002`).
+   - 관련 Vitest 단위 테스트 추가 및 `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 전체 통과 확인.
+
+3. **Step 3 (`Claude Opus` — 통합 정적 코드 리뷰 및 마감)**:
+   - Base `33829c9` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), 로컬 PostgreSQL 17 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합 및 운영 마이그레이션 체크리스트 마감.
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
