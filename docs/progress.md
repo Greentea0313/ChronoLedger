@@ -1,4 +1,14 @@
 # 프로젝트 진행 현황
+## r36-game-detail-and-r47-followup Run 등록 및 R50 안건 상태 전환 원칙 반영 (R36·R47·R50, 2026-11-09)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)임.
+- **`A1` (`auth-security-settings-review`, `R50`) 수동 전환 원칙 명시**:
+  - 사용자 지시에 따라 `A1`(`R50` 인증 보안 설정 점검)의 상태를 `📝 AGENDA`로 유지하고, 활성 기능 Run 종료 시 자동 전환하지 않으며 **사용자가 별도로 착수를 요청할 때에만 `▶ READY`로 전환**하도록 `docs/handoff.md`에 명시함.
+- **차기 기능 Run `r36-game-detail-and-r47-followup` (`Phase 12.40`: `R36` + `R47`) 등록**:
+  - DB 스키마 변경 없이 즉시 진행 가능한 **`R36`**(게임별 일정·과금 통합 상세 뷰: `ON AIR` `D-n`·진행 바, `다음 예정 일정`, `버전별 과금 소계`, `지난 일정 기록(최근 6개월)`, 로그인 사용자용 `게임 과금 요약` 카드)과 **`R47`**(`user-requests-card.tsx` `is_rerun` 컬럼 부재 폴백 조회 및 R33 UI 회귀 테스트 보강)을 단일 격리 Run으로 묶어 착수함.
+  - 격리 Worktree `.worktrees/r36-game-detail-and-r47-followup` (브랜치 `collab/r36-game-detail-and-r47-followup`, Base SHA `b5ca5d8`, manifest 커밋 `17f9f44`) 생성 및 `run.json` 스키마 검증 통과함.
+  - **과제 배정**: Step 1 구현 (**Claude Sonnet** `▶ READY`, Fallback 1: `GitHub Copilot` / Fallback 2: `Gemini 3.8 Flash`) → Step 2 통합 정적 리뷰 및 병합 (**Gemini 4 Argon** `⏳ WAITING`, Fallback 1: `Claude Opus` / Fallback 2: `GitHub Copilot`)임.
+
 ## weekly-game-group-and-rerun-badge 정적 리뷰 및 `main` 병합 마감 (R48·R49, 2026-11-09)
 
 - **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator, Step 2)임.

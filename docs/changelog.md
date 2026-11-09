@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-09 (r36-game-detail-and-r47-followup Run 등록 및 R50 수동 전환 원칙 명시 — R36·R47·R50)
+
+- 사용자 지시에 따라 `A1`(`auth-security-settings-review`, `R50` 인증 보안 설정 점검)을 `📝 AGENDA` 상태로 유지하고, 사용자가 별도로 요청할 때에만 `▶ READY`로 전환하도록 `docs/handoff.md`에 명시함.
+- 차기 기능 과제인 `R36`(게임별 일정·과금 통합 상세 뷰)과 `R47`(`user-requests-card.tsx` `is_rerun` 컬럼 부재 폴백 조회 및 R33 UI 회귀 테스트 보강)을 묶어 격리 Run `r36-game-detail-and-r47-followup`(Base `b5ca5d8`, manifest `17f9f44`)을 생성하고 Step 1(`Claude Sonnet` `▶ READY`)을 Dispatch Queue에 등록함.
+
 ## 2026-11-09 (weekly-game-group-and-rerun-badge 정적 리뷰 및 `main` 병합 마감 — R48·R49)
 
 - Base `742e58f` ↔ Target `d51fba8` 정적 코드 리뷰 결과 `clean`(지적 0건) 판정함(`artifacts/weekly-game-group-and-rerun-badge/iteration-01/review.json`).

@@ -31,35 +31,46 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `weekly-game-group-and-rerun-badge` *(2026-11-09, `Phase 12.39` R48 주차별 리스트 게임별 묶음 + R49 일정 종류·복각 배지 `[픽업 [복각]]` 통합 및 높이 정렬)*
-- **Orchestrator**: Gemini 4 Argon *(본 Run 등록은 Claude Opus가 1순위 대체로 수행)*
-- **Worktree 경로**: `.worktrees/weekly-game-group-and-rerun-badge` (브랜치: `collab/weekly-game-group-and-rerun-badge`)
-- **리뷰 비교 범위**: Base `742e58ff77fcf0f404e9979ea0a65fa8d71497d7` ↔ Target `d51fba80798fcea554ca050b0b6fa8eeb97580b3` *(iteration-01 `clean`, 산출물 커밋 `696f23f`, **`main` 병합 `23d2699` 완료**)*
-- **배경 (사용자 피드백, 2026-11-09 배포 확인)**: 주차별 리스트는 게임별로 묶고 하위에 일정을 표시하는 편이 가시성이 좋음. 사이드바 복각 배지는 관리자 페이지처럼 `[픽업 [복각]]` 형태로 표시하되, 현재 `[복각]` 부분의 높이가 맞지 않는 문제를 검토함.
-- **원인 분석 (Orchestrator)**:
-  - 관리자·게임 ScheduleTree의 복각 칩은 `inline` 부모 배지(`text-xs py-0.5`) 안에 별도 `py-0.5 text-[10px]` 칩을 중첩해, 작은 글자가 부모 기준선에 붙고 칩 배경이 위아래로 비대칭으로 늘어남 → 높이 불일치의 원인임.
-  - 사이드바는 종류 배지와 분리된 제목 줄에 복각 칩을 붙이고, 묶음 키(`gameKey|schedule_type|start|end`)에 복각 여부가 없어 신규·복각 PICKUP이 한 묶음으로 합쳐짐.
+- **Run ID**: `r36-game-detail-and-r47-followup` *(2026-11-09, `Phase 12.40` R36 게임별 일정·과금 통합 상세 뷰 + R47 `user-requests-card.tsx` `is_rerun` 폴백 및 R33 UI 회귀 테스트 보강)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `.worktrees/r36-game-detail-and-r47-followup` (브랜치: `collab/r36-game-detail-and-r47-followup`)
+- **리뷰 비교 범위**: Base `b5ca5d8b2ab538cc19af84238e89095fc0456c53` ↔ Target `(Step 1 Maker 커밋 후 기록)` *(Step 2 Orchestrator/Reviewer가 manifest `target_sha` 기록)*
 - **수용 기준 (Acceptance Criteria)**:
-  1. **Step 1 — 일정 종류 배지 통합·주차별 리스트 게임 묶음 (Claude Sonnet)**:
-     - **대상 파일 (`.worktrees/weekly-game-group-and-rerun-badge` 내부)**: `src/components/calendar/schedule-type-badge.tsx`(신규), `src/components/calendar/schedule-type-badge.test.tsx`(신규), `src/app/admin/page.tsx`, `src/app/dashboard/games/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/app/dashboard/page.tsx`, `docs/to-do.md`
+  1. **Step 1 — `Phase 12.40 (R36 & R47)` 게임별 일정·과금 통합 상세 뷰 및 R33 후속 폴백·회귀 테스트 구현 (Claude Sonnet)**:
+     - **대상 파일 (`.worktrees/r36-game-detail-and-r47-followup` 내부)**: `src/components/game/user-requests-card.tsx`, `src/components/game/user-requests-card.test.tsx`, `src/app/admin/page.test.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `docs/to-do.md`
      - **구현 요구사항**:
-       - ① **공용 `ScheduleTypeBadge`**: `schedule_type`·`is_rerun`·크기(`sm` 사이드바/주차 리스트, `md` 관리자/게임 목록)를 받아 기존 종류별 색상(시맨틱 토큰 + 기존 CONTENTS 색상 유지)과 라벨(버전/픽업/콘텐츠/특별방송)을 렌더링함. 복각이면 같은 배지 안에 `[복각]` 칩을 넣어 `[픽업 [복각]]` 형태로 표시함.
-       - ② **높이 정렬**: 바깥 배지는 `inline-flex items-center gap-1 leading-none`, 안쪽 복각 칩은 세로 패딩 없이(`py-px` 이하) `leading-none`으로 맞춰 칩이 바깥 배지 높이를 늘리거나 기준선에서 어긋나지 않게 함. 복각 유무에 따라 바깥 배지 높이가 같아야 함.
-       - ③ **적용 범위**: `/admin` 일정 목록 2곳, `/dashboard/games` ScheduleTree, 사이드바(`HeroSidebarContent`, 모바일 드로어 공통), 주차별 리스트의 종류 배지를 `ScheduleTypeBadge`로 교체하고 기존 별도 복각 칩은 제거함. `/admin/requests`·내 요청 카드는 범위 외임.
-       - ④ **사이드바 묶음 키**: `is_rerun`을 묶음 키에 포함해 복각·신규 PICKUP을 별도 카드로 분리하고, 카드 상단 종류 배지에 `[픽업 [복각]]`을 표시함. 묶음 내부 항목별 복각 칩은 제거함.
-       - ⑤ **주차별 리스트 게임별 묶음**: 각 주차 카드 안에서 일정을 게임별 하위 그룹으로 묶음. 그룹 헤더에 게임 아이콘·게임명(가나다순), 하위에 `ScheduleTypeBadge`·제목·기간·`D-n`(시작일순)을 표시함. 게임 식별은 `gameId` 기준(`WeeklyScheduleEntry`에 `gameId` 추가, `page.tsx` 매핑 반영)이며 게임 미연결 일정은 `기타` 그룹으로 마지막에 둠. 지출 항목은 기존처럼 주차 하단 별도 `지출` 섹션으로 유지하고, 클릭 시 선택일·지출 상세 연동, `aria-pressed`, 이번 주 강조·소계는 그대로 유지함.
-       - ⑥ **테스트·문서**: 배지(라벨·복각 칩·크기), 사이드바 복각/신규 분리, 주차별 게임 그룹 헤더·정렬·`기타` 그룹 테스트를 추가하고 `docs/to-do.md` `R48`·`R49` 상태를 갱신함. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 커밋하고 Target SHA를 기록함.
-  2. **Step 2 — 정적 리뷰 및 Run 마감 (Gemini 4 Argon)**:
-     - Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
+       - ① **`R47-1` 내 요청 내역(`user-requests-card.tsx`) `is_rerun` 미적용 폴백 조회 (`R33-REV-006`, P3)**:
+         - `src/components/game/user-requests-card.tsx`에서 `schedule_requests` 1차 조회(`select("id, game_id, target_schedule_id, title, schedule_type, is_rerun, start_date, end_date, memo, request_status, admin_memo, created_at, games(name)")`)가 `is_rerun` 컬럼 부재 오류(코드 `42703`/`PGRST204` 또는 메시지에 `is_rerun` 포함)로 실패하면, `is_rerun`을 제외한 기본 컬럼 목록으로 즉시 재조회하여 요청 목록이 정상 표시되도록 폴백을 추가함.
+         - `src/components/game/user-requests-card.test.tsx`에 `is_rerun` 컬럼 부재 오류 시 폴백 재조회로 일정 요청 내역이 정상 렌더링되는 단위 테스트를 추가함.
+       - ② **`R47-2` R33 UI 회귀 테스트 보강 (`R33-REV-007`, P4)**:
+         - `src/app/admin/page.test.tsx`: 관리자 일정 폼에서 `PICKUP` 선택 시 복각 토글 노출 및 일정 수정 시 원본이 `is_rerun: true`였을 때 해제하면 `is_rerun: false`를 전송하고 원본이 `false`이면 `is_rerun` 키를 생략하는지 검증하는 테스트 추가.
+         - `src/components/game/request-submission-modal.test.tsx`: 일정 수정 요청(EDIT 모드)에서 복각 해제 시 `is_rerun: false` 전송 분기 및 R33 마이그레이션 미적용 오류(`42703`/`PGRST204`/`23514`) 안내 메시지 표시 테스트 추가.
+       - ③ **`R36-1` `/dashboard/games` 일정 모달 조회 범위 확장 (최근 6개월 지난 일정 + 해당 게임 지출 요약)**:
+         - `src/app/dashboard/games/page.tsx`의 `fetchSchedules`에서 KST 오늘(`today = getKstToday()`) 기준 180일(6개월) 전 날짜(`sixMonthsAgo`)를 계산하여 `.gte("end_date", sixMonthsAgo)`로 `game_schedules`를 조회함.
+         - 로그인 사용자(`userId` 존재)인 경우 `expenses` 테이블에서 `.select("id, title, final_amount, status, target_date, end_date").eq("user_id", userId).eq("game_id", selectedGame.id)`를 함께 조회하여 해당 게임의 지출 내역을 로드함(`expenses` 조회가 실패하거나 모킹되지 않은 경우에도 일정 표시를 차단하지 않고 빈 배열로 안전 폴백함).
+       - ④ **`R36-2` 해당 게임 과금 요약 카드 (로그인 사용자 전용, `ScheduleDialog`)**:
+         - 로그인 사용자일 때 `ScheduleDialog` 상단에 **`게임 과금 요약`** 카드(`data-testid="game-expense-summary"`)를 표시함(게스트 모드에서는 미표시):
+           - **이번 달 확정 과금**: `status === "CONFIRMED"`이고 `target_date.startsWith(today.slice(0, 7))`인 `final_amount` 합계
+           - **누적 확정 과금**: 해당 게임 전체 `status === "CONFIRMED"` `final_amount` 합계
+           - **예정 지출**: 해당 게임 `status === "PLANNED"` `final_amount` 합계
+       - ⑤ **`R36-3` `ScheduleTree` 고도화 — `ON AIR`(`D-n`·진행 바) / `다음 예정 일정` / `버전별 일정`(버전별 과금 소계) / `지난 일정 기록 (최근 6개월)`**:
+         - **`진행 중인 일정 · ON AIR` (`start_date <= today && end_date >= today`)**: 각 일정 카드에 종료일 기준 `getDdayLabel(today, schedule.end_date)` 배지(`data-testid="dday-badge"`)와 기간 일정(`start_date < end_date`)의 경과율 진행 바(`getPeriodProgress(today, schedule.start_date, schedule.end_date)`, `role="progressbar"`)를 표시함.
+         - **`다음 예정 일정` (`start_date > today`)**: KST 오늘 이후 시작하는 예정 일정이 있을 때 `<section aria-label="다음 예정 일정">` 섹션에 시작일 오름차순으로 표시함.
+         - **`버전별 일정` (`schedule_type === "VERSION"`, `end_date >= today`인 현재·예정 버전)**: 기존 아코디언 트리를 유지하되, 로그인 사용자일 때 해당 버전 기간(`version.start_date <= date && date <= version.end_date`, 확정 지출은 `target_date`, 예정 지출은 `end_date ?? target_date`)에 속하는 지출을 집계하여 버전 행에 **`확정 n원 · 예정 m원`**(`data-testid="version-expense-summary"`) 버전별 과금 소계를 함께 표시함.
+         - **`지난 일정 기록 (최근 6개월)` (`end_date < today`)**: 이미 종료된 최근 6개월 일정을 현재/미래 버전 트리 및 기타 일정에서 분리하여 하단 접기/펼치기 아코디언 섹션(`<section aria-label="지난 일정 기록">`, 기본 접힘 `expanded = false`, 토글 버튼 `지난 일정 기록 (${pastSchedules.length}건)`)으로 제공함.
+       - ⑥ **단위 테스트 및 문서 갱신**:
+         - `src/app/dashboard/games/page.test.tsx`에 `ON AIR` `D-n`·진행률 바, `다음 예정 일정`, `지난 일정 기록` 펼침/접힘, 로그인 시 `게임 과금 요약`(이번 달/누적 확정/예정) 및 버전별 과금 소계 표시(게스트 모드 시 숨김), `ScheduleTree` 내 `특별방송`/`복각` 배지 렌더링 테스트를 추가하고 `docs/to-do.md`의 `R36`·`R47` 상태를 갱신함.
+  2. **Step 2 — 통합 정적 코드 리뷰 및 Run 마감 (Gemini 4 Argon / Claude Opus)**:
+     - Base `b5ca5d8b2ab538cc19af84238e89095fc0456c53` ↔ Step 1 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: d51fba80798fcea554ca050b0b6fa8eeb97580b3)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Badge & Weekly Group UI)` | `Phase 12.39 (R48·R49)`: 수용 기준 Step 1. 공용 `ScheduleTypeBadge`, 복각 칩 높이 정렬, 사이드바 묶음 키 분리, 주차별 리스트 게임별 묶음 및 테스트 | `✅ d51fba8: 공용 ScheduleTypeBadge([픽업 [복각]], 복각 칩 수직 패딩 0·leading-none), admin·games·사이드바·주차 리스트 적용, 사이드바 묶음 키에 is_rerun 포함, 주차별 리스트 게임별 묶음(기타 마지막, 지출 별도 섹션). tsc/lint 통과, Vitest 52파일/430개 통과.` |
-| **2** | **`✅ DONE (iteration-01 clean, 산출물 696f23f, main 병합 23d2699)`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ DONE: Base 742e58f ↔ Target d51fba8 정적 리뷰 clean(지적 0건). tsc/lint 및 Vitest 52파일/430개 통과, 스키마 검증 통과(696f23f), main 병합(23d2699) 완료함.` |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Game Detail View & R33 Follow-up)` | `Phase 12.40 (R36 & R47)`: `.worktrees/r36-game-detail-and-r47-followup`에서 `user-requests-card.tsx` `is_rerun` 폴백, R33 회귀 테스트 보강, `/dashboard/games` 일정·과금 통합 상세 뷰(`ON AIR` D-day/진행 바, 다음 예정, 최근 6개월 지난 일정, 게임·버전별 과금 요약) 및 단위 테스트 구현 | `-` |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** / **Claude Opus** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `b5ca5d8b2ab538cc19af84238e89095fc0456c53` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `-` |
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
-> **실행 규칙**: 상태 `📝 AGENDA`는 `"인수인계 문서를 확인해"` 자동 실행 대상이 아님. 위 활성 Run에 `⚠️ HANDOVER_NEEDED`·`▶ READY` 과제가 없을 때, 또는 사용자가 **"인증 보안 점검 안건 진행"**처럼 이 안건을 직접 지목할 때 담당 모델이 착수하고 상태를 `🔄 IN_PROGRESS`로 바꿈. 위 Run과 파일 충돌 없음(문서 전용).
+> **실행 규칙**: 상태 `📝 AGENDA`는 `"인수인계 문서를 확인해"` 자동 실행 대상이 아니며, 활성 Run이 종료되어도 자동으로 `▶ READY`로 전환하지 않음. **사용자가 명시적으로 이 안건의 착수를 요청할 때만** `▶ READY`(`🔄 IN_PROGRESS`)로 전환하여 수행함. 위 Run과 파일 충돌 없음(문서 전용).
 
 - **과제 ID**: `auth-security-settings-review` *(문서 전용·읽기 전용 점검, 코드·DB·운영 설정 변경 없음)*
 - **배경**: 사용자 질의(비밀번호 저장·문자열 암호화)에 대한 1차 답변(2026-11-09, Claude Opus) 결과를 근거로 함.
@@ -79,9 +90,21 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **A1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Security Reviewer (Read-only)` | 위 수용 기준 1~4. 허용 파일: `docs/auth-security-review.md`(신규), `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md`, `docs/handoff.md` | `▶ weekly-game-group-and-rerun-badge Run 병합 마감에 따라 활성 대기 상태로 전환됨` |
+| **A1** | **`📝 AGENDA`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Security Reviewer (Read-only)` | 위 수용 기준 1~4. 허용 파일: `docs/auth-security-review.md`(신규), `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md`, `docs/handoff.md` | `📝 등록됨: 사용자가 별도 요청할 때만 ▶ READY로 전환하여 착수함` |
 | **A2** | **`⏳ WAITING`** | **사용자** | `Owner (Dashboard Confirmation)` | A1 체크리스트 기준 Supabase 대시보드 설정 확인·변경 및 결과 회신 | `⏳ A1 완료 후 진행` |
 
+
+### 🗂️ 이전 Run 기록 (완료): weekly-game-group-and-rerun-badge
+
+- **Run ID**: `weekly-game-group-and-rerun-badge` *(2026-11-09, `Phase 12.39` R48 주차별 리스트 게임별 묶음 + R49 일정 종류·복각 배지 `[픽업 [복각]]` 통합 및 높이 정렬)*
+- **Orchestrator**: Gemini 4 Argon *(Run 등록: Claude Opus, 리뷰·마감: Gemini 4 Argon)*
+- **Worktree 경로**: `.worktrees/weekly-game-group-and-rerun-badge` (브랜치: `collab/weekly-game-group-and-rerun-badge`)
+- **리뷰 비교 범위**: Base `742e58ff77fcf0f404e9979ea0a65fa8d71497d7` ↔ Target `d51fba80798fcea554ca050b0b6fa8eeb97580b3` *(iteration-01 `clean`, 산출물 커밋 `696f23f`, **`main` 병합 `23d2699` 완료**)*
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: d51fba80798fcea554ca050b0b6fa8eeb97580b3)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Badge & Weekly Group UI)` | `Phase 12.39 (R48·R49)`: 공용 `ScheduleTypeBadge`, 복각 칩 높이 정렬, 사이드바 묶음 키 분리, 주차별 리스트 게임별 묶음 및 테스트 | `✅ d51fba8: tsc/lint 통과, Vitest 52파일/430개 통과.` |
+| **2** | **`✅ DONE (iteration-01 clean, 산출물 696f23f, main 병합 23d2699)`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `742e58f` ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ DONE: 정적 리뷰 clean(지적 0건). tsc/lint 및 Vitest 52파일/430개 통과, 스키마 검증 통과(696f23f), main 병합(23d2699) 완료함.` |
 
 ### 🗂️ 이전 Run 기록 (완료): schedule-rerun-and-broadcast
 
