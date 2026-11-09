@@ -545,6 +545,7 @@ export default function GamesPage() {
       target_date: schedule.start_date,
       start_date: schedule.start_date,
       end_date: schedule.end_date,
+      schedule_id: schedule.schedule_type === "VERSION" ? schedule.id : undefined,
     })
     // Close the schedule dialog first so only one modal traps focus at a time.
     setIsSheetOpen(false)

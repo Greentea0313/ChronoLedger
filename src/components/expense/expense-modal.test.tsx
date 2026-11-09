@@ -663,6 +663,154 @@ describe("ExpenseModal", () => {
     })
   })
 
+  describe("R35 iteration-02: non-pass periods and VERSION schedule_id preference", () => {
+    function setupVersions(versions: Array<{ id: string; title: string; start_date: string; end_date: string }>) {
+      setup()
+      const base = from.getMockImplementation()!
+      from.mockImplementation((table: string) => {
+        if (table === "game_schedules") {
+          return query({
+            data: versions.map((v) => ({ ...v, game_id: "g1", schedule_type: "VERSION", is_official: true })),
+            error: null,
+          })
+        }
+        return base(table)
+      })
+    }
+
+    const prefilledPickupRow = {
+      id: "exp-fav-pickup",
+      title: "관심 픽업",
+      original_price: 30000,
+      category: "게임",
+      game_id: "g1",
+      target_date: "2030-01-12",
+      start_date: "2030-01-12",
+      end_date: "2030-01-25",
+      payment_method: "WALLET",
+    }
+
+    it("does not treat a prefilled non-pass row (target_date = start_date) as a version pass and keeps its period", async () => {
+      setupVersions([{ id: "v1", title: "버전 1.0", start_date: "2030-01-05", end_date: "2030-02-03" }])
+      const onCompleted = vi.fn()
+      render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} editingExpense={prefilledPickupRow} />)
+
+      await screen.findByRole("option", { name: "버전 1.0" })
+      expect((screen.getByLabelText(/버전 패스형/) as HTMLInputElement).checked).toBe(false)
+      fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "33000" } })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(update).toHaveBeenCalledWith(expect.objectContaining({
+        original_price: 33000,
+        target_date: "2030-01-12",
+        start_date: "2030-01-12",
+        end_date: "2030-01-25",
+        schedule_id: "v1",
+      }))
+    })
+
+    it("saves a single date once the date of a non-pass period row is changed", async () => {
+      setupVersions([{ id: "v1", title: "버전 1.0", start_date: "2030-01-05", end_date: "2030-02-03" }])
+      const onCompleted = vi.fn()
+      render(<ExpenseModal open onOpenChange={vi.fn()} onCompleted={onCompleted} editingExpense={prefilledPickupRow} />)
+
+      await screen.findByRole("option", { name: "버전 1.0" })
+      fireEvent.change(screen.getByLabelText("지출 예정일"), { target: { value: "2030-01-20" } })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(update).toHaveBeenCalledWith(expect.objectContaining({
+        target_date: "2030-01-20",
+        start_date: "2030-01-20",
+        end_date: "2030-01-20",
+      }))
+    })
+
+    it("keeps editing an existing version pass row (target_date = end_date) as a pass", async () => {
+      setupVersions([{ id: "v1", title: "버전 5.0", start_date: "2026-10-01", end_date: "2026-11-15" }])
+      const onCompleted = vi.fn()
+      render(
+        <ExpenseModal
+          open
+          onOpenChange={vi.fn()}
+          onCompleted={onCompleted}
+          editingExpense={{
+            id: "exp-pass",
+            title: "버전 패스",
+            original_price: 25000,
+            category: "게임",
+            game_id: "g1",
+            target_date: "2026-11-15",
+            start_date: "2026-10-01",
+            end_date: "2026-11-15",
+            payment_method: "WALLET",
+          }}
+        />,
+      )
+
+      await screen.findByRole("option", { name: "버전 5.0" })
+      expect((screen.getByLabelText(/버전 패스형/) as HTMLInputElement).checked).toBe(true)
+      fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "27000" } })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출 수정 완료" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(update).toHaveBeenCalledWith(expect.objectContaining({
+        target_date: "2026-11-15",
+        start_date: "2026-10-01",
+        end_date: "2026-11-15",
+        schedule_id: "v1",
+      }))
+    })
+
+    const boundaryVersions = [
+      { id: "v-old", title: "버전 1.0", start_date: "2030-01-01", end_date: "2030-01-15" },
+      { id: "v-new", title: "버전 1.1", start_date: "2030-01-15", end_date: "2030-02-10" },
+    ]
+
+    it("links the prefilled VERSION schedule_id when the previous version ends on its start date", async () => {
+      setupVersions(boundaryVersions)
+      const onCompleted = vi.fn()
+      render(
+        <ExpenseModal
+          open
+          onOpenChange={vi.fn()}
+          onCompleted={onCompleted}
+          prefill={{ game_id: "g1", title: "버전 1.1", target_date: "2030-01-15", start_date: "2030-01-15", end_date: "2030-02-10", schedule_id: "v-new" }}
+        />,
+      )
+
+      await screen.findByRole("option", { name: "버전 1.1" })
+      fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "11000" } })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(insert).toHaveBeenCalledWith(expect.objectContaining({ schedule_id: "v-new", target_date: "2030-01-15" }))
+    })
+
+    it("falls back to date matching when the date leaves the prefilled VERSION period", async () => {
+      setupVersions(boundaryVersions)
+      const onCompleted = vi.fn()
+      render(
+        <ExpenseModal
+          open
+          onOpenChange={vi.fn()}
+          onCompleted={onCompleted}
+          prefill={{ game_id: "g1", title: "버전 1.1", target_date: "2030-01-15", start_date: "2030-01-15", end_date: "2030-02-10", schedule_id: "v-new" }}
+        />,
+      )
+
+      await screen.findByRole("option", { name: "버전 1.1" })
+      fireEvent.change(screen.getByLabelText("결제일 / 예정일"), { target: { value: "2030-01-10" } })
+      await screen.findByRole("option", { name: "버전 1.0" })
+      fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "11000" } })
+      fireEvent.click(screen.getByRole("button", { name: "예정 지출로 등록" }))
+
+      await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+      expect(insert).toHaveBeenCalledWith(expect.objectContaining({ schedule_id: "v-old", target_date: "2030-01-10" }))
+    })
+  })
+
   it("updates target_date when edited in planned expense edit mode", async () => {
     setup()
     const onCompleted = vi.fn()

@@ -635,6 +635,7 @@ export default function DashboardPage() {
       target_date: schedule.start_date,
       start_date: schedule.start_date,
       end_date: schedule.end_date,
+      schedule_id: schedule.schedule_type === "VERSION" ? schedule.id : undefined,
     })
     setIsExpenseModalOpen(true)
   }
