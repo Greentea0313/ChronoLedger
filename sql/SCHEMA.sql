@@ -133,7 +133,8 @@ BEGIN
        OR jsonb_typeof(p_schema -> 'rarities') <> 'array'
        OR jsonb_typeof(p_schema -> 'axes') <> 'array'
        OR jsonb_array_length(p_schema -> 'rarities') > 10
-       OR jsonb_array_length(p_schema -> 'axes') > 3 THEN
+       OR jsonb_array_length(p_schema -> 'axes') > 2
+       OR (p_schema ? 'character_label' AND (jsonb_typeof(p_schema -> 'character_label') <> 'string' OR length(btrim(p_schema ->> 'character_label')) NOT BETWEEN 1 AND 20)) THEN
         RETURN false;
     END IF;
 
@@ -141,7 +142,7 @@ BEGIN
     FOR v_rarity IN SELECT value FROM jsonb_array_elements(p_schema -> 'rarities') AS item(value) LOOP
         IF jsonb_typeof(v_rarity) <> 'string' THEN RETURN false; END IF;
         v_value := v_rarity #>> '{}';
-        IF length(btrim(v_value)) = 0 OR v_value = ANY(v_seen_options) THEN RETURN false; END IF;
+        IF length(btrim(v_value)) = 0 OR length(v_value) > 20 OR v_value = ANY(v_seen_options) THEN RETURN false; END IF;
         v_seen_options := array_append(v_seen_options, v_value);
     END LOOP;
 
@@ -304,6 +305,10 @@ BEGIN
     UPDATE public.user_character_presets
     SET character_ids = array_remove(character_ids, OLD.id), updated_at = NOW()
     WHERE game_id = OLD.game_id AND OLD.id = ANY(character_ids);
+    UPDATE public.game_schedules SET pickup_character_ids = array_remove(pickup_character_ids, OLD.id), updated_at = NOW()
+    WHERE game_id = OLD.game_id AND OLD.id = ANY(pickup_character_ids);
+    UPDATE public.schedule_requests SET pickup_character_ids = array_remove(pickup_character_ids, OLD.id)
+    WHERE game_id = OLD.game_id AND request_status = 'PENDING' AND OLD.id = ANY(pickup_character_ids);
     RETURN OLD;
 END;
 $$;
@@ -416,6 +421,23 @@ CREATE TABLE public.user_games (
     UNIQUE(user_id, game_id)
 );
 
+CREATE OR REPLACE FUNCTION public.validate_schedule_pickup_characters()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_ids UUID[];
+BEGIN
+    IF TG_OP = 'UPDATE' AND NEW.pickup_character_ids IS NOT DISTINCT FROM OLD.pickup_character_ids AND NEW.game_id IS NOT DISTINCT FROM OLD.game_id THEN
+        RETURN NEW;
+    END IF;
+    v_ids := NEW.pickup_character_ids;
+    IF array_position(v_ids, NULL) IS NOT NULL
+       OR cardinality(v_ids) <> cardinality(ARRAY(SELECT DISTINCT item.id FROM unnest(v_ids) AS item(id)))
+       OR EXISTS (SELECT 1 FROM unnest(v_ids) AS item(id) LEFT JOIN public.game_characters c ON c.id=item.id AND c.game_id=NEW.game_id WHERE c.id IS NULL) THEN
+        RAISE EXCEPTION '픽업 캐릭터는 같은 게임의 카탈로그에 있어야 합니다.';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
 -- 5. 게임 공용 일정 (버전 및 픽업 기간 한정)
 CREATE TABLE public.game_schedules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -423,6 +445,8 @@ CREATE TABLE public.game_schedules (
     title VARCHAR(150) NOT NULL,
     schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS', 'BROADCAST')),
     is_rerun BOOLEAN NOT NULL DEFAULT false,
+    pickup_character_ids UUID[] NOT NULL DEFAULT '{}'::uuid[],
+    pickup_image_url TEXT,
     is_official BOOLEAN NOT NULL DEFAULT true,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -430,7 +454,10 @@ CREATE TABLE public.game_schedules (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT chk_schedule_dates CHECK (end_date >= start_date),
-    CONSTRAINT chk_game_schedules_rerun_pickup CHECK (is_rerun = false OR schedule_type = 'PICKUP')
+    CONSTRAINT chk_game_schedules_rerun_pickup CHECK (is_rerun = false OR schedule_type = 'PICKUP'),
+    CONSTRAINT chk_game_schedules_pickup_characters_only_pickup CHECK (cardinality(pickup_character_ids) <= 8 AND (cardinality(pickup_character_ids) = 0 OR schedule_type = 'PICKUP')),
+    CONSTRAINT chk_game_schedules_pickup_image_valid CHECK (pickup_image_url IS NULL OR (schedule_type = 'PICKUP' AND length(pickup_image_url) <= 30000 AND pickup_image_url LIKE 'data:image/webp;base64,%')),
+    CONSTRAINT chk_game_schedules_pickup_mode_exclusive CHECK (cardinality(pickup_character_ids) = 0 OR pickup_image_url IS NULL)
 );
 
 -- 6. 일반 유저 일정 추가/수정 건의 요청 테이블
@@ -442,6 +469,8 @@ CREATE TABLE public.schedule_requests (
     title VARCHAR(150) NOT NULL,
     schedule_type VARCHAR(30) NOT NULL CHECK (schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS', 'BROADCAST')),
     is_rerun BOOLEAN NOT NULL DEFAULT false,
+    pickup_character_ids UUID[] NOT NULL DEFAULT '{}'::uuid[],
+    pickup_image_url TEXT,
     is_official BOOLEAN NOT NULL DEFAULT true,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -450,8 +479,18 @@ CREATE TABLE public.schedule_requests (
     admin_memo TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT chk_req_dates CHECK (end_date >= start_date),
-    CONSTRAINT chk_schedule_requests_rerun_pickup CHECK (is_rerun = false OR schedule_type = 'PICKUP')
+    CONSTRAINT chk_schedule_requests_rerun_pickup CHECK (is_rerun = false OR schedule_type = 'PICKUP'),
+    CONSTRAINT chk_schedule_requests_pickup_characters_only_pickup CHECK (cardinality(pickup_character_ids) <= 8 AND (cardinality(pickup_character_ids) = 0 OR schedule_type = 'PICKUP')),
+    CONSTRAINT chk_schedule_requests_pickup_image_valid CHECK (pickup_image_url IS NULL OR (schedule_type = 'PICKUP' AND length(pickup_image_url) <= 30000 AND pickup_image_url LIKE 'data:image/webp;base64,%')),
+    CONSTRAINT chk_schedule_requests_pickup_mode_exclusive CHECK (cardinality(pickup_character_ids) = 0 OR pickup_image_url IS NULL)
 );
+
+DROP TRIGGER IF EXISTS trg_validate_game_schedule_pickup_characters ON public.game_schedules;
+CREATE TRIGGER trg_validate_game_schedule_pickup_characters BEFORE INSERT OR UPDATE ON public.game_schedules
+FOR EACH ROW EXECUTE FUNCTION public.validate_schedule_pickup_characters();
+DROP TRIGGER IF EXISTS trg_validate_schedule_request_pickup_characters ON public.schedule_requests;
+CREATE TRIGGER trg_validate_schedule_request_pickup_characters BEFORE INSERT OR UPDATE ON public.schedule_requests
+FOR EACH ROW EXECUTE FUNCTION public.validate_schedule_pickup_characters();
 
 -- 7. 유저 개인 캘린더 메모 (타일 도트 힌트용)
 CREATE TABLE public.personal_memos (
@@ -1326,6 +1365,11 @@ ALTER TABLE public.user_characters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_character_presets ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.game_characters, public.character_requests, public.user_characters, public.user_character_presets TO authenticated;
 
+REVOKE ALL ON public.game_characters FROM anon;
+GRANT SELECT (id, game_id, name, default_icon_url, rarity, attributes) ON public.game_characters TO anon;
+DROP POLICY IF EXISTS "Allow anon read game characters" ON public.game_characters;
+CREATE POLICY "Allow anon read game characters" ON public.game_characters FOR SELECT TO anon USING (true);
+
 DROP POLICY IF EXISTS "Users read game characters" ON public.game_characters;
 CREATE POLICY "Users read game characters" ON public.game_characters FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "Admin manage game characters" ON public.game_characters;
@@ -1504,13 +1548,17 @@ BEGIN
         RAISE EXCEPTION '승인 대기 중인 일정 요청이 아닙니다.';
     END IF;
     IF v_request.target_schedule_id IS NULL THEN
-        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo, is_official, is_rerun)
-        VALUES (v_request.game_id, v_request.title, v_request.schedule_type, v_request.start_date, v_request.end_date, v_request.memo, v_request.is_official, v_request.is_rerun);
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo, is_official, is_rerun, pickup_character_ids, pickup_image_url)
+        VALUES (v_request.game_id, v_request.title, v_request.schedule_type, v_request.start_date, v_request.end_date, v_request.memo, v_request.is_official, v_request.is_rerun,
+            CASE WHEN v_request.schedule_type = 'PICKUP' THEN ARRAY(SELECT c.id FROM unnest(v_request.pickup_character_ids) WITH ORDINALITY AS u(id, ord) JOIN public.game_characters c ON c.id=u.id AND c.game_id=v_request.game_id ORDER BY u.ord) ELSE '{}'::uuid[] END,
+            CASE WHEN v_request.schedule_type = 'PICKUP' THEN v_request.pickup_image_url ELSE NULL END);
     ELSE
         UPDATE public.game_schedules
         SET title = v_request.title, schedule_type = v_request.schedule_type,
             start_date = v_request.start_date, end_date = v_request.end_date, memo = v_request.memo,
             is_official = v_request.is_official, is_rerun = v_request.is_rerun,
+            pickup_character_ids = CASE WHEN v_request.schedule_type = 'PICKUP' THEN ARRAY(SELECT c.id FROM unnest(v_request.pickup_character_ids) WITH ORDINALITY AS u(id, ord) JOIN public.game_characters c ON c.id=u.id AND c.game_id=v_request.game_id ORDER BY u.ord) ELSE '{}'::uuid[] END,
+            pickup_image_url = CASE WHEN v_request.schedule_type = 'PICKUP' THEN v_request.pickup_image_url ELSE NULL END,
             updated_at = NOW()
         WHERE id = v_request.target_schedule_id AND game_id = v_request.game_id;
         IF NOT FOUND THEN RAISE EXCEPTION '요청 대상 일정이 없거나 게임이 일치하지 않습니다.'; END IF;

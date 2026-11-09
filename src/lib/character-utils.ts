@@ -25,6 +25,7 @@ export type ClassificationAxis = {
 }
 
 export type ClassificationSchema = {
+  character_label?: string
   rarities: string[]
   axes: ClassificationAxis[]
 }
@@ -69,8 +70,8 @@ function toStringArray(value: unknown): string[] {
 
 /** Converts a raw JSONB value to a safe schema; malformed values become an empty schema. */
 export function normalizeClassificationSchema(raw: unknown): ClassificationSchema {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { rarities: [], axes: [] }
-  const source = raw as { rarities?: unknown; axes?: unknown }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { character_label: "캐릭터", rarities: [], axes: [] }
+  const source = raw as { character_label?: unknown; rarities?: unknown; axes?: unknown }
   const axes: ClassificationAxis[] = []
   if (Array.isArray(source.axes)) {
     source.axes.forEach((axis) => {
@@ -80,7 +81,16 @@ export function normalizeClassificationSchema(raw: unknown): ClassificationSchem
       axes.push({ key, label, options: toStringArray(options) })
     })
   }
-  return { rarities: toStringArray(source.rarities), axes }
+  const characterLabel = typeof source.character_label === "string" && source.character_label.trim() ? source.character_label.trim() : "캐릭터"
+  return { character_label: characterLabel, rarities: toStringArray(source.rarities), axes: axes.slice(0, 2) }
+}
+
+export function isCharacterTemplateActive(game: { classification_schema?: unknown } | null | undefined, characterCount: number): boolean {
+  return normalizeClassificationSchema(game?.classification_schema).rarities.length >= 1 || characterCount >= 1
+}
+
+export function isCharacterSupported(characterCount: number): boolean {
+  return characterCount >= 1
 }
 
 export function normalizeMaxPresetSlots(value: unknown): number {
