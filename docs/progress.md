@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## r38-onboarding-and-game-order 통합 리뷰 및 `main` 병합 마감 (2026-11-09)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.
+- **리뷰 (`4ffd901` ↔ `c1cb27b`)**: 온보딩 모달(전체 선택 기본·일괄 구독·나중에 선택), `game-order-storage` 유틸(사용자별 키 격리·손상 데이터·SSR 안전 처리), `/dashboard/games` 순서 변경 버튼, `/dashboard` 필터·캘린더 아이콘 정렬 검토함. P1~P3 0건, P4 2건(`R38-REV-001` 일괄 구독 중복 경합, `R38-REV-002` 로그아웃 시 localStorage 키 잔존)으로 비차단 판정함.
+- **검증**: `git diff --check`, `tsc --noEmit`, `npm run lint` 통과, Vitest 54파일/485개 통과함. `iteration-01/{review,test}.json`·`run.json`(`status: completed`) 스키마 검증 및 커밋(`66c99f4`) 완료함.
+- **`main` 병합**: `collab/r38-onboarding-and-game-order`를 `main`에 병합(`b8abcc6`)함. DB 변경 없어 운영 마이그레이션 선행 조건 없음. push 미수행임.
+- **다음 단계**: Dispatch Queue에 `▶ READY` 과제 없음. 후속 `R51`(P4 2건) 등록, 보안 안건 `R50`은 `📝 AGENDA`로 사용자 요청 대기임.
+
 ## r36-game-detail-and-r47-followup 정적 리뷰·병합 마감 및 r38-onboarding-and-game-order Run 등록 (R36·R47·R38, 2026-11-09)
 
 - **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator, Step 2 마감 및 차기 Run 등록)임.

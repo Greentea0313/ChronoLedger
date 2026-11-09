@@ -34,7 +34,7 @@
 - **Run ID**: `r38-onboarding-and-game-order` *(2026-11-09, `Phase 12.41` R38 신규 가입 첫 진입 게임 일괄 구독 온보딩 모달 및 내 게임 순서 변경·캘린더 아이콘 정렬 연동)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/r38-onboarding-and-game-order` (브랜치: `collab/r38-onboarding-and-game-order`, manifest `12486d9`)
-- **리뷰 비교 범위**: Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Target `(Step 1 Maker 커밋 후 기록)` *(Step 2 Orchestrator/Reviewer가 manifest `target_sha` 기록)*
+- **리뷰 비교 범위**: Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Target `c1cb27b4d41af75832c76dd006c02c93f5e906b7` (manifest `target_sha`·`status: completed` 기록, 산출물 커밋 `66c99f4`, `findings` P4 2건 — 비차단). **Run 마감: `main` 병합 `b8abcc6` 완료** *(push 미수행, DB 변경 없음)*
 - **설계 결정 (Orchestrator 확정 — DB 변경 없음 · Opus 승격 조건 미해당)**:
   - 내 게임 표시 순서와 온보딩 모달 닫기 여부는 DB 컬럼 추가 없이 `localStorage`(`src/lib/game-order-storage.ts`, 사용자 `userId` 키 격리)에 저장하여 운영 SQL 마이그레이션 선행 조건을 만들지 않고 즉시 배포 가능하도록 구성함.
 - **수용 기준 (Acceptance Criteria)**:
@@ -66,7 +66,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: c1cb27b4d41af75832c76dd006c02c93f5e906b7)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Onboarding & Game Order UI)` | `Phase 12.41 (R38)`: `.worktrees/r38-onboarding-and-game-order`에서 `game-order-storage.ts`, `GameOnboardingModal`, `/dashboard/games` 순서 변경 UI, `/dashboard` 캘린더 아이콘·필터 정렬 반영 및 단위 테스트 구현 | `✅ c1cb27b: game-order-storage 유틸, GameOnboardingModal(전체 선택 기본·일괄 구독·나중에 선택), /dashboard/games 순서 변경 버튼 및 온보딩 연동, /dashboard 필터·캘린더 아이콘 순서 적용 및 온보딩 연동. DB 변경 없음. tsc/lint 통과, Vitest 54파일/485개 통과.` |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: c1cb27b4d41af75832c76dd006c02c93f5e906b7` |
+| **2** | **`✅ DONE (리뷰 P4 2건 비차단, 산출물 SHA: 66c99f4, main 병합 b8abcc6)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `4ffd901` ↔ Target `c1cb27b` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ P1~P3 0건. R38-REV-001 P4(온보딩 일괄 구독 insert가 타 탭 중복 구독 시 전체 실패 → upsert ignoreDuplicates 권장), R38-REV-002 P4(로그아웃·탈퇴 시 localStorage 게임 순서/온보딩 키 미삭제 → R50 안건에 포함) → R51 후속 등록. diff-check/tsc/lint 통과, Vitest 54파일/485개 통과, 스키마 검증 통과. main 병합 b8abcc6.` |
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 

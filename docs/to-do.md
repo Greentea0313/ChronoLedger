@@ -676,7 +676,8 @@
 - [ ] R35. [우선 중간] 관심 일정(즐겨찾기) 저장(`user_favorite_schedules` + 소유자 RLS + 계정 탈퇴 `purge` 연동), "관심 일정만" 필터 및 관심 일정에서 바로 `[+ 예정 지출 추가]` 모달 프리필 연결 (사용자 소유 테이블·RLS 필요 → Opus 승격 조건 ①, 담당: GPT Codex + Claude Sonnet + Claude Opus 리뷰)
 - [x] R36 (`Phase 12.40`). [우선 중간 · 완료 · `r36-game-detail-and-r47-followup` (`4fdf99a`, 리뷰 `e3a4acc`, `main` 병합 `4ffd901`)] 게임별 일정·과금 통합 상세 뷰(`/dashboard/games` 일정 보기 확장): 진행 중(ON AIR, D-n·진행 바) / 다음 예정 / 지난 일정 기록(최근 6개월) 구분 + 해당 게임 이번 달/누적 확정 과금액·예정 지출·버전별 지출 요약 결합 (Phase 12.21 R11의 픽업 배너 연결 제거 정책과 정합성 유지, 담당: Claude Sonnet, Fallback: GitHub Copilot)
 - [ ] R37. [우선 낮음 (중간→낮음 조정)] 일정 표시용 시각·예상 여부 필드(`start_time`, `is_estimated`) 도입 검토 (DATE 기반 가계부 핵심 흐름 대비 타임존·관리자 입력 복잡도가 높아 후순위 조정; DB 변경 → Opus 승격 조건 ①, 담당: GPT Codex + Claude Opus)
-- [x] R38 (`Phase 12.41`). [우선 중간 · `r38-onboarding-and-game-order` Step 1 `▶ READY`] 신규 가입 첫 진입 시(구독 게임 0개) 게임 일괄 구독 선택 온보딩 모달 자동 표시 및 내 게임 순서 변경(캘린더 아이콘 정렬 반영; `user_games.sort_order` 추가 시 Opus 승격 조건 ① 적용, 담당: GitHub Copilot / Claude Sonnet)
+- [x] R38 (`Phase 12.41`). [완료 · `r38-onboarding-and-game-order` (`c1cb27b`, 리뷰 `66c99f4`, `main` 병합 `b8abcc6`)] 신규 가입 첫 진입 시(구독 게임 0개) 게임 일괄 구독 선택 온보딩 모달 자동 표시 및 내 게임 순서 변경(캘린더 아이콘 정렬 반영; `user_games.sort_order` 추가 시 Opus 승격 조건 ① 적용, 담당: GitHub Copilot / Claude Sonnet)
+- [ ] R51. [후속 · 우선 낮음 · R38 리뷰 이관] ① `GameOnboardingModal` 일괄 구독을 `upsert(..., { onConflict: "user_id,game_id", ignoreDuplicates: true })`로 바꿔 타 탭·기기 중복 구독 시 전체 실패 방지(`R38-REV-001`, P4), ② 로그아웃·계정 탈퇴 시 `chronoledger:game-order:<userId>`·`chronoledger:game-onboarding-dismissed:<userId>` localStorage 키 정리(`R38-REV-002`, P4 — `R50` 인증 보안 점검 시 함께 검토) (담당: Claude Sonnet, Fallback: GitHub Copilot)
 - [ ] R39. [우선 낮음] 일정·결제 알림(픽업 종료 D-1, 예정 지출 결제일) PWA/Tauri 알림 방식 조사 및 설계 (담당: Claude Opus / Gemini 4 Argon)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
