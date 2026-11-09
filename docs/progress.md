@@ -1,4 +1,14 @@
 # 프로젝트 진행 현황
+## schedule-rerun-and-broadcast iteration-02 재리뷰 및 `main` 병합 마감 (2026-11-09)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.
+- **재리뷰 (`d09ba5c` ↔ `8c64d98`)**: `R33-REV-001`~`005` 해소 확인함(R33 UI 테스트 추가, 원본 복각 상태 기준 `is_rerun` 페이로드, 묶음 일정 복각 배지, 내 요청 카드 4종 라벨, 배너 영문 통일).
+- **신규 지적**: `R33-REV-006` (P3, 내 요청 카드가 `is_rerun`을 명시 조회해 마이그레이션 미적용 시 요청 내역 전체 로드 실패), `R33-REV-007` (P4, 관리자 폼·ScheduleTree·오류 문구 테스트 미보강)임.
+- **사용자 결정**: 조건부 병합 승인함. P3·P4는 `R47` 후속 과제로 이관하고, 운영 마이그레이션 `R46`은 배포 전 필수 적용으로 명시함.
+- **검증**: 임시 PostgreSQL 17에서 업그레이드·신규 스키마 모두 마이그레이션 2회 후 `TESTS.sql` 31개 PASS. tsc·lint 통과, Vitest 51파일/420개 통과함. `iteration-02/{review,test}.json`·`run.json`(`status: completed`) 스키마 검증 및 커밋(`f0a5a58`, `ea645f6`) 완료함.
+- **`main` 병합**: `collab/schedule-rerun-and-broadcast`를 `main`에 병합(`7436a3b`)함. push 미수행임.
+- **다음 단계**: ① 사용자가 운영 DB에 R33 마이그레이션 적용(`R46`) 후 push·배포, ② `R47` 후속 보강, ③ 차기 후보 `R35`(관심 일정, DB/RLS) 또는 `R36`(게임별 상세 뷰) Run 등록임.
+
 ## R33 UI iteration-02 수정 완료: schedule-rerun-and-broadcast (2026-11-09)
 
 - **수행 주체**: GitHub Copilot (Step 4 Maker)임.
