@@ -31,6 +31,43 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
+- **Run ID**: `schedule-rerun-and-broadcast` *(2026-11-09, `Phase 12.38` R33 일정 분류 세분화: `PICKUP` 복각 플래그 `is_rerun` + `BROADCAST`(특별방송) 일정 종류)*
+- **Orchestrator**: Gemini 4 Argon *(본 Run 등록은 Claude Opus가 1순위 대체로 수행)*
+- **Worktree 경로**: `.worktrees/schedule-rerun-and-broadcast` (브랜치: `collab/schedule-rerun-and-broadcast`)
+- **리뷰 비교 범위**: Base `d09ba5c131838872fa8423c9ce80cd31d345106f` ↔ Target `(Step 2 Maker 커밋 후 기록)` *(Step 3 Reviewer가 manifest `target_sha` 기록, manifest 커밋 `10ef476`)*
+- **설계 결정 (Orchestrator 확정)**:
+  - `is_rerun`은 `PICKUP` 전용임. `game_schedules`·`schedule_requests` 양쪽에 `is_rerun BOOLEAN NOT NULL DEFAULT false` + `CHECK (is_rerun = false OR schedule_type = 'PICKUP')`를 적용함.
+  - `BROADCAST`는 단일/기간 일정 모두 허용하며 예정 지출 동기화 트리거(`sync_version_expenses_trigger`) 대상에 포함함(`target_date = end_date` 규칙 동일, VERSION만 `start_date`).
+  - "필터" 반영 범위는 기존 게임 필터·공식/비공식 표시 설정·게스트 공식 일정 RLS가 신규 값을 누락 없이 통과시키는 것으로 한정함. 일정 종류별 표시 토글 같은 신규 필터 UI는 범위 외임.
+  - RLS 정책 변경 없음. 운영 DB 마이그레이션은 수동 적용이므로 클라이언트는 미적용 상태(컬럼 부재·CHECK 위반)를 견뎌야 함.
+- **수용 기준 (Acceptance Criteria)**:
+  1. **Step 1 — `Phase 12.38-DB (R33)` DB/RPC/Types 구현 (GPT Codex)**:
+     - **대상 파일 (`.worktrees/schedule-rerun-and-broadcast` 내부)**: `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql`(신규), `sql/SCHEMA.sql`, `sql/tests/TESTS.sql`, `sql/README.md`, `src/types/database.types.ts`, `src/components/game/request-validation.ts`, `src/components/game/request-validation.test.ts`(신규 또는 보강), `docs/spec/SRS.md`, `docs/spec/SPEC.md`
+     - **구현 요구사항**:
+       - ① **멱등 마이그레이션**: `game_schedules`·`schedule_requests`의 `schedule_type` CHECK(인라인 자동 명명 제약 `*_schedule_type_check` 포함)를 `DROP CONSTRAINT IF EXISTS` 후 `('VERSION','PICKUP','CONTENTS','BROADCAST')`로 재생성함. `is_rerun` 컬럼은 `ADD COLUMN IF NOT EXISTS`, PICKUP 전용 CHECK는 존재 여부 확인 후 추가함. 2회 연속 실행해도 오류가 없어야 함.
+       - ② **RPC·트리거**: `approve_schedule_request`가 INSERT/UPDATE 양쪽에서 `is_rerun`을 복사하도록 `CREATE OR REPLACE`함(관리자 JWT `app_metadata.role` 검증·`FOR UPDATE` 잠금·`SECURITY DEFINER SET search_path = public` 유지). `sync_version_expenses_trigger`의 일정 종류 조건에 `BROADCAST`를 포함함.
+       - ③ **`SCHEMA.sql` 반영**: 신규 설치 기준 DDL에 동일 제약·컬럼·함수를 반영함.
+       - ④ **SQL 회귀 테스트 (`TESTS.sql`)**: BROADCAST 일정 INSERT 성공, PICKUP+`is_rerun=true` 성공, 비PICKUP+`is_rerun=true` CHECK 위반, 승인 RPC의 `is_rerun` 복사(신규·수정 요청), BROADCAST 일정 날짜 변경 시 연결 `PLANNED` 지출 동기화를 검증함.
+       - ⑤ **타입·검증·문서**: `database.types.ts`의 `game_schedules`·`schedule_requests` Row/Insert/Update에 `BROADCAST`·`is_rerun` 반영, `request-validation.ts`가 `BROADCAST`를 허용하고 비PICKUP 복각을 거부하도록 보강(+단위 테스트), `sql/README.md` B표에 마이그레이션 실행 순서·확인 쿼리 추가, `SRS.md`·`SPEC.md` 일정 종류 정의 갱신함.
+     - **검증**: 임시 PostgreSQL에서 신규 `SCHEMA.sql` 적용, 마이그레이션 2회 실행, 전체 `TESTS.sql` PASS. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 커밋함. 운영 DB 접근 금지.
+  2. **Step 2 — `Phase 12.38-UI (R33)` 관리자·요청·캘린더 UI 반영 (GitHub Copilot)**:
+     - **대상 파일 (`.worktrees/schedule-rerun-and-broadcast` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/components/calendar/desktop-calendar.tsx`, `src/components/calendar/desktop-calendar.test.tsx`, `src/components/calendar/schedule-banner.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `docs/to-do.md` *(일정 종류 라벨/배지 공용 헬퍼가 필요하면 `src/components/calendar/` 하위 신규 파일 1개 허용)*
+     - **구현 요구사항**:
+       - ① **입력 폼**: `/admin` 일정 등록/수정 폼과 `RequestSubmissionModal` 일정 요청 탭에 `BROADCAST (특별방송)` 옵션과 `PICKUP` 선택 시에만 노출되는 `복각` 체크박스를 추가함. 종류를 PICKUP 외로 바꾸면 `is_rerun`을 `false`로 초기화함. 모달 폼 초기화는 기존 `prevOpenRef` 패턴을 따름.
+       - ② **표시**: `/admin/requests` 일정 요청 목록, 데스크톱 캘린더 하단 배너(`ScheduleBanner`), `HeroSidebarContent` 일정 카드, 주차별 리스트, `/dashboard/games` `ScheduleTree`(`ON AIR` 영역 포함)에 `특별방송` 라벨과 PICKUP 복각 시 `복각` 배지를 표시함. 색상은 `tailwind.config.ts` 시맨틱 토큰만 사용함. ScheduleTree에서 BROADCAST는 VERSION 하위 분류 규칙에서 PICKUP·CONTENTS와 동일하게 취급함.
+       - ③ **미적용 마이그레이션 내성**: 읽기는 `is_rerun` 부재 시 `false`로 간주함. 쓰기는 `is_rerun`이 `true`일 때만 페이로드에 포함하고, 컬럼 부재(`42703`/`PGRST204`) 또는 CHECK 위반(`23514`) 시 "R33 마이그레이션 미적용" 안내 오류를 표시함. 모든 쓰기 핸들러의 `isOffline()` 가드 유지함.
+       - ④ **테스트·문서**: 위 대상 테스트 파일에 BROADCAST 옵션·복각 토글 노출/초기화·배지 렌더링·미적용 오류 안내 테스트를 추가하고 `docs/to-do.md` `R33` 상태를 갱신함. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 커밋하고 Target SHA를 기록함.
+  3. **Step 3 — 통합 정적 리뷰 및 Run 마감 (Claude Opus)**:
+     - Base `d09ba5c` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`, SQL/RPC 권한·멱등성·원장 동기화 트리거 포함), `test.json`, `run.json` 스키마 검증, `main` 병합, 운영 DB 마이그레이션 수동 적용 체크리스트(`docs/to-do.md` `R46`) 등록 및 문서 마감.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/RPC/Types)` | `Phase 12.38-DB (R33)`: 수용 기준 Step 1. 마이그레이션·`SCHEMA.sql`·`approve_schedule_request`·동기화 트리거·`TESTS.sql`·타입·요청 검증·SRS/SPEC | `▶ 대기` |
+| **2** | **`⏳ WAITING`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Type UI)` | `Phase 12.38-UI (R33)`: 수용 기준 Step 2. 관리자·요청 폼, 캘린더·사이드바·주차 리스트·ScheduleTree 배지, 미적용 마이그레이션 내성 | `⏳ Step 1 완료 후 진행` |
+| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d09ba5c` ↔ Step 2 Target SHA 통합 정적 리뷰, `run.json` 마감, `main` 병합, `R46` 운영 마이그레이션 체크리스트 등록 및 `docs/` 동기화 | `⏳ Step 2 완료 후 진행` |
+
+### 🗂️ 이전 Run 기록 (완료): dashboard-summary-dday-and-week-list
+
 - **Run ID**: `dashboard-summary-dday-and-week-list` *(2026-11-09, `Phase 12.37` R32 대시보드 오늘/이번 주 요약 카드 및 사이드바 일정·예정 지출 `D-n`·기간 진행률 바 + R34 대시보드 월간 캘린더 ↔ 주차별 리스트 뷰 토글)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/dashboard-summary-dday-and-week-list` (브랜치: `collab/dashboard-summary-dday-and-week-list`)

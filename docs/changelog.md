@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-09 (차기 Run 2 `schedule-rerun-and-broadcast` 등록)
+
+- `R33`(PICKUP 복각 `is_rerun`, `BROADCAST` 특별방송 일정 종류) 격리 Run을 생성하고(`.worktrees/schedule-rerun-and-broadcast`, Base `d09ba5c`), Dispatch Queue에 수용 기준·설계 결정·3단계 배정(GPT Codex → GitHub Copilot → Claude Opus)을 등록함.
+- 완료된 `dashboard-summary-dday-and-week-list` Run 블록을 이전 Run 기록으로 이동함.
+
 ## 2026-11-09 (dashboard-summary-dday-and-week-list iteration-02 수정·재리뷰 및 `main` 병합)
 
 - 요약 스트립이 조회 월과 무관하게 KST 이번 주(일요일 시작) 범위 일정·예정 지출을 별도 조회하도록 수정됨(`DSW-REV-001`, `be57e71`).

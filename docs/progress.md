@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## 차기 Run 2 등록: schedule-rerun-and-broadcast (R33, 2026-11-09)
+
+- **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 1순위 대체)임.
+- **격리 Worktree 생성**: `.worktrees/schedule-rerun-and-broadcast` (브랜치: `collab/schedule-rerun-and-broadcast`, Base SHA: `d09ba5c131838872fa8423c9ce80cd31d345106f`, manifest 커밋 `10ef476`)임.
+- **설계 결정**: `is_rerun`은 PICKUP 전용 CHECK로 강제함. `BROADCAST`는 예정 지출 동기화 트리거 대상에 포함함. "필터" 범위는 기존 게임 필터·공식/비공식 설정 통과로 한정함. RLS 변경 없음. 클라이언트는 미적용 마이그레이션 상태를 견뎌야 함.
+- **과제 배정**: Step 1 DB/RPC/Types (**GPT Codex** `▶ READY`) → Step 2 UI (**GitHub Copilot** `⏳ WAITING`) → Step 3 통합 리뷰·병합·`R46` 운영 마이그레이션 체크리스트 (**Claude Opus** `⏳ WAITING`)임.
+
 ## dashboard-summary-dday-and-week-list iteration-02 재리뷰 및 `main` 병합 마감 (2026-11-09)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.
