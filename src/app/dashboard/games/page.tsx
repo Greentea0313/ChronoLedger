@@ -85,17 +85,71 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
   }, [schedules, today])
   const renderSchedule = (schedule: GameScheduleRow) => (
     <div key={schedule.id} className="rounded-lg border border-line bg-surface-2 p-3 space-y-1.5">
-      <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 flex-1 break-words text-sm font-semibold text-content">{schedule.title}</span>
-        <span className="shrink-0 rounded bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+      <div className="flex items-start justify-between gap-2.5">
+        <span className="min-w-0 flex-1 break-words text-sm font-semibold text-content">
+          {schedule.title.includes("/")
+            ? schedule.title
+                .split("/")
+                .map((part) => part.trim())
+                .filter(Boolean)
+                .map((part, idx) => (
+                  <span key={idx} className="block">
+                    {part}
+                  </span>
+                ))
+            : schedule.title}
+        </span>
+        {schedule.is_official === false && (
+          <span className="shrink-0 rounded bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+            [비공식]
+          </span>
+        )}
+        <span
+          className={`shrink-0 whitespace-nowrap text-xs px-2 py-0.5 rounded font-medium ${
+            schedule.schedule_type === "VERSION"
+              ? "bg-primary/15 text-primary"
+              : schedule.schedule_type === "PICKUP"
+                ? "bg-warning/15 text-warning"
+                : "bg-purple-500/15 text-purple-700 dark:text-purple-300"
+          }`}
+        >
           {schedule.schedule_type === "VERSION" ? "버전" : schedule.schedule_type === "PICKUP" ? "픽업" : "콘텐츠"}
         </span>
       </div>
-      <p className="text-xs text-content-secondary">{schedule.start_date} ~ {schedule.end_date}</p>
-      {schedule.memo && <p className="whitespace-pre-wrap text-xs text-content-muted">{schedule.memo}</p>}
+      <p className="text-xs text-content-secondary">
+        {schedule.start_date === schedule.end_date
+          ? `${schedule.start_date} (단일)`
+          : `${schedule.start_date} ~ ${schedule.end_date}`}
+      </p>
+      {schedule.memo && (
+        <p className="text-xs text-content-muted mt-1 whitespace-pre-wrap">
+          {schedule.memo.includes("/")
+            ? schedule.memo
+                .split("/")
+                .map((part) => part.trim())
+                .filter(Boolean)
+                .map((part, idx) => (
+                  <span key={idx} className="block">
+                    {part}
+                  </span>
+                ))
+            : schedule.memo}
+        </p>
+      )}
     </div>
   )
   const grouped = new Set<string>()
+  const versionChildren = new Map<string, GameScheduleRow[]>()
+  versions.forEach((version) => {
+    const children = schedules.filter(
+      (schedule) =>
+        schedule.schedule_type !== "VERSION" &&
+        schedule.start_date <= version.end_date &&
+        schedule.end_date >= version.start_date,
+    )
+    children.forEach((schedule) => grouped.add(schedule.id))
+    versionChildren.set(version.id, children)
+  })
   return (
     <div className="space-y-4">
       {onAir.length > 0 && (
@@ -104,28 +158,51 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
           <div className="space-y-2">{onAir.map(renderSchedule)}</div>
         </section>
       )}
-      <section>
-        <h3 className="mb-2 text-sm font-bold text-content">버전별 일정</h3>
-        <div className="space-y-2">
-          {versions.map((version) => {
-            const children = schedules.filter((schedule) =>
-              schedule.schedule_type !== "VERSION" &&
-              schedule.start_date <= version.end_date &&
-              schedule.end_date >= version.start_date,
-            )
-            children.forEach((schedule) => grouped.add(schedule.id))
-            const isExpanded = expanded[version.id] ?? false
-            return (
-              <div key={version.id} className="rounded-lg border border-line bg-surface-2">
-                <button type="button" className="flex min-h-11 w-full items-center justify-between px-3 text-left text-sm font-semibold text-content" aria-expanded={isExpanded} onClick={() => setExpanded((prev) => ({ ...prev, [version.id]: !isExpanded }))}>
-                  <span>{version.title}</span><span aria-hidden="true">{isExpanded ? "−" : "+"}</span>
-                </button>
-                {isExpanded && <div className="space-y-2 border-t border-line p-2 pl-5">{children.map(renderSchedule)}</div>}
-              </div>
-            )
-          })}
-        </div>
-      </section>
+      {versions.length > 0 && (
+        <section>
+          <h3 className="mb-2 text-sm font-bold text-content">버전별 일정</h3>
+          <div className="space-y-2">
+            {versions.map((version) => {
+              const children = versionChildren.get(version.id) ?? []
+              const isExpanded = expanded[version.id] ?? false
+              return (
+                <div key={version.id} className="rounded-lg border border-line bg-surface-2">
+                  <button
+                    type="button"
+                    className="flex min-h-11 w-full items-center justify-between px-3 text-left text-sm font-semibold text-content"
+                    aria-expanded={isExpanded}
+                    onClick={() => setExpanded((prev) => ({ ...prev, [version.id]: !isExpanded }))}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <div className="flex items-center gap-2">
+                        <span>{version.title}</span>
+                        {version.is_official === false && (
+                          <span className="shrink-0 rounded bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+                            [비공식]
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-normal text-content-secondary">
+                        {version.start_date} ~ {version.end_date}
+                      </span>
+                    </div>
+                    <span aria-hidden="true">{isExpanded ? "−" : "+"}</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="space-y-2 border-t border-line p-2 pl-5">
+                      {children.length > 0 ? (
+                        children.map(renderSchedule)
+                      ) : (
+                        <p className="text-xs text-content-secondary">하위 일정이 없습니다.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
       {schedules.filter((schedule) => schedule.schedule_type !== "VERSION" && !grouped.has(schedule.id)).length > 0 && (
         <section>
           <h3 className="mb-2 text-sm font-bold text-content">기타 일정</h3>
@@ -159,12 +236,22 @@ function ScheduleDialog({
     <Dialog open={isSheetOpen} onOpenChange={(open) => { setIsSheetOpen(open); if (!open) setSelectedGame(null) }}>
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto border-line bg-surface text-content">
         <DialogHeader>
-          <DialogTitle>{selectedGame?.name || "게임"} 일정</DialogTitle>
-          <DialogDescription>공식 게임 일정입니다.</DialogDescription>
+          <DialogTitle className="text-content">{selectedGame?.name || "게임"} 일정</DialogTitle>
+          <DialogDescription className="text-content-secondary">
+            관리자가 등록한 픽업, 버전 및 콘텐츠 업데이트 일정입니다.
+          </DialogDescription>
         </DialogHeader>
-        {schedulePreferenceNotice && <p role="status" className="text-xs text-content-secondary">{schedulePreferenceNotice}</p>}
-        {scheduleError && <p role="alert" className="text-sm text-danger">{scheduleError}</p>}
-        {isSchedulesLoading ? <p className="text-sm text-content-secondary">불러오는 중...</p> : schedules.length === 0 ? <p className="py-8 text-center text-sm text-content-secondary">표시할 일정이 없습니다.</p> : <ScheduleTree schedules={schedules} />}
+        <div className="mt-4 space-y-3">
+          {schedulePreferenceNotice && <p role="status" className="text-xs text-content-secondary">{schedulePreferenceNotice}</p>}
+          {scheduleError && <p role="alert" className="text-sm text-danger">{scheduleError}</p>}
+          {isSchedulesLoading ? (
+            <p className="text-sm text-content-secondary">불러오는 중...</p>
+          ) : schedules.length === 0 ? (
+            <p className="py-8 text-center text-sm text-content-secondary">표시할 일정이 없습니다.</p>
+          ) : (
+            <ScheduleTree schedules={schedules} />
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )
@@ -713,92 +800,16 @@ export default function GamesPage() {
 
 
       {/* 공식 일정 중앙 팝업 다이얼로그 */}
-      <Dialog
-        open={isSheetOpen}
-        onOpenChange={(open) => {
-          setIsSheetOpen(open)
-          if (!open) setSelectedGame(null)
-        }}
-      >
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-surface text-content border-line">
-          <DialogHeader>
-            <DialogTitle className="text-content">{selectedGame?.name || "게임"} 일정</DialogTitle>
-            <DialogDescription className="text-content-secondary">
-              관리자가 등록한 픽업, 버전 및 콘텐츠 업데이트 일정입니다.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4 space-y-3">
-            {schedulePreferenceNotice && <p role="status" className="text-xs text-content-secondary">{schedulePreferenceNotice}</p>}
-            {scheduleError && <p role="alert" className="text-sm text-danger">{scheduleError}</p>}
-            {isSchedulesLoading ? (
-              <p className="text-sm text-content-secondary">불러오는 중...</p>
-            ) : schedules.length === 0 ? (
-              <p className="text-sm text-content-secondary py-8 text-center">표시할 일정이 없습니다.</p>
-            ) : (
-              schedules.map((sch) => {
-                const isSingle = sch.start_date === sch.end_date
-                return (
-                  <div key={sch.id} className="p-3 border border-line rounded-lg bg-surface-2 space-y-1.5">
-                    <div className="flex justify-between items-start gap-2.5">
-                      <span className="font-semibold text-sm text-content min-w-0 flex-1 break-words">
-                        {sch.title.includes("/") ? (
-                          sch.title
-                            .split("/")
-                            .map((part) => part.trim())
-                            .filter(Boolean)
-                            .map((part, idx) => (
-                              <span key={idx} className="block">
-                                {part}
-                              </span>
-                            ))
-                        ) : (
-                          sch.title
-                        )}
-                      </span>
-                      {sch.is_official === false && (
-                        <span className="shrink-0 rounded bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
-                          [비공식]
-                        </span>
-                      )}
-                      <span
-                        className={`shrink-0 whitespace-nowrap text-xs px-2 py-0.5 rounded font-medium ${
-                          sch.schedule_type === "VERSION"
-                            ? "bg-primary/15 text-primary"
-                            : sch.schedule_type === "PICKUP"
-                              ? "bg-warning/15 text-warning"
-                              : "bg-purple-500/15 text-purple-700 dark:text-purple-300"
-                        }`}
-                      >
-                        {sch.schedule_type === "VERSION" ? "버전" : sch.schedule_type === "PICKUP" ? "픽업" : "콘텐츠"}
-                      </span>
-                    </div>
-                    <p className="text-xs text-content-secondary">
-                      {isSingle ? `${sch.start_date} (단일)` : `${sch.start_date} ~ ${sch.end_date}`}
-                    </p>
-                    {sch.memo && (
-                      <p className="text-xs text-content-muted mt-1 whitespace-pre-wrap">
-                        {sch.memo.includes("/") ? (
-                          sch.memo
-                            .split("/")
-                            .map((part) => part.trim())
-                            .filter(Boolean)
-                            .map((part, idx) => (
-                              <span key={idx} className="block">
-                                {part}
-                              </span>
-                            ))
-                        ) : (
-                          sch.memo
-                        )}
-                      </p>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ScheduleDialog
+        selectedGame={selectedGame}
+        isSheetOpen={isSheetOpen}
+        setIsSheetOpen={setIsSheetOpen}
+        setSelectedGame={setSelectedGame}
+        schedulePreferenceNotice={schedulePreferenceNotice}
+        scheduleError={scheduleError}
+        isSchedulesLoading={isSchedulesLoading}
+        schedules={schedules}
+      />
       {/* 게임별 상시 메모 작성/수정 중앙 팝업 모달 */}
       <Dialog
         open={editingGameId !== null}

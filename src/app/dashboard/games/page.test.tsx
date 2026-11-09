@@ -452,4 +452,158 @@ describe("GamesPage", () => {
       alertSpy.mockRestore()
     })
   })
+
+  it("renders R42 schedule tree with ON AIR, version accordion toggle, and standalone schedules", async () => {
+    from.mockImplementation((table: string) => {
+      const q = createQuery(table)
+      if (table === "game_schedules") {
+        q.then = vi.fn((resolve: (val: unknown) => unknown) =>
+          Promise.resolve({
+            data: [
+              {
+                id: "ver-1",
+                game_id: "game-1",
+                title: "1.0 버전 업데이트",
+                schedule_type: "VERSION",
+                start_date: "2026-11-01",
+                end_date: "2026-11-20",
+                memo: "1.0 패치",
+              },
+              {
+                id: "pickup-1",
+                game_id: "game-1",
+                title: "픽업 캐릭터 A",
+                schedule_type: "PICKUP",
+                start_date: "2026-11-15",
+                end_date: "2026-11-20",
+                memo: "후반 픽업",
+              },
+              {
+                id: "ver-2",
+                game_id: "game-1",
+                title: "2.0 버전 업데이트",
+                schedule_type: "VERSION",
+                start_date: "2026-12-01",
+                end_date: "2026-12-31",
+                memo: "2.0 패치",
+              },
+              {
+                id: "contents-2",
+                game_id: "game-1",
+                title: "신규 지역 탐험",
+                schedule_type: "CONTENTS",
+                start_date: "2026-12-05",
+                end_date: "2026-12-25",
+                memo: "겨울 이벤트",
+              },
+              {
+                id: "standalone-1",
+                game_id: "game-1",
+                title: "새해 특별 이벤트",
+                schedule_type: "CONTENTS",
+                start_date: "2027-01-01",
+                end_date: "2027-01-10",
+                memo: "단독 이벤트",
+              },
+            ],
+            error: null,
+          }).then(resolve)
+        )
+      }
+      return q
+    })
+
+    await act(async () => root.render(<GamesPage />))
+
+    const scheduleBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("일정 보기")
+    )
+    expect(scheduleBtn).toBeDefined()
+
+    await act(async () => {
+      Simulate.click(scheduleBtn!)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    // 1. 진행 중인 일정 · ON AIR
+    expect(document.body.textContent).toContain("진행 중인 일정 · ON AIR")
+
+    // 2. 버전별 일정 아코디언 트리
+    expect(document.body.textContent).toContain("버전별 일정")
+
+    const ver1Btn = Array.from(document.body.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("1.0 버전 업데이트")
+    )
+    expect(ver1Btn).toBeDefined()
+    expect(ver1Btn?.getAttribute("aria-expanded")).toBe("true")
+    expect(document.body.textContent).toContain("픽업 캐릭터 A")
+
+    const ver2Btn = Array.from(document.body.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("2.0 버전 업데이트")
+    )
+    expect(ver2Btn).toBeDefined()
+    expect(ver2Btn?.getAttribute("aria-expanded")).toBe("false")
+    expect(document.body.textContent).not.toContain("신규 지역 탐험")
+
+    // ver-2 아코디언 확장 클릭
+    await act(async () => {
+      Simulate.click(ver2Btn!)
+      await Promise.resolve()
+    })
+    expect(ver2Btn?.getAttribute("aria-expanded")).toBe("true")
+    expect(document.body.textContent).toContain("신규 지역 탐험")
+
+    // ver-1 아코디언 접기 클릭
+    await act(async () => {
+      Simulate.click(ver1Btn!)
+      await Promise.resolve()
+    })
+    expect(ver1Btn?.getAttribute("aria-expanded")).toBe("false")
+    expect(document.body.textContent).not.toContain("픽업 캐릭터 A")
+
+    // 3. 기타 일정
+    expect(document.body.textContent).toContain("기타 일정")
+    expect(document.body.textContent).toContain("새해 특별 이벤트")
+  })
+
+  it("renders guest mode notice when user is unauthenticated", async () => {
+    useAuth.mockReturnValue({ user: null, role: null })
+    from.mockImplementation((table: string) => {
+      const q = createQuery(table)
+      if (table === "games") {
+        q.then = vi.fn((resolve: (val: unknown) => unknown) =>
+          Promise.resolve({
+            data: [{ id: "game-guest-1", name: "게스트 게임", default_icon_url: null }],
+            error: null,
+          }).then(resolve)
+        )
+      }
+      return q
+    })
+
+    await act(async () => root.render(<GamesPage />))
+
+    expect(container.textContent).toContain("게임 일정")
+    expect(container.textContent).toContain(
+      "게스트 모드에서는 승인된 게임의 공식 일정만 열람할 수 있습니다."
+    )
+    expect(container.textContent).toContain("게스트 게임")
+
+    const scheduleBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("일정 보기")
+    )
+    expect(scheduleBtn).toBeDefined()
+
+    await act(async () => {
+      Simulate.click(scheduleBtn!)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(document.body.textContent).toContain("게스트 게임 일정")
+    expect(document.body.textContent).toContain(
+      "관리자가 등록한 픽업, 버전 및 콘텐츠 업데이트 일정입니다."
+    )
+  })
 })
