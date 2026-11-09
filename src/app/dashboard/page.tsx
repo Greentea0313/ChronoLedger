@@ -15,7 +15,8 @@ import {
 } from "@/lib/calendar-bg-storage"
 import { HeroSidebar, type HeroExpenseItem, type HeroScheduleItem, type HeroWalletItem } from "@/components/calendar/hero-sidebar"
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
-import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, parseLocalDate } from "@/lib/calendar-utils"
+import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, groupDatesByWeek, parseLocalDate } from "@/lib/calendar-utils"
+import { WeeklyScheduleList, type WeeklyExpenseEntry, type WeeklyScheduleEntry } from "@/components/calendar/weekly-schedule-list"
 import { ExpenseModal } from "@/components/expense/expense-modal"
 import { ExpenseDetailModal } from "@/components/expense/expense-detail-modal"
 import { OverduePlannedModal, type OverduePlannedExpense } from "@/components/expense/overdue-planned-modal"
@@ -106,6 +107,7 @@ export default function DashboardPage() {
   const isOnline = useOnlineStatus()
   const [overdueExpenses, setOverdueExpenses] = useState<OverduePlannedExpense[]>([])
   const [payingExpense, setPayingExpense] = useState<OverduePlannedExpense | null>(null)
+  const [viewMode, setViewMode] = useState<"calendar" | "weekly">("calendar")
   const [viewMonth, setViewMonth] = useState<{ year: number; month: number } | null>(null)
 
   // 캘린더 커스텀 배경 상태 (IndexedDB 영구 보관)
@@ -452,6 +454,8 @@ export default function DashboardPage() {
             gameName: gameInfo ? gameInfo.name : (expense.game_id ? `게임 ${expense.game_id.slice(0, 4)}` : null),
             iconUrl: (expense.game_id ? gameIcons[expense.game_id] : undefined) || gameInfo?.iconUrl,
             payment_method: expense.payment_method,
+            dueDate: expense.end_date ?? expense.target_date,
+            periodStart: expense.start_date ?? null,
           }
         }),
     [baseDate, expenses, userGamesMap, allGamesMap, gameIcons],
@@ -618,6 +622,60 @@ export default function DashboardPage() {
     return map
   }, [subscribedSchedules])
 
+  const todayDate = getTodayLocalDate()
+
+  const weeklySchedules = useMemo<WeeklyScheduleEntry[]>(
+    () =>
+      subscribedSchedules.map((s) => {
+        const gameInfo = s.game_id ? (allGamesMap.get(s.game_id) ?? userGamesMap.get(s.game_id)) : null
+        return {
+          id: s.id,
+          title: s.title,
+          schedule_type: s.schedule_type,
+          start_date: s.start_date,
+          end_date: s.end_date,
+          gameName: gameInfo ? gameInfo.name : null,
+          iconUrl: (s.game_id ? gameIcons[s.game_id] : undefined) || gameInfo?.iconUrl,
+        }
+      }),
+    [subscribedSchedules, allGamesMap, userGamesMap, gameIcons],
+  )
+
+  const weeklyExpenses = useMemo<WeeklyExpenseEntry[] | null>(() => {
+    if (!user) return null
+    return expenses
+      .filter((e): e is ExpenseRow & { status: "PLANNED" | "CONFIRMED" } => e.status !== "CANCELLED")
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        status: e.status,
+        amount: e.final_amount,
+        date: e.status === "PLANNED" ? (e.end_date ?? e.target_date) : e.target_date,
+      }))
+  }, [expenses, user])
+
+  // R32 summary strip: counts follow the active game filter; the week is the Sunday-start week containing KST today.
+  const summary = useMemo(() => {
+    const today = parseLocalDate(todayDate)
+    const week = groupDatesByWeek(today.getFullYear(), today.getMonth() + 1, todayDate).find((w) => w.isCurrentWeek)
+    const weekStart = week?.weekStart ?? todayDate
+    const weekEnd = week?.weekEnd ?? todayDate
+    return {
+      startsToday: subscribedSchedules.filter((s) => s.start_date === todayDate).length,
+      endsToday: subscribedSchedules.filter((s) => s.end_date === todayDate).length,
+      ongoingThisWeek: subscribedSchedules.filter((s) => s.start_date <= weekEnd && s.end_date >= weekStart).length,
+      plannedThisWeek: user
+        ? expenses
+            .filter((e) => e.status === "PLANNED")
+            .filter((e) => {
+              const due = e.end_date ?? e.target_date
+              return due >= weekStart && due <= weekEnd
+            })
+            .reduce((sum, e) => sum + e.final_amount, 0)
+        : null,
+    }
+  }, [expenses, subscribedSchedules, todayDate, user])
+
   const memoDates = useMemo(() => new Set(memos.map((memo) => memo.memo_date)), [memos])
 
   const days = useMemo<DesktopCalendarDay[]>(() => {
@@ -691,8 +749,46 @@ export default function DashboardPage() {
         onOpenChange={(open) => { if (!open) setDetailExpenseId(null) }}
         onRefunded={() => void load()}
       />
+      <section aria-label="오늘/이번 주 요약" data-testid="dashboard-summary" className="grid grid-cols-2 gap-2 rounded-lg border border-line bg-surface p-3 text-sm sm:grid-cols-4">
+        <p>{`오늘 시작 `}<strong data-testid="summary-starts-today">{summary.startsToday}</strong>{`건`}</p>
+        <p>{`오늘 마감 `}<strong data-testid="summary-ends-today">{summary.endsToday}</strong>{`건`}</p>
+        <p>{`이번 주 진행 `}<strong data-testid="summary-ongoing-week">{summary.ongoingThisWeek}</strong>{`건`}</p>
+        <p>{`이번 주 예정 지출 `}<strong data-testid="summary-planned-week">{summary.plannedThisWeek === null ? "-" : `${summary.plannedThisWeek.toLocaleString()} 원`}</strong></p>
+      </section>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">
+          <div role="group" aria-label="보기 방식" className="inline-flex rounded-md border border-line bg-surface-2 p-0.5 text-sm">
+            {([["calendar", "캘린더형"], ["weekly", "주차별 리스트"]] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={viewMode === mode}
+                onClick={() => setViewMode(mode)}
+                className={`min-h-8 rounded px-3 transition-colors duration-fast ${viewMode === mode ? "bg-primary text-primary-foreground" : "text-content-secondary hover:text-content"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {viewMode === "weekly" ? (
+            <WeeklyScheduleList
+              year={year}
+              month={month}
+              todayDate={todayDate}
+              selectedDate={baseDate}
+              schedules={weeklySchedules}
+              expenses={weeklyExpenses}
+              onSelectDate={(date) => {
+                setSelectedDate(date)
+                if (typeof window !== "undefined" && window.innerWidth < 900) {
+                  setIsMobileDrawerOpen(true)
+                }
+              }}
+              onSelectExpense={setDetailExpenseId}
+              onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
+              onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}
+            />
+          ) : (
           <DesktopCalendar
             year={year}
             month={month}
@@ -734,6 +830,7 @@ export default function DashboardPage() {
               />
             }
           />
+          )}
           <MobileDrawer
             open={isMobileDrawerOpen}
             onOpenChange={setIsMobileDrawerOpen}
@@ -752,6 +849,7 @@ export default function DashboardPage() {
             onSaveMemo={handleSaveMemo}
             registerDisabled={!isOnline}
             onIncomeAdded={() => void load()}
+            todayDate={todayDate}
           />
         </div>
         <HeroSidebar
@@ -770,6 +868,7 @@ export default function DashboardPage() {
           onSaveMemo={handleSaveMemo}
           registerDisabled={!isOnline}
           onIncomeAdded={() => void load()}
+          todayDate={todayDate}
         />
       </div>
     </div>
