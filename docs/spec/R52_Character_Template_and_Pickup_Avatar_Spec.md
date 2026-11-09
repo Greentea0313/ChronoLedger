@@ -1,7 +1,7 @@
 # R52 기능 명세서: 게임별 동적 캐릭터 템플릿 및 픽업 일정 캐릭터 이미지 연동
 
 - **문서 ID**: `R52-SPEC-v1`
-- **상태**: `APPROVED (Claude Opus 리뷰 완료, 2026-11-09) — §7 규범 결정(NR-01~NR-12)을 반영하는 조건부 승인이며, §2~§5와 §7이 충돌하면 §7이 우선함`
+- **상태**: `APPROVED (Claude Opus 리뷰 완료, 2026-11-09) + Amendment A1 (2026-11-09, 사용자 피드백 반영)` — §8 > §7 > §2~§5 순으로 우선함. §7 NR-03·NR-04(`pickup_image_url`)는 §8 D-03에 따라 폐기됨
 - **작성일**: `2026-11-09`
 - **작성자**: `Gemini 4 Argon (Orchestrator & Architect)`
 - **리뷰어**: `Claude Opus (Reviewer & Deep Specialist)`
@@ -284,3 +284,70 @@ ALTER TABLE public.game_schedules
 - §7.2 NR-01~NR-12를 Step 2(DB/RLS/RPC/Types)와 Step 3(UI)의 수용 기준에 포함함.
 - RLS·`SECURITY DEFINER`·CHECK 변경이 있으므로 Step 4 통합 리뷰는 Claude Opus가 수행하고, 로컬 PostgreSQL에서 업그레이드·신규 스키마 양쪽의 마이그레이션 2회 적용과 `TESTS.sql` PASS를 확인함.
 - 운영 반영 순서는 **마이그레이션 먼저 적용 후 배포**를 운영 체크리스트에 명시함.
+
+---
+
+## 8. 사용자 피드백 반영 보완 (Amendment A1, 2026-11-09)
+
+- **작성**: Claude Opus (Orchestrator, Gemini 4 Argon 1순위 대체) — Step 4 iteration-01 리뷰 직후 사용자 모바일·PC 확인 피드백과 질의응답 결과를 반영함
+- **우선순위**: §8은 §2~§5 및 §7보다 우선함. §8과 충돌하는 §7 NR-03·NR-04(픽업 직접 이미지 `pickup_image_url`)는 **폐기(Superseded)**함
+- **배경**: R52 DB 마이그레이션은 아직 운영 DB에 적용되지 않았으므로, 같은 Run 안에서 스키마를 바꿔 운영 마이그레이션을 1회만 적용하도록 함
+
+### 8.1 사용자 확정 결정 (2026-11-09 질의응답)
+
+| 항목 | 확정 내용 |
+| :--- | :--- |
+| **A1-Q1. 캐릭터 미지원 게임의 픽업 캐릭터 저장 위치** | 기존 `public.game_characters` 테이블에 저장하고 새 구분값 `is_pickup_only`(픽업 전용)로 구분함. 별도 테이블은 만들지 않음. |
+| **A1-Q2. 사용자 픽업 일정 요청의 신규 캐릭터** | 등록된 캐릭터 선택 + **새 캐릭터 제안**(이름 필수, 이미지 선택)을 함께 허용함. 관리자 승인 시 픽업 전용 캐릭터로 자동 등록·연결함. |
+| **A1-Q3. 진행 방식** | R52 Run에 합쳐 진행함(운영 마이그레이션 1회). |
+| **A1-UI. 화면 개선** | 관리자 모바일 탭 텍스트 겹침 해소, 요청 관리 3개 탭 모두 대기열 제목 표시, 주차별 리스트 게임별 접기/펼치기 + 작은 캐릭터 이미지 표시. |
+
+### 8.2 데이터 모델 변경 (Step 5, DB)
+
+- **D-01 픽업 전용 구분값**: `public.game_characters`에 `is_pickup_only BOOLEAN NOT NULL DEFAULT false`를 추가함.
+  - 아이콘 필수 조건을 `CHECK (default_icon_url IS NOT NULL OR is_pickup_only)`로 바꿔, 이미지가 없는 픽업 전용 캐릭터(사용자 제안 시 이미지 생략)를 허용함. 기존 `default_icon_url` 형식·길이 CHECK(Data URL WebP 또는 `https://`, 150,000자)는 값이 있을 때만 적용함.
+  - 픽업 전용 캐릭터의 `rarity`·`attributes`는 비워 둘 수 있음(템플릿이 없는 게임이므로).
+  - `(game_id, name)` 고유 제약은 그대로 유지함 → 같은 게임 안에서 정식·픽업 전용 캐릭터 이름 중복 불가.
+- **D-02 정식·픽업 전용 경계 (DB 강제)**:
+  - `user_characters`(보유 체크·커스텀 아이콘)와 `user_character_presets`(프리셋) 검증 트리거는 `is_pickup_only = true` 캐릭터 ID를 거부함.
+  - `character_requests`의 `UPDATE` 대상(`target_character_id`)은 정식 캐릭터만 허용함.
+  - 정식 → 픽업 전용으로 되돌리는 변경은, 해당 캐릭터를 참조하는 `user_characters`·`user_character_presets` 행이 있으면 거부함(데이터 고아 방지). 픽업 전용 → 정식 승격은 허용함(ID 유지로 과거 픽업 일정 연결 보존).
+- **D-03 픽업 직접 이미지 제거**: §2.2·§7 NR-03·NR-04의 `pickup_image_url` 컬럼과 관련 CHECK(`*_pickup_image_valid`, `*_pickup_mode_exclusive`)는 마이그레이션·`SCHEMA.sql`·타입에서 제거함. 미지원 게임의 픽업 이미지는 픽업 전용 캐릭터의 `default_icon_url`로 표현함. 운영 미적용 상태이므로 데이터 이전은 필요 없음.
+- **D-04 사용자 신규 캐릭터 제안**: `public.schedule_requests`에 `pickup_new_characters JSONB NOT NULL DEFAULT '[]'::jsonb`를 추가함.
+  - 형식: `[{ "name": string(1~100자, 공백 제거 후), "icon_url": string | null }]`, 배열 최대 8개, 요청 안 이름 중복 불가.
+  - `icon_url`은 `NULL` 또는 `data:image/webp;base64,`로 시작하는 150,000자 이하 문자열만 허용함(사용자 입력 외부 URL 금지 — §7 R52-SR-04 원칙 유지).
+  - `PICKUP`이 아니면 빈 배열이어야 함. `cardinality(pickup_character_ids) + jsonb_array_length(pickup_new_characters) <= 8`.
+  - 검증은 `CHECK` + 검증 함수(`is_valid_pickup_new_characters(jsonb)`, `IMMUTABLE`, `SET search_path = public`)로 수행함.
+- **D-05 승인 RPC 확장 (`approve_schedule_request`)**: 기존 NR-06 규칙(관리자 판정·`FOR UPDATE`·존재 캐릭터만 순서 유지 복사·`is_rerun` 복사·비PICKUP 초기화)을 유지하고, `PICKUP` 요청의 `pickup_new_characters` 각 항목에 대해 같은 트랜잭션 안에서 다음을 수행함.
+  - 같은 게임에 같은 이름의 캐릭터가 이미 있으면 그 ID를 재사용함(정식·픽업 전용 불문).
+  - 없으면 `is_pickup_only = true`, `default_icon_url = icon_url`, `created_by = auth.uid()`로 새로 등록함.
+  - 얻은 ID를 기존 선택 ID 뒤에 제안 순서대로 붙이고, 중복은 제거함. 최종 8명 상한을 넘으면 예외로 승인 전체를 롤백함.
+  - 관리자의 제안 이미지 교체는 승인 후 관리자 캐릭터 관리 화면에서 처리함(RPC 인자 추가 없음).
+- **D-06 지원 판정 재정의 (NR-09 갱신)**:
+  - `isCharacterSupported(rosterCount)`: `is_pickup_only = false`인 캐릭터 수 기준. 픽업 전용 캐릭터만 있는 게임은 캐릭터 페이지·프리셋 비대상임.
+  - `isCharacterTemplateActive(game, rosterCount)`: `rarities.length >= 1 || rosterCount >= 1`.
+  - 픽업 피커 대상: 해당 게임의 **모든 캐릭터**(정식 + 픽업 전용). §5.1의 모드 A/B 분기는 폐기하고, 모든 게임에서 "캐릭터 선택 + 새 픽업 캐릭터 추가" 단일 흐름으로 통합함.
+- **D-07 게스트 권한 (NR-01 갱신)**: `anon` 열 단위 권한에 `is_pickup_only`를 추가함. iteration-01 지적 `R52-REV-002`에 따라 `user_characters`·`user_character_presets`·`character_requests`·`schedule_requests`의 `anon` 권한을 명시적으로 `REVOKE`함.
+- **D-08 미적용 마이그레이션 내성 (NR-11 갱신)**: `is_pickup_only` 컬럼이 없으면 모든 캐릭터를 정식으로 간주함. 명시 컬럼 조회에 `is_pickup_only`를 넣는 경우 `42703`/`PGRST204` 시 해당 컬럼 없이 재조회함. 요청 쓰기는 `pickup_new_characters`가 비어 있지 않을 때만 페이로드에 포함함.
+
+### 8.3 화면 변경 (Step 6, UI)
+
+- **U-01 관리자 탭 겹침 해소**: `/admin`(일정 관리·등록된 게임 목록·캐릭터 관리)과 `/admin/requests`(게임·일정·캐릭터 요청) 탭은 고정 3열 그리드 대신, 모바일(`< md`)에서 가로 스크롤(`overflow-x-auto`, 탭 `shrink-0 whitespace-nowrap`) 또는 줄바꿈 없는 짧은 라벨로 표시해 360px 폭에서도 글자가 겹치지 않게 함. `게임 필터:` 라벨은 `whitespace-nowrap`으로 한 줄 유지함.
+- **U-02 요청 대기열 제목 일관화**: `/admin/requests` 3개 탭 모두 같은 형식의 제목을 표시함 — `게임 요청 대기열 (n)`, `일정 요청 대기열 (n)`, `캐릭터 요청 대기열 (n)`. 빈 상태 문구도 탭별로 맞춤.
+- **U-03 주차별 리스트 게임별 접기/펼치기**: 주차 카드 안의 게임 그룹 헤더를 버튼(`aria-expanded`)으로 바꿔 클릭 시 하위 일정을 펼침.
+  - 헤더 표시: 게임 아이콘·게임명·일정 개수·해당 그룹 픽업 캐릭터 아바타(최대 3개, 20px, `+n` 표시).
+  - 기본 상태: **이번 주** 카드의 게임 그룹은 펼침, 다른 주는 접힘. 펼침 상태는 화면 내 상태로만 유지함(저장 안 함).
+  - 하위 일정 행의 픽업 아바타는 20px로 축소하고, 지출 섹션·소계·이번 주 강조·선택일 연동·`aria-pressed`는 기존대로 유지함.
+- **U-04 관리자 픽업 입력**: 일정 종류가 `PICKUP`이면 해당 게임의 모든 캐릭터(정식 + 픽업 전용, 픽업 전용은 `픽업 전용` 배지)를 검색·다중 선택(최대 8명)하는 피커와 `[+ 새 픽업 캐릭터]` 인라인 입력(이름 + 이미지 업로드/URL/붙여넣기 → 256×256 WebP)을 제공함. 저장 즉시 `is_pickup_only = true` 캐릭터로 등록하고 선택 목록에 추가함. 일정 제목 자동 완성(§5.1)은 유지함.
+- **U-05 관리자 캐릭터 관리**: 게임별 캐릭터 화면에 `픽업 전용` 필터·배지를 추가함. 픽업 전용 캐릭터는 이름·아이콘 수정과 삭제를 지원하고, 템플릿이 활성화된 게임에서는 등급·분류를 채워 **정식 캐릭터로 승격**할 수 있음. 템플릿이 없는 게임도 픽업 전용 캐릭터 목록 화면은 표시함(§3.2 안내 카드 아래).
+- **U-06 사용자 요청 모달**: `PICKUP` 일정 요청에서 해당 게임의 모든 캐릭터 선택 + `[+ 새 캐릭터 제안]`(이름 필수, 이미지 선택 → 256×256 WebP, 150,000자 초과 시 크기 안내)을 제공함. 합계 8명 상한을 화면에서도 안내함. 수정 요청은 원본 일정의 캐릭터를 기본 선택으로 불러옴.
+- **U-07 관리자 요청 검토**: 일정 요청 카드에 선택 캐릭터 아바타와 제안 캐릭터(이름·이미지 미리보기, `신규` 배지)를 표시함. 승인은 RPC만 사용함(`R52-REV-003`: 폴백은 함수 부재 `PGRST202`/`42883`일 때만).
+- **U-08 캐릭터 페이지·아바타**: `/dashboard/characters`는 정식 캐릭터만 표시함. 사이드바·주차별 리스트·게임 일정 트리 아바타는 정식·픽업 전용 구분 없이 표시하며, 아이콘이 없는 캐릭터는 이름 첫 글자 원형 아바타로 대체함.
+
+### 8.4 Step 5 SQL 회귀 테스트 추가 시나리오 (§7.3에 추가)
+
+8. `is_pickup_only` 캐릭터: 아이콘 없이 등록 성공, `user_characters`·`user_character_presets` 등록 거부, `character_requests` `UPDATE` 대상 거부, 참조가 있는 정식 캐릭터의 픽업 전용 전환 거부, 픽업 전용 → 정식 승격 성공.
+9. `pickup_new_characters`: 비PICKUP 거부, 이름 공백·101자·중복 거부, `https://` 이미지 거부, 선택 + 제안 합계 9명 거부.
+10. 승인 RPC: 제안 캐릭터 신규 등록(`is_pickup_only = true`)과 순서 유지 연결, 같은 이름 기존 캐릭터 재사용, 상한 초과 시 전체 롤백(일정·캐릭터 미생성).
+11. 픽스처: 계정 삭제 대기 사용자가 아닌 사용자로 요청을 생성하고, 각 음성 검증은 의도한 SQLSTATE·메시지만 잡음(`R52-REV-001`).
+12. `anon`: `is_pickup_only` 조회 가능, `user_characters`·`user_character_presets`·`character_requests`·`schedule_requests` 조회 시 `insufficient_privilege`(`R52-REV-002`).
