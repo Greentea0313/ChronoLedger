@@ -1,10 +1,16 @@
+# 변경 이력
+## 2026-11-09 (r52-character-template-and-pickup-avatar iteration-01 리뷰)
+
+- Base `0c09a20` ↔ Target `4ff5295` 통합 리뷰 결과 `findings` 판정함(`R52-REV-001`·`002` P2 SQL 스모크 테스트 결함과 anon REVOKE 누락, `REV-003` P3 승인 폴백, `REV-004` P4 이미지 크기 우회).
+- `artifacts/r52-character-template-and-pickup-avatar/` `run.json`(`target_sha`), `iteration-01/{review,test}.json` 작성·스키마 검증 후 커밋(`7a2b1e5`)함. Step 5(수정)·Step 6(재리뷰)을 Dispatch Queue에 등록함.
+- `docs/changelog.md` 제목(`# 변경 이력`)이 6행 아래로 밀려 있어 최상단으로 복원함.
+
 ## 2026-11-09 (R52 DB/RLS/RPC/Types Maker 완료)
 
 - `MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql` 및 `SCHEMA.sql`에 템플릿 검증, PICKUP 캐릭터·WebP 제약, 삭제 정리 트리거, 승인 RPC 복사, 열 단위 anon 권한을 반영함(`422f8ab`).
 - 타입·판정 헬퍼·회귀 테스트·SQL README를 갱신함. 신규 설치와 기존 스키마 업그레이드, 마이그레이션 2회 적용, 전체 SQL·TypeScript·lint·Vitest 검증을 통과함.
 - Dispatch Queue Step 2 완료, Step 3 UI(Claude Sonnet)를 `▶ READY`로 전환함.
 
-# 변경 이력
 ## 2026-11-09 (Phase 13.5-B — R52 동적 캐릭터 템플릿 및 픽업 아바타 UI)
 
 - `image-resizer`: 출력 크기 인자를 추가함(기본 256 유지, 픽업 이미지는 96×96 WebP).
