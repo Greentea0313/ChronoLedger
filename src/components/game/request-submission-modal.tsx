@@ -11,15 +11,16 @@ import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
-import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
+import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { isCharacterTemplateActive, normalizeClassificationSchema, type ClassificationSchema } from "@/lib/character-utils"
 import { validateGameRequest, validateScheduleRequest } from "./request-validation"
 
 type Game = { id: string; name: string; classification_schema?: ClassificationSchema }
 
 const MAX_PICKUP_CHARACTERS = 8
-const PICKUP_IMAGE_SIZE = 96
-type Character = { id: string; game_id: string; name: string; rarity: string | null; attributes: Record<string, string> }
+type Character = { id: string; game_id: string; name: string; rarity: string | null; attributes: Record<string, string>; is_pickup_only: boolean }
+/** A new character the user proposes inside a pickup schedule request; the admin registers it as pickup-only on approval. */
+type PickupProposal = { name: string; iconUrl: string | null }
 type Schedule = {
   id: string
   game_id: string
@@ -28,7 +29,6 @@ type Schedule = {
   is_rerun?: boolean
   is_official?: boolean
   pickup_character_ids?: string[] | null
-  pickup_image_url?: string | null
   start_date: string
   end_date: string
   memo: string | null
@@ -92,8 +92,12 @@ export function RequestSubmissionModal({
   const [isRerun, setIsRerun] = useState(false)
   const [isOfficial, setIsOfficial] = useState(true)
   const [pickupCharacterIds, setPickupCharacterIds] = useState<string[]>([])
-  const [pickupImageSource, setPickupImageSource] = useState("")
-  const [pickupImageFile, setPickupImageFile] = useState<File | null>(null)
+  const [pickupProposals, setPickupProposals] = useState<PickupProposal[]>([])
+  const [isProposalOpen, setIsProposalOpen] = useState(false)
+  const [proposalName, setProposalName] = useState("")
+  const [proposalImageSource, setProposalImageSource] = useState("")
+  const [proposalImageFile, setProposalImageFile] = useState<File | null>(null)
+  const [proposalError, setProposalError] = useState<string | null>(null)
   const [pickupSearch, setPickupSearch] = useState("")
   const [isTitleAutoFilled, setIsTitleAutoFilled] = useState(false)
   const [startDate, setStartDate] = useState("")
@@ -115,49 +119,101 @@ export function RequestSubmissionModal({
   const gameNames = useMemo(() => new Map(games.map((game) => [game.id, game.name])), [games])
   // Character requests are only allowed for games whose admin template is active (NR-09).
   const characterGames = useMemo(
-    () => games.filter((game) => isCharacterTemplateActive(game, characters.filter((character) => character.game_id === game.id).length)),
+    () => games.filter((game) => isCharacterTemplateActive(game, characters.filter((character) => character.game_id === game.id && !character.is_pickup_only).length)),
     [characters, games],
   )
   const characterGame = games.find((game) => game.id === gameId)
   const characterSchema = characterGame?.classification_schema
   const characterLabel = characterSchema?.character_label || "캐릭터"
-  // Pickup avatar source: catalog characters (mode A) or a direct image (mode B) (spec §5.1).
+  // Pickup characters (A1 U-06): every catalog character of the game (regular + pickup-only) plus new proposals.
   const pickupGameCharacters = useMemo(() => characters.filter((character) => character.game_id === gameId), [characters, gameId])
   const pickupLabel = characterLabel
+  const pickupTotal = pickupCharacterIds.length + pickupProposals.length
   const visiblePickupCharacters = pickupGameCharacters.filter((character) =>
     !pickupSearch.trim() || character.name.toLowerCase().includes(pickupSearch.trim().toLowerCase()),
   )
-  const resetPickupState = (ids: string[] = [], image: string | null = null) => {
+  const resetPickupState = (ids: string[] = []) => {
     setPickupCharacterIds(ids)
-    setPickupImageSource(image ?? "")
-    setPickupImageFile(null)
+    setPickupProposals([])
     setPickupSearch("")
     setIsTitleAutoFilled(false)
+    setIsProposalOpen(false)
+    setProposalName("")
+    setProposalImageSource("")
+    setProposalImageFile(null)
+    setProposalError(null)
   }
-  const togglePickupCharacter = (characterId: string) => {
-    const next = pickupCharacterIds.includes(characterId)
-      ? pickupCharacterIds.filter((id) => id !== characterId)
-      : pickupCharacterIds.length >= MAX_PICKUP_CHARACTERS ? pickupCharacterIds : [...pickupCharacterIds, characterId]
-    setPickupCharacterIds(next)
-    setPickupImageSource("")
-    setPickupImageFile(null)
-    // Auto-complete the title while it is empty or still the previous auto-generated one; manual edits stop it.
-    const names = next.map((id) => characters.find((character) => character.id === id)?.name).filter((value): value is string => !!value)
+  // Auto-complete the title while it is empty or still the previous auto-generated one; manual edits stop it.
+  const applyAutoTitle = (ids: string[], proposals: PickupProposal[]) => {
+    const names = [
+      ...ids.map((id) => characters.find((character) => character.id === id)?.name).filter((value): value is string => !!value),
+      ...proposals.map((proposal) => proposal.name),
+    ]
     const autoTitle = names.length > 0 ? `${names.join(" · ")} 픽업` : ""
     if (!title.trim() || isTitleAutoFilled) {
       setTitle(autoTitle)
       setIsTitleAutoFilled(autoTitle !== "")
     }
   }
-  const handlePickupImagePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+  const togglePickupCharacter = (characterId: string) => {
+    const selected = pickupCharacterIds.includes(characterId)
+    if (!selected && pickupTotal >= MAX_PICKUP_CHARACTERS) return
+    const next = selected ? pickupCharacterIds.filter((id) => id !== characterId) : [...pickupCharacterIds, characterId]
+    setPickupCharacterIds(next)
+    applyAutoTitle(next, pickupProposals)
+  }
+  const removeProposal = (name: string) => {
+    const next = pickupProposals.filter((proposal) => proposal.name !== name)
+    setPickupProposals(next)
+    applyAutoTitle(pickupCharacterIds, next)
+  }
+  const handleProposalImagePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
     const file = getClipboardImageFile(event.clipboardData)
     if (!file) return
     event.preventDefault()
-    setPickupImageFile(null)
-    setPickupImageSource("")
-    void convertIconSourceToDataUrl(file, PICKUP_IMAGE_SIZE)
-      .then(setPickupImageSource)
-      .catch((error: unknown) => setSubmitError(error instanceof Error ? error.message : "픽업 캐릭터 이미지를 변환하지 못했습니다."))
+    setProposalImageFile(null)
+    setProposalImageSource("")
+    void convertIconSourceToDataUrl(file)
+      .then((dataUrl) => setProposalImageSource(assertIconDataUrlSize(dataUrl)))
+      .catch((error: unknown) => setProposalError(error instanceof Error ? error.message : "이미지를 변환하지 못했습니다."))
+  }
+  const handleAddProposal = async () => {
+    const trimmed = proposalName.trim()
+    if (!trimmed || trimmed.length > 100) {
+      setProposalError("캐릭터 이름을 1~100자로 입력해 주세요.")
+      return
+    }
+    if (pickupTotal >= MAX_PICKUP_CHARACTERS) {
+      setProposalError(`선택한 캐릭터와 제안 캐릭터는 합쳐서 최대 ${MAX_PICKUP_CHARACTERS}명까지 가능합니다.`)
+      return
+    }
+    if (pickupProposals.some((proposal) => proposal.name === trimmed)) {
+      setProposalError("이미 제안한 이름입니다.")
+      return
+    }
+    if (pickupGameCharacters.some((character) => character.name === trimmed)) {
+      setProposalError("이미 등록된 캐릭터입니다. 목록에서 선택해 주세요.")
+      return
+    }
+    setProposalError(null)
+    let iconUrl: string | null = null
+    const source = proposalImageFile ?? proposalImageSource.trim()
+    if (source) {
+      try {
+        // 256x256 WebP like other character icons; an oversized pasted WebP skips the resize, so check the length too.
+        iconUrl = assertIconDataUrlSize(await convertIconSourceToDataUrl(source))
+      } catch (error: unknown) {
+        setProposalError(error instanceof Error ? error.message : "이미지를 변환하지 못했습니다.")
+        return
+      }
+    }
+    const next = [...pickupProposals, { name: trimmed, iconUrl }]
+    setPickupProposals(next)
+    applyAutoTitle(pickupCharacterIds, next)
+    setIsProposalOpen(false)
+    setProposalName("")
+    setProposalImageSource("")
+    setProposalImageFile(null)
   }
   // UPDATE requests overwrite the whole character, so prefill current values (only those still valid in the game schema).
   const handleTargetCharacterChange = (characterId: string) => {
@@ -180,7 +236,7 @@ export function RequestSubmissionModal({
     event.preventDefault()
     setCharacterIconFile(null)
     void convertIconSourceToDataUrl(file)
-      .then(setCharacterIconUrl)
+      .then((dataUrl) => setCharacterIconUrl(assertIconDataUrlSize(dataUrl)))
       .catch((error: unknown) => setSubmitError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다."))
   }
 
@@ -190,11 +246,16 @@ export function RequestSubmissionModal({
     setGames([])
     setSchedules([])
     try {
-      const [gamesResult, schedulesResult, charactersResult] = await Promise.all([
+      const characterColumns = "id, game_id, name, rarity, attributes"
+      const [gamesResult, schedulesResult, firstCharactersResult] = await Promise.all([
         supabase.from("games").select("id, name, classification_schema").order("name"),
         supabase.from("game_schedules").select("*").order("start_date"),
-        supabase.from("game_characters").select("id, game_id, name, rarity, attributes").order("name"),
+        supabase.from("game_characters").select(`${characterColumns}, is_pickup_only`).order("name"),
       ])
+      // Not migrated yet (D-08): every character is a regular roster character.
+      const charactersResult = firstCharactersResult.error && (firstCharactersResult.error.code === "42703" || firstCharactersResult.error.code === "PGRST204")
+        ? await supabase.from("game_characters").select(characterColumns).order("name")
+        : firstCharactersResult
       if (gamesResult.error) setCatalogError("게임 카탈로그를 불러오지 못했습니다.")
       else setGames((gamesResult.data ?? []).map((game) => ({
         id: game.id,
@@ -206,6 +267,7 @@ export function RequestSubmissionModal({
         game_id: character.game_id,
         name: character.name,
         rarity: character.rarity ?? null,
+        is_pickup_only: (character as { is_pickup_only?: boolean }).is_pickup_only === true,
         attributes: (character.attributes && typeof character.attributes === "object" && !Array.isArray(character.attributes))
           ? Object.fromEntries(Object.entries(character.attributes).filter(([, value]) => typeof value === "string")) as Record<string, string>
           : {},
@@ -268,7 +330,7 @@ export function RequestSubmissionModal({
     setStartDate(schedule.start_date)
     setEndDate(schedule.end_date)
     setScheduleMemo(schedule.memo ?? "")
-    resetPickupState(schedule.pickup_character_ids ?? [], schedule.pickup_image_url ?? null)
+    resetPickupState(schedule.pickup_character_ids ?? [])
   }, [requestKind, requestMode, schedulesForGame, targetScheduleId])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -303,24 +365,25 @@ export function RequestSubmissionModal({
     const originalSchedule = requestMode === "EDIT"
       ? schedulesForGame.find((item) => item.id === targetScheduleId)
       : undefined
-    // Pickup avatar source: ids (mode A) or a 96x96 WebP data URL (mode B), never both (NR-03, NR-11).
+    // Pickup request payload (NR-11, D-08): write only what exists; on an edit clear only what the original had.
     const isPickup = scheduleType === "PICKUP"
     const nextPickupIds = requestKind === "schedule" && isPickup ? pickupCharacterIds : []
+    const nextProposals = requestKind === "schedule" && isPickup ? pickupProposals : []
     const originalPickupIds = originalSchedule?.pickup_character_ids ?? []
-    const originalPickupImage = originalSchedule?.pickup_image_url ?? null
-    let nextPickupImage: string | null = null
-    if (requestKind === "schedule" && isPickup && nextPickupIds.length === 0 && (pickupImageFile || pickupImageSource.trim())) {
+    const pickupPayload: { pickup_character_ids?: string[]; pickup_new_characters?: Array<{ name: string; icon_url: string | null }> } =
+      requestKind !== "schedule" ? {} : {
+        ...(nextPickupIds.length > 0 ? { pickup_character_ids: nextPickupIds } : requestMode === "EDIT" && originalPickupIds.length > 0 ? { pickup_character_ids: [] } : {}),
+        ...(nextProposals.length > 0 ? { pickup_new_characters: nextProposals.map((proposal) => ({ name: proposal.name, icon_url: proposal.iconUrl })) } : {}),
+      }
+    let characterIconDataUrl: string | null = null
+    if (requestKind === "character" && (characterIconFile || characterIconUrl)) {
       try {
-        nextPickupImage = await convertIconSourceToDataUrl(pickupImageFile ?? pickupImageSource.trim(), PICKUP_IMAGE_SIZE)
+        characterIconDataUrl = assertIconDataUrlSize(await convertIconSourceToDataUrl(characterIconFile ?? characterIconUrl))
       } catch (error: unknown) {
-        setSubmitError(error instanceof Error ? error.message : "픽업 캐릭터 이미지를 변환하지 못했습니다.")
+        setSubmitError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
         setIsSubmitting(false)
         return
       }
-    }
-    const pickupPayload = requestKind !== "schedule" ? {} : {
-      ...(nextPickupIds.length > 0 ? { pickup_character_ids: nextPickupIds } : requestMode === "EDIT" && originalPickupIds.length > 0 ? { pickup_character_ids: [] as string[] } : {}),
-      ...(nextPickupImage ? { pickup_image_url: nextPickupImage } : requestMode === "EDIT" && originalPickupImage ? { pickup_image_url: null } : {}),
     }
     try {
       const result = requestKind === "game"
@@ -346,9 +409,7 @@ export function RequestSubmissionModal({
             name: characterName.trim(),
             rarity: characterRarity || null,
             attributes: Object.fromEntries(Object.entries(characterAttributes).filter(([, value]) => value.trim())),
-            default_icon_url: characterIconFile || characterIconUrl
-              ? await convertIconSourceToDataUrl(characterIconFile ?? characterIconUrl)
-              : null,
+            default_icon_url: characterIconDataUrl,
             memo: characterMemo.trim() || null,
           })
       if (result.error) {
@@ -464,7 +525,7 @@ export function RequestSubmissionModal({
                       <label htmlFor="target-character" className="text-sm font-medium text-content">{`수정할 ${characterLabel}`}</label>
                       <select id="target-character" className={selectClassName} value={targetCharacterId} onChange={(event) => handleTargetCharacterChange(event.target.value)}>
                         <option value="">{`${characterLabel}를 선택하세요`}</option>
-                        {characters.filter((character) => character.game_id === gameId).map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
+                        {characters.filter((character) => character.game_id === gameId && !character.is_pickup_only).map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
                       </select>
                     </div>
                   )}
@@ -599,19 +660,21 @@ export function RequestSubmissionModal({
                       복각 일정
                     </label>
                   )}
-                  {scheduleType === "PICKUP" && gameId && (pickupGameCharacters.length > 0 ? (
+                  {scheduleType === "PICKUP" && gameId && (
                     <section aria-label={`픽업 ${pickupLabel} 선택`} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-content">{`픽업 ${pickupLabel} 선택 (단일 또는 복수)`}</p>
-                        <span className="text-xs text-content-secondary">{`${pickupCharacterIds.length} / ${MAX_PICKUP_CHARACTERS}`}</span>
+                        <span className="text-xs text-content-secondary">{`${pickupTotal} / ${MAX_PICKUP_CHARACTERS}`}</span>
                       </div>
-                      <Input
-                        aria-label="픽업 캐릭터 검색"
-                        value={pickupSearch}
-                        onChange={(event) => setPickupSearch(event.target.value)}
-                        placeholder={`${pickupLabel} 이름 검색`}
-                        className="h-8 border-line-control bg-surface-2 text-content"
-                      />
+                      {pickupGameCharacters.length > 0 && (
+                        <Input
+                          aria-label="픽업 캐릭터 검색"
+                          value={pickupSearch}
+                          onChange={(event) => setPickupSearch(event.target.value)}
+                          placeholder={`${pickupLabel} 이름 검색`}
+                          className="h-8 border-line-control bg-surface-2 text-content"
+                        />
+                      )}
                       <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto" data-testid="pickup-character-picker">
                         {visiblePickupCharacters.map((character) => {
                           const selected = pickupCharacterIds.includes(character.id)
@@ -620,40 +683,67 @@ export function RequestSubmissionModal({
                               key={character.id}
                               type="button"
                               aria-pressed={selected}
-                              disabled={!selected && pickupCharacterIds.length >= MAX_PICKUP_CHARACTERS}
+                              disabled={!selected && pickupTotal >= MAX_PICKUP_CHARACTERS}
                               onClick={() => togglePickupCharacter(character.id)}
-                              className={`rounded-full border px-2.5 py-1 text-xs transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-50 ${
+                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-50 ${
                                 selected ? "border-primary bg-primary/15 text-primary" : "border-line bg-surface-2 text-content-secondary hover:text-content"
                               }`}
                             >
                               {character.name}
+                              {character.is_pickup_only && <span className="rounded bg-warning/15 px-1 text-[10px] text-warning">픽업 전용</span>}
                             </button>
                           )
                         })}
+                        {pickupGameCharacters.length === 0 && (
+                          <p className="text-xs text-content-secondary">등록된 캐릭터가 없습니다. 아래에서 새 캐릭터를 제안해 주세요.</p>
+                        )}
                       </div>
-                    </section>
-                  ) : (
-                    <div className="space-y-2">
-                      <label htmlFor="pickup-image-url" className="text-sm font-medium text-content">픽업 캐릭터 이미지 (선택)</label>
-                      <Input
-                        id="pickup-image-url"
-                        value={pickupImageSource.startsWith("data:image/webp;base64,") ? "" : pickupImageSource}
-                        onPaste={handlePickupImagePaste}
-                        onChange={(event) => { setPickupImageSource(event.target.value); setPickupImageFile(null) }}
-                        placeholder="https://... 또는 이미지 붙여넣기"
-                      />
-                      <Input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        aria-label="픽업 캐릭터 이미지 파일"
-                        onChange={(event) => setPickupImageFile(event.target.files?.[0] ?? null)}
-                      />
-                      {pickupImageSource.startsWith("data:image/webp;base64,") && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={pickupImageSource} alt="픽업 캐릭터 이미지 미리보기" className="h-12 w-12 rounded-lg border border-line object-cover" />
+                      {pickupProposals.length > 0 && (
+                        <ul className="flex flex-wrap gap-1.5" data-testid="pickup-proposals">
+                          {pickupProposals.map((proposal) => (
+                            <li key={proposal.name} className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 py-0.5 pl-2 pr-1 text-xs text-primary">
+                              <span>{proposal.name}</span>
+                              <span className="rounded bg-primary/20 px-1 text-[10px]">신규 제안</span>
+                              <button type="button" aria-label={`${proposal.name} 제안 취소`} className="px-1 hover:text-danger" onClick={() => removeProposal(proposal.name)}>×</button>
+                            </li>
+                          ))}
+                        </ul>
                       )}
-                    </div>
-                  ))}
+                      {pickupTotal >= MAX_PICKUP_CHARACTERS && (
+                        <p className="text-xs text-warning">{`선택한 캐릭터와 제안 캐릭터는 합쳐서 최대 ${MAX_PICKUP_CHARACTERS}명까지 가능합니다.`}</p>
+                      )}
+                      {!isProposalOpen ? (
+                        <Button type="button" size="sm" variant="outline" onClick={() => setIsProposalOpen(true)}>
+                          + 새 캐릭터 제안
+                        </Button>
+                      ) : (
+                        <div className="space-y-2 rounded-lg border border-line bg-surface-2 p-3" data-testid="pickup-proposal-form">
+                          <label htmlFor="proposal-name" className="block text-xs font-medium text-content">제안할 캐릭터 이름 *</label>
+                          <Input id="proposal-name" maxLength={100} value={proposalName} onChange={(event) => setProposalName(event.target.value)} />
+                          <label htmlFor="proposal-image-url" className="block text-xs font-medium text-content">이미지 (선택)</label>
+                          <Input
+                            id="proposal-image-url"
+                            value={proposalImageSource.startsWith("data:image/webp;base64,") ? "" : proposalImageSource}
+                            onPaste={handleProposalImagePaste}
+                            onChange={(event) => { setProposalImageSource(event.target.value); setProposalImageFile(null) }}
+                            placeholder="https://... 또는 이미지 붙여넣기"
+                          />
+                          <Input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            aria-label="제안 캐릭터 이미지 파일"
+                            onChange={(event) => setProposalImageFile(event.target.files?.[0] ?? null)}
+                          />
+                          <p className="text-[11px] text-content-secondary">이미지는 256×256 WebP로 변환되며 약 150KB를 넘으면 사용할 수 없습니다. 이미지가 없어도 제안할 수 있으며, 관리자가 승인 후 교체할 수 있습니다.</p>
+                          {proposalError && <p role="alert" className="text-xs text-danger">{proposalError}</p>}
+                          <div className="flex justify-end gap-2">
+                            <Button type="button" size="sm" variant="ghost" onClick={() => { setIsProposalOpen(false); setProposalError(null) }}>취소</Button>
+                            <Button type="button" size="sm" onClick={() => void handleAddProposal()}>제안 추가</Button>
+                          </div>
+                        </div>
+                      )}
+                    </section>
+                  )}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label htmlFor="schedule-start-date" className="text-sm font-medium text-content">시작일</label>
