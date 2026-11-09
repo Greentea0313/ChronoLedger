@@ -18,6 +18,7 @@ import { GameIcon } from "@/components/ui/game-icon"
 import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
+import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { Calendar, Check, ChevronLeft, ChevronRight, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
 
 const GAMES_PER_PAGE = 12
@@ -105,20 +106,7 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
             [비공식]
           </span>
         )}
-        <span
-          className={`shrink-0 whitespace-nowrap text-xs px-2 py-0.5 rounded font-medium ${
-            schedule.schedule_type === "VERSION"
-              ? "bg-primary/15 text-primary"
-              : schedule.schedule_type === "PICKUP"
-                ? "bg-warning/15 text-warning"
-                : schedule.schedule_type === "BROADCAST"
-                  ? "bg-info/15 text-info"
-                  : "bg-purple-500/15 text-purple-700 dark:text-purple-300"
-          }`}
-        >
-          {schedule.schedule_type === "VERSION" ? "버전" : schedule.schedule_type === "PICKUP" ? "픽업" : schedule.schedule_type === "BROADCAST" ? "특별방송" : "콘텐츠"}
-          {schedule.is_rerun && <span className="ml-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning">복각</span>}
-        </span>
+        <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="md" />
       </div>
       <p className="text-xs text-content-secondary">
         {schedule.start_date === schedule.end_date

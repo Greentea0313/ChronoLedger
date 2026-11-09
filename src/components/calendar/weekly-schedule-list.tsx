@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, groupDatesByWeek } from "@/lib/calendar-utils"
 import { cn } from "@/lib/utils"
 
@@ -12,6 +13,7 @@ export interface WeeklyScheduleEntry {
   is_rerun?: boolean
   start_date: string
   end_date: string
+  gameId?: string | null
   gameName: string | null
   iconUrl?: string
 }
@@ -39,15 +41,44 @@ interface WeeklyScheduleListProps {
   onNextMonth: () => void
 }
 
-const TYPE_LABELS: Record<WeeklyScheduleEntry["schedule_type"], string> = {
-  VERSION: "버전",
-  PICKUP: "픽업",
-  CONTENTS: "콘텐츠",
-  BROADCAST: "특별방송",
+interface GameScheduleGroup {
+  key: string
+  name: string
+  iconUrl?: string
+  items: WeeklyScheduleEntry[]
 }
+
+const OTHER_GROUP_KEY = "__other__"
+const OTHER_GROUP_NAME = "기타"
 
 function shortDate(date: string): string {
   return date.slice(5).replace("-", ".")
+}
+
+/** Groups a week's schedules by game (name asc); schedules without a game go last under `기타`. */
+function groupSchedulesByGame(schedules: WeeklyScheduleEntry[]): GameScheduleGroup[] {
+  const groups: GameScheduleGroup[] = []
+  const byKey = new Map<string, GameScheduleGroup>()
+  schedules.forEach((schedule) => {
+    const key = schedule.gameId ?? OTHER_GROUP_KEY
+    let group = byKey.get(key)
+    if (!group) {
+      group = {
+        key,
+        name: schedule.gameId ? (schedule.gameName ?? "게임") : OTHER_GROUP_NAME,
+        iconUrl: schedule.gameId ? schedule.iconUrl : undefined,
+        items: [],
+      }
+      byKey.set(key, group)
+      groups.push(group)
+    }
+    group.items.push(schedule)
+  })
+  return groups.sort((a, b) => {
+    if (a.key === OTHER_GROUP_KEY) return 1
+    if (b.key === OTHER_GROUP_KEY) return -1
+    return a.name.localeCompare(b.name, "ko")
+  })
 }
 
 export function WeeklyScheduleList({
@@ -93,6 +124,7 @@ export function WeeklyScheduleList({
           const weekSchedules = schedules
             .filter((s) => s.start_date <= week.weekEnd && s.end_date >= week.weekStart)
             .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.end_date.localeCompare(b.end_date))
+          const gameGroups = groupSchedulesByGame(weekSchedules)
           const weekExpenses = (expenses ?? [])
             .filter((e) => e.date >= week.weekStart && e.date <= week.weekEnd)
             .sort((a, b) => a.date.localeCompare(b.date))
@@ -126,54 +158,64 @@ export function WeeklyScheduleList({
               {weekSchedules.length === 0 && weekExpenses.length === 0 ? (
                 <EmptyState message="이 주에는 일정이 없습니다." />
               ) : (
-                <ul className="space-y-1.5">
-                  {weekSchedules.map((schedule) => {
-                    // Schedules carried over from a previous week select this week's first day.
-                    const targetDate = schedule.start_date >= week.weekStart ? schedule.start_date : week.weekStart
-                    return (
-                    <li key={schedule.id}>
-                      <button
-                        type="button"
-                        onClick={() => onSelectDate(targetDate)}
-                        aria-pressed={selectedDate === targetDate}
-                        className="flex w-full flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
-                      >
-                        {schedule.iconUrl && (
+                <div className="space-y-3">
+                  {gameGroups.map((group) => (
+                    <section key={group.key} data-testid="game-group" aria-label={`${group.name} 일정`} className="space-y-1.5">
+                      <h4 data-testid="game-group-header" className="flex items-center gap-1.5 text-xs font-semibold text-content-secondary">
+                        {group.iconUrl && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={schedule.iconUrl} alt="" className="h-6 w-6 rounded object-cover" />
+                          <img src={group.iconUrl} alt="" className="h-5 w-5 rounded object-cover" />
                         )}
-                        <span className="rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-content">
-                          {TYPE_LABELS[schedule.schedule_type]}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate font-medium text-content">
-                          {`${schedule.gameName ?? "게임"} · ${schedule.title}`}
-                        </span>
-                        {schedule.is_rerun && (
-                          <span className="rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">복각</span>
-                        )}
-                        <span className="text-xs text-content-muted">{`${schedule.start_date} ~ ${schedule.end_date}`}</span>
-                        <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
-                          {getDdayLabel(todayDate, schedule.end_date)}
-                        </span>
-                      </button>
-                    </li>
-                    )
-                  })}
-                  {weekExpenses.map((expense) => (
-                    <li key={`expense-${expense.id}`}>
-                      <button
-                        type="button"
-                        onClick={() => onSelectExpense?.(expense.id)}
-                        aria-label={`${expense.title} 상세`}
-                        className="flex w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-content">{expense.title}</span>
-                        <span className="text-xs text-content-muted">{expense.status === "PLANNED" ? "예정" : "확정"}</span>
-                        <span className="font-semibold text-info">{`${expense.amount.toLocaleString()} 원`}</span>
-                      </button>
-                    </li>
+                        {group.name}
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {group.items.map((schedule) => {
+                          // Schedules carried over from a previous week select this week's first day.
+                          const targetDate = schedule.start_date >= week.weekStart ? schedule.start_date : week.weekStart
+                          return (
+                            <li key={schedule.id}>
+                              <button
+                                type="button"
+                                onClick={() => onSelectDate(targetDate)}
+                                aria-pressed={selectedDate === targetDate}
+                                className="flex w-full flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
+                              >
+                                <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="sm" />
+                                <span className="min-w-0 flex-1 truncate font-medium text-content">{schedule.title}</span>
+                                <span className="text-xs text-content-muted">{`${schedule.start_date} ~ ${schedule.end_date}`}</span>
+                                <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
+                                  {getDdayLabel(todayDate, schedule.end_date)}
+                                </span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </section>
                   ))}
-                </ul>
+
+                  {weekExpenses.length > 0 && (
+                    <section data-testid="expense-section" aria-label="지출" className="space-y-1.5">
+                      <h4 className="text-xs font-semibold text-content-secondary">지출</h4>
+                      <ul className="space-y-1.5">
+                        {weekExpenses.map((expense) => (
+                          <li key={`expense-${expense.id}`}>
+                            <button
+                              type="button"
+                              onClick={() => onSelectExpense?.(expense.id)}
+                              aria-label={`${expense.title} 상세`}
+                              className="flex w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
+                            >
+                              <span className="min-w-0 flex-1 truncate text-content">{expense.title}</span>
+                              <span className="text-xs text-content-muted">{expense.status === "PLANNED" ? "예정" : "확정"}</span>
+                              <span className="font-semibold text-info">{`${expense.amount.toLocaleString()} 원`}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </div>
               )}
             </article>
           )

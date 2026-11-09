@@ -20,6 +20,7 @@ import { GameIcon } from "@/components/ui/game-icon"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
+import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { normalizeMaxBreakthrough } from "@/lib/character-utils"
 import {
   Plus,
@@ -1056,9 +1057,6 @@ export default function AdminPage() {
                       const matchedGame = games.find((g) => g.id === schedule.game_id)
                       const gameName = schedule.games?.name || matchedGame?.name || "게임"
                       const iconUrl = schedule.games?.default_icon_url || matchedGame?.default_icon_url
-                      const isVersion = schedule.schedule_type === "VERSION"
-                      const isPickup = schedule.schedule_type === "PICKUP"
-                      const isBroadcast = schedule.schedule_type === "BROADCAST"
                       const isSingleDateItem = schedule.start_date === schedule.end_date
                       return (
                         <div
@@ -1086,20 +1084,7 @@ export default function AdminPage() {
                               <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
                                 {gameName}
                               </span>
-                              <span
-                                className={`shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded ${
-                                  isVersion
-                                    ? "bg-primary/20 text-primary border border-primary/30"
-                                    : isPickup
-                                      ? "bg-warning/20 text-warning border border-warning/30"
-                                      : isBroadcast
-                                        ? "bg-info/15 text-info border border-info/30"
-                                        : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
-                                }`}
-                              >
-                                {isVersion ? "버전" : isPickup ? "픽업" : isBroadcast ? "특별방송" : "콘텐츠"}
-                                {schedule.is_rerun && <span className="ml-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning">복각</span>}
-                              </span>
+                              <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="md" />
                               {schedule.is_official === false && (
                                 <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-warning/15 text-warning border border-warning/30">
                                   비공식
@@ -1564,9 +1549,6 @@ export default function AdminPage() {
                 const matchedGame = games.find((g) => g.id === schedule.game_id)
                 const gameName = schedule.games?.name || matchedGame?.name || "게임"
                 const iconUrl = schedule.games?.default_icon_url || matchedGame?.default_icon_url
-                const isVersion = schedule.schedule_type === "VERSION"
-                const isPickup = schedule.schedule_type === "PICKUP"
-                const isBroadcast = schedule.schedule_type === "BROADCAST"
                 const isSingleDateItem = schedule.start_date === schedule.end_date
 
                 return (
@@ -1590,20 +1572,7 @@ export default function AdminPage() {
                         <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-content">
                           {gameName}
                         </span>
-                        <span
-                          className={`shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded ${
-                            isVersion
-                              ? "bg-primary/20 text-primary border border-primary/30"
-                              : isPickup
-                                ? "bg-warning/20 text-warning border border-warning/30"
-                                : isBroadcast
-                                  ? "bg-info/15 text-info border border-info/30"
-                                  : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
-                          }`}
-                        >
-                          {isVersion ? "버전" : isPickup ? "픽업" : isBroadcast ? "특별방송" : "콘텐츠"}
-                          {schedule.is_rerun && <span className="ml-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning">복각</span>}
-                        </span>
+                        <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="md" />
                         {schedule.is_official === false && (
                           <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-warning/15 text-warning border border-warning/30">
                             비공식
