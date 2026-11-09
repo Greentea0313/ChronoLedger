@@ -79,6 +79,8 @@
 | **4** | **`✅ DONE (SHA: 8c64d98)`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (iteration-02 Review Fix)` | 수용 기준 Step 4(`R33-REV-001`~`005`) 수정 및 테스트 추가. 허용 파일: Step 2 대상 파일 + `src/components/game/user-requests-card.tsx`·`.test.tsx` | `✅ 원본 복각 상태 기반 payload 생략/해제, 묶음 사이드바 복각 배지, 내 요청 카드 4종 라벨, R33 UI 회귀 테스트 6개 파일 추가·보강. tsc/lint, 전체 Vitest 51파일/420개, diff-check 통과함` |
 | **5** | **`✅ DONE (iteration-02 리뷰 findings 조건부 승인, 산출물 SHA: f0a5a58·ea645f6, main 병합 7436a3b)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d09ba5c` ↔ Target `8c64d98` iteration-02 재리뷰, `run.json` 마감, `main` 병합, `R46` 등록 및 `docs/` 동기화 | `✅ R33-REV-001~005 해소 확인. 신규 R33-REV-006 P3(내 요청 카드 is_rerun 명시 조회 → 마이그레이션 미적용 시 요청 내역 로드 실패), R33-REV-007 P4(관리자 폼·ScheduleTree 등 테스트 일부 미보강) → 사용자 결정으로 R47 후속 과제 이관, R46에 '마이그레이션 먼저 적용 후 배포' 필수 순서 명시. TESTS.sql 31 PASS(2종), tsc/lint 통과, Vitest 51파일/420개 통과, 스키마 검증 통과. main 병합 7436a3b.` |
 
+> **⚠️ 운영 DB 마이그레이션 적용 필요 (`R46`)**: 배포(push) **전에** 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql`을 적용하고 `sql/README.md` B표 확인 쿼리로 검증해야 함. 미적용 상태로 배포 시 '내 요청 내역' 로드 실패(`R33-REV-006`) 및 BROADCAST/복각 저장 실패가 발생함.
+
 ### 🗂️ 이전 Run 기록 (완료): dashboard-summary-dday-and-week-list
 
 - **Run ID**: `dashboard-summary-dday-and-week-list` *(2026-11-09, `Phase 12.37` R32 대시보드 오늘/이번 주 요약 카드 및 사이드바 일정·예정 지출 `D-n`·기간 진행률 바 + R34 대시보드 월간 캘린더 ↔ 주차별 리스트 뷰 토글)*
@@ -121,8 +123,6 @@
 | **2** | **`✅ DONE (iteration-01 리뷰 findings, 산출물 SHA: 719ccc5)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Target `ab930c5` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` `target_sha` 기록 | `✅ 719ccc5: review.json findings(DSW-REV-001 P2 요약 스트립 조회 월 의존, DSW-REV-002 P3 aria-pressed 불일치, DSW-REV-003 P4 빈 주차 문구). tsc/lint 통과, Vitest 49파일/410개 통과. 스키마 검증 3종 통과. main 병합 보류.` |
 | **3** | **`✅ DONE (SHA: be57e7149b65b7e15e4da3f3181ad99cff24d996)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (iteration-02 Review Fix)` | `.worktrees/dashboard-summary-dday-and-week-list`에서 수용 기준 Step 3(`DSW-REV-001`~`003`) 수정 및 테스트 보강. 허용 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx` | `✅ be57e71: DSW-REV-001 요약 전용 현재 주 조회(월 이동 무관), DSW-REV-002 선택일 계산 통일, DSW-REV-003 중립 문구. tsc/lint 통과, Vitest 49파일/412개 통과.` |
 | **4** | **`✅ DONE (iteration-02 재리뷰 clean, 산출물 SHA: 4ececa5, main 병합 590085a)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d56d211` ↔ Target `be57e71` iteration-02 재리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ DSW-REV-001~003 해소 확인, 신규 지적 0건(clean). tsc/lint 통과, Vitest 49파일/412개 통과. run.json·iteration-02 review/test 스키마 검증 통과. main 병합 590085a 완료.` |
-
-> **⚠️ 운영 DB 마이그레이션 적용 필요 (`R46`)**: 배포(push) **전에** 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql`을 적용하고 `sql/README.md` B표 확인 쿼리로 검증해야 함. 미적용 상태로 배포 시 '내 요청 내역' 로드 실패(`R33-REV-006`) 및 BROADCAST/복각 저장 실패가 발생함.
 
 > **✅ 운영 DB 마이그레이션 적용 완료 (`R45`, 2026-11-09)**: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 적용 및 확인이 완료됨.
 
