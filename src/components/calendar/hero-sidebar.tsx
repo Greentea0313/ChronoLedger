@@ -391,6 +391,11 @@ export function HeroSidebarContent({
                                     [비공식]
                                   </span>
                                 )}
+                                {item.is_rerun && (
+                                  <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                    복각
+                                  </span>
+                                )}
                                 {item.title.includes("/") ? (
                                   <span className="inline-flex items-center gap-1">
                                     <span>•</span>

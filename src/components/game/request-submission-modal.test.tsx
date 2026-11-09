@@ -147,6 +147,31 @@ describe("RequestSubmissionModal", () => {
     })
   })
 
+  it("supports BROADCAST and resets the rerun flag when the type changes", async () => {
+    await openModal()
+    await change("#request-kind", "schedule")
+    await change("#schedule-game", "game-1")
+    await change("#schedule-title", "특별 방송")
+    await change("#schedule-type", "PICKUP")
+
+    const rerunCheckbox = document.body.querySelector('input[type="checkbox"]') as HTMLInputElement
+    expect(rerunCheckbox).not.toBeNull()
+    await act(async () => {
+      rerunCheckbox.click()
+    })
+    await change("#schedule-type", "BROADCAST")
+    expect(document.body.textContent).not.toContain("복각 일정")
+    await change("#schedule-start-date", "2026-02-01")
+    await change("#schedule-end-date", "2026-02-01")
+    await submit()
+
+    expect(insertSchedule).toHaveBeenCalledWith(expect.objectContaining({
+      schedule_type: "BROADCAST",
+      is_official: true,
+    }))
+    expect(insertSchedule.mock.calls[0][0]).not.toHaveProperty("is_rerun")
+  })
+
   it("uses target_schedule_id for edits and prepopulates the selected schedule", async () => {
     await openModal()
     await change("#request-kind", "schedule")

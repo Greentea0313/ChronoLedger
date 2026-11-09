@@ -250,6 +250,9 @@ export function RequestSubmissionModal({
     }
 
     setIsSubmitting(true)
+    const originalSchedule = requestMode === "EDIT"
+      ? schedulesForGame.find((item) => item.id === targetScheduleId)
+      : undefined
     try {
       const result = requestKind === "game"
         ? await supabase.from("game_requests").insert({ user_id: user.id, name: name.trim(), memo: null })
@@ -260,7 +263,7 @@ export function RequestSubmissionModal({
             target_schedule_id: requestMode === "EDIT" ? targetScheduleId : null,
             title: title.trim(),
             schedule_type: scheduleType,
-            ...(isRerun ? { is_rerun: true } : requestMode === "EDIT" ? { is_rerun: false } : {}),
+            ...(isRerun ? { is_rerun: true } : originalSchedule?.is_rerun === true ? { is_rerun: false } : {}),
             is_official: isOfficial,
             start_date: startDate,
             end_date: endDate,

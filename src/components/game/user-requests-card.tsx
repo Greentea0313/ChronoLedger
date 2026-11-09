@@ -21,7 +21,8 @@ interface ScheduleRequestItem {
   game_id: string
   target_schedule_id: string | null
   title: string
-  schedule_type: "VERSION" | "PICKUP"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
+  is_rerun?: boolean
   start_date: string
   end_date: string
   memo: string | null
@@ -65,7 +66,7 @@ export function UserRequestsCard() {
           .order("created_at", { ascending: false }),
         supabase
           .from("schedule_requests")
-          .select("id, game_id, target_schedule_id, title, schedule_type, start_date, end_date, memo, request_status, admin_memo, created_at, games(name)")
+          .select("id, game_id, target_schedule_id, title, schedule_type, is_rerun, start_date, end_date, memo, request_status, admin_memo, created_at, games(name)")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
       ])
@@ -213,7 +214,14 @@ export function UserRequestsCard() {
 
                   <p className="text-xs text-content-secondary">
                     대상 게임: <span className="font-medium text-content">{req.games?.name || "알 수 없음"}</span> ·{" "}
-                    {req.schedule_type === "VERSION" ? "버전" : "픽업"} · {req.start_date} ~ {req.end_date}
+                    {req.schedule_type === "VERSION"
+                      ? "버전"
+                      : req.schedule_type === "PICKUP"
+                        ? "픽업"
+                        : req.schedule_type === "BROADCAST"
+                          ? "특별방송"
+                          : "콘텐츠"}{" "}
+                    {req.is_rerun && <span className="font-semibold text-warning">복각</span>} · {req.start_date} ~ {req.end_date}
                   </p>
 
                   {req.memo && <p className="text-xs text-content-secondary">메모: {req.memo}</p>}
@@ -238,4 +246,3 @@ export function UserRequestsCard() {
     </Card>
   )
 }
-

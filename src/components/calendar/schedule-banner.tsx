@@ -16,7 +16,7 @@ export function ScheduleBanner({ type }: ScheduleBannerProps) {
     <span
       className={`inline-flex max-w-full items-center truncate rounded border px-1 py-[1px] text-[8px] md:text-[9px] font-semibold leading-tight ${palette}`}
     >
-      {type === "BROADCAST" ? "특별방송" : type}
+      {type}
     </span>
   )
 }

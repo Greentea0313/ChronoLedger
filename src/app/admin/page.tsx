@@ -237,6 +237,7 @@ export default function AdminPage() {
   const [gameId, setGameId] = useState("")
   const [scheduleType, setScheduleType] = useState<"VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST">("VERSION")
   const [isRerun, setIsRerun] = useState(false)
+  const [originalIsRerun, setOriginalIsRerun] = useState<boolean | null>(null)
   const [isOfficial, setIsOfficial] = useState(true)
   const [isSingleDate, setIsSingleDate] = useState(false)
   const [title, setTitle] = useState("")
@@ -381,6 +382,7 @@ export default function AdminPage() {
   const openAddModal = () => {
     setEditingScheduleId(null)
     setIsDuplicating(false)
+    setOriginalIsRerun(null)
     setGameId(selectedGameFilter || "")
     setScheduleType("VERSION")
     setIsRerun(false)
@@ -398,6 +400,7 @@ export default function AdminPage() {
   const openDuplicateModal = (schedule: ScheduleItem) => {
     setEditingScheduleId(null)
     setIsDuplicating(true)
+    setOriginalIsRerun(null)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
     setIsRerun(schedule.is_rerun === true)
@@ -414,6 +417,7 @@ export default function AdminPage() {
   const openEditModal = (schedule: ScheduleItem) => {
     setEditingScheduleId(schedule.id)
     setIsDuplicating(false)
+    setOriginalIsRerun(schedule.is_rerun === true)
     setGameId(schedule.game_id)
     setScheduleType(schedule.schedule_type)
     setIsRerun(schedule.is_rerun === true)
@@ -478,7 +482,7 @@ export default function AdminPage() {
       start_date: startDate,
       end_date: finalEndDate,
       memo: memo.trim() || null,
-      ...(isRerun ? { is_rerun: true } : editingScheduleId ? { is_rerun: false } : {}),
+      ...(isRerun ? { is_rerun: true } : editingScheduleId && originalIsRerun ? { is_rerun: false } : {}),
     }
 
     if (editingScheduleId) {
