@@ -123,7 +123,7 @@
 36. **예정 지출 편집 모드의 버전 패스 판정 (`start_date ≠ end_date`)**
     - 증상: `ExpenseModal` 편집 모드는 `start_date !== end_date`만으로 버전 패스로 판정함. 버전 패스가 아닌데 기간을 저장한 예정 지출(R35 관심 일정 프리필, `target_date = start_date`)을 편집하면 저장 시 날짜가 매칭 VERSION 기간·종료일로 바뀌고 예산 귀속월이 이동함(2026-11-10, `R35-REV-001`).
     - 방어책: 기간을 가진 비패스 예정 지출을 새로 만들 때는 편집 모드 판정과 저장 분기(`isVersionPass && matchingVersion`)를 함께 확인함. 버전 패스 행은 `target_date = end_date`로 저장되므로 판정에 이 조건을 포함함.
-    - 연관 함정: 편집 입력(`PlannedExpenseEditInput`)에 `schedule_id`가 없으면 편집 시 VERSION 연결이 날짜 매칭으로 다시 계산되어, 이전 버전 종료일 = 다음 버전 시작일인 경계일에 이전 버전으로 바뀜(`R35-REV-004`). `sync_version_expenses_trigger`는 VERSION 날짜 변경 시 연결 PLANNED 행의 `target_date`를 시작일로 바꾸므로 패스 판정 조건(`target_date = end_date`)과 어긋남(`R35-REV-005`, `R56`).
+    - 연관 함정: 편집 입력(`PlannedExpenseEditInput`)에 `schedule_id`가 없으면 편집 시 VERSION 연결이 날짜 매칭으로 다시 계산되어, 이전 버전 종료일 = 다음 버전 시작일인 경계일에 이전 버전으로 바뀜(`R35-REV-004`, iteration-03 `d8f13ba`에서 편집 입력에 `schedule_id` 추가로 수정). `sync_version_expenses_trigger`는 VERSION 날짜 변경 시 연결 PLANNED 행의 `target_date`를 시작일로 바꾸므로 패스 판정 조건(`target_date = end_date`)과 어긋남(`R35-REV-005`, `R56`).
     - 조치: iteration-02 `129a118`에서 판정을 `start_date ≠ end_date && target_date = end_date`로 고치고, 비패스 기간 행은 날짜 미변경 시 저장된 기간(`keptPeriod`)을 유지하도록 수정함(Worktree 커밋, `main` 병합 전).
 37. **산출물 검증기 `validate_collaboration_artifact.py` 실행 의존성**
     - 증상: Python에 `jsonschema`가 없으면 `ModuleNotFoundError`로 실패함. 인자는 위치 인자가 아니라 `--artifact <json> --schema artifacts/schemas/<kind>.schema.json`임(2026-11-10).

@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Phase 12.42 Step 6 iteration-03 수정 완료 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Maker (Edit Schedule Link Fix)`, Claude Sonnet 1순위 대체)임.
+- **커밋 `d8f13ba`** (`.worktrees/r35-favorite-schedules-and-r51-followup`, 미병합): `R35-REV-004` 수정. 예정 지출 편집 시 저장된 VERSION `schedule_id`를 모달에 넘겨, 경계일에도 이전 버전으로 다시 연결되지 않도록 함.
+- **검증**: `tsc --noEmit`·`npm run lint` 통과, Vitest 56파일/628개 통과(+3)함. 브라우저 실사용 확인은 미수행임.
+- **다음 단계**: Step 7(`Claude Opus`, 교차 리뷰 시 Gemini 4 Argon 권장) iteration-03 재리뷰·`main` 병합·운영 마이그레이션 `R54` 등록 `▶ READY`임.
+
 ## Phase 12.42 Step 5 iteration-02 재리뷰 — 수정 요청 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임.

@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-10 (Phase 12.42 Step 6 — iteration-03 수정, `d8f13ba`)
+
+- `PlannedExpenseEditInput`에 선택 필드 `schedule_id`를 추가하고 `/dashboard/expenses` 편집 진입 시 전달함. `ExpenseModal` 편집 모드가 저장된 VERSION 연결을 기간 안에서 우선 유지함(`R35-REV-004`).
+- `expense-modal.test.tsx` 2건, `expenses/page.test.tsx` 1건 회귀 테스트 추가(Vitest 628개 통과). Step 7(`Claude Opus`)을 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Phase 12.42 Step 5 — iteration-02 재리뷰, `e9d9367`)
 
 - `r35-favorite-schedules-and-r51-followup` iteration-02 재리뷰(`33829c9` ↔ `129a118`) 결과 `R35-REV-004`(P3)·`005`(P4)를 기록하고 `iteration-02/review.json`·`test.json`·`run.json`(`target_sha`)을 커밋함.
