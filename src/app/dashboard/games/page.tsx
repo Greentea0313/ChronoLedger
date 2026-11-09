@@ -58,10 +58,113 @@ interface GameScheduleRow {
   is_official?: boolean
 }
 
+interface CatalogGame {
+  id: string
+  name: string
+  default_icon_url: string | null
+}
+
+function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
+  const today = getKstToday()
+  const onAir = schedules.filter((schedule) =>
+    schedule.start_date <= today && schedule.end_date >= today,
+  )
+  const versions = schedules.filter((schedule) => schedule.schedule_type === "VERSION")
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(versions.filter((version) => version.start_date <= today && version.end_date >= today).map((version) => [version.id, true])),
+  )
+  const renderSchedule = (schedule: GameScheduleRow) => (
+    <div key={schedule.id} className="rounded-lg border border-line bg-surface-2 p-3 space-y-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 flex-1 break-words text-sm font-semibold text-content">{schedule.title}</span>
+        <span className="shrink-0 rounded bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+          {schedule.schedule_type === "VERSION" ? "버전" : schedule.schedule_type === "PICKUP" ? "픽업" : "콘텐츠"}
+        </span>
+      </div>
+      <p className="text-xs text-content-secondary">{schedule.start_date} ~ {schedule.end_date}</p>
+      {schedule.memo && <p className="whitespace-pre-wrap text-xs text-content-muted">{schedule.memo}</p>}
+    </div>
+  )
+  const grouped = new Set<string>()
+  return (
+    <div className="space-y-4">
+      {onAir.length > 0 && (
+        <section aria-label="진행 중인 일정">
+          <h3 className="mb-2 text-sm font-bold text-primary">진행 중인 일정 · ON AIR</h3>
+          <div className="space-y-2">{onAir.map(renderSchedule)}</div>
+        </section>
+      )}
+      <section>
+        <h3 className="mb-2 text-sm font-bold text-content">버전별 일정</h3>
+        <div className="space-y-2">
+          {versions.map((version) => {
+            const children = schedules.filter((schedule) =>
+              schedule.schedule_type !== "VERSION" &&
+              schedule.start_date <= version.end_date &&
+              schedule.end_date >= version.start_date,
+            )
+            children.forEach((schedule) => grouped.add(schedule.id))
+            const isExpanded = expanded[version.id] ?? false
+            return (
+              <div key={version.id} className="rounded-lg border border-line bg-surface-2">
+                <button type="button" className="flex min-h-11 w-full items-center justify-between px-3 text-left text-sm font-semibold text-content" aria-expanded={isExpanded} onClick={() => setExpanded((prev) => ({ ...prev, [version.id]: !isExpanded }))}>
+                  <span>{version.title}</span><span aria-hidden="true">{isExpanded ? "−" : "+"}</span>
+                </button>
+                {isExpanded && <div className="space-y-2 border-t border-line p-2 pl-5">{children.map(renderSchedule)}</div>}
+              </div>
+            )
+          })}
+        </div>
+      </section>
+      {schedules.filter((schedule) => schedule.schedule_type !== "VERSION" && !grouped.has(schedule.id)).length > 0 && (
+        <section>
+          <h3 className="mb-2 text-sm font-bold text-content">기타 일정</h3>
+          <div className="space-y-2">{schedules.filter((schedule) => schedule.schedule_type !== "VERSION" && !grouped.has(schedule.id)).map(renderSchedule)}</div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+function ScheduleDialog({
+  selectedGame,
+  isSheetOpen,
+  setIsSheetOpen,
+  setSelectedGame,
+  schedulePreferenceNotice,
+  scheduleError,
+  isSchedulesLoading,
+  schedules,
+}: {
+  selectedGame: { id: string; name: string } | null
+  isSheetOpen: boolean
+  setIsSheetOpen: (open: boolean) => void
+  setSelectedGame: (game: { id: string; name: string } | null) => void
+  schedulePreferenceNotice: string | null
+  scheduleError: string | null
+  isSchedulesLoading: boolean
+  schedules: GameScheduleRow[]
+}) {
+  return (
+    <Dialog open={isSheetOpen} onOpenChange={(open) => { setIsSheetOpen(open); if (!open) setSelectedGame(null) }}>
+      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto border-line bg-surface text-content">
+        <DialogHeader>
+          <DialogTitle>{selectedGame?.name || "게임"} 일정</DialogTitle>
+          <DialogDescription>공식 게임 일정입니다.</DialogDescription>
+        </DialogHeader>
+        {schedulePreferenceNotice && <p role="status" className="text-xs text-content-secondary">{schedulePreferenceNotice}</p>}
+        {scheduleError && <p role="alert" className="text-sm text-danger">{scheduleError}</p>}
+        {isSchedulesLoading ? <p className="text-sm text-content-secondary">불러오는 중...</p> : schedules.length === 0 ? <p className="py-8 text-center text-sm text-content-secondary">표시할 일정이 없습니다.</p> : <ScheduleTree schedules={schedules} />}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function GamesPage() {
   const { user, role } = useAuth()
   const isAdmin = role === "admin" || user?.app_metadata?.role === "admin"
   const [userGames, setUserGames] = useState<UserGameRow[]>([])
+  const [catalogGames, setCatalogGames] = useState<CatalogGame[]>([])
   const [gameIcons, setGameIcons] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [uploadingGameId, setUploadingGameId] = useState<string | null>(null)
@@ -126,7 +229,17 @@ export default function GamesPage() {
   }, [sortedUserGames, currentPage])
 
   const loadGames = useCallback(async () => {
-    if (!userId) return
+    if (!userId) {
+      setIsLoading(true)
+      const { data, error } = await supabase.from("games").select("id, name, default_icon_url").order("name")
+      if (error) {
+        setScheduleError(`게임 목록을 불러오지 못했습니다: ${error.message}`)
+      } else {
+        setCatalogGames((data ?? []) as CatalogGame[])
+      }
+      setIsLoading(false)
+      return
+    }
     if (!hasLoadedInitialRef.current) {
       setIsLoading(true)
     }
@@ -300,10 +413,57 @@ export default function GamesPage() {
   }
 
   if (isLoading && !hasLoadedInitialRef.current) return <GamesPageSkeleton />
-  if (!user) return <div className="p-6 text-content">로그인이 필요합니다.</div>
+  if (!user) {
+    return (
+      <div className="space-y-4 animate-fade-in">
+        <header className="border-b border-line pb-4">
+          <h1 className="text-2xl font-bold text-primary">게임 일정</h1>
+          <p className="mt-1 text-sm text-content-secondary">게스트 모드에서는 승인된 게임의 공식 일정만 열람할 수 있습니다.</p>
+        </header>
+        <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-content">
+          내 구독 게임과 개인 메모를 관리하려면 <a href="/auth" className="font-semibold text-primary underline">로그인</a>해 주세요.
+        </div>
+        <Card className="border-line bg-surface">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-content">전체 게임</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {catalogGames.map((game) => (
+                <div key={game.id} className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface-2 p-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <GameIcon src={game.default_icon_url} alt={game.name} fallbackIcon={<Gamepad2 className="h-6 w-6 text-content-secondary" />} />
+                    <span className="truncate font-semibold text-content">{game.name}</span>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setSelectedGame({ id: game.id, name: game.name })
+                    setIsSheetOpen(true)
+                  }}>
+                    <Calendar className="mr-1 h-3.5 w-3.5 text-primary" />
+                    일정 보기
+                  </Button>
+                </div>
+              ))}
+            </div>
+            {catalogGames.length === 0 && <p className="py-8 text-center text-sm text-content-secondary">등록된 게임이 없습니다.</p>}
+          </CardContent>
+        </Card>
+        <ScheduleDialog
+          selectedGame={selectedGame}
+          isSheetOpen={isSheetOpen}
+          setIsSheetOpen={setIsSheetOpen}
+          setSelectedGame={setSelectedGame}
+          schedulePreferenceNotice={schedulePreferenceNotice}
+          scheduleError={scheduleError}
+          isSchedulesLoading={isSchedulesLoading}
+          schedules={schedules}
+        />
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* 상단 헤더 */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>

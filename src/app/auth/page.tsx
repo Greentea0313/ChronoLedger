@@ -136,6 +136,16 @@ export default function AuthPage() {
               >
                 이메일 로그인
               </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-content-secondary"
+                onClick={() => router.push("/dashboard")}
+                disabled={loading}
+              >
+                게스트로 일정 둘러보기
+              </Button>
               <Button
                 type="button"
                 onClick={() => router.push("/auth/signup")}
