@@ -31,6 +31,70 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
+- **Run ID**: `r13-4-breakthrough-guest-and-schedule-tree` *(2026-11-09, `Phase 13.4` R43 캐릭터 메모 제거·컴팩트 타일 그리드·즐겨찾기 금색 테두리/상단 노출·게임별 최대 돌파 `max_breakthrough` 및 좌하단 `n★` 배지 + `Phase 12.35` R41 게스트 모드 공식 일정 열람·R42 게임별 일정 `ON AIR` 상단 고정 & 버전별 아코디언 트리 + `Phase 12.36` R44 UI 밀도 개선)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree` (브랜치: `collab/r13-4-breakthrough-guest-and-schedule-tree`)
+- **리뷰 비교 범위**: Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Target `<Step 3 완료 시 커밋 SHA>` *(Step 4 Orchestrator/Reviewer가 manifest `target_sha` 기록. 다중 PC 전환 시 미병합 Worktree 브랜치도 `git push -u origin collab/r13-4-breakthrough-guest-and-schedule-tree`로 원격 동기화 권장)*
+- **수용 기준 (Acceptance Criteria)**:
+  1. **Step 1 — `Phase 13.4-DB & R41-RLS` 게임별 최대 돌파·캐릭터 즐겨찾기/돌파 컬럼·트리거 및 게스트 공식 일정 읽기 RLS 구현 (GPT Codex)**:
+     - **권위 명세**: [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) **§8 Phase 13.4 Specification Amendment**.
+     - **대상 파일 (`.worktrees/r13-4-breakthrough-guest-and-schedule-tree` 내부)**: `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql`(신규), `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `docs/spec/SRS.md`, `docs/spec/SPEC.md`
+     - **구현 요구사항**:
+       - ① **`public.games` 최대 돌파 컬럼 추가**: `max_breakthrough SMALLINT NOT NULL DEFAULT 6 CHECK (max_breakthrough BETWEEN 0 AND 12)` 컬럼을 `public.games`에 추가함.
+       - ② **`public.user_characters` 즐겨찾기 및 돌파 단계 컬럼·트리거 확장**:
+         - `is_favorite BOOLEAN NOT NULL DEFAULT false` 및 `breakthrough_level SMALLINT NOT NULL DEFAULT 0 CHECK (breakthrough_level BETWEEN 0 AND 12)` 컬럼을 `public.user_characters`에 추가함.
+         - `public.validate_user_character_game()` 트리거 함수를 갱신하여, 기존 `game_id` 일치 검사에 더해 `TG_OP = 'INSERT' OR NEW.game_id IS DISTINCT FROM OLD.game_id OR NEW.breakthrough_level > OLD.breakthrough_level`일 때 `NEW.breakthrough_level > v_max_breakthrough`이면 `RAISE EXCEPTION '캐릭터 돌파 단계가 게임의 최대 돌파 단계를 초과합니다.'`로 거부함(관리자가 `max_breakthrough`를 낮춘 경우 기존 행의 유지·축소 저장은 허용하는 비파괴 규칙 적용).
+       - ③ **게스트 모드(`anon`) 공식 일정 읽기 RLS 정책 추가 (`R41`)**:
+         - `public.game_schedules`에 비로그인(`anon`) 사용자가 공식 일정(`is_official = true`)만 조회할 수 있도록 `CREATE POLICY "Allow anon read official schedules" ON public.game_schedules FOR SELECT TO anon USING (is_official = true);` 정책을 추가함(`public.games`는 이미 `PUBLIC` 대상 `status = 'APPROVED'` 읽기 정책이 존재함).
+       - ④ **스모크 테스트(`sql/tests/TESTS.sql`), 문서 및 TypeScript 타입 동기화**:
+         - `sql/tests/TESTS.sql`에 ① `max_breakthrough` 초과 `breakthrough_level` 거부 및 상한 축소 후 비파괴 유지/축소 허용, ② `anon` 역할이 `is_official = true` 일정만 조회 가능하고 `is_official = false` 비공식 일정은 조회되지 않음을 검증하는 스모크 테스트를 추가하고 로컬 PostgreSQL(또는 PGlite)에서 마이그레이션 2회 멱등 실행 및 `TESTS.sql` 통과를 확인함.
+         - `sql/README.md` B표에 `MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 확인 쿼리를 추가하고, `src/types/database.types.ts`(`games.max_breakthrough`, `user_characters.is_favorite`, `user_characters.breakthrough_level`) 및 `docs/spec/SRS.md`·`SPEC.md`를 동기화함.
+  2. **Step 2 — `Phase 13.4-UI (R43)` 캐릭터 메모 제거, 컴팩트 아이콘 타일 그리드, 즐겨찾기(금색 테두리·상단 노출) 및 아이콘 클릭 돌파(`n★`) 설정 구현 (Claude Sonnet)**:
+     - **권위 명세**: [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) **§8 Phase 13.4 Specification Amendment**.
+     - **대상 파일 (`.worktrees/r13-4-breakthrough-guest-and-schedule-tree` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `src/components/character/character-icon.tsx`, `src/components/character/character-roster.tsx`, `src/components/character/preset-list.tsx`, `src/components/character/preset-editor-dialog.tsx`, `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`
+     - **구현 요구사항**:
+       - ① **관리자 게임 모달 `max_breakthrough` 설정 (`src/app/admin/page.tsx`)**:
+         - 게임 등록/수정 모달에 **최대 돌파 단계 (`max_breakthrough`, `0 ~ 12`, 기본값 `6`)** 숫자 입력란을 `max_preset_slots` 옆에 추가하고 `games` insert/update 및 `normalizeMaxBreakthrough` 정규화를 연결함.
+       - ② **캐릭터 메모 UI 제거 & 컴팩트 아이콘 타일 그리드 개편 (`character-roster.tsx`, `character-icon.tsx`)**:
+         - 개별 캐릭터 카드에서 자유 텍스트 `memo` 입력란(`<Textarea>`)을 완전히 제거함.
+         - 기존의 긴 가로형 카드 리스트를 **아이콘 중심의 컴팩트 그리드 타일**(`grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5`)로 개편함.
+       - ③ **즐겨찾기(금색 테두리 & 목록 최상단 정렬) 및 좌하단 `n★` 돌파 배지**:
+         - **정렬(`character-utils.ts`)**: 로스터 및 프리셋 캐릭터 피커 정렬 시 **즐겨찾기(`is_favorite = true`) 캐릭터를 최상단에 우선 배치**한 뒤 이름 가나다순으로 정렬함(`is_favorite DESC`, `name ASC`).
+         - **즐겨찾기 시각 표시**: `is_favorite = true`인 캐릭터 타일/아이콘에 **금색 테두리(`ring-2 ring-amber-400 border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.35)]`)**를 표시함.
+         - **돌파 단계 좌하단 `n★` 표시**: 보유(`is_owned = true`) 캐릭터 아이콘의 **좌하단 모서리에 `${breakthrough_level}★` 배지**(예: `0★`, `1★`, `2★`, ..., `6★`)를 오버레이로 표시하여 로스터 타일과 조합 프리셋 슬롯 양쪽에서 돌파 단계를 즉시 확인할 수 있게 함(미보유 캐릭터는 명도 감쇠 `brightness-50 saturate-50 opacity-65` 유지 및 돌파 배지 미표시).
+       - ④ **캐릭터 아이콘(타일) 클릭 시 설정 팝오버/모달 오픈**:
+         - 캐릭터 타일을 클릭하면 컴팩트 설정 모달/팝오버(Radix `Dialog` 사용 시 `DialogTitle`·`DialogDescription` 필수 포함)가 열리며, 내부에서 **보유 여부 토글(`is_owned`)**, **즐겨찾기 토글(`is_favorite`)**, **돌파 단계 선택 버튼 그리드(`0★` ~ `${game.max_breakthrough}★`)**, **커스텀 아이콘 변경/기본 복원**을 즉시 조작할 수 있도록 구현함(`isOffline()` 가드 포함).
+       - ⑤ **단위 테스트 갱신 및 보강**:
+         - `character-utils.test.ts`, `src/app/dashboard/characters/page.test.tsx`, `src/app/admin/page.test.tsx`를 갱신하여 메모 제거, 즐겨찾기 상단 정렬 및 금색 테두리, 아이콘 클릭 모달 내 보유·즐겨찾기·돌파 단계(`n★`) 변경 및 좌하단 `n★` 배지 표시, 관리자 `max_breakthrough` 저장을 검증함.
+  3. **Step 3 — `Phase 12.35 (R41·R42) & Phase 12.36 (R44)` 비로그인 게스트 모드, 게임별 일정 `ON AIR` 상단 고정 + 버전별 아코디언 트리, 전체 UI 밀도 개편 (GitHub Copilot)**:
+     - **대상 파일 (`.worktrees/r13-4-breakthrough-guest-and-schedule-tree` 내부)**: `src/app/page.tsx`, `src/app/auth/page.tsx`, `src/app/auth/page.test.tsx`(필요 시), `src/app/dashboard/layout.tsx`, `src/components/layout/topbar.tsx`, `src/components/layout/topbar.test.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`(신규 또는 보강), `src/app/dashboard/expenses/page.tsx`, `docs/to-do.md`
+     - **구현 요구사항**:
+       - ① **비로그인 게스트 모드 (`R41`)**:
+         - `DashboardLayout`(`src/app/dashboard/layout.tsx`)에서 비로그인(`!user`) 사용자를 `/auth`로 강제 리다이렉트하지 않고 **게스트 읽기 전용 모드**로 진입을 허용함(`/auth` 로그인 카드 하단에도 `[게스트로 일정 둘러보기]` 버튼을 추가해 `/dashboard`로 이동 지원).
+         - `Topbar`: 게스트 상태일 때 우측에 `[게스트 모드]` 배지 및 `[로그인]` 버튼(`/auth` 이동)을 표시함.
+         - `/dashboard` (홈 캘린더): 게스트 상태일 때 승인된 전체 게임(`games`)의 **공식 일정(`is_official = true`)**을 캘린더와 선택일 사이드바에 표시하며, 예산/총자산 요약 및 지출 추가/개인 메모 입력 대신 상단에 컴팩트한 `"게스트 모드로 공식 게임 일정을 열람 중입니다. 로그인하면 내 구독 게임 필터링과 과금 가계부를 이용할 수 있습니다."` 배너 + `[로그인]` 버튼을 표시함.
+         - `/dashboard/games`: 게스트 상태에서도 등록된 전체 게임 목록 검색 및 각 게임의 **`[일정 보기]` 모달 열람**을 허용하고, 내 구독 게임 추가/상시 메모 영역에는 로그인 안내를 표시함.
+         - `/dashboard/expenses` 및 `/dashboard/characters`: 게스트 진입 시 개인화 기능 안내 `EmptyState` + `[로그인하러 가기]` 버튼을 표시함.
+       - ② **게임별 일정 보기 모달 — `ON AIR` 상단 고정 + 버전별(`VERSION`) 아코디언 하위 트리 (`R42`, `src/app/dashboard/games/page.tsx`)**:
+         - 기존의 평면(flat) 일정 나열을 개편하여:
+           1. **상단 고정 영역 (`진행 중인 일정 · ON AIR`)**: KST 오늘(`start_date <= todayKST && end_date >= todayKST`) 진행 중인 일정들을 상단 강조 섹션에 고정 노출함(종료 `D-n` 배지 포함).
+           2. **하단 버전별 아코디언 트리 목록 (`버전별 일정`)**: `schedule_type === 'VERSION'`인 일정을 버전 아코디언 헤더(현재 진행 중인 버전은 기본 펼침 `expanded`, 나머지는 접힘)로 표시하고, 버전을 클릭해 펼치면 해당 버전 기간(`sch.start_date <= version.end_date && sch.end_date >= version.start_date`)과 겹치는 `PICKUP`·`CONTENTS` 상세 일정들이 하위 트리 목록으로 들여쓰기되어 나타나도록 구현함. 어떤 `VERSION` 기간에도 속하지 않는 일정은 하단 `'기타 일정'` 아코디언 그룹으로 묶어 누락 없이 표시함.
+       - ③ **전반적인 UI 밀도(카드 여백·테두리·타이포그래피) 다듬기 (`R44`)**:
+         - `/dashboard`, `/dashboard/games`, `/dashboard/expenses`의 과도한 카드 패딩(`p-6` $\to$ `p-4`/`p-5`), 섹션 간격(`gap-6` $\to$ `gap-4`), 헤더 여백을 컴팩트하게 정돈하여 한 화면에 더 많은 일정과 통계 정보가 깔끔하게 들어오도록 개선함.
+       - ④ **단위 테스트 및 문서 갱신**:
+         - 게스트 모드 진입·배너 표시, 게임별 일정 모달의 `ON AIR` 상단 섹션 및 `VERSION` 아코디언 클릭 시 하위 일정 펼침/접힘 동작에 대한 단위 테스트를 추가하고 `docs/to-do.md`의 `R41`~`R44`를 갱신함.
+  4. **Step 4 — 통합 정적 코드 리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
+     - Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Step 3 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/Types)` | `Phase 13.4-DB & R41-RLS`: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree`에서 `MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql`(`games.max_breakthrough`, `user_characters.is_favorite`·`breakthrough_level` + 트리거 상한 검증, `game_schedules` `anon` 공식 일정 SELECT 정책), `SCHEMA.sql`, `TESTS.sql`, `sql/README.md`, `database.types.ts`, `SRS.md`/`SPEC.md` 구현 | `⏳ 대기 중` |
+| **2** | `⏳ WAITING` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Character UI & Admin)` | `Phase 13.4-UI (R43)`: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree`에서 `/admin` 게임 `max_breakthrough` 설정, 캐릭터 메모 UI 제거, 컴팩트 아이콘 타일 그리드, 즐겨찾기(금색 테두리·상단 노출), 아이콘 좌하단 `n★` 배지 및 클릭 설정 모달/팝오버 + 단위 테스트 구현 | `⏳ Step 1 완료 후 진행` |
+| **3** | `⏳ WAITING` | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Guest Mode, Schedule Tree & UI Density)` | `Phase 12.35 & 12.36 (R41·R42·R44)`: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree`에서 비로그인 게스트 모드 일정 열람, `/dashboard/games` 일정 모달 `ON AIR` 상단 고정 + `VERSION` 아코디언 하위 트리, 대시보드/게임/소비 카드 여백·밀도 개선 및 단위 테스트 구현 | `⏳ Step 2 완료 후 진행` |
+| **4** | `⏳ WAITING` | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `6295a0e6f0bec385abe16c7f4b962840a5ea85ce` ↔ Step 3 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 3 완료 후 진행` |
+
+### 🗂️ 이전 Run 기록 (완료): r13-phase13-2-and-13-3-ui
+
 - **Run ID**: `r13-phase13-2-and-13-3-ui` *(2026-11-04, R13 `Phase 13.2` 관리자 게임별 분류 축·캐릭터 카탈로그·캐릭터 요청/승인 UI & `Phase 13.3` 사용자 보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 빌더 구현)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/r13-phase13-2-and-13-3-ui` (브랜치: `collab/r13-phase13-2-and-13-3-ui`)

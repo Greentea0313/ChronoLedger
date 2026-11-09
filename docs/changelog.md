@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-09 (신규 협업 Run r13-4-breakthrough-guest-and-schedule-tree 등록 — R41~R44)
+
+- **R13 명세 §8 개정 및 신규 로드맵(R41~R44) 등록 (Gemini 4 Argon)**:
+  - `docs/spec/R13_Character_Roster_and_Preset_Spec.md` §8에 캐릭터 메모 UI 제거, 컴팩트 아이콘 타일 그리드, 즐겨찾기(`is_favorite`) 금색 테두리 및 최상단 정렬, 게임별 최대 돌파(`games.max_breakthrough`) 및 아이콘 좌하단 `n★` 배지·클릭 설정 모달 명세를 추가함.
+  - 비로그인 게스트 모드 공식 일정 열람(`R41`), 게임별 일정 모달 `ON AIR` 상단 고정 + 버전(`VERSION`) 아코디언 하위 트리(`R42`), 캐릭터 돌파·즐겨찾기·타일 개편(`R43`), 전체 카드·타이포그래피 밀도 개편(`R44`)을 `docs/to-do.md` 및 `docs/handoff.md`에 등록함.
+  - 격리 Worktree `.worktrees/r13-4-breakthrough-guest-and-schedule-tree` (Base SHA `6295a0e6f0bec385abe16c7f4b962840a5ea85ce`)를 생성하고 Step 1(`GPT Codex` `▶ READY`)을 배정함.
+
 ## 2026-11-09 (R13 UI Run iteration-02 재리뷰 및 `main` 병합)
 
 - iteration-02 재리뷰 결과를 기록함: R13UI-01~08 해소, 신규 P4 서식 1건(`artifacts/r13-phase13-2-and-13-3-ui/iteration-02/review.json`).

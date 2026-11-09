@@ -639,6 +639,13 @@
 - [x] R31. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_USERS_ROLE_GUARD.sql` 적용 완료). 앱 배포는 `main` push 후 진행 (사용자 수동) (`완료` - 2026-11-04 사용자 적용, 테이블 4·함수 3·정책 10행 확인)
 - [x] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`, 2026-11-09 `/dashboard/characters` 전용 페이지 분리 반영). Phase 13.1 DB/타입 구현(`4a21555e`, `334c642f`) 및 운영 DB 적용(R31) 완료함. Phase 13.2 관리자 카탈로그·분류 설정·캐릭터 요청 UI 구현(`688205e`) 완료함. Phase 13.3(Topbar `캐릭터` 메뉴·전용 `/dashboard/characters` 페이지 보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 빌더) 구현(`6b755aa`, 선행 결함 수정 `17945d9`) 완료함. Step 3 iteration-01 통합 리뷰(2026-11-09, P2 1건·P3 6건·P4 1건, 산출물 `b6cd7a0`) 완료함. iteration-02 수정(13.2-F1, `e07cc6a`) 및 재리뷰(지적 8건 해소, P4 서식 1건만 남음, 산출물 `0b8eb4d`) 완료함. `main` 병합 `1f5d43a` 완료함(병합 후 tsc·lint·Vitest 385개·`npm run build` 통과). 남은 확인: 브라우저 수동 확인(사용자), 비차단 후속 13.2-F2.
 
+### 사용자 추가 검토 확정 과제 (2026-11-09 등록 · 1순위 활성 Run `r13-4-breakthrough-guest-and-schedule-tree`)
+
+- [ ] R41 (`Phase 12.35`). 비로그인 게스트 모드 도입: 로그인 없이 `/dashboard` 및 `/dashboard/games` 진입을 허용하여 전체 승인 게임의 공식 일정(`is_official = true`, `anon` SELECT RLS 정책 추가)을 캘린더·게임별 일정 모달에서 열람할 수 있게 하고, 과금·내 게임 구독·캐릭터 메뉴는 로그인 유도 배너/안내를 표시함 (Step 1 DB/RLS GPT Codex + Step 3 UI GitHub Copilot)
+- [ ] R42 (`Phase 12.35`). 게임별 일정 보기 모달 구조 개편(`/dashboard/games`): 상단에 현재 진행 중(`ON AIR`, 종료 `D-n`) 일정을 고정 노출하고, 하단에 버전(`VERSION`) 일정을 아코디언 헤더(진행 중 버전 기본 펼침)로 묶어 클릭 시 해당 버전 기간에 속하는 픽업(`PICKUP`)·콘텐츠(`CONTENTS`) 상세 일정이 하위 트리 목록으로 펼쳐지도록 개편함(버전 외 일정은 `기타 일정` 그룹 분리, 담당: GitHub Copilot)
+- [ ] R43 (`Phase 13.4`). 캐릭터 로스터 UX 개편(`/dashboard/characters` & `/admin`): ① 캐릭터별 텍스트 메모(`memo`) UI 제거, ② 긴 가로형 카드를 아이콘 중심 컴팩트 타일 그리드로 개편, ③ 즐겨찾기(`is_favorite`) 체크 시 금색 테두리(`ring-2 ring-amber-400`) 표시 및 목록 최상단 노출, ④ 관리자가 게임별 최대 돌파 단계(`games.max_breakthrough`, `0~12`, 기본 `6`)를 지정하고 캐릭터 아이콘 클릭 시 보유·즐겨찾기·돌파 단계(`0..max_breakthrough`)·커스텀 아이콘을 설정하며 보유 캐릭터 아이콘 좌하단에 `n★` 배지로 표시함 (Step 1 DB/Types GPT Codex + Step 2 UI Claude Sonnet)
+- [ ] R44 (`Phase 12.36`). 대시보드·게임·소비 페이지 전반의 카드 여백·테두리·타이포그래피 밀도 개선으로 한 화면 정보 가독성 향상 (담당: GitHub Copilot)
+
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)
 
 > 근거: [`docs/competitive-analysis-pickupgg.md`](competitive-analysis-pickupgg.md). 실행 순서: 현재 진행 중인 R13 UI Run(`r13-phase13-2-and-13-3-ui`)을 1순위로 완수·병합한 직후, **차기 Run 1(`R32 + R34`)** → **차기 Run 2(`R33`)** 순으로 착수함.

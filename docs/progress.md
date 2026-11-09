@@ -1,5 +1,16 @@
 # 프로젝트 진행 현황
 
+## 사용자 추가 요구사항(R41~R44) 구체화 및 신규 Run 등록: r13-4-breakthrough-guest-and-schedule-tree (2026-11-09)
+
+- **수행 주체**: Gemini 4 Argon (Orchestrator & Architect)
+- **요구사항 확정 (R41~R44)**:
+  1. **R41 (게스트 모드 공식 일정 확인)**: 비로그인 상태로 `/dashboard`·`/dashboard/games` 진입을 허용해 승인 게임의 공식 일정(`is_official = true`, `game_schedules` `anon` SELECT 정책 추가)을 열람하고, 개인화 탭에는 로그인 유도 배너를 표시함.
+  2. **R42 (게임별 일정 보기 ON AIR + 버전별 아코디언 트리)**: `/dashboard/games` 일정 모달 상단에 진행 중(`ON AIR`) 일정을 고정 노출하고, 하단에 버전(`VERSION`) 아코디언을 클릭하면 하위 `PICKUP`·`CONTENTS` 상세 일정이 펼쳐지도록 개편함.
+  3. **R43 (Phase 13.4 캐릭터 메모 제거 · 컴팩트 타일 · 즐겨찾기 금색 테두리/상단 노출 · 게임별 최대 돌파 & 좌하단 `n★` 배지)**: `docs/spec/R13_Character_Roster_and_Preset_Spec.md` §8에 영문 명세를 추가하고, `games.max_breakthrough`(`0..12`) 및 `user_characters.is_favorite`·`breakthrough_level`(`0..12`) 스키마 확장과 컴팩트 아이콘 타일 UI를 설계함.
+  4. **R44 (UI 디자인 밀도 개편)**: 대시보드·게임·소비 화면 전반의 카드 패딩·간격·타이포그래피 밀도를 정돈함.
+- **격리 Worktree 생성**: `.worktrees/r13-4-breakthrough-guest-and-schedule-tree` (브랜치: `collab/r13-4-breakthrough-guest-and-schedule-tree`, Base SHA: `6295a0e6f0bec385abe16c7f4b962840a5ea85ce`)
+- **과제 배정**: Step 1 DB/RLS/Types (**GPT Codex** `▶ READY`) $\to$ Step 2 Phase 13.4 캐릭터·관리자 UI (**Claude Sonnet** `⏳ WAITING`) $\to$ Step 3 게스트 모드·버전 아코디언 일정 트리·UI 밀도 개편 (**GitHub Copilot** `⏳ WAITING`) $\to$ Step 4 통합 리뷰 및 마감 (**Claude Opus** / **Gemini 4 Argon** `⏳ WAITING`).
+
 ## R13 UI Run iteration-02 재리뷰 및 `main` 병합 마감 (2026-11-09)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator, Step 5)임.
