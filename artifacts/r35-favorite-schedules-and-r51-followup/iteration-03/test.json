@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "run_id": "r35-favorite-schedules-and-r51-followup",
+  "iteration": 3,
+  "agent": "Gemini 4 Argon",
+  "role": "dynamic-test",
+  "base_sha": "33829c96c43a23dec9301be466b3a59ab25edb98",
+  "target_sha": "d8f13ba7e885c11494d430697fe0136783a8742a",
+  "status": "passed",
+  "created_at": "2026-11-09T17:13:00Z",
+  "finished_at": "2026-11-09T17:14:30Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Git whitespace check of Base..Target diff",
+      "command": "git diff --check 33829c96c43a23dec9301be466b3a59ab25edb98 d8f13ba7e885c11494d430697fe0136783a8742a",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint static check",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest unit test suite (56 files, 628 tests including R35-REV-004 boundary edit regression tests)",
+      "command": "npx vitest run --dir src",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "SQL unchanged since iteration-01 (13ca8fa..d8f13ba touches no sql/ files); iteration-01 PGlite results (fresh and base schema + migration twice + TESTS.sql) remain valid",
+      "command": "git diff --name-only 13ca8fa7f4f8a2b6501996ea0417f69b90987204 d8f13ba7e885c11494d430697fe0136783a8742a -- sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Local PostgreSQL 17 idempotent migration and TESTS.sql (PostgreSQL not installed on this host)",
+      "command": "psql -X -v ON_ERROR_STOP=1 -f sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql && psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": null
+    }
+  ]
+}

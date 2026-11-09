@@ -68,6 +68,18 @@ export function moveGameInOrder(currentOrderedIds: readonly string[], gameId: st
   return next
 }
 
+/** Removes this user's order and onboarding-dismissed keys (logout / account deletion on a shared device). */
+export function clearUserGameOrderStorage(userId: string | null | undefined): void {
+  if (!userId) return
+  try {
+    const storage = getStorage()
+    storage?.removeItem(`${ORDER_KEY_PREFIX}${userId}`)
+    storage?.removeItem(`${ONBOARDING_KEY_PREFIX}${userId}`)
+  } catch {
+    // Blocked storage has nothing to clear.
+  }
+}
+
 export function isGameOnboardingDismissed(userId: string | null | undefined): boolean {
   if (!userId) return false
   try {

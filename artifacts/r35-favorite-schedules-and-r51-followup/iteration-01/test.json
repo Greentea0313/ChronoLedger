@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "run_id": "r35-favorite-schedules-and-r51-followup",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "33829c96c43a23dec9301be466b3a59ab25edb98",
+  "target_sha": "13ca8fa7f4f8a2b6501996ea0417f69b90987204",
+  "status": "passed",
+  "created_at": "2026-11-10T01:50:00Z",
+  "finished_at": "2026-11-10T02:05:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "PGlite 0.2.17 with Supabase stubs (PostgreSQL 17 not installed on this host): fresh SCHEMA.sql + R35 migration twice + TESTS.sql",
+      "command": "node run.mjs sql/SCHEMA.sql sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql sql/tests/TESTS.sql 2",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "PGlite 0.2.17 with Supabase stubs: base 33829c9 SCHEMA.sql + R35 migration twice + TESTS.sql",
+      "command": "node run.mjs base_schema.sql sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql sql/tests/TESTS.sql 2",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Local PostgreSQL 17 idempotent migration and TESTS.sql",
+      "command": "psql -X -v ON_ERROR_STOP=1 -f sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql && psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": null
+    },
+    {
+      "name": "Git whitespace check of Base..Target diff",
+      "command": "git diff --check 33829c96c43a23dec9301be466b3a59ab25edb98 13ca8fa7f4f8a2b6501996ea0417f69b90987204",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint static check",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest unit test suite (620 tests)",
+      "command": "npx vitest run --dir src",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}

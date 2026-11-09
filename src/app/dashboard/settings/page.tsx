@@ -12,6 +12,7 @@ import { ProfileAvatarCard } from "@/components/profile/profile-avatar-card"
 import { ProfileNicknameCard } from "@/components/profile/profile-nickname-card"
 import { useAuth } from "@/lib/auth-context"
 import { requestAccountDeletion } from "@/lib/account-deletion"
+import { clearUserGameOrderStorage } from "@/lib/game-order-storage"
 import { loadSchedulePreference, saveSchedulePreference } from "@/lib/schedule-preferences"
 
 export default function SettingsPage() {
@@ -82,6 +83,7 @@ export default function SettingsPage() {
     try {
       const statusToken = await requestAccountDeletion(confirmationEmail)
       beginAccountDeletionTracking(statusToken)
+      clearUserGameOrderStorage(user?.id)
     } catch (cause: unknown) {
       setError(cause instanceof Error
         ? cause.message === "CONFIRMATION_REQUIRED"

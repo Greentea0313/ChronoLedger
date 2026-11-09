@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 import { setupDeepLink } from '@/lib/tauri-auth'
+import { clearUserGameOrderStorage } from '@/lib/game-order-storage'
 import {
   ACCOUNT_DELETION_STATUS_TOKEN_KEY,
   fetchAccountDeletionStatus,
@@ -64,8 +65,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     void setupDeepLink().catch((error: unknown) => console.error("딥링크 초기화 실패:", error))
 
     let authEventReceived = false
+    let lastUserId: string | null = null
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       authEventReceived = true
+      // Drop the signed-out user's local game order/onboarding keys so they do not linger on a shared device.
+      if (event === "SIGNED_OUT" && lastUserId) clearUserGameOrderStorage(lastUserId)
+      lastUserId = nextSession?.user?.id ?? null
       setSession(nextSession)
       setUser((prevUser) => {
         const nextUser = nextSession?.user ?? null
@@ -95,6 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
       if (!authEventReceived) {
+        lastUserId = session?.user?.id ?? null
         setSession(session)
         setUser(session?.user ?? null)
         if (session?.user) fetchProfile(session.user.id)

@@ -21,6 +21,9 @@ import { GameIcon } from "@/components/ui/game-icon"
 import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
+import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
+import { ExpenseModal, type ExpensePrefill } from "@/components/expense/expense-modal"
+import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getPickupAvatars, PickupAvatars } from "@/components/calendar/pickup-avatars"
 import { Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
@@ -106,15 +109,25 @@ interface CatalogGame {
   default_icon_url: string | null
 }
 
+interface FavoriteScheduleControls {
+  favoriteScheduleIds?: ReadonlySet<string>
+  /** Omit for guests: hides the star toggle, the add-expense action and the 관심 일정만 filter. */
+  onToggleFavorite?: (scheduleId: string) => void
+  onAddPlannedExpense?: (scheduleId: string) => void
+}
+
 function ScheduleTree({
   schedules: allSchedules,
   expenses,
   pickupCharacters,
+  favoriteScheduleIds,
+  onToggleFavorite,
+  onAddPlannedExpense,
 }: {
   schedules: GameScheduleRow[]
   expenses: GameExpenseRow[] | null
   pickupCharacters: PickupCharacterMap
-}) {
+} & FavoriteScheduleControls) {
   const today = getKstToday()
   // Past schedules (end_date < today) live in their own collapsed record; the trees only hold current/future ones.
   const pastSchedules = useMemo(
@@ -208,6 +221,13 @@ function ScheduleTree({
             : schedule.memo}
         </p>
       )}
+      <FavoriteScheduleActions
+        scheduleId={schedule.id}
+        title={schedule.title}
+        favoriteScheduleIds={favoriteScheduleIds}
+        onToggleFavorite={onToggleFavorite}
+        onAddPlannedExpense={onAddPlannedExpense}
+      />
     </div>
   )
   const grouped = new Set<string>()
@@ -326,6 +346,11 @@ function ScheduleDialog({
   schedules,
   expenses,
   pickupCharacters,
+  favoriteScheduleIds,
+  onToggleFavorite,
+  onAddPlannedExpense,
+  onlyFavorites,
+  onOnlyFavoritesChange,
 }: {
   selectedGame: { id: string; name: string } | null
   isSheetOpen: boolean
@@ -338,8 +363,14 @@ function ScheduleDialog({
   /** null for guests: the billing summary and per-version subtotals are hidden. */
   expenses: GameExpenseRow[] | null
   pickupCharacters: PickupCharacterMap
-}) {
+  onlyFavorites?: boolean
+  onOnlyFavoritesChange?: (next: boolean) => void
+} & FavoriteScheduleControls) {
   const today = getKstToday()
+  const visibleSchedules = useMemo(
+    () => (onlyFavorites && favoriteScheduleIds ? schedules.filter((schedule) => favoriteScheduleIds.has(schedule.id)) : schedules),
+    [favoriteScheduleIds, onlyFavorites, schedules],
+  )
   return (
     <Dialog open={isSheetOpen} onOpenChange={(open) => { setIsSheetOpen(open); if (!open) setSelectedGame(null) }}>
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto border-line bg-surface text-content">
@@ -374,12 +405,31 @@ function ScheduleDialog({
               </p>
             </section>
           )}
+          {onToggleFavorite && onOnlyFavoritesChange && (
+            <button
+              type="button"
+              aria-pressed={onlyFavorites === true}
+              onClick={() => onOnlyFavoritesChange(!onlyFavorites)}
+              className={`min-h-8 rounded-md border px-3 text-sm transition-colors duration-fast ${onlyFavorites ? "border-primary bg-primary text-primary-foreground" : "border-line bg-surface-2 text-content-secondary hover:text-content"}`}
+            >
+              관심 일정만
+            </button>
+          )}
           {isSchedulesLoading ? (
             <p className="text-sm text-content-secondary">불러오는 중...</p>
-          ) : schedules.length === 0 ? (
-            <p className="py-8 text-center text-sm text-content-secondary">표시할 일정이 없습니다.</p>
+          ) : visibleSchedules.length === 0 ? (
+            <p className="py-8 text-center text-sm text-content-secondary">
+              {onlyFavorites && schedules.length > 0 ? "관심 일정으로 등록한 일정이 없습니다." : "표시할 일정이 없습니다."}
+            </p>
           ) : (
-            <ScheduleTree schedules={schedules} expenses={expenses} pickupCharacters={pickupCharacters} />
+            <ScheduleTree
+              schedules={visibleSchedules}
+              expenses={expenses}
+              pickupCharacters={pickupCharacters}
+              favoriteScheduleIds={favoriteScheduleIds}
+              onToggleFavorite={onToggleFavorite}
+              onAddPlannedExpense={onAddPlannedExpense}
+            />
           )}
         </div>
       </DialogContent>
@@ -418,6 +468,97 @@ export default function GamesPage() {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const hasLoadedInitialRef = useRef(false)
   const userId = user?.id
+
+  // R35: favourite schedules (own rows via RLS), the 관심 일정만 filter and the favourite -> planned-expense prefill.
+  const [favoriteScheduleIds, setFavoriteScheduleIds] = useState<ReadonlySet<string>>(() => new Set())
+  const [onlyFavorites, setOnlyFavorites] = useState(false)
+  const [expensePrefill, setExpensePrefill] = useState<ExpensePrefill | null>(null)
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (!userId) {
+      setFavoriteScheduleIds(new Set())
+      setOnlyFavorites(false)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const { data, error } = await supabase.from("user_favorite_schedules").select("schedule_id")
+        if (cancelled) return
+        if (error) {
+          // 42P01 / PGRST205: migration not applied yet -> non-blocking empty set.
+          if (error.code !== "42P01" && error.code !== "PGRST205") console.error("관심 일정을 불러오지 못했습니다:", error)
+          setFavoriteScheduleIds(new Set())
+          return
+        }
+        setFavoriteScheduleIds(new Set((data ?? []).map((row: { schedule_id: string }) => row.schedule_id)))
+      } catch (cause) {
+        if (!cancelled) {
+          console.error("관심 일정을 불러오지 못했습니다:", cause)
+          setFavoriteScheduleIds(new Set())
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
+  const handleToggleFavorite = async (scheduleId: string) => {
+    if (!userId) return
+    if (isOffline()) {
+      setScheduleError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
+    const wasFavorite = favoriteScheduleIds.has(scheduleId)
+    const applyLocal = (favorite: boolean) =>
+      setFavoriteScheduleIds((prev) => {
+        const next = new Set(prev)
+        if (favorite) next.add(scheduleId)
+        else next.delete(scheduleId)
+        return next
+      })
+    setScheduleError(null)
+    applyLocal(!wasFavorite)
+    try {
+      const result = wasFavorite
+        ? await supabase.from("user_favorite_schedules").delete().eq("schedule_id", scheduleId)
+        : await supabase.from("user_favorite_schedules").insert({ user_id: userId, schedule_id: scheduleId })
+      // 23505 = already favourited in another tab/device, which is the desired end state.
+      if (result.error && result.error.code !== "23505") {
+        applyLocal(wasFavorite)
+        setScheduleError("관심 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+      }
+    } catch {
+      applyLocal(wasFavorite)
+      setScheduleError("관심 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+    }
+  }
+
+  const handleAddPlannedExpenseFromSchedule = (scheduleId: string) => {
+    const schedule = schedules.find((item) => item.id === scheduleId)
+    if (!schedule) return
+    setExpensePrefill({
+      game_id: schedule.game_id,
+      title: schedule.title,
+      target_date: schedule.start_date,
+      start_date: schedule.start_date,
+      end_date: schedule.end_date,
+      schedule_id: schedule.schedule_type === "VERSION" ? schedule.id : undefined,
+    })
+    // Close the schedule dialog first so only one modal traps focus at a time.
+    setIsSheetOpen(false)
+    setIsExpenseModalOpen(true)
+  }
+
+  const favoriteControls = {
+    favoriteScheduleIds,
+    onToggleFavorite: userId ? (id: string) => void handleToggleFavorite(id) : undefined,
+    onAddPlannedExpense: userId ? handleAddPlannedExpenseFromSchedule : undefined,
+    onlyFavorites,
+    onOnlyFavoritesChange: userId ? setOnlyFavorites : undefined,
+  }
 
   useEffect(() => {
     if (!userId) return
@@ -731,6 +872,7 @@ export default function GamesPage() {
           schedules={schedules}
           expenses={userId ? gameExpenses : null}
           pickupCharacters={pickupCharacters}
+          {...favoriteControls}
         />
       </div>
     )
@@ -1027,7 +1169,19 @@ export default function GamesPage() {
         schedules={schedules}
         expenses={userId ? gameExpenses : null}
         pickupCharacters={pickupCharacters}
+        {...favoriteControls}
       />
+      {userId && (
+        <ExpenseModal
+          open={isExpenseModalOpen}
+          onOpenChange={(open) => {
+            setIsExpenseModalOpen(open)
+            if (!open) setExpensePrefill(null)
+          }}
+          prefill={expensePrefill}
+          initialDate={getKstToday()}
+        />
+      )}
       {/* 게임별 상시 메모 작성/수정 중앙 팝업 모달 */}
       <Dialog
         open={editingGameId !== null}

@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Pencil, Check, X } from "lucide-react"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { PickupAvatars, type PickupAvatar } from "@/components/calendar/pickup-avatars"
+import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, getPeriodProgress, getTodayLocalDate } from "@/lib/calendar-utils"
 
@@ -94,6 +95,11 @@ export interface HeroSidebarProps {
   onIncomeAdded?: () => void
   /** KST today (YYYY-MM-DD) used by D-n badges and progress bars. */
   todayDate?: string
+  /** R35: the user's favourite schedule ids. Together with onToggleFavorite it enables the star toggle (omit for guests). */
+  favoriteScheduleIds?: ReadonlySet<string>
+  onToggleFavorite?: (scheduleId: string) => void
+  /** R35: shown on favourited schedules; opens the planned-expense modal prefilled from the schedule. */
+  onAddPlannedExpense?: (scheduleId: string) => void
 }
 
 export function ScheduleTitleBadges({ title }: { title: string }) {
@@ -135,6 +141,9 @@ export function HeroSidebarContent({
   registerDisabled,
   onIncomeAdded,
   todayDate,
+  favoriteScheduleIds,
+  onToggleFavorite,
+  onAddPlannedExpense,
 }: HeroSidebarProps) {
   const today = todayDate ?? getTodayLocalDate()
   const confirmed = confirmedExpense ?? 0
@@ -396,6 +405,14 @@ export function HeroSidebarContent({
                                   {item.memo}
                                 </p>
                               )}
+                              <FavoriteScheduleActions
+                                scheduleId={item.id}
+                                title={item.title}
+                                favoriteScheduleIds={favoriteScheduleIds}
+                                onToggleFavorite={onToggleFavorite}
+                                onAddPlannedExpense={onAddPlannedExpense}
+                                className="mt-1 pl-3"
+                              />
                             </li>
                           ))}
                         </ul>
@@ -417,6 +434,14 @@ export function HeroSidebarContent({
                               {group.items[0].memo}
                             </p>
                           )}
+                          <FavoriteScheduleActions
+                            scheduleId={group.items[0].id}
+                            title={group.items[0].title}
+                            favoriteScheduleIds={favoriteScheduleIds}
+                            onToggleFavorite={onToggleFavorite}
+                            onAddPlannedExpense={onAddPlannedExpense}
+                            className="relative z-10 mt-1"
+                          />
                         </>
                       )}
                     </div>

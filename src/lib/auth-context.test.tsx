@@ -87,4 +87,26 @@ describe("AuthProvider", () => {
     })
     expect(screen.getByTestId("user").textContent).toBe("signed-out")
   })
+
+  it("clears only the signed-out user's game order and onboarding keys on SIGNED_OUT", async () => {
+    window.localStorage.setItem('chronoledger:game-order:user-2', '["g1"]')
+    window.localStorage.setItem('chronoledger:game-onboarding-dismissed:user-2', '1')
+    window.localStorage.setItem('chronoledger:game-order:other', '["g2"]')
+    render(<AuthProvider><AuthState /></AuthProvider>)
+    await act(async () => { await Promise.resolve() })
+
+    await act(async () => {
+      authChange?.('SIGNED_IN', { access_token: 'token', user: { id: 'user-2' } })
+      await Promise.resolve()
+    })
+    expect(window.localStorage.getItem('chronoledger:game-order:user-2')).not.toBeNull()
+
+    await act(async () => {
+      authChange?.('SIGNED_OUT', null)
+    })
+
+    expect(window.localStorage.getItem('chronoledger:game-order:user-2')).toBeNull()
+    expect(window.localStorage.getItem('chronoledger:game-onboarding-dismissed:user-2')).toBeNull()
+    expect(window.localStorage.getItem('chronoledger:game-order:other')).toBe('["g2"]')
+  })
 })

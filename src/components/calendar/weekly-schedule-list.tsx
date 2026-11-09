@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
 import { PickupAvatars, type PickupAvatar } from "@/components/calendar/pickup-avatars"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, groupDatesByWeek } from "@/lib/calendar-utils"
@@ -42,6 +43,10 @@ interface WeeklyScheduleListProps {
   onSelectExpense?: (expenseId: string) => void
   onPrevMonth: () => void
   onNextMonth: () => void
+  /** R35 favourites (omit onToggleFavorite for guests to hide the controls). */
+  favoriteScheduleIds?: ReadonlySet<string>
+  onToggleFavorite?: (scheduleId: string) => void
+  onAddPlannedExpense?: (scheduleId: string) => void
 }
 
 interface GameScheduleGroup {
@@ -109,6 +114,9 @@ export function WeeklyScheduleList({
   onSelectExpense,
   onPrevMonth,
   onNextMonth,
+  favoriteScheduleIds,
+  onToggleFavorite,
+  onAddPlannedExpense,
 }: WeeklyScheduleListProps) {
   const weeks = groupDatesByWeek(year, month, todayDate)
   // Open state is screen-local only: the current week starts open, other weeks collapsed; user toggles override that.
@@ -215,12 +223,12 @@ export function WeeklyScheduleList({
                               // Schedules carried over from a previous week select this week's first day.
                               const targetDate = schedule.start_date >= week.weekStart ? schedule.start_date : week.weekStart
                               return (
-                                <li key={schedule.id}>
+                                <li key={schedule.id} className="flex items-center gap-1.5">
                                   <button
                                     type="button"
                                     onClick={() => onSelectDate(targetDate)}
                                     aria-pressed={selectedDate === targetDate}
-                                    className="flex w-full flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
+                                    className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
                                   >
                                     <PickupAvatars avatars={schedule.pickupAvatars} size={20} />
                                     <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="sm" />
@@ -230,6 +238,14 @@ export function WeeklyScheduleList({
                                       {getDdayLabel(todayDate, schedule.end_date)}
                                     </span>
                                   </button>
+                                  <FavoriteScheduleActions
+                                    scheduleId={schedule.id}
+                                    title={schedule.title}
+                                    favoriteScheduleIds={favoriteScheduleIds}
+                                    onToggleFavorite={onToggleFavorite}
+                                    onAddPlannedExpense={onAddPlannedExpense}
+                                    className="shrink-0 flex-wrap justify-end"
+                                  />
                                 </li>
                               )
                             })}

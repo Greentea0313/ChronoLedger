@@ -275,3 +275,28 @@ describe("WeeklyScheduleList", () => {
     expect(props.onPrevMonth).toHaveBeenCalledTimes(1)
   })
 })
+
+describe("WeeklyScheduleList favourite schedules (R35)", () => {
+  it("shows no favourite controls without a toggle handler (guests)", () => {
+    renderList()
+    expect(screen.queryByRole("button", { name: /관심 일정/ })).toBeNull()
+    expect(screen.queryByRole("button", { name: /예정 지출 추가/ })).toBeNull()
+  })
+
+  it("renders aria-pressed star toggles, calls back without selecting the date, and offers expense add only for favourites", () => {
+    const onToggleFavorite = vi.fn()
+    const onAddPlannedExpense = vi.fn()
+    const props = renderList({ favoriteScheduleIds: new Set(["s1"]), onToggleFavorite, onAddPlannedExpense })
+    const week = within(currentWeek())
+
+    expect(week.getByRole("button", { name: "픽업 A 관심 일정 해제" }).getAttribute("aria-pressed")).toBe("true")
+    expect(week.getByRole("button", { name: "버전 1.0 관심 일정 등록" }).getAttribute("aria-pressed")).toBe("false")
+    expect(week.getAllByRole("button", { name: /예정 지출 추가/ })).toHaveLength(1)
+
+    fireEvent.click(week.getByRole("button", { name: "버전 1.0 관심 일정 등록" }))
+    expect(onToggleFavorite).toHaveBeenCalledWith("s2")
+    fireEvent.click(week.getByRole("button", { name: "픽업 A 예정 지출 추가" }))
+    expect(onAddPlannedExpense).toHaveBeenCalledWith("s1")
+    expect(props.onSelectDate).not.toHaveBeenCalled()
+  })
+})

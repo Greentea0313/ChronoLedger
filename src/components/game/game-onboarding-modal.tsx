@@ -89,7 +89,10 @@ export function GameOnboardingModal({ open, userId, onClose, onSubscribed }: Gam
       const orderedIds = games.filter((game) => selectedSet.has(game.id)).map((game) => game.id)
       const { error: insertError } = await supabase
         .from("user_games")
-        .insert(orderedIds.map((game_id) => ({ user_id: userId, game_id })))
+        .upsert(
+          orderedIds.map((game_id) => ({ user_id: userId, game_id })),
+          { onConflict: "user_id,game_id", ignoreDuplicates: true },
+        )
       if (insertError) {
         setError("게임 구독에 실패했습니다. 잠시 후 다시 시도해 주세요.")
         return
