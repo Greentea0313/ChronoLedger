@@ -1,4 +1,15 @@
 # 프로젝트 진행 현황
+## dashboard-summary-dday-and-week-list iteration-01 통합 정적 리뷰 (2026-11-09)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.
+- **리뷰 범위**: Base `d56d211` ↔ Target `ab930c5`(R32 요약 스트립·D-n·진행률 바, R34 주차별 리스트 토글)임.
+- **지적 사항 (`status: findings`)**:
+  - `DSW-REV-001` (P2): 요약 스트립이 조회 월 그리드 범위로만 로드된 일정·지출에 의존해 월 이동 시 오늘/이번 주 값이 0 또는 일부 값으로 잘못 표시됨.
+  - `DSW-REV-002` (P3): 주차별 리스트 이월 일정 버튼의 `aria-pressed` 기준일과 클릭 선택일 불일치임.
+  - `DSW-REV-003` (P4): 모든 빈 주차에 `"이번 주 일정이 없습니다."` 문구가 표시됨.
+- **검증**: `tsc --noEmit`, `npm run lint`, `vitest run --dir src`(49파일/410개) 통과함. `run.json`(`target_sha` 기록), `iteration-01/review.json`, `iteration-01/test.json` 스키마 검증 통과 및 산출물 커밋(`719ccc5`) 완료함.
+- **다음 단계**: Step 3 iteration-02 수정(**Claude Sonnet** `▶ READY`) → Step 4 재리뷰·`main` 병합(**Claude Opus** / **Gemini 4 Argon** `⏳ WAITING`)임. `main` 병합은 보류 상태임.
+
 ## r13-4-breakthrough-guest-and-schedule-tree 통합 리뷰·iteration-02 수정 및 `main` 병합 마감 (2026-11-09)
 
 - **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator, Step 4) + Gemini 3.8 Flash (`gemini-flash-maker`, iteration-02 UI 수정)임.

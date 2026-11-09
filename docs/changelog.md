@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-09 (dashboard-summary-dday-and-week-list iteration-01 리뷰)
+
+- Base `d56d211` ↔ Target `ab930c5` 통합 정적 리뷰 결과 `findings` 판정함(`DSW-REV-001` P2 요약 스트립 조회 월 데이터 의존, `DSW-REV-002` P3 `aria-pressed` 불일치, `DSW-REV-003` P4 빈 주차 문구).
+- `artifacts/dashboard-summary-dday-and-week-list/` `run.json`(`target_sha`), `iteration-01/{review,test}.json` 작성·스키마 검증 후 워크트리 커밋(`719ccc5`)함. `main` 병합은 iteration-02 수정 후로 보류함.
+
 ## 2026-11-09 (Phase 12.37 — R32 요약 스트립·D-n, R34 주차별 리스트)
 
 - `calendar-utils.ts`에 `getDdayLabel`(D-Day/D-n/D+n), `getPeriodProgress`(0~100%, 단일일·경계 안전), `groupDatesByWeek`(일요일 시작 주차, 이번 주 표시) 헬퍼를 추가함.

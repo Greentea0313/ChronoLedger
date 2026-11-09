@@ -34,7 +34,7 @@
 - **Run ID**: `dashboard-summary-dday-and-week-list` *(2026-11-09, `Phase 12.37` R32 대시보드 오늘/이번 주 요약 카드 및 사이드바 일정·예정 지출 `D-n`·기간 진행률 바 + R34 대시보드 월간 캘린더 ↔ 주차별 리스트 뷰 토글)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/dashboard-summary-dday-and-week-list` (브랜치: `collab/dashboard-summary-dday-and-week-list`)
-- **리뷰 비교 범위**: Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Target `(Maker 커밋 후 기록)` *(Step 2 Orchestrator/Reviewer가 manifest `target_sha` 기록)*
+- **리뷰 비교 범위**: iteration-01 Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Target `ab930c5baa8b2211e25aeae2ceb725c194a6a9dc` (manifest `target_sha` 기록 완료, 산출물 커밋 `719ccc5`, `status: findings` — P2 1건·P3 1건·P4 1건). iteration-02 Base `d56d211` ↔ Target `(Step 3 Maker 커밋 후 기록)`
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — `Phase 12.37 (R32 & R34)` 대시보드 오늘/이번 주 요약 카드, 일정·예정 지출 `D-n`·진행률 바, 주차별 리스트 뷰 토글 및 단위 테스트 구현 (Claude Sonnet)**:
      - **대상 파일 (`.worktrees/dashboard-summary-dday-and-week-list` 내부)**: `src/lib/calendar-utils.ts`, `src/lib/calendar-utils.test.ts`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/weekly-schedule-list.tsx`(신규 허용), `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `docs/to-do.md`
@@ -55,11 +55,22 @@
          - `calendar-utils.test.ts`, `hero-sidebar.test.tsx`, `src/app/dashboard/page.test.tsx`에 D-day/진행률 계산, 오늘/이번 주 요약 카드 렌더링, 일정·예정 지출 `D-n` 및 진행률 바 표시, `[주차별 리스트]` 뷰 토글 및 이번 주 강조·소계 표시 단위 테스트를 추가하고 `docs/to-do.md`의 `R32`·`R34` 상태를 갱신함.
   2. **Step 2 — 통합 정적 코드 리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
      - Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Step 1 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, `main` 병합 및 문서 마감.
+     - **결과 (iteration-01)**: `artifacts/dashboard-summary-dday-and-week-list/iteration-01/review.json` `status: findings` 판정으로 `main` 병합 보류, Step 3 수정 iteration 등록함.
+  3. **Step 3 — iteration-02 리뷰 지적 수정 (Claude Sonnet)**:
+     - **대상 파일 (`.worktrees/dashboard-summary-dday-and-week-list` 내부)**: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`
+     - **`DSW-REV-001` (P2, 필수)**: 요약 스트립(`summary`, `page.tsx` 658행)이 조회 월 그리드 범위(`getGridRange(year, month)`)로만 로드된 `subscribedSchedules`·`expenses`에 의존함 → 이전/다음 달 이동 시 오늘이 포함된 주가 그리드 밖이면 `오늘 시작/마감`, `이번 주 진행`, `이번 주 예정 지출`이 0 또는 일부 값으로 잘못 표시됨. 조회 월과 무관하게 KST 오늘·이번 주(일요일 시작) 기준 값을 유지하도록 수정함 (권장: `load`에서 이번 주 범위 일정·`PLANNED` 지출(`end_date ?? target_date`)을 별도 조회해 요약 전용 state로 보관하고 공식/비공식 표시 설정·게임 필터 규칙 동일 적용). 월 이동 후에도 요약 값이 유지되는 페이지 테스트를 추가함.
+     - **`DSW-REV-002` (P3)**: `weekly-schedule-list.tsx` 133행 `aria-pressed`가 `schedule.start_date` 기준이나 클릭 시 이전 주 이월 일정은 `week.weekStart`를 선택함 → 선택일 계산을 하나로 통일해 `onClick`과 `aria-pressed`에 같이 사용함.
+     - **`DSW-REV-003` (P4)**: 125행 빈 주차 문구 `"이번 주 일정이 없습니다."`가 모든 주차에 표시됨 → `"이 주에는 일정이 없습니다."` 등 중립 문구로 변경함.
+     - **검증**: `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 워크트리 커밋, Run 블록과 Step 3 행에 Target SHA 기록 후 Step 4를 `▶ READY`로 변경함.
+  4. **Step 4 — iteration-02 재리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
+     - Base `d56d211` ↔ Step 3 Target SHA 재리뷰(`iteration-02/review.json`·`test.json`), `run.json` `target_sha`·`status: completed` 갱신, 스키마 검증, `main` 병합 및 문서 마감.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: ab930c5baa8b2211e25aeae2ceb725c194a6a9dc)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Dashboard Summary, D-Day & Weekly List UI)` | `Phase 12.37 (R32 & R34)`: `.worktrees/dashboard-summary-dday-and-week-list`에서 대시보드 오늘/이번 주 요약 카드, 사이드바 일정·예정 지출 `D-n` 배지 및 진행률 바, 월간 캘린더 ↔ 주차별 리스트 뷰 토글 및 단위 테스트 구현 | `✅ ab930c5: calendar-utils D-day/진행률/주차 헬퍼, 대시보드 요약 스트립, 사이드바·드로어 D-n 배지·진행률 바, 주차별 리스트 토글(weekly-schedule-list.tsx) 구현. tsc/lint 통과, Vitest 49파일/410개 통과.` |
-| **2** | **`▶ READY`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: ab930c5baa8b2211e25aeae2ceb725c194a6a9dc` |
+| **2** | **`✅ DONE (iteration-01 리뷰 findings, 산출물 SHA: 719ccc5)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d56d211bb9d75ba9016e885dc646c201cdca0ed6` ↔ Target `ab930c5` 통합 정적 리뷰(`review.json`·`test.json`), `run.json` `target_sha` 기록 | `✅ 719ccc5: review.json findings(DSW-REV-001 P2 요약 스트립 조회 월 의존, DSW-REV-002 P3 aria-pressed 불일치, DSW-REV-003 P4 빈 주차 문구). tsc/lint 통과, Vitest 49파일/410개 통과. 스키마 검증 3종 통과. main 병합 보류.` |
+| **3** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (iteration-02 Review Fix)` | `.worktrees/dashboard-summary-dday-and-week-list`에서 수용 기준 Step 3(`DSW-REV-001`~`003`) 수정 및 테스트 보강. 허용 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx` | `▶ 대기: iteration-01 review.json 참조` |
+| **4** | **`⏳ WAITING`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `d56d211` ↔ Step 3 Target SHA iteration-02 재리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 3 완료 후 진행` |
 
 > **✅ 운영 DB 마이그레이션 적용 완료 (`R45`, 2026-11-09)**: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_4_BREAKTHROUGH_AND_GUEST_RLS.sql` 적용 및 확인이 완료됨.
 
