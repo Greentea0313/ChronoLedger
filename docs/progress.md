@@ -1,4 +1,16 @@
 # 프로젝트 진행 현황
+## r52-character-template-and-pickup-avatar iteration-02 재리뷰 및 `main` 병합 마감 (R52·R53, 2026-11-09)
+
+- **수행 주체**: Gemini 4 Argon (Reviewer & Orchestrator, Step 7 — Claude Opus 1순위 대체)임.
+- **iteration-02 재리뷰 결과 (`0c09a20` $\leftrightarrow$ `634d481`)**:
+  - `R52-REV-001`~`004` 전원 해소 및 명세 `§8 Amendment A1`(D-01~D-08, U-01~U-08) 반영 확인하여 **`clean`(P1~P4 지적 0건)** 판정함:
+    - DB/RLS/RPC(`51a686f`): `game_characters.is_pickup_only` 추가 및 아이콘 필수 조건 완화, 보유·프리셋·수정 요청 대상의 정식 캐릭터 검증 트리거, `pickup_image_url` 폐기 및 `schedule_requests.pickup_new_characters` JSONB 검증, `approve_schedule_request` RPC의 신규 제안 캐릭터 자동 등록·이름 재사용·순서 유지 연결·8명 초과 원자 롤백, `anon` 열 단위 GRANT(`is_pickup_only` 포함) 및 개인·요청 테이블 4종 명시적 `REVOKE`, `TESTS.sql` 삭제 대기 미적용 픽스처 분리 완료함.
+    - UI(`634d481`): `/admin`·`/admin/requests` 모바일 탭 가로 스크롤 및 대기열 제목 통일, 주차별 리스트 게임 그룹 접기/펼치기(이번 주 기본 펼침, 헤더 20px 픽업 아바타 최대 3개) 및 하단 `지출` 섹션 단독 접기/펼치기, 관리자 픽업 피커(정식+픽업 전용) 및 `[+ 새 픽업 캐릭터]` 인라인 등록, 캐릭터 관리 `픽업 전용` 필터·배지·정식 승격, 요청 모달 새 캐릭터 제안 및 승인 RPC 전용 제한(`PGRST202`/`42883`만 폴백), `/dashboard/characters` 정식 캐릭터 한정 및 이니셜 아바타 완료함.
+- **검증 및 병합**:
+  - 로컬 PostgreSQL 17 임시 인스턴스(업그레이드 스키마 및 신규 스키마)에서 `MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql` 2회 연속 적용 및 `sql/tests/TESTS.sql` **34개 PASS 전원 통과** 확인함.
+  - `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src`(**55개 테스트 파일, 589개 테스트 통과**) 및 `run.json`·`iteration-02/review.json`·`iteration-02/test.json` 스키마 검증 완료 후 산출물 커밋(`7f3e6d9`) 및 `main` 병합(`8a5b478`) 완료함.
+- **다음 단계**: 배포 전 필수 운영 마이그레이션 **`R53`(`MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql`)**을 등록하고 사용자에게 SQL Editor 적용 및 확인 쿼리를 안내함.
+
 ## R52 Amendment A1 DB/RLS/RPC Maker 완료 (Step 5, 2026-11-09)
 
 - **커밋**: `.worktrees/r52-character-template-and-pickup-avatar` `51a686f49a884bf720deddef184b95d83d8f5756`임.

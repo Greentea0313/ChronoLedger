@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-09 (r52-character-template-and-pickup-avatar iteration-02 재리뷰 및 `main` 병합 마감 — R52·R53)
+
+- Base `0c09a20` ↔ Target `634d481` iteration-02 통합 재리뷰 결과 `R52-REV-001`~`004` 해소 및 Amendment A1(D-01~D-08, U-01~U-08) 반영을 확인하여 `clean`(지적 0건) 판정함(`artifacts/r52-character-template-and-pickup-avatar/iteration-02/review.json`).
+- 로컬 PostgreSQL 17 업그레이드·신규 스키마에서 R52 마이그레이션 2회 재적용 및 `sql/tests/TESTS.sql` 34 PASS, `tsc --noEmit`, `npm run lint`, `vitest run --dir src`(55파일/589개 테스트) 통과 후 산출물 커밋(`7f3e6d9`) 및 `main` 병합(`8a5b478`)을 완료함.
+- 배포 전 필수 운영 마이그레이션 체크리스트 `R53`(`MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql`)을 `docs/to-do.md` 및 `docs/handoff.md`에 등록함.
+
 ## 2026-11-09 (Phase 13.5-B iteration-02 — R52 Amendment A1 UI)
 
 - `/admin`·`/admin/requests`: 탭 목록을 모바일에서 가로 스크롤·줄바꿈 없음으로 바꾸고 `게임 필터:` 라벨을 한 줄로 유지함. 요청 3개 탭 모두 `게임/일정/캐릭터 요청 대기열 (n)` 제목을 표시함.

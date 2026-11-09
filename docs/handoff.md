@@ -31,64 +31,17 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `r52-character-template-and-pickup-avatar` *(2026-11-09, `Phase 13.5` R52 게임별 캐릭터 시스템 템플릿 `character_label`/`character_rank`/`character_class1·2` 기반 동적 캐릭터 테이블·폼 재구성, 캐릭터 등록 게임 전용 로스터/프리셋 제한, 및 `PICKUP` 일정 캐릭터 이미지 연동)*
-- **Orchestrator**: Gemini 4 Argon
-- **Worktree 경로**: `.worktrees/r52-character-template-and-pickup-avatar` (브랜치: `collab/r52-character-template-and-pickup-avatar`, manifest `1abbb88`)
-- **리뷰 비교 범위**: iteration-01 Base `0c09a20392f4aa42fd39c118a590f5b6eb801968` ↔ Target `4ff5295d378c84a43306c69f1dec62ccd902862c` (manifest `target_sha` 기록, 산출물 커밋 `7a2b1e5`, `findings` P2 2건·P3 1건·P4 1건, `test.json` `failed`). iteration-02 Base `0c09a20` ↔ Target `(Step 6 Maker 커밋 후 기록)` *(명세 Amendment A1 `af39b72` 반영)*
-- **명세서 권위 문서**: [`docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`](spec/R52_Character_Template_and_Pickup_Avatar_Spec.md)
-- **Opus 승격 사유**: ① DB 스키마·RLS(`game_characters` `anon` SELECT)·`SECURITY DEFINER` RPC(`approve_schedule_request`)·CHECK 제약 조건 변경 포함, ③ 관리자/사용자 캐릭터·일정·캘린더 다중 모듈 연동 설계 리뷰 및 통합 리뷰 해당.
-- **수용 기준 (Acceptance Criteria)**:
-  1. **Step 1 — `Phase 13.5-Spec (R52)` 기능 명세서 아키텍처·보안·정합성 심층 리뷰 (Claude Opus)**:
-     - **대상 파일**: `.worktrees/r52-character-template-and-pickup-avatar/docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` 및 루트 `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` (양쪽 동일하게 유지 후 워크트리 커밋), `docs/handoff.md`
-     - **검토 요구사항**:
-       - ① `games.classification_schema` 확장(`character_label` 선택 문자열 `1~20자`, `rarities` `character_rank`, `axes` 최대 2개 `character_class1`·`character_class2`)과 `is_valid_classification_schema(jsonb)` 하위 호환성·무결성 검증.
-       - ② `game_schedules`·`schedule_requests`의 `pickup_character_ids UUID[]` 및 `pickup_image_url TEXT` 제약 조건, `approve_schedule_request` RPC의 `ADD`/`EDIT` 승인 시 원자적 복사·초기화 규칙, 캐릭터 삭제 시 `pickup_character_ids` 참조 안전성, 미적용 마이그레이션 환경에서의 클라이언트 폴백 전략 점검.
-       - ③ 비로그인 게스트 모드(`anon`)에서 공식 `PICKUP` 일정의 캐릭터 아바타 표시를 위한 `public.game_characters` `anon` `SELECT` 허용의 보안 경계 점검(공용 카탈로그 한정, `user_characters`·`character_requests` 비노출 유지).
-       - ④ 리뷰 결과 및 규범적 보완 결정(Normative Resolutions)을 `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` 하단 `## 7. Claude Opus 아키텍처 및 보안 리뷰 결과` 섹션으로 작성하고 문서 상태를 `APPROVED`로 갱신한 뒤, `.worktrees/r52-character-template-and-pickup-avatar`에 커밋하고 **Step 2(`GPT Codex`)를 `▶ READY`로 전환**함.
-  2. **Step 2 — `Phase 13.5-A (R52 DB/RLS/RPC/Types)` DB 마이그레이션 및 타입·유틸리티 구현 (GPT Codex)**:
-     - **대상 파일 (`.worktrees/r52-character-template-and-pickup-avatar` 내부)**: `sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql`(신규), `sql/SCHEMA.sql`, `sql/tests/TESTS.sql`, `sql/README.md`, `src/types/database.types.ts`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`
-     - **Step 1 리뷰 반영 (필수)**: 명세 `§7.2` NR-01(anon 열 단위 GRANT), NR-02(픽업 캐릭터 배열 검증 트리거), NR-03(모드 상호 배타 CHECK), NR-04(`data:image/webp` 전용·30,000자), NR-05(캐릭터 삭제 시 배열 정리), NR-06(승인 RPC 존재 캐릭터만 순서 유지 복사), NR-07(검증 함수 교체 전 위반 게임 사전 점검·중단), NR-08(축 키 보존), NR-09 헬퍼(`isCharacterTemplateActive`, `isCharacterSupported`)와 `§7.3` SQL 회귀 시나리오 1~7을 모두 구현함.
-     - **구현 요구사항**: Step 1에서 `Claude Opus`가 `APPROVED`한 `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`(특히 `§2` 및 `§7` 규범 결정)를 준수하여 마이그레이션·스키마·스모크 테스트·타입·헬퍼(`character_label` 기본값 `"캐릭터"` 정규화, 2축 검증, 템플릿 활성화 여부 판정 등)를 구현하고 워크트리에 커밋한 뒤 **Step 3(`Claude Sonnet`)을 `▶ READY`로 전환**함.
-  3. **Step 3 — `Phase 13.5-B (R52 UI & Tests)` 관리자 동적 캐릭터 템플릿·테이블, 지원 게임 전용 로스터, 픽업 캐릭터 아바타 UI 구현 (Claude Sonnet)**:
-     - **대상 파일 (`.worktrees/r52-character-template-and-pickup-avatar` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/app/dashboard/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/lib/image-resizer.ts`, `src/lib/image-resizer.test.ts`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`
-     - **Step 1 리뷰 반영 (필수)**: NR-04(픽업 이미지 96×96 WebP, `image-resizer.ts` 출력 크기 인자 추가·기본 256 유지), NR-09(판정 헬퍼만 사용), NR-10(아바타는 `default_icon_url`만, 참조 ID만 명시 컬럼 지연 조회·실패 비차단), NR-11(미적용 마이그레이션 내성·원본 기준 페이로드·`PICKUP` 외 전환 시 초기화·오류 안내)을 따름. 게스트 조회는 명시 컬럼만 사용함(NR-01).
-     - **구현 요구사항**: `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` `§3 ~ §5` 및 `§7` 규범 결정을 준수하여 구현 및 단위 테스트 통과 후 워크트리에 커밋하고 **Step 4(`Claude Opus` / `Gemini 4 Argon`)를 `▶ READY`로 전환**함.
-  4. **Step 4 — 통합 정적 코드 리뷰 및 Run 마감 (Claude Opus / Gemini 4 Argon)**:
-     - Base `0c09a20392f4aa42fd39c118a590f5b6eb801968` ↔ Step 3 Target SHA 통합 정적 코드 리뷰(`review.json`), `test.json`, `run.json` 스키마 검증, 로컬 PostgreSQL 마이그레이션·`TESTS.sql` 검증, `main` 병합 및 운영 마이그레이션 체크리스트 등록.
-     - **결과 (iteration-01)**: `review.json` `findings`, `test.json` `failed`(로컬 PG `TESTS.sql` 1576행 중단)로 `main` 병합 보류함. SQL 로직은 스크래치 보정 시 33개 PASS로 확인됨.
-  5. **Step 5 — iteration-02 DB 수정 및 Amendment A1 반영 (GPT Codex)**:
-     - **권위 문서**: 명세 `§8 Amendment A1`(워크트리 `af39b72`) D-01~D-08과 `§8.4` 시나리오 8~12, 그리고 iteration-01 지적 `R52-REV-001`·`R52-REV-002`.
-     - **대상 파일 (`.worktrees/r52-character-template-and-pickup-avatar` 내부)**: `sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql`, `sql/SCHEMA.sql`, `sql/tests/TESTS.sql`, `sql/README.md`, `src/types/database.types.ts`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`
-     - **구현 요구사항**:
-       - ① `game_characters.is_pickup_only` 추가, 아이콘 필수 조건 완화(`default_icon_url IS NOT NULL OR is_pickup_only`), 보유·프리셋·캐릭터 수정 요청의 픽업 전용 ID 거부, 참조 있는 정식 캐릭터의 픽업 전용 전환 거부(D-01·D-02).
-       - ② `pickup_image_url` 컬럼과 관련 CHECK 제거(D-03), `schedule_requests.pickup_new_characters` + 검증 함수·합계 8명 CHECK 추가(D-04).
-       - ③ `approve_schedule_request`에 제안 캐릭터 등록·이름 재사용·순서 유지 연결·상한 초과 롤백 추가(D-05), 기존 NR-06 규칙 유지.
-       - ④ `anon` 열 권한에 `is_pickup_only` 추가 및 개인·요청 테이블 4개 명시적 `REVOKE`(D-07, `R52-REV-002`).
-       - ⑤ `TESTS.sql` R52 블록을 삭제 대기 사용자가 아닌 픽스처로 바꾸고 음성 검증을 의도한 오류만 잡도록 수정(`R52-REV-001`), §7.3 1~7 중 `pickup_image_url` 항목 제거 후 §8.4 8~12 추가.
-       - ⑥ `database.types.ts`(`is_pickup_only`, `pickup_new_characters`, `pickup_image_url` 제거)와 `character-utils.ts`(D-06 판정 헬퍼: 정식 캐릭터 수 기준, 제안 항목 검증 헬퍼) 및 단위 테스트 갱신.
-     - **검증**: 임시 PostgreSQL(Supabase 기본 권한 스텁 포함) 신규·기존 스키마에서 R52 마이그레이션 2회 적용 및 `TESTS.sql` 전체 PASS, `npm run lint`, Vitest 55파일/547개 통과함. `tsc`는 Step 6 대상인 `admin/page.tsx` nullable 아이콘과 `admin/requests/page.tsx` 폐기 필드 참조 3곳에서만 실패함. Step 6에서 수정 후 전체 통과 확인함.
-  6. **Step 6 — iteration-02 UI 수정 및 Amendment A1 반영 (Claude Sonnet)**:
-     - **권위 문서**: 명세 `§8.3` U-01~U-08, iteration-01 지적 `R52-REV-003`·`R52-REV-004`.
-     - **대상 파일 (`.worktrees/r52-character-template-and-pickup-avatar` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/components/calendar/pickup-avatars.tsx`, `src/components/calendar/pickup-avatars.test.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/games/page.tsx`, `src/lib/image-resizer.ts`, `src/lib/image-resizer.test.ts`, `docs/to-do.md`
-     - **구현 요구사항**:
-       - ① 관리자·요청 관리 탭 모바일 겹침 해소, `게임 필터:` 한 줄 유지(U-01), 요청 3개 탭 대기열 제목 통일(U-02).
-       - ② 주차별 리스트 게임 그룹 접기/펼치기(`aria-expanded`, 이번 주 기본 펼침), 그룹 헤더 아바타 최대 3개 20px, 하위 행 아바타 20px, **하단 `지출` 섹션 단독 접기/펼치기**(머리에 `지출 n건 · 예정 x원 · 확정 y원`, 기본 상태는 게임 그룹과 동일, 게스트 미표시, 지출을 게임 그룹에 섞지 않음)(U-03).
-       - ③ 관리자 픽업 피커(정식 + 픽업 전용, 최대 8명) + `[+ 새 픽업 캐릭터]` 인라인 등록(U-04), 캐릭터 관리 `픽업 전용` 필터·배지·승격(U-05), `pickup_image_url` 관련 UI·폴백 필드 제거.
-       - ④ 사용자 요청 모달 캐릭터 선택 + 새 캐릭터 제안(이름 필수·이미지 선택·150,000자 안내·합계 8명)(U-06), 관리자 요청 카드의 제안 미리보기와 승인 폴백 제한(`PGRST202`/`42883`만, U-07·`R52-REV-003`).
-       - ⑤ `/dashboard/characters` 정식 캐릭터만 표시, 아이콘 없는 캐릭터 이니셜 아바타(U-08), 컬럼 부재 폴백(D-08), 대용량 Data URL 크기 안내(`R52-REV-004`).
-     - **검증**: 위 대상 테스트 보강 후 `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과, 커밋하고 Run 블록·Step 6 행에 Target SHA를 기록한 뒤 Step 7을 `▶ READY`로 전환함.
-  7. **Step 7 — iteration-02 재리뷰 및 Run 마감 (Claude Opus)**:
-     - Base `0c09a20` ↔ Step 6 Target SHA 재리뷰(`iteration-02/review.json`·`test.json`, SQL·RLS·`SECURITY DEFINER` 포함), 로컬 PG 재검증, `run.json` 마감, `main` 병합, 운영 마이그레이션 체크리스트(**마이그레이션 먼저 적용 후 배포**) 등록 및 문서 마감.
+- **현재 상태**: 활성 기능 Run `r52-character-template-and-pickup-avatar` (`Phase 13.5`: `R52`) iteration-02 재리뷰 `clean` 및 `main` 병합(`8a5b478`) 완료됨.
+- **🚨 운영 배포 전 필수 선행 과제 (`R53` — 사용자 수동)**:
+  - **반드시 `R52` 포함 `main` 빌드를 배포(push)하기 전에** 운영 Supabase SQL Editor에서 [`sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql`](../sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql)을 실행하고 [`sql/README.md`](../sql/README.md) B표 확인 쿼리로 반영 여부를 검증해야 함.
+- **차기 기능 후보 대기**:
+  - `R35` (관심 일정 즐겨찾기 `user_favorite_schedules` DB/RLS + `[+ 예정 지출 추가]` 모달 프리필 연결)
+  - `R51` (`R38` 리뷰 후속: `GameOnboardingModal` `upsert(..., { ignoreDuplicates: true })` 및 로그아웃·탈퇴 시 `localStorage` 키 정리)
+  - `A1` (`R50` 인증 보안 설정 점검 — 사용자가 별도로 요청할 때에만 `▶ READY` 전환)
 
-| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| 순서 | 상태 | 담당 | 역할 | 수행 과제 | 비고 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: f1b3298e309fd00ee7d185838d0167e99a2ec109)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect & Security Reviewer (Spec)` | `Phase 13.5-Spec (R52)`: `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md` 아키텍처·RLS·RPC·제약 조건 심층 리뷰, `§7` 규범 결정 추가 및 `APPROVED` 확정 | `✅ f1b3298: 조건부 APPROVED. 지적 10건(P2 4: anon created_by 노출, 배열 FK 부재, 검증 함수 기존 행 미재검증, 외부 URL·대용량 픽업 이미지 / P3 5 / P4 1) → NR-01~NR-12 규범 결정 및 §7.3 SQL 회귀 시나리오 7종 확정. Run 블록 대상 경로 오기 2건 정정. 루트·워크트리 명세 동일 내용 동기화.` |
-| **2** | **`✅ DONE (SHA: 422f8ab45b22ce32a8ecf95db854e17b06e608ce)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (DB/RLS/RPC/Types & Test)` | `Phase 13.5-A (R52)`: `.worktrees/r52-character-template-and-pickup-avatar`에서 `MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql`, `SCHEMA.sql`, `sql/tests/TESTS.sql`, `README.md`, `database.types.ts`, `character-utils.ts` 구현 | `✅ 422f8ab: 신규·업그레이드 스키마에서 R52 migration 2회 재적용 및 TESTS.sql 통과, tsc/lint 통과, Vitest 54파일/488개 통과함.` |
-| **3** | **`✅ DONE (SHA: 4ff5295d378c84a43306c69f1dec62ccd902862c)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Dynamic Template & Pickup Avatar UI)` | `Phase 13.5-B (R52)`: `.worktrees/r52-character-template-and-pickup-avatar`에서 관리자 동적 캐릭터 템플릿/테이블, `/dashboard/characters` 지원 게임 필터링, `PICKUP` 일정 캐릭터 아바타 연동 및 테스트 구현 | `✅ 4ff5295: 이미지 리사이저 출력 크기 인자, 관리자 템플릿·동적 테이블·픽업 캐릭터/이미지 폼, 요청 모달·요청 승인 화면 픽업 연동, /dashboard/characters 지원 게임 한정·character_label, 픽업 아바타(사이드바·주차 리스트·게임 트리). tsc/lint 통과, Vitest 55파일/547개 통과. 로컬 PG 검증은 Step 4 범위.` |
-| **4** | **`✅ DONE (iteration-01 리뷰 findings, 산출물 SHA: 7a2b1e5)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0c09a20` ↔ Target `4ff5295` 통합 정적 리뷰(`review.json`·`test.json`), 로컬 PG `TESTS.sql` 검증, `run.json` `target_sha` 기록 | `✅ 7a2b1e5: review findings(R52-REV-001 P2 TESTS.sql 삭제 대기 픽스처로 1576행 중단·일부 음성 검증 오통과, REV-002 P2 personal/request 테이블 anon REVOKE 누락, REV-003 P3 승인 폴백 전 오류 적용, REV-004 P4 대용량 Data URL 우회). 마이그레이션 2회 적용은 업그레이드·신규 모두 통과, TESTS.sql은 두 DB 모두 failed(보정 시 33 PASS). 게임 삭제 cascade 정상. tsc/lint 통과, Vitest 55파일/547개 통과. 스키마 검증 통과. main 병합 보류.` |
-| **5** | **`✅ DONE (SHA: 51a686f49a884bf720deddef184b95d83d8f5756)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (DB/RLS/RPC/Types & SQL Test)` | 수용 기준 Step 5: Amendment A1 DB(D-01~D-08) + `R52-REV-001`·`002` 수정. 허용 파일: R52 마이그레이션, `SCHEMA.sql`, `sql/tests/TESTS.sql`, `sql/README.md`, `database.types.ts`, `character-utils.ts`·테스트 | `✅ 51a686f: pickup-only 구분·참조 경계·신규 제안 JSON 검증·승인 RPC 원자 연결·anon 명시 REVOKE 반영. 삭제 대기 픽스처 및 의도된 SQLSTATE 검증, 프리셋 참조·합계 9명·초과 승인 롤백 테스트 추가. 신규/기존 임시 PG에서 migration 2회 및 TESTS.sql 전체 통과, lint 통과, Vitest 55파일/547개 통과. tsc는 Step 6 UI 3곳(nullable 아이콘 1, 폐기 필드 2) 오류가 남아 Step 6에서 보정해야 함.` |
-| **6** | **`✅ DONE (SHA: 634d481f11c5bd4b456180abacd10c6076be0d2a)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Admin, Request & Weekly List UI)` | 수용 기준 Step 6: Amendment A1 UI(U-01~U-08) + `R52-REV-003`·`004` 수정 및 테스트. 추가 확인: `admin/page.tsx` nullable `default_icon_url` 처리, `admin/requests/page.tsx`의 `pickup_image_url` payload 제거 후 `tsc` 재실행 | `✅ 634d481: U-01~U-08·R52-REV-003·004 반영 — 탭 가로 스크롤, 요청 3탭 대기열 제목, 주차 리스트 게임 그룹·지출 섹션 접기, 픽업 피커(정식+픽업 전용)와 새 픽업 캐릭터 인라인 등록, 캐릭터 관리 픽업 전용 필터·배지·승격, 요청 모달 새 캐릭터 제안, 요청 승인 RPC 전용(PGRST202/42883만 폴백), /dashboard/characters 정식 캐릭터만, 이니셜 아바타, 이미지 용량 안내. tsc/lint 통과, Vitest 55파일/589개 통과.` |
-| **7** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0c09a20` ↔ Step 6 Target SHA iteration-02 재리뷰, 로컬 PG 재검증, `run.json` 마감, `main` 병합, 운영 마이그레이션 체크리스트 등록 | `▶ Step 6 완료. Target SHA: 634d481f11c5bd4b456180abacd10c6076be0d2a` |
+| **운영** | **`▶ READY (사용자 수동)`** | **사용자** | `Owner (Supabase SQL Editor)` | `R53`: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql` 실행 후 아래 확인 쿼리 검증 (배포 전 필수) | `⏳ 확인 후 차기 Run 착수` |
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
@@ -114,6 +67,25 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **A1** | **`📝 AGENDA`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Security Reviewer (Read-only)` | 위 수용 기준 1~4. 허용 파일: `docs/auth-security-review.md`(신규), `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md`, `docs/handoff.md` | `📝 등록됨: 사용자가 별도 요청할 때만 ▶ READY로 전환하여 착수함` |
 | **A2** | **`⏳ WAITING`** | **사용자** | `Owner (Dashboard Confirmation)` | A1 체크리스트 기준 Supabase 대시보드 설정 확인·변경 및 결과 회신 | `⏳ A1 완료 후 진행` |
+
+### 🗂️ 이전 Run 기록 (완료): r52-character-template-and-pickup-avatar
+
+- **Run ID**: `r52-character-template-and-pickup-avatar` *(2026-11-09, `Phase 13.5` R52 게임별 캐릭터 시스템 템플릿 `character_label`/`character_rank`/`character_class1·2` 기반 동적 캐릭터 테이블·폼 재구성, 캐릭터 등록 게임 전용 로스터/프리셋 제한, 픽업 전용 캐릭터 `is_pickup_only`·신규 캐릭터 제안 `pickup_new_characters` 및 `PICKUP` 일정 캐릭터 아바타 연동)*
+- **Orchestrator**: Gemini 4 Argon *(Step 1·4: Claude Opus, Step 7 재리뷰·마감: Gemini 4 Argon)*
+- **Worktree 경로**: `.worktrees/r52-character-template-and-pickup-avatar` (브랜치: `collab/r52-character-template-and-pickup-avatar`, manifest `1abbb88`)
+- **리뷰 비교 범위**:
+  - iteration-01: Base `0c09a20392f4aa42fd39c118a590f5b6eb801968` ↔ Target `4ff5295d378c84a43306c69f1dec62ccd902862c` (산출물 `7a2b1e5`, `findings` P2 2건·P3 1건·P4 1건)
+  - iteration-02: Base `0c09a20392f4aa42fd39c118a590f5b6eb801968` ↔ Target `634d481f11c5bd4b456180abacd10c6076be0d2a` (산출물 `7f3e6d9`, `clean` 지적 0건, **`main` 병합 `8a5b478` 완료**)
+
+| 순서 | 상태 | 담당 모델 | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: f1b3298)`** | **Claude Opus** | `Architect & Security Reviewer (Spec)` | `R52_Character_Template_and_Pickup_Avatar_Spec.md` `§7` NR-01~NR-12 확정 및 `APPROVED` |
+| **2** | **`✅ DONE (SHA: 422f8ab)`** | **GPT Codex** | `Maker (DB/RLS/RPC/Types)` | iteration-01 R52 마이그레이션, `SCHEMA.sql`, `TESTS.sql`, `database.types.ts`, `character-utils.ts` |
+| **3** | **`✅ DONE (SHA: 4ff5295)`** | **Claude Sonnet** | `Maker (Dynamic Template & Pickup Avatar UI)` | iteration-01 관리자 동적 템플릿·테이블, `/dashboard/characters` 지원 게임 필터링, 픽업 아바타 UI |
+| **4** | **`✅ DONE (SHA: 7a2b1e5)`** | **Claude Opus** | `Reviewer & Orchestrator` | iteration-01 리뷰(`R52-REV-001`~`004`) 및 명세 `§8 Amendment A1`(`af39b72`, `84b2ae8`) 확정 |
+| **5** | **`✅ DONE (SHA: 51a686f)`** | **GPT Codex** | `Maker (DB/RLS/RPC/Types & SQL Test)` | iteration-02 Amendment A1(D-01~D-08) + `R52-REV-001`·`002` 해소, `TESTS.sql` 통과 |
+| **6** | **`✅ DONE (SHA: 634d481)`** | **Claude Sonnet** | `Maker (Admin, Request & Weekly List UI)` | iteration-02 Amendment A1(U-01~U-08) + `R52-REV-003`·`004` 해소, Vitest 55파일/589개 통과 |
+| **7** | **`✅ DONE (iteration-02 clean, 산출물 7f3e6d9, main 병합 8a5b478)`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 수행)* | `Reviewer & Orchestrator` | Base `0c09a20` ↔ Target `634d481` 재리뷰 `clean`(지적 0건), 로컬 PG 17(업그레이드·신규) 마이그레이션 2회 + `TESTS.sql` 34 PASS, tsc/lint/Vitest 589개 통과, `main` 병합(`8a5b478`) 및 운영 마이그레이션 `R53` 등록 완료 |
 
 ### 🗂️ 이전 Run 기록 (완료): r38-onboarding-and-game-order
 
