@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r52-character-template-and-pickup-avatar",
+  "iteration": 2,
+  "agent": "Gemini 4 Argon",
+  "role": "static-review",
+  "base_sha": "0c09a20392f4aa42fd39c118a590f5b6eb801968",
+  "target_sha": "634d481f11c5bd4b456180abacd10c6076be0d2a",
+  "status": "clean",
+  "created_at": "2026-11-09T14:15:30Z",
+  "findings": []
+}

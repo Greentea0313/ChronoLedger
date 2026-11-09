@@ -4,12 +4,13 @@
   "created_at": "2026-11-09T06:36:36.2519236+00:00",
   "objective": "Review and implement R52 (Phase 13.5: Per-game character template setup with character_label, character_rank, character_class1/2; dynamic character table/form reconstruction; character-supported game filtering in /dashboard/characters; and PICKUP schedule character avatar integration)",
   "acceptance_criteria": [
-    "Step 1 (Spec Review, Claude Opus): Review docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md for architecture, RLS/anon security, constraints, and edge cases; append Section 7 normative resolutions and mark APPROVED. Step 2 (DB/RLS/RPC/Types, GPT Codex): Implement MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql, SCHEMA.sql, TESTS.sql, README.md, database.types.ts, and character-utils.ts helpers with tests. Step 3 (UI, Claude Sonnet): Implement admin template setup wizard & dynamic table/modal, PICKUP character picker/image input, /dashboard/characters supported-game filtering, and PICKUP character avatar rendering across sidebar, weekly list, and game schedule modal with Vitest tests. Step 4 (Review & Closeout, Claude Opus / Gemini 4 Argon): Integrated static review, schema validation, and main merge."
+    "Step 1 (Spec Review, Claude Opus): Review docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md for architecture, RLS/anon security, constraints, and edge cases; append Section 7 normative resolutions and mark APPROVED. Step 2 (DB/RLS/RPC/Types, GPT Codex): Implement MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql, SCHEMA.sql, TESTS.sql, README.md, database.types.ts, and character-utils.ts helpers with tests. Step 3 (UI, Claude Sonnet): Implement admin template setup wizard & dynamic table/modal, PICKUP character picker/image input, /dashboard/characters supported-game filtering, and PICKUP character avatar rendering across sidebar, weekly list, and game schedule modal with Vitest tests. Step 4 (Review & Closeout, Claude Opus / Gemini 4 Argon): Integrated static review, schema validation, and main merge.",
+    "Step 5-7 (Iteration-02 Amendment A1 & Review Fixes): Implement pickup-only catalog characters (is_pickup_only), schedule_requests.pickup_new_characters proposal JSONB & atomic approve_schedule_request registration, explicit anon REVOKE on personal/request tables, collapsible weekly list game groups & expense section, admin/request mobile tab layout, and re-review/closeout."
   ],
   "base_sha": "0c09a20392f4aa42fd39c118a590f5b6eb801968",
-  "target_sha": "4ff5295d378c84a43306c69f1dec62ccd902862c",
+  "target_sha": "634d481f11c5bd4b456180abacd10c6076be0d2a",
   "branch": "collab/r52-character-template-and-pickup-avatar",
   "worktree_path": ".worktrees/r52-character-template-and-pickup-avatar",
   "max_iterations": 3,
-  "status": "in_progress"
+  "status": "completed"
 }
