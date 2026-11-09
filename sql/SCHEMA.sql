@@ -512,6 +512,17 @@ CREATE TABLE public.game_schedules (
     CONSTRAINT chk_game_schedules_pickup_characters_only_pickup CHECK (cardinality(pickup_character_ids) = 0 OR (schedule_type = 'PICKUP' AND cardinality(pickup_character_ids) <= 8))
 );
 
+-- 5-1. 유저별 관심 일정 즐겨찾기 (R35)
+CREATE TABLE public.user_favorite_schedules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    schedule_id UUID NOT NULL REFERENCES public.game_schedules(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_user_favorite_schedules_user_schedule UNIQUE (user_id, schedule_id)
+);
+CREATE INDEX idx_user_favorite_schedules_user_id ON public.user_favorite_schedules(user_id);
+CREATE INDEX idx_user_favorite_schedules_schedule_id ON public.user_favorite_schedules(schedule_id);
+
 -- 6. 일반 유저 일정 추가/수정 건의 요청 테이블
 CREATE TABLE public.schedule_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1257,6 +1268,7 @@ BEGIN
             DELETE FROM public.expenses WHERE user_id = v_req.user_id;
             DELETE FROM public.subscription_templates WHERE user_id = v_req.user_id;
             DELETE FROM public.personal_memos WHERE user_id = v_req.user_id;
+            DELETE FROM public.user_favorite_schedules WHERE user_id = v_req.user_id;
             DELETE FROM public.user_character_presets WHERE user_id = v_req.user_id;
             DELETE FROM public.user_characters WHERE user_id = v_req.user_id;
             DELETE FROM public.character_requests WHERE user_id = v_req.user_id;
@@ -1453,6 +1465,23 @@ BEGIN
         EXECUTE format('CREATE TRIGGER %I BEFORE INSERT OR UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.block_pending_account_data_mutations()', 'block_pending_account_deletion_' || v_table, v_table);
     END LOOP;
 END $$;
+
+-- R35 관심 일정: 본인 소유 행만 조회/등록/삭제, anon 차단, 계정 삭제 대기 사용자 차단
+ALTER TABLE public.user_favorite_schedules ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.user_favorite_schedules FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, DELETE ON public.user_favorite_schedules TO authenticated;
+DROP POLICY IF EXISTS "Manage own favorite schedules" ON public.user_favorite_schedules;
+CREATE POLICY "Manage own favorite schedules" ON public.user_favorite_schedules FOR ALL TO authenticated
+    USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Block account deletion users from user_favorite_schedules" ON public.user_favorite_schedules;
+CREATE POLICY "Block account deletion users from user_favorite_schedules" ON public.user_favorite_schedules
+    AS RESTRICTIVE FOR ALL TO authenticated
+    USING (NOT public.account_deletion_is_pending(auth.uid()))
+    WITH CHECK (NOT public.account_deletion_is_pending(auth.uid()));
+DROP TRIGGER IF EXISTS block_pending_account_deletion_user_favorite_schedules ON public.user_favorite_schedules;
+CREATE TRIGGER block_pending_account_deletion_user_favorite_schedules
+    BEFORE INSERT OR UPDATE OR DELETE ON public.user_favorite_schedules
+    FOR EACH ROW EXECUTE FUNCTION public.block_pending_account_data_mutations();
 
 -- 3. 지갑 설정 변경 RPC (등급 및 적립률)
 CREATE OR REPLACE FUNCTION public.update_store_wallet_settings(

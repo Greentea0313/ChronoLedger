@@ -278,6 +278,20 @@ isOneToOne: false
                     { foreignKeyName: "user_characters_character_id_fkey"; columns: ["character_id"]; isOneToOne: false; referencedRelation: "game_characters"; referencedColumns: ["id"] },
                     { foreignKeyName: "user_characters_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] }
                   ]
+                },"user_favorite_schedules": {
+                  Row: {
+                    "created_at": string,"id": string,"schedule_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"schedule_id": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"schedule_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    { foreignKeyName: "user_favorite_schedules_schedule_id_fkey"; columns: ["schedule_id"]; isOneToOne: false; referencedRelation: "game_schedules"; referencedColumns: ["id"] }
+                  ]
                 },"user_finances": {
                   Row: {
                     "default_budget": number,"id": string,"total_asset": number,"updated_at": string | null,"user_id": string

@@ -78,6 +78,11 @@
 --   R43-DB authenticated / A       max_breakthrough 초과 거부, 상한 축소 후 기존 값 유지·축소 허용.
 --   R41-RLS anon                   공식 일정 SELECT 허용, 비공식 일정 행 은닉.
 --   WAL-03 authenticated / A       일치하는 tier/rate 변경 성공, 불일치/음수 잔액 거부.
+--   R35-01 authenticated / B       관심 일정 본인 등록·조회·삭제 성공, 중복 등록 unique_violation,
+--                                  타인 user_id 등록·타인 행 조회/삭제 차단, UPDATE 권한 없음.
+--   R35-02 DB fixture 역할         일정 삭제 시 관심 일정 ON DELETE CASCADE, 계정 purge 함수 정리 포함.
+--   R35-03 authenticated / A       계정 삭제 대기 사용자 관심 일정 등록/조회/삭제 차단.
+--   R35-04 anon                   관심 일정 SELECT/INSERT -> insufficient_privilege.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -1667,6 +1672,154 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R52 + Amendment A1 template validation, pickup references, deletion cleanup, proposals, atomic approval and anon boundary
+-- R35: favorite schedules are owner-only, hidden from other users and anon,
+-- blocked for pending-deletion users, cleaned up on schedule delete and account purge.
+-- User A has a PENDING account deletion request since R13-07, so user B is the regular owner here.
+RESET ROLE;
+INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date)
+VALUES (:'test_game_id'::uuid, 'R35 favorite target', 'VERSION', CURRENT_DATE, CURRENT_DATE + 7)
+RETURNING id AS r35_schedule_id \gset
+INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date)
+VALUES (:'test_game_id'::uuid, 'R35 cascade target', 'PICKUP', CURRENT_DATE, CURRENT_DATE + 3)
+RETURNING id AS r35_cascade_schedule_id \gset
+SELECT set_config('chronoledger.r35_schedule_id', :'r35_schedule_id', true);
+SELECT set_config('chronoledger.r35_cascade_schedule_id', :'r35_cascade_schedule_id', true);
+-- Pre-existing favorite of user A (pending deletion) for cross-user and pending-delete checks.
+INSERT INTO public.user_favorite_schedules(user_id, schedule_id)
+VALUES (:'test_user_id'::uuid, :'r35_schedule_id'::uuid);
+
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'other_user_id', 'role', 'authenticated')::text, true);
+SELECT set_config('request.jwt.claim.sub', :'other_user_id', true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_user UUID := auth.uid();
+    v_other UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_schedule UUID := current_setting('chronoledger.r35_schedule_id')::uuid;
+    v_cascade UUID := current_setting('chronoledger.r35_cascade_schedule_id')::uuid;
+    v_rows INTEGER;
+BEGIN
+    IF v_user IS DISTINCT FROM current_setting('chronoledger.other_user_id')::uuid THEN
+        RAISE EXCEPTION 'FAIL: R35 JWT did not resolve user B';
+    END IF;
+
+    INSERT INTO public.user_favorite_schedules(user_id, schedule_id) VALUES (v_user, v_schedule);
+    IF (SELECT count(*) FROM public.user_favorite_schedules) <> 1
+       OR NOT EXISTS (SELECT 1 FROM public.user_favorite_schedules WHERE user_id = v_user AND schedule_id = v_schedule) THEN
+        RAISE EXCEPTION 'FAIL: R35 owner could not read only own favorite';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.user_favorite_schedules WHERE user_id = v_other) THEN
+        RAISE EXCEPTION 'FAIL: R35 RLS exposed another user favorite';
+    END IF;
+
+    BEGIN
+        INSERT INTO public.user_favorite_schedules(user_id, schedule_id) VALUES (v_user, v_schedule);
+        RAISE EXCEPTION 'FAIL: R35 duplicate favorite was accepted';
+    EXCEPTION WHEN unique_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.user_favorite_schedules(user_id, schedule_id) VALUES (v_other, v_cascade);
+        RAISE EXCEPTION 'FAIL: R35 user B inserted a favorite for user A';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    DELETE FROM public.user_favorite_schedules WHERE user_id = v_other;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R35 user B deleted user A favorite';
+    END IF;
+
+    BEGIN
+        UPDATE public.user_favorite_schedules SET schedule_id = v_cascade WHERE user_id = v_user;
+        RAISE EXCEPTION 'FAIL: R35 favorite UPDATE was not denied';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    DELETE FROM public.user_favorite_schedules WHERE user_id = v_user AND schedule_id = v_schedule;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R35 owner could not delete own favorite';
+    END IF;
+
+    INSERT INTO public.user_favorite_schedules(user_id, schedule_id) VALUES (v_user, v_cascade);
+END $$;
+RESET ROLE;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.user_favorite_schedules
+        WHERE user_id = current_setting('chronoledger.test_user_id')::uuid
+          AND schedule_id = current_setting('chronoledger.r35_schedule_id')::uuid
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R35 user A favorite changed by user B';
+    END IF;
+    DELETE FROM public.game_schedules WHERE id = current_setting('chronoledger.r35_cascade_schedule_id')::uuid;
+    IF EXISTS (
+        SELECT 1 FROM public.user_favorite_schedules
+        WHERE schedule_id = current_setting('chronoledger.r35_cascade_schedule_id')::uuid
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R35 schedule delete did not cascade to favorites';
+    END IF;
+    IF position('user_favorite_schedules' IN pg_get_functiondef('public.purge_expired_account_deletion_requests(integer)'::regprocedure)) = 0 THEN
+        RAISE EXCEPTION 'FAIL: R35 account purge does not delete favorite schedules';
+    END IF;
+END $$;
+
+-- Pending-deletion user A cannot add, read or remove favorites.
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated')::text, true);
+SELECT set_config('request.jwt.claim.sub', :'test_user_id', true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE v_rows INTEGER;
+BEGIN
+    BEGIN
+        INSERT INTO public.user_favorite_schedules(user_id, schedule_id)
+        SELECT auth.uid(), id FROM public.game_schedules WHERE title = 'R41 official guest schedule' LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R35 pending user inserted favorite';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+    IF EXISTS (SELECT 1 FROM public.user_favorite_schedules) THEN
+        RAISE EXCEPTION 'FAIL: R35 pending user could read favorites';
+    END IF;
+    BEGIN
+        DELETE FROM public.user_favorite_schedules WHERE user_id = auth.uid();
+        GET DIAGNOSTICS v_rows = ROW_COUNT;
+        IF v_rows <> 0 THEN
+            RAISE EXCEPTION 'FAIL: R35 pending user deleted favorite';
+        END IF;
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+END $$;
+RESET ROLE;
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.user_favorite_schedules
+        WHERE user_id = current_setting('chronoledger.test_user_id')::uuid
+          AND schedule_id = current_setting('chronoledger.r35_schedule_id')::uuid
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R35 pending user favorite was removed';
+    END IF;
+END $$;
+
+SET LOCAL ROLE anon;
+DO $$ BEGIN
+    BEGIN
+        PERFORM 1 FROM public.user_favorite_schedules LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R35 anon read favorites';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.user_favorite_schedules(user_id, schedule_id)
+        VALUES (current_setting('chronoledger.other_user_id')::uuid, current_setting('chronoledger.r35_schedule_id')::uuid);
+        RAISE EXCEPTION 'FAIL: R35 anon inserted favorite';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R35 favorite schedules owner CRUD, duplicate/cross-user/UPDATE denial, cascade, purge, pending-deletion and anon boundary
 SET LOCAL ROLE anon;
 DO $$
 BEGIN
