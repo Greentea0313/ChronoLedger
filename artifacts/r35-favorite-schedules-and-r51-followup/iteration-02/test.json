@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "run_id": "r35-favorite-schedules-and-r51-followup",
+  "iteration": 2,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "33829c96c43a23dec9301be466b3a59ab25edb98",
+  "target_sha": "129a118abf1c6fe7c9eb59254055ade37ba3fc10",
+  "status": "passed",
+  "created_at": "2026-11-10T03:10:00Z",
+  "finished_at": "2026-11-10T03:25:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Git whitespace check of Base..Target diff",
+      "command": "git diff --check 33829c96c43a23dec9301be466b3a59ab25edb98 129a118abf1c6fe7c9eb59254055ade37ba3fc10",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint static check",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest unit test suite (625 tests)",
+      "command": "npx vitest run --dir src",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "SQL unchanged since iteration-01 (13ca8fa..129a118 touches no sql/ files); iteration-01 PGlite results (fresh and base schema + migration twice + TESTS.sql) still apply",
+      "command": "git diff --name-only 13ca8fa7f4f8a2b6501996ea0417f69b90987204 129a118abf1c6fe7c9eb59254055ade37ba3fc10 -- sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Local PostgreSQL 17 idempotent migration and TESTS.sql (PostgreSQL not installed on this host)",
+      "command": "psql -X -v ON_ERROR_STOP=1 -f sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql && psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": null
+    }
+  ]
+}

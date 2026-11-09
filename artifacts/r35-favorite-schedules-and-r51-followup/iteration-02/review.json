@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r35-favorite-schedules-and-r51-followup",
+  "iteration": 2,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "33829c96c43a23dec9301be466b3a59ab25edb98",
+  "target_sha": "129a118abf1c6fe7c9eb59254055ade37ba3fc10",
+  "status": "findings",
+  "created_at": "2026-11-10T03:30:00Z",
+  "findings": [
+    {
+      "id": "R35-REV-004",
+      "severity": "P3",
+      "file": "src/components/expense/expense-modal.tsx",
+      "line": 245,
+      "evidence": "R35-REV-002 is fixed for creation: a VERSION favourite prefill now carries schedule_id and matchingVersion prefers it, so a row created on a shared boundary day (previous version ends on the new version's start date) is saved with the new version's schedule_id. Edit mode cannot keep that link: PlannedExpenseEditInput (line 41) has no schedule_id, /dashboard/expenses handleEditPlanned (src/app/dashboard/expenses/page.tsx:641-654) does not pass it although the row is loaded with schedule_id, and edit mode resets preferredScheduleId to null (line 245). On save, schedule_id is recomputed by date matching (schedules ordered by start_date, first match wins). Reproduced with a throwaway Vitest case: versions v-old 2030-01-01..01-15 and v-new 2030-01-15..02-10, editing {target 01-15, start 01-15, end 02-10} without any change saves schedule_id v-old instead of v-new.",
+      "impact": "Editing only the price or title of a planned expense created from a favourite VERSION schedule on a boundary day silently relinks it to the previous version. The version spending summary attributes it to the wrong version, and later date changes of the previous version (sync_version_expenses_trigger) would rewrite this expense's period and target date.",
+      "recommendation": "Add optional schedule_id to PlannedExpenseEditInput, pass expense.schedule_id from handleEditPlanned in src/app/dashboard/expenses/page.tsx, and in edit mode call setPreferredScheduleId(editingExpense.schedule_id ?? null) so the stored link is kept while the date stays inside that schedule's period (date matching still applies once the date leaves it). Add a Vitest edit-mode boundary case asserting schedule_id stays v-new, plus an expenses page assertion that schedule_id is passed."
+    },
+    {
+      "id": "R35-REV-005",
+      "severity": "P4",
+      "file": "sql/SCHEMA.sql",
+      "line": 1600,
+      "evidence": "sync_version_expenses_trigger sets target_date = NEW.start_date for every PLANNED expense linked to a VERSION whose dates change, while version-pass rows are written with target_date = end_date (expense-modal.tsx pass branch). After the R35-REV-001 fix, edit mode treats a row as a pass only when target_date = end_date, so a version-pass row that went through this trigger now opens with the pass checkbox unchecked (before the fix it was shown as a pass). Saving without changes keeps the stored dates, so no data is altered by the modal; the mismatch originates in the pre-existing trigger.",
+      "impact": "Low: after an admin changes a version's dates, the user's version-pass planned expenses lose the pass target (target becomes the version start) and are shown as non-pass when edited. Budget attribution uses end_date for PLANNED rows, so the budget month is unaffected.",
+      "recommendation": "Track as a separate SQL follow-up (out of scope for this run): in sync_version_expenses_trigger keep target_date = NEW.end_date for rows whose OLD target_date = OLD.end_date (version passes), and add a TESTS.sql case. No change required in this run."
+    }
+  ]
+}

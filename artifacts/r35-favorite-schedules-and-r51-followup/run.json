@@ -9,7 +9,7 @@
     "Step 3: integrated static review, local PG idempotent migration and TESTS.sql verification, merge to main"
   ],
   "base_sha": "33829c96c43a23dec9301be466b3a59ab25edb98",
-  "target_sha": "13ca8fa7f4f8a2b6501996ea0417f69b90987204",
+  "target_sha": "129a118abf1c6fe7c9eb59254055ade37ba3fc10",
   "branch": "collab/r35-favorite-schedules-and-r51-followup",
   "worktree_path": ".worktrees/r35-favorite-schedules-and-r51-followup",
   "max_iterations": 3,
