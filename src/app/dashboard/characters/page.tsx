@@ -16,6 +16,7 @@ import {
   PRESET_SLOT_HARD_LIMIT,
   normalizeCharacterRow,
   normalizeClassificationSchema,
+  normalizeMaxBreakthrough,
   normalizeMaxPresetSlots,
   validatePresetInput,
   type ClassificationSchema,
@@ -42,6 +43,7 @@ interface UserGameRow {
     name: string
     default_icon_url?: string | null
     max_preset_slots?: number | null
+    max_breakthrough?: number | null
     classification_schema?: unknown
   } | null
 }
@@ -51,6 +53,7 @@ interface GameEntry {
   name: string
   defaultIconUrl: string | null
   maxPresetSlots: number
+  maxBreakthrough: number
   schema: ClassificationSchema
 }
 
@@ -115,6 +118,7 @@ export default function CharactersPage() {
         name: row.games.name,
         defaultIconUrl: row.games.default_icon_url ?? null,
         maxPresetSlots: normalizeMaxPresetSlots(row.games.max_preset_slots),
+        maxBreakthrough: normalizeMaxBreakthrough(row.games.max_breakthrough),
         schema: normalizeClassificationSchema(row.games.classification_schema),
       })
     })
@@ -137,7 +141,7 @@ export default function CharactersPage() {
     if (!userId) return
     const { data, error } = await supabase
       .from("user_games")
-      .select("id, game_id, custom_icon_path, games(id, name, default_icon_url, max_preset_slots, classification_schema)")
+      .select("id, game_id, custom_icon_path, games(id, name, default_icon_url, max_preset_slots, max_breakthrough, classification_schema)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
     if (error) {
@@ -182,7 +186,7 @@ export default function CharactersPage() {
     const [ownedResult, presetResult] = await Promise.all([
       supabase
         .from("user_characters")
-        .select("character_id, game_id, is_owned, memo, custom_icon_path")
+        .select("character_id, game_id, is_owned, is_favorite, breakthrough_level, custom_icon_path")
         .eq("user_id", userId),
       supabase
         .from("user_character_presets")
@@ -249,7 +253,12 @@ export default function CharactersPage() {
   const characterStates = useMemo(() => {
     const map: Record<string, UserCharacterState> = {}
     rowsForGame.forEach((row) => {
-      map[row.character_id] = { is_owned: row.is_owned, memo: row.memo, custom_icon_path: row.custom_icon_path }
+      map[row.character_id] = {
+        is_owned: row.is_owned,
+        is_favorite: row.is_favorite,
+        breakthrough_level: row.breakthrough_level,
+        custom_icon_path: row.custom_icon_path,
+      }
     })
     return map
   }, [rowsForGame])
@@ -298,7 +307,7 @@ export default function CharactersPage() {
     setUserCharacterRows((prev) => [...prev.filter((item) => item.character_id !== row.character_id), row])
 
   // Writes one user_characters row. A missing row is created unowned unless the patch says otherwise,
-  // so saving a memo for an unowned character never flips it to owned (DB default is_owned = true).
+  // so saving a favorite for an unowned character never flips it to owned (DB default is_owned = true).
   const saveUserCharacter = async (character: GameCharacter, patch: Partial<UserCharacterState>): Promise<boolean> => {
     if (!userId || !activeGameId) return false
     if (isOffline()) {
@@ -308,7 +317,8 @@ export default function CharactersPage() {
     const current = characterStates[character.id]
     const next: UserCharacterState = {
       is_owned: current?.is_owned ?? false,
-      memo: current?.memo ?? null,
+      is_favorite: current?.is_favorite ?? false,
+      breakthrough_level: current?.breakthrough_level ?? 0,
       custom_icon_path: current?.custom_icon_path ?? null,
       ...patch,
     }
@@ -334,9 +344,14 @@ export default function CharactersPage() {
     await saveUserCharacter(character, { is_owned: !(characterStates[character.id]?.is_owned ?? false) })
   }
 
-  const handleSaveMemo = async (character: GameCharacter, memo: string | null) => {
+  const handleToggleFavorite = async (character: GameCharacter) => {
     setNotice(null)
-    await saveUserCharacter(character, { memo })
+    await saveUserCharacter(character, { is_favorite: !(characterStates[character.id]?.is_favorite ?? false) })
+  }
+
+  const handleSetBreakthrough = async (character: GameCharacter, level: number) => {
+    setNotice(null)
+    await saveUserCharacter(character, { breakthrough_level: level })
   }
 
   const handleChangeIcon = async (character: GameCharacter, file: File) => {
@@ -528,9 +543,11 @@ export default function CharactersPage() {
                   states={characterStates}
                   customIconUrls={characterIcons}
                   busyIds={busyCharacterIds}
+                  maxBreakthrough={selectedGame.maxBreakthrough}
                   isLoading={isCatalogLoading}
                   onToggleOwned={(character) => void handleToggleOwned(character)}
-                  onSaveMemo={(character, memo) => void handleSaveMemo(character, memo)}
+                  onToggleFavorite={(character) => void handleToggleFavorite(character)}
+                  onSetBreakthrough={(character, level) => void handleSetBreakthrough(character, level)}
                   onChangeIcon={(character, file) => void handleChangeIcon(character, file)}
                   onRestoreIcon={(character) => void handleRestoreIcon(character)}
                 />

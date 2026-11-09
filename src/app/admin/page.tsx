@@ -20,6 +20,7 @@ import { GameIcon } from "@/components/ui/game-icon"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
+import { normalizeMaxBreakthrough } from "@/lib/character-utils"
 import {
   Plus,
   Pencil,
@@ -59,6 +60,7 @@ interface GameOption {
   default_icon_url?: string | null
   created_at?: string | null
   max_preset_slots: number
+  max_breakthrough: number
   classification_schema: ClassificationSchema
 }
 
@@ -109,6 +111,7 @@ function normalizeGameRow(row: {
   default_icon_url?: string | null
   created_at?: string | null
   max_preset_slots?: number | null
+  max_breakthrough?: number | null
   classification_schema?: unknown
 }): GameOption {
   return {
@@ -120,6 +123,7 @@ function normalizeGameRow(row: {
       typeof row.max_preset_slots === "number" && row.max_preset_slots >= 1
         ? row.max_preset_slots
         : DEFAULT_MAX_PRESET_SLOTS,
+    max_breakthrough: normalizeMaxBreakthrough(row.max_breakthrough),
     classification_schema: normalizeClassificationSchema(row.classification_schema),
   }
 }
@@ -179,6 +183,7 @@ export default function AdminPage() {
   const [gameFormIconFile, setGameFormIconFile] = useState<File | null>(null)
   const [gameFormError, setGameFormError] = useState<string | null>(null)
   const [gameFormMaxPresetSlots, setGameFormMaxPresetSlots] = useState("4")
+  const [gameFormMaxBreakthrough, setGameFormMaxBreakthrough] = useState("6")
   const [gameFormRarities, setGameFormRarities] = useState("")
   const [gameFormAxes, setGameFormAxes] = useState<GameFormAxis[]>([])
   const [acknowledgedRemovalWarning, setAcknowledgedRemovalWarning] = useState<string | null>(null)
@@ -285,7 +290,7 @@ export default function AdminPage() {
     setIsLoadingGames(true)
     const { data, error } = await supabase
       .from("games")
-      .select("id, name, default_icon_url, created_at, max_preset_slots, classification_schema")
+      .select("id, name, default_icon_url, created_at, max_preset_slots, max_breakthrough, classification_schema")
       .order("name")
     if (error) {
       setMessage({ type: "error", text: "게임 목록을 불러오지 못했습니다: " + error.message })
@@ -552,6 +557,7 @@ export default function AdminPage() {
     setGameFormIconFile(null)
     setGameFormError(null)
     setGameFormMaxPresetSlots("4")
+    setGameFormMaxBreakthrough("6")
     setGameFormRarities("")
     setGameFormAxes([])
     setGameFormWarning(null)
@@ -567,6 +573,7 @@ export default function AdminPage() {
     setGameFormError(null)
     const schema = game.classification_schema ?? { rarities: [], axes: [] }
     setGameFormMaxPresetSlots(String(game.max_preset_slots ?? 4))
+    setGameFormMaxBreakthrough(String(game.max_breakthrough ?? 6))
     setGameFormRarities(schema.rarities.join(", "))
     setGameFormAxes(schema.axes.map((axis) => ({
       rowId: nextAxisRowId(),
@@ -734,6 +741,11 @@ export default function AdminPage() {
       setGameFormError("프리셋 슬롯 수는 1~12 사이의 정수여야 합니다.")
       return
     }
+    const maxBreakthrough = Number(gameFormMaxBreakthrough)
+    if (gameFormMaxBreakthrough.trim() === "" || !Number.isInteger(maxBreakthrough) || maxBreakthrough < 0 || maxBreakthrough > 12) {
+      setGameFormError("최대 돌파 단계는 0~12 사이의 정수여야 합니다.")
+      return
+    }
     const rarities = gameFormRarities.split(",").map((value) => value.trim()).filter(Boolean)
     if (rarities.length > 10 || rarities.some((value) => value.length > 20)) {
       setGameFormError("성급은 비어 있지 않은 문자열을 최대 10개까지 입력할 수 있습니다.")
@@ -800,6 +812,7 @@ export default function AdminPage() {
           name: trimmedName,
           default_icon_url: defaultIconUrl,
           max_preset_slots: maxPresetSlots,
+          max_breakthrough: maxBreakthrough,
           classification_schema: { rarities, axes },
         })
         .eq("id", editingGame.id)
@@ -819,6 +832,7 @@ export default function AdminPage() {
         name: trimmedName,
         default_icon_url: defaultIconUrl,
         max_preset_slots: maxPresetSlots,
+        max_breakthrough: maxBreakthrough,
         classification_schema: { rarities, axes },
         status: "APPROVED",
         created_by: user?.id ?? null,
@@ -1966,6 +1980,10 @@ export default function AdminPage() {
               <div>
                 <label htmlFor="game-form-max-slots" className="block text-sm font-medium mb-1">최대 프리셋 슬롯</label>
                 <Input id="game-form-max-slots" type="number" min={1} max={12} value={gameFormMaxPresetSlots} onChange={(event) => setGameFormMaxPresetSlots(event.target.value)} />
+              </div>
+              <div>
+                <label htmlFor="game-form-max-breakthrough" className="block text-sm font-medium mb-1">최대 돌파 단계</label>
+                <Input id="game-form-max-breakthrough" type="number" min={0} max={12} value={gameFormMaxBreakthrough} onChange={(event) => setGameFormMaxBreakthrough(event.target.value)} />
               </div>
               <div>
                 <label htmlFor="game-form-rarities" className="block text-sm font-medium mb-1">성급 목록</label>
