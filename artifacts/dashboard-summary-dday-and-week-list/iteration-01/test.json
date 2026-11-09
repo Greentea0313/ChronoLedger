@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "run_id": "dashboard-summary-dday-and-week-list",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "dynamic-test",
+  "base_sha": "d56d211bb9d75ba9016e885dc646c201cdca0ed6",
+  "target_sha": "ab930c5baa8b2211e25aeae2ceb725c194a6a9dc",
+  "status": "passed",
+  "created_at": "2026-11-09T02:48:15Z",
+  "finished_at": "2026-11-09T02:49:47Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (49 files, 410 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pencil, Check, X } from "lucide-react"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
+import { getDdayLabel, getPeriodProgress, getTodayLocalDate } from "@/lib/calendar-utils"
 
 const PLATFORM_LABELS: Record<string, string> = {
   GOOGLE_PLAY: "Google",
@@ -34,6 +35,10 @@ export interface HeroExpenseItem {
   gameName: string | null
   iconUrl?: string
   payment_method?: string
+  /** PLANNED payment due date (end_date ?? target_date) for the D-n badge. */
+  dueDate?: string | null
+  /** Start of the PLANNED period; with dueDate it drives the progress bar. */
+  periodStart?: string | null
 }
 
 export interface HeroWalletItem {
@@ -82,6 +87,8 @@ export interface HeroSidebarProps {
   onSaveMemo?: (content: string) => Promise<void>
   registerDisabled?: boolean
   onIncomeAdded?: () => void
+  /** KST today (YYYY-MM-DD) used by D-n badges and progress bars. */
+  todayDate?: string
 }
 
 export function ScheduleTitleBadges({ title }: { title: string }) {
@@ -122,7 +129,9 @@ export function HeroSidebarContent({
   onSaveMemo,
   registerDisabled,
   onIncomeAdded,
+  todayDate,
 }: HeroSidebarProps) {
+  const today = todayDate ?? getTodayLocalDate()
   const confirmed = confirmedExpense ?? 0
   const progress =
     expectedExpense > 0 ? Math.min(100, Math.round((confirmed / expectedExpense) * 100)) : 0
@@ -342,6 +351,31 @@ export function HeroSidebarContent({
                         {isSingle ? `${group.start_date} (단일)` : `${group.start_date} ~ ${group.end_date}`}
                       </div>
 
+                      <div className="relative z-10 flex items-center gap-2">
+                        <span
+                          data-testid="dday-badge"
+                          className="shrink-0 rounded border border-line bg-surface px-1.5 py-0.5 text-[10px] font-bold text-content"
+                        >
+                          {getDdayLabel(today, group.end_date)}
+                        </span>
+                        {!isSingle && (
+                          <div
+                            role="progressbar"
+                            aria-label="일정 진행률"
+                            aria-valuenow={getPeriodProgress(today, group.start_date, group.end_date)}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface"
+                          >
+                            <div
+                              data-testid="period-progress-fill"
+                              className="h-full rounded-full bg-primary"
+                              style={{ width: `${getPeriodProgress(today, group.start_date, group.end_date)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
                       {/* Line 3: 켈시 에스페란타/클로저 (Title) — 묶인 일정은 목록으로 표시 */}
                       {isGrouped ? (
                         <ul className="relative z-10 flex flex-col gap-0.5">
@@ -429,10 +463,31 @@ export function HeroSidebarContent({
                       <div className="relative z-10">
                         <p className="font-medium">{expense.title}</p>
                         <p className="text-xs text-content-muted">{expense.gameName ?? "게임 미연결"} · {METHOD_LABELS[expense.payment_method || ""] ?? (expense.payment_method || "내 지갑")}</p>
+                        {expense.status === "PLANNED" && expense.dueDate && expense.periodStart && expense.periodStart < expense.dueDate && (
+                          <div
+                            role="progressbar"
+                            aria-label="결제 기간 진행률"
+                            aria-valuenow={getPeriodProgress(today, expense.periodStart, expense.dueDate)}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            className="mt-1 h-1.5 w-28 overflow-hidden rounded-full bg-surface"
+                          >
+                            <div
+                              data-testid="period-progress-fill"
+                              className="h-full rounded-full bg-info"
+                              style={{ width: `${getPeriodProgress(today, expense.periodStart, expense.dueDate)}%` }}
+                            />
+                          </div>
+                        )}
                       </div>
                       <div className="text-right relative z-10">
                         <p className="font-semibold text-info">{expense.final_amount.toLocaleString()} 원</p>
                         <p className={`text-xs mt-0.5 ${statusTone}`}>{statusLabel}</p>
+                        {expense.status === "PLANNED" && expense.dueDate && (
+                          <p data-testid="dday-badge" className="mt-0.5 text-[10px] font-bold text-content">
+                            {getDdayLabel(today, expense.dueDate)}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )

@@ -80,3 +80,51 @@ export function enumerateDates(startDate: string, endDate: string): string[] {
   }
   return dates
 }
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+/** Whole days from `from` to `to` (positive when `to` is later). */
+export function diffInDays(from: string, to: string): number {
+  return Math.round((parseLocalDate(to).getTime() - parseLocalDate(from).getTime()) / MS_PER_DAY)
+}
+
+/** `D-Day` on the target day, `D-n` before it and `D+n` after it. */
+export function getDdayLabel(todayDate: string, targetDate: string): string {
+  const diff = diffInDays(todayDate, targetDate)
+  if (diff === 0) return "D-Day"
+  return diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`
+}
+
+/** Elapsed share (0~100) of the inclusive period; single-day and out-of-range periods are clamped safely. */
+export function getPeriodProgress(todayDate: string, startDate: string, endDate: string): number {
+  if (todayDate < startDate) return 0
+  if (todayDate >= endDate) return 100
+  const total = diffInDays(startDate, endDate)
+  if (total <= 0) return 100
+  return Math.round((diffInDays(startDate, todayDate) / total) * 100)
+}
+
+export interface WeekGroup {
+  weekStart: string
+  weekEnd: string
+  dates: string[]
+  isCurrentWeek: boolean
+}
+
+/** Splits the month grid into Sunday-start weeks, dropping weeks without any day of the viewed month. */
+export function groupDatesByWeek(year: number, month: number, todayDate: string): WeekGroup[] {
+  const grid = buildCalendarGrid(year, month)
+  const weeks: WeekGroup[] = []
+  for (let index = 0; index < grid.length; index += DAYS_PER_WEEK) {
+    const cells = grid.slice(index, index + DAYS_PER_WEEK)
+    if (!cells.some((cell) => cell.inCurrentMonth)) continue
+    const dates = cells.map((cell) => cell.date)
+    weeks.push({
+      weekStart: dates[0],
+      weekEnd: dates[dates.length - 1],
+      dates,
+      isCurrentWeek: todayDate >= dates[0] && todayDate <= dates[dates.length - 1],
+    })
+  }
+  return weeks
+}

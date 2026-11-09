@@ -1,5 +1,58 @@
 import { describe, expect, it } from "vitest"
-import { buildCalendarGrid, enumerateDates, getAdjustedBillingDate, getGridRange, parseLocalDate } from "./calendar-utils"
+import {
+  buildCalendarGrid,
+  enumerateDates,
+  getAdjustedBillingDate,
+  getDdayLabel,
+  getGridRange,
+  getPeriodProgress,
+  groupDatesByWeek,
+  parseLocalDate,
+} from "./calendar-utils"
+
+describe("getDdayLabel", () => {
+  it("labels D-Day, upcoming D-n and expired D+n, including across month and year boundaries", () => {
+    expect(getDdayLabel("2026-11-09", "2026-11-09")).toBe("D-Day")
+    expect(getDdayLabel("2026-11-09", "2026-11-12")).toBe("D-3")
+    expect(getDdayLabel("2026-11-09", "2026-11-08")).toBe("D+1")
+    expect(getDdayLabel("2026-12-30", "2027-01-02")).toBe("D-3")
+  })
+})
+
+describe("getPeriodProgress", () => {
+  it("returns 0 before start, 100 at or after end, and a rounded ratio in between", () => {
+    expect(getPeriodProgress("2026-11-01", "2026-11-10", "2026-11-20")).toBe(0)
+    expect(getPeriodProgress("2026-11-10", "2026-11-10", "2026-11-20")).toBe(0)
+    expect(getPeriodProgress("2026-11-15", "2026-11-10", "2026-11-20")).toBe(50)
+    expect(getPeriodProgress("2026-11-20", "2026-11-10", "2026-11-20")).toBe(100)
+    expect(getPeriodProgress("2026-12-01", "2026-11-10", "2026-11-20")).toBe(100)
+  })
+
+  it("treats a single-day period as complete on and after the day", () => {
+    expect(getPeriodProgress("2026-11-10", "2026-11-10", "2026-11-10")).toBe(100)
+    expect(getPeriodProgress("2026-11-09", "2026-11-10", "2026-11-10")).toBe(0)
+  })
+})
+
+describe("groupDatesByWeek", () => {
+  it("groups the viewed month into Sunday-start weeks and flags the week containing today", () => {
+    const weeks = groupDatesByWeek(2026, 11, "2026-11-09")
+    expect(weeks[0]).toMatchObject({ weekStart: "2026-11-01", weekEnd: "2026-11-07", isCurrentWeek: false })
+    expect(weeks[1]).toMatchObject({ weekStart: "2026-11-08", weekEnd: "2026-11-14", isCurrentWeek: true })
+    expect(weeks.filter((week) => week.isCurrentWeek)).toHaveLength(1)
+    expect(weeks[weeks.length - 1].weekEnd).toBe("2026-12-05")
+  })
+
+  it("drops grid weeks that contain no day of the viewed month", () => {
+    const weeks = groupDatesByWeek(2026, 2, "2026-02-10")
+    expect(weeks).toHaveLength(4)
+    expect(weeks.every((week) => week.dates.length === 7)).toBe(true)
+  })
+
+  it("has no current week when today is outside the viewed weeks", () => {
+    expect(groupDatesByWeek(2026, 11, "2027-01-01").some((week) => week.isCurrentWeek)).toBe(false)
+  })
+})
 
 describe("getAdjustedBillingDate", () => {
   it("clamps 31st to February in common years", () => {

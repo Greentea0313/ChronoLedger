@@ -33,6 +33,7 @@ interface MobileDrawerProps {
   onSaveMemo?: (content: string) => Promise<void>
   registerDisabled?: boolean
   onIncomeAdded?: () => void
+  todayDate?: string
 }
 
 const DRAWER_HISTORY_KEY = "chronoledgerMobileDrawer"
@@ -115,6 +116,7 @@ export function MobileDrawer({
   onSaveMemo,
   registerDisabled,
   onIncomeAdded,
+  todayDate,
 }: MobileDrawerProps) {
   useDrawerHistory(Boolean(open), onOpenChange)
 
@@ -148,6 +150,7 @@ export function MobileDrawer({
               onSaveMemo={onSaveMemo}
               registerDisabled={registerDisabled}
               onIncomeAdded={onIncomeAdded}
+              todayDate={todayDate}
             />
           </div>
         </DrawerContent>

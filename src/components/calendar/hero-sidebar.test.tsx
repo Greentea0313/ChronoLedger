@@ -1,6 +1,44 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { HeroSidebarContent, type HeroScheduleItem } from "./hero-sidebar"
+import { HeroSidebarContent, type HeroExpenseItem, type HeroScheduleItem } from "./hero-sidebar"
+
+describe("HeroSidebarContent D-n badge and period progress bar", () => {
+  const base = { totalAsset: 0, budgetAmount: 0, expectedExpense: 0, wallets: [], memos: [] }
+
+  it("shows the end-date D-n badge and an elapsed-share bar on schedule cards", () => {
+    const schedules: HeroScheduleItem[] = [
+      { id: "a", title: "픽업", schedule_type: "PICKUP", start_date: "2026-11-10", end_date: "2026-11-20", gameName: "게임" },
+    ]
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-10" todayDate="2026-11-15" schedules={schedules} expenses={[]} />)
+
+    expect(screen.getByTestId("dday-badge").textContent).toBe("D-5")
+    expect(screen.getByRole("progressbar", { name: "일정 진행률" }).getAttribute("aria-valuenow")).toBe("50")
+    expect((screen.getByTestId("period-progress-fill") as HTMLElement).style.width).toBe("50%")
+  })
+
+  it("omits the progress bar for single-day schedules but keeps the badge", () => {
+    const schedules: HeroScheduleItem[] = [
+      { id: "a", title: "콘텐츠", schedule_type: "CONTENTS", start_date: "2026-11-15", end_date: "2026-11-15", gameName: "게임" },
+    ]
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-15" todayDate="2026-11-15" schedules={schedules} expenses={[]} />)
+
+    expect(screen.getByTestId("dday-badge").textContent).toBe("D-Day")
+    expect(screen.queryByRole("progressbar", { name: "일정 진행률" })).toBeNull()
+  })
+
+  it("shows the payment D-n for PLANNED expenses only and a bar when a period exists", () => {
+    const expenses: HeroExpenseItem[] = [
+      { id: "p", title: "예정 결제", final_amount: 1000, status: "PLANNED", gameName: null, dueDate: "2026-11-20", periodStart: "2026-11-10" },
+      { id: "c", title: "확정 결제", final_amount: 2000, status: "CONFIRMED", gameName: null, dueDate: "2026-11-20", periodStart: "2026-11-10" },
+    ]
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-15" todayDate="2026-11-15" schedules={[]} expenses={expenses} />)
+    fireEvent.change(screen.getByLabelText("선택일 상세 항목 선택"), { target: { value: "EXPENSE" } })
+
+    expect(screen.getAllByTestId("dday-badge")).toHaveLength(1)
+    expect(screen.getByTestId("dday-badge").textContent).toBe("D-5")
+    expect(screen.getAllByRole("progressbar", { name: "결제 기간 진행률" })).toHaveLength(1)
+  })
+})
 
 vi.mock("@/lib/supabase/client", () => ({
   supabase: {
