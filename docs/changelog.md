@@ -1,4 +1,15 @@
 # 변경 이력
+## 2026-11-09 (R33 DB Step 1 완료 — `BROADCAST` 일정 종류·PICKUP 복각 `is_rerun`)
+
+- `MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql`(멱등) 및 `SCHEMA.sql`에 `BROADCAST` 일정 종류, PICKUP 전용 `is_rerun` 컬럼·CHECK, 승인 RPC `is_rerun` 복사, 예정 지출 동기화 트리거 `BROADCAST` 포함을 반영함.
+- `database.types.ts`, 일정 요청 검증(`BROADCAST` 허용·비PICKUP 복각 거부)과 단위 테스트, `TESTS.sql` R33 회귀, `sql/README.md`, SRS `FR-010`·SPEC을 갱신함.
+- 검증: 임시 PostgreSQL 17 마이그레이션 2회 멱등·`TESTS.sql` 31개 PASS, tsc·lint 통과, Vitest 50파일/415개 통과함. 워크트리 커밋 `9e33ac9`임.
+
+## 2026-11-09 (R33 DB Maker 중단 체크포인트)
+
+- R33 DB 변경 초안과 SQL/요청 검증 테스트를 Worktree에 보존함. 신규 요청 검증 3개와 lint는 통과함.
+- 전체 TypeScript 검사는 Step 2 UI 타입 선언이 신규 `BROADCAST` 종류를 수용하지 않아 실패함. SQL 전체 및 전체 Vitest 검증은 미완료로 기록하고 Claude Opus 검토에 인계함.
+
 ## 2026-11-09 (차기 Run 2 `schedule-rerun-and-broadcast` 등록)
 
 - `R33`(PICKUP 복각 `is_rerun`, `BROADCAST` 특별방송 일정 종류) 격리 Run을 생성하고(`.worktrees/schedule-rerun-and-broadcast`, Base `d09ba5c`), Dispatch Queue에 수용 기준·설계 결정·3단계 배정(GPT Codex → GitHub Copilot → Claude Opus)을 등록함.

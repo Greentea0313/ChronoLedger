@@ -1,4 +1,23 @@
 # 프로젝트 진행 현황
+## R33 DB Maker 인계 완료: schedule-rerun-and-broadcast Step 1 (2026-11-09)
+
+- **수행 주체**: Claude Opus (GPT Codex 1순위 대체, `⚠️ HANDOVER_NEEDED` 인수)임.
+- **커밋**: `.worktrees/schedule-rerun-and-broadcast`의 `9e33ac9d5bb5eb1a9dd9655329a0b1830ffbf134`임.
+- **인수 내용 검토**: 마이그레이션(제약 재생성·`is_rerun`·PICKUP 전용 CHECK·트리거·승인 RPC)과 `SCHEMA.sql`·타입·요청 검증 초안이 수용 기준과 일치함을 확인함.
+- **보완**:
+  - `TESTS.sql` R33 블록이 `authenticated` 역할로 `game_schedules`에 직접 INSERT해 RLS에 거부되던 테스트 결함을 fixture 역할 + savepoint 롤백으로 수정함.
+  - tsc 실패 3건은 Step 2 대상 파일의 로컬 `schedule_type` 타입 선언 문제로 판단, 타입 선언 4곳만 `BROADCAST`로 확장해 Step 1 범위를 최소 조정함(UI 동작 변경 없음).
+  - SRS에 별도 절로 붙은 R33 내용을 `FR-010` 수정과 추적성 행으로 정리함.
+- **검증**: 임시 PostgreSQL 17(Supabase `auth`/`storage`/`cron` 최소 스텁)에서 ① 기존 `SCHEMA.sql` → 마이그레이션 2회, ② 신규 `SCHEMA.sql` → 마이그레이션 2회 적용 오류 없음. 두 DB 모두 `TESTS.sql` 31개 PASS 및 최종 ROLLBACK 확인함. `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 50파일/415개 통과함. 운영 DB 미접근임.
+- **다음 단계**: Step 2 UI (**GitHub Copilot** `▶ READY`, Fallback: Claude Sonnet / Gemini 3.8 Flash)임.
+
+## R33 DB Maker 체크포인트 (2026-11-09)
+
+- **수행 주체**: GPT Codex Maker 작업을 Claude Opus에 인계함.
+- **반영 파일**: R33 migration/schema/tests/README, DB types, schedule request validation/test, SRS/SPEC 초안을 Worktree에 보존함.
+- **검증**: 요청 검증 Vitest 3개 및 lint 통과, diff check 통과함. 전체 TypeScript 검사는 Step 2 UI 타입의 BROADCAST 미지원으로 3건 실패함. 임시 PostgreSQL 검증과 전체 Vitest는 미실행/미완료임.
+- **다음 단계**: Claude Opus가 파일 경계와 타입 검사 순서를 정리하고, SQL 회귀 검증 및 Step 1 커밋 가능 여부를 판단함.
+
 ## 차기 Run 2 등록: schedule-rerun-and-broadcast (R33, 2026-11-09)
 
 - **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 1순위 대체)임.

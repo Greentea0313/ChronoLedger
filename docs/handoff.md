@@ -34,7 +34,7 @@
 - **Run ID**: `schedule-rerun-and-broadcast` *(2026-11-09, `Phase 12.38` R33 일정 분류 세분화: `PICKUP` 복각 플래그 `is_rerun` + `BROADCAST`(특별방송) 일정 종류)*
 - **Orchestrator**: Gemini 4 Argon *(본 Run 등록은 Claude Opus가 1순위 대체로 수행)*
 - **Worktree 경로**: `.worktrees/schedule-rerun-and-broadcast` (브랜치: `collab/schedule-rerun-and-broadcast`)
-- **리뷰 비교 범위**: Base `d09ba5c131838872fa8423c9ce80cd31d345106f` ↔ Target `(Step 2 Maker 커밋 후 기록)` *(Step 3 Reviewer가 manifest `target_sha` 기록, manifest 커밋 `10ef476`)*
+- **리뷰 비교 범위**: Base `d09ba5c131838872fa8423c9ce80cd31d345106f` ↔ Target `(Step 2 Maker 커밋 후 기록)` *(Step 3 Reviewer가 manifest `target_sha` 기록, manifest 커밋 `10ef476`, Step 1 커밋 `9e33ac9`)*
 - **설계 결정 (Orchestrator 확정)**:
   - `is_rerun`은 `PICKUP` 전용임. `game_schedules`·`schedule_requests` 양쪽에 `is_rerun BOOLEAN NOT NULL DEFAULT false` + `CHECK (is_rerun = false OR schedule_type = 'PICKUP')`를 적용함.
   - `BROADCAST`는 단일/기간 일정 모두 허용하며 예정 지출 동기화 트리거(`sync_version_expenses_trigger`) 대상에 포함함(`target_date = end_date` 규칙 동일, VERSION만 `start_date`).
@@ -62,8 +62,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/RPC/Types)` | `Phase 12.38-DB (R33)`: 수용 기준 Step 1. 마이그레이션·`SCHEMA.sql`·`approve_schedule_request`·동기화 트리거·`TESTS.sql`·타입·요청 검증·SRS/SPEC | `▶ 대기` |
-| **2** | **`⏳ WAITING`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Type UI)` | `Phase 12.38-UI (R33)`: 수용 기준 Step 2. 관리자·요청 폼, 캘린더·사이드바·주차 리스트·ScheduleTree 배지, 미적용 마이그레이션 내성 | `⏳ Step 1 완료 후 진행` |
+| **1** | **`✅ DONE (SHA: 9e33ac9d5bb5eb1a9dd9655329a0b1830ffbf134)`** | **~~GPT Codex~~ ➡️ Claude Opus** *(GitHub Copilot 2순위 대체)* | `Maker (Core & SQL/RPC/Types)` | `Phase 12.38-DB (R33)`: 수용 기준 Step 1. 마이그레이션·`SCHEMA.sql`·`approve_schedule_request`·동기화 트리거·`TESTS.sql`·타입·요청 검증·SRS/SPEC *(범위 조정: tsc 통과를 위해 `src/app/admin/requests/page.tsx`·`src/components/game/request-submission-modal.tsx`의 로컬 `schedule_type` 타입 선언 4곳만 `BROADCAST` 확장, UI 동작 변경 없음)* | `✅ 9e33ac9: GPT Codex 초안 인수 후 TESTS.sql R33 블록 RLS 결함(authenticated 직접 INSERT) 수정, SRS FR-010 정리. 임시 PostgreSQL 17(Supabase auth/storage/cron 스텁)에서 기존 SCHEMA→migration 2회 및 신규 SCHEMA→migration 2회 적용, 두 DB 모두 TESTS.sql 31개 PASS. tsc/lint/diff-check 통과, Vitest 50파일/415개 통과.` |
+| **2** | **`▶ READY`** | **GitHub Copilot** *(Claude Sonnet 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Type UI)` | `Phase 12.38-UI (R33)`: 수용 기준 Step 2. 관리자·요청 폼, 캘린더·사이드바·주차 리스트·ScheduleTree 배지, 미적용 마이그레이션 내성 | `▶ 대기: Step 1 9e33ac9 기준 착수. requests/page.tsx·request-submission-modal.tsx 타입은 이미 BROADCAST 수용, 라벨·옵션·복각 UI는 미구현` |
 | **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `d09ba5c` ↔ Step 2 Target SHA 통합 정적 리뷰, `run.json` 마감, `main` 병합, `R46` 운영 마이그레이션 체크리스트 등록 및 `docs/` 동기화 | `⏳ Step 2 완료 후 진행` |
 
 ### 🗂️ 이전 Run 기록 (완료): dashboard-summary-dday-and-week-list
@@ -475,7 +475,7 @@
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
-- **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)*
+- **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 `완료된 내역` / `남은 작업` / `검증 상태`를 기록합니다.)* *(직전 `schedule-rerun-and-broadcast` Step 1 GPT Codex → Claude Opus 체크포인트는 `9e33ac9`로 해소, 상세는 `docs/progress.md` 기록)*
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
 ## R24 iteration-01 리뷰 결과 (2026-11-02)
