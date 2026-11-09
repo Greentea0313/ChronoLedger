@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Phase 12.42 Step 1 — `R35` 관심 일정 DB/RLS, `865d0a7`)
+
+- `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql` 신규 추가 및 `sql/SCHEMA.sql` 동기화: `public.user_favorite_schedules`(본인 전용 RLS, 계정 삭제 대기 차단 정책·트리거, `authenticated` 조회·등록·삭제만 허용, `anon` 차단) 및 `purge_expired_account_deletion_requests` 관심 일정 삭제 연동함.
+- `sql/README.md` B표에 R35 확인 쿼리 3종 추가, `sql/tests/TESTS.sql`에 R35-01~04 회귀 테스트 추가, `src/types/database.types.ts`에 `user_favorite_schedules` 타입 추가함.
+- GPT Codex 토큰 소진으로 Claude Opus가 1순위 대체 수행하고 Step 2(`Claude Sonnet`)를 `▶ READY`로 전환함.
+
 ## 2026-11-10 (R53 운영 DB 마이그레이션 확인, `sql/README.md`·`TESTS.sql` 복원 및 Phase 12.42 Run 등록)
 
 - [`sql/README.md`](../sql/README.md) B표 `MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql` 행에 사전 점검·5개 컬럼·4개 함수·`anon` 권한 확인 SQL 쿼리를 복원하고, [`sql/tests/TESTS.sql`](../sql/tests/TESTS.sql)에 누락되었던 §7.3 회귀 테스트 시나리오를 전수 복원하여 로컬 PostgreSQL 17 재검증을 완료함 (`33829c9`).

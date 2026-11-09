@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Phase 12.42 Step 1 (`R35` DB/RLS/계정 탈퇴 정리/타입) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Maker (DB/RLS/Purge & Types)`, GPT Codex 토큰 소진으로 1순위 대체)임.
+- **Worktree 생성**: 큐 등록 시 Worktree가 생성되지 않은 상태였으므로 `New-CollaborationRun.ps1`로 Base `33829c9`에서 `.worktrees/r35-favorite-schedules-and-r51-followup` 생성함(manifest `84e17e2`).
+- **커밋 `865d0a7`**: `user_favorite_schedules` 테이블(사용자·일정 유니크, 사용자/일정 삭제 CASCADE, 인덱스 2종), 본인 전용 RLS·계정 삭제 대기 `RESTRICTIVE` 정책·차단 트리거, `authenticated` `SELECT/INSERT/DELETE`만 허용(`UPDATE`·`anon` 차단), 계정 purge 함수 연동, 멱등 마이그레이션, `SCHEMA.sql`·README B표·`TESTS.sql` R35-01~04·`database.types.ts` 반영함.
+- **검증**: `tsc --noEmit` 통과, PGlite(Supabase 스텁) 신규/Base 스키마 + 마이그레이션 2회 + `TESTS.sql` 전체 PASS, 음성 대조·README 확인 쿼리·purge 실동작 확인함. 실제 PostgreSQL 17 검증은 Step 3으로 넘김.
+- **다음 단계**: Step 2(`Claude Sonnet`) `▶ READY` — 관심 일정 토글·필터·예정 지출 프리필 UI 및 `R51` 후속 보완임.
+
 ## R53 운영 DB 마이그레이션 확인 완료 및 Phase 12.42 (`R35` + `R51`) Run 등록 (2026-11-10)
 
 - **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`)임.

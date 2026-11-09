@@ -33,14 +33,14 @@
 
 - **활성 Run ID**: `r35-favorite-schedules-and-r51-followup` *(`Phase 12.42`: `R35` 관심 일정 즐겨찾기 `user_favorite_schedules` DB/RLS/계정 탈퇴 정리 + 관심 일정 토글·필터·`[+ 예정 지출 추가]` 모달 프리필 연결 및 `R51` 온보딩·게임 순서 후속 보완)*
 - **Orchestrator**: Gemini 4 Argon
-- **Worktree 경로**: `.worktrees/r35-favorite-schedules-and-r51-followup` (브랜치: `collab/r35-favorite-schedules-and-r51-followup`)
+- **Worktree 경로**: `.worktrees/r35-favorite-schedules-and-r51-followup` (브랜치: `collab/r35-favorite-schedules-and-r51-followup`, manifest `84e17e2` — 2026-11-10 Step 1 착수 시 Claude Opus가 `New-CollaborationRun.ps1`로 생성함)
 - **Base SHA**: `33829c96c43a23dec9301be466b3a59ab25edb98`
 - **직전 운영 마이그레이션 (`R53`)**: 2026-11-10 사용자 적용 및 [`sql/README.md`](../sql/README.md) B표 3개 확인 쿼리(`5행`, `4행`, `true, false, false`) 검증 완료 (`✅ DONE`).
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (DB/RLS/Purge & Types)` | `Phase 12.42 (R35 DB)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/SCHEMA.sql`, `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql`, `sql/tests/TESTS.sql`, `sql/README.md`, `src/types/database.types.ts` | `⏳ 대기 중: GPT Codex가 Step 1 완료 및 커밋 후 Step 2를 ▶ READY로 전환` |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Favorite Schedule UI & R51 Follow-ups)` | `Phase 12.42 (R35 UI & R51)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/app/dashboard/settings/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/game/game-onboarding-modal.tsx`, `src/components/game/game-onboarding-modal.test.tsx`, `src/lib/game-order-storage.ts`, `src/lib/game-order-storage.test.ts`, `src/lib/auth-context.tsx` | `⏳ Step 1 완료 후 착수` |
+| **1** | **`✅ DONE (SHA: 865d0a7)`** | ~~GPT Codex~~ ➡️ **Claude Opus** *(GPT Codex 토큰 소진으로 1순위 대체 수행)* | `Maker (DB/RLS/Purge & Types)` | `Phase 12.42 (R35 DB)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/SCHEMA.sql`, `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql`, `sql/tests/TESTS.sql`, `sql/README.md`, `src/types/database.types.ts` | `✅ 865d0a7`: 마이그레이션·SCHEMA·README·TESTS.sql R35-01~04·타입 반영. `tsc --noEmit` 통과, PGlite(Supabase 스텁) 신규/Base 스키마 + 마이그레이션 2회 + `TESTS.sql` 전체 PASS (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Favorite Schedule UI & R51 Follow-ups)` | `Phase 12.42 (R35 UI & R51)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/app/dashboard/settings/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/game/game-onboarding-modal.tsx`, `src/components/game/game-onboarding-modal.test.tsx`, `src/lib/game-order-storage.ts`, `src/lib/game-order-storage.test.ts`, `src/lib/auth-context.tsx` | `▶ 착수 가능: Step 1(865d0a7) 위에서 수행 후 커밋, Step 3을 ▶ READY로 전환` |
 | **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `33829c9` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), 로컬 PG 마이그레이션 및 `TESTS.sql` 검증, `main` 병합 및 운영 마이그레이션 체크리스트 마감 (소유자 테이블·RLS 변경 → Opus 승격 조건 ①·④) | `⏳ Step 2 완료 후 착수` |
 
 #### 📌 `r35-favorite-schedules-and-r51-followup` 단계별 수용 기준 (Acceptance Criteria)
@@ -80,6 +80,21 @@
 
 3. **Step 3 (`Claude Opus` — 통합 정적 코드 리뷰 및 마감)**:
    - Base `33829c9` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), 로컬 PostgreSQL 17 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합 및 운영 마이그레이션 체크리스트 마감.
+
+#### ✅ Step 1 완료 기록 (2026-11-10, Claude Opus — GPT Codex 1순위 대체)
+
+- **커밋**: `.worktrees/r35-favorite-schedules-and-r51-followup` `865d0a7` (Base `33829c9` → manifest `84e17e2` → `865d0a7`)임.
+- **변경 파일**: `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql`(신규, 단일 트랜잭션·재실행 멱등), `sql/SCHEMA.sql`(5-1절 테이블·인덱스, R13 캐릭터 RLS 블록 뒤 RLS/권한/트리거, purge 함수 삭제 줄), `sql/README.md`(B표 R35 행·확인 쿼리 3종), `sql/tests/TESTS.sql`(R35-01~04), `src/types/database.types.ts`(`user_favorite_schedules`)임.
+- **결정 사항**:
+  - 권한은 `REVOKE ALL ... FROM PUBLIC, anon, authenticated` 후 `GRANT SELECT, INSERT, DELETE ... TO authenticated`로 재설정함. Supabase 기본 권한이 `authenticated`에 `UPDATE`까지 주므로 수용 기준(조회·등록·삭제만)을 정확히 맞추기 위해 `authenticated`도 먼저 회수함.
+  - 마이그레이션의 purge 함수 본문은 현재 `SCHEMA.sql` 본문과 동일하며 `user_favorite_schedules` 삭제 1줄만 추가함. `MIGRATION_PG_CRON.sql`·`MIGRATION_R13_CHARACTERS_AND_PRESETS.sql`을 이후 재실행하면 purge 함수가 구버전으로 돌아가므로 README R35 행에 재실행 안내를 남김.
+  - TESTS.sql에서 사용자 A는 R13-07 이후 계정 삭제 대기 상태이므로 정상 소유자 시나리오는 사용자 B로, 삭제 대기 차단 시나리오는 사용자 A로 검증함.
+- **검증**:
+  - `npx tsc --noEmit` 통과함.
+  - 이 PC에 PostgreSQL이 없어 PGlite 0.2.17 + Supabase 스텁(`auth`/`storage`/`cron`, `anon`/`authenticated` 기본 권한) + psql 메타 명령(`\gset`/`\echo`) 해석 하네스로 실행함: 신규 `SCHEMA.sql` + 마이그레이션 2회 + `TESTS.sql` 전체 PASS, Base `33829c9` `SCHEMA.sql` + 마이그레이션 2회 + `TESTS.sql` 전체 PASS, 마이그레이션 미적용 음성 대조 시 R35 블록에서 실패 확인함.
+  - README 확인 쿼리 기대값(`user_favorite_schedules, true, 2` / `false, true, false` / `1, true`) 및 purge 함수 실제 실행 시 관심 일정·`auth.users` 삭제와 공용 일정 보존을 확인함.
+  - ⚠️ 실제 PostgreSQL 17 실행은 미수행임 → Step 3 리뷰에서 PG17 2회 멱등 적용·`TESTS.sql` 재검증 필요함.
+- **Step 2 참고**: 조회는 `supabase.from("user_favorite_schedules").select("schedule_id")`(RLS로 본인 행만 반환), 등록은 `insert({ user_id, schedule_id })`(중복 시 `23505`), 해제는 `delete().eq("schedule_id", id)`임. `UPDATE` 권한은 없음. 운영 미적용 시 `42P01`/`PGRST205` 폴백 필요함(운영 마이그레이션은 Step 3 마감 시 등록 예정).
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
