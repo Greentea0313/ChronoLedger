@@ -1,4 +1,12 @@
 # 변경 이력
+## 2026-11-10 (Phase 12.42 Step 2 — `R35` 관심 일정 UI·프리필 및 `R51` 후속 보완, `13ca8fa`)
+
+- 관심 일정 별 토글(`aria-pressed`/`aria-label`)을 대시보드 사이드바·모바일 드로어·주차별 리스트·게임별 일정 모달에 추가하고, `/dashboard`·게임 일정 모달에 `관심 일정만` 필터를 추가함(게스트 미노출, 오프라인 쓰기 차단, 테이블 미적용 시 빈 집합 폴백).
+- 관심 일정에 `+ 예정 지출 추가` 버튼을 추가하고 `ExpenseModal`에 `prefill` prop을 도입함(`category=게임`·게임·제목·결제일 프리필, VERSION은 `schedule_id` 자동 연결, 그 외는 일정 기간 유지, `pickup_schedule_id`는 `null`).
+- `src/components/calendar/favorite-schedule-actions.tsx` 신규 추가(별 토글·예정 지출 버튼 공용 컴포넌트).
+- `R51`: `GameOnboardingModal` 일괄 구독을 `upsert(..., { onConflict: "user_id,game_id", ignoreDuplicates: true })`로 변경하고(`R38-REV-001`), `clearUserGameOrderStorage(userId)`를 추가해 `SIGNED_OUT`·계정 삭제 요청 시 게임 순서·온보딩 `localStorage` 키를 정리함(`R38-REV-002`).
+- Vitest 회귀 테스트 추가(56파일/620개 통과), `tsc --noEmit`·`npm run lint` 통과함. Step 3(`Claude Opus`)을 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Phase 12.42 Step 1 — `R35` 관심 일정 DB/RLS, `865d0a7`)
 
 - `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql` 신규 추가 및 `sql/SCHEMA.sql` 동기화: `public.user_favorite_schedules`(본인 전용 RLS, 계정 삭제 대기 차단 정책·트리거, `authenticated` 조회·등록·삭제만 허용, `anon` 차단) 및 `purge_expired_account_deletion_requests` 관심 일정 삭제 연동함.

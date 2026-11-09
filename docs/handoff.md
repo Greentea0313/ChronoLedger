@@ -40,8 +40,8 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 865d0a7)`** | ~~GPT Codex~~ ➡️ **Claude Opus** *(GPT Codex 토큰 소진으로 1순위 대체 수행)* | `Maker (DB/RLS/Purge & Types)` | `Phase 12.42 (R35 DB)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/SCHEMA.sql`, `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql`, `sql/tests/TESTS.sql`, `sql/README.md`, `src/types/database.types.ts` | `✅ 865d0a7`: 마이그레이션·SCHEMA·README·TESTS.sql R35-01~04·타입 반영. `tsc --noEmit` 통과, PGlite(Supabase 스텁) 신규/Base 스키마 + 마이그레이션 2회 + `TESTS.sql` 전체 PASS (아래 Step 1 완료 기록 참고) |
-| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Favorite Schedule UI & R51 Follow-ups)` | `Phase 12.42 (R35 UI & R51)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/app/dashboard/settings/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/game/game-onboarding-modal.tsx`, `src/components/game/game-onboarding-modal.test.tsx`, `src/lib/game-order-storage.ts`, `src/lib/game-order-storage.test.ts`, `src/lib/auth-context.tsx` | `▶ 착수 가능: Step 1(865d0a7) 위에서 수행 후 커밋, Step 3을 ▶ READY로 전환` |
-| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `33829c9` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), 로컬 PG 마이그레이션 및 `TESTS.sql` 검증, `main` 병합 및 운영 마이그레이션 체크리스트 마감 (소유자 테이블·RLS 변경 → Opus 승격 조건 ①·④) | `⏳ Step 2 완료 후 착수` |
+| **2** | **`✅ DONE (SHA: 13ca8fa)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Favorite Schedule UI & R51 Follow-ups)` | `Phase 12.42 (R35 UI & R51)`: `.worktrees/r35-favorite-schedules-and-r51-followup`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx`, `src/app/dashboard/games/page.tsx`, `src/app/dashboard/games/page.test.tsx`, `src/app/dashboard/settings/page.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/components/calendar/hero-sidebar.test.tsx`, `src/components/calendar/mobile-drawer.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/components/expense/expense-modal.tsx`, `src/components/game/game-onboarding-modal.tsx`, `src/components/game/game-onboarding-modal.test.tsx`, `src/lib/game-order-storage.ts`, `src/lib/game-order-storage.test.ts`, `src/lib/auth-context.tsx` | `✅ 13ca8fa`: 관심 일정 토글·`관심 일정만` 필터·`+ 예정 지출 추가` 프리필(`ExpenseModal prefill`) + `R51` 2건 반영. `tsc --noEmit`·`npm run lint` 통과, Vitest 56파일/620개 통과 (아래 Step 2 완료 기록 참고) |
+| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `33829c9` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), 로컬 PG 마이그레이션 및 `TESTS.sql` 검증, `main` 병합 및 운영 마이그레이션 체크리스트 마감 (소유자 테이블·RLS 변경 → Opus 승격 조건 ①·④) | `▶ 착수 가능: Base 33829c9 ↔ Target 13ca8fa` |
 
 #### 📌 `r35-favorite-schedules-and-r51-followup` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -95,6 +95,24 @@
   - README 확인 쿼리 기대값(`user_favorite_schedules, true, 2` / `false, true, false` / `1, true`) 및 purge 함수 실제 실행 시 관심 일정·`auth.users` 삭제와 공용 일정 보존을 확인함.
   - ⚠️ 실제 PostgreSQL 17 실행은 미수행임 → Step 3 리뷰에서 PG17 2회 멱등 적용·`TESTS.sql` 재검증 필요함.
 - **Step 2 참고**: 조회는 `supabase.from("user_favorite_schedules").select("schedule_id")`(RLS로 본인 행만 반환), 등록은 `insert({ user_id, schedule_id })`(중복 시 `23505`), 해제는 `delete().eq("schedule_id", id)`임. `UPDATE` 권한은 없음. 운영 미적용 시 `42P01`/`PGRST205` 폴백 필요함(운영 마이그레이션은 Step 3 마감 시 등록 예정).
+
+#### ✅ Step 2 완료 기록 (2026-11-10, Claude Sonnet)
+
+- **커밋**: `.worktrees/r35-favorite-schedules-and-r51-followup` `13ca8fa` (Step 1 `865d0a7` 위, Base `33829c9`)임. 아직 `main` 미병합임(Step 3에서 병합).
+- **R35 UI**:
+  - `src/components/calendar/favorite-schedule-actions.tsx`(신규): 별 토글(`aria-pressed`, `aria-label`)과 관심 일정 전용 `+ 예정 지출 추가` 버튼을 한 컴포넌트로 제공함. 토글 핸들러가 없으면(게스트) 아무것도 렌더링하지 않음.
+  - `hero-sidebar.tsx`/`mobile-drawer.tsx`/`weekly-schedule-list.tsx`/`games/page.tsx`(`ScheduleTree`)에 컨트롤을 연결함. 주차별 리스트는 중첩 버튼을 피하려고 `li`를 flex로 바꾸고 기존 메인 버튼을 첫 버튼으로 유지함.
+  - `dashboard/page.tsx`·`games/page.tsx`: `user_favorite_schedules.select("schedule_id")` 조회(RLS로 본인 행만), `42P01`/`PGRST205`는 콘솔 로그 없이 빈 집합 폴백, 토글은 낙관적 반영 후 실패 시 롤백+오류 문구, `23505`는 성공 취급, 오프라인은 `OFFLINE_WRITE_MESSAGE`로 차단함. 해제는 `delete().eq("schedule_id", id)`임.
+  - `관심 일정만` 필터: `/dashboard`(보기 방식 줄)와 게임 일정 모달에 추가, 로그인 사용자에게만 노출함. 대시보드는 필터를 `subscribedSchedules`에 적용해 캘린더·사이드바·주차별 리스트에 일괄 반영함(요약 스트립은 영향 없음).
+  - `expense-modal.tsx`: 신규 `prefill` prop(`ExpensePrefill`)을 추가함. 모달 열림 시 `category=게임`, `game_id`, `title`, 결제일=`schedule.start_date`를 채움. VERSION은 기존 `matchingVersion` 조회가 `schedule_id`를 자동 연결하고, 그 외 유형은 일정 기간(`start_date`~`end_date`)을 결제일이 바뀌지 않은 동안만 유지함. `pickup_schedule_id`는 R11 정책대로 항상 `null`임. 게임 일정 모달에서 누르면 일정 모달을 먼저 닫고 지출 모달을 엶.
+- **R51**: `GameOnboardingModal`을 `upsert(rows, { onConflict: "user_id,game_id", ignoreDuplicates: true })`로 변경함(`R38-REV-001`). `clearUserGameOrderStorage(userId)` 헬퍼를 추가해 `auth-context.tsx`의 `SIGNED_OUT` 이벤트(직전 사용자 id)와 설정 페이지의 계정 삭제 요청 성공 직후에 호출함(`R38-REV-002`).
+- **결정/가정**:
+  - 허용 파일 목록 밖의 신규 파일 `favorite-schedule-actions.tsx`(+ 테스트)를 추가함. `hero-sidebar.tsx`에 두면 `weekly-schedule-list`가 supabase 클라이언트를 끌어와 테스트가 깨지므로 분리함.
+  - 허용 목록 밖이지만 변경 대상과 짝인 테스트(`expense-modal.test.tsx`, `auth-context.test.tsx`, `settings/page.test.tsx`)에 회귀 테스트를 추가함.
+  - 모바일 드로어는 `HeroSidebarContent`에 props를 그대로 전달만 하므로 별도 테스트를 두지 않음.
+  - 로그아웃 정리는 `auth-context`의 `SIGNED_OUT` 한 곳에 둠(대시보드·관리자 레이아웃 로그아웃과 세션 만료 모두 포괄).
+- **검증**: `tsc --noEmit` 통과, `npm run lint` 무경고, Vitest 56파일/620개 전체 통과(Node v24.22.2, 기준 589개 대비 +31). 브라우저 실사용 확인(개발 서버)은 미수행임 → Step 3 또는 사용자 수동 확인 필요함.
+- **Step 3 참고**: 운영 DB에 `MIGRATION_R35_FAVORITE_SCHEDULES.sql` 미적용 상태에서도 UI는 빈 집합으로 동작하나, 토글 저장은 실패해 오류 문구가 보임(적용 전 병합 시 주의). PG17 2회 멱등 적용·`TESTS.sql` 재검증은 Step 1 인계대로 Step 3 몫임.
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 

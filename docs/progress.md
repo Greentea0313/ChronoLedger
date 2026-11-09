@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Phase 12.42 Step 2 (`R35` 관심 일정 UI·필터·예정 지출 프리필 + `R51` 후속 보완) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Sonnet (`Maker (Favorite Schedule UI & R51 Follow-ups)`)임.
+- **커밋 `13ca8fa`** (`.worktrees/r35-favorite-schedules-and-r51-followup`, 미병합): 사이드바·모바일 드로어·주차별 리스트·게임별 일정 모달에 관심 일정 별 토글(`aria-pressed`)과 `관심 일정만` 필터, 관심 일정의 `+ 예정 지출 추가`(`ExpenseModal` `prefill`)를 추가함. 테이블 미적용(`42P01`/`PGRST205`) 시 빈 집합 폴백, 낙관적 토글+실패 롤백, 오프라인 차단 포함임.
+- **R51**: 온보딩 일괄 구독 `upsert(ignoreDuplicates)`, 로그아웃(`SIGNED_OUT`)·계정 삭제 요청 시 `localStorage` 게임 순서·온보딩 키 정리 반영함.
+- **검증**: `tsc --noEmit` 통과, `npm run lint` 무경고, Vitest 56파일/620개 통과함. 개발 서버 실사용 확인은 미수행임.
+- **다음 단계**: Step 3(`Claude Opus`) `▶ READY` — Base `33829c9` ↔ Target `13ca8fa` 통합 리뷰, 로컬 PG17 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 재검증, `main` 병합, 운영 마이그레이션(`MIGRATION_R35_FAVORITE_SCHEDULES.sql`) 체크리스트 마감임.
+
 ## Phase 12.42 Step 1 (`R35` DB/RLS/계정 탈퇴 정리/타입) 완료 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Maker (DB/RLS/Purge & Types)`, GPT Codex 토큰 소진으로 1순위 대체)임.
