@@ -1,4 +1,12 @@
 # 변경 이력
+## 2026-11-09 (Phase 12.41 — R38 온보딩·내 게임 순서)
+
+- `game-order-storage.ts`를 추가해 내 게임 순서와 온보딩 닫힘 여부를 사용자별 `localStorage`에 저장함(DB 변경 없음, 손상·차단 시 안전 폴백).
+- `GameOnboardingModal`: 구독 게임이 없는 로그인 사용자에게 카탈로그를 전체 선택 상태로 보여주고, 선택한 게임을 `user_games`에 일괄 구독함. `나중에 직접 선택` 시 다시 뜨지 않음.
+- `/dashboard/games`: 카드마다 `순서 위로/아래로` 버튼을 추가하고 저장된 순서를 우선 적용함(미지정 게임은 가나다순으로 뒤에 배치).
+- `/dashboard`: 게임 필터 칩과 캘린더 타일 아이콘이 같은 순서를 따르며 게스트는 기존 가나다순을 유지함. 온보딩 완료 시 데이터를 다시 불러옴.
+- 검증: tsc·lint 통과, Vitest 54파일/485개 통과함. 워크트리 커밋 `c1cb27b4d41af75832c76dd006c02c93f5e906b7`임.
+
 ## 2026-11-09 (r36-game-detail-and-r47-followup 리뷰·병합 마감 및 r38-onboarding-and-game-order Run 등록 — R36·R47·R38)
 
 - Base `b5ca5d8` ↔ Target `4fdf99a` 통합 정적 코드 리뷰 결과 `clean`(지적 0건) 판정함(`artifacts/r36-game-detail-and-r47-followup/iteration-01/review.json`).

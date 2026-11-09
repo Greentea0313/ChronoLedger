@@ -65,8 +65,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Onboarding & Game Order UI)` | `Phase 12.41 (R38)`: `.worktrees/r38-onboarding-and-game-order`에서 `game-order-storage.ts`, `GameOnboardingModal`, `/dashboard/games` 순서 변경 UI, `/dashboard` 캘린더 아이콘·필터 정렬 반영 및 단위 테스트 구현 | `⏳ 대기 중` |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 1 완료 후 진행` |
+| **1** | **`✅ DONE (SHA: c1cb27b4d41af75832c76dd006c02c93f5e906b7)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Onboarding & Game Order UI)` | `Phase 12.41 (R38)`: `.worktrees/r38-onboarding-and-game-order`에서 `game-order-storage.ts`, `GameOnboardingModal`, `/dashboard/games` 순서 변경 UI, `/dashboard` 캘린더 아이콘·필터 정렬 반영 및 단위 테스트 구현 | `✅ c1cb27b: game-order-storage 유틸, GameOnboardingModal(전체 선택 기본·일괄 구독·나중에 선택), /dashboard/games 순서 변경 버튼 및 온보딩 연동, /dashboard 필터·캘린더 아이콘 순서 적용 및 온보딩 연동. DB 변경 없음. tsc/lint 통과, Vitest 54파일/485개 통과.` |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `4ffd9014bee327e2fddd4e13f8e3506a1ed24893` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: c1cb27b4d41af75832c76dd006c02c93f5e906b7` |
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
