@@ -72,7 +72,7 @@
      - **대상 파일 (`.worktrees/r52-character-template-and-pickup-avatar` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, `src/components/calendar/pickup-avatars.tsx`, `src/components/calendar/pickup-avatars.test.tsx`, `src/components/calendar/hero-sidebar.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/games/page.tsx`, `src/lib/image-resizer.ts`, `src/lib/image-resizer.test.ts`, `docs/to-do.md`
      - **구현 요구사항**:
        - ① 관리자·요청 관리 탭 모바일 겹침 해소, `게임 필터:` 한 줄 유지(U-01), 요청 3개 탭 대기열 제목 통일(U-02).
-       - ② 주차별 리스트 게임 그룹 접기/펼치기(`aria-expanded`, 이번 주 기본 펼침), 그룹 헤더 아바타 최대 3개 20px, 하위 행 아바타 20px(U-03).
+       - ② 주차별 리스트 게임 그룹 접기/펼치기(`aria-expanded`, 이번 주 기본 펼침), 그룹 헤더 아바타 최대 3개 20px, 하위 행 아바타 20px, **하단 `지출` 섹션 단독 접기/펼치기**(머리에 `지출 n건 · 예정 x원 · 확정 y원`, 기본 상태는 게임 그룹과 동일, 게스트 미표시, 지출을 게임 그룹에 섞지 않음)(U-03).
        - ③ 관리자 픽업 피커(정식 + 픽업 전용, 최대 8명) + `[+ 새 픽업 캐릭터]` 인라인 등록(U-04), 캐릭터 관리 `픽업 전용` 필터·배지·승격(U-05), `pickup_image_url` 관련 UI·폴백 필드 제거.
        - ④ 사용자 요청 모달 캐릭터 선택 + 새 캐릭터 제안(이름 필수·이미지 선택·150,000자 안내·합계 8명)(U-06), 관리자 요청 카드의 제안 미리보기와 승인 폴백 제한(`PGRST202`/`42883`만, U-07·`R52-REV-003`).
        - ⑤ `/dashboard/characters` 정식 캐릭터만 표시, 아이콘 없는 캐릭터 이니셜 아바타(U-08), 컬럼 부재 폴백(D-08), 대용량 Data URL 크기 안내(`R52-REV-004`).
