@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils"
 export interface WeeklyScheduleEntry {
   id: string
   title: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
+  is_rerun?: boolean
   start_date: string
   end_date: string
   gameName: string | null
@@ -42,6 +43,7 @@ const TYPE_LABELS: Record<WeeklyScheduleEntry["schedule_type"], string> = {
   VERSION: "버전",
   PICKUP: "픽업",
   CONTENTS: "콘텐츠",
+  BROADCAST: "특별방송",
 }
 
 function shortDate(date: string): string {
@@ -146,6 +148,9 @@ export function WeeklyScheduleList({
                         <span className="min-w-0 flex-1 truncate font-medium text-content">
                           {`${schedule.gameName ?? "게임"} · ${schedule.title}`}
                         </span>
+                        {schedule.is_rerun && (
+                          <span className="rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">복각</span>
+                        )}
                         <span className="text-xs text-content-muted">{`${schedule.start_date} ~ ${schedule.end_date}`}</span>
                         <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
                           {getDdayLabel(todayDate, schedule.end_date)}

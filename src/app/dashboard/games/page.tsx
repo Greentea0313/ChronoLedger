@@ -51,11 +51,12 @@ interface GameScheduleRow {
   id: string
   game_id: string
   title: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   start_date: string
   end_date: string
   memo: string | null
   is_official?: boolean
+  is_rerun?: boolean
 }
 
 interface CatalogGame {
@@ -110,10 +111,13 @@ function ScheduleTree({ schedules }: { schedules: GameScheduleRow[] }) {
               ? "bg-primary/15 text-primary"
               : schedule.schedule_type === "PICKUP"
                 ? "bg-warning/15 text-warning"
-                : "bg-purple-500/15 text-purple-700 dark:text-purple-300"
+                : schedule.schedule_type === "BROADCAST"
+                  ? "bg-info/15 text-info"
+                  : "bg-purple-500/15 text-purple-700 dark:text-purple-300"
           }`}
         >
-          {schedule.schedule_type === "VERSION" ? "버전" : schedule.schedule_type === "PICKUP" ? "픽업" : "콘텐츠"}
+          {schedule.schedule_type === "VERSION" ? "버전" : schedule.schedule_type === "PICKUP" ? "픽업" : schedule.schedule_type === "BROADCAST" ? "특별방송" : "콘텐츠"}
+          {schedule.is_rerun && <span className="ml-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning">복각</span>}
         </span>
       </div>
       <p className="text-xs text-content-secondary">

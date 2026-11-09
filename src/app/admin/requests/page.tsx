@@ -32,6 +32,7 @@ type ScheduleRequest = {
   end_date: string
   memo: string | null
   is_official?: boolean
+  is_rerun?: boolean
   admin_memo?: string | null
   request_status: string
   created_at: string | null
@@ -588,8 +589,9 @@ export default function AdminRequestsPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="bg-primary/15 text-primary text-xs px-2 py-1 rounded">
-                        {req.schedule_type === "VERSION" ? "버전" : req.schedule_type === "CONTENTS" ? "콘텐츠" : "픽업"}
+                        {req.schedule_type === "VERSION" ? "버전" : req.schedule_type === "CONTENTS" ? "콘텐츠" : req.schedule_type === "BROADCAST" ? "특별방송" : "픽업"}
                       </span>
+                      {req.is_rerun && <span className="bg-warning/15 text-warning text-xs px-2 py-1 rounded">복각</span>}
                       {req.is_official === false && <span className="bg-warning/15 text-warning text-xs px-2 py-1 rounded">비공식</span>}
                       <h3 className="font-bold text-lg text-content">{req.title}</h3>
                     </div>

@@ -1,5 +1,5 @@
 interface ScheduleBannerProps {
-  type: "VERSION" | "PICKUP" | "CONTENTS"
+  type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
 }
 
 export function ScheduleBanner({ type }: ScheduleBannerProps) {
@@ -8,13 +8,15 @@ export function ScheduleBanner({ type }: ScheduleBannerProps) {
       ? "border-success/50 bg-success/15 text-success"
       : type === "PICKUP"
         ? "border-primary/50 bg-primary/15 text-primary"
-        : "border-purple-500/40 bg-purple-500/15 text-purple-700 dark:text-purple-300"
+        : type === "BROADCAST"
+          ? "border-info/50 bg-info/15 text-info"
+          : "border-purple-500/40 bg-purple-500/15 text-purple-700 dark:text-purple-300"
 
   return (
     <span
       className={`inline-flex max-w-full items-center truncate rounded border px-1 py-[1px] text-[8px] md:text-[9px] font-semibold leading-tight ${palette}`}
     >
-      {type}
+      {type === "BROADCAST" ? "특별방송" : type}
     </span>
   )
 }

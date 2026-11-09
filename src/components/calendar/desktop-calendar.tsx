@@ -12,7 +12,7 @@ import {
 
 export interface CalendarScheduleItem {
   id: string
-  schedule_type: "VERSION" | "PICKUP" | "CONTENTS"
+  schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   is_start_date: boolean
   game_id: string
 }
@@ -148,6 +148,7 @@ export function DesktopCalendar({
             const hasVersion = day.schedules.some((s) => s.schedule_type === "VERSION" && s.is_start_date)
             const hasPickup = day.schedules.some((s) => s.schedule_type === "PICKUP" && s.is_start_date)
             const hasContents = day.schedules.some((s) => s.schedule_type === "CONTENTS" && s.is_start_date)
+            const hasBroadcast = day.schedules.some((s) => s.schedule_type === "BROADCAST" && s.is_start_date)
             return (
               <button
                 key={day.date}
@@ -269,6 +270,9 @@ export function DesktopCalendar({
                       title="콘텐츠 일정 있음"
                     />
                   )}
+                  {hasBroadcast && (
+                    <span data-testid="mobile-dot-broadcast" className={`h-1.5 w-1.5 rounded-full bg-info shrink-0 ${hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""}`} title="특별방송 일정 있음" />
+                  )}
                   {day.hasMemo && (
                     <span
                       data-testid="mobile-dot-memo"
@@ -292,6 +296,7 @@ export function DesktopCalendar({
                 {hasVersion && <ScheduleBanner type="VERSION" />}
                 {hasPickup && <ScheduleBanner type="PICKUP" />}
                 {hasContents && <ScheduleBanner type="CONTENTS" />}
+                {hasBroadcast && <ScheduleBanner type="BROADCAST" />}
               </div>
             </button>
           )
