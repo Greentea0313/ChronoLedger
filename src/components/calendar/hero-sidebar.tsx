@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pencil, Check, X } from "lucide-react"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
+import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, getPeriodProgress, getTodayLocalDate } from "@/lib/calendar-utils"
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -63,6 +64,7 @@ export interface HeroScheduleItem {
 interface HeroScheduleGroup {
   key: string
   schedule_type: HeroScheduleItem["schedule_type"]
+  is_rerun: boolean
   start_date: string
   end_date: string
   gameName?: string | null
@@ -173,7 +175,7 @@ export function HeroSidebarContent({
   // 같은 게임 + 같은 유형 + 같은 기간의 일정은 하나의 카드로 묶어서 표시 (정렬 순서 유지)
   const scheduleGroups = filteredSchedules.reduce<HeroScheduleGroup[]>((groups, s) => {
     const gameKey = s.gameId ?? s.gameName ?? ""
-    const key = `${gameKey}|${s.schedule_type}|${s.start_date}|${s.end_date}`
+    const key = `${gameKey}|${s.schedule_type}|${s.is_rerun === true ? "rerun" : "new"}|${s.start_date}|${s.end_date}`
     const existing = groups.find((g) => g.key === key)
     if (existing) {
       existing.items.push(s)
@@ -181,6 +183,7 @@ export function HeroSidebarContent({
       groups.push({
         key,
         schedule_type: s.schedule_type,
+        is_rerun: s.is_rerun === true,
         start_date: s.start_date,
         end_date: s.end_date,
         gameName: s.gameName,
@@ -304,9 +307,6 @@ export function HeroSidebarContent({
                 <EmptyState message="해당 일자의 일정이 없습니다." />
               ) : (
                 scheduleGroups.map((group) => {
-                  const isVersion = group.schedule_type === "VERSION"
-                  const isPickup = group.schedule_type === "PICKUP"
-                  const isBroadcast = group.schedule_type === "BROADCAST"
                   const isSingle = group.start_date === group.end_date
                   const isGrouped = group.items.length > 1
                   return (
@@ -332,19 +332,7 @@ export function HeroSidebarContent({
                       )}
                       {/* Line 1: [픽업] 명일방주 */}
                       <div className="relative z-10 flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className={`shrink-0 whitespace-nowrap text-[10px] px-1.5 py-0.5 rounded font-bold border ${
-                            isVersion
-                              ? "bg-primary/20 text-primary border-primary/30"
-                              : isPickup
-                                ? "bg-warning/20 text-warning border-warning/30"
-                                : isBroadcast
-                                  ? "bg-info/15 text-info border-info/30"
-                                  : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
-                          }`}
-                        >
-                          {isVersion ? "버전" : isPickup ? "픽업" : isBroadcast ? "특별방송" : "콘텐츠"}
-                        </span>
+                        <ScheduleTypeBadge type={group.schedule_type} isRerun={group.is_rerun} size="sm" />
                         <span className="text-xs font-semibold text-content">
                           {group.gameName ?? "게임"}
                         </span>
@@ -391,11 +379,6 @@ export function HeroSidebarContent({
                                     [비공식]
                                   </span>
                                 )}
-                                {item.is_rerun && (
-                                  <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                                    복각
-                                  </span>
-                                )}
                                 {item.title.includes("/") ? (
                                   <span className="inline-flex items-center gap-1">
                                     <span>•</span>
@@ -420,9 +403,6 @@ export function HeroSidebarContent({
                               <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
                                 [비공식]
                               </span>
-                            )}
-                            {group.items[0].is_rerun && (
-                              <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">복각</span>
                             )}
                             <ScheduleTitleBadges title={group.items[0].title} />
                           </div>

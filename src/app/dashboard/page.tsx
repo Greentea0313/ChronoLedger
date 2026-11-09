@@ -681,6 +681,7 @@ export default function DashboardPage() {
           is_rerun: s.is_rerun === true,
           start_date: s.start_date,
           end_date: s.end_date,
+          gameId: s.game_id || null,
           gameName: gameInfo ? gameInfo.name : null,
           iconUrl: (s.game_id ? gameIcons[s.game_id] : undefined) || gameInfo?.iconUrl,
         }

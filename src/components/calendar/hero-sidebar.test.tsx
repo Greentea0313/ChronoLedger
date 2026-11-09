@@ -26,14 +26,19 @@ describe("HeroSidebarContent D-n badge and period progress bar", () => {
     expect(screen.queryByRole("progressbar", { name: "일정 진행률" })).toBeNull()
   })
 
-  it("shows rerun badges for grouped schedule items", () => {
+  it("splits rerun and new PICKUP into separate cards and nests the rerun chip in the type badge", () => {
     const schedules: HeroScheduleItem[] = [
-      { id: "new", title: "신규 픽업", schedule_type: "PICKUP", start_date: "2026-11-15", end_date: "2026-11-20", gameName: "게임" },
-      { id: "rerun", title: "복각 픽업", schedule_type: "PICKUP", start_date: "2026-11-15", end_date: "2026-11-20", gameName: "게임", is_rerun: true },
+      { id: "new", title: "신규 픽업", schedule_type: "PICKUP", start_date: "2026-11-15", end_date: "2026-11-20", gameId: "g", gameName: "게임" },
+      { id: "rerun", title: "복각 픽업", schedule_type: "PICKUP", start_date: "2026-11-15", end_date: "2026-11-20", gameId: "g", gameName: "게임", is_rerun: true },
     ]
     render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-15" todayDate="2026-11-15" schedules={schedules} expenses={[]} />)
 
-    expect(screen.getByText("복각")).toBeTruthy()
+    const badges = screen.getAllByTestId("schedule-type-badge")
+    expect(badges).toHaveLength(2)
+    expect(screen.getAllByTestId("rerun-chip")).toHaveLength(1)
+    const rerunBadge = badges.find((badge) => badge.querySelector('[data-testid="rerun-chip"]'))
+    expect(rerunBadge?.textContent).toBe("픽업복각")
+    expect(screen.getAllByText("복각")).toHaveLength(1)
   })
 
   it("shows the payment D-n for PLANNED expenses only and a bar when a period exists", () => {
