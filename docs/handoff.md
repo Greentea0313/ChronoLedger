@@ -65,8 +65,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Game Detail View & R33 Follow-up)` | `Phase 12.40 (R36 & R47)`: `.worktrees/r36-game-detail-and-r47-followup`에서 `user-requests-card.tsx` `is_rerun` 폴백, R33 회귀 테스트 보강, `/dashboard/games` 일정·과금 통합 상세 뷰(`ON AIR` D-day/진행 바, 다음 예정, 최근 6개월 지난 일정, 게임·버전별 과금 요약) 및 단위 테스트 구현 | `-` |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** / **Claude Opus** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `b5ca5d8b2ab538cc19af84238e89095fc0456c53` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `-` |
+| **1** | **`✅ DONE (SHA: 4fdf99aeb93ce3580ae876fb8bb814d63b677f18)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Game Detail View & R33 Follow-up)` | `Phase 12.40 (R36 & R47)`: `.worktrees/r36-game-detail-and-r47-followup`에서 `user-requests-card.tsx` `is_rerun` 폴백, R33 회귀 테스트 보강, `/dashboard/games` 일정·과금 통합 상세 뷰(`ON AIR` D-day/진행 바, 다음 예정, 최근 6개월 지난 일정, 게임·버전별 과금 요약) 및 단위 테스트 구현 | `✅ 4fdf99a: R47-1 user-requests-card is_rerun 폴백(+userId 의존성), R47-2 admin·요청 모달 R33 회귀 테스트, R36 일정 모달 180일 조회·게임 과금 요약·ON AIR D-n/진행 바·다음 예정·버전별 과금 소계·지난 일정 기록. tsc/lint 통과, Vitest 52파일/453개 통과.` |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** / **Claude Opus** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | Base `b5ca5d8b2ab538cc19af84238e89095fc0456c53` ↔ Step 1 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: 4fdf99aeb93ce3580ae876fb8bb814d63b677f18` |
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
