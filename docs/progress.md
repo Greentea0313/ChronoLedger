@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## R52 DB/RLS/RPC/Types Maker 완료 (Phase 13.5-A, 2026-11-09)
+
+- **수행 주체**: GPT Codex Maker로 지정 Worktree에서 구현함.
+- **커밋**: `.worktrees/r52-character-template-and-pickup-avatar` `422f8ab45b22ce32a8ecf95db854e17b06e608ce`임.
+- **반영 내용**: `character_label`·등급 길이·최대 2축 검증 및 마이그레이션 사전 중단, PICKUP 캐릭터 참조·96px WebP 저장 제약, 배열 참조 검증·캐릭터 삭제 정리, 승인 RPC 신규/수정 복사, 열 단위 anon 권한, DB 타입 및 판정 헬퍼 반영함.
+- **검증**: 신규 `SCHEMA.sql` 적재, 기존 베이스 스키마 업그레이드, 양쪽에서 R52 migration 2회 적용 및 `sql/tests/TESTS.sql` 전체 통과함. 위반 3축 스키마 사전 중단도 확인함. `npx tsc --noEmit`, `npm run lint`, Vitest 54파일/488개 통과함.
+- **다음 단계**: Step 3 UI 구현 (**Claude Sonnet** `▶ READY`, Fallback: GitHub Copilot / Claude Opus)임.
+
 ## R52 명세 아키텍처·보안 리뷰 및 APPROVED (r52-character-template-and-pickup-avatar Step 1, 2026-11-09)
 
 - **수행 주체**: Claude Opus (Architect & Security Reviewer)임.
