@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Phase 12.42 Step 7 — iteration-03 교차 리뷰 `clean` 마감, `R54` 등록 및 `Phase 12.43` 큐잉)
+
+- Gemini 4 Argon 교차 리뷰로 `r35-favorite-schedules-and-r51-followup` Base `33829c9` ↔ Target `d8f13ba` 변경분을 전수 대조해 `R35-REV-004` 완전 해소를 확인하고 `iteration-03/review.json`(`clean`), `iteration-03/test.json`(`passed`), `run.json`(`completed`)을 작성함.
+- `docs/to-do.md`에서 `R35`·`R51`을 완료(`[x]`) 처리하고, 운영 Supabase 필수 마이그레이션 체크리스트 `R54`(`sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql` 적용 및 B표 확인 쿼리 3종)를 등록함.
+- `docs/handoff.md`에 `collab/r35-favorite-schedules-and-r51-followup` → `main` 병합 명령어와 후속 Run `r55-r56-favorite-hook-and-version-pass-trigger`(Step 1 `R56` GPT Codex `▶ READY`, Step 2 `R55` Claude Sonnet `⏳ WAITING`, Step 3 Claude Opus 통합 리뷰)를 등록함.
+
 ## 2026-11-10 (Phase 12.42 Step 6 — iteration-03 수정, `d8f13ba`)
 
 - `PlannedExpenseEditInput`에 선택 필드 `schedule_id`를 추가하고 `/dashboard/expenses` 편집 진입 시 전달함. `ExpenseModal` 편집 모드가 저장된 VERSION 연결을 기간 안에서 우선 유지함(`R35-REV-004`).

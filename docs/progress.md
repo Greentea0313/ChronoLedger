@@ -1,4 +1,15 @@
 # 프로젝트 진행 현황
+## Phase 12.42 Step 7 iteration-03 교차 리뷰 `clean` 마감 및 차기 Run(`R55`·`R56`) 등록 (2026-11-10)
+
+- **수행 주체**: Gemini 4 Argon (`Reviewer & Orchestrator`, Step 4·5·6을 Claude Opus가 연속 수행함에 따른 자기 리뷰 편향 방지 1순위 교차 리뷰어)임.
+- **교차 리뷰 결과 (`33829c9` ↔ `d8f13ba`)**: 판정 **`clean`**(P1~P4 지적 0건)임.
+  - `R35-REV-004` 해소 확인: `PlannedExpenseEditInput.schedule_id` 추가, `/dashboard/expenses` `handleEditPlanned`의 `schedule_id` 전달, `ExpenseModal` 편집 초기화 시 `preferredScheduleId` 세팅을 통해 경계일에 시작하는 `VERSION` 일정(`v-new`) 연결이 편집 진입 시에도 유지되고 결제일을 버전 기간 밖으로 이동하면 날짜 매칭으로 자연스럽게 전환됨을 확인함.
+  - 협업 산출물 기록: `.worktrees/r35-favorite-schedules-and-r51-followup/artifacts/r35-favorite-schedules-and-r51-followup/iteration-03/review.json`(`status: "clean"`), `iteration-03/test.json`(`status: "passed"`), `run.json`(`target_sha: d8f13ba...`, `status: "completed"`) 작성 완료함.
+- **환경 제약 및 병합 절차**: 현재 대화 세션의 작업 디렉터리 캐시(`c:\Users\inha0\OneDrive\...`)와 실제 PC 경로(`C:\Users\inha\Desktop\...`) 불일치로 `run_command` 셸 실행이 불가하여, `docs/handoff.md`에 산출물 커밋 및 `collab/r35-favorite-schedules-and-r51-followup` → `main` `--no-ff` 병합 1줄 PowerShell 명령어를 명시함.
+- **운영 마이그레이션 및 차기 Run**:
+  - `docs/to-do.md` 및 `docs/handoff.md`에 운영 DB 필수 마이그레이션 `R54`(`sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql` + 확인 쿼리 3종)를 등록함.
+  - 차기 Run `r55-r56-favorite-hook-and-version-pass-trigger`(`Phase 12.43`: Step 1 `R56` **GPT Codex** `▶ READY` → Step 2 `R55` **Claude Sonnet** `⏳ WAITING` → Step 3 **Claude Opus** 리뷰)를 `docs/handoff.md` Dispatch Queue에 등록함.
+
 ## Phase 12.42 Step 6 iteration-03 수정 완료 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Maker (Edit Schedule Link Fix)`, Claude Sonnet 1순위 대체)임.
