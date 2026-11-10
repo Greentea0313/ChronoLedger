@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-10 (R57 캐릭터 템플릿 게이트·검증 결함 과제 등록)
+
+- 관리자 캐릭터 추가 시 템플릿 생성 단계를 우회할 수 있는 결함과 템플릿 폼 검증 불일치 5건을 `R57`로 등록하고 `docs/handoff.md`에 다음 Run 예약(`r57-character-template-gate-and-validation`)으로 수용 기준을 기록함.
+
 ## 2026-11-10 (Phase 12.42 Step 7 — iteration-03 교차 리뷰 `clean` 마감, `R54` 등록 및 `Phase 12.43` 큐잉)
 
 - Gemini 4 Argon 교차 리뷰로 `r35-favorite-schedules-and-r51-followup` Base `33829c9` ↔ Target `d8f13ba` 변경분을 전수 대조해 `R35-REV-004` 완전 해소를 확인하고 `iteration-03/review.json`(`clean`), `iteration-03/test.json`(`passed`), `run.json`(`completed`)을 작성함.

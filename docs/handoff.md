@@ -69,6 +69,32 @@
 
 ---
 
+### 🗓️ 다음 Run 예약: `r57-character-template-gate-and-validation` (`R57`, 2026-11-10 등록)
+
+> **실행 규칙**: 위 활성 Run(`r55-r56-favorite-hook-and-version-pass-trigger`)이 `main` 병합으로 마감되면 Orchestrator(Gemini 4 Argon, Fallback: Claude Opus)가 `New-CollaborationRun.ps1 -RunId r57-character-template-gate-and-validation`으로 워크트리를 만들고 Step 1을 `▶ READY`로 바꿈. 대상 파일이 활성 Run과 겹치지 않으므로, 사용자가 **"R57 먼저 진행"**처럼 직접 지목하면 병행 착수할 수 있음.
+
+- **배경 (사용자 확인, 2026-11-10)**: 관리자 `캐릭터 관리`에서 게임 필터가 "전체"일 때 상단 `[+ 캐릭터 추가]`로 템플릿이 없는 게임(예: 명일방주: 엔드필드)을 고르면, 분류 입력 없이 이름·`등급 없음`·아이콘만 표시되고 그대로 저장됨. 저장 시 정식 캐릭터 1명이 생겨 `isCharacterTemplateActive`가 참이 되므로 템플릿 생성 단계(R52 §3.2)를 영구히 건너뜀.
+- **원인 분석 (Claude Opus)**:
+  - 템플릿 게이트가 필터로 게임을 고른 경우의 안내 카드(`src/app/admin/page.tsx` 1665행)에만 있고, 추가 버튼(1656행 `!selectedCharacterGame` 조건)과 추가 모달 게임 선택(2516행)에는 없음.
+  - 템플릿 입력 폼 검증이 DB `is_valid_classification_schema`와 어긋남: 등급 1개 이상 필수 미검사(저장 후 아무 반응 없음), 축 `key` 입력란 노출(DB는 `^[a-z0-9_]{1,24}$`만 허용), 선택지 상한 화면 30개 vs DB 20개, 등급·선택지 중복 미검사, 축 삭제 후 추가 시 `class{개수+1}` 키 중복.
+  - 템플릿 생성이 "게임 정보 수정 / 게임 명칭 및 기본 대표 아이콘 URL을 변경합니다." 모달로 열려 템플릿 단계임을 알기 어려움.
+- **수용 기준 (Acceptance Criteria)**:
+  1. **Step 1 — 템플릿 게이트·입력 검증·안내 개선 (Claude Sonnet)**:
+     - **대상 파일 (워크트리 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `docs/to-do.md`
+     - **구현 요구사항**:
+       - ① **정식 캐릭터 추가 게이트**: 추가 모달에서 고른 게임이 `isCharacterTemplateActive(game, 정식 캐릭터 수) === false`이면 이름·등급·분류·아이콘 입력과 `[저장]`을 숨기고, `"{게임명}은(는) 캐릭터 템플릿이 아직 없습니다. 템플릿(명칭·등급·분류 기준)을 먼저 만들어야 합니다."` 안내와 `[캐릭터 템플릿 생성]` 버튼을 표시함. 버튼은 추가 모달을 닫고 `handleOpenTemplate(game)`을 호출하며, 템플릿 저장 후 기존 흐름대로 첫 캐릭터 추가 모달이 이어서 열림. 게임 선택 목록의 템플릿 없는 게임에는 `(템플릿 없음)`을 붙임. 픽업 일정 폼의 `[+ 새 픽업 캐릭터]`(`is_pickup_only = true`) 경로는 게이트 대상이 아님.
+       - ② **템플릿 폼 검증을 DB와 일치**: `src/lib/character-utils.ts`에 `validateClassificationTemplate()`(순수 함수)을 두고 화면 저장 전에 사용함. 등급 목록은 템플릿 생성·수정 흐름(`templateFlowGameId`)에서 **1개 이상 필수**, 최대 10개·각 1~20자·중복 불가. 분류 기준은 최대 2개, 표시명 1~30자, 선택지 1~20개·각 1~30자·중복 불가. 위반 시 항목별 한국어 오류를 표시함.
+       - ③ **축 키 자동 관리 (R52 NR-08 유지)**: `key` 입력란을 화면에서 제거함. 기존 축은 저장된 키를 그대로 유지하고, 새 축은 `class1`·`class2` 중 사용하지 않는 키를 배정해 삭제 후 추가 시에도 중복되지 않게 함.
+       - ④ **템플릿 단계 안내**: 템플릿 흐름으로 연 경우 모달 제목을 `{게임명} 캐릭터 템플릿 생성`(기존 템플릿이 있으면 `{게임명} 캐릭터 템플릿 수정`)으로, 설명을 `캐릭터 시스템 명칭·등급·분류 기준(최대 2개)·최대 프리셋 슬롯·최대 돌파 단계를 설정함.`으로 바꿈. `성급 목록` 라벨은 `등급 목록 (최고 등급부터) *`로 표시함. 일반 게임 수정 모달 문구는 유지함.
+       - ⑤ **DB 오류 안내**: `games_classification_schema_check`(`23514`) 위반 시 원문 대신 `캐릭터 템플릿 형식이 올바르지 않습니다(등급·분류 기준 개수와 길이를 확인해 주세요).`를 표시함.
+       - ⑥ **테스트**: 전체 필터에서 템플릿 없는 게임 선택 시 입력·저장 숨김과 템플릿 생성 연결, 등급 미입력·선택지 21개·중복 등급·중복 선택지 오류, 축 삭제 후 추가 시 키 비중복, 템플릿 모달 제목·설명, `validateClassificationTemplate` 단위 테스트를 추가함. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 커밋하고 Target SHA를 기록함. DB 변경 없음.
+  2. **Step 2 — 정적 리뷰 및 Run 마감 (Gemini 4 Argon)**: Base ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 문서 마감.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | `⏳ WAITING` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Admin Character Template UI)` | `R57`: 위 수용 기준 Step 1. 허용 파일: `src/app/admin/page.tsx`·테스트, `src/lib/character-utils.ts`·테스트, `docs/to-do.md` | `⏳ r55-r56 마감 후 워크트리 생성·▶ READY 전환 (또는 사용자 지목 시 병행 착수)` |
+| **2** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 1 완료 후 진행` |
+
 ### 🗂️ 이전 Run 기록 (완료): `r35-favorite-schedules-and-r51-followup`
 
 - **Run ID**: `r35-favorite-schedules-and-r51-followup` *(`Phase 12.42`: `R35` 관심 일정 즐겨찾기 `user_favorite_schedules` DB/RLS/계정 탈퇴 정리 + 관심 일정 토글·필터·`[+ 예정 지출 추가]` 모달 프리필 연결 및 `R51` 온보딩·게임 순서 후속 보완)*

@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## R57 과제 등록: 캐릭터 템플릿 게이트·입력 검증 결함 (2026-11-10)
+
+- **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 1순위 대체)임.
+- **사용자 확인 결함**: 게임 필터 "전체"에서 `[+ 캐릭터 추가]`로 템플릿 없는 게임을 고르면 분류 입력 없이 저장되어 템플릿 생성 단계(R52 §3.2)를 건너뜀.
+- **추가 확인 결함**: 템플릿 폼이 등급 1개 이상 필수를 검사하지 않음, 축 `key` 입력 노출(DB 정규식 불일치), 선택지 상한 30 vs DB 20, 등급·선택지 중복 미검사, 축 삭제 후 추가 시 키 중복, 템플릿 모달 문구가 "게임 정보 수정"으로 표시됨.
+- **등록 내용**: `docs/handoff.md` 「다음 Run 예약」에 `r57-character-template-gate-and-validation`(Step 1 Claude Sonnet → Step 2 Gemini 4 Argon) 등록, `docs/to-do.md` `R57` 추가함. 활성 Run `r55-r56` 마감 후 착수하며, 대상 파일이 겹치지 않아 사용자 지목 시 병행 착수 가능함.
+
 ## Phase 12.42 Step 7 iteration-03 교차 리뷰 `clean` 마감 및 차기 Run(`R55`·`R56`) 등록 (2026-11-10)
 
 - **수행 주체**: Gemini 4 Argon (`Reviewer & Orchestrator`, Step 4·5·6을 Claude Opus가 연속 수행함에 따른 자기 리뷰 편향 방지 1순위 교차 리뷰어)임.
