@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r64-r72-r73-classification-icons-followups` 등록 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **Worktree**: `.worktrees/r64-r72-r73-classification-icons-followups` 생성(Base `bc7fbad`, manifest `0715b7a`)함.
+- **범위**: 남은 항목 R72(픽업 중복 이름 문구)·R73(Firefox 호환 드래그 시작 요소)·R64(관리자 분류 옵션 아이콘, 별도 테이블, DB 변경)를 한 Run에서 순서대로 진행함(같은 캐릭터 화면 파일 충돌 방지).
+- **다음 단계**: Step 1(`Claude Sonnet`, R72·R73) `▶ READY` → Step 2(`Claude Opus`, R64 명세) → Step 3(`GPT Codex`, R64 DB) → Step 4(`Claude Sonnet`, R64 UI) → Step 5(`Claude Opus`, 리뷰·병합)임.
+
 ## R74 R63 후속 정리 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`main` 직접 작업, 소규모 후속)임.

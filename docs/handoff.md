@@ -31,12 +31,57 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: 없음 *(최근 완료 Run: `r63-character-favorite-sections`, `main` 병합 `478b137`)*
-- **운영 DB 반영**: `sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` 사용자 수동 적용·검증 완료함(2026-11-10). `R74`로 SQL 파일 권한 회수를 `FROM PUBLIC, anon`으로 보정함 → 운영 DB에 `REVOKE ALL ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) FROM PUBLIC, anon;` 1줄 운영 적용·확인 쿼리 `false, true` 검증 완료함(사용자, 2026-11-10).
+- **활성 Run ID**: `r64-r72-r73-classification-icons-followups` *(`R72` 픽업 중복 이름 문구 정리 + `R73` Firefox 호환 드래그 시작 요소 + `R64` 관리자 분류 옵션 아이콘(별도 테이블))*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
+- **Worktree 경로**: `.worktrees/r64-r72-r73-classification-icons-followups` (브랜치: `collab/r64-r72-r73-classification-icons-followups`, manifest `0715b7a`)
+- **Base SHA**: `bc7fbad477e13de89b81c6a8ba474ca3fd3145c3`
+- **DB 변경**: 있음 (R64 분류 아이콘 테이블·RLS, Opus 승격 조건 ①). R72·R73은 DB 변경 없음.
+- **진행 원칙**: 같은 캐릭터 화면 파일을 건드리므로 한 Worktree에서 순서대로 진행함. Step 1 결과 위에 R64를 쌓음.
+- **근거 문서**: [`docs/character-preset-ux-review.md`](character-preset-ux-review.md) §4 및 `사용자 결정 사항`(R64: 분류 옵션만·레어도 제외, 필터 칩/캐릭터 설정 창/관리자 캐릭터 목록 표시, 별도 테이블), `R66-REV-001`, `R62-REV-001`·`R63-REV-004`
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R72·R73 Follow-ups)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/lib/pickup-character-registration.ts`(+테스트), `src/app/admin/page.tsx`(+`.test.tsx`, 문구 호출부만), `src/components/character/preset-workspace.tsx`(+테스트), `src/components/character/character-roster.tsx`(+테스트), `src/app/dashboard/characters/page.test.tsx` | - |
+| **2** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R64 Spec)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: 신규 `docs/spec/R64_Classification_Option_Icons_Spec.md`, `docs/character-preset-ux-review.md`(결정 반영 시) | - |
+| **3** | **`⏳ WAITING`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 DB)` | 아래 **Step 3 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `src/lib/character-utils.ts`(+테스트, 순수 함수 추가 시) | - |
+| **4** | **`⏳ WAITING`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 UI)` | 아래 **Step 4 수용 기준** 수행. 허용 파일: 명세서가 정한 범위(`src/app/admin/page.tsx`(+테스트), `src/components/character/character-filter-bar.tsx`, `src/components/character/character-roster.tsx`, `src/app/dashboard/characters/page.tsx`(+테스트), 신규 아이콘 로더/컴포넌트(+테스트)) | - |
+| **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bc7fbad` ↔ Target(Step 4 커밋) 통합 정적 리뷰(R64 RLS·마이그레이션 포함), 동적 검증, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | - |
+
+#### 📌 `r64-r72-r73-classification-icons-followups` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Sonnet` — Maker, R72·R73)**:
+   - **R72**: `registerPickupOnlyCharacter`의 중복 이름 오류에서 `목록에서 선택해 주세요.`를 뺌(예: `같은 이름의 캐릭터가 이미 있습니다.`). 관리자 일정 폼처럼 선택 목록이 있는 호출부는 호출부에서 안내를 덧붙여 현행 문구를 유지함. 요청 모달(`request-submission-modal.tsx`)의 별도 문구는 범위 밖임. 관련 테스트 갱신함.
+   - **R73**: Firefox는 `<button>` 위에서 드래그를 시작하지 않을 수 있음. 드래그 시작 요소를 버튼이 아닌 요소로 바꿈.
+     - 대상: PC 프리셋 작업 공간 사이드바 아바타·채워진 슬롯(`preset-workspace.tsx`), 보유 캐릭터 즐겨찾기 구역 카드(`character-roster.tsx`).
+     - 방식: 버튼을 감싼 래퍼 대신 버튼 밖 전용 손잡이(`GripVertical` 등, `aria-hidden` 처리) 또는 버튼이 아닌 래퍼에 `draggable`을 둠. 클릭 배치·앞/뒤 이동 버튼·키보드 동작은 바꾸지 않음.
+     - 드롭 대상(슬롯·즐겨찾기 카드)과 배치 규칙은 현행 유지함.
+   - **검증**: 기존 드래그 테스트가 새 드래그 시작 요소 기준으로 통과하도록 갱신함. `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함. 실브라우저 확인은 Step 5에서 사용자 수동 확인으로 처리함.
+2. **Step 2 (`Claude Opus` — Architect, R64 명세)**:
+   - `docs/spec/R64_Classification_Option_Icons_Spec.md`(영문)를 작성함. 포함 항목:
+     - 테이블 설계 예: `game_classification_icons(game_id, axis_key, option_value, icon_data_url, updated_at)`, PK `(game_id, axis_key, option_value)`, `games` 삭제 시 CASCADE.
+     - 아이콘 형식: WebP Data URL, 크기 상한(예: 64×64, 길이 CHECK). 기존 `image-convert`·업스케일 흐름 재사용 여부.
+     - RLS: 읽기는 `games` 조회 범위와 같게(승인 게임은 `anon`·`authenticated`), 쓰기는 관리자(`app_metadata.role = 'admin'` JWT 클레임)만 허용함.
+     - 정리 규칙: 분류 기준·옵션 이름 변경·삭제 시 아이콘 처리(트리거 vs 저장 흐름에서 함께 정리), R57 사용 중 옵션 삭제 차단과의 관계.
+     - 관리자 UI 위치(템플릿 활성 이후 `템플릿 설정 수정` 화면), 사용자 표시 위치(필터 칩·캐릭터 설정 창·관리자 캐릭터 목록), 마이그레이션 미적용 폴백(텍스트만 표시).
+   - 사용자 결정이 더 필요한 항목이 있으면 질문 카드로 확인한 뒤 명세서에 반영함. Step 3·4의 허용 파일 범위를 명세서에 확정함.
+   - 명세서 커밋 후 Step 3을 `▶ READY`로 바꿈.
+3. **Step 3 (`GPT Codex` — Maker, R64 DB)**:
+   - 명세서대로 마이그레이션(재실행 안전)·RLS·CHECK·정리 규칙을 구현하고 `SCHEMA.sql`, `sql/README.md`(실행 순서·확인 쿼리), `sql/tests/TESTS.sql`(관리자 쓰기 허용, 일반 사용자 쓰기 거부, `anon` 읽기 범위, CHECK 위반 거부, 정리 규칙), `database.types.ts`에 반영함.
+   - 운영 DB에는 적용하지 않음(사용자 수동 적용). `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
+4. **Step 4 (`Claude Sonnet` — Maker, R64 UI)**:
+   - 관리자: 템플릿이 있는 게임에서 분류 옵션별 아이콘 등록·교체·삭제. 업로드 이미지를 명세서 형식으로 변환해 저장함. 저장 실패 시 토스트 표시함.
+   - 표시: 필터 칩, 캐릭터 설정 창, 관리자 캐릭터 목록에 옵션 아이콘을 텍스트 옆에 표시함(아이콘 없는 옵션은 텍스트만).
+   - 마이그레이션 미적용(`42P01`/`PGRST205` 등) 시 아이콘 기능을 숨기고 기존 화면이 깨지지 않게 함.
+   - 회귀 금지: R62 프리셋 작업 공간, R63 3구역·순서 변경, R65 관리자 단일 게임 필터, R66 픽업 전용 추가.
+   - 컴포넌트·페이지 테스트 추가하고 `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
+5. **Step 5 (`Claude Opus` — Reviewer & Orchestrator)**:
+   - Base `bc7fbad` ↔ Target 통합 정적 리뷰(관리자 쓰기 RLS, `user_metadata` 미사용, 마이그레이션 재실행 안전성, 폴백), 동적 검증, `review.json`·`test.json` 작성·스키마 검증, `main` 병합, 문서 마감함.
+   - 사용자에게 R73 실브라우저 확인(Chrome·Firefox 드래그, 900px 전환)과 R64 마이그레이션 수동 적용을 안내함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r63-character-favorite-sections`
 
 - **Run ID**: `r63-character-favorite-sections` (완료, `main` 병합 `478b137`) *(`R63` 보유 캐릭터 화면 즐겨찾기 / 보유 / 미보유 3구역 + 즐겨찾기 순서 드래그·DB 저장 + 프리셋 캐릭터 선택 목록 3구역 적용)*
+- **운영 DB 반영**: `sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` 사용자 수동 적용·검증 완료함(2026-11-10). `R74`로 SQL 파일 권한 회수를 `FROM PUBLIC, anon`으로 보정함 → 운영 DB에 `REVOKE ALL ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) FROM PUBLIC, anon;` 1줄 운영 적용·확인 쿼리 `false, true` 검증 완료함(사용자, 2026-11-10).
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r63-character-favorite-sections` (브랜치: `collab/r63-character-favorite-sections`, manifest `77675c0`)
 - **Base SHA**: `56898613677af30c0096fa94b1b4b157349c9169`

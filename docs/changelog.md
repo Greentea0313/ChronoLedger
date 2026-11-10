@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` 등록)
+
+- 격리 Worktree·manifest(`0715b7a`, Base `bc7fbad`) 생성하고 Dispatch Queue에 5단계(R72·R73 Sonnet → R64 명세 Opus → R64 DB Codex → R64 UI Sonnet → 리뷰 Opus)와 수용 기준 등록함.
+
 ## 2026-11-10 (R74 R63 후속 정리)
 
 - `reorder_favorite_characters` 실행 권한 회수를 프로젝트 패턴(`FROM PUBLIC, anon`)에 맞춤(`R63-REV-001`). `sql/README.md`에 권한 확인 쿼리 추가함.
