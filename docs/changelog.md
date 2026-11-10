@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-11 (Run `r81-image-input-unification` 등록)
+
+- 이미지 입력 공용 등록 모달 통일 Run을 등록함(명세 Opus → 공용 모달·사용자 화면 Sonnet → 관리자·요청 화면 Sonnet → 리뷰 Opus). Run `r79` Step 2 리뷰는 보류함.
+
 ## 2026-11-11 (Run `r79-sql-tests-local-run` Step 2 리뷰 보류)
 
 - Base `a580d1d` ↔ Target `f13087d` 정적 리뷰에서 `R79-REV-001`(P3)을 발견함. `sql/README.md`의 로컬 `psql` 명령이 유효하지 않아 실행 절차대로 재현할 수 없음.

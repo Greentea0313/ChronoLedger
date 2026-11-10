@@ -31,7 +31,43 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r79-sql-tests-local-run` *(`sql/tests/TESTS.sql` 첫 실제 실행: 로컬 Supabase에서 끝까지 통과시키기)*
+- **활성 Run ID**: `r81-image-input-unification` *(이미지 입력 공용 등록 모달 통일: URL·붙여넣기·파일, 캘린더 배경 제외)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
+- **Worktree 경로**: `.worktrees/r81-image-input-unification` (브랜치: `collab/r81-image-input-unification`, manifest `651dc6a`)
+- **Base SHA**: `adb8e7202e3a5d4e0fadd8c3e89d9fdf4e790f01`
+- **DB 변경**: 없음(예정). Storage 업로드 경로·형식은 기존 그대로 유지함.
+- **배경 (사용자 요청 2026-11-11)**: R77에서 URL·붙여넣기·파일을 받는 등록 모달을 만들었으므로, 나머지 이미지 입력도 모두 같은 최신 방식으로 바꿈.
+- **현황 조사 (Claude Opus)**:
+  - 파일 선택만 가능(5곳): 게임 화면 커스텀 게임 아이콘(`dashboard/games/page.tsx`), 게임 추가 모달 커스텀 아이콘(`game-select-modal.tsx`), 보유 캐릭터 설정 창 커스텀 아이콘(`character-roster.tsx`), 프로필 사진(`profile-avatar-card.tsx`), 캘린더 배경(`calendar-bg-customizer.tsx`).
+  - 이미 URL·붙여넣기·파일 지원(각자 인라인 구현, 7곳 + R77 모달): 관리자 새 픽업 캐릭터·픽업 전용 캐릭터·캐릭터 기본 아이콘·게임 기본 아이콘(안내 문구에 붙여넣기 없음), 관리자 요청 승인 게임·캐릭터 아이콘, 요청 모달 캐릭터 아이콘·제안 캐릭터 이미지, 관리자 분류 아이콘 모달(R77).
+- **사용자 결정 (2026-11-11 질문 카드)**:
+  - 파일 전용 입력은 **공용 등록 모달**(R77과 같은 구성)로 바꿈.
+  - **캘린더 배경은 제외**함(큰 이미지라 아이콘용 정사각 변환을 쓸 수 없음).
+  - 이미 지원하는 관리자·요청 화면 입력 7곳도 **공용 컴포넌트로 교체**함.
+  - URL 직접 가져오기 실패 시 **외부 프록시(wsrv.nl) 대체 경로를 사용자 화면에도 사용**함(입력한 이미지 주소가 wsrv.nl에 전달됨을 수용).
+- **진행 원칙**: 3개 이상 모듈 구조 변경이라 명세(Step 1, Opus)를 먼저 확정함. Step 2·3은 같은 공용 컴포넌트를 쓰므로 한 워크트리에서 순서대로 진행함.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R81 Spec)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `docs/spec/R81_Image_Input_Unification_Spec.md` | - |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Shared Dialog + User Screens)` | 명세 §허용 파일대로 공용 모달·사용자 화면 4곳 | - |
+| **3** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Admin + Request Screens)` | 명세 §허용 파일대로 관리자·요청 화면 7곳과 R77 모달 교체 | - |
+| **4** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 3 커밋) 통합 리뷰, 동적 검증, 산출물, `main` 병합, 문서 마감, 사용자 실브라우저 확인 안내 | - |
+
+#### 📌 `r81-image-input-unification` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Opus` — Architect)**: `docs/spec/R81_Image_Input_Unification_Spec.md`(영문) 작성함.
+   - 대상 12곳(사용자 4곳 + 관리자·요청 7곳 + R77 모달)과 제외(캘린더 배경) 목록, 각 위치의 현재 동작·저장 방식(Storage 업로드 vs Data URL), 변환 규격(크기·WebP·용량 상한·AI 업스케일 옵션 여부).
+   - 공용 모달 API(열기 트리거, 제목·설명, 변환 함수 주입, 미리보기, 등록 콜백·오류 표시, 대기 상태, 오프라인 가드, 파일 입력 초기화), 접근성, 테스트 방법.
+   - URL 가져오기: 기존 `fetchImageFile`(직접 → wsrv.nl 프록시) 재사용, Data URL 문자열도 항상 재인코딩.
+   - 회귀 금지 항목(R77 모달 동작, 23514·42501 안내, 20,000자 상한, AI 업스케일, 삭제·복원 버튼)과 Step 2·3 허용 파일 확정. 남은 결정이 있으면 질문 카드로 확인함.
+2. **Step 2 (`Claude Sonnet` — Maker)**: 명세대로 공용 모달과 사용자 화면 4곳 적용, 컴포넌트·화면 테스트 추가, tsc·lint·diff-check·Vitest 전체 통과.
+3. **Step 3 (`Claude Sonnet` — Maker)**: 관리자·요청 화면 7곳과 R77 모달을 공용 모달로 교체(동작 동일), 기존 테스트 갱신, tsc·lint·diff-check·Vitest 전체 통과.
+4. **Step 4 (`Claude Opus` — Reviewer & Orchestrator)**: 통합 리뷰·산출물·병합·문서 마감, 사용자에게 각 위치 실브라우저 확인(URL·붙여넣기·파일) 안내.
+
+### ⏸️ 보류 중 Run: `r79-sql-tests-local-run` (Step 2 리뷰는 `r81` 이후 진행, 사용자 요청 2026-11-11)
+
+- **Run ID**: `r79-sql-tests-local-run` *(`sql/tests/TESTS.sql` 첫 실제 실행: 로컬 Supabase에서 끝까지 통과시키기)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
 - **Worktree 경로**: `.worktrees/r79-sql-tests-local-run` (브랜치: `collab/r79-sql-tests-local-run`, manifest `72072b6`)
 - **Base SHA**: `a580d1d08f656de5816956c5dde0228cd40bd64f`
@@ -41,7 +77,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: f13087d)`** | **Claude Opus** *(GPT Codex 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (TESTS.sql Local Run)` | `sql/tests/TESTS.sql`, `sql/README.md` | `✅ f13087d`: 첫 실행 30개 블록에서 멈춤 → 테스트 버그 3건 수정 후 38개 블록 전체 PASS·마지막 `ROLLBACK` PASS 확인. 스키마·RPC 버그 없음. README에 로컬 실행 절차 추가 (아래 Step 1 완료 기록 참고) |
-| **2** | **`🛑 BLOCKED (P3 finding, 산출물: 4c1e84a)`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `a580d1d` ↔ Target `f13087d` 정적 리뷰(수정이 테스트 의도를 약하게 만들지 않았는지), 가능하면 로컬 재실행, `review.json`·`test.json`, `main` 병합, 문서 마감 | `R79-REV-001` 발견: `sql/README.md:61-62`의 `psql ******127.0.0.1:54322/postgres` 명령이 유효하지 않아 문서 절차대로 실행 불가함. 로컬 Docker 재실행 자체는 38개 PASS·최종 rollback PASS. 명령 수정 후 병합 필요함. |
+| **2** | **`⏸️ ON_HOLD (R79-REV-001 수정 270f2c7 → 재리뷰는 r81 이후)`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `a580d1d` ↔ Target `f13087d` 정적 리뷰(수정이 테스트 의도를 약하게 만들지 않았는지), 가능하면 로컬 재실행, `review.json`·`test.json`, `main` 병합, 문서 마감 | `R79-REV-001` 발견: `sql/README.md:61-62`의 `psql ******127.0.0.1:54322/postgres` 명령이 유효하지 않아 문서 절차대로 실행 불가함. 로컬 Docker 재실행 자체는 38개 PASS·최종 rollback PASS. 명령 수정 후 병합 필요함. |
 
 #### 📝 `r79-sql-tests-local-run` Step 1 완료 기록 (Claude Opus, 2026-11-11)
 
@@ -59,6 +95,7 @@
 - **finding**: `R79-REV-001` (P3). `sql/README.md:61-62`의 `psql ******127.0.0.1:54322/postgres`가 유효하지 않은 연결 형식임.
 - **동적 검증**: Docker 컨테이너 `supabase_db_chronoledger-local`에서 `TESTS.sql` 재실행 결과 38개 PASS와 최종 rollback PASS 확인함.
 - **상태**: README 명령 수정 전 `main` 병합 보류함. Maker가 유효한 `psql` URI 또는 `-h/-p/-U/-d` 형식으로 고친 뒤 재리뷰 필요함.
+- **Maker 수정 (Claude Opus, 2026-11-11, `270f2c7`)**: 원래 URI는 `postgresql://postgres:postgres@127.0.0.1:54322/postgres`였고 리뷰 도구가 `사용자:비밀번호@`를 가려 깨진 명령처럼 보였던 것으로 판단함. 오해를 없애려고 `-h 127.0.0.1 -p 54322 -U postgres -d postgres` + `PGPASSWORD` 형식으로 바꾸고, 문서 명령 그대로 재실행해 38개 PASS·최종 rollback PASS 확인함. 재리뷰는 사용자 요청에 따라 Run `r81` 뒤로 미룸.
 
 ### 🗂️ 이전 Run 기록 (완료): `r80-classification-icon-admin-policy`
 

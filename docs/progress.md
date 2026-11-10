@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## Run `r81-image-input-unification` 등록 (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **배경**: 사용자 요청. R77 등록 모달처럼 모든 이미지 입력을 URL·붙여넣기·파일로 통일함.
+- **조사**: 파일 전용 5곳(캘린더 배경 제외 시 4곳), 이미 지원하지만 각자 구현한 관리자·요청 입력 7곳 + R77 모달 확인함.
+- **결정**: 공용 등록 모달, 캘린더 배경 제외, 기존 7곳도 교체, 사용자 화면도 wsrv.nl 프록시 대체 경로 사용.
+- **Worktree**: `.worktrees/r81-image-input-unification`(Base `adb8e72`). Run `r79` Step 2 리뷰는 이 Run 뒤로 보류함.
+- **다음 단계**: Step 1(`Claude Opus`, 명세) `▶ READY`임.
+
 ## Run `r79-sql-tests-local-run` Step 2 정적 리뷰 보류 (2026-11-11)
 
 - **리뷰**: Base `a580d1d` ↔ Target `f13087d`에서 `R79-REV-001`(P3) 발견함. [sql/README.md](../sql/README.md) 61~62행의 `psql ******127.0.0.1:54322/postgres`가 유효하지 않은 명령임.
