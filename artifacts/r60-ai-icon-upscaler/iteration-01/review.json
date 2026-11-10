@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "run_id": "r60-ai-icon-upscaler",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "static-review",
+  "base_sha": "a908144aa216e79666b422fa132f345500e61546",
+  "target_sha": "f177a96cf672486815ab3625e25e2b98e6a4a72c",
+  "status": "findings",
+  "created_at": "2026-11-10T05:00:00Z",
+  "findings": [
+    {
+      "id": "R60-REV-001",
+      "severity": "P1",
+      "file": "package.json",
+      "line": 27,
+      "evidence": "`npm run build` (Next.js 14 static export) fails at the target: 'static/media/ort.node.min.*.mjs from Terser: import and export cannot be used outside of module code' followed by 'Build failed because of webpack errors'. Adding onnxruntime-web makes webpack resolve its Node entry (ort.node.min.mjs) and emit it as a media asset that Terser cannot parse. Step 1 recorded tsc/lint/Vitest only, not the build.",
+      "impact": "Merging would break the production build and Cloudflare Pages deployment of every page, not only the admin upscaler.",
+      "recommendation": "Make the build pass before merge: e.g. load ORT only from a client-only path that webpack does not trace for the server (webpack alias/externals for onnxruntime-web on the server compilation, or serve the browser ESM bundle and wasm from public/ and load it with a webpackIgnore dynamic import), then verify `npm run build` and that the ORT chunk is absent from initial routes."
+    },
+    {
+      "id": "R60-REV-002",
+      "severity": "P2",
+      "file": "src/lib/image-upscaler.ts",
+      "line": 87,
+      "evidence": "`import(\"onnxruntime-web\")` resolves to dist/ort.bundle.min.mjs, which registers only the cpu, wasm, webgpu and webnn backends; the webgl backend is registered only in ort.webgl/ort.all bundles. InferenceSession.create(..., { executionProviders: [\"webgl\"] }) therefore cannot find a backend.",
+      "impact": "Even with a model file present, every upscale attempt throws and silently falls back to the canvas resizer, so the feature never improves image quality while still downloading the ORT chunk.",
+      "recommendation": "Use executionProviders [\"wasm\"] (optionally [\"webgpu\", \"wasm\"]) with the default bundle, gate availability on WebAssembly rather than WebGL, and add a test that asserts the requested providers."
+    },
+    {
+      "id": "R60-REV-003",
+      "severity": "P2",
+      "file": "src/lib/image-upscaler.ts",
+      "line": 4,
+      "evidence": "MODEL_URL points to /models/waifu2x.onnx, but no public/models directory or model file exists in the repository at the target, and the model's source, license, size and input/output contract (scale factor, padding, value range, channel order) are not documented.",
+      "impact": "The model request returns 404 in production, so the feature cannot work; shipping a third-party model also needs a license and size decision for the static export and PWA cache.",
+      "recommendation": "Decide whether to ship a specific waifu2x/ESRGAN ONNX model (record source, license, size and I/O contract in docs, add it under public/models, exclude it from the SW shell cache) or drop the AI path; add a contract test with a tiny fixture tensor."
+    },
+    {
+      "id": "R60-REV-004",
+      "severity": "P3",
+      "file": "src/app/admin/page.tsx",
+      "line": 2142,
+      "evidence": "isProcessingIcon is only rendered as 'AI 고화질 변환 중...' in the admin page and RequestSubmissionModal; no submit button uses it in its disabled condition, and paste handlers start the conversion with `void ...`.",
+      "impact": "Acceptance criterion 4 (prevent duplicate submission during inference) is not met: saving while a pasted icon is still converting stores the previous or empty icon value.",
+      "recommendation": "Disable the save/submit buttons while isProcessingIcon is true (and return early in the submit handlers), with a test."
+    },
+    {
+      "id": "R60-REV-005",
+      "severity": "P3",
+      "file": "src/lib/image-upscaler.ts",
+      "line": 114,
+      "evidence": "The upscaled image is rebuilt from RGB only and every alpha value is forced to 255; the input alpha channel is discarded before inference.",
+      "impact": "Transparent PNG/WebP icons would get an opaque (typically black) background after upscaling, unlike the existing resizer path.",
+      "recommendation": "Upscale the alpha channel separately (e.g. bilinear resize of the source alpha) and recombine, or skip AI upscaling for images with transparency."
+    },
+    {
+      "id": "R60-REV-006",
+      "severity": "P4",
+      "file": "src/lib/image-upscaler.ts",
+      "line": 87,
+      "evidence": "A new InferenceSession is created for every conversion and never released; the toggle is shown on any desktop browser rather than only after a low-resolution image is detected (acceptance criterion 1).",
+      "impact": "Repeated uploads reload the model and keep GPU/WASM memory; the toggle appears even for high-resolution images where it has no effect.",
+      "recommendation": "Cache one session (or call session.release()), and show the toggle only once a selected file is detected as below 256px."
+    }
+  ]
+}

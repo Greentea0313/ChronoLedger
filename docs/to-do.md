@@ -686,9 +686,10 @@
 - [x] R58. [운영] Supabase SQL Editor에서 [`sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`](../sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql) 적용 후 [`sql/README.md`](../sql/README.md) B표 확인 쿼리(`SELECT position('R56 version pass' IN pg_get_functiondef('public.sync_version_expenses_trigger()'::regprocedure)) > 0 AS r56_applied;` → `true`) 확인 (사용자 수동) (`완료` - 2026-11-10 사용자 적용·확인 쿼리 `true` 확인)
 - [x] R57. [완료 · `r57-character-template-gate-and-validation` (`15c0d14`, 리뷰 `dbf1109`, `main` 병합 `6712a24`)] R57. [진행 중 · 활성 Run (`r57-character-template-gate-and-validation`) Step 1 `▶ READY` (Claude Sonnet) · 2026-11-10 사용자 확인 결함] 관리자 캐릭터 추가 모달의 템플릿 게이트(전체 필터에서 템플릿 없는 게임 선택 시 입력 차단·`[캐릭터 템플릿 생성]` 연결), 템플릿 폼 검증을 DB `is_valid_classification_schema`와 일치(등급 1개 이상 필수·선택지 20개·중복 불가), 축 `key` 입력 제거·자동 비중복 배정, 템플릿 모달 제목·설명 안내, 스키마 CHECK 오류 안내 (DB 변경 없음, 담당: Claude Sonnet, Fallback: GitHub Copilot / Gemini 3.8 Flash, 리뷰: Gemini 4 Argon)
 - [x] R59. [완료 · `main` 직접 수정 `4c849ce` (Base `4697920`), 2026-11-10 사용자 확인 결함] 캐릭터 템플릿 모달 세로 스크롤 복구(`overflow-hidden` 제거) 및 템플릿 흐름의 게임 이름·아이콘 입력 제거·템플릿 컬럼만 저장(상대 경로 아이콘 게임 템플릿 저장 실패 해소)
-- [ ] R60. [기능 확장 · 활성 Run `r60-ai-icon-upscaler`, Step 2 Claude Opus `▶ READY`] PC 데스크톱 환경 한정 저해상도 아이콘 AI 업스케일러 (Waifu2x / ONNX Web) 도입
-  - [x] Step 1 구현·검증 완료함(`f177a96`): 동적 ONNX 로딩, PC/WebGL/WASM·256px 미만 판정, 기존 리사이저 폴백, 관리자·사용자 요청 흐름 연동함.
-  - [ ] Step 2 검토: `/models/waifu2x.onnx` 배포 자산 포함 여부·모델 입력/출력 계약·번들 분리와 `main` 병합 확인 필요함.
+- [x] R60. [기능 확장 · 완료 · `r60-ai-icon-upscaler` (`38b989d`, 리뷰 `8082c78`, `main` 병합 예정)] PC 데스크톱 환경 한정 저해상도 아이콘 AI 업스케일러 (Waifu2x / ONNX Web) 도입
+  - [x] wasm 전용 ONNX Runtime 동적 로딩, PC/WebAssembly·256px 미만 판정, 기존 `resizeImageToWebP` 폴백, 관리자·사용자 요청 흐름의 기본 ON 토글·로딩 상태·중복 제출 방지 구현함.
+  - [x] waifu2x cunet/art scale2x 모델과 입력/출력 계약을 `docs/upscaler-model.md`에 기록하고 단위 테스트 추가함.
+  - [x] tsc, lint, Vitest 58파일/675개, diff-check, 자리표시자 환경 변수 기반 `npm run build` 통과함.
   - 대상 파일: `src/lib/image-upscaler.ts`, `src/lib/image-resizer.ts`, `src/app/admin/page.tsx`, `src/components/game/schedule-request-modal.tsx` 등
   - 배경:
     - 캐릭터/게임 아이콘 등록 시 원본이 256×256 미만인 저해상도 이미지일 경우 단순 캔버스 Bilinear 확대에 따른 뭉개짐 발생.

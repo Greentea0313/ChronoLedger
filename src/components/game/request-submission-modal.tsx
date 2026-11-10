@@ -11,7 +11,8 @@ import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
-import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
+import { assertIconDataUrlSize, getClipboardImageFile } from "@/lib/image-resizer"
+import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
 import { isCharacterTemplateActive, normalizeClassificationSchema, type ClassificationSchema } from "@/lib/character-utils"
 import { validateGameRequest, validateScheduleRequest } from "./request-validation"
 
@@ -112,8 +113,24 @@ export function RequestSubmissionModal({
   const [characterIconFile, setCharacterIconFile] = useState<File | null>(null)
   const [characterMemo, setCharacterMemo] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isAiUpscaleVisible, setIsAiUpscaleVisible] = useState(false)
+  const [useAiUpscale, setUseAiUpscale] = useState(true)
+  const [isProcessingIcon, setIsProcessingIcon] = useState(false)
+  // The AI toggle is offered only after a selected/pasted image is detected below 256px (R60-REV-006).
+  const [isAiUpscaleCandidate, setIsAiUpscaleCandidate] = useState(false)
+  const noteIconCandidate = (file: File | null | undefined) => {
+    if (!file) {
+      setIsAiUpscaleCandidate(false)
+      return
+    }
+    void isLowResolutionFile(file).then(setIsAiUpscaleCandidate)
+  }
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    setIsAiUpscaleVisible(isDesktopAiUpscaleAvailable())
+  }, [])
 
   const schedulesForGame = useMemo(() => schedules.filter((item) => item.game_id === gameId), [gameId, schedules])
   const gameNames = useMemo(() => new Map(games.map((game) => [game.id, game.name])), [games])
@@ -173,11 +190,15 @@ export function RequestSubmissionModal({
     event.preventDefault()
     setProposalImageFile(null)
     setProposalImageSource("")
-    void convertIconSourceToDataUrl(file)
+    noteIconCandidate(file)
+    setIsProcessingIcon(true)
+    void convertIconSourceToDataUrlWithUpscale(file, useAiUpscale)
       .then((dataUrl) => setProposalImageSource(assertIconDataUrlSize(dataUrl)))
       .catch((error: unknown) => setProposalError(error instanceof Error ? error.message : "이미지를 변환하지 못했습니다."))
+      .finally(() => setIsProcessingIcon(false))
   }
   const handleAddProposal = async () => {
+    if (isProcessingIcon) return
     const trimmed = proposalName.trim()
     if (!trimmed || trimmed.length > 100) {
       setProposalError("캐릭터 이름을 1~100자로 입력해 주세요.")
@@ -201,7 +222,7 @@ export function RequestSubmissionModal({
     if (source) {
       try {
         // 256x256 WebP like other character icons; an oversized pasted WebP skips the resize, so check the length too.
-        iconUrl = assertIconDataUrlSize(await convertIconSourceToDataUrl(source))
+        iconUrl = assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(source, useAiUpscale))
       } catch (error: unknown) {
         setProposalError(error instanceof Error ? error.message : "이미지를 변환하지 못했습니다.")
         return
@@ -235,9 +256,12 @@ export function RequestSubmissionModal({
     if (!file) return
     event.preventDefault()
     setCharacterIconFile(null)
-    void convertIconSourceToDataUrl(file)
+    noteIconCandidate(file)
+    setIsProcessingIcon(true)
+    void convertIconSourceToDataUrlWithUpscale(file, useAiUpscale)
       .then((dataUrl) => setCharacterIconUrl(assertIconDataUrlSize(dataUrl)))
       .catch((error: unknown) => setSubmitError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다."))
+      .finally(() => setIsProcessingIcon(false))
   }
 
   const loadCatalog = useCallback(async () => {
@@ -335,6 +359,7 @@ export function RequestSubmissionModal({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isProcessingIcon) return
     setSubmitError(null)
     setSuccessMessage(null)
     if (!user) {
@@ -362,6 +387,7 @@ export function RequestSubmissionModal({
     }
 
     setIsSubmitting(true)
+    setIsProcessingIcon(true)
     const originalSchedule = requestMode === "EDIT"
       ? schedulesForGame.find((item) => item.id === targetScheduleId)
       : undefined
@@ -378,10 +404,11 @@ export function RequestSubmissionModal({
     let characterIconDataUrl: string | null = null
     if (requestKind === "character" && (characterIconFile || characterIconUrl)) {
       try {
-        characterIconDataUrl = assertIconDataUrlSize(await convertIconSourceToDataUrl(characterIconFile ?? characterIconUrl))
+        characterIconDataUrl = assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(characterIconFile ?? characterIconUrl, useAiUpscale))
       } catch (error: unknown) {
         setSubmitError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
         setIsSubmitting(false)
+        setIsProcessingIcon(false)
         return
       }
     }
@@ -450,6 +477,7 @@ export function RequestSubmissionModal({
       setSubmitError("요청을 저장하지 못했습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.")
     } finally {
       setIsSubmitting(false)
+      setIsProcessingIcon(false)
     }
   }
 
@@ -552,7 +580,14 @@ export function RequestSubmissionModal({
                   <div className="space-y-2">
                     <label htmlFor="character-icon-url" className="text-sm font-medium text-content">아이콘 (선택)</label>
                     <Input id="character-icon-url" value={characterIconUrl.startsWith("data:image/webp;base64,") ? "" : characterIconUrl} onPaste={handleCharacterIconPaste} onChange={(event) => { setCharacterIconUrl(event.target.value); setCharacterIconFile(null) }} placeholder="https://... 또는 이미지 붙여넣기" />
-                    <Input id="character-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 아이콘 파일" onChange={(event) => setCharacterIconFile(event.target.files?.[0] ?? null)} />
+                    <Input id="character-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 아이콘 파일" onChange={(event) => { const file = event.target.files?.[0] ?? null; setCharacterIconFile(file); noteIconCandidate(file) }} />
+                    {isAiUpscaleVisible && isAiUpscaleCandidate && (
+                      <label className="flex items-center gap-2 text-xs text-content-secondary">
+                        <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
+                        AI 고화질 업스케일 (PC 전용)
+                      </label>
+                    )}
+                    {isProcessingIcon && <p className="text-xs text-content-muted">AI 고화질 변환 중...</p>}
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="character-memo" className="text-sm font-medium text-content">메모 (선택)</label>
@@ -732,13 +767,20 @@ export function RequestSubmissionModal({
                             type="file"
                             accept="image/png,image/jpeg,image/webp"
                             aria-label="제안 캐릭터 이미지 파일"
-                            onChange={(event) => setProposalImageFile(event.target.files?.[0] ?? null)}
+                            onChange={(event) => { const file = event.target.files?.[0] ?? null; setProposalImageFile(file); noteIconCandidate(file) }}
                           />
+                          {isAiUpscaleVisible && isAiUpscaleCandidate && (
+                            <label className="flex items-center gap-2 text-xs text-content-secondary">
+                              <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
+                              AI 고화질 업스케일 (PC 전용)
+                            </label>
+                          )}
+                          {isProcessingIcon && <p className="text-xs text-content-muted">AI 고화질 변환 중...</p>}
                           <p className="text-[11px] text-content-secondary">이미지는 256×256 WebP로 변환되며 약 150KB를 넘으면 사용할 수 없습니다. 이미지가 없어도 제안할 수 있으며, 관리자가 승인 후 교체할 수 있습니다.</p>
                           {proposalError && <p role="alert" className="text-xs text-danger">{proposalError}</p>}
                           <div className="flex justify-end gap-2">
                             <Button type="button" size="sm" variant="ghost" onClick={() => { setIsProposalOpen(false); setProposalError(null) }}>취소</Button>
-                            <Button type="button" size="sm" onClick={() => void handleAddProposal()}>제안 추가</Button>
+                            <Button type="button" size="sm" disabled={isProcessingIcon} onClick={() => void handleAddProposal()}>제안 추가</Button>
                           </div>
                         </div>
                       )}
@@ -781,7 +823,7 @@ export function RequestSubmissionModal({
               )}
               {submitError && <p role="alert" className="text-sm text-danger">{submitError}</p>}
               {successMessage && <p role="status" className="text-sm text-success">{successMessage}</p>}
-              <Button type="submit" disabled={isSubmitting || !user || !isOnline} className="w-full bg-primary hover:bg-primary-hover text-primary-foreground">
+              <Button type="submit" disabled={isSubmitting || isProcessingIcon || !user || !isOnline} className="w-full bg-primary hover:bg-primary-hover text-primary-foreground">
                 {isSubmitting ? "제출 중..." : "요청 제출"}
               </Button>
             </form>
