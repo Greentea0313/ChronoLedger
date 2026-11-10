@@ -1,4 +1,9 @@
 # 프로젝트 진행 현황
+## R80 확인 쿼리 수정 (2026-11-11)
+
+- 사용자가 R80 마이그레이션 적용 후 확인 쿼리에서 `false`를 받음 → `pg_get_expr`가 `public.`을 생략해 생긴 확인 쿼리 오류임. `sql/README.md` 쿼리를 고치고 `docs/known-pitfalls.md` 39번에 기록함(Claude Opus).
+- **다음 단계**: 사용자가 수정 쿼리 실행(`true` 기대) 후 분류 아이콘 등록 재시도함. 결과에 따라 Run `r80` Step 3 마감함.
+
 ## Run `r80-classification-icon-admin-policy` Step 2 완료 — `main` 병합 `dbded69` (2026-11-11)
 
 - **리뷰**: Base `103dbf5` ↔ Target `c6ddd4d` 정적 리뷰 findings 없음. 정책의 JWT `app_metadata.role`·`users.role` 조건, 자기 승격 차단 트리거, 사용자 조회 정책을 확인함.

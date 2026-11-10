@@ -132,3 +132,7 @@
     - 증상: 캐릭터 화면 프리셋 드래그 미리보기(`@dnd-kit` `DragOverlay`)가 커서보다 우상단으로 크게 벗어남(2026-11-10).
     - 원인: 페이지 최상위의 `animate-fade-in`이 `forwards`로 끝난 뒤에도 `transform`을 남기고, `transform`이 있는 조상은 `position: fixed` 자식의 기준 박스가 됨. 그래서 미리보기가 화면이 아니라 페이지 div 기준으로 배치되고, 스크롤·여백만큼 밀림.
     - 방어책: `DragOverlay`나 직접 만든 `fixed` 팝업은 `createPortal(…, document.body)`로 렌더링함(`preset-board.tsx`, `7c683cc`). Radix Dialog·Popover는 이미 포털을 써서 영향 없음.
+39. **`pg_get_expr`·`pg_get_functiondef` 결과로 스키마 이름 확인 금지**
+    - 증상: R80 확인 쿼리 `position('public.users' IN pg_get_expr(polqual, polrelid)) > 0`이 정책이 바르게 적용됐는데도 `false`를 반환함(2026-11-11).
+    - 원인: 식을 문자열로 되돌릴 때 현재 `search_path`에 있는 스키마(`public`)는 생략됨. Supabase SQL Editor는 `public`이 `search_path`에 있음.
+    - 방어책: 확인 쿼리는 스키마 이름 없이 테이블 별칭·조건(`users u`, `u.role = 'admin'`)으로 찾거나 `pg_policies.qual` 전체를 함께 출력해 사람이 확인하게 함.
