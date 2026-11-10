@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r78-r76-followups-and-browser-check` *(R76 리뷰 후속 정리(`R78`) + 병합된 R76 프리셋 보드·R77 아이콘 모달 실브라우저 확인)*
+- **활성 Run ID**: `r78-r76-followups-and-browser-check` **(완료, `main` 병합 `519ac81`, 실브라우저 재확인은 사용자 대기)** *(R76 리뷰 후속 정리(`R78`) + 병합된 R76 프리셋 보드·R77 아이콘 모달 실브라우저 확인)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r78-r76-followups-and-browser-check` (브랜치: `collab/r78-r76-followups-and-browser-check`, manifest `2d36a31`)
 - **Base SHA**: `3c71e9ca584dd008caee4c45fa8fb1af3cb7a1df`
@@ -48,8 +48,8 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: b5b66e1)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 SQL Tests)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/tests/TESTS.sql` | `✅ b5b66e1`: R76 누락 시나리오(이동·원자 롤백·중복·비이동 2행·다른 게임·3행·타 사용자·순서 누락/추가) 추가함. diff-check·Vitest 64파일/780개 통과. `psql` 부재로 SQL 미실행함. |
-| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Input Reset · Spec Note)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.classification-icons.test.tsx`, `docs/spec/R76_Preset_Grid_Editing_Spec.md`(§10) | 사용자 추가 요청(즐겨찾기 화살표 삭제 `f61e90f`, 드래그 미리보기 위치·사이드바 필터 줄바꿈 `7c683cc`)은 Claude Opus가 먼저 처리함(위 참고). R77 입력 초기화·명세 §10은 남음 |
-| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `3c71e9c` ↔ Target(Step 2 커밋) 정적 리뷰, 동적 검증, 사용자 실브라우저 확인 결과 기록, `main` 병합, 문서 마감 | - |
+| **2** | **`✅ DONE (SHA: acc0ae9)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Input Reset · Spec Note)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.classification-icons.test.tsx`, `docs/spec/R76_Preset_Grid_Editing_Spec.md`(§10) | `✅ acc0ae9`: 분류 아이콘 모달에서 URL 입력·이미지 붙여넣기 시 파일 입력칸 재생성(파일명 잔존 제거), 재오픈 시 빈 상태 보장, 명세 §10 Step 4 허용 파일에 `use-board-sensors.ts` 추가. 즐겨찾기 화살표 삭제(`f61e90f`)·드래그 미리보기·필터 줄바꿈(`7c683cc`)은 Opus가 선행 처리함. tsc·lint·diff-check 통과, Vitest 64파일/783개 통과 (미병합) |
+| **3** | **`✅ DONE (리뷰: 3c71e9c ↔ acc0ae9, 수정 e2d1de9, 산출물 acd3e40, main 병합 519ac81)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `3c71e9c` ↔ Target(Step 2 커밋) 정적 리뷰, 동적 검증, 사용자 실브라우저 확인 결과 기록, `main` 병합, 문서 마감 | `✅` P2 1건·P3 1건 수정(`e2d1de9`, Step 1 SQL 테스트 실행 불가·범위 밖 `RESET ROLE` 삭제), P4 2건 기록. tsc·lint·diff-check·build 통과, Vitest 64파일/783개 통과. **실브라우저 재확인은 사용자 대기** (아래 Step 3 완료 기록 참고) |
 
 #### 📌 `r78-r76-followups-and-browser-check` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -77,6 +77,19 @@
 - **변경**: R76 SQL 스모크 테스트에 프리셋 간 이동 성공, 트리거 실패 원자 롤백, 대상 중복, 비이동 2행 변경, 다른 게임, 3개 객체, 타 사용자, 프리셋 순서 누락·추가 검증을 추가함.
 - **검증**: `git diff --check`, Vitest 64파일/780개 통과함. `psql` 부재로 전체 SQL 테스트는 미실행함.
 - **다음 단계**: Step 2(`Claude Sonnet`, R77 입력 초기화·명세 §10) `▶ READY`임.
+
+#### 📝 `r78-r76-followups-and-browser-check` Step 3 완료 기록 (Claude Opus, 2026-11-10)
+
+- **리뷰 범위**: Base `3c71e9c` ↔ Target `acc0ae9` 정적 리뷰(Step 1 SQL 테스트, Step 2 R77 입력 초기화·명세, 사용자 추가 요청 `f61e90f`·`7c683cc`). 산출물 `artifacts/r78-r76-followups-and-browser-check/iteration-01/review.json`·`test.json`(커밋 `acd3e40`)임.
+- **지적·처리**:
+  - `R78-REV-001`(P2): Step 1 R76 SQL 테스트가 실행 불가였음. `DO $$ … $$` 본문 안의 psql 변수(`:'r76_move_source'`)는 치환되지 않아 구문 오류가 남. `22023` 경우를 `raise_exception`으로 받아 테스트가 중단되고, 대상 중복 경우는 중복 트리거까지 가지 못함 → `e2d1de9`에서 `set_config`/`current_setting`로 바꾸고, `invalid_parameter_value`로 받고, 1명짜리 대상으로 중복 메시지를 확인하고, 순서 RPC는 실제 프리셋 목록 기준으로 고침.
+  - `R78-REV-002`(P3): Step 1이 R76과 무관한 결제 테스트 뒤 `RESET ROLE` 2줄을 지움 → `e2d1de9`에서 복구함(Base 대비 차이는 R76 블록 추가뿐임).
+  - `R78-REV-003`(P4): 사용자 추가 요청 수정 2건은 리뷰어와 같은 모델이 작성해 독립성이 제한됨. 미리보기 위치·버튼 위 스페이스 동작은 jsdom에서 재현 불가 → 사용자 실브라우저 재확인 필요함.
+  - `R78-REV-004`(P4): Step 2 완료 기록 절이 없고 Step 1 기록의 검증(diff-check·Vitest)은 SQL을 실행하지 않음 → 이 기록으로 보완함.
+- **Step 2 확인**: `acc0ae9`는 URL 입력·붙여넣기·모달 재오픈 시 파일 입력칸을 `key`로 재생성하고 테스트 3건을 추가함. 명세 §10에 `use-board-sensors.ts`를 반영함. 문제 없음.
+- **검증**: `e2d1de9` 기준 tsc·lint·diff-check·`next build` 통과, Vitest 64파일/783개 통과함. `psql`·임시 DB가 없어 `TESTS.sql`은 여전히 미실행임(to-do `R79`). 산출물은 Node 부분 검증기로만 스키마 검증함.
+- **병합**: `main` 병합 `519ac81`(`--no-ff`).
+- **사용자 확인 남음**: 실브라우저에서 ① 프리셋 드래그 미리보기가 커서 아래에 붙는지 ② 사이드바·모바일 선택 창 필터 라벨이 칩 위 줄에 오는지 ③ 즐겨찾기 화살표 없이 카드 끌기로 순서가 바뀌는지, 짧은 클릭과 Enter가 설정 창을 여는지, 스페이스는 설정 창 없이 집기만 하는지 ④ R77 모달에서 URL 입력 시 파일명이 지워지는지.
 
 ### 🗂️ 이전 Run 기록 (완료): `r76-r77-preset-grid-dnd-and-icon-modal`
 

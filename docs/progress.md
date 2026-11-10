@@ -1,4 +1,20 @@
 # 프로젝트 진행 현황
+## Run `r78-r76-followups-and-browser-check` 완료 — `main` 병합 `519ac81` (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.
+- **리뷰**: Base `3c71e9c` ↔ Target `acc0ae9`. Step 1 SQL 테스트가 psql 변수 치환 문제로 실행 불가였고(`R78-REV-001`, P2), 무관한 `RESET ROLE` 2줄을 지웠음(`R78-REV-002`, P3). 둘 다 `e2d1de9`에서 고침. P4 2건은 기록만 함.
+- **병합 내용**: R76 SQL 테스트 보강, 즐겨찾기 화살표 삭제·카드 드래그, 드래그 미리보기 위치 수정, 사이드바 필터 줄바꿈, R77 파일 입력칸 초기화.
+- **검증**: tsc·lint·diff-check·build 통과, Vitest 64파일/783개 통과함. `TESTS.sql`은 DB가 없어 미실행임.
+- **남은 작업 (사용자)**: 미리보기 위치·필터 배치·즐겨찾기 드래그·R77 파일명 초기화 실브라우저 재확인.
+- **다음 단계**: 활성 Dispatch Queue 과제 없음.
+
+## Run `r78-r76-followups-and-browser-check` Step 2 (R77 입력 초기화·명세 §10) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Sonnet임.
+- **결과**: 워크트리 커밋 `acc0ae9`(미병합). 분류 아이콘 모달에서 URL 입력·이미지 붙여넣기 시 파일 입력칸을 재생성해 이전 파일명이 남지 않게 하고, 재오픈 시 빈 상태를 테스트로 보장함. R76 명세 §10 Step 4 허용 파일에 `use-board-sensors.ts` 추가함. tsc·lint·diff-check 통과, Vitest 64파일/783개 통과함.
+- **미확인**: 실브라우저 파일명 표시(jsdom은 요소 재생성만 검증).
+- **다음 단계**: Step 3(`Claude Opus`, 통합 리뷰·병합·문서 마감) `▶ READY`임.
+
 ## Run `r78-r76-followups-and-browser-check` Step 1 (R76 SQL 테스트) 완료 (2026-11-10)
 
 - **수행 주체**: GPT Codex (`Maker (R76 SQL Tests)`)임.
