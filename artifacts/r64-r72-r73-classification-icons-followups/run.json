@@ -1,0 +1,20 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r64-r72-r73-classification-icons-followups",
+    "created_at":  "2026-11-10T11:02:59.5425450+00:00",
+    "objective":  "R72 pickup duplicate-name message cleanup, R73 Firefox-safe drag sources for preset workspace and favorite roster, and R64 admin-managed icons for classification axis options (separate table) shown in filter chips, the character settings dialog and the admin character list.",
+    "acceptance_criteria":  [
+                                "Step 1 (R72): the shared pickup duplicate-name error no longer says to pick from a list where no list exists; callers that have a list keep their guidance; tests updated.",
+                                "Step 1 (R73): drag sources in the desktop preset workspace and the favorite roster section start drags from a non-button element (wrapper or dedicated handle) so Firefox and Chromium both drag; click placement and move buttons unchanged.",
+                                "Step 2 (R64 spec): an English spec under docs/spec defines the icon table, icon format/size limits, admin-only write RLS, option rename/delete cleanup, fallback when unmigrated, and UI placements.",
+                                "Step 3 (R64 DB): migration adds the classification icon table with admin-only writes and authenticated/anon read matching games visibility, reflected in SCHEMA.sql, database.types.ts, sql/README.md and sql/tests.",
+                                "Step 4 (R64 UI): admins can set/remove icons per classification option after the template exists; icons render in filter chips, the character settings dialog and the admin character list; unmigrated DB falls back to text only.",
+                                "Every Maker step passes tsc --noEmit, npm run lint, git diff --check and the full Vitest suite."
+                            ],
+    "base_sha":  "bc7fbad477e13de89b81c6a8ba474ca3fd3145c3",
+    "target_sha":  null,
+    "branch":  "collab/r64-r72-r73-classification-icons-followups",
+    "worktree_path":  ".worktrees/r64-r72-r73-classification-icons-followups",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
