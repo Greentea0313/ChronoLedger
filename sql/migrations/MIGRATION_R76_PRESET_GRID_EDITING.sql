@@ -51,91 +51,79 @@ SET search_path = public
 AS $$
 DECLARE
     v_user_id UUID := auth.uid();
-    v_changes JSONB;
     v_ids UUID[];
     v_id UUID;
     v_game_id UUID;
+    v_first_game_id UUID;
     v_expected UUID[];
     v_next UUID[];
     v_current UUID[];
-    v_row_count INTEGER;
-    v_expected_union UUID[];
-    v_next_union UUID[];
+    v_expected_all UUID[] := '{}'::UUID[];
+    v_next_all UUID[] := '{}'::UUID[];
 BEGIN
     IF v_user_id IS NULL THEN
         RAISE EXCEPTION '로그인한 사용자만 프리셋을 변경할 수 있습니다.';
     END IF;
-    IF jsonb_typeof(p_changes) <> 'array' OR jsonb_array_length(p_changes) NOT BETWEEN 1 AND 2 THEN
+    IF jsonb_typeof(p_changes) IS DISTINCT FROM 'array' OR jsonb_array_length(p_changes) NOT BETWEEN 1 AND 2 THEN
         RAISE EXCEPTION '프리셋 변경은 1~2개 행이어야 합니다.' USING ERRCODE = '22023';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM jsonb_array_elements(p_changes) AS item(value)
+        WHERE jsonb_typeof(item.value) IS DISTINCT FROM 'object'
+           OR jsonb_typeof(item.value -> 'expected') IS DISTINCT FROM 'array'
+           OR jsonb_typeof(item.value -> 'next') IS DISTINCT FROM 'array'
+    ) THEN
+        RAISE EXCEPTION '프리셋 변경 형식이 올바르지 않습니다.' USING ERRCODE = '22023';
     END IF;
 
     SELECT array_agg(item.id ORDER BY item.id)
     INTO v_ids
     FROM jsonb_to_recordset(p_changes) AS item(id UUID, expected JSONB, next JSONB);
-    IF v_ids IS NULL OR cardinality(v_ids) <> jsonb_array_length(p_changes)
+    IF v_ids IS NULL OR array_position(v_ids, NULL) IS NOT NULL
        OR cardinality(v_ids) <> cardinality(ARRAY(SELECT DISTINCT id FROM unnest(v_ids) AS ids(id))) THEN
         RAISE EXCEPTION '프리셋 ID가 중복되었거나 올바르지 않습니다.' USING ERRCODE = '22023';
     END IF;
 
-    SELECT count(*) INTO v_row_count
-    FROM public.user_character_presets
-    WHERE id = ANY(v_ids) AND user_id = v_user_id;
-    IF v_row_count <> cardinality(v_ids) THEN
-        RAISE EXCEPTION 'preset changed' USING ERRCODE = '40001';
-    END IF;
-
-    CREATE TEMP TABLE IF NOT EXISTS _r76_preset_changes (
-        id UUID PRIMARY KEY,
-        expected UUID[] NOT NULL,
-        next_ids UUID[] NOT NULL,
-        game_id UUID NOT NULL
-    ) ON COMMIT DROP;
-    TRUNCATE _r76_preset_changes;
-    SELECT item.id INTO v_id
-    FROM public.user_character_presets preset
-    JOIN jsonb_to_recordset(p_changes) AS item(id UUID, expected JSONB, next JSONB)
-      ON item.id = preset.id
-    WHERE preset.user_id = v_user_id
-    ORDER BY item.id
+    -- Lock every target row in id order (PERFORM reads all rows, so both rows are locked; fixed order avoids deadlocks).
+    PERFORM 1 FROM public.user_character_presets
+    WHERE id = ANY(v_ids) AND user_id = v_user_id
+    ORDER BY id
     FOR UPDATE;
-    INSERT INTO _r76_preset_changes (id, expected, next_ids, game_id)
-    SELECT item.id,
-           ARRAY(SELECT value::text::uuid FROM jsonb_array_elements(item.expected) AS values(value)),
-           ARRAY(SELECT value::text::uuid FROM jsonb_array_elements(item.next) AS values(value)),
-           preset.game_id
-    FROM jsonb_to_recordset(p_changes) AS item(id UUID, expected JSONB, next JSONB)
-    JOIN public.user_character_presets preset ON preset.id = item.id AND preset.user_id = v_user_id;
 
-    SELECT count(*) INTO v_row_count FROM _r76_preset_changes;
-    IF v_row_count <> cardinality(v_ids) THEN
-        RAISE EXCEPTION 'preset changed' USING ERRCODE = '40001';
-    END IF;
-    IF EXISTS (
-        SELECT 1 FROM _r76_preset_changes change
-        JOIN public.user_character_presets preset ON preset.id = change.id
-        WHERE preset.character_ids IS DISTINCT FROM change.expected
-    ) THEN
-        RAISE EXCEPTION 'preset changed' USING ERRCODE = '40001';
-    END IF;
-    IF (SELECT count(DISTINCT game_id) FROM _r76_preset_changes) > 1 THEN
-        RAISE EXCEPTION '프리셋 간 이동은 같은 게임에서만 가능합니다.' USING ERRCODE = '22023';
-    END IF;
-    IF cardinality(v_ids) = 2 THEN
-        SELECT ARRAY(
-            SELECT character_id FROM _r76_preset_changes, unnest(expected) AS characters(character_id)
-            ORDER BY character_id
-        ) INTO v_expected_union;
-        SELECT ARRAY(
-            SELECT character_id FROM _r76_preset_changes, unnest(next_ids) AS characters(character_id)
-            ORDER BY character_id
-        ) INTO v_next_union;
-        IF v_expected_union IS DISTINCT FROM v_next_union THEN
-            RAISE EXCEPTION 'invalid move' USING ERRCODE = '22023';
+    FOR v_id, v_expected, v_next IN
+        SELECT item.id,
+               ARRAY(SELECT e.value::UUID FROM jsonb_array_elements_text(item.expected) WITH ORDINALITY AS e(value, ord) ORDER BY e.ord),
+               ARRAY(SELECT n.value::UUID FROM jsonb_array_elements_text(item.next) WITH ORDINALITY AS n(value, ord) ORDER BY n.ord)
+        FROM jsonb_to_recordset(p_changes) AS item(id UUID, expected JSONB, next JSONB)
+        ORDER BY item.id
+    LOOP
+        SELECT character_ids, game_id INTO v_current, v_game_id
+        FROM public.user_character_presets
+        WHERE id = v_id AND user_id = v_user_id;
+        IF NOT FOUND OR v_current IS DISTINCT FROM v_expected THEN
+            RAISE EXCEPTION 'preset changed' USING ERRCODE = '40001';
         END IF;
+        IF v_first_game_id IS NULL THEN
+            v_first_game_id := v_game_id;
+        ELSIF v_first_game_id <> v_game_id THEN
+            RAISE EXCEPTION '프리셋 간 이동은 같은 게임에서만 가능합니다.' USING ERRCODE = '22023';
+        END IF;
+        v_expected_all := v_expected_all || v_expected;
+        v_next_all := v_next_all || v_next;
+    END LOOP;
+
+    -- A two-preset change must be a move: the same characters, only redistributed.
+    IF cardinality(v_ids) = 2
+       AND ARRAY(SELECT c FROM unnest(v_expected_all) AS a(c) ORDER BY c)
+           IS DISTINCT FROM ARRAY(SELECT c FROM unnest(v_next_all) AS b(c) ORDER BY c) THEN
+        RAISE EXCEPTION 'invalid move' USING ERRCODE = '22023';
     END IF;
 
     FOR v_id, v_next IN
-        SELECT id, next_ids FROM _r76_preset_changes ORDER BY id
+        SELECT item.id,
+               ARRAY(SELECT n.value::UUID FROM jsonb_array_elements_text(item.next) WITH ORDINALITY AS n(value, ord) ORDER BY n.ord)
+        FROM jsonb_to_recordset(p_changes) AS item(id UUID, expected JSONB, next JSONB)
+        ORDER BY item.id
     LOOP
         UPDATE public.user_character_presets
         SET character_ids = v_next, updated_at = NOW()
