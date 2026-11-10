@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
-import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable } from "@/lib/image-upscaler"
+import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import {
@@ -161,6 +161,15 @@ export default function AdminPage() {
   const [isAiUpscaleVisible, setIsAiUpscaleVisible] = useState(false)
   const [useAiUpscale, setUseAiUpscale] = useState(true)
   const [isProcessingIcon, setIsProcessingIcon] = useState(false)
+  // The AI toggle is offered only after a selected/pasted image is detected below 256px (R60-REV-006).
+  const [isAiUpscaleCandidate, setIsAiUpscaleCandidate] = useState(false)
+  const noteIconCandidate = (file: File | null | undefined) => {
+    if (!file) {
+      setIsAiUpscaleCandidate(false)
+      return
+    }
+    void isLowResolutionFile(file).then(setIsAiUpscaleCandidate)
+  }
 
   // 게임 관리 탭 상태
   const [gamesSearchQuery, setGamesSearchQuery] = useState("")
@@ -684,6 +693,7 @@ export default function AdminPage() {
     event.preventDefault()
     setCharacterFormIconFile(null)
     setCharacterFormIconUrl("")
+    noteIconCandidate(file)
     setIsProcessingIcon(true)
     void convertIconSourceToDataUrlWithUpscale(file, useAiUpscale)
       .then(setCharacterFormIconUrl)
@@ -693,6 +703,7 @@ export default function AdminPage() {
 
   const handleSaveCharacter = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (isProcessingIcon) return
     const name = characterFormName.trim()
     if (!characterFormGameId || !name || name.length > 100) {
       setCharacterFormError("대상 게임과 캐릭터 이름(1~100자)을 입력해 주세요.")
@@ -776,6 +787,7 @@ export default function AdminPage() {
     setGameFormIconFile(null)
     setGameFormIconUrl("")
     setGameFormError(null)
+    noteIconCandidate(file)
     setIsProcessingIcon(true)
     void convertIconSourceToDataUrlWithUpscale(file, useAiUpscale)
       .then(setGameFormIconUrl)
@@ -836,6 +848,7 @@ export default function AdminPage() {
 
   const handleSaveGame = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isProcessingIcon) return
     const trimmedName = gameFormName.trim()
     const trimmedIconUrl = gameFormIconUrl.trim()
 
@@ -1099,6 +1112,7 @@ export default function AdminPage() {
     event.preventDefault()
     setNewPickupImageFile(null)
     setNewPickupImageSource("")
+    noteIconCandidate(file)
     setIsProcessingIcon(true)
     void convertIconSourceToDataUrlWithUpscale(file, useAiUpscale)
       .then((dataUrl) => setNewPickupImageSource(assertIconDataUrlSize(dataUrl)))
@@ -1108,6 +1122,7 @@ export default function AdminPage() {
 
   // Registers a pickup-only character for the schedule's game right away and adds it to the selection (U-04).
   const handleRegisterNewPickupCharacter = async () => {
+    if (isProcessingIcon) return
     const name = newPickupName.trim()
     if (!gameId) {
       setNewPickupError("먼저 게임을 선택해 주세요.")
@@ -2131,9 +2146,9 @@ export default function AdminPage() {
                       type="file"
                       accept="image/png,image/jpeg,image/webp"
                       aria-label="새 픽업 캐릭터 이미지 파일"
-                      onChange={(event) => setNewPickupImageFile(event.target.files?.[0] ?? null)}
+                      onChange={(event) => { const file = event.target.files?.[0] ?? null; setNewPickupImageFile(file); noteIconCandidate(file) }}
                     />
-                    {isAiUpscaleVisible && (
+                    {isAiUpscaleVisible && isAiUpscaleCandidate && (
                       <label className="flex items-center gap-2 text-xs text-content-secondary">
                         <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
                         AI 고화질 업스케일 (PC 전용)
@@ -2148,7 +2163,7 @@ export default function AdminPage() {
                     {newPickupError && <p role="alert" className="text-xs text-danger">{newPickupError}</p>}
                     <div className="flex justify-end gap-2">
                       <Button type="button" size="sm" variant="ghost" disabled={isSavingNewPickup} onClick={() => { setIsNewPickupOpen(false); setNewPickupError(null) }}>취소</Button>
-                      <Button type="button" size="sm" disabled={isSavingNewPickup} onClick={() => void handleRegisterNewPickupCharacter()}>
+                      <Button type="button" size="sm" disabled={isSavingNewPickup || isProcessingIcon} onClick={() => void handleRegisterNewPickupCharacter()}>
                         {isSavingNewPickup ? "등록 중..." : "등록"}
                       </Button>
                     </div>
@@ -2385,10 +2400,10 @@ export default function AdminPage() {
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 aria-label="기본 아이콘 파일"
-                onChange={(event) => setGameFormIconFile(event.target.files?.[0] ?? null)}
+                onChange={(event) => { const file = event.target.files?.[0] ?? null; setGameFormIconFile(file); noteIconCandidate(file) }}
                 className="mt-2 bg-surface-2 border-line text-content"
               />
-              {isAiUpscaleVisible && (
+              {isAiUpscaleVisible && isAiUpscaleCandidate && (
                 <label className="mt-2 flex items-center gap-2 text-xs text-content-secondary">
                   <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
                   AI 고화질 업스케일 (PC 전용)
@@ -2482,7 +2497,7 @@ export default function AdminPage() {
               >
                 취소
               </Button>
-              <Button type="submit" disabled={isSubmittingGame}>
+              <Button type="submit" disabled={isSubmittingGame || isProcessingIcon}>
                 {isSubmittingGame ? (
                   <span className="flex items-center gap-1.5">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -2633,8 +2648,8 @@ export default function AdminPage() {
                   <div>
                     <label htmlFor="character-form-icon-url" className="mb-1 block text-sm font-medium">{isPickupOnlyEdit && !characterFormPromote ? `${formLabel} 아이콘 (선택)` : `${formLabel} 아이콘 *`}</label>
                     <Input id="character-form-icon-url" value={characterFormIconUrl.startsWith("data:image/webp;base64,") ? "" : characterFormIconUrl} onPaste={handleCharacterIconPaste} onChange={(event) => { setCharacterFormIconUrl(event.target.value); setCharacterFormIconFile(null) }} placeholder="https://... 또는 이미지 붙여넣기" aria-label="기본 아이콘 URL" />
-                    <Input id="character-form-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 기본 아이콘 파일" onChange={(event) => setCharacterFormIconFile(event.target.files?.[0] ?? null)} className="mt-2" />
-                    {isAiUpscaleVisible && (
+                    <Input id="character-form-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 기본 아이콘 파일" onChange={(event) => { const file = event.target.files?.[0] ?? null; setCharacterFormIconFile(file); noteIconCandidate(file) }} className="mt-2" />
+                    {isAiUpscaleVisible && isAiUpscaleCandidate && (
                       <label className="mt-2 flex items-center gap-2 text-xs text-content-secondary">
                         <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
                         AI 고화질 업스케일 (PC 전용)
@@ -2645,7 +2660,7 @@ export default function AdminPage() {
                   {characterFormError && <div role="alert" className="rounded border border-danger/30 bg-danger/20 p-3 text-sm text-danger">{characterFormError}</div>}
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsCharacterModalOpen(false)}>취소</Button>
-                    <Button type="submit" disabled={isSubmittingCharacter}>{isSubmittingCharacter ? "저장 중..." : "저장"}</Button>
+                    <Button type="submit" disabled={isSubmittingCharacter || isProcessingIcon}>{isSubmittingCharacter ? "저장 중..." : "저장"}</Button>
                   </DialogFooter>
                   </>
                   )}

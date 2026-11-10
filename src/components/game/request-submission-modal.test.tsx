@@ -13,6 +13,19 @@ const { from, useAuth, insertGame, insertSchedule, insertCharacter } = vi.hoiste
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
+// jsdom has WebAssembly but cannot decode images: delegate to the real converter with AI upscaling off,
+// while letting a test hold a conversion open.
+const { convertWithUpscale } = vi.hoisted(() => ({ convertWithUpscale: vi.fn() }))
+vi.mock("@/lib/image-upscaler", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/image-upscaler")>()
+  convertWithUpscale.mockImplementation((source: File | string) => original.convertIconSourceToDataUrlWithUpscale(source, false))
+  return {
+    ...original,
+    convertIconSourceToDataUrlWithUpscale: convertWithUpscale,
+    isDesktopAiUpscaleAvailable: () => false,
+    isLowResolutionFile: async () => false,
+  }
+})
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
 
 const games = [{
@@ -120,6 +133,24 @@ describe("RequestSubmissionModal", () => {
       await Promise.resolve()
     })
   }
+
+  it("blocks request submission while a pasted icon is still converting (R60-REV-004)", async () => {
+    convertWithUpscale.mockImplementationOnce(() => new Promise<string>(() => {}))
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-game", "game-1")
+    await change("#character-name", "New Hero")
+    const iconInput = document.body.querySelector("#character-icon-url")
+    expect(iconInput).not.toBeNull()
+    const file = new File(["png"], "icon.png", { type: "image/png" })
+    await act(async () => {
+      Simulate.paste(iconInput!, { clipboardData: { files: [file], items: [] } as unknown as DataTransfer })
+    })
+    const submitButton = document.body.querySelector('button[type="submit"]') as HTMLButtonElement
+    expect(submitButton.disabled).toBe(true)
+    await submit()
+    expect(insertCharacter).not.toHaveBeenCalled()
+  })
 
   it("submits a game request using the authenticated user and schema fields only", async () => {
     await openModal()

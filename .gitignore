@@ -50,3 +50,6 @@ yarn-error.log*
 next-env.d.ts
 
 supabase/.temp/
+
+# R60: ONNX Runtime web files copied from node_modules by next.config.mjs
+/public/ort/

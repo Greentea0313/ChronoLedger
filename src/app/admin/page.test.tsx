@@ -16,6 +16,12 @@ vi.mock("@/lib/image-resizer", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/image-resizer")>(),
   convertIconSourceToDataUrl,
 }))
+// jsdom has WebAssembly but cannot decode images, so the AI path is bypassed: icons go straight to the resizer mock.
+vi.mock("@/lib/image-upscaler", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/image-upscaler")>(),
+  convertIconSourceToDataUrlWithUpscale: (source: File | string) => convertIconSourceToDataUrl(source),
+  isLowResolutionFile: async () => false,
+}))
 
 function createQueryBuilder() {
   const query = {
