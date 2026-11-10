@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## R60 Run 활성화: PC 저해상도 아이콘 AI 업스케일러 (2026-11-10)
+
+- **Run**: `r60-ai-icon-upscaler`, Worktree `.worktrees/r60-ai-icon-upscaler`, Base `a908144`임.
+- **활성 단계**: Step 1 Maker `▶ READY`, 담당 Claude Sonnet임.
+- **범위**: PC 전용 동적 ONNX 업스케일링, 256px 미만 감지, 모바일·미지원·실패 시 기존 WebP 리사이저 폴백, 관리자·일정 요청 아이콘 흐름 연동임.
+- **다음 단계**: Maker가 구현·검증 후 Target SHA를 기록하고, Claude Opus가 통합 리뷰·main 병합을 수행함.
+
 ## R59 캐릭터 템플릿 모달 보정 — `main` 직접 수정 (2026-11-10)
 
 - **수행 주체**: Claude Opus (사용자 지시 "바로 수정", `main` 직접 수정 fallback)임.
