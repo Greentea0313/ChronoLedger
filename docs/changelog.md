@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-11 (Run `r79-sql-tests-local-run` Step 2 리뷰 보류)
+
+- Base `a580d1d` ↔ Target `f13087d` 정적 리뷰에서 `R79-REV-001`(P3)을 발견함. `sql/README.md`의 로컬 `psql` 명령이 유효하지 않아 실행 절차대로 재현할 수 없음.
+- Docker 컨테이너에서 `TESTS.sql` 자체는 38개 블록 전체 PASS·최종 rollback PASS함. README 명령 수정 후 `main` 병합 필요함.
+
 ## 2026-11-11 (보유 캐릭터 목록 확대)
 
 - 보유 캐릭터 목록 아바타 64→80px, 이름 `text-sm`→`text-base`, 열 수 md 6→5·lg 8→6으로 키움. 돌파 배지(10px)·캐릭터 설정 창·프리셋 선택 창은 변경 없음. 게임과 무관하게 동일 크기이며 열 수만 창 폭에 따라 달라짐.

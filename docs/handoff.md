@@ -41,7 +41,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: f13087d)`** | **Claude Opus** *(GPT Codex 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (TESTS.sql Local Run)` | `sql/tests/TESTS.sql`, `sql/README.md` | `✅ f13087d`: 첫 실행 30개 블록에서 멈춤 → 테스트 버그 3건 수정 후 38개 블록 전체 PASS·마지막 `ROLLBACK` PASS 확인. 스키마·RPC 버그 없음. README에 로컬 실행 절차 추가 (아래 Step 1 완료 기록 참고) |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `a580d1d` ↔ Target `f13087d` 정적 리뷰(수정이 테스트 의도를 약하게 만들지 않았는지), 가능하면 로컬 재실행, `review.json`·`test.json`, `main` 병합, 문서 마감 | - |
+| **2** | **`🛑 BLOCKED (P3 finding, 산출물: 4c1e84a)`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `a580d1d` ↔ Target `f13087d` 정적 리뷰(수정이 테스트 의도를 약하게 만들지 않았는지), 가능하면 로컬 재실행, `review.json`·`test.json`, `main` 병합, 문서 마감 | `R79-REV-001` 발견: `sql/README.md:61-62`의 `psql ******127.0.0.1:54322/postgres` 명령이 유효하지 않아 문서 절차대로 실행 불가함. 로컬 Docker 재실행 자체는 38개 PASS·최종 rollback PASS. 명령 수정 후 병합 필요함. |
 
 #### 📝 `r79-sql-tests-local-run` Step 1 완료 기록 (Claude Opus, 2026-11-11)
 
@@ -52,6 +52,13 @@
   3. R76 블록 한 줄에서 `\gset`의 역슬래시가 빠져 구문 오류(2186행) → 고침. r78 리뷰 수정(`e2d1de9`) 때 Claude Opus가 넣은 실수임.
 - **검증**: 수정 후 `psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql` 종료 코드 0, `PASS` 38줄, 마지막 `PASS: all smoke-test fixtures and mutations rolled back` 확인함. R64·R76·R80 블록이 처음으로 실제 실행됨.
 - **문서**: `sql/README.md` `TESTS.sql` 항목에 로컬 실행 절차(Docker·CLI·스키마·버킷·실행·초기화·PowerShell 인코딩) 추가함.
+
+#### 📌 `r79-sql-tests-local-run` Step 2 리뷰 체크포인트 (Claude Opus, 2026-11-11)
+
+- **리뷰 대상**: Base `a580d1d` ↔ Target `f13087d`임.
+- **finding**: `R79-REV-001` (P3). `sql/README.md:61-62`의 `psql ******127.0.0.1:54322/postgres`가 유효하지 않은 연결 형식임.
+- **동적 검증**: Docker 컨테이너 `supabase_db_chronoledger-local`에서 `TESTS.sql` 재실행 결과 38개 PASS와 최종 rollback PASS 확인함.
+- **상태**: README 명령 수정 전 `main` 병합 보류함. Maker가 유효한 `psql` URI 또는 `-h/-p/-U/-d` 형식으로 고친 뒤 재리뷰 필요함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r80-classification-icon-admin-policy`
 

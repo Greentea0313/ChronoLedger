@@ -1,10 +1,17 @@
 # 프로젝트 진행 현황
+## Run `r79-sql-tests-local-run` Step 2 정적 리뷰 보류 (2026-11-11)
+
+- **리뷰**: Base `a580d1d` ↔ Target `f13087d`에서 `R79-REV-001`(P3) 발견함. [sql/README.md](../sql/README.md) 61~62행의 `psql ******127.0.0.1:54322/postgres`가 유효하지 않은 명령임.
+- **동적 검증**: 로컬 Docker Supabase에서 `TESTS.sql` 재실행 결과 38개 PASS·최종 rollback PASS 확인함.
+- **산출물**: `review.json`·`test.json` 커밋 `4c1e84a`임.
+- **상태**: 실행 절차 명령 수정 전 `main` 병합 보류함. 수정 후 재리뷰 필요함.
+
 ## Run `r79-sql-tests-local-run` 등록·Step 1 완료 (2026-11-11)
 
 - **수행 주체**: Claude Opus (Orchestrator 대체 + Maker)임.
 - **환경**: 사용자가 psql 17·Docker Desktop을 설치함. 저장소 밖 폴더에 로컬 Supabase(CLI 2.120.0)를 띄우고 `SCHEMA.sql`·`user-icons` 버킷을 적용함.
 - **결과 (워크트리 `f13087d`, 미병합)**: `TESTS.sql` 첫 실행에서 테스트 버그 3건을 찾아 고친 뒤 38개 블록 전체 PASS함. 스키마·RPC 버그는 없음. README에 로컬 실행 절차를 추가함.
-- **다음 단계**: Step 2(`Gemini 4 Argon`, 리뷰·병합) `▶ READY`임.
+- **상태**: Step 2 정적 리뷰에서 P3 finding 발견함.
 
 ## R80 마이그레이션 운영 적용 (2026-11-11)
 
