@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-10 (Run `r62-preset-workspace-desktop` 등록)
+
+- 격리 Worktree·manifest(`07748d1`, Base `564b83b`) 생성하고 Dispatch Queue에 Step 1(Claude Sonnet)·Step 2(Gemini 4 Argon)와 수용 기준(배치 규칙·미저장 경고·900px 분기·테스트) 등록함.
+
 ## 2026-11-10 (Run `r61-r65-r66-character-admin-quick-fixes` 마감, `main` 병합 `9962a21`)
 
 - R61: 프리셋 제목 입력란 예시 `placeholder` 제거함.

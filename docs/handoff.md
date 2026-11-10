@@ -31,7 +31,46 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: 없음 *(최근 완료 Run: `r61-r65-r66-character-admin-quick-fixes`, `main` 병합 `9962a21`)* — 직전 Run 요약: *(`R61` 프리셋 제목 예시 삭제 + `R65` 관리자 캐릭터 필터 `모든 게임` 제거·게임별 레어도 + `R66` 템플릿 없는 게임의 픽업 전용 `[+ 캐릭터 추가]`)*
+- **활성 Run ID**: `r62-preset-workspace-desktop` *(`R62` PC(900px 이상) 프리셋 탭 좌측 보유 캐릭터 사이드바 + 우측 인라인 프리셋 편집, 드래그·슬롯 클릭 배치, 저장 버튼)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
+- **Worktree 경로**: `.worktrees/r62-preset-workspace-desktop` (브랜치: `collab/r62-preset-workspace-desktop`, manifest `07748d1`)
+- **Base SHA**: `564b83bbc78fa011df81514b3ce878d3b5737faf`
+- **DB 변경**: 없음 (`user_character_presets` 저장 경로·검증은 현행 `handleSavePreset` 그대로 사용)
+- **근거 문서**: [`docs/character-preset-ux-review.md`](character-preset-ux-review.md) §2 및 `사용자 결정 사항`(900px 이상, 탭 안 인라인 편집, 저장 버튼)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Desktop Preset Workspace)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `src/components/character/preset-list.tsx`, `src/components/character/preset-editor-dialog.tsx`(공용 슬롯 UI 추출 시에만), 신규 `src/components/character/preset-workspace.tsx`(+`.test.tsx`), 신규 `src/components/character/preset-slot-editor.tsx`(공용 추출 시), `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, 신규 `src/lib/use-media-query.ts`(+테스트) | `⏳ Step 1 Maker 커밋 후 Step 2를 ▶ READY로 전환` |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `564b83b` ↔ Step 1 Target 통합 정적 리뷰(`iteration-01/review.json`·`test.json`), tsc·lint·Vitest·diff-check, 가능하면 개발 서버에서 PC·모바일 너비 수동 확인, `main` 병합 및 문서 마감 | `⏳ Step 1 완료 후 착수` |
+
+#### 📌 `r62-preset-workspace-desktop` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Sonnet` — Maker)**:
+   - **화면 분기**:
+     - 화면 너비 900px 이상(`(min-width: 900px)`, 프로젝트 `md`)에서만 `조합 프리셋` 탭을 새 작업 공간(`PresetWorkspace`)으로 표시함. 900px 미만은 현행 `PresetList` + `PresetEditorDialog` 흐름을 바꾸지 않음.
+     - 한 시점에 한 가지 편집 UI만 마운트함(CSS로 둘 다 렌더링하지 않음). `matchMedia` 기반 훅(`use-media-query.ts`)을 쓰고, 첫 렌더는 모바일 기준으로 시작해도 됨. 너비가 바뀌어 화면이 전환될 때 편집 중 내용 처리 방식(유지 또는 미저장 경고)을 정하고 기록함.
+   - **레이아웃 (PC)**:
+     - 좌측 사이드바: 선택한 게임의 보유 캐릭터 그리드 + 기존 `CharacterFilterBar`(보유 여부·레어도·분류·`검색`) — 현행 프리셋 선택 목록과 같은 필터·즐겨찾기 우선 정렬 사용(R63 3구역은 이번 범위 아님). 사이드바는 세로 스크롤 독립.
+     - 우측 메인: 프리셋 목록(선택·`새 프리셋 추가`·삭제)과 선택한 프리셋의 제목·메모·슬롯 인라인 편집 영역, `저장`·`되돌리기(변경 취소)` 버튼.
+   - **배치 방식** (`character_ids`는 빈칸 없는 순서 배열이라는 현행 규칙 유지):
+     - 좌측 아바타를 우측 슬롯으로 드래그: 빈 슬롯이면 끝에 추가, 채워진 슬롯이면 그 자리 캐릭터를 교체함. 이미 다른 슬롯에 있는 캐릭터를 놓으면 두 슬롯을 맞바꿈(중복 배치 금지 유지).
+     - 슬롯끼리 드래그: 순서 이동. 기존 위/아래 화살표·제거 버튼은 접근성용으로 유지함.
+     - 슬롯 클릭 → 아바타 클릭: 슬롯을 누르면 "선택 중" 상태(`aria-pressed` 또는 `aria-current`, 시각 강조)가 되고, 이어서 좌측 아바타를 누르면 그 슬롯에 위 규칙대로 배치함. 같은 슬롯 재클릭·Esc로 선택 해제함. 슬롯 미선택 상태에서 아바타를 누르면 현행처럼 끝에 추가/이미 있으면 제거(토글)함.
+     - 슬롯 상한·비파괴 축소 규칙(§7.3.1, 상한 초과 프리셋은 늘릴 수 없고 교체·이동·제거만 가능)을 모든 경로에 적용함.
+     - 위 규칙은 `character-utils.ts`의 순수 함수(예: `placeCharacterInSlot(ids, slotIndex, characterId, maxSlots)`, `moveCharacterToSlot(ids, from, to)`)로 구현하고 `character-utils.test.ts`로 경계 사례(빈 슬롯·교체·맞바꿈·상한·상한 초과)를 검증함.
+     - 드래그는 HTML5 Drag and Drop으로 구현함(신규 의존성 추가 금지).
+   - **저장·미저장 처리**:
+     - 저장은 `저장` 버튼으로만 함(현행 `handleSavePreset`·`validatePresetInput`·오프라인 차단 재사용). 성공 시 목록 갱신 후 같은 프리셋을 선택 상태로 유지함.
+     - 미저장 변경이 있을 때 다른 프리셋 선택, `새 프리셋 추가`, 게임 전환, `보유 캐릭터` 탭 이동 시 `confirm()`으로 경고함(취소 시 머무름). 브라우저 새로고침·페이지 이동(`beforeunload`)은 이번 범위 밖임.
+     - 프리셋이 하나도 없으면 우측에 빈 상태와 `새 프리셋 추가`를 보여 줌. 새 프리셋은 저장 전까지 DB 행을 만들지 않음.
+   - **테스트**: `preset-workspace.test.tsx`에서 드래그(`dragStart`/`dragOver`/`drop` 이벤트 시뮬레이션)·슬롯 클릭 후 아바타 클릭 배치·교체·맞바꿈·상한·미저장 경고·저장 호출 인자를 검증하고, `characters/page.test.tsx`에서 900px 미만은 기존 모달 흐름, 이상은 작업 공간이 뜨는지 확인함. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src`, `git diff --check` 통과 후 Worktree에 커밋하고 Target SHA를 기록, Step 2를 `▶ READY`로 전환함.
+
+2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**:
+   - Base `564b83b` ↔ Step 1 Target 정적 리뷰(상태 동기화·드래그 이벤트·미저장 경고·상한 규칙 중심), 동적 검증, 산출물 작성·스키마 검증, `main` 병합, `docs/` 마감(`to-do` R62 완료 처리, 검토 안건 갱신).
+
+### 🗂️ 이전 Run 기록 (완료): `r61-r65-r66-character-admin-quick-fixes`
+
+- **Run ID**: `r61-r65-r66-character-admin-quick-fixes` (완료, `main` 병합 `9962a21`) *(`R61` 프리셋 제목 예시 삭제 + `R65` 관리자 캐릭터 필터 `모든 게임` 제거·게임별 레어도 + `R66` 템플릿 없는 게임의 픽업 전용 `[+ 캐릭터 추가]`)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r61-r65-r66-character-admin-quick-fixes` (브랜치: `collab/r61-r65-r66-character-admin-quick-fixes`, manifest `60f4530`)
 - **Base SHA**: `bf8cdced9efe0d104b910914776d6c3ad1bf2961`
@@ -345,7 +384,7 @@
   - R63: 보유 캐릭터만 즐겨찾기(기존 미보유 즐겨찾기 해제), 순서 DB 저장, 프리셋 선택 목록에도 3구역 적용 — DB 변경, Opus 승격 조건 ①.
   - R64: 분류 옵션만, 필터 칩·캐릭터 설정 창·관리자 캐릭터 목록 표시, 별도 테이블 — 명세 선행.
   - R66: 템플릿 없는 게임에서만 기존 `[+ (명칭) 추가]` 자리에 `[+ 캐릭터 추가]`(픽업 전용 생성).
-- **다음 단계**: ① R61·R65·R66 완료(`main` 병합 `9962a21`) → ② R62 → ③ R63 DB+UI → ④ R64 명세 후 구현.
+- **다음 단계**: ① R61·R65·R66 완료(`main` 병합 `9962a21`) → ② R62 Run `r62-preset-workspace-desktop` 등록됨(Step 1 `▶ READY`) → ③ R63 DB+UI → ④ R64 명세 후 구현.
 - **같은 날 `main` 직접 반영 (소규모 UI)**: R67 `46393eb`, R68 `d67921e`, R69 `f99e4fb`, R70 `f93ff31`.
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)

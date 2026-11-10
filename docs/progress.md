@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r62-preset-workspace-desktop` 등록 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **Worktree**: `.worktrees/r62-preset-workspace-desktop` 생성(Base `564b83b`, manifest `07748d1`)함.
+- **범위**: PC(900px 이상) 프리셋 탭 좌측 보유 캐릭터 사이드바 + 우측 인라인 편집, 드래그·슬롯 클릭 배치, 저장 버튼·미저장 경고. 900px 미만은 현행 유지. DB 변경 없음.
+- **다음 단계**: Step 1(`Claude Sonnet`, Maker) `▶ READY` → Step 2(`Gemini 4 Argon`, 리뷰·병합)임.
+
 ## Run `r61-r65-r66-character-admin-quick-fixes` 리뷰·`main` 병합 마감 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Step 2 Reviewer & Orchestrator)임. Maker는 Claude Sonnet(`07e5c89`)이라 교차 리뷰됨.
