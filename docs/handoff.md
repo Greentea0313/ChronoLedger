@@ -140,9 +140,9 @@
 - **확인 사항**: 쓰기 RLS는 JWT `app_metadata.role`만 사용(`user_metadata`·`users.role` 미사용), 마이그레이션 재실행 안전(`IF NOT EXISTS`·`CREATE OR REPLACE`·`DROP ... IF EXISTS`), 트리거 함수 `SECURITY DEFINER`+`search_path` 고정·EXECUTE 회수, 미적용 폴백(`42P01`/`PGRST205`) 확인함. Step 4의 허용 범위 밖 추가 파일 2개(`classification-icon-key.ts`, `page.classification-icons.test.tsx`)는 사유 타당해 수용함.
 - **동적 검증**: 워크트리 `da78bc6`에서 `tsc --noEmit`, `next lint`, `git diff --check`, `next build`(placeholder env) 통과, Vitest 63파일/780개 통과함. 병합 후 `main`에서 `tsc --noEmit` 재확인함. 실DB `TESTS.sql`·실브라우저 확인은 미수행(skipped)임.
 - **산출물 스키마 검증**: 공식 `validate_collaboration_artifact.py`는 Python `jsonschema` 모듈 부재로 실행 실패함. 세션 스크래치패드 간이 검증기(필수 키·enum·pattern·조건부 규칙)로 3개 파일 `VALID` 확인함 → **공식 검증 미완료**임.
-- **사용자 수동 작업 (남음)**:
-  1. Supabase SQL Editor에서 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql` 실행함.
-  2. `sql/README.md` R64 행 확인 쿼리 실행함. 기대값: `game_classification_icons, true, 2` / 트리거 `2` / 권한 `true, true`.
+- **사용자 수동 작업**:
+  1. ✅ (2026-11-10 사용자 완료) Supabase SQL Editor에서 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql` 실행함.
+  2. ✅ (2026-11-10 사용자 완료) `sql/README.md` R64 행 확인 쿼리 실행함. 기대값: `game_classification_icons, true, 2` / 트리거 `2` / 권한 `true, true`.
   3. 관리자 계정으로 `템플릿 설정 수정` → `분류 아이콘`에서 아이콘 업로드·삭제, 필터 칩·캐릭터 설정 창·관리자 목록 표시 확인함.
   4. R73: Chrome·Firefox에서 프리셋 작업 공간·즐겨찾기 손잡이 드래그, 900px 경계 전환 확인함.
 

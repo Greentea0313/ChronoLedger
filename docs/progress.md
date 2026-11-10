@@ -1,4 +1,9 @@
 # 프로젝트 진행 현황
+## R64 마이그레이션 운영 적용 (2026-11-10)
+
+- 사용자가 운영 DB에 `MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`을 적용하고 `sql/README.md` 확인 쿼리 검증을 마침. 이제 관리자 `분류 아이콘` 기능이 활성화됨.
+- **남음**: R64 아이콘 업로드·표시, R73 Chrome·Firefox 드래그 실브라우저 확인(사용자), to-do `R75` 후속임.
+
 ## Run `r64-r72-r73-classification-icons-followups` 완료 (Step 5 리뷰·병합, 2026-11-10)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임.

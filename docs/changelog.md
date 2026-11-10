@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-10 (R64 마이그레이션 운영 적용)
+
+- 운영 DB에 `MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql` 적용·확인 쿼리 검증 완료함(사용자). 분류 옵션 아이콘 테이블·트리거·RLS가 운영에 반영됨.
+
 ## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` 완료 — `main` 병합 `66dd067`)
 
 - R72·R73·R64 변경을 `main`에 병합함. 통합 리뷰 결과 P1·P2 없음, P3·P4 지적은 to-do `R75`로 이관함.
