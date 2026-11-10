@@ -107,7 +107,7 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
       <Input
         type="search"
         aria-label="캐릭터 이름 검색"
-        placeholder="캐릭터 이름 검색"
+        placeholder="검색"
         value={filters.query}
         onChange={(event) => onChange({ ...filters, query: event.target.value })}
         className="h-10 max-w-sm bg-surface-2"

@@ -1700,7 +1700,7 @@ export default function AdminPage() {
             <Input
               value={characterSearchQuery}
               onChange={(event) => setCharacterSearchQuery(event.target.value)}
-              placeholder="캐릭터 이름 검색"
+              placeholder="검색"
               aria-label="캐릭터 이름 검색"
               className="h-9 bg-surface-2"
             />
