@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` 완료 — `main` 병합 `66dd067`)
+
+- R72·R73·R64 변경을 `main`에 병합함. 통합 리뷰 결과 P1·P2 없음, P3·P4 지적은 to-do `R75`로 이관함.
+- R64 마이그레이션(`MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`)은 아직 운영 DB에 적용되지 않음. 적용 전에는 아이콘 기능이 숨겨지고 기존 화면이 그대로 동작함.
+
 ## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` Step 4 — `da78bc6`)
 
 - R64 UI: 관리자 템플릿 설정 수정 모달에 `분류 아이콘` 섹션을 추가해 분류 선택지별 아이콘을 등록·교체·삭제함(64×64 WebP, 20,000자 이하, 즉시 저장). 관리자 캐릭터 목록 분류 열과 사용자 보유 캐릭터 화면의 필터 칩·캐릭터 설정 창에 옵션 아이콘을 텍스트 옆에 표시함.

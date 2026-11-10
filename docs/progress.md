@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r64-r72-r73-classification-icons-followups` 완료 (Step 5 리뷰·병합, 2026-11-10)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임.
+- **리뷰** Base `bc7fbad` ↔ Target `da78bc6`: P1·P2 없음, P3 1건(`R64-REV-001` SQL 테스트 누락)·P4 3건 → to-do `R75` 이관함. 산출물 `871a34a`, `main` 병합 `66dd067`임.
+- **검증**: tsc·lint·diff-check·build 통과, Vitest 63파일/780개 통과함. 산출물은 간이 검증기로만 확인함(Python `jsonschema` 없음, 공식 검증 미완료).
+- **남은 작업 (사용자)**: R64 마이그레이션 운영 수동 적용·확인 쿼리, R64 아이콘·R73 드래그 실브라우저 확인임. Dispatch Queue에 대기 중 과제 없음.
+
 ## Run `r64-r72-r73-classification-icons-followups` Step 4 (R64 UI) 완료 (2026-11-10)
 
 - **수행 주체**: Claude Sonnet (`Maker (R64 UI)`)임.
