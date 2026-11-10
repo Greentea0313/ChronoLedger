@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r76-r77-preset-grid-dnd-and-icon-modal` *(`R77` 분류 아이콘 이미지 등록 모달(URL·붙여넣기·파일) + `R76` pickupgg식 프리셋 카드 그리드 편집·@dnd-kit 드래그(터치 포함))*
+- **활성 Run ID**: `r76-r77-preset-grid-dnd-and-icon-modal` **(완료, `main` 병합 `e5e6140`, R76 마이그레이션 운영 적용·실브라우저 확인은 사용자 대기)** *(`R77` 분류 아이콘 이미지 등록 모달(URL·붙여넣기·파일) + `R76` pickupgg식 프리셋 카드 그리드 편집·@dnd-kit 드래그(터치 포함))*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r76-r77-preset-grid-dnd-and-icon-modal` (브랜치: `collab/r76-r77-preset-grid-dnd-and-icon-modal`, manifest `41cdd56`)
 - **Base SHA**: `f5807eb1668c5dcf08c188bffce2accc18b1ef11`
@@ -49,7 +49,7 @@
 | **2** | **`✅ DONE (SHA: 4821658)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R76 Spec)` | 아래 **Step 2 수용 기준** 수행 완료함. | `✅ 4821658`: [`R76_Preset_Grid_Editing_Spec.md`](spec/R76_Preset_Grid_Editing_Spec.md)(워크트리) 작성. 사용자 결정 4건 반영, DB 변경 필요 → Step 3 수행 (아래 Step 2 완료 기록 참고) |
 | **3** | **`✅ DONE (SHA: 0ad856e)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 DB)` | 명세서 §4 수행. 허용 파일(명세서 §10 확정): 신규 `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`. 운영 DB 미적용 | `✅ 0ad856e`: 빈 프리셋 0~12명 제약·삭제 정리 보존·슬롯 원자 RPC·프리셋 순서 RPC·스키마/README/테스트/타입 반영. tsc·lint·Vitest 153파일/1402개·diff-check 통과. `psql` 부재로 SQL 테스트 미실행함. |
 | **4** | **`✅ DONE (SHA: 25182e5)`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 UI)` | 아래 **Step 4 수용 기준** 수행 완료함. 별도로 Step 3 RPC 버그를 고침(`60109dd`, Codex 1순위 대체) | `✅ 25182e5`: `@dnd-kit` 프리셋 카드 그리드·즉시 저장 큐·모바일 하단 선택 창·즐겨찾기 dnd-kit 전환, 구 작업 공간·목록·편집 창 제거. tsc·lint·diff-check·build 통과, Vitest 64파일/777개 통과 (아래 Step 4 완료 기록 참고) |
-| **5** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `f5807eb` ↔ Target(Step 4 커밋) 통합 정적 리뷰, 동적 검증, `main` 병합, 문서 마감, (DB 변경 시) 마이그레이션 수동 적용 안내 | - |
+| **5** | **`✅ DONE (리뷰: f5807eb ↔ 25182e5, 수정 434e6aa·8dcfecc, 산출물 571166b, main 병합 e5e6140)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `f5807eb` ↔ Target(Step 4 커밋) 통합 정적 리뷰, 동적 검증, `main` 병합, 문서 마감, (DB 변경 시) 마이그레이션 수동 적용 안내 | `✅` P1 없음, P2 1건·P3 1건 수정, P3 1건·P4 3건 to-do `R78` 이관. tsc·lint·diff-check·build 통과, Vitest 64파일/779개 통과. **R76 마이그레이션 운영 적용·실브라우저 드래그 확인은 사용자 대기** (아래 Step 5 완료 기록 참고) |
 
 #### 📌 `r76-r77-preset-grid-dnd-and-icon-modal` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -124,6 +124,20 @@
 - **테스트**: 페이지 프리셋 테스트를 새 그리드 기준 16개로 교체함(사이드바 클릭 추가, 중복·상한 거부, X 제거로 빈 프리셋, `40001` 재조회, RPC 미적용 폴백, 빈 프리셋 생성·활성화, 제목·메모 인라인 저장·Esc 취소, 카드 순서 RPC, 삭제 확인, 오프라인, 슬롯 초과, 게임 전환 무경고, 모바일 선택 창). 즐겨찾기는 dnd-kit 정렬 구조와 짧은 클릭 시 설정 창 열림을 확인함.
 - **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`, `next build`(placeholder env) 통과, Vitest 64파일/777개 통과함. 워크트리에 `npm install`로 자체 `node_modules`가 생김(npx 직접 실행 가능).
 - **미검증**: jsdom은 실제 포인터 드래그를 재현할 수 없어 **실제 드래그(마우스·터치·키보드)·DragOverlay·스크롤 중 드래그는 미확인**임. 로그인 계정이 필요해 실브라우저 확인도 못 함 → Step 5 사용자 수동 확인 필요함.
+
+#### 📝 `r76-r77-preset-grid-dnd-and-icon-modal` Step 5 완료 기록 (Claude Opus, 2026-11-10)
+
+- **리뷰 범위**: Base `f5807eb` ↔ Target `25182e5` 통합 정적 리뷰(R76 마이그레이션·RPC 2종·쓰기 큐 훅·드롭 규칙·dnd-kit 보드/카드/센서·즐겨찾기 정렬·R77 모달). 산출물 `artifacts/r76-r77-preset-grid-dnd-and-icon-modal/iteration-01/review.json`·`test.json`(커밋 `571166b`)임.
+- **보안·무결성**: 두 RPC 모두 `SECURITY INVOKER` + `user_id = auth.uid()` 조건, `anon` 실행 회수, 행 잠금 id 순서, 2행 변경은 캐릭터 집합 보존 검사, 검증 트리거·계정 삭제 대기 차단 트리거 유지 확인함. P1 없음.
+- **지적·처리**:
+  - `R76-REV-001`(P2): `TESTS.sql` R76 순서 테스트가 이제 보존되는 `kept when empty` 프리셋을 빠뜨려 `40001`로 중단될 상태였음 → `434e6aa`에서 수정함(빈 프리셋 확인도 `IS DISTINCT FROM`으로 바꿈).
+  - `R76-REV-002`(P3): 앞선 쓰기 실패로 대기 중인 프리셋 생성이 건너뛰어지면 `[+ 프리셋 추가]`가 계속 비활성화되던 문제 → `8dcfecc`에서 수정, 수정 전 실패하는 회귀 테스트 추가함.
+  - `R76-REV-003`(P3) SQL 테스트 누락 시나리오, `R76-REV-004`(P4) R77 파일 입력 이름 잔존, `R76-REV-005`(P4) `use-board-sensors.ts` 범위 밖 추가(수용), `R76-REV-006`(P4) 모바일 카드 사이 놓기 = 제거·키보드 드래그 대상 미검증 → to-do `R78`로 이관함.
+- **검증**: `8dcfecc` 기준 tsc·lint·diff-check 통과, Vitest 64파일/779개 통과, `25182e5` 기준 `next build`(placeholder env) 통과함. 산출물은 Python 부재로 Node 부분 검증기로만 스키마 검증함(공식 `validate_collaboration_artifact.py` 미실행).
+- **병합**: `main` 병합 `e5e6140`(`--no-ff`). 병합 후 `main`에서 `npm install`(@dnd-kit 3종 추가)·tsc·Vitest 154파일/1401개 통과함.
+- **사용자 수동 작업 남음**:
+  1. 운영 DB에 `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql` 적용 후 `sql/README.md` R76 확인 쿼리 실행(제약 1행·함수 2행). 적용 전에는 프리셋 간 이동·카드 순서 변경·빈 프리셋 생성·마지막 캐릭터 제거가 안내 토스트로 막힘.
+  2. 실브라우저 확인: Chrome·Firefox 마우스 드래그(사이드바→슬롯, 슬롯 정렬, 프리셋 간 이동, 카드 밖 제거, 카드 순서), 터치 실기기 길게 눌러 드래그·세로 스크롤 유지, 키보드(스페이스 집기·방향키·Esc), 900px·1280px 레이아웃, 즐겨찾기 정렬 후 짧은 클릭 시 설정 창, R77 분류 아이콘 모달(URL·붙여넣기·파일).
 
 ### 🗂️ 이전 Run 기록 (완료): `r64-r72-r73-classification-icons-followups`
 

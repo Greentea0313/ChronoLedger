@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Run `r76-r77-preset-grid-dnd-and-icon-modal` 완료 — `main` 병합 `e5e6140` (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 5)임.
+- **리뷰**: Base `f5807eb` ↔ Target `25182e5` 통합 정적 리뷰. P1 없음. `R76-REV-001`(P2, SQL 테스트 순서 목록 누락)·`R76-REV-002`(P3, 프리셋 추가 버튼 고착) 수정(`434e6aa`·`8dcfecc`), 나머지 P3 1건·P4 3건은 to-do `R78`로 이관함.
+- **검증**: tsc·lint·diff-check·build 통과, Vitest 64파일/779개(워크트리)·154파일/1401개(병합 후 `main`) 통과함. `main`에 `npm install`로 `@dnd-kit` 설치함.
+- **남은 작업 (사용자)**: R76 마이그레이션 운영 적용·확인 쿼리, Chrome·Firefox·터치 실기기 드래그와 R77 모달 실브라우저 확인.
+- **다음 단계**: 활성 Dispatch Queue 과제 없음. 다음 요청은 Orchestrator가 새 Run으로 등록함.
+
 ## Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 4 (R76 UI) 완료 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Maker (R76 UI)`)임.
