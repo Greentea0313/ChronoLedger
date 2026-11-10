@@ -31,7 +31,57 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: 없음 *(최근 완료 Run: `r62-preset-workspace-desktop`, `main` 병합 `e8d9b41`)* — 직전 Run 요약: *(`R62` PC(900px 이상) 프리셋 탭 좌측 보유 캐릭터 사이드바 + 우측 인라인 프리셋 편집, 드래그·슬롯 클릭 배치, 저장 버튼)*
+- **활성 Run ID**: `r63-character-favorite-sections` *(`R63` 보유 캐릭터 화면 즐겨찾기 / 보유 / 미보유 3구역 + 즐겨찾기 순서 드래그·DB 저장 + 프리셋 캐릭터 선택 목록 3구역 적용)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
+- **Worktree 경로**: `.worktrees/r63-character-favorite-sections` (브랜치: `collab/r63-character-favorite-sections`, manifest `77675c0`)
+- **Base SHA**: `56898613677af30c0096fa94b1b4b157349c9169`
+- **DB 변경**: 있음 — `user_characters.favorite_sort_order` 추가, 미보유 즐겨찾기 해제 트리거, 순서 저장 RPC (Opus 승격 조건 ① 해당)
+- **근거 문서**: [`docs/character-preset-ux-review.md`](character-preset-ux-review.md) §3 및 `사용자 결정 사항`(보유 캐릭터만 즐겨찾기, 기존 미보유 즐겨찾기 해제, 순서 DB 저장, 프리셋 선택 목록에도 적용)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (DB & Pure Logic)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts` | - |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Roster & Picker UI)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/characters/page.tsx`(+`.test.tsx`), `src/components/character/character-roster.tsx`(+테스트), `src/components/character/preset-editor-dialog.tsx`, `src/components/character/preset-workspace.tsx`(+테스트), `src/lib/character-utils.ts`(+테스트, Step 1 함수 보완 시에만) | - |
+| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `5689861` ↔ Target(Step 2 커밋) 통합 정적 리뷰(마이그레이션·트리거·RPC·RLS 경계 포함), 동적 검증, `main` 병합 및 문서 마감 | - |
+
+#### 📌 `r63-character-favorite-sections` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`GPT Codex` — Maker, DB·순수 로직)**:
+   - **마이그레이션** `MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` (재실행 안전, `IF NOT EXISTS`/`CREATE OR REPLACE`):
+     - `user_characters.favorite_sort_order INTEGER NULL` 추가함.
+     - 기존 데이터 정리: `is_owned = false AND is_favorite = true` 행을 `is_favorite = false`로 해제함.
+     - 기존 즐겨찾기 순서 채우기: 사용자·게임별로 `row_number()`(정렬 기준은 캐릭터 이름, 동률 시 `character_id`)로 1부터 부여함.
+     - 부분 인덱스 `(user_id, game_id, favorite_sort_order) WHERE is_favorite` 추가 검토함.
+   - **트리거** (`BEFORE INSERT OR UPDATE`, 기존 `validate_user_character_game`과 분리하거나 같은 함수에 추가):
+     - `NOT NEW.is_owned`이면 `is_favorite = false`, `favorite_sort_order = NULL`로 강제함(미보유 즐겨찾기 불가, 보유 해제 시 자동 해제).
+     - `NOT NEW.is_favorite`이면 `favorite_sort_order = NULL`임.
+     - 즐겨찾기로 새로 바뀌고 `favorite_sort_order IS NULL`이면 같은 사용자·게임의 최댓값 + 1(없으면 1)을 부여해 맨 뒤에 붙임.
+   - **RPC** `reorder_favorite_characters(p_game_id UUID, p_character_ids UUID[])`:
+     - `SECURITY INVOKER`(기존 RLS `Manage own user characters`로 본인 행만 갱신), `auth.uid()` NULL이면 예외, `anon` 실행 권한 회수·`authenticated`만 허용함.
+     - 한 번의 호출에서 배열 순서대로 1..n을 원자적으로 기록함. 배열이 해당 게임의 현재 즐겨찾기 집합과 다르면(누락·중복·비즐겨찾기·다른 게임) 예외 처리함.
+   - **반영**: `SCHEMA.sql`(컬럼·트리거·RPC·GRANT), `sql/README.md`(실행 순서·확인 쿼리), `sql/tests/TESTS.sql`(미보유 즐겨찾기 거부/해제, 맨 뒤 추가, 재정렬 성공, 타 사용자·잘못된 집합 거부), `database.types.ts`(`Row`/`Insert`/`Update`·`Functions`)임.
+   - **순수 로직** (`character-utils.ts`, 테스트 포함):
+     - 캐릭터 목록을 `favorites`(즐겨찾기 순서, 순서 없으면 이름순 뒤에) / `owned` / `unowned` 3구역으로 나누는 함수 추가함. 각 캐릭터는 한 구역에만 속하고, 미보유+즐겨찾기 상태(마이그레이션 미적용 대비)는 `unowned`로 분류함.
+     - 즐겨찾기 순서 이동 함수(드래그 대상 위치·위/아래 이동) 추가함.
+     - 기존 `sortCharactersFavoriteFirst` 사용처는 Step 2에서 교체하므로 이번 Step에서는 삭제하지 않음.
+   - **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과. SQL은 운영 DB에 적용하지 않고 정적 검토만 함(적용은 사용자가 SQL Editor에서 수동 실행).
+2. **Step 2 (`Claude Sonnet` — Maker, UI)**:
+   - **보유 캐릭터 화면** (`CharacterRoster`):
+     - `즐겨찾기` / `보유` / `미보유` 3구역(각 구역 제목과 개수)으로 표시함. 빈 구역은 숨기거나 안내 문구 표시함. 기존 필터(보유 여부·레어도·분류 축·검색)는 구역 안에서 그대로 적용함.
+     - 미보유 캐릭터는 즐겨찾기 버튼을 비활성화하거나 숨김. 보유 해제 시 화면 상태에서도 즐겨찾기·순서를 즉시 해제함(트리거 결과와 일치).
+     - 즐겨찾기 구역만 순서 변경 가능: HTML5 드래그 + 키보드로 쓸 수 있는 위/아래 이동 버튼(모바일 터치 대안 겸용) 제공함. 변경은 `reorder_favorite_characters` RPC로 한 번에 저장하고, 실패 시 이전 순서로 되돌리고 토스트 표시함.
+     - 새로 즐겨찾기한 캐릭터는 즐겨찾기 구역 맨 뒤에 표시함.
+   - **프리셋 캐릭터 선택 목록**: `PresetEditorDialog`(900px 미만)와 `PresetWorkspace` 좌측 사이드바(900px 이상) 모두 같은 3구역·즐겨찾기 순서를 사용함. 선택 목록에서는 순서 변경 기능 없음. 프리셋에 배치할 수 있는 캐릭터 범위는 현행 유지함.
+   - **마이그레이션 미적용 폴백**: 조회 시 `42703`/`PGRST204`이면 `favorite_sort_order` 없이 다시 조회해 이름순으로 표시하고, RPC가 `PGRST202`/`42883`이면 순서 변경 UI를 비활성화하고 안내함. 페이지 전체가 깨지지 않아야 함.
+   - **회귀 금지**: 900px 분기·미저장 경고(R62), 커스텀 아이콘·돌파 단계·요청 버튼 문구(R67) 동작 유지함.
+   - **검증**: 컴포넌트·페이지 테스트(3구역 분류, 미보유 즐겨찾기 불가, 순서 이동·저장 실패 롤백, 폴백 경로, 프리셋 선택 목록 구역) 추가하고 `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
+3. **Step 3 (`Claude Opus` — Reviewer & Orchestrator)**:
+   - 트리거·RPC의 RLS 경계(타 사용자 행 갱신 불가, `SECURITY INVOKER` 확인), 마이그레이션 재실행 안전성, 기존 `validate_user_character_game`과의 상호작용, 폴백 경로를 집중 검토함.
+   - `artifacts/r63-character-favorite-sections/iteration-01/review.json`·`test.json` 작성 및 스키마 검증, `main` 병합, 문서 마감, 사용자에게 마이그레이션 수동 적용 안내함.
+
+### 🗂️ 이전 Run 기록 (완료): `r62-preset-workspace-desktop`
+
+- **Run ID**: `r62-preset-workspace-desktop` (완료, `main` 병합 `e8d9b41`) *(`R62` PC(900px 이상) 프리셋 탭 좌측 보유 캐릭터 사이드바 + 우측 인라인 프리셋 편집, 드래그·슬롯 클릭 배치, 저장 버튼)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r62-preset-workspace-desktop` (브랜치: `collab/r62-preset-workspace-desktop`, manifest `07748d1`)
 - **Base SHA**: `564b83bbc78fa011df81514b3ce878d3b5737faf`

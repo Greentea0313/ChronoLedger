@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-10 (Run `r63-character-favorite-sections` 등록)
+
+- 격리 Worktree·manifest(`77675c0`, Base `5689861`) 생성하고 Dispatch Queue에 Step 1(GPT Codex, 마이그레이션·트리거·RPC·순수 로직)·Step 2(Claude Sonnet, 3구역 UI·순서 변경·프리셋 선택 목록)·Step 3(Claude Opus, 리뷰·병합)과 수용 기준 등록함.
+
 ## 2026-11-10 (Run `r62-preset-workspace-desktop` 마감, `main` 병합 `e8d9b41`)
 
 - R62: 900px 이상에서 `조합 프리셋` 탭을 `PresetWorkspace`(좌측 보유 캐릭터 사이드바, 우측 프리셋 목록·인라인 편집, HTML5 드래그·슬롯 클릭 배치, `저장`·`되돌리기`, 미저장 경고)로 표시함. 900px 미만은 기존 목록 + 모달 유지.

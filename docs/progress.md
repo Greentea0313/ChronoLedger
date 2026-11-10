@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r63-character-favorite-sections` 등록 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **Worktree**: `.worktrees/r63-character-favorite-sections` 생성(Base `5689861`, manifest `77675c0`)함.
+- **범위**: 보유 캐릭터 화면 즐겨찾기 / 보유 / 미보유 3구역, 즐겨찾기 순서 드래그·위/아래 버튼, `user_characters.favorite_sort_order` DB 저장, 미보유 즐겨찾기 해제 트리거, `reorder_favorite_characters` RPC, 프리셋 선택 목록 3구역 적용, 마이그레이션 미적용 폴백.
+- **다음 단계**: Step 1(`GPT Codex`, DB·순수 로직) `▶ READY` → Step 2(`Claude Sonnet`, UI) → Step 3(`Claude Opus`, 리뷰·병합)임.
+
 ## Run `r62-preset-workspace-desktop` 리뷰·`main` 병합 마감 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Step 2 Reviewer & Orchestrator)임. Maker는 Claude Sonnet(`ffd07b9`)이라 교차 리뷰됨.
