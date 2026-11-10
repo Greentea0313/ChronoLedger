@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "r55-r56-favorite-hook-and-version-pass-trigger",
+  "iteration": 1,
+  "base_sha": "8b9689fec7e48078cdb4a5d95504744fda08e108",
+  "target_sha": "daf9a5aa81c30297089fcffe883d116b588adfbc",
+  "status": "clean",
+  "summary": "Integrated static review of r55-r56-favorite-hook-and-version-pass-trigger (8b9689fec7e48078cdb4a5d95504744fda08e108..daf9a5aa81c30297089fcffe883d116b588adfbc) passed with 0 findings. R56 (5a479a5) updates public.sync_version_expenses_trigger() in sql/SCHEMA.sql and sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql so multi-day VERSION-linked PLANNED expenses due on the period end date (e.target_date = e.end_date OR e.target_date = OLD.end_date) stay anchored to NEW.end_date across repeated VERSION schedule date moves while start-dated and single-day VERSION expenses follow NEW.start_date, with executable README B-table check query and savepoint-isolated TESTS.sql regression scenarios. R55 (daf9a5a) extracts useFavoriteSchedules in src/lib/use-favorite-schedules.ts with 42P01/PGRST205 non-blocking fallback, offline write guard, optimistic toggle + rollback, 23505 duplicate tolerance, and per-scheduleId inFlightIdsRef duplicate-click guard, replacing duplicated logic in /dashboard and /dashboard/games.",
+  "findings": [],
+  "not_checked": [
+    "Manual execution of MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql in production Supabase SQL Editor (registered as R58 operational checklist item)."
+  ]
+}
