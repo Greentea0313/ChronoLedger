@@ -58,8 +58,8 @@
   - 2026-11-11 로컬 Supabase에서 끝까지 PASS함(38개 블록, Run `r79-sql-tests-local-run`). 운영 DB가 아닌 로컬에서 반복 실행하는 방법:
     1. Docker Desktop 실행(WSL2, `wsl --install`로 가상 머신 플랫폼 활성화 필요).
     2. 저장소 밖 작업 폴더에서 로컬 스택 준비: `npx supabase@2.120.0 init --workdir <폴더>` → `config.toml`의 `project_id`를 `chronoledger-local`로 바꿈 → `npx supabase@2.120.0 start --workdir <폴더> -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,realtime,postgres-meta,supavisor`. 저장소 루트 `supabase/`는 운영 프로젝트 연결 정보와 과거 마이그레이션이 있어 쓰지 않음.
-    3. 빈 로컬 DB에 1회: `psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 -f sql/SCHEMA.sql` 후 `INSERT INTO storage.buckets (id, name, public) VALUES ('user-icons', 'user-icons', false);`.
-    4. 테스트: `psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql`. 전체가 `ROLLBACK`되므로 반복 실행 가능함. 스키마를 바꾼 뒤에는 `npx supabase@2.120.0 db reset --workdir <폴더>`로 초기화하고 3단계부터 다시 함.
+    3. 접속 정보: 로컬 스택 기본값(호스트 `127.0.0.1`, 포트 `54322`, 사용자·DB `postgres`)이며 비밀번호는 `supabase status`의 DB 항목을 `PGPASSWORD` 환경 변수로 넘김(로컬 기본값은 `postgres`, 운영 비밀번호와 무관). 빈 로컬 DB에 1회: `psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/SCHEMA.sql` 후 `INSERT INTO storage.buckets (id, name, public) VALUES ('user-icons', 'user-icons', false);`.
+    4. 테스트: `psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql`. 전체가 `ROLLBACK`되므로 반복 실행 가능함. 스키마를 바꾼 뒤에는 `npx supabase@2.120.0 db reset --workdir <폴더>`로 초기화하고 3단계부터 다시 함.
     5. Windows PowerShell에서는 한글 깨짐을 막으려고 `$env:PGCLIENTENCODING="UTF8"`을 먼저 설정함. psql은 PATH에 없으면 `C:\Program Files\PostgreSQL\17\bin\psql.exe` 전체 경로로 실행함.
 
 ## D. 아카이브 (`archive/`, 실행 금지)
