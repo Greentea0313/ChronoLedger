@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## R59 캐릭터 템플릿 모달 보정 — `main` 직접 수정 (2026-11-10)
+
+- **수행 주체**: Claude Opus (사용자 지시 "바로 수정", `main` 직접 수정 fallback)임.
+- **비교 범위**: Base `4697920db9eb5c613bb4fd0ecfd94f8c4a118b39` ↔ Target `4c849ce15eff871aadd13cd282b460e9d9b461a6` (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`만 변경).
+- **사용자 확인 결함**: ① 노트북 높이에서 캐릭터 템플릿 모달 하단이 잘리고 스크롤 불가, ② 이미 등록된 게임 대상인데 게임 이름·아이콘 재입력 필드가 표시됨.
+- **원인**: ① 모달에 붙은 `overflow-hidden`이 공용 Dialog의 `overflow-y-auto`를 덮어씀. ② 템플릿 흐름이 게임 수정 폼을 재사용해 아이콘 URL 검사·변환을 다시 수행함 → 시드 게임처럼 아이콘이 `/assets/...` 상대 경로이면 "아이콘 URL이 올바른 주소 형식이 아닙니다."로 템플릿 저장 자체가 실패함.
+- **수정 (`4c849ce`)**: `overflow-hidden` 제거, 템플릿 흐름에서 게임 이름·아이콘 입력·미리보기 숨김, 저장 시 `classification_schema`·`max_preset_slots`·`max_breakthrough`만 갱신하고 아이콘 검사·변환 생략함. 일반 게임 등록·수정 동작은 유지함. 회귀 테스트 1건 추가함.
+- **검증**: `git diff --check`, tsc·lint 통과, Vitest 57파일/666개 통과함. DB 변경 없음. push 미수행임.
+
 ## R58 운영 DB 마이그레이션 적용 완료 (2026-11-10)
 
 - 사용자가 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`을 적용하고 확인 쿼리(`r56_applied`) `true`를 확인함.

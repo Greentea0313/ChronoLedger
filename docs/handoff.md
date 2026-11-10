@@ -245,6 +245,13 @@
 - **검증**: `tsc --noEmit` 통과, `npm run lint` 무경고, Vitest 56파일/620개 전체 통과(Node v24.22.2, 기준 589개 대비 +31). 브라우저 실사용 확인(개발 서버)은 미수행임 → Step 3 또는 사용자 수동 확인 필요함.
 - **Step 3 참고**: 운영 DB에 `MIGRATION_R35_FAVORITE_SCHEDULES.sql` 미적용 상태에서도 UI는 빈 집합으로 동작하나, 토글 저장은 실패해 오류 문구가 보임(적용 전 병합 시 주의). PG17 2회 멱등 적용·`TESTS.sql` 재검증은 Step 1 인계대로 Step 3 몫임.
 
+### 🛠️ `main` 직접 수정 기록: R59 캐릭터 템플릿 모달 보정 (2026-11-10)
+
+- **사유**: 사용자 "바로 수정" 지시에 따른 소규모 UI 결함 수정(`main` 직접 수정 fallback)임. 격리 Run·`run.json`은 만들지 않음.
+- **비교 범위**: Base `4697920db9eb5c613bb4fd0ecfd94f8c4a118b39` ↔ Target `4c849ce15eff871aadd13cd282b460e9d9b461a6` (`src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`).
+- **내용**: 템플릿 모달 `overflow-hidden` 제거로 세로 스크롤 복구, 템플릿 흐름에서 게임 이름·아이콘 입력 숨김 및 템플릿 컬럼(`classification_schema`·`max_preset_slots`·`max_breakthrough`)만 갱신(상대 경로 아이콘 게임의 템플릿 저장 실패 해소).
+- **검증**: tsc·lint 통과, Vitest 57파일/666개 통과함. 별도 리뷰 단계 없이 수행했으므로 다음 Run 통합 리뷰 시 함께 확인 권장함.
+
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
 > **실행 규칙**: 상태 `📝 AGENDA`는 `"인수인계 문서를 확인해"` 자동 실행 대상이 아니며, 활성 Run이 종료되어도 자동으로 `▶ READY`로 전환하지 않음. **사용자가 명시적으로 이 안건의 착수를 요청할 때만** `▶ READY`(`🔄 IN_PROGRESS`)로 전환하여 수행함. 위 Run과 파일 충돌 없음(문서 전용).
