@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-11 (Run `r81-image-input-unification` Step 1 — `96d4b3d`)
+
+- R81 명세서 `docs/spec/R81_Image_Input_Unification_Spec.md` 추가함. 이미지 입력을 공용 등록 모달 하나로 통일하는 설계(대상 13곳, 캘린더 배경 제외)를 확정함.
+- Step 2(`Claude Sonnet`)를 `▶ READY`로 전환함.
+
 ## 2026-11-11 (Run `r81-image-input-unification` 등록)
 
 - 이미지 입력 공용 등록 모달 통일 Run을 등록함(명세 Opus → 공용 모달·사용자 화면 Sonnet → 관리자·요청 화면 Sonnet → 리뷰 Opus). Run `r79` Step 2 리뷰는 보류함.

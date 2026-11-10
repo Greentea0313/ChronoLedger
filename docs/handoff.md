@@ -49,9 +49,9 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R81 Spec)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `docs/spec/R81_Image_Input_Unification_Spec.md` | - |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Shared Dialog + User Screens)` | 명세 §허용 파일대로 공용 모달·사용자 화면 4곳 | - |
-| **3** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Admin + Request Screens)` | 명세 §허용 파일대로 관리자·요청 화면 7곳과 R77 모달 교체 | - |
+| **1** | **`✅ DONE (SHA: 96d4b3d)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R81 Spec)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅ 96d4b3d`: [`R81_Image_Input_Unification_Spec.md`](spec/R81_Image_Input_Unification_Spec.md)(워크트리) 작성. 대상 13곳 확정(사용자 4·관리자·요청 8·R77 1), 공용 모달 API·변환 규격·회귀 금지·테스트·Step 2/3 허용 파일 확정 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Shared Dialog + User Screens)` | 명세 §3·§4·§7 Step 2대로 공용 모달·사용자 화면 4곳(U1~U4) | - |
+| **3** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Admin + Request Screens)` | 명세 §4·§7 Step 3대로 관리자·요청 화면 8곳(A1~A8)과 R77 모달(A9) 교체 | - |
 | **4** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 3 커밋) 통합 리뷰, 동적 검증, 산출물, `main` 병합, 문서 마감, 사용자 실브라우저 확인 안내 | - |
 
 #### 📌 `r81-image-input-unification` 단계별 수용 기준 (Acceptance Criteria)
@@ -64,6 +64,15 @@
 2. **Step 2 (`Claude Sonnet` — Maker)**: 명세대로 공용 모달과 사용자 화면 4곳 적용, 컴포넌트·화면 테스트 추가, tsc·lint·diff-check·Vitest 전체 통과.
 3. **Step 3 (`Claude Sonnet` — Maker)**: 관리자·요청 화면 7곳과 R77 모달을 공용 모달로 교체(동작 동일), 기존 테스트 갱신, tsc·lint·diff-check·Vitest 전체 통과.
 4. **Step 4 (`Claude Opus` — Reviewer & Orchestrator)**: 통합 리뷰·산출물·병합·문서 마감, 사용자에게 각 위치 실브라우저 확인(URL·붙여넣기·파일) 안내.
+
+#### 📝 `r81-image-input-unification` Step 1 완료 기록 (Claude Opus, 2026-11-11)
+
+- **Target SHA**: `96d4b3d` (워크트리 브랜치, 미병합)임. 신규 `docs/spec/R81_Image_Input_Unification_Spec.md`(영문).
+- **대상 확정**: 사용자 화면 4곳(U1 게임 화면 커스텀 아이콘, U2 게임 추가 모달 아이콘, U3 보유 캐릭터 커스텀 아이콘, U4 프로필 사진) + 관리자·요청 화면 **8곳**(A1~A8, 등록 시 "7곳"은 잘못 센 것) + R77 분류 아이콘 모달(A9). 캘린더 배경 제외.
+- **공용 구성**: `src/lib/image-source.ts`(`resolveImageSource`: 파일 그대로, `data:image/` 문자열은 File로 바꿔 항상 재인코딩, http(s) URL은 `fetchImageFile` 직접→wsrv.nl) + `src/components/ui/image-source-dialog.tsx`(URL·붙여넣기·파일·미리보기·취소·등록, 변환 함수·등록 콜백 주입, 한 번 변환한 결과를 미리보기와 등록에 재사용, 오프라인 차단, 파일 입력칸 재생성, 열 때 초기화, `extra`로 AI 업스케일 체크박스, `convertKey`로 재변환).
+- **화면 연결**: U1·U3·U4는 등록 즉시 Storage 업로드(256 WebP ≤100KiB, U3 `onChangeIcon`은 Blob을 받도록 변경), U2는 Blob을 보관했다가 게임 추가 때 업로드, A1~A8은 Data URL을 폼 상태에 넣고 기존처럼 저장할 때 반영, A9는 기존 upsert 경로·23514/42501 안내 유지.
+- **회귀 금지·테스트·허용 파일**: 명세 §5~§7에 확정함. 남은 사용자 결정 없음.
+- **다음 단계**: Step 2(`Claude Sonnet`, 공용 모달 + 사용자 화면 4곳) `▶ READY`임.
 
 ### ⏸️ 보류 중 Run: `r79-sql-tests-local-run` (Step 2 리뷰는 `r81` 이후 진행, 사용자 요청 2026-11-11)
 

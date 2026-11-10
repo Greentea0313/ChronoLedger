@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## Run `r81-image-input-unification` Step 1 (명세) 완료 (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Architect`)임.
+- **커밋 `96d4b3d`** (워크트리, 미병합): `docs/spec/R81_Image_Input_Unification_Spec.md` 작성함. 대상 13곳(사용자 4·관리자·요청 8·R77 모달), 공용 모달 API·변환 규격·회귀 금지·테스트·허용 파일 확정함.
+- **다음 단계**: Step 2(`Claude Sonnet`, 공용 모달 + 사용자 화면 4곳) `▶ READY`임.
+
 ## Run `r81-image-input-unification` 등록 (2026-11-11)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
