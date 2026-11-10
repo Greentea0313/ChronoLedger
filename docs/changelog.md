@@ -1,4 +1,11 @@
 # 변경 이력
+## 2026-11-10 (R68~R70 소규모 UI, R62~R66 결정 확정)
+
+- R68 (`d67921e`): `character-filter-bar.tsx`·관리자 캐릭터 탭 검색 입력란 `placeholder`를 `검색`으로 변경함(`aria-label` 유지).
+- R69 (`f99e4fb`): `hero-sidebar.tsx`(단일·묶음 일정)·`games/page.tsx` 일정 카드의 `FavoriteScheduleActions`를 제목 줄 오른쪽으로 이동함.
+- R70 (`f93ff31`): `weekly-schedule-list.tsx` 주차 헤더를 `aria-expanded` 토글 버튼으로 바꾸고 이번 주만 기본 펼침, 접힌 상태에서도 소계 표시함. 테스트 갱신·추가함.
+- `docs/character-preset-ux-review.md`에 R62~R66 사용자 결정 사항 기록하고 `to-do`·`handoff` 갱신함.
+
 ## 2026-11-10 (R67 모바일 캐릭터 요청 버튼 문구)
 
 - `src/app/dashboard/characters/page.tsx`: 요청 버튼 문구를 모바일 `+ 캐릭터 추가·수정 요청` / PC `+ (명칭) 추가·수정 요청`으로 나눔(`md:hidden` / `hidden md:inline`).
