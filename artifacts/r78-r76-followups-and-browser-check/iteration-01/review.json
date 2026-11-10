@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "run_id": "r78-r76-followups-and-browser-check",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "3c71e9ca584dd008caee4c45fa8fb1af3cb7a1df",
+  "target_sha": "acc0ae9d38782205470ee7eabe011d6589bb39c9",
+  "status": "findings",
+  "created_at": "2026-11-10T15:30:00Z",
+  "findings": [
+    {
+      "id": "R78-REV-001",
+      "severity": "P2",
+      "file": "sql/tests/TESTS.sql",
+      "line": 2118,
+      "evidence": "The R76 edge-case block added in b5b66e1 references psql variables such as :'r76_move_source' and :'r13_character_3' inside DO $$ ... $$ bodies. psql does not substitute variables inside dollar-quoted strings, so the first DO block is a syntax error. In addition, the non-move, different-game and three-object cases raise 22023 (invalid_parameter_value) but were caught as raise_exception, and the duplicate-target case changed the multiset so it also raised 22023 instead of reaching the duplicate trigger; the extra-id reorder case could not distinguish an extra id from the presets the block itself added.",
+      "impact": "Running TESTS.sql aborts at the R76 block, so none of the new R76 cases (or later blocks) run; the spec 4.5 coverage the step was meant to add did not exist in practice.",
+      "recommendation": "Pass ids through set_config/current_setting, catch invalid_parameter_value for 22023, use a single-member target for the duplicate case and assert the trigger message, and derive the caller's preset list for reorder cases. Fixed in e2d1de9."
+    },
+    {
+      "id": "R78-REV-002",
+      "severity": "P3",
+      "file": "sql/tests/TESTS.sql",
+      "line": 305,
+      "evidence": "b5b66e1 removed two RESET ROLE lines after the duplicate-payment and refunded-restore payment tests, which is unrelated to R76 and not mentioned in the Step 1 record.",
+      "impact": "The following payment fixtures (INSERT INTO public.expenses ...) would run as the authenticated role under RLS instead of the test owner, changing what earlier payment tests exercise.",
+      "recommendation": "Restore both RESET ROLE lines. Fixed in e2d1de9 (the diff against the base now only adds the R76 block)."
+    },
+    {
+      "id": "R78-REV-003",
+      "severity": "P4",
+      "file": "src/components/character/preset-board.tsx",
+      "line": 365,
+      "evidence": "The user-requested fixes f61e90f (favorite move buttons removed, keyboard drag on the settings button) and 7c683cc (DragOverlay portaled to body, stacked sidebar filters) were written by the same model that performs this review, and the overlay position and Space-key behavior on a button cannot be reproduced in jsdom.",
+      "impact": "Review independence is limited for those two commits; a regression in pointer position or keyboard pick-up would only show in a real browser.",
+      "recommendation": "After merge, the user re-checks in a real browser that the drag preview stays under the pointer and that Space on a favorite card picks it up without opening the settings dialog."
+    },
+    {
+      "id": "R78-REV-004",
+      "severity": "P4",
+      "file": "docs/handoff.md",
+      "line": 51,
+      "evidence": "Step 2 (acc0ae9) was marked DONE in the dispatch table without a Step 2 completion record section, and the Step 1 record claims only git diff --check and Vitest, which cannot exercise TESTS.sql.",
+      "impact": "The next agent has less evidence of what Step 2 verified, and the Step 1 record could be read as SQL coverage being verified.",
+      "recommendation": "Record Step 2 and the Step 1 limitation in the Step 3 completion record."
+    }
+  ]
+}
