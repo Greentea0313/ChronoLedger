@@ -40,8 +40,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Character Admin Quick Fixes)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/components/character/preset-editor-dialog.tsx`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/characters/page.test.tsx`(프리셋 편집기 회귀 확인 시), 신규 `src/lib/pickup-character-registration.ts`(+테스트, 공용 등록 로직 추출 시에만) | `⏳ Step 1 Maker 커밋 후 Step 2를 ▶ READY로 전환` |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bf8cdce` ↔ Step 1 Target 통합 정적 리뷰(`iteration-01/review.json`·`test.json`), tsc·lint·Vitest·diff-check 확인, `main` 병합 및 문서 마감 | `⏳ Step 1 완료 후 착수` |
+| **1** | **`✅ DONE (SHA: 07e5c89)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Character Admin Quick Fixes)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/components/character/preset-editor-dialog.tsx`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/characters/page.test.tsx`(프리셋 편집기 회귀 확인 시), 신규 `src/lib/pickup-character-registration.ts`(+테스트, 공용 등록 로직 추출 시에만) | `✅ 07e5c89`: R61·R65·R66 반영, 공용 등록 함수 `pickup-character-registration.ts` 추출. `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 59파일/692개 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bf8cdce` ↔ Step 1 Target 통합 정적 리뷰(`iteration-01/review.json`·`test.json`), tsc·lint·Vitest·diff-check 확인, `main` 병합 및 문서 마감 | `▶ 착수 가능: Base bf8cdce ↔ Target 07e5c89` |
 
 #### 📌 `r61-r65-r66-character-admin-quick-fixes` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -60,6 +60,20 @@
 
 2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**:
    - Base `bf8cdce` ↔ Step 1 Target 정적 리뷰, 동적 검증 재실행, 산출물(`artifacts/r61-r65-r66-character-admin-quick-fixes/iteration-01/`) 작성·스키마 검증, `main` 병합, `docs/` 마감(`to-do` R61·R65·R66 완료 처리, 검토 안건 갱신).
+
+#### ✅ Step 1 완료 기록 (2026-11-10, Claude Sonnet)
+
+- **커밋**: `.worktrees/r61-r65-r66-character-admin-quick-fixes` `07e5c89` (Base `bf8cdce` → manifest `60f4530` → `07e5c89`)임. 아직 `main` 미병합임(Step 2에서 병합).
+- **R61**: `preset-editor-dialog.tsx` 프리셋 제목 입력란의 `placeholder` 제거함. 메모 입력란은 그대로임.
+- **R65**: `admin/page.tsx`에서 `모든 게임` 옵션을 제거함. 선택 게임은 `activeCharacterGameId`(선택값이 목록에 있으면 그 값, 아니면 첫 게임)로 파생해 게임 목록이 늦게 로드되거나 선택 게임이 삭제돼도 첫 게임으로 보정함. 레어도 필터는 선택 게임의 등급만 나열하고(`activeRarityFilter`가 유효하지 않으면 빈 값), 게임 변경 시 초기화함. 게임이 0개면 `등록된 게임이 없습니다. 게임을 먼저 등록해 주세요.` 카드만 보이고 추가 버튼은 숨김. `selectedCharacterGame` 없음을 전제로 한 기본 라벨 버튼과 구형 목록 폴백 분기를 정리함.
+- **R66**: 템플릿이 없는 게임에서만 `[+ 캐릭터 추가]`를 `템플릿 설정 수정`/`[+ (명칭) 추가]`와 같은 위치에 표시함(템플릿 있는 게임에는 미표시). 클릭 시 `픽업 전용 캐릭터 추가` 다이얼로그(이름 필수 1~100자, 이미지 선택: 파일·URL·붙여넣기, PC AI 업스케일 토글)가 열리고 `game_characters`에 `is_pickup_only: true`로 등록되며 아래 `pickup-only-list`에 바로 나타나고 성공 배너가 뜸.
+- **공용 함수**: 신규 `src/lib/pickup-character-registration.ts`의 `registerPickupOnlyCharacter()`가 이름 검증, 같은 게임 내 중복 이름, 오프라인 차단, 아이콘 변환·용량 검사, `23505` 중복 오류 문구, insert를 담당하고, 일정 폼의 `handleRegisterNewPickupCharacter`도 이 함수를 사용하도록 바꿈(게임 미선택·8명 상한 검사와 상태 토글만 컴포넌트에 남김). 중복 제출 방지는 `isProcessingIcon`/`isSavingNewPickup`으로 유지함.
+- **결정/가정**:
+  - 새 다이얼로그는 일정 폼의 `newPickup*` 상태를 공유하되 열기·닫기·성공 시 `resetNewPickupForm()`으로 비워 입력이 서로 새지 않게 함.
+  - 게임 필터가 항상 한 게임이므로 템플릿이 있는 게임은 기존 동적 테이블(행 단위 `알리스 삭제` 같은 `aria-label`)로 보임. 이에 맞춰 캐릭터 삭제 테스트 2건의 행 선택자를 `tr`/`<이름> 삭제`로, 템플릿 없는 게임 테스트의 `캐릭터 추가` 부재 단언을 R66 버튼 1개 존재로 갱신함.
+  - DB 변경 없음(기존 CHECK가 픽업 전용 캐릭터의 아이콘·등급 생략을 허용함).
+- **테스트**: `admin/page.test.tsx`(`모든 게임` 미노출·첫 게임 기본 선택·게임별 레어도·0개 게임, 템플릿 없는 게임에서만 `[+ 캐릭터 추가]`·등록 insert `is_pickup_only: true`·이미지 변환·이름 필수/중복/오프라인/`23505`·취소 시 입력 초기화), `pickup-character-registration.test.ts`(신규 8건), `dashboard/characters/page.test.tsx`(프리셋 제목 `placeholder` 없음) 추가·갱신함.
+- **검증**: `tsc --noEmit` 통과, `npm run lint` 무경고, `git diff --check` 통과, Vitest 59파일/692개 전체 통과(Node v24.22.2). 개발 서버 실사용 확인은 미수행임. 산출물(`artifacts/.../iteration-01/`)은 Step 2 몫임.
 
 ### 🗂️ 이전 Run 기록 (완료): `r60-ai-icon-upscaler`
 

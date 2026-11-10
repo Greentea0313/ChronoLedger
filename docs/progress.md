@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r61-r65-r66-character-admin-quick-fixes` Step 1 (R61·R65·R66 Maker) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Sonnet (`Maker (Character Admin Quick Fixes)`)임.
+- **커밋 `07e5c89`** (`.worktrees/r61-r65-r66-character-admin-quick-fixes`, 미병합): 프리셋 제목 `placeholder` 제거(R61), 관리자 캐릭터 탭 `모든 게임` 제거·첫 게임 기본 선택·게임별 레어도(R65), 템플릿 없는 게임의 `[+ 캐릭터 추가]` 픽업 전용 등록 다이얼로그(R66)를 반영하고, 등록 로직을 `src/lib/pickup-character-registration.ts`로 추출해 일정 폼과 공유함. DB 변경 없음.
+- **검증**: `tsc --noEmit` 통과, `npm run lint` 무경고, `git diff --check` 통과, Vitest 59파일/692개 통과함. 개발 서버 실사용 확인은 미수행임.
+- **다음 단계**: Step 2(`Gemini 4 Argon`, Claude Opus 1순위 대체) `▶ READY` — Base `bf8cdce` ↔ Target `07e5c89` 통합 정적 리뷰, 산출물 작성, `main` 병합, 문서 마감임.
+
 ## Run `r61-r65-r66-character-admin-quick-fixes` 등록 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.

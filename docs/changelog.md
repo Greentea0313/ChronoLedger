@@ -1,4 +1,12 @@
 # 변경 이력
+## 2026-11-10 (Run `r61-r65-r66-character-admin-quick-fixes` Step 1 — R61·R65·R66, `07e5c89`)
+
+- `R61`: 프리셋 편집기 제목 입력란의 예시 `placeholder`를 제거함.
+- `R65`: 관리자 캐릭터 탭 게임 필터에서 `모든 게임`을 제거하고 첫 게임을 기본 선택(목록 지연 로드·게임 삭제 시 첫 게임으로 보정)함. 레어도 필터는 선택 게임의 등급만 표시하고, 게임이 없으면 안내 문구만 표시함.
+- `R66`: 캐릭터 템플릿이 없는 게임에 `[+ 캐릭터 추가]`를 추가해 이름(필수)·이미지(선택)로 픽업 전용 캐릭터(`is_pickup_only = true`)를 등록하게 함.
+- 신규 `src/lib/pickup-character-registration.ts`(`registerPickupOnlyCharacter`)로 등록 로직을 추출해 일정 폼의 새 픽업 캐릭터 등록과 공유함.
+- Vitest 59파일/692개, `tsc --noEmit`, `npm run lint`, `git diff --check` 통과함. Step 2(`Gemini 4 Argon`)를 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Run `r61-r65-r66-character-admin-quick-fixes` 등록)
 
 - 격리 Worktree·manifest(`60f4530`, Base `bf8cdce`) 생성하고 Dispatch Queue에 Step 1(Claude Sonnet)·Step 2(Gemini 4 Argon)와 수용 기준 등록함.
