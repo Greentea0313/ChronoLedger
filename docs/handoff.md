@@ -34,7 +34,7 @@
 - **활성 Run ID**: `r55-r56-favorite-hook-and-version-pass-trigger` *(`Phase 12.43`: `R56` `sync_version_expenses_trigger` 버전 패스 예정 지출 `target_date = end_date` 보존 SQL 마이그레이션·스모크 테스트 & `R55` 관심 일정 조회·토글 공용 훅 `useFavoriteSchedules` 추출 및 쓰기 진행 중 재클릭 방지)*
 - **Orchestrator**: Gemini 4 Argon
 - **직전 Run 마감 (`r35-favorite-schedules-and-r51-followup`)**: 2026-11-10 Step 7 iteration-03 교차 정적 리뷰(`33829c9` ↔ `d8f13ba`) **Gemini 4 Argon `clean` (P1~P4 0건)** 통과 및 산출물(`iteration-03/review.json`·`test.json`, `run.json` `status=completed`) 기록 완료 (`✅ DONE`).
-- **⚠️ 착수 전 필수 선행 조치 (`main` 병합 및 `R54` 운영 DB 마이그레이션)**:
+- **✅ 착수 전 필수 선행 조치 완료 (`main` 병합 `1cb75c0`, `R54` 운영 DB 마이그레이션 2026-11-10 사용자 적용·검증)**:
   1. 터미널에서 `r35-favorite-schedules-and-r51-followup` 산출물 커밋 및 `main` 병합 실행:
      ```powershell
      git -C .worktrees/r35-favorite-schedules-and-r51-followup add artifacts/r35-favorite-schedules-and-r51-followup; git -C .worktrees/r35-favorite-schedules-and-r51-followup commit -m "chore(collab): record r35 iteration-03 clean review and complete run"; git merge --no-ff collab/r35-favorite-schedules-and-r51-followup -m "Merge branch 'collab/r35-favorite-schedules-and-r51-followup' into main"

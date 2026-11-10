@@ -1,4 +1,9 @@
 # 프로젝트 진행 현황
+## R54 운영 DB 마이그레이션 적용 완료 (2026-11-10)
+
+- 사용자가 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql` 적용 및 `sql/README.md` B표 확인 쿼리 검증을 완료함.
+- 이미 배포된 R35 관심 일정 저장·삭제 기능이 운영 DB에서 정상 동작 가능한 상태임.
+
 ## r55-r56 Step 1 완료: R56 버전 패스 결제 예정일 보존 (2026-11-10)
 
 - **수행 주체**: Claude Opus (사용자 지시로 GPT Codex 1순위 대체)임.

@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-10 (R54 운영 마이그레이션 적용)
+
+- 운영 DB에 `MIGRATION_R35_FAVORITE_SCHEDULES.sql` 적용·검증 완료됨(사용자 수동). `docs/to-do.md` `R54` 완료 처리함.
+
 ## 2026-11-10 (R56 버전 패스 결제 예정일 보존 — r55-r56 Step 1)
 
 - VERSION 일정 기간 변경 시 버전 패스 예정 지출은 결제 예정일을 새 종료일로 유지하고, 그 외 VERSION 연동 예정 지출은 새 시작일을 따르도록 `sync_version_expenses_trigger()`를 수정함(`MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`, 워크트리 `5a479a5`).
