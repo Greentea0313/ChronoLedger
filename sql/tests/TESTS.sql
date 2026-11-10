@@ -739,6 +739,58 @@ END;
 $$;
 \echo PASS: schedule sync updates only PLANNED expenses and preserves CONFIRMED/CANCELLED
 
+-- R56: a VERSION date change keeps version-pass PLANNED rows due on the new end date,
+-- while other VERSION-linked PLANNED rows follow the new start date. Rolled back via savepoint.
+SAVEPOINT r56_version_pass_sync;
+INSERT INTO public.game_schedules (game_id, title, schedule_type, start_date, end_date)
+VALUES (:'test_game_id'::uuid, 'R56 version sync', 'VERSION', CURRENT_DATE + 10, CURRENT_DATE + 30)
+RETURNING id AS r56_version_id \gset
+SELECT set_config('chronoledger.r56_version_id', :'r56_version_id', true);
+INSERT INTO public.expenses (user_id, game_id, schedule_id, title, category, target_date, start_date, end_date)
+VALUES
+    (:'test_user_id'::uuid, :'test_game_id'::uuid, :'r56_version_id'::uuid, 'R56 version pass', '게임', CURRENT_DATE + 30, CURRENT_DATE + 10, CURRENT_DATE + 30),
+    (:'test_user_id'::uuid, :'test_game_id'::uuid, :'r56_version_id'::uuid, 'R56 version period start', '게임', CURRENT_DATE + 10, CURRENT_DATE + 10, CURRENT_DATE + 30),
+    (:'test_user_id'::uuid, :'test_game_id'::uuid, :'r56_version_id'::uuid, 'R56 version single day', '게임', CURRENT_DATE + 10, CURRENT_DATE + 10, CURRENT_DATE + 10);
+UPDATE public.game_schedules
+SET start_date = CURRENT_DATE + 13, end_date = CURRENT_DATE + 35
+WHERE id = :'r56_version_id'::uuid;
+DO $$
+DECLARE
+    v_id UUID := current_setting('chronoledger.r56_version_id')::uuid;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE schedule_id = v_id AND title = 'R56 version pass'
+                   AND target_date = CURRENT_DATE + 35 AND start_date = CURRENT_DATE + 13 AND end_date = CURRENT_DATE + 35) THEN
+        RAISE EXCEPTION 'FAIL: R56 version pass target_date did not follow the new end date';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE schedule_id = v_id AND title = 'R56 version period start'
+                   AND target_date = CURRENT_DATE + 13 AND start_date = CURRENT_DATE + 13 AND end_date = CURRENT_DATE + 35) THEN
+        RAISE EXCEPTION 'FAIL: R56 start-dated VERSION expense did not follow the new start date';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE schedule_id = v_id AND title = 'R56 version single day'
+                   AND target_date = CURRENT_DATE + 13 AND start_date = CURRENT_DATE + 13 AND end_date = CURRENT_DATE + 35) THEN
+        RAISE EXCEPTION 'FAIL: R56 single-day VERSION expense did not follow the new start date';
+    END IF;
+END;
+$$;
+-- A second move must keep the pass on the end date (its row now matches the new period).
+UPDATE public.game_schedules
+SET start_date = CURRENT_DATE + 15, end_date = CURRENT_DATE + 40
+WHERE id = :'r56_version_id'::uuid;
+DO $$
+DECLARE
+    v_id UUID := current_setting('chronoledger.r56_version_id')::uuid;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE schedule_id = v_id AND title = 'R56 version pass' AND target_date = CURRENT_DATE + 40) THEN
+        RAISE EXCEPTION 'FAIL: R56 version pass lost its end-date due date after a second move';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE schedule_id = v_id AND title = 'R56 version period start' AND target_date = CURRENT_DATE + 15) THEN
+        RAISE EXCEPTION 'FAIL: R56 start-dated VERSION expense drifted to the end date after a second move';
+    END IF;
+END;
+$$;
+\echo PASS: R56 VERSION date change keeps version-pass due date on the end date and others on the start date
+ROLLBACK TO SAVEPOINT r56_version_pass_sync;
+
 DO $$
 DECLARE
     v_user UUID := auth.uid();
