@@ -1,4 +1,23 @@
 # 프로젝트 진행 현황
+## Phase 12.43 (`r55-r56-favorite-hook-and-version-pass-trigger`) Step 3 통합 리뷰 `clean` 마감, `main` 병합 및 `r57` 활성화 (2026-11-10)
+
+- **수행 주체**: Gemini 4 Argon (`Reviewer & Orchestrator`)임.
+- **통합 정적 코드 리뷰 (`8b9689f` ↔ `daf9a5a`)**: 판정 **`clean`**(P1~P4 지적 0건)임.
+  - **Step 1 (`R56`, `5a479a5`)**: `sql/SCHEMA.sql` 및 `sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`의 `public.sync_version_expenses_trigger()`가 여러 날 기간이면서 `target_date`가 종료일(`e.end_date` 또는 `OLD.end_date`)에 고정된 버전 패스 `PLANNED` 지출 행은 `target_date = NEW.end_date`를 보존하고, 그 외 VERSION 연동 `PLANNED` 지출 행은 `target_date = NEW.start_date`로 동기화함을 확인함.
+  - **Step 2 (`R55`, `daf9a5a`)**: `src/lib/use-favorite-schedules.ts`가 관심 일정 조회(`42P01`/`PGRST205` 비차단 빈 집합 폴백), 오프라인 가드, 낙관적 토글·실패 롤백, `23505` 중복 허용, `scheduleId`별 `inFlightIdsRef` 진행 중 재클릭 무시를 안전하게 캡슐화하고 `/dashboard`·`/dashboard/games`의 중복 코드를 대체함을 확인함.
+- **동적 검증**:
+  - 로컬 PostgreSQL 17에서 업그레이드(`db_upgraded`) 및 신규(`db_fresh`) 2개 데이터베이스에 `MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`을 각각 2회 멱등 적용한 뒤 `sql/tests/TESTS.sql` 실행 시 전체 **34 PASS** 통과함.
+  - `npx tsc --noEmit` 통과, `npm run lint` 통과, Vitest 전체 **57파일 / 642개 테스트** 통과함 (`artifacts/r55-r56-favorite-hook-and-version-pass-trigger/run.json`, `iteration-01/review.json`, `iteration-01/test.json` 스키마 검증 완료).
+- **병합 및 차기 Run 활성화**:
+  - `collab/r55-r56-favorite-hook-and-version-pass-trigger` 브랜치를 `main`에 병합(`25b3953`)하고, 운영 DB 적용 체크리스트 `R58`(`MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`)을 등록함.
+  - `New-CollaborationRun.ps1`로 차기 Run `.worktrees/r57-character-template-gate-and-validation`(Base `25b3953`)을 생성하고 **Step 1 (`Claude Sonnet`)**을 `▶ READY`로 활성화함.
+
+## r55-r56 Step 2 완료: R55 관심 일정 공용 훅 추출 및 중복 클릭 방지 (2026-11-10)
+
+- **수행 주체**: Claude Sonnet (`Maker (Shared Favorite Hook)`)임.
+- **수정 (`daf9a5a`)**: `src/lib/use-favorite-schedules.ts` 신설 및 단위 테스트 14개(`src/lib/use-favorite-schedules.test.ts`) 추가, `/dashboard`·`/dashboard/games` 관심 일정 상태·로더·토글 핸들러를 공용 훅으로 통합함.
+- **검증**: `tsc --noEmit`·`npm run lint` 통과, Vitest 57파일/642개 통과함.
+
 ## R54 운영 DB 마이그레이션 적용 완료 (2026-11-10)
 
 - 사용자가 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql` 적용 및 `sql/README.md` B표 확인 쿼리 검증을 완료함.

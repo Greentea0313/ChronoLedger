@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Phase 12.43 Step 3 — `r55-r56` 통합 리뷰 `clean`, `main` 병합 `25b3953` 및 `r57` 활성화)
+
+- `r55-r56-favorite-hook-and-version-pass-trigger` Base `8b9689f` ↔ Target `daf9a5a` 통합 정적 리뷰 결과 `clean`(P1~P4 지적 0건) 판정하고, 로컬 PostgreSQL 17(`db_upgraded`·`db_fresh`)에서 `MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql` 2회 멱등 적용 및 `sql/tests/TESTS.sql` 34 PASS, `tsc --noEmit`, `npm run lint`, Vitest 57파일/642개 테스트 통과를 확인함(`artifacts/r55-r56-favorite-hook-and-version-pass-trigger/iteration-01/review.json`·`test.json`·`run.json` 스키마 검증 완료).
+- `collab/r55-r56-favorite-hook-and-version-pass-trigger`를 `main`에 병합(`25b3953`)하고 운영 DB 마이그레이션 체크리스트 `R58`(`MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`)을 `docs/to-do.md` 및 `docs/handoff.md`에 등록함.
+- 차기 Run `.worktrees/r57-character-template-gate-and-validation`(브랜치 `collab/r57-character-template-gate-and-validation`, Base `25b3953`)을 생성하고 Step 1(`Claude Sonnet`)을 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Phase 12.43 — R55 관심 일정 공용 훅)
 
 - `src/lib/use-favorite-schedules.ts`를 추가해 관심 일정 조회(테이블 미적용 `42P01`/`PGRST205` 시 비차단 빈 집합), 낙관적 토글·실패 롤백, 오프라인 가드, 중복 키(`23505`) 성공 처리를 한곳에 모음.

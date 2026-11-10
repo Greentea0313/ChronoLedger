@@ -2,47 +2,50 @@
   "schema_version": 1,
   "run_id": "r55-r56-favorite-hook-and-version-pass-trigger",
   "iteration": 1,
+  "agent": "Gemini 4 Argon",
+  "role": "dynamic-test",
+  "base_sha": "8b9689fec7e48078cdb4a5d95504744fda08e108",
   "target_sha": "daf9a5aa81c30297089fcffe883d116b588adfbc",
   "status": "passed",
-  "sandbox": "not_required",
-  "checks": [
+  "created_at": "2026-11-10T02:34:00Z",
+  "finished_at": "2026-11-10T02:35:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
     {
-      "name": "git diff --check",
-      "command": "git -C .worktrees/r55-r56-favorite-hook-and-version-pass-trigger diff --check 8b9689fec7e48078cdb4a5d95504744fda08e108..daf9a5aa81c30297089fcffe883d116b588adfbc",
+      "name": "Git whitespace check of Base..Target diff",
+      "command": "git diff --check 8b9689fec7e48078cdb4a5d95504744fda08e108 daf9a5aa81c30297089fcffe883d116b588adfbc",
       "status": "passed",
       "exit_code": 0,
-      "summary": "No whitespace or patch formatting issues across 10 changed files."
+      "log_path": null
     },
     {
-      "name": "typescript",
+      "name": "TypeScript typecheck",
       "command": "npx tsc --noEmit",
       "status": "passed",
       "exit_code": 0,
-      "summary": "TypeScript strict type-checking passed with 0 errors."
+      "log_path": null
     },
     {
-      "name": "eslint",
+      "name": "ESLint static check",
       "command": "npm run lint",
       "status": "passed",
       "exit_code": 0,
-      "summary": "ESLint static check passed with 0 errors and 0 warnings."
+      "log_path": null
     },
     {
-      "name": "vitest",
+      "name": "Vitest unit test suite (57 files, 642 tests including 14 useFavoriteSchedules tests)",
       "command": "npx vitest run --dir src",
       "status": "passed",
       "exit_code": 0,
-      "summary": "All 57 test files (642 tests, including 14 new useFavoriteSchedules unit tests) passed."
+      "log_path": null
     },
     {
-      "name": "postgresql-17-migration-and-smoke-tests",
-      "command": "psql ON_ERROR_STOP=1 -f sql/SCHEMA.sql -f sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql (x2) -f sql/tests/TESTS.sql",
+      "name": "Local PostgreSQL 17 idempotent migration (x2 on upgraded and fresh DBs) and TESTS.sql (34 PASS)",
+      "command": "psql -X -v ON_ERROR_STOP=1 -f sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql && psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql",
       "status": "passed",
       "exit_code": 0,
-      "summary": "Upgraded and fresh local PostgreSQL 17 databases applied MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql twice idempotently and passed all 34 PASS assertions in sql/tests/TESTS.sql including R56 two-step VERSION date sync."
+      "log_path": null
     }
-  ],
-  "not_run": [
-    "Production Supabase SQL Editor execution of MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql (tracked under R58)."
   ]
 }

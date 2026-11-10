@@ -31,47 +31,23 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r55-r56-favorite-hook-and-version-pass-trigger` *(`Phase 12.43`: `R56` `sync_version_expenses_trigger` 버전 패스 예정 지출 `target_date = end_date` 보존 SQL 마이그레이션·스모크 테스트 & `R55` 관심 일정 조회·토글 공용 훅 `useFavoriteSchedules` 추출 및 쓰기 진행 중 재클릭 방지)*
+- **활성 Run ID**: `r57-character-template-gate-and-validation` *(`R57`: 관리자 캐릭터 추가 모달 템플릿 게이트, 템플릿 폼 검증 DB `is_valid_classification_schema` 일치, 축 `key` 자동 관리 및 안내 문구 개선)*
 - **Orchestrator**: Gemini 4 Argon
-- **직전 Run 마감 (`r35-favorite-schedules-and-r51-followup`)**: 2026-11-10 Step 7 iteration-03 교차 정적 리뷰(`33829c9` ↔ `d8f13ba`) **Gemini 4 Argon `clean` (P1~P4 0건)** 통과 및 산출물(`iteration-03/review.json`·`test.json`, `run.json` `status=completed`) 기록 완료 (`✅ DONE`).
-- **✅ 착수 전 필수 선행 조치 완료 (`main` 병합 `1cb75c0`, `R54` 운영 DB 마이그레이션 2026-11-10 사용자 적용·검증)**:
-  1. 터미널에서 `r35-favorite-schedules-and-r51-followup` 산출물 커밋 및 `main` 병합 실행:
-     ```powershell
-     git -C .worktrees/r35-favorite-schedules-and-r51-followup add artifacts/r35-favorite-schedules-and-r51-followup; git -C .worktrees/r35-favorite-schedules-and-r51-followup commit -m "chore(collab): record r35 iteration-03 clean review and complete run"; git merge --no-ff collab/r35-favorite-schedules-and-r51-followup -m "Merge branch 'collab/r35-favorite-schedules-and-r51-followup' into main"
-     ```
-  2. **`R54` 운영 Supabase 마이그레이션 적용**: Supabase Dashboard $\to$ SQL Editor에서 [`sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql`](../sql/migrations/MIGRATION_R35_FAVORITE_SCHEDULES.sql) 전체를 실행한 뒤 [`sql/README.md`](../sql/README.md) B표의 아래 3개 확인 쿼리 결과를 검증함:
-     - 테이블·RLS 확인 (`user_favorite_schedules, true, 2` 기대):
-       `SELECT c.relname, c.relrowsecurity, (SELECT count(*) FROM pg_policy p WHERE p.polrelid = c.oid) AS policies FROM pg_class c WHERE c.oid = 'public.user_favorite_schedules'::regclass;`
-     - 권한 확인 (`false, true, false` 기대):
-       `SELECT has_table_privilege('anon', 'public.user_favorite_schedules', 'SELECT') AS anon_select, has_table_privilege('authenticated', 'public.user_favorite_schedules', 'INSERT') AS auth_insert, has_table_privilege('authenticated', 'public.user_favorite_schedules', 'UPDATE') AS auth_update;`
-     - 트리거·탈퇴 정리 연결 확인 (`1, true` 기대):
-       `SELECT (SELECT count(*) FROM pg_trigger WHERE tgname = 'block_pending_account_deletion_user_favorite_schedules') AS block_trigger, position('user_favorite_schedules' IN pg_get_functiondef('public.purge_expired_account_deletion_requests(integer)'::regprocedure)) > 0 AS purge_linked;`
+- **Worktree 경로**: `.worktrees/r57-character-template-gate-and-validation` (브랜치: `collab/r57-character-template-gate-and-validation`)
+- **Base SHA**: `25b39536223b998143e8df443dc8eea1e4c7e349`
+- **직전 Run 마감 (`r55-r56-favorite-hook-and-version-pass-trigger`)**: 2026-11-10 Step 3 통합 정적 리뷰(`8b9689f` ↔ `daf9a5a`) **Gemini 4 Argon `clean` (P1~P4 0건)**, 로컬 PostgreSQL 17 2개 DB(`db_upgraded`·`db_fresh`) 마이그레이션 2회 멱등 적용 및 `sql/tests/TESTS.sql` 34 PASS, Vitest 57파일/642개 통과, `main` 병합(`25b3953`) 완료 (`✅ DONE`).
+- **📌 운영 DB 마이그레이션 안내 (`R58`, 병행 적용 가능)**:
+  - Supabase Dashboard $\to$ SQL Editor에서 [`sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`](../sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql) 전체를 실행한 뒤 [`sql/README.md`](../sql/README.md) B표의 확인 쿼리 결과를 검증함 (`true` 기대):
+    ```sql
+    SELECT position('R56 version pass' IN pg_get_functiondef('public.sync_version_expenses_trigger()'::regprocedure)) > 0 AS r56_applied;
+    ```
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: 5a479a52892ee933a82af6ce27f4fc1b5b4cac27)`** | ~~GPT Codex~~ ➡️ **Claude Opus** *(사용자 지시로 1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Maker (SQL Trigger & Smoke Test)` | `Phase 12.43 (R56)`: 워크트리 `.worktrees/r55-r56-favorite-hook-and-version-pass-trigger`(브랜치 `collab/r55-r56-favorite-hook-and-version-pass-trigger`, Base `8b9689f`, manifest `e44709b`) 생성 후 Step 1 수행 | `✅ 5a479a5: MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql(멱등)·SCHEMA.sql의 sync_version_expenses_trigger() 교체(수용 기준의 함수명 sync_version_expenses_on_schedule_update()는 실제 함수명으로 정정), README B표 확인 쿼리, TESTS.sql R56 시나리오(버전 패스·시작일 기준·단일 일자 3행, 2회 연속 이동) 추가. 임시 PostgreSQL 17에서 기존·신규 스키마 모두 마이그레이션 2회 적용 후 TESTS.sql 34개 PASS, 기존 트리거 대조 시 R56 시나리오 실패 확인. tsc/lint 통과, Vitest 56파일/628개 통과.` |
-| **2** | **`✅ DONE (SHA: daf9a5aa81c30297089fcffe883d116b588adfbc)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Shared Favorite Hook)` | `Phase 12.43 (R55)`: `.worktrees/r55-r56-favorite-hook-and-version-pass-trigger`에서 아래 **Step 2 수용 기준** 수행 (`src/lib/use-favorite-schedules.ts`, `src/lib/use-favorite-schedules.test.ts`, `src/app/dashboard/page.tsx`, `src/app/dashboard/games/page.tsx`, `docs/to-do.md`) | `✅ daf9a5a: useFavoriteSchedules 훅 추출(조회·42P01/PGRST205 폴백·낙관적 토글/롤백·오프라인 가드·scheduleId별 in-flight 재클릭 무시), /dashboard·/dashboard/games 중복 코드 교체. 훅 단위 테스트 14개 추가. tsc/lint 통과, Vitest 57파일/642개 통과.` |
-| **3** | **`▶ READY`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | 통합 정적 코드 리뷰(`review.json`·`test.json`), `main` 병합 및 `docs/` 마감 | `▶ Step 2 완료. Target SHA: daf9a5aa81c30297089fcffe883d116b588adfbc` |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Admin Character Template UI)` | `R57`: `.worktrees/r57-character-template-gate-and-validation`(Base `25b3953`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `docs/to-do.md` | `▶ 워크트리 생성 완료. Claude Sonnet 착수 대기` |
+| **2** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `25b3953` ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 1 완료 후 진행` |
 
-#### 📌 `r55-r56-favorite-hook-and-version-pass-trigger` 단계별 수용 기준 (Acceptance Criteria)
-
-1. **Step 1 (`GPT Codex` — `R56` 버전 일정 날짜 변경 시 버전 패스 예정 지출 `target_date = end_date` 보존)**:
-   - `sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql` 신규 작성(재실행 멱등 보장) 및 `sql/SCHEMA.sql` `public.sync_version_expenses_on_schedule_update()` 함수 동기화:
-     - `VERSION` 일정의 `start_date` 또는 `end_date`가 변경될 때 연결된 `status = 'PLANNED'` 지출 행을 갱신함에 있어, 기존 행이 버전 패스(`start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <> end_date AND target_date = end_date` 또는 `target_date = OLD.end_date`)인 경우 `target_date = NEW.end_date`로 갱신하고, 그 외 일반 버전 연동 예정 지출은 기존대로 `target_date = NEW.start_date`로 갱신함 (`start_date = NEW.start_date`, `end_date = NEW.end_date`는 공통).
-   - `sql/README.md` B표에 `MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql` 확인 쿼리 추가.
-   - `sql/tests/TESTS.sql`에 R56 스모크 시나리오 추가(버전 패스 PLANNED 행과 일반 버전 연동 PLANNED 행이 같은 VERSION 일정에 연결된 상태에서 VERSION 일정 기간 변경 시, 버전 패스 행은 `target_date = NEW.end_date`를 유지하고 일반 행은 `target_date = NEW.start_date`로 갱신되는지 검증) 및 PGlite/로컬 PG 검증.
-2. **Step 2 (`Claude Sonnet` — `R55` 관심 일정 조회·토글 공용 훅 추출 및 쓰기 진행 중 중복 클릭 방지)**:
-   - `src/lib/use-favorite-schedules.ts` (및 단위 테스트 `src/lib/use-favorite-schedules.test.ts`) 신설:
-     - `user_favorite_schedules` 조회(테이블 미적용 `42P01`/`PGRST205` 시 빈 집합 비차단 폴백), 낙관적 토글 및 실패 롤백, 오프라인 가드(`isOffline()`), **동일 `scheduleId`에 대한 비동기 쓰기(INSERT/DELETE) 진행 중(`inFlightIds` Set) 재클릭 무시** 로직을 캡슐화함.
-   - `src/app/dashboard/page.tsx` 및 `src/app/dashboard/games/page.tsx`의 중복 관심 일정 상태·로더·토글 핸들러를 `useFavoriteSchedules`로 교체하고 기존 테스트 및 신규 중복 클릭 방지 단위 테스트 통과 확인.
-3. **Step 3 (`Claude Opus` / `Gemini 4 Argon` — 통합 리뷰 및 마감)**:
-   - Base ↔ Step 2 Target 통합 정적 코드 리뷰(`review.json`·`test.json`), `main` 병합 및 `docs/` 마감.
-
----
-
-### 🗓️ 다음 Run 예약: `r57-character-template-gate-and-validation` (`R57`, 2026-11-10 등록)
-
-> **실행 규칙**: 위 활성 Run(`r55-r56-favorite-hook-and-version-pass-trigger`)이 `main` 병합으로 마감되면 Orchestrator(Gemini 4 Argon, Fallback: Claude Opus)가 `New-CollaborationRun.ps1 -RunId r57-character-template-gate-and-validation`으로 워크트리를 만들고 Step 1을 `▶ READY`로 바꿈. 대상 파일이 활성 Run과 겹치지 않으므로, 사용자가 **"R57 먼저 진행"**처럼 직접 지목하면 병행 착수할 수 있음.
+#### 📌 `r57-character-template-gate-and-validation` 배경 및 단계별 수용 기준 (Acceptance Criteria)
 
 - **배경 (사용자 확인, 2026-11-10)**: 관리자 `캐릭터 관리`에서 게임 필터가 "전체"일 때 상단 `[+ 캐릭터 추가]`로 템플릿이 없는 게임(예: 명일방주: 엔드필드)을 고르면, 분류 입력 없이 이름·`등급 없음`·아이콘만 표시되고 그대로 저장됨. 저장 시 정식 캐릭터 1명이 생겨 `isCharacterTemplateActive`가 참이 되므로 템플릿 생성 단계(R52 §3.2)를 영구히 건너뜀.
 - **원인 분석 (Claude Opus)**:
@@ -80,7 +56,7 @@
   - 템플릿 생성이 "게임 정보 수정 / 게임 명칭 및 기본 대표 아이콘 URL을 변경합니다." 모달로 열려 템플릿 단계임을 알기 어려움.
 - **수용 기준 (Acceptance Criteria)**:
   1. **Step 1 — 템플릿 게이트·입력 검증·안내 개선 (Claude Sonnet)**:
-     - **대상 파일 (워크트리 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `docs/to-do.md`
+     - **대상 파일 (워크트리 `.worktrees/r57-character-template-gate-and-validation` 내부)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `docs/to-do.md`
      - **구현 요구사항**:
        - ① **정식 캐릭터 추가 게이트**: 추가 모달에서 고른 게임이 `isCharacterTemplateActive(game, 정식 캐릭터 수) === false`이면 이름·등급·분류·아이콘 입력과 `[저장]`을 숨기고, `"{게임명}은(는) 캐릭터 템플릿이 아직 없습니다. 템플릿(명칭·등급·분류 기준)을 먼저 만들어야 합니다."` 안내와 `[캐릭터 템플릿 생성]` 버튼을 표시함. 버튼은 추가 모달을 닫고 `handleOpenTemplate(game)`을 호출하며, 템플릿 저장 후 기존 흐름대로 첫 캐릭터 추가 모달이 이어서 열림. 게임 선택 목록의 템플릿 없는 게임에는 `(템플릿 없음)`을 붙임. 픽업 일정 폼의 `[+ 새 픽업 캐릭터]`(`is_pickup_only = true`) 경로는 게이트 대상이 아님.
        - ② **템플릿 폼 검증을 DB와 일치**: `src/lib/character-utils.ts`에 `validateClassificationTemplate()`(순수 함수)을 두고 화면 저장 전에 사용함. 등급 목록은 템플릿 생성·수정 흐름(`templateFlowGameId`)에서 **1개 이상 필수**, 최대 10개·각 1~20자·중복 불가. 분류 기준은 최대 2개, 표시명 1~30자, 선택지 1~20개·각 1~30자·중복 불가. 위반 시 항목별 한국어 오류를 표시함.
@@ -90,10 +66,34 @@
        - ⑥ **테스트**: 전체 필터에서 템플릿 없는 게임 선택 시 입력·저장 숨김과 템플릿 생성 연결, 등급 미입력·선택지 21개·중복 등급·중복 선택지 오류, 축 삭제 후 추가 시 키 비중복, 템플릿 모달 제목·설명, `validateClassificationTemplate` 단위 테스트를 추가함. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 커밋하고 Target SHA를 기록함. DB 변경 없음.
   2. **Step 2 — 정적 리뷰 및 Run 마감 (Gemini 4 Argon)**: Base ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 문서 마감.
 
+---
+
+### 🗂️ 이전 Run 기록 (완료): `r55-r56-favorite-hook-and-version-pass-trigger`
+
+- **Run ID**: `r55-r56-favorite-hook-and-version-pass-trigger` *(`Phase 12.43`: `R56` `sync_version_expenses_trigger` 버전 패스 예정 지출 `target_date = end_date` 보존 SQL 마이그레이션·스모크 테스트 & `R55` 관심 일정 조회·토글 공용 훅 `useFavoriteSchedules` 추출 및 쓰기 진행 중 재클릭 방지)*
+- **Orchestrator**: Gemini 4 Argon
+- **Worktree 경로**: `.worktrees/r55-r56-favorite-hook-and-version-pass-trigger` (브랜치: `collab/r55-r56-favorite-hook-and-version-pass-trigger`, manifest `e44709b`)
+- **Base SHA**: `8b9689fec7e48078cdb4a5d95504744fda08e108` ↔ **Final Target SHA**: `daf9a5aa81c30297089fcffe883d116b588adfbc` (`main` 병합 `25b3953`)
+
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | `⏳ WAITING` | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Admin Character Template UI)` | `R57`: 위 수용 기준 Step 1. 허용 파일: `src/app/admin/page.tsx`·테스트, `src/lib/character-utils.ts`·테스트, `docs/to-do.md` | `⏳ r55-r56 마감 후 워크트리 생성·▶ READY 전환 (또는 사용자 지목 시 병행 착수)` |
-| **2** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Step 1 Target SHA 정적 리뷰, `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 1 완료 후 진행` |
+| **1** | **`✅ DONE (SHA: 5a479a52892ee933a82af6ce27f4fc1b5b4cac27)`** | ~~GPT Codex~~ ➡️ **Claude Opus** *(사용자 지시로 1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Maker (SQL Trigger & Smoke Test)` | `Phase 12.43 (R56)`: 워크트리 `.worktrees/r55-r56-favorite-hook-and-version-pass-trigger`(브랜치 `collab/r55-r56-favorite-hook-and-version-pass-trigger`, Base `8b9689f`, manifest `e44709b`) 생성 후 Step 1 수행 | `✅ 5a479a5: MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql(멱등)·SCHEMA.sql의 sync_version_expenses_trigger() 교체(수용 기준의 함수명 sync_version_expenses_on_schedule_update()는 실제 함수명으로 정정), README B표 확인 쿼리, TESTS.sql R56 시나리오(버전 패스·시작일 기준·단일 일자 3행, 2회 연속 이동) 추가. 임시 PostgreSQL 17에서 기존·신규 스키마 모두 마이그레이션 2회 적용 후 TESTS.sql 34개 PASS, 기존 트리거 대조 시 R56 시나리오 실패 확인. tsc/lint 통과, Vitest 56파일/628개 통과.` |
+| **2** | **`✅ DONE (SHA: daf9a5aa81c30297089fcffe883d116b588adfbc)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Shared Favorite Hook)` | `Phase 12.43 (R55)`: `.worktrees/r55-r56-favorite-hook-and-version-pass-trigger`에서 아래 **Step 2 수용 기준** 수행 (`src/lib/use-favorite-schedules.ts`, `src/lib/use-favorite-schedules.test.ts`, `src/app/dashboard/page.tsx`, `src/app/dashboard/games/page.tsx`, `docs/to-do.md`) | `✅ daf9a5a: useFavoriteSchedules 훅 추출(조회·42P01/PGRST205 폴백·낙관적 토글/롤백·오프라인 가드·scheduleId별 in-flight 재클릭 무시), /dashboard·/dashboard/games 중복 코드 교체. 훅 단위 테스트 14개 추가. tsc/lint 통과, Vitest 57파일/642개 통과.` |
+| **3** | **`✅ DONE (리뷰 clean: 8b9689f ↔ daf9a5a, main 병합 25b3953)`** | **Claude Opus** / **Gemini 4 Argon** *(GitHub Copilot 1순위 대체)* | `Reviewer & Orchestrator` | 통합 정적 코드 리뷰(`review.json`·`test.json`), `main` 병합 및 `docs/` 마감 | `✅ clean: P1~P4 0건. 로컬 PostgreSQL 17 업그레이드·신규 스키마에서 MIGRATION_R56 2회 멱등 적용 및 TESTS.sql 34 PASS, tsc/lint/Vitest 57파일/642개 통과. artifacts 스키마 검증 통과 및 main 병합(25b3953) 완료.` |
+
+#### 📌 `r55-r56-favorite-hook-and-version-pass-trigger` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`GPT Codex` — `R56` 버전 일정 날짜 변경 시 버전 패스 예정 지출 `target_date = end_date` 보존)**:
+   - `sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql` 신규 작성(재실행 멱등 보장) 및 `sql/SCHEMA.sql` `public.sync_version_expenses_trigger()` 함수 동기화:
+     - `VERSION` 일정의 `start_date` 또는 `end_date`가 변경될 때 연결된 `status = 'PLANNED'` 지출 행을 갱신함에 있어, 기존 행이 버전 패스(`start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <> end_date AND (target_date = end_date OR target_date = OLD.end_date)`)인 경우 `target_date = NEW.end_date`로 갱신하고, 그 외 일반 버전 연동 예정 지출은 기존대로 `target_date = NEW.start_date`로 갱신함 (`start_date = NEW.start_date`, `end_date = NEW.end_date`는 공통).
+   - `sql/README.md` B표에 `MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql` 확인 쿼리 추가.
+   - `sql/tests/TESTS.sql`에 R56 스모크 시나리오 추가(버전 패스 PLANNED 행과 일반 버전 연동 PLANNED 행이 같은 VERSION 일정에 연결된 상태에서 VERSION 일정 기간 변경 시, 버전 패스 행은 `target_date = NEW.end_date`를 유지하고 일반 행은 `target_date = NEW.start_date`로 갱신되는지 검증) 및 PGlite/로컬 PG 검증.
+2. **Step 2 (`Claude Sonnet` — `R55` 관심 일정 조회·토글 공용 훅 추출 및 쓰기 진행 중 중복 클릭 방지)**:
+   - `src/lib/use-favorite-schedules.ts` (및 단위 테스트 `src/lib/use-favorite-schedules.test.ts`) 신설:
+     - `user_favorite_schedules` 조회(테이블 미적용 `42P01`/`PGRST205` 시 빈 집합 비차단 폴백), 낙관적 토글 및 실패 롤백, 오프라인 가드(`isOffline()`), **동일 `scheduleId`에 대한 비동기 쓰기(INSERT/DELETE) 진행 중(`inFlightIds` Set) 재클릭 무시** 로직을 캡슐화함.
+   - `src/app/dashboard/page.tsx` 및 `src/app/dashboard/games/page.tsx`의 중복 관심 일정 상태·로더·토글 핸들러를 `useFavoriteSchedules`로 교체하고 기존 테스트 및 신규 중복 클릭 방지 단위 테스트 통과 확인.
+3. **Step 3 (`Claude Opus` / `Gemini 4 Argon` — 통합 리뷰 및 마감)**:
+   - Base ↔ Step 2 Target 통합 정적 코드 리뷰(`review.json`·`test.json`), `main` 병합(`25b3953`) 및 `docs/` 마감 완료.
 
 ### 🗂️ 이전 Run 기록 (완료): `r35-favorite-schedules-and-r51-followup`
 
