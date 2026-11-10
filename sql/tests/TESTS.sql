@@ -302,7 +302,6 @@ BEGIN
     END;
 END;
 $$;
-RESET ROLE;
 \echo PASS: duplicate payment of a confirmed expense is rejected
 
 SET LOCAL ROLE authenticated;
@@ -355,7 +354,6 @@ BEGIN
     END;
 END;
 $$;
-RESET ROLE;
 \echo PASS: payment-refunded expense cannot use planned-expense restore RPC
 
 INSERT INTO public.expenses (
@@ -2099,6 +2097,154 @@ BEGIN
         PERFORM public.update_character_preset_slots('[]'::jsonb);
         RAISE EXCEPTION 'FAIL: R76 anon slot RPC executed';
     EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END;
+$$;
+SET LOCAL ROLE authenticated;
+INSERT INTO public.user_character_presets (user_id, game_id, title, character_ids)
+VALUES (current_setting('chronoledger.test_user_id')::uuid, current_setting('chronoledger.r13_game_id')::uuid,
+        'R76 move source', ARRAY[current_setting('chronoledger.r13_character_3_id')::uuid])
+RETURNING id AS r76_move_source \gset
+INSERT INTO public.user_character_presets (user_id, game_id, title, character_ids)
+VALUES (current_setting('chronoledger.test_user_id')::uuid, current_setting('chronoledger.r13_game_id')::uuid,
+        'R76 move target', ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid])
+RETURNING id AS r76_move_target \gset
+SELECT public.update_character_preset_slots(jsonb_build_array(
+    jsonb_build_object('id', :'r76_move_source'::uuid, 'expected', ARRAY[:'r13_character_3'::uuid], 'next', ARRAY[]::uuid[]),
+    jsonb_build_object('id', :'r76_move_target'::uuid, 'expected', ARRAY[:'r13_character_1'::uuid], 'next', ARRAY[:'r13_character_1'::uuid, :'r13_character_3'::uuid])
+));
+DO $$
+BEGIN
+    IF (SELECT cardinality(character_ids) FROM public.user_character_presets WHERE id = :'r76_move_source'::uuid) <> 0
+       OR (SELECT cardinality(character_ids) FROM public.user_character_presets WHERE id = :'r76_move_target'::uuid) <> 2 THEN
+        RAISE EXCEPTION 'FAIL: R76 cross-preset move was not applied';
+    END IF;
+END;
+$$;
+
+INSERT INTO public.user_character_presets (user_id, game_id, title, character_ids)
+VALUES (current_setting('chronoledger.test_user_id')::uuid, current_setting('chronoledger.r13_game_id')::uuid,
+        'R76 atomic source', ARRAY[current_setting('chronoledger.r13_character_3_id')::uuid])
+RETURNING id AS r76_atomic_source \gset
+INSERT INTO public.user_character_presets (user_id, game_id, title, character_ids)
+VALUES (current_setting('chronoledger.test_user_id')::uuid, current_setting('chronoledger.r13_game_id')::uuid,
+        'R76 atomic target', ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid, current_setting('chronoledger.r13_character_2_id')::uuid])
+RETURNING id AS r76_atomic_target \gset
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.update_character_preset_slots(jsonb_build_array(
+            jsonb_build_object('id', :'r76_atomic_source'::uuid, 'expected', ARRAY[:'r13_character_3'::uuid], 'next', ARRAY[]::uuid[]),
+            jsonb_build_object('id', :'r76_atomic_target'::uuid, 'expected', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid], 'next', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid, :'r13_character_3'::uuid])
+        ));
+        RAISE EXCEPTION 'FAIL: R76 atomic trigger failure was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+    IF (SELECT cardinality(character_ids) FROM public.user_character_presets WHERE id = :'r76_atomic_source'::uuid) <> 1
+       OR (SELECT cardinality(character_ids) FROM public.user_character_presets WHERE id = :'r76_atomic_target'::uuid) <> 2 THEN
+        RAISE EXCEPTION 'FAIL: R76 atomic failure partially committed';
+    END IF;
+END;
+$$;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.update_character_preset_slots(jsonb_build_array(
+            jsonb_build_object('id', :'r76_atomic_source'::uuid, 'expected', ARRAY[:'r13_character_3'::uuid], 'next', ARRAY[]::uuid[]),
+            jsonb_build_object('id', :'r76_atomic_target'::uuid, 'expected', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid], 'next', ARRAY[:'r13_character_1'::uuid, :'r13_character_1'::uuid])
+        ));
+        RAISE EXCEPTION 'FAIL: R76 duplicate target was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+END;
+$$;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.update_character_preset_slots(jsonb_build_array(
+            jsonb_build_object('id', :'r76_atomic_source'::uuid, 'expected', ARRAY[:'r13_character_3'::uuid], 'next', ARRAY[]::uuid[]),
+            jsonb_build_object('id', :'r76_atomic_target'::uuid, 'expected', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid], 'next', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid])
+        ));
+        RAISE EXCEPTION 'FAIL: R76 non-move two-row change was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+END;
+$$;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.update_character_preset_slots(jsonb_build_array(
+            jsonb_build_object('id', :'r76_atomic_source'::uuid, 'expected', ARRAY[:'r13_character_3'::uuid], 'next', ARRAY[:'r13_character_3'::uuid]),
+            jsonb_build_object('id', :'r76_atomic_target'::uuid, 'expected', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid], 'next', ARRAY[:'r13_character_1'::uuid, :'r13_character_2'::uuid]),
+            jsonb_build_object('id', :'r76_move_target'::uuid, 'expected', ARRAY[:'r13_character_1'::uuid, :'r13_character_3'::uuid], 'next', ARRAY[:'r13_character_1'::uuid, :'r13_character_3'::uuid])
+        ));
+        RAISE EXCEPTION 'FAIL: R76 three-object change was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+END;
+$$;
+SET LOCAL ROLE authenticated;
+INSERT INTO public.user_character_presets (user_id, game_id, title, character_ids)
+VALUES (current_setting('chronoledger.test_user_id')::uuid, current_setting('chronoledger.r13_other_game_id')::uuid,
+        'R76 other game', ARRAY[current_setting('chronoledger.r13_other_character_id')::uuid])
+RETURNING id AS r76_other_game_preset \gset
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.update_character_preset_slots(jsonb_build_array(
+            jsonb_build_object('id', :'r76_atomic_source'::uuid, 'expected', ARRAY[:'r13_character_3'::uuid], 'next', ARRAY[:'r13_character_3'::uuid]),
+            jsonb_build_object('id', :'r76_other_game_preset'::uuid, 'expected', ARRAY[:'r13_other_character'::uuid], 'next', ARRAY[:'r13_other_character'::uuid])
+        ));
+        RAISE EXCEPTION 'FAIL: R76 different-game change was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+END;
+$$;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.reorder_character_presets(
+            current_setting('chronoledger.r13_game_id')::uuid,
+            ARRAY[current_setting('chronoledger.r76_empty_preset_id')::uuid]
+        );
+        RAISE EXCEPTION 'FAIL: R76 missing preset reorder was accepted';
+    EXCEPTION WHEN serialization_failure THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.reorder_character_presets(
+            current_setting('chronoledger.r13_game_id')::uuid,
+            ARRAY[
+                current_setting('chronoledger.r76_empty_preset_id')::uuid,
+                current_setting('chronoledger.r13_over_limit_preset_id')::uuid,
+                current_setting('chronoledger.r13_game_change_preset_id')::uuid,
+                current_setting('chronoledger.r13_empty_preset_id')::uuid,
+                gen_random_uuid()
+            ]
+        );
+        RAISE EXCEPTION 'FAIL: R76 extra preset reorder was accepted';
+    EXCEPTION WHEN serialization_failure THEN NULL;
+    END;
+END;
+$$;
+RESET ROLE;
+INSERT INTO public.user_character_presets (user_id, game_id, title, character_ids)
+VALUES (current_setting('chronoledger.other_user_id')::uuid, current_setting('chronoledger.r13_game_id')::uuid,
+        'R76 other user', ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid])
+RETURNING id AS r76_other_user_preset \gset
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.update_character_preset_slots(jsonb_build_array(
+            jsonb_build_object('id', :'r76_other_user_preset'::uuid, 'expected', ARRAY[:'r13_character_1'::uuid], 'next', ARRAY[]::uuid[])
+        ));
+        RAISE EXCEPTION 'FAIL: R76 other-user slot change was accepted';
+    EXCEPTION WHEN serialization_failure THEN NULL;
     END;
 END;
 $$;
