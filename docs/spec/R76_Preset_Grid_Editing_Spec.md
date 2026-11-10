@@ -160,7 +160,7 @@
 ## 7. Favorite Roster (R63) Migration to @dnd-kit
 
 - The favorites section of `CharacterRoster` becomes a `SortableContext` (`rectSortingStrategy`) with whole-card drag (no handle), same sensors as §3.1, saved through the existing `reorder_favorite_characters` RPC (unchanged).
-- Click/tap on a card still opens the settings dialog; the existing move buttons in the dialog (keyboard alternative) remain.
+- Click/tap on a card still opens the settings dialog. The previous `←`/`→` move buttons are removed (user decision 2026-11-10); the keyboard alternative is the dnd-kit `KeyboardSensor` on the card's settings button (Space picks up, arrows move, Space drops, Escape cancels; Enter opens the dialog).
 - R73 `GripVertical` handles and HTML5 drag code are removed from `character-roster.tsx`.
 
 ## 8. Removed / Replaced Code

@@ -36,6 +36,19 @@ vi.mock("@/lib/storage-upload", () => ({
   deleteCustomCharacterIcon,
   getCustomCharacterIconPath: (userId: string, characterId: string) => `${userId}/characters/${characterId}.webp`,
 }))
+// jsdom has no real pointer drag: keep the latest DndContext props so a test can finish a drag with synthetic ids.
+const dndContext = vi.hoisted(() => ({ last: null as null | { onDragEnd?: (event: unknown) => void } }))
+vi.mock("@dnd-kit/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@dnd-kit/core")>()
+  const { createElement } = await import("react")
+  return {
+    ...actual,
+    DndContext: (props: Parameters<typeof actual.DndContext>[0]) => {
+      dndContext.last = props as typeof dndContext.last
+      return createElement(actual.DndContext, props)
+    },
+  }
+})
 vi.mock("@/lib/image-resizer", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/image-resizer")>()),
   resizeImageToWebP,
@@ -905,6 +918,15 @@ describe("CharactersPage", () => {
     const sectionEl = (key: string) => container.querySelector(`[data-testid="roster-section-${key}"]`)
     const sectionNames = (key: string) =>
       Array.from(sectionEl(key)?.querySelectorAll('[data-testid="character-card"]') ?? []).map((card) => card.querySelector("span.truncate")?.textContent)
+    const favoriteSortable = () =>
+      Array.from(sectionEl("favorites")?.querySelectorAll('[data-testid="character-card"]') ?? []).map((card) => card.getAttribute("data-sortable"))
+    /** Finishes a favorite drag of `activeId` onto `overId` through the favorites DndContext (jsdom has no pointer drag). */
+    const dragFavorite = async (activeId: string, overId: string) => {
+      await act(async () => {
+        dndContext.last?.onDragEnd?.({ active: { id: activeId }, over: { id: overId } })
+        await Promise.resolve()
+      })
+    }
     const favRow = (id: string, order: number | null, owned = true) => ({
       character_id: id,
       game_id: "game-a",
@@ -973,19 +995,17 @@ describe("CharactersPage", () => {
       expect(sectionNames("unowned")).toContain("아케론")
     })
 
-    it("moves a favorite with the buttons and saves the whole order with one RPC call", async () => {
+    it("moves a favorite by dragging its card and saves the whole order with one RPC call", async () => {
       db.userCharacters = [favRow("c1", 1), favRow("c3", 2)]
       await renderPage()
-      expect((container.querySelector('button[aria-label="아케론 앞으로 이동"]') as HTMLButtonElement).disabled).toBe(true)
-      expect((container.querySelector('button[aria-label="구캐릭터 뒤로 이동"]') as HTMLButtonElement).disabled).toBe(true)
 
-      await click(container.querySelector('button[aria-label="아케론 뒤로 이동"]'))
+      await dragFavorite("c1", "c3")
 
       expect(orderRpcCalls()).toEqual([{ fn: "reorder_favorite_characters", args: { p_game_id: "game-a", p_character_ids: ["c3", "c1"] } }])
       expect(sectionNames("favorites")).toEqual(["구캐릭터", "아케론"])
     })
 
-    it("makes whole favorite cards sortable with dnd-kit and no HTML5 drag handle", async () => {
+    it("makes whole favorite cards sortable with dnd-kit, without handles or move buttons", async () => {
       db.userCharacters = [favRow("c1", 1), favRow("c3", 2), favRow("c4", 3)]
       await renderPage()
       const cardsIn = (key: string) => Array.from(sectionEl(key)?.querySelectorAll('[data-testid="character-card"]') ?? [])
@@ -993,9 +1013,13 @@ describe("CharactersPage", () => {
       expect(cardsIn("favorites").map((card) => card.getAttribute("data-sortable"))).toEqual(["true", "true", "true"])
       expect(container.querySelector('[draggable="true"]')).toBeNull()
       expect(container.querySelector('[data-testid="favorite-drag-handle"]')).toBeNull()
+      expect(container.querySelector('button[aria-label$="앞으로 이동"], button[aria-label$="뒤로 이동"]')).toBeNull()
+      // The settings button is the keyboard drag source (Space picks up) and keeps its name.
+      const button = cardsIn("favorites")[0].querySelector('button[aria-label="아케론 설정"]') as HTMLButtonElement
+      expect(button.getAttribute("aria-roledescription")).toBe("sortable")
       expect(cardsIn("owned").every((card) => card.getAttribute("data-sortable") === null)).toBe(true)
       // A short click still opens the settings dialog.
-      await click(cardsIn("favorites")[0].querySelector('button[aria-label="아케론 설정"]'))
+      await click(button)
       expect(document.body.querySelector('[role="dialog"]')).toBeTruthy()
     })
 
@@ -1005,7 +1029,7 @@ describe("CharactersPage", () => {
       await change(container.querySelector('input[aria-label="캐릭터 이름 검색"]'), "라이덴")
       expect(sectionNames("favorites")).toEqual(["라이덴"])
       await change(container.querySelector('input[aria-label="캐릭터 이름 검색"]'), "")
-      await click(container.querySelector('button[aria-label="라이덴 앞으로 이동"]'))
+      await dragFavorite("c4", "c3")
 
       expect(orderRpcCalls()[0]?.args).toEqual({ p_game_id: "game-a", p_character_ids: ["c1", "c4", "c3"] })
     })
@@ -1014,22 +1038,22 @@ describe("CharactersPage", () => {
       db.userCharacters = [favRow("c1", 1), favRow("c3", 2)]
       db.rpcError = { code: "P0001", message: "boom" }
       await renderPage()
-      await click(container.querySelector('button[aria-label="아케론 뒤로 이동"]'))
+      await dragFavorite("c1", "c3")
 
       expect(sectionNames("favorites")).toEqual(["아케론", "구캐릭터"])
       expect(container.textContent).toContain("즐겨찾기 순서를 저장하지 못했습니다: boom")
-      expect(container.querySelector('button[aria-label="아케론 뒤로 이동"]')).toBeTruthy()
+      expect(favoriteSortable()).toEqual(["true", "true"])
     })
 
     it("hides the ordering controls and explains when the reorder RPC is not migrated", async () => {
       db.userCharacters = [favRow("c1", 1), favRow("c3", 2)]
       db.rpcError = { code: "PGRST202", message: "function not found" }
       await renderPage()
-      await click(container.querySelector('button[aria-label="아케론 뒤로 이동"]'))
+      await dragFavorite("c1", "c3")
 
       expect(sectionNames("favorites")).toEqual(["아케론", "구캐릭터"])
       expect(container.textContent).toContain("MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql")
-      expect(container.querySelector('button[aria-label="아케론 뒤로 이동"]')).toBeNull()
+      expect(favoriteSortable()).toEqual([null, null])
     })
 
     it("falls back to the query without favorite_sort_order and disables ordering when the column is missing", async () => {
@@ -1043,7 +1067,7 @@ describe("CharactersPage", () => {
       expect(container.textContent).not.toContain("R13 마이그레이션")
       expect(sectionNames("favorites")).toEqual(["구캐릭터", "아케론"])
       expect(container.textContent).toContain("즐겨찾기 순서 저장 기능이 아직 적용되지 않아")
-      expect(container.querySelector('button[aria-label$="뒤로 이동"]')).toBeNull()
+      expect(favoriteSortable()).toEqual([null, null])
     })
 
     it("lists the mobile preset picker in the same three sections", async () => {
