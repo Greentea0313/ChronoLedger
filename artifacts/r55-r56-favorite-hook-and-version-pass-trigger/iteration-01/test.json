@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "run_id": "r55-r56-favorite-hook-and-version-pass-trigger",
+  "iteration": 1,
+  "target_sha": "daf9a5aa81c30297089fcffe883d116b588adfbc",
+  "status": "passed",
+  "sandbox": "not_required",
+  "checks": [
+    {
+      "name": "git diff --check",
+      "command": "git -C .worktrees/r55-r56-favorite-hook-and-version-pass-trigger diff --check 8b9689fec7e48078cdb4a5d95504744fda08e108..daf9a5aa81c30297089fcffe883d116b588adfbc",
+      "status": "passed",
+      "exit_code": 0,
+      "summary": "No whitespace or patch formatting issues across 10 changed files."
+    },
+    {
+      "name": "typescript",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "summary": "TypeScript strict type-checking passed with 0 errors."
+    },
+    {
+      "name": "eslint",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "summary": "ESLint static check passed with 0 errors and 0 warnings."
+    },
+    {
+      "name": "vitest",
+      "command": "npx vitest run --dir src",
+      "status": "passed",
+      "exit_code": 0,
+      "summary": "All 57 test files (642 tests, including 14 new useFavoriteSchedules unit tests) passed."
+    },
+    {
+      "name": "postgresql-17-migration-and-smoke-tests",
+      "command": "psql ON_ERROR_STOP=1 -f sql/SCHEMA.sql -f sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql (x2) -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "summary": "Upgraded and fresh local PostgreSQL 17 databases applied MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql twice idempotently and passed all 34 PASS assertions in sql/tests/TESTS.sql including R56 two-step VERSION date sync."
+    }
+  ],
+  "not_run": [
+    "Production Supabase SQL Editor execution of MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql (tracked under R58)."
+  ]
+}

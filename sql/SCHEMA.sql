@@ -1588,22 +1588,25 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 5. 버전/픽업 일정 날짜 변경에 따른 예정 지출 동기화 트리거 함수
-CREATE OR REPLACE FUNCTION public.sync_version_expenses_trigger() 
+CREATE OR REPLACE FUNCTION public.sync_version_expenses_trigger()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.schedule_type IN ('VERSION', 'PICKUP', 'CONTENTS', 'BROADCAST')
        AND (NEW.start_date IS DISTINCT FROM OLD.start_date OR NEW.end_date IS DISTINCT FROM OLD.end_date) THEN
-        UPDATE public.expenses
+        UPDATE public.expenses AS e
         SET start_date = NEW.start_date,
             end_date = NEW.end_date,
-            target_date = CASE 
-                WHEN NEW.schedule_type = 'VERSION' THEN NEW.start_date 
-                ELSE NEW.end_date 
+            target_date = CASE
+                WHEN NEW.schedule_type <> 'VERSION' THEN NEW.end_date
+                -- R56 version pass: multi-day period whose due date is the period end.
+                WHEN e.start_date IS NOT NULL AND e.end_date IS NOT NULL
+                     AND e.start_date <> e.end_date
+                     AND (e.target_date = e.end_date OR e.target_date = OLD.end_date) THEN NEW.end_date
+                ELSE NEW.start_date
             END
-        WHERE schedule_id = NEW.id AND status = 'PLANNED';
+        WHERE e.schedule_id = NEW.id AND e.status = 'PLANNED';
     END IF;
     RETURN NEW;
-
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
