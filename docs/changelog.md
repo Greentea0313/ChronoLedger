@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (R76 실브라우저 확인 후속, `7c683cc` 미병합)
+
+- 프리셋 화면에서 캐릭터를 끌 때 미리보기 아이콘이 커서에서 우상단으로 벗어나던 문제를 고침(미리보기를 `document.body`로 렌더링함).
+- 프리셋 사이드바와 모바일 캐릭터 선택 창의 필터를 `보유 여부`·`레어도`·분류 라벨 아래 줄에 칩이 오도록 배치함.
+- `docs/known-pitfalls.md` 38번에 `transform` 조상 안의 `position: fixed` 위치 어긋남을 기록함.
+
 ## 2026-11-10 (Run `r78-r76-followups-and-browser-check` 등록, 즐겨찾기 이동 버튼 삭제 `f61e90f` 미병합)
 
 - 격리 Worktree·manifest(`2d36a31`, Base `3c71e9c`) 생성하고 Dispatch Queue에 3단계(SQL 테스트 Codex → R77 입력 초기화·명세 Sonnet → 리뷰·실브라우저 확인 기록 Opus) 등록함. 이전 Run `r76-r77`은 완료 기록으로 옮김.

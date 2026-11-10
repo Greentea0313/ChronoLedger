@@ -39,12 +39,16 @@
 - **DB 변경**: 없음. Step 1은 `sql/tests/TESTS.sql`만 수정하며 운영 DB에는 실행하지 않음.
 - **근거**: Run `r76-r77-preset-grid-dnd-and-icon-modal` 리뷰 산출물(`artifacts/r76-r77-preset-grid-dnd-and-icon-modal/iteration-01/review.json`)의 `R76-REV-003`~`006`, to-do `R78`.
 - **사용자 보고 (2026-11-10)**: 손잡이·↑↓ 버튼이 있는 구 화면이 보인다고 함. 화면 문구(`슬롯 배치 (4/4)`, `슬롯을 선택한 뒤 캐릭터를 눌러 배치합니다`)가 삭제된 R62 `preset-workspace.tsx`(`f5807eb`)와 같아 **R76 이전 빌드를 보고 있는 것으로 판단**함(`main` 소스에는 해당 파일·`GripVertical` 없음). → ✅ 사용자 재확인 결과 최신 빌드에서 손잡이 삭제 확인함(2026-11-10). 즐겨찾기 화살표 삭제는 `f61e90f`(미병합)에 있어 병합 전까지 화면에 남음.
+- **사용자 실브라우저 확인 결과 (2026-11-10)**: 아래 2건 외 나머지 확인 항목은 정상 동작한다고 함. R76 마이그레이션은 이미 적용·검증 완료임.
+  1. 프리셋 화면 캐릭터 드래그 미리보기가 커서보다 우상단으로 크게 벗어남 → 원인은 페이지 `animate-fade-in`(`forwards`)이 남긴 `transform`이 `DragOverlay`(`position: fixed`)의 기준 박스가 된 것임. 미리보기를 `document.body`로 포털 처리하고 원래 아바타와 같은 박스로 맞춤(Claude Opus `7c683cc`, 미병합).
+  2. 사이드바 분류 필터가 라벨 왼쪽 배치라 줄바꿈이 지저분함 → 프리셋 사이드바·모바일 선택 창에서 라벨을 칩 위 줄로 올림(`CharacterFilterBar` `stacked`, `7c683cc`). 보유 캐릭터 화면 필터는 폭이 넓어 기존 배치를 유지함.
+  - 수정 후 tsc·lint·diff-check 통과, Vitest 64파일/780개 통과함. 미리보기 위치는 jsdom에서 재현할 수 없어 Step 3에서 실브라우저 재확인이 필요함.
 - **진행 원칙**: Step 1(SQL 테스트)과 Step 2(관리자 화면·명세)는 파일이 겹치지 않아 순서 무관함. 한 Worktree에서 순서대로 진행함. 사용자 실브라우저 확인은 이미 `main`에 병합된 기능 대상이라 Step 1·2와 상관없이 언제든 해도 됨. 결과는 Step 3에서 기록함.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 SQL Tests)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/tests/TESTS.sql` | - |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Input Reset · Spec Note)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.classification-icons.test.tsx`, `docs/spec/R76_Preset_Grid_Editing_Spec.md`(§10) | 즐겨찾기 화살표 삭제(사용자 추가 요청)는 Claude Opus가 `f61e90f`로 먼저 처리함(아래 참고). R77 입력 초기화·명세 §10은 남음 |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Input Reset · Spec Note)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.classification-icons.test.tsx`, `docs/spec/R76_Preset_Grid_Editing_Spec.md`(§10) | 사용자 추가 요청(즐겨찾기 화살표 삭제 `f61e90f`, 드래그 미리보기 위치·사이드바 필터 줄바꿈 `7c683cc`)은 Claude Opus가 먼저 처리함(위 참고). R77 입력 초기화·명세 §10은 남음 |
 | **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `3c71e9c` ↔ Target(Step 2 커밋) 정적 리뷰, 동적 검증, 사용자 실브라우저 확인 결과 기록, `main` 병합, 문서 마감 | - |
 
 #### 📌 `r78-r76-followups-and-browser-check` 단계별 수용 기준 (Acceptance Criteria)

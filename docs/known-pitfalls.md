@@ -128,3 +128,7 @@
 37. **산출물 검증기 `validate_collaboration_artifact.py` 실행 의존성**
     - 증상: Python에 `jsonschema`가 없으면 `ModuleNotFoundError`로 실패함. 인자는 위치 인자가 아니라 `--artifact <json> --schema artifacts/schemas/<kind>.schema.json`임(2026-11-10).
     - 방어책: 사용자 환경을 바꾸지 않으려면 `py -m pip install --target <임시 폴더> jsonschema` 후 `PYTHONPATH=<임시 폴더>`로 실행함.
+38. **`animate-fade-in` 안의 `position: fixed` 요소 위치 어긋남**
+    - 증상: 캐릭터 화면 프리셋 드래그 미리보기(`@dnd-kit` `DragOverlay`)가 커서보다 우상단으로 크게 벗어남(2026-11-10).
+    - 원인: 페이지 최상위의 `animate-fade-in`이 `forwards`로 끝난 뒤에도 `transform`을 남기고, `transform`이 있는 조상은 `position: fixed` 자식의 기준 박스가 됨. 그래서 미리보기가 화면이 아니라 페이지 div 기준으로 배치되고, 스크롤·여백만큼 밀림.
+    - 방어책: `DragOverlay`나 직접 만든 `fixed` 팝업은 `createPortal(…, document.body)`로 렌더링함(`preset-board.tsx`, `7c683cc`). Radix Dialog·Popover는 이미 포털을 써서 영향 없음.

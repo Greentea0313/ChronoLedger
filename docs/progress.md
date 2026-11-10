@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## R76 실브라우저 확인 결과와 추가 수정 (2026-11-10)
+
+- **사용자 확인**: 프리셋 드래그 미리보기 위치, 사이드바 필터 배치 2건 외에는 정상 동작함. R76 마이그레이션은 적용·검증 완료임.
+- **수정 (Claude Opus, 워크트리 `7c683cc`, 미병합)**: 드래그 미리보기를 `document.body`로 포털 처리함(원인: 페이지 `animate-fade-in`이 남긴 `transform`). 프리셋 사이드바·모바일 선택 창 필터 라벨을 칩 위 줄로 옮김. tsc·lint·diff-check 통과, Vitest 780개 통과함.
+- **남은 확인**: 병합 후 실브라우저에서 미리보기가 커서 아래에 붙는지 재확인 필요함.
+- **다음 단계**: Run `r78` Step 1(`GPT Codex`, SQL 테스트) `▶ READY` 유지임.
+
 ## Run `r78-r76-followups-and-browser-check` 등록 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
