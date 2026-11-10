@@ -105,9 +105,9 @@ Add `game_classification_icons` (`Row` / `Insert` / `Update`, `Relationships` to
 
 ### 3.2 Per-option row
 
-- Each option: current icon preview (24px) or empty placeholder, option text, `[이미지 선택]` (file input, `accept="image/png,image/jpeg,image/webp"`), and `[삭제]` when an icon exists.
-- Clipboard paste of an image file onto the row is optional; if implemented it must use `getClipboardImageFile` (file only).
-- Conversion: **always** `resizeImageToWebP(file, 64)` then read the blob as a Data URL. Do **not** call `convertIconSourceToDataUrl` with a string source: it returns existing WebP Data URLs unchanged, which would bypass the 64×64 resize. URL input is not offered. The AI upscaler is not used (64px output does not need it).
+- Each option: current icon preview (24px) or empty placeholder, option text, `[이미지 선택]` (opens the registration modal, R77 revision), and `[삭제]` when an icon exists.
+- **Registration modal (R77 revision)**: title `{axis} · {option} 아이콘 등록`; an input `https://... 또는 이미지 붙여넣기` (pasting an image uses `getClipboardImageFile` and is handled as a file), a file input (`accept="image/png,image/jpeg,image/webp"`), a 64×64 preview, `취소` and `등록`. Errors are shown inside the modal; the modal closes only after a successful save.
+- Conversion: **always** `resizeImageToWebP(file, 64)` then read the blob as a Data URL. Do **not** call `convertIconSourceToDataUrl` with a string source: it returns existing WebP Data URLs unchanged, which would bypass the 64×64 resize. URL input (R77) reuses `fetchImageFile` (direct fetch, then proxy fallback) and any image Data URL string is also re-encoded through the resizer (`createClassificationIconDataUrlFromSource`). The database still stores only the resulting 64×64 WebP Data URL, never an external URL. The AI upscaler is not used (64px output does not need it).
 - Reject results longer than 20,000 characters before the write with a size message (export a constant `MAX_CLASSIFICATION_ICON_DATA_URL_LENGTH = 20_000`).
 - Write: `upsert({ game_id, axis_key, option_value, icon_data_url }, { onConflict: "game_id,axis_key,option_value" })`; delete: `delete().eq(game_id).eq(axis_key).eq(option_value)`.
 - Guard every write with `isOffline()`. One write per option at a time (disable that row's buttons while pending).

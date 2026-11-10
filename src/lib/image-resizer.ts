@@ -104,7 +104,7 @@ export function getClipboardImageFile(clipboardData: DataTransfer): File | null 
   return null;
 }
 
-async function fetchImageFile(url: string, outputSize: number = DEFAULT_OUTPUT_SIZE): Promise<File> {
+export async function fetchImageFile(url: string, outputSize: number = DEFAULT_OUTPUT_SIZE): Promise<File> {
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(url);

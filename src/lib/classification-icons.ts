@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase/client"
-import { resizeImageToWebP } from "@/lib/image-resizer"
+import { fetchImageFile, resizeImageToWebP } from "@/lib/image-resizer"
 import { classificationIconKey } from "@/lib/classification-icon-key"
 
 /** Output edge length of a classification option icon (R64 D-04). */
@@ -67,4 +67,19 @@ export async function createClassificationIconDataUrl(file: File): Promise<strin
     throw new Error("분류 아이콘 이미지 용량이 너무 큽니다. 더 단순한 이미지를 사용해 주세요.")
   }
   return dataUrl
+}
+
+/**
+ * R77: converts a file or an image source string (http(s) URL, or any image Data URL) to a 64×64 WebP Data URL.
+ * Strings never bypass the resizer, so even an existing WebP Data URL is re-encoded at 64×64. URLs reuse
+ * fetchImageFile (direct fetch, then proxy fallback).
+ */
+export async function createClassificationIconDataUrlFromSource(source: File | string): Promise<string> {
+  if (typeof source !== "string") return createClassificationIconDataUrl(source)
+  const text = source.trim()
+  if (text.startsWith("data:image/")) {
+    const blob = await (await fetch(text)).blob()
+    return createClassificationIconDataUrl(new File([blob], "classification-icon", { type: blob.type }))
+  }
+  return createClassificationIconDataUrl(await fetchImageFile(text))
 }
