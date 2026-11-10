@@ -12,9 +12,10 @@
     "Update docs/to-do.md with verified implementation status after completion; do not change database schema."
   ],
   "base_sha": "a908144aa216e79666b422fa132f345500e61546",
-  "target_sha": "f177a96cf672486815ab3625e25e2b98e6a4a72c",
+  "target_sha": "38b989d38a90ba360a7a169989543bd0cb54e993",
   "branch": "collab/r60-ai-icon-upscaler",
   "worktree_path": ".worktrees/r60-ai-icon-upscaler",
   "max_iterations": 3,
-  "status": "in_progress"
+  "status": "completed",
+  "completed_at": "2026-11-10T14:18:00+09:00"
 }
