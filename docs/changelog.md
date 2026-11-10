@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-10 (R60 AI 아이콘 업스케일러 완성 — iteration-02)
+
+- 정적 빌드 실패를 해소하고(ONNX Runtime 런타임 로드), wasm 백엔드와 waifu2x 2배 모델(`public/models/waifu2x/cunet_art_scale2x.onnx`)로 PC 저해상도 아이콘 업스케일이 실제로 동작하도록 함(`38b989d`).
+- 투명도 보존, 저해상도일 때만 토글 표시, 변환 중 저장 차단을 추가하고 모델 출처·라이선스·계약을 `docs/upscaler-model.md`에 기록함.
+
 ## 2026-11-10 (r60-ai-icon-upscaler iteration-01 리뷰)
 
 - Base `a908144` ↔ Target `f177a96` 리뷰 결과 `findings` 판정함(빌드 실패 P1, 백엔드·모델 부재 P2 2건, P3 2건, P4 1건). `artifacts/r60-ai-icon-upscaler/` 산출물 커밋 `d430a31`.

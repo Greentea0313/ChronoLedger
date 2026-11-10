@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## r60-ai-icon-upscaler iteration-02 완성 (Step 3, 2026-11-10)
+
+- **수행 주체**: Claude Opus (Maker)임. 커밋 `38b989d`(워크트리)임.
+- **빌드 복구**: ONNX Runtime을 webpack 번들에서 빼고 wasm 전용 런타임을 `public/ort/`에서 런타임 로드하도록 바꿔 `npm run build`가 통과함(Cloudflare 파일당 25 MiB 한도로 WebGPU 겸용 wasm 제외).
+- **모델 수록**: 사용자 승인 후 waifu2x `cunet/art/scale2x` ONNX(5.18 MB, SHA-256 일치)를 `public/models/waifu2x/`에 넣고, 출처·라이선스(MIT)·입출력 계약을 `docs/upscaler-model.md`에 기록함. 실제 모델로 2배 출력 계약을 실측 확인함.
+- **기타 수정**: `wasm` 백엔드·세션 재사용, 투명도 보존, 256px 미만일 때만 토글 표시, 변환 중 저장 차단(R60-REV-002~006).
+- **검증**: tsc·lint·`git diff --check` 통과, Vitest 58파일/675개 통과, 빌드 통과함. 실제 브라우저 업스케일 동작은 미확인임.
+- **다음 단계**: Step 4 재리뷰·병합(**Gemini 4 Argon** `▶ READY`, Fallback: GitHub Copilot / Claude Sonnet)임.
+
 ## r60-ai-icon-upscaler iteration-01 통합 리뷰 (Step 2, 2026-11-10)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)임.
