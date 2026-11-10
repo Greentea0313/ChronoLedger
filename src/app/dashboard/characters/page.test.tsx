@@ -1007,8 +1007,15 @@ describe("CharactersPage", () => {
       expect(sectionNames("favorites")).toEqual(["아케론", "구캐릭터", "라이덴"])
 
       const [first, , third] = cardsIn()
+      // Firefox cannot start a drag on a <button>: the card itself is not draggable, a non-button handle is.
+      const handle = first.querySelector('[data-testid="favorite-drag-handle"]') as HTMLElement
+      expect(first.getAttribute("draggable")).toBeNull()
+      expect(handle.tagName).not.toBe("BUTTON")
+      expect(handle.getAttribute("draggable")).toBe("true")
+      expect(handle.getAttribute("aria-hidden")).toBe("true")
+      expect(sectionEl("owned")?.querySelector('[data-testid="favorite-drag-handle"]') ?? null).toBeNull()
       await act(async () => {
-        Simulate.dragStart(first, { dataTransfer: { setData: vi.fn() } } as never)
+        Simulate.dragStart(handle, { dataTransfer: { setData: vi.fn() } } as never)
         Simulate.dragOver(third, { dataTransfer: { setData: vi.fn() } } as never)
         Simulate.drop(third, { dataTransfer: { setData: vi.fn() } } as never)
       })

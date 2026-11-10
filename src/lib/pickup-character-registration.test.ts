@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { registerPickupOnlyCharacter } from "./pickup-character-registration"
+import { DuplicatePickupNameError, registerPickupOnlyCharacter } from "./pickup-character-registration"
 
 const { from, convertIconSourceToDataUrlWithUpscale } = vi.hoisted(() => ({
   from: vi.fn(),
@@ -68,7 +68,7 @@ describe("registerPickupOnlyCharacter", () => {
   })
 
   it("rejects a duplicate name in the same game only", async () => {
-    await expect(registerPickupOnlyCharacter(input({ name: "기존" }))).rejects.toThrow("같은 이름의 캐릭터가 이미 있습니다. 목록에서 선택해 주세요.")
+    await expect(registerPickupOnlyCharacter(input({ name: "기존" }))).rejects.toThrow(new DuplicatePickupNameError())
     expect(insert).not.toHaveBeenCalled()
 
     await expect(registerPickupOnlyCharacter(input({ name: "기존", gameId: "game-2" }))).resolves.toBeTruthy()

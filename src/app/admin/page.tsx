@@ -21,7 +21,7 @@ import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
-import { registerPickupOnlyCharacter } from "@/lib/pickup-character-registration"
+import { DuplicatePickupNameError, registerPickupOnlyCharacter } from "@/lib/pickup-character-registration"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import {
   assignAxisKey,
@@ -1161,7 +1161,11 @@ export default function AdminPage() {
       setNewPickupImageSource("")
       setNewPickupImageFile(null)
     } catch (error: unknown) {
-      setNewPickupError(error instanceof Error ? error.message : "픽업 캐릭터를 등록하지 못했습니다.")
+      if (error instanceof DuplicatePickupNameError) {
+        setNewPickupError(`${error.message} 목록에서 선택해 주세요.`)
+      } else {
+        setNewPickupError(error instanceof Error ? error.message : "픽업 캐릭터를 등록하지 못했습니다.")
+      }
     } finally {
       setIsSavingNewPickup(false)
       setIsProcessingIcon(false)

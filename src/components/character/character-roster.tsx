@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useRef, useState } from "react"
-import { ArrowLeft, ArrowRight, ImagePlus, Loader2, RotateCcw, Star } from "lucide-react"
+import { ArrowLeft, ArrowRight, GripVertical, ImagePlus, Loader2, RotateCcw, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -298,19 +298,6 @@ export function CharacterRoster({
                         key={character.id}
                         data-testid="character-card"
                         data-owned={isOwned ? "true" : "false"}
-                        draggable={reorderable && canReorder}
-                        onDragStart={
-                          reorderable
-                            ? (event) => {
-                                if (!canReorder) {
-                                  event.preventDefault()
-                                  return
-                                }
-                                dragIdRef.current = character.id
-                                event.dataTransfer?.setData("text/plain", character.id)
-                              }
-                            : undefined
-                        }
                         onDragOver={
                           reorderable
                             ? (event) => {
@@ -332,16 +319,33 @@ export function CharacterRoster({
                               }
                             : undefined
                         }
-                        onDragEnd={
-                          reorderable
-                            ? () => {
-                                dragIdRef.current = null
-                                setDragOverId(null)
-                              }
-                            : undefined
-                        }
-                        className={cn("rounded-lg", dragOverId === character.id && "bg-primary/10")}
+                        className={cn("relative rounded-lg", dragOverId === character.id && "bg-primary/10")}
                       >
+                        {reorderable && (
+                          // Firefox does not start a drag on a <button>, so the drag source is a separate non-button handle.
+                          <span
+                            aria-hidden="true"
+                            data-testid="favorite-drag-handle"
+                            draggable={canReorder}
+                            onDragStart={(event) => {
+                              if (!canReorder) {
+                                event.preventDefault()
+                                return
+                              }
+                              dragIdRef.current = character.id
+                              event.dataTransfer?.setData("text/plain", character.id)
+                              const card = (event.currentTarget as HTMLElement | null)?.closest?.("li")
+                              if (card) event.dataTransfer?.setDragImage?.(card, 16, 16)
+                            }}
+                            onDragEnd={() => {
+                              dragIdRef.current = null
+                              setDragOverId(null)
+                            }}
+                            className={cn("absolute right-0.5 top-0.5 z-10 rounded text-content-muted", canReorder && "cursor-grab active:cursor-grabbing")}
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </span>
+                        )}
                         <button
                           type="button"
                           aria-label={`${character.name} 설정`}

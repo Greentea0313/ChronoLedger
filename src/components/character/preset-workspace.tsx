@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, X } from "lucide-react"
+import { ArrowDown, ArrowUp, GripVertical, Loader2, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -240,6 +240,9 @@ export function PresetWorkspace({
       event.dataTransfer.effectAllowed = "move"
       // Firefox only starts a drag when some data is set.
       event.dataTransfer.setData("text/plain", source.type === "avatar" ? source.characterId : String(source.index))
+      // The drag starts from a small handle; show the whole card as the drag image.
+      const card = (event.currentTarget as HTMLElement | null)?.closest?.("li")
+      if (card) event.dataTransfer.setDragImage?.(card, 16, 16)
     }
   }
 
@@ -276,17 +279,25 @@ export function PresetWorkspace({
                       const placed = ids.includes(character.id)
                       const owned = states[character.id]?.is_owned ?? false
                       return (
-                        <li key={character.id}>
+                        <li key={character.id} className="relative">
+                          {/* Firefox does not start a drag on a <button>, so the drag source is a separate non-button handle. */}
+                          <span
+                            aria-hidden="true"
+                            data-testid="workspace-avatar-drag-handle"
+                            draggable={!isSaving}
+                            onDragStart={(event) => beginDrag(event, { type: "avatar", characterId: character.id })}
+                            onDragEnd={endDrag}
+                            className="absolute right-0.5 top-0.5 z-10 cursor-grab rounded text-content-muted active:cursor-grabbing"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </span>
                           <button
                             type="button"
-                            draggable={!isSaving}
                             aria-pressed={placed}
                             title={!placed && !canAdd && selectedSlot === null ? "슬롯이 가득 찼습니다." : undefined}
                             onClick={() => applyAvatar(character.id)}
-                            onDragStart={(event) => beginDrag(event, { type: "avatar", characterId: character.id })}
-                            onDragEnd={endDrag}
                             className={cn(
-                              "flex w-full cursor-grab flex-col items-center gap-1 rounded-lg border p-2 text-xs transition-colors duration-fast active:cursor-grabbing [&_img]:pointer-events-none",
+                              "flex w-full flex-col items-center gap-1 rounded-lg border p-2 text-xs transition-colors duration-fast [&_img]:pointer-events-none",
                               placed ? "border-primary bg-primary/10 text-content" : "border-line bg-surface-2 text-content-secondary hover:text-content",
                             )}
                           >
@@ -446,12 +457,19 @@ export function PresetWorkspace({
                       key={characterId}
                       data-testid="workspace-slot"
                       data-index={index}
-                      draggable={!isSaving}
-                      onDragStart={(event) => beginDrag(event, { type: "slot", index })}
-                      onDragEnd={endDrag}
                       className={cn(frame, "bg-surface-2")}
                       {...dropProps}
                     >
+                      <span
+                        aria-hidden="true"
+                        data-testid="workspace-slot-drag-handle"
+                        draggable={!isSaving}
+                        onDragStart={(event) => beginDrag(event, { type: "slot", index })}
+                        onDragEnd={endDrag}
+                        className="shrink-0 cursor-grab rounded text-content-muted active:cursor-grabbing"
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </span>
                       <button
                         type="button"
                         aria-pressed={isSelected}
