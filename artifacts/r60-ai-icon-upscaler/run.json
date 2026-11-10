@@ -1,0 +1,20 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r60-ai-icon-upscaler",
+    "created_at":  "2026-11-10T04:19:47.4817306+00:00",
+    "objective":  "Implement R60 PC-only low-resolution icon AI upscaling with dynamic ONNX loading and safe canvas fallback",
+    "acceptance_criteria":  [
+                                "Detect images with width or height below 256px and expose the Korean PC-only AI upscale toggle with default ON on supported desktop browsers.",
+                                "Load onnxruntime-web and the Waifu2x ONNX model only through dynamic import from the isolated upscaler module; do not add the runtime to the initial mobile bundle.",
+                                "Fallback immediately to resizeImageToWebP on mobile, unavailable WebGL/WASM, model load failure, or inference failure.",
+                                "Integrate the async result and loading state into existing admin icon and schedule request upload flows without changing existing upload behavior.",
+                                "Add unit/component tests for low-resolution detection, desktop default-on behavior, mobile/unsupported/failure fallback, dynamic import boundary, and loading/error states; pass tsc, lint, Vitest, and diff-check.",
+                                "Update docs/to-do.md with verified implementation status after completion; do not change database schema."
+                            ],
+    "base_sha":  "a908144aa216e79666b422fa132f345500e61546",
+    "target_sha":  null,
+    "branch":  "collab/r60-ai-icon-upscaler",
+    "worktree_path":  ".worktrees/r60-ai-icon-upscaler",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
