@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "run_id": "r63-character-favorite-sections",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "56898613677af30c0096fa94b1b4b157349c9169",
+  "target_sha": "178149545011b2a0c867bc0d81672fefa6c1a08c",
+  "status": "passed",
+  "created_at": "2026-11-10T10:45:00Z",
+  "finished_at": "2026-11-10T11:00:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check 56898613677af30c0096fa94b1b4b157349c9169 178149545011b2a0c867bc0d81672fefa6c1a08c", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Changed files stay within the Step 1 and Step 2 allowed lists", "command": "git diff --name-only 56898613677af30c0096fa94b1b4b157349c9169 178149545011b2a0c867bc0d81672fefa6c1a08c", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (61 files, 750 tests)", "command": "npx vitest run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder Supabase env", "command": "npm run build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "SQL migration and TESTS.sql R63 block against a live database (migration is applied manually by the user in Supabase SQL Editor; no DB available to the reviewer)", "command": "psql -f sql/tests/TESTS.sql", "status": "skipped", "exit_code": null, "log_path": null },
+    { "name": "Manual roster sections and favorite drag check on the dev server (requires a signed-in account; not available to the reviewer)", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}
