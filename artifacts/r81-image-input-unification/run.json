@@ -1,0 +1,19 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r81-image-input-unification",
+    "created_at":  "2026-11-10T16:25:33.3584033+00:00",
+    "objective":  "Replace every image input (except the calendar background) with one shared registration dialog that accepts an image URL, a pasted image or a file, with preview, cancel and register, so all image inputs behave like the R77 classification icon dialog.",
+    "acceptance_criteria":  [
+                                "Step 1 (spec): an English spec lists every image input site, the shared dialog API, the per-site conversion profile (size, format, data URL vs Storage upload, AI upscale option, size limits), error and offline handling, the URL proxy fallback (wsrv.nl, allowed for user screens by user decision) and the test plan; calendar background is out of scope.",
+                                "Step 2 (shared dialog + user screens): shared component and the four user-facing sites (custom game icon on the games page and in the game add modal, custom character icon, profile photo) use it; tests added.",
+                                "Step 3 (admin + request screens): the seven admin/request image inputs and the R77 classification icon dialog use the shared component with unchanged behavior (upscale option, limits, 23514/42501 messages); tests updated.",
+                                "Step 4 (review): Base..Target review, artifacts, main merge, user real-browser check of every site.",
+                                "Every Maker step passes tsc --noEmit, npm run lint, git diff --check and the full Vitest suite."
+                            ],
+    "base_sha":  "adb8e7202e3a5d4e0fadd8c3e89d9fdf4e790f01",
+    "target_sha":  null,
+    "branch":  "collab/r81-image-input-unification",
+    "worktree_path":  ".worktrees/r81-image-input-unification",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
