@@ -1921,6 +1921,112 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R35 favorite schedules owner CRUD, duplicate/cross-user/UPDATE denial, cascade, purge, pending-deletion and anon boundary
+-- R64 classification option icons: admin write, approved-game guest read, validation, and cleanup.
+UPDATE public.games
+SET status = 'APPROVED'
+WHERE id = current_setting('chronoledger.r13_game_id')::uuid;
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object(
+        'sub', current_setting('chronoledger.other_user_id'),
+        'role', 'authenticated',
+        'app_metadata', jsonb_build_object('role', 'admin')
+    )::text,
+    true
+);
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
+SET LOCAL ROLE authenticated;
+INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+VALUES (
+    current_setting('chronoledger.r13_game_id')::uuid,
+    'element',
+    '불',
+    'data:image/webp;base64,' || repeat('A', 32)
+);
+DO $$
+BEGIN
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (
+            current_setting('chronoledger.r13_game_id')::uuid,
+            'element',
+            '없는 옵션',
+            'data:image/webp;base64,' || repeat('A', 32)
+        );
+        RAISE EXCEPTION 'FAIL: R64 invalid classification option accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (
+            current_setting('chronoledger.r13_game_id')::uuid,
+            'element',
+            '물',
+            'https://example.invalid/icon.webp'
+        );
+        RAISE EXCEPTION 'FAIL: R64 non-WebP data URL accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (
+            current_setting('chronoledger.r13_game_id')::uuid,
+            'element',
+            '물',
+            'data:image/webp;base64,' || repeat('A', 20000)
+        );
+        RAISE EXCEPTION 'FAIL: R64 oversized icon accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+END;
+$$;
+RESET ROLE;
+
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM public.game_classification_icons
+        WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid
+          AND axis_key = 'element'
+          AND option_value = '불'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R64 approved-game anon read denied';
+    END IF;
+END;
+$$;
+RESET ROLE;
+
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object(
+        'sub', current_setting('chronoledger.other_user_id'),
+        'role', 'authenticated',
+        'app_metadata', jsonb_build_object('role', 'admin')
+    )::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+UPDATE public.games
+SET classification_schema = jsonb_set(classification_schema, '{axes,0,options}', '["물"]'::jsonb)
+WHERE id = current_setting('chronoledger.r13_game_id')::uuid;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM public.game_classification_icons
+        WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid
+          AND axis_key = 'element'
+          AND option_value = '불'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R64 removed classification option icon was not cleaned';
+    END IF;
+END;
+$$;
+RESET ROLE;
+\echo PASS: R64 classification option icon validation, approved guest read, admin write, and schema cleanup
+
 SET LOCAL ROLE anon;
 DO $$
 BEGIN
