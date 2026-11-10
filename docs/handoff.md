@@ -32,7 +32,7 @@
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 Run ID**: 없음 *(최근 완료 Run: `r63-character-favorite-sections`, `main` 병합 `478b137`)*
-- **운영 DB 반영**: `sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` 사용자 수동 적용·검증 완료함(2026-11-10). `R74`로 SQL 파일 권한 회수를 `FROM PUBLIC, anon`으로 보정함 → 운영 DB에 `REVOKE ALL ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) FROM PUBLIC, anon;` 1줄 추가 실행 필요(확인 쿼리 `sql/README.md`).
+- **운영 DB 반영**: `sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` 사용자 수동 적용·검증 완료함(2026-11-10). `R74`로 SQL 파일 권한 회수를 `FROM PUBLIC, anon`으로 보정함 → 운영 DB에 `REVOKE ALL ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) FROM PUBLIC, anon;` 1줄 운영 적용·확인 쿼리 `false, true` 검증 완료함(사용자, 2026-11-10).
 
 ### 🗂️ 이전 Run 기록 (완료): `r63-character-favorite-sections`
 

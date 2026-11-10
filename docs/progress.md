@@ -4,7 +4,7 @@
 - **수행 주체**: Claude Opus (`main` 직접 작업, 소규모 후속)임.
 - **변경**: `reorder_favorite_characters` 권한 회수를 `FROM PUBLIC, anon`으로 보정(`MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql`·`SCHEMA.sql`), `sql/README.md`에 권한 확인 쿼리 추가, 미사용 `sortCharactersFavoriteFirst`와 테스트 1건 삭제함.
 - **검증**: tsc·lint·diff-check 통과, Vitest 61파일/749개 통과함.
-- **⚠️ 사용자 조치**: 운영 DB가 이미 마이그레이션된 상태이므로 SQL Editor에서 `REVOKE ALL ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) FROM PUBLIC, anon;` 실행 후 확인 쿼리로 `false, true` 확인 필요함.
+- **운영 DB 반영**: 사용자가 SQL Editor에서 `REVOKE ALL ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) FROM PUBLIC, anon;` 실행, 확인 쿼리 `false, true` 검증 완료함.
 
 ## Run `r63-character-favorite-sections` 리뷰·`main` 병합 마감 (2026-11-10)
 
