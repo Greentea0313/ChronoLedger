@@ -1,0 +1,19 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r62-preset-workspace-desktop",
+    "created_at":  "2026-11-10T09:01:05.8673675+00:00",
+    "objective":  "R62 desktop (\u003e=900px) preset tab workspace: left owned-character sidebar, right inline preset editor with drag-and-drop and slot-then-avatar click placement, explicit save button; mobile keeps the current list + modal",
+    "acceptance_criteria":  [
+                                "Step 1: desktop split workspace with inline editing and explicit save, unsaved-change confirm on switching",
+                                "Step 1: HTML5 drag-and-drop from sidebar to slot and between slots; slot click then avatar click placement",
+                                "Step 1: pure slot placement helpers in character-utils with unit tests; slot limit and non-destructive shrink rules kept",
+                                "Step 1: below 900px the existing PresetList + PresetEditorDialog flow is unchanged",
+                                "Step 2: static review, tests, merge to main"
+                            ],
+    "base_sha":  "564b83bbc78fa011df81514b3ce878d3b5737faf",
+    "target_sha":  null,
+    "branch":  "collab/r62-preset-workspace-desktop",
+    "worktree_path":  ".worktrees/r62-preset-workspace-desktop",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
