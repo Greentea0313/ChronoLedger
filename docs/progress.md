@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 4 (R76 UI) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Maker (R76 UI)`)임.
+- **커밋 `25182e5`** (워크트리, 미병합): `@dnd-kit` 전체 프리셋 카드 그리드(손잡이 없이 아바타·카드 전체 드래그, 터치 길게 누르기), 단일 쓰기 큐 즉시 저장·실패 재조회, 모바일 하단 선택 창, 즐겨찾기 정렬 dnd-kit 전환. 구 작업 공간·목록·편집 창 제거함.
+- **Step 3 SQL 수정 `60109dd`**: `update_character_preset_slots`가 UUID 변환 버그로 항상 실패하던 문제와 첫 행만 잠그던 문제를 고침.
+- **검증**: tsc·lint·diff-check·build 통과, Vitest 64파일/777개 통과함. 실제 포인터·터치 드래그와 실브라우저 확인은 미수행임.
+- **다음 단계**: Step 5(`Claude Opus`, 통합 리뷰·병합) `▶ READY`임.
+
 ## Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 3 (R76 DB) 완료 (2026-11-10)
 
 - **수행 주체**: GPT Codex (`Maker (R76 DB)`)임.

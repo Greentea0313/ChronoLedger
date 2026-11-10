@@ -48,8 +48,8 @@
 | **1** | **`✅ DONE (SHA: f3fdd91)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Icon Modal)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`(+`page.test.tsx`, `page.classification-icons.test.tsx`), `src/lib/classification-icons.ts`(+테스트), `src/lib/image-resizer.ts`(+테스트, 헬퍼 공개·재인코딩 추가 시), `docs/spec/R64_Classification_Option_Icons_Spec.md`(§3.2 개정) | `✅ f3fdd91`: 분류 아이콘 등록 모달(URL·붙여넣기·파일, 64×64 재인코딩, 미리보기·취소·등록), R64 명세 §3.2 개정. tsc·lint·diff-check 통과, Vitest 전체 789개 통과 (아래 Step 1 완료 기록 참고) |
 | **2** | **`✅ DONE (SHA: 4821658)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R76 Spec)` | 아래 **Step 2 수용 기준** 수행 완료함. | `✅ 4821658`: [`R76_Preset_Grid_Editing_Spec.md`](spec/R76_Preset_Grid_Editing_Spec.md)(워크트리) 작성. 사용자 결정 4건 반영, DB 변경 필요 → Step 3 수행 (아래 Step 2 완료 기록 참고) |
 | **3** | **`✅ DONE (SHA: 0ad856e)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 DB)` | 명세서 §4 수행. 허용 파일(명세서 §10 확정): 신규 `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`. 운영 DB 미적용 | `✅ 0ad856e`: 빈 프리셋 0~12명 제약·삭제 정리 보존·슬롯 원자 RPC·프리셋 순서 RPC·스키마/README/테스트/타입 반영. tsc·lint·Vitest 153파일/1402개·diff-check 통과. `psql` 부재로 SQL 테스트 미실행함. |
-| **4** | **`▶ READY`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 UI)` | 아래 **Step 4 수용 기준** 수행(낙관적 갱신·비동기 경합 → Opus 승격 조건 ②). 허용 파일: 명세서 확정(예: `package.json`·`package-lock.json`, `src/app/dashboard/characters/page.tsx`(+테스트), `src/components/character/preset-*.tsx`(+테스트), `src/components/character/character-roster.tsx`, 신규 그리드·DnD 컴포넌트·훅(+테스트)) | - |
-| **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `f5807eb` ↔ Target(Step 4 커밋) 통합 정적 리뷰, 동적 검증, `main` 병합, 문서 마감, (DB 변경 시) 마이그레이션 수동 적용 안내 | - |
+| **4** | **`✅ DONE (SHA: 25182e5)`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 UI)` | 아래 **Step 4 수용 기준** 수행 완료함. 별도로 Step 3 RPC 버그를 고침(`60109dd`, Codex 1순위 대체) | `✅ 25182e5`: `@dnd-kit` 프리셋 카드 그리드·즉시 저장 큐·모바일 하단 선택 창·즐겨찾기 dnd-kit 전환, 구 작업 공간·목록·편집 창 제거. tsc·lint·diff-check·build 통과, Vitest 64파일/777개 통과 (아래 Step 4 완료 기록 참고) |
+| **5** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `f5807eb` ↔ Target(Step 4 커밋) 통합 정적 리뷰, 동적 검증, `main` 병합, 문서 마감, (DB 변경 시) 마이그레이션 수동 적용 안내 | - |
 
 #### 📌 `r76-r77-preset-grid-dnd-and-icon-modal` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -106,6 +106,24 @@
 - **변경**: 빈 프리셋을 허용하는 이름 있는 CHECK로 교체하고 캐릭터 삭제 시 마지막 캐릭터가 사라져도 프리셋 행을 유지함. `update_character_preset_slots(JSONB)` 원자 슬롯 변경 RPC와 `reorder_character_presets(UUID, UUID[])` 순서 저장 RPC를 추가하고 `SECURITY INVOKER`·authenticated 실행 권한만 부여함.
 - **검증**: `npm.cmd exec tsc -- --noEmit`, `npm.cmd run lint`, `npm.cmd run test -- --run`(153파일/1402개), `git diff --check` 통과함. `psql` 부재로 전용 Supabase SQL 테스트는 미실행함.
 - **운영 DB**: 마이그레이션은 운영 DB에 적용하지 않음. 다음 Step 4 UI 구현 후 Step 5 리뷰에서 수동 적용 안내함.
+
+#### 📝 `r76-r77-preset-grid-dnd-and-icon-modal` Step 4 완료 기록 (Claude Opus, 2026-11-10)
+
+- **Target SHA**: `25182e5` (워크트리 브랜치, 미병합)임. 앞선 커밋 `60109dd`에서 Step 3 SQL을 고침(아래).
+- **Step 3 RPC 버그 수정 (`60109dd`, GPT Codex 1순위 대체로 처리)**:
+  - `update_character_preset_slots`가 JSON 배열 원소를 `value::text::uuid`로 바꿔, 따옴표가 남은 문자열 때문에 **비어 있지 않은 배열이면 항상 실패**하던 문제를 `jsonb_array_elements_text(...)::uuid`(순서 보존)로 고침.
+  - `SELECT ... INTO ... FOR UPDATE`가 첫 행만 잠그던 부분을 `PERFORM ... ORDER BY id FOR UPDATE`(모든 대상 행 잠금)로 바꿈. 임시 테이블 없이 반복문으로 검증함. 마이그레이션·`SCHEMA.sql` 둘 다 반영함.
+  - `TESTS.sql`은 실DB 미실행 상태라 이 버그를 못 잡았음 → Step 5 리뷰 확인 대상임.
+- **신규 파일**:
+  - `src/lib/preset-board.ts`(+테스트 18개): 드래그 id·드롭 판정(명세 §3.3 표 전부)·이동 시 두 프리셋 변경·카드 순서·새 제목 번호.
+  - `src/lib/use-preset-board.ts`(+테스트 10개): 단일 FIFO 쓰기 큐, 낙관적 갱신, 실패 시 대기 작업 폐기·재조회(`40001` 전용 안내), 재조회 중 변경 무시, 미적용 폴백, 대기 중 이탈 경고.
+  - `src/lib/use-board-sensors.ts`: 마우스 6px·터치 200ms·키보드(스페이스 시작, Enter는 클릭용) 센서. 입력란·`data-no-dnd` 버튼에서는 드래그가 시작되지 않음. 즐겨찾기 정렬과 공유하려고 명세 §10 목록 밖에 추가함(Step 5 범위 확인 요청).
+  - `src/components/character/preset-board.tsx`, `preset-board-card.tsx`, `preset-character-picker.tsx`.
+- **화면**: ≥900px 사이드바(`편성됨` 표시, 클릭은 활성 프리셋에 추가, 사이드바에 놓으면 제거) + 2/3열 카드 그리드, <900px 사이드바 없이 빈 슬롯 → 하단 선택 창. 카드 제목·메모 인라인 편집, 앞으로/뒤로/삭제 버튼, 슬롯 X 버튼. `[+ 프리셋 추가]` 칸은 놓아도 아무 일 없는 영역으로 둬 실수로 제거되지 않게 함.
+- **제거**: `preset-workspace.tsx`(+테스트)·`preset-list.tsx`·`preset-editor-dialog.tsx`, 페이지의 미저장 경고·뷰포트 분기, `character-utils`의 구 프리셋 헬퍼 9개와 테스트, 즐겨찾기 R73 손잡이·HTML5 드래그.
+- **테스트**: 페이지 프리셋 테스트를 새 그리드 기준 16개로 교체함(사이드바 클릭 추가, 중복·상한 거부, X 제거로 빈 프리셋, `40001` 재조회, RPC 미적용 폴백, 빈 프리셋 생성·활성화, 제목·메모 인라인 저장·Esc 취소, 카드 순서 RPC, 삭제 확인, 오프라인, 슬롯 초과, 게임 전환 무경고, 모바일 선택 창). 즐겨찾기는 dnd-kit 정렬 구조와 짧은 클릭 시 설정 창 열림을 확인함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`, `next build`(placeholder env) 통과, Vitest 64파일/777개 통과함. 워크트리에 `npm install`로 자체 `node_modules`가 생김(npx 직접 실행 가능).
+- **미검증**: jsdom은 실제 포인터 드래그를 재현할 수 없어 **실제 드래그(마우스·터치·키보드)·DragOverlay·스크롤 중 드래그는 미확인**임. 로그인 계정이 필요해 실브라우저 확인도 못 함 → Step 5 사용자 수동 확인 필요함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r64-r72-r73-classification-icons-followups`
 
