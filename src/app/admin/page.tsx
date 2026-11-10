@@ -206,6 +206,8 @@ export default function AdminPage() {
   const [iconDialogFile, setIconDialogFile] = useState<File | null>(null)
   const [iconDialogPreview, setIconDialogPreview] = useState<string | null>(null)
   const iconPreviewSeqRef = useRef(0)
+  // Bumped to remount the file input, because a file input's displayed name cannot be cleared through React state.
+  const [iconFileInputKey, setIconFileInputKey] = useState(0)
 
   useEffect(() => {
     setIsAiUpscaleVisible(isDesktopAiUpscaleAvailable())
@@ -755,6 +757,7 @@ export default function AdminPage() {
     setIconDialogUrl("")
     setIconDialogFile(null)
     setIconDialogPreview(null)
+    setIconFileInputKey((key) => key + 1)
     setIconDialog({ axisKey, axisLabel, option })
   }
 
@@ -785,6 +788,7 @@ export default function AdminPage() {
     event.preventDefault()
     setIconDialogUrl("")
     setIconDialogSelectedFile(file)
+    setIconFileInputKey((key) => key + 1)
   }
 
   const handleSubmitIconDialog = async () => {
@@ -2766,10 +2770,11 @@ export default function AdminPage() {
                 id="classification-icon-url"
                 value={iconDialogUrl}
                 onPaste={handleIconDialogPaste}
-                onChange={(event) => { setIconDialogUrl(event.target.value); setIconDialogSelectedFile(null) }}
+                onChange={(event) => { setIconDialogUrl(event.target.value); setIconDialogSelectedFile(null); setIconFileInputKey((key) => key + 1) }}
                 placeholder="https://... 또는 이미지 붙여넣기"
               />
               <Input
+                key={iconFileInputKey}
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 aria-label="분류 아이콘 이미지 파일"

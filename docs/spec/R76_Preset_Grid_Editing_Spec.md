@@ -160,7 +160,7 @@
 ## 7. Favorite Roster (R63) Migration to @dnd-kit
 
 - The favorites section of `CharacterRoster` becomes a `SortableContext` (`rectSortingStrategy`) with whole-card drag (no handle), same sensors as §3.1, saved through the existing `reorder_favorite_characters` RPC (unchanged).
-- Click/tap on a card still opens the settings dialog; the existing move buttons in the dialog (keyboard alternative) remain.
+- Click/tap on a card still opens the settings dialog. The previous `←`/`→` move buttons are removed (user decision 2026-11-10); the keyboard alternative is the dnd-kit `KeyboardSensor` on the card's settings button (Space picks up, arrows move, Space drops, Escape cancels; Enter opens the dialog).
 - R73 `GripVertical` handles and HTML5 drag code are removed from `character-roster.tsx`.
 
 ## 8. Removed / Replaced Code
@@ -180,4 +180,4 @@
 ## 10. Step Scope (allowed files)
 
 - **Step 3 (GPT Codex, DB)**: new `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`. Not applied to production.
-- **Step 4 (Claude Opus, UI)**: `package.json`, `package-lock.json`, `src/app/dashboard/characters/page.tsx` (+ `page.test.tsx`), `src/components/character/character-roster.tsx`, `src/components/character/preset-workspace.tsx` / `preset-list.tsx` / `preset-editor-dialog.tsx` (+ tests, removal), `src/lib/character-utils.ts` (+ test), new `src/components/character/preset-board*.tsx`, `src/components/character/preset-character-picker.tsx`, `src/lib/preset-board.ts`, `src/lib/use-preset-board.ts` (+ tests).
+- **Step 4 (Claude Opus, UI)**: `package.json`, `package-lock.json`, `src/app/dashboard/characters/page.tsx` (+ `page.test.tsx`), `src/components/character/character-roster.tsx`, `src/components/character/preset-workspace.tsx` / `preset-list.tsx` / `preset-editor-dialog.tsx` (+ tests, removal), `src/lib/character-utils.ts` (+ test), new `src/components/character/preset-board*.tsx`, `src/components/character/preset-character-picker.tsx`, `src/lib/preset-board.ts`, `src/lib/use-preset-board.ts` (+ tests), `src/lib/use-board-sensors.ts` (shared pointer/touch/keyboard sensors for the preset board and the favorite-roster sort; accepted in the Step 5 review).

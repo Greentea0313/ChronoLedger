@@ -1,10 +1,10 @@
 "use client"
 
-import { useMemo, useRef, useState, type ReactNode } from "react"
+import { useMemo, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react"
 import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowLeft, ArrowRight, ImagePlus, Loader2, RotateCcw, Star } from "lucide-react"
+import { ImagePlus, Loader2, RotateCcw, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -31,13 +31,28 @@ import { CharacterFilterBar } from "./character-filter-bar"
 import { CharacterIcon } from "./character-icon"
 import { ClassificationOptionIcon, type ClassificationIconMap } from "./classification-option-icon"
 
-/** A favorite card: the whole card is the drag source (R76 §7); disabled while ordering is unavailable. */
-function SortableFavorite({ id, disabled, owned, children }: { id: string; disabled: boolean; owned: boolean; children: ReactNode }) {
-  const { setNodeRef, listeners, transform, transition, isDragging, isOver } = useSortable({ id, disabled })
+/** Drag props spread on the favorite card's settings button (mouse, touch and keyboard drag start there). */
+type FavoriteDragProps = ButtonHTMLAttributes<HTMLButtonElement>
+
+/**
+ * A favorite card: the whole card (its settings button) is the drag source (R76 §7, no handle, no move buttons).
+ * Keyboard: Space picks up, arrows move, Space drops, Escape cancels; Enter opens the settings dialog.
+ */
+function SortableFavorite({
+  id,
+  disabled,
+  owned,
+  children,
+}: {
+  id: string
+  disabled: boolean
+  owned: boolean
+  children: (dragProps: FavoriteDragProps) => ReactNode
+}) {
+  const { setNodeRef, attributes, listeners, transform, transition, isDragging, isOver } = useSortable({ id, disabled })
   return (
     <li
       ref={setNodeRef}
-      {...listeners}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       data-testid="character-card"
       data-owned={owned ? "true" : "false"}
@@ -49,7 +64,7 @@ function SortableFavorite({ id, disabled, owned, children }: { id: string; disab
         isOver && !isDragging && "bg-primary/10",
       )}
     >
-      {children}
+      {children(disabled ? {} : ({ ...attributes, ...listeners } as FavoriteDragProps))}
     </li>
   )
 }
@@ -59,18 +74,29 @@ function SortableWrapper({
   enabled,
   sensors,
   ids,
+  onDragStart,
   onDragEnd,
   children,
 }: {
   enabled: boolean
   sensors: ReturnType<typeof useBoardSensors>
   ids: string[]
-  onDragEnd: (event: DragEndEvent) => void
+  onDragStart: () => void
+  onDragEnd: (event: DragEndEvent | null) => void
   children: ReactNode
 }) {
   if (!enabled) return <>{children}</>
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragCancel={() => onDragEnd(null)}
+      accessibility={{
+        screenReaderInstructions: { draggable: "스페이스로 집고 방향키로 옮긴 뒤 스페이스로 놓습니다. Esc로 취소합니다. Enter로 설정을 엽니다." },
+      }}
+    >
       <SortableContext items={ids} strategy={rectSortingStrategy}>
         {children}
       </SortableContext>
@@ -307,8 +333,9 @@ export function CharacterRoster({
   const [filters, setFilters] = useState<CharacterFilters>(EMPTY_CHARACTER_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const sensors = useBoardSensors({ keyboard: false })
-  // A click that ends a mouse drag must not also open the settings dialog.
+  const sensors = useBoardSensors()
+  // A click that ends a drag (mouse up, or the keyup after a Space pick-up/drop) must not open the settings dialog.
+  const draggingRef = useRef(false)
   const lastDragEndRef = useRef(0)
 
   const sections = useMemo(
@@ -327,12 +354,16 @@ export function CharacterRoster({
     if (!canReorder || from < 0 || to < 0 || from === to) return
     onReorderFavorites?.(moveFavoriteCharacter(allFavoriteIds, from, to))
   }
-  const handleFavoriteDragEnd = ({ active, over }: DragEndEvent) => {
+  const handleFavoriteDragStart = () => {
+    draggingRef.current = true
+  }
+  const handleFavoriteDragEnd = (event: DragEndEvent | null) => {
+    draggingRef.current = false
     lastDragEndRef.current = Date.now()
-    if (over) moveFavorite(String(active.id), String(over.id))
+    if (event?.over) moveFavorite(String(event.active.id), String(event.over.id))
   }
   const openSettings = (characterId: string) => {
-    if (Date.now() - lastDragEndRef.current < 300) return
+    if (draggingRef.current || Date.now() - lastDragEndRef.current < 300) return
     setSelectedId(characterId)
   }
   const selected = useMemo(() => characters.find((character) => character.id === selectedId) ?? null, [characters, selectedId])
@@ -377,73 +408,43 @@ export function CharacterRoster({
                   enabled={reorderable}
                   sensors={sensors}
                   ids={items.map((character) => character.id)}
+                  onDragStart={handleFavoriteDragStart}
                   onDragEnd={handleFavoriteDragEnd}
                 >
                 <ul
                   className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"
                   data-testid={`roster-list-${key}`}
                 >
-                  {items.map((character, index) => {
+                  {items.map((character) => {
                     const state = states[character.id]
                     const isOwned = state?.is_owned ?? false
-                    const previous = items[index - 1]
-                    const next = items[index + 1]
-                    const content = (
-                      <>
-                          <button
-                            type="button"
-                            aria-label={`${character.name} 설정`}
-                            onClick={() => openSettings(character.id)}
-                            className="flex w-full flex-col items-center gap-1 rounded-lg p-1 transition-colors duration-fast hover:bg-surface-2 [&_img]:pointer-events-none"
-                          >
-                            <CharacterIcon
-                              name={character.name}
-                              customIconUrl={customIconUrls[character.id]}
-                              defaultIconUrl={character.default_icon_url}
-                              dimmed={!isOwned}
-                              favorite={isOwned && (state?.is_favorite ?? false)}
-                              breakthroughLevel={isOwned ? (state?.breakthrough_level ?? 0) : null}
-                              className="h-14 w-14"
-                            />
-                            <span className="w-full truncate text-center text-xs text-content">{character.name}</span>
-                          </button>
-                          {reorderable && (
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                type="button"
-                                data-no-dnd
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                disabled={!canReorder || !previous}
-                                aria-label={`${character.name} 앞으로 이동`}
-                                onClick={() => previous && moveFavorite(character.id, previous.id)}
-                              >
-                                <ArrowLeft className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                data-no-dnd
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                disabled={!canReorder || !next}
-                                aria-label={`${character.name} 뒤로 이동`}
-                                onClick={() => next && moveFavorite(character.id, next.id)}
-                              >
-                                <ArrowRight className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          )}
-                      </>
+                    const renderCard = (dragProps: FavoriteDragProps = {}) => (
+                      <button
+                        type="button"
+                        {...dragProps}
+                        aria-label={`${character.name} 설정`}
+                        onClick={() => openSettings(character.id)}
+                        className="flex w-full flex-col items-center gap-1 rounded-lg p-1 outline-none transition-colors duration-fast hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-primary [&_img]:pointer-events-none"
+                      >
+                        <CharacterIcon
+                          name={character.name}
+                          customIconUrl={customIconUrls[character.id]}
+                          defaultIconUrl={character.default_icon_url}
+                          dimmed={!isOwned}
+                          favorite={isOwned && (state?.is_favorite ?? false)}
+                          breakthroughLevel={isOwned ? (state?.breakthrough_level ?? 0) : null}
+                          className="h-14 w-14"
+                        />
+                        <span className="w-full truncate text-center text-xs text-content">{character.name}</span>
+                      </button>
                     )
                     return reorderable ? (
                       <SortableFavorite key={character.id} id={character.id} disabled={!canReorder} owned={isOwned}>
-                        {content}
+                        {renderCard}
                       </SortableFavorite>
                     ) : (
                       <li key={character.id} data-testid="character-card" data-owned={isOwned ? "true" : "false"} className="relative rounded-lg">
-                        {content}
+                        {renderCard()}
                       </li>
                     )
                   })}

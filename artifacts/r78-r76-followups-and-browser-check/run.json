@@ -1,0 +1,18 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r78-r76-followups-and-browser-check",
+    "created_at":  "2026-11-10T14:25:18.2953972+00:00",
+    "objective":  "R78 follow-ups from the R76 review (TESTS.sql R76 coverage, R77 file input reset, spec scope note) and the user\u0027s real-browser verification of the merged R76 preset board and R77 icon modal.",
+    "acceptance_criteria":  [
+                                "Step 1 (SQL tests): TESTS.sql R76 block covers every spec 4.5 case (cross-preset move success and atomicity, another user\u0027s preset 40001, non-move two-row change 22023, different games, 3 objects, duplicate in target, reorder missing/extra/foreign ids); no schema change.",
+                                "Step 2 (UI/docs): the R77 icon dialog clears the native file input when a URL is typed or an image is pasted, with a test; R76 spec section 10 records src/lib/use-board-sensors.ts.",
+                                "Step 3 (review/closeout): Base..Target static review, user real-browser check results (Chrome, Firefox, touch device, keyboard, 900px/1280px, favorite reorder, R77 dialog) recorded; accidental mobile removals or broken keyboard drag become new to-do items.",
+                                "Every Maker step passes tsc --noEmit, npm run lint, git diff --check and the full Vitest suite."
+                            ],
+    "base_sha":  "3c71e9ca584dd008caee4c45fa8fb1af3cb7a1df",
+    "target_sha":  "e2d1de9e5efbea9aec717c2fa3ff6bf4d7525faf",
+    "branch":  "collab/r78-r76-followups-and-browser-check",
+    "worktree_path":  ".worktrees/r78-r76-followups-and-browser-check",
+    "max_iterations":  3,
+    "status":  "completed"
+}

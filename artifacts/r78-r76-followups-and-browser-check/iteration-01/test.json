@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "run_id": "r78-r76-followups-and-browser-check",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "3c71e9ca584dd008caee4c45fa8fb1af3cb7a1df",
+  "target_sha": "e2d1de9e5efbea9aec717c2fa3ff6bf4d7525faf",
+  "status": "passed",
+  "created_at": "2026-11-10T15:20:00Z",
+  "finished_at": "2026-11-10T15:35:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check 3c71e9ca584dd008caee4c45fa8fb1af3cb7a1df e2d1de9e5efbea9aec717c2fa3ff6bf4d7525faf", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "node ../../node_modules/typescript/bin/tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "node ../../node_modules/next/dist/bin/next lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (64 files, 783 tests)", "command": "node ../../node_modules/vitest/vitest.mjs run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder Supabase env", "command": "node ../../node_modules/next/dist/bin/next build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TESTS.sql against a disposable database (psql and a disposable Supabase database are not available)", "command": "psql -f sql/tests/TESTS.sql", "status": "skipped", "exit_code": null, "log_path": null },
+    { "name": "Real-browser recheck of the drag preview position, stacked sidebar filters, favorite drag without move buttons and the R77 file input reset (requires a signed-in account)", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}

@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import {
   DndContext,
   DragOverlay,
@@ -169,6 +170,10 @@ export function PresetBoard({ gameId, presets, maxSlots, characters, schema, sta
   const [activeId, setActiveId] = useState<string | null>(null)
   const [dragId, setDragId] = useState<UniqueIdentifier | null>(null)
   const [pickerPresetId, setPickerPresetId] = useState<string | null>(null)
+  // The drag preview is portaled to <body>: a transformed ancestor (the page's animate-fade-in keeps
+  // transform after the animation) would otherwise become the containing block of its position: fixed.
+  const [portalReady, setPortalReady] = useState(false)
+  useEffect(() => setPortalReady(true), [])
   // A click that ends a mouse drag must not also add/open anything.
   const lastDragEndRef = useRef(0)
 
@@ -249,12 +254,16 @@ export function PresetBoard({ gameId, presets, maxSlots, characters, schema, sta
   const dragged = parseBoardId(dragId)
   const overlay =
     dragged && (dragged.type === "side" || dragged.type === "slot") ? (
-      <CharacterIcon
-        name={nameOf(dragged.characterId)}
-        customIconUrl={customIconUrls[dragged.characterId]}
-        defaultIconUrl={characterById.get(dragged.characterId)?.default_icon_url}
-        className="h-12 w-12 shadow-lg"
-      />
+      // Same box as the source avatar (icon centered above the name) so the preview sits under the pointer.
+      <div className="flex cursor-grabbing flex-col items-center gap-1 p-1 text-[11px] text-content" data-testid="board-drag-overlay">
+        <CharacterIcon
+          name={nameOf(dragged.characterId)}
+          customIconUrl={customIconUrls[dragged.characterId]}
+          defaultIconUrl={characterById.get(dragged.characterId)?.default_icon_url}
+          className="h-12 w-12 shadow-lg"
+        />
+        <span className="w-full truncate text-center">{nameOf(dragged.characterId)}</span>
+      </div>
     ) : dragged?.type === "card" ? (
       <div className="w-56 rounded-lg border border-primary bg-surface p-3 text-sm font-semibold text-content shadow-lg">{titleOf(dragged.presetId)}</div>
     ) : null
@@ -323,7 +332,7 @@ export function PresetBoard({ gameId, presets, maxSlots, characters, schema, sta
         <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]" data-testid="preset-board-layout">
           <Sidebar>
             <h3 className="text-sm font-semibold text-content">캐릭터</h3>
-            <CharacterFilterBar idPrefix="board" characters={characters} schema={schema} filters={filters} onChange={setFilters} />
+            <CharacterFilterBar idPrefix="board" stacked characters={characters} schema={schema} filters={filters} onChange={setFilters} />
             {CHARACTER_SECTIONS.map(({ key, label }) => {
               const items = sections[key]
               if (items.length === 0) return null
@@ -353,7 +362,7 @@ export function PresetBoard({ gameId, presets, maxSlots, characters, schema, sta
       ) : (
         grid
       )}
-      <DragOverlay>{overlay}</DragOverlay>
+      {portalReady && createPortal(<DragOverlay>{overlay}</DragOverlay>, document.body)}
       <PresetCharacterPicker
         preset={isDesktop ? null : pickerPreset}
         maxSlots={maxSlots}
