@@ -433,9 +433,9 @@ export function CharacterRoster({
                           dimmed={!isOwned}
                           favorite={isOwned && (state?.is_favorite ?? false)}
                           breakthroughLevel={isOwned ? (state?.breakthrough_level ?? 0) : null}
-                          className="h-14 w-14"
+                          className="h-16 w-16"
                         />
-                        <span className="w-full truncate text-center text-xs text-content">{character.name}</span>
+                        <span className="w-full truncate text-center text-sm text-content">{character.name}</span>
                       </button>
                     )
                     return reorderable ? (
