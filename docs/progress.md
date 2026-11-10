@@ -1,4 +1,17 @@
 # 프로젝트 진행 현황
+## r60-ai-icon-upscaler iteration-01 통합 리뷰 (Step 2, 2026-11-10)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator)임.
+- **리뷰 범위**: Base `a908144` ↔ Target `f177a96`(PC AI 아이콘 업스케일러)임.
+- **지적 사항 (`findings`)**:
+  - `R60-REV-001` (P1): `npm run build` 실패 — `onnxruntime-web`의 Node 엔트리(`ort.node.min.mjs`)를 Terser가 처리하지 못함. 병합 시 배포 전체가 깨짐.
+  - `R60-REV-002` (P2): 기본 ORT 번들에 `webgl` 백엔드가 없어 세션 생성이 항상 실패하고 폴백됨.
+  - `R60-REV-003` (P2): `/models/waifu2x.onnx` 모델 파일·출처·라이선스·입출력 계약 없음.
+  - `R60-REV-004` (P3): 변환 중 저장 버튼 미차단, `R60-REV-005` (P3): 알파 채널 손실, `R60-REV-006` (P4): 세션 재사용·토글 노출 조건.
+- **검증**: tsc·lint·`git diff --check` 통과, Vitest 58파일/670개 통과, `npm run build` 실패함. 산출물 커밋 `d430a31`임.
+- **사용자 결정**: 기능 유지·완성 선택함. 배포 제약(Cloudflare Pages 파일당 25 MiB)상 wasm 전용 ORT 번들만 사용 가능함.
+- **다음 단계**: Step 3 iteration-02 완성(**Claude Opus** `▶ READY`, Fallback: GitHub Copilot / Claude Sonnet) → Step 4 재리뷰(**Gemini 4 Argon**, 빌드 검증 포함)임. `main` 병합 보류임.
+
 ## R60 Step 1 Maker 완료 (2026-11-10)
 
 - `r60-ai-icon-upscaler` Worktree에서 `f177a96` 커밋 완료함.

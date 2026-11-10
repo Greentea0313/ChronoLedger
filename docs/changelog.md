@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-10 (r60-ai-icon-upscaler iteration-01 리뷰)
+
+- Base `a908144` ↔ Target `f177a96` 리뷰 결과 `findings` 판정함(빌드 실패 P1, 백엔드·모델 부재 P2 2건, P3 2건, P4 1건). `artifacts/r60-ai-icon-upscaler/` 산출물 커밋 `d430a31`.
+- 사용자 결정에 따라 기능을 유지·완성하는 iteration-02(Step 3 Claude Opus, Step 4 Gemini 4 Argon) 수용 기준을 Dispatch Queue에 등록함.
+
 ## 2026-11-10 (R60 Step 1 AI 아이콘 업스케일러)
 
 - `onnxruntime-web`을 동적 로딩하는 PC 전용 아이콘 업스케일러를 추가함.

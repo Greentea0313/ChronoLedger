@@ -47,7 +47,9 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: f177a96cf672486815ab3625e25e2b98e6a4a72c)`** | ~~Claude Sonnet~~ *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (PC AI Icon Upscaler)` | `R60` Step 1: 동적 ONNX 업스케일러·기존 리사이저 폴백·관리자/요청 UI 연동·단위 테스트 구현. 허용 파일: `src/lib/image-upscaler.ts`, `src/lib/image-upscaler.test.ts`, `src/app/admin/page.tsx`, `src/components/game/request-submission-modal.tsx`, `package.json`, `package-lock.json`, `docs/to-do.md` | `✅ f177a96: onnxruntime-web 동적 import, PC/WebGL/WASM·256px 미만 감지, 모바일·미지원·모델 실패 시 기존 리사이저 폴백, 관리자·요청 모달 기본 ON 토글·로딩 상태 연결. tsc/lint/Vitest 58파일·670개/diff-check 통과. `/models/waifu2x.onnx` 배포 자산 및 모델 입출력 계약은 리뷰에서 확인 필요함.` |
-| **2** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `a908144` ↔ Target `f177a96` 통합 정적 리뷰, 업스케일러 번들 분리·폴백·브라우저 경계 검증, `run.json`·`review.json`·`test.json` 마감 및 `main` 병합 | `▶ Step 1 완료. `/models/waifu2x.onnx` 자산 포함 여부와 모델 입력·출력 계약을 우선 확인함.` |
+| **2** | **`✅ DONE (iteration-01 리뷰 findings, 산출물 SHA: d430a31)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `a908144` ↔ Target `f177a96` 통합 정적 리뷰, 빌드·번들·폴백 검증 | `✅ d430a31: findings — R60-REV-001 P1 next build 실패(onnxruntime-web Node 엔트리 ort.node.min.mjs를 Terser가 처리 못함), REV-002 P2 기본 ORT 번들에 webgl 백엔드 없음(항상 폴백), REV-003 P2 /models/waifu2x.onnx 자산·출처·입출력 계약 부재, REV-004 P3 변환 중 저장 미차단, REV-005 P3 알파 채널 손실, REV-006 P4 세션 재사용·토글 노출 조건. tsc/lint/Vitest 58파일·670개 통과, build 실패(test.json failed). main 병합 보류. 사용자 결정(2026-11-10): 기능 유지·완성.` |
+| **3** | **`▶ READY`** | **Claude Opus** *(GitHub Copilot 1순위 대체 / Claude Sonnet 2순위 대체)* | `Maker (iteration-02 Upscaler Completion)` | 아래 Step 3 수용 기준(`R60-REV-001`~`006` + 모델·런타임 자산). 허용 파일: `src/lib/image-upscaler.ts`·테스트, `src/app/admin/page.tsx`·테스트, `src/components/game/request-submission-modal.tsx`·테스트, `next.config.*`, `package.json`, `package-lock.json`, `public/models/**`, `public/ort/**`, `public/sw.js`, `docs/upscaler-model.md`(신규), `docs/to-do.md` | `▶ 대기: iteration-01 review.json(d430a31) 참조` |
+| **4** | **`⏳ WAITING`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Sonnet 2순위 대체)* | `Reviewer & Orchestrator` | Base `a908144` ↔ Step 3 Target iteration-02 재리뷰(**`npm run build` 포함**), `run.json` 마감, `main` 병합 | `⏳ Step 3 완료 후 진행` |
 
 #### 📌 `r60-ai-icon-upscaler` 배경 및 단계별 수용 기준 (Acceptance Criteria)
 
@@ -59,6 +61,16 @@
   4. 추론 중 로딩 인디케이터를 표시하고 입력 폼 중복 제출을 방지함.
   5. 업스케일 결과를 256×256 WebP로 변환하며 기존 아이콘 업로드·요청 흐름을 보존함.
   6. 단위 테스트로 저해상도 감지, PC 기본 ON, 모바일/미지원/실패 폴백, 동적 import 경계를 검증하고 tsc·lint·Vitest·diff-check를 통과함.
+- **iteration-01 리뷰 결과 및 사용자 결정 (2026-11-10)**: 리뷰 `findings`(`artifacts/r60-ai-icon-upscaler/iteration-01/review.json`, `d430a31`)로 병합 보류함. 사용자가 기능 **유지·완성**을 선택함.
+- **Step 3 수용 기준 (iteration-02, Claude Opus)**:
+  1. **빌드 복구 (`R60-REV-001`, P1)**: `npm run build`(정적 export)가 통과해야 함. 서버 컴파일이 `onnxruntime-web`의 Node 엔트리를 끌어오지 않도록 처리하고(예: 서버 쪽 webpack `externals`/alias, 또는 `public/ort/`에 둔 브라우저 ESM을 `webpackIgnore` 동적 import로 로드), 초기 라우트 번들에 ORT가 포함되지 않음을 빌드 산출물로 확인함.
+  2. **런타임 백엔드 (`R60-REV-002`, P2)**: WebGPU 겸용 `jsep` wasm(29.5 MB)은 Cloudflare Pages 파일당 25 MiB 한도를 넘으므로 사용하지 않음. wasm 전용 번들(`onnxruntime-web/wasm`, `ort-wasm-simd-threaded.wasm` 14.8 MB)과 `executionProviders: ["wasm"]`를 사용하고 `ort.env.wasm.wasmPaths`를 정적 경로로 지정함. 사용 가능 판정은 WebGL이 아닌 WebAssembly 기준으로 바꿈. 요청 백엔드를 검증하는 테스트를 추가함.
+  3. **모델 자산 (`R60-REV-003`, P2)**: 상업적 사용이 허용되는 라이선스(MIT/BSD/Apache 계열)의 2배 업스케일 ONNX 모델(waifu2x 계열 우선, 단일 파일 25 MiB 미만)을 `public/models/`에 포함함. `docs/upscaler-model.md`에 출처 URL·라이선스·파일 크기·SHA-256·입력/출력 계약(텐서 이름, NCHW/NHWC, 값 범위 0~1, 배율, 패딩·가장자리 처리)을 기록하고, 코드가 그 계약대로 전처리·후처리함. 작은 고정 텐서로 계약을 검증하는 테스트를 추가함. 적합한 모델을 확정하지 못하면 `🛑 BLOCKED`로 사용자에게 후보와 함께 보고함.
+  4. **중복 제출 방지 (`R60-REV-004`, P3)**: 변환 중(`isProcessingIcon`)에는 관리자·요청 모달의 저장/제출 버튼을 비활성화하고 제출 핸들러에서도 조기 반환함(테스트 포함).
+  5. **투명도 보존 (`R60-REV-005`, P3)**: 알파 채널을 별도로 확대해 결합하거나, 투명 픽셀이 있는 이미지는 AI 경로를 건너뜀(테스트 포함).
+  6. **자원·노출 (`R60-REV-006`, P4)**: 세션을 1회 생성해 재사용함. 토글은 선택한 파일이 256px 미만으로 판정된 경우에만 표시함.
+  7. **캐시·배포**: `public/sw.js`가 `/ort/`·`/models/` 대용량 파일을 셸 캐시에 넣지 않도록 제외함(필요 시 `SHELL_CACHE` 버전 갱신). 기존 아이콘 업로드·요청 흐름과 256×256 WebP 결과를 유지함.
+  8. **검증**: `npm run build`, `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src`, `git diff --check` 통과 후 워크트리에 커밋하고 Target SHA를 기록, Step 4를 `▶ READY`로 전환함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r57-character-template-gate-and-validation`
 
