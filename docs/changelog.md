@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Run `r62-preset-workspace-desktop` 마감, `main` 병합 `e8d9b41`)
+
+- R62: 900px 이상에서 `조합 프리셋` 탭을 `PresetWorkspace`(좌측 보유 캐릭터 사이드바, 우측 프리셋 목록·인라인 편집, HTML5 드래그·슬롯 클릭 배치, `저장`·`되돌리기`, 미저장 경고)로 표시함. 900px 미만은 기존 목록 + 모달 유지.
+- `character-utils.ts`에 `placeCharacterInSlot`·`moveCharacterToSlot`, 신규 `use-media-query.ts` 추가함.
+- 리뷰 산출물 `iteration-01/review.json`(P4 1건)·`test.json` 기록, to-do `R73` 추가함.
+
 ## 2026-11-10 (Run `r62-preset-workspace-desktop` Step 1 — R62, `ffd07b9`)
 
 - 화면 너비 900px 이상에서 `조합 프리셋` 탭을 `PresetWorkspace`(좌측 보유 캐릭터 사이드바·필터 + 우측 프리셋 목록·인라인 편집)로 표시함. 900px 미만은 기존 목록·모달 흐름 유지함.

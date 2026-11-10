@@ -1,4 +1,14 @@
 # 프로젝트 진행 현황
+## Run `r62-preset-workspace-desktop` 리뷰·`main` 병합 마감 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Step 2 Reviewer & Orchestrator)임. Maker는 Claude Sonnet(`ffd07b9`)이라 교차 리뷰됨.
+- **보존 조치**: Sonnet 세션이 `main`에 남긴 미커밋 Step 1 완료 문서를 `fefe1a4`로 커밋해 보존함.
+- **결과**: Base `564b83b` ↔ Target `ffd07b9` 판정 `findings`(P4 1건, 비차단), 산출물 `d273032`, `main` 병합 `e8d9b41` 완료함.
+  - PC(900px 이상) 프리셋 작업 공간(좌측 사이드바·우측 인라인 편집·드래그/슬롯 클릭 배치·저장 버튼·미저장 경고)과 900px 미만 기존 모달 흐름 유지 확인함.
+  - `R62-REV-001`(P4): Firefox의 버튼 드래그 시작 여부 실브라우저 확인 필요 → to-do `R73`.
+- **검증**: tsc·lint·Vitest 61파일/733개·diff-check·정적 export 빌드 통과(병합 후 `main` 재확인)함. 개발 서버 실사용 확인은 로그인 필요로 미수행임.
+- **다음 단계**: R63(즐겨찾기 3구역·순서 DB 저장, DB 변경) Run 등록 권장함.
+
 ## Run `r62-preset-workspace-desktop` Step 1 (R62 PC 프리셋 작업 공간 Maker) 완료 (2026-11-10)
 
 - **수행 주체**: Claude Sonnet (`Maker (Desktop Preset Workspace)`)임.

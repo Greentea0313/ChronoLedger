@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r62-preset-workspace-desktop` *(`R62` PC(900px 이상) 프리셋 탭 좌측 보유 캐릭터 사이드바 + 우측 인라인 프리셋 편집, 드래그·슬롯 클릭 배치, 저장 버튼)*
+- **활성 Run ID**: 없음 *(최근 완료 Run: `r62-preset-workspace-desktop`, `main` 병합 `e8d9b41`)* — 직전 Run 요약: *(`R62` PC(900px 이상) 프리셋 탭 좌측 보유 캐릭터 사이드바 + 우측 인라인 프리셋 편집, 드래그·슬롯 클릭 배치, 저장 버튼)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r62-preset-workspace-desktop` (브랜치: `collab/r62-preset-workspace-desktop`, manifest `07748d1`)
 - **Base SHA**: `564b83bbc78fa011df81514b3ce878d3b5737faf`
@@ -41,7 +41,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: ffd07b9)`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Desktop Preset Workspace)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `src/components/character/preset-list.tsx`, `src/components/character/preset-editor-dialog.tsx`(공용 슬롯 UI 추출 시에만), 신규 `src/components/character/preset-workspace.tsx`(+`.test.tsx`), 신규 `src/components/character/preset-slot-editor.tsx`(공용 추출 시), `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, 신규 `src/lib/use-media-query.ts`(+테스트) | `✅ ffd07b9`: R62 반영. 신규 `preset-workspace.tsx`·`use-media-query.ts`, `character-utils.ts`에 `placeCharacterInSlot`·`moveCharacterToSlot` 추가, `page.tsx` 900px 분기·미저장 경고 연동. `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 61파일/733개 통과 (아래 Step 1 완료 기록 참고) |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `564b83b` ↔ Step 1 Target 통합 정적 리뷰(`iteration-01/review.json`·`test.json`), tsc·lint·Vitest·diff-check, 가능하면 개발 서버에서 PC·모바일 너비 수동 확인, `main` 병합 및 문서 마감 | `▶ Base 564b83b ↔ Target ffd07b9 통합 정적 리뷰 착수` |
+| **2** | **`✅ DONE (main 병합: e8d9b41)`** | ~~Gemini 4 Argon~~ ➡️ **Claude Opus** *(1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `564b83b` ↔ Target `ffd07b9` 통합 정적 리뷰, 동적 검증, `main` 병합 및 문서 마감 | `✅ findings(P4 1건, 비차단)`: `R62-REV-001` Firefox에서 `<button draggable>` 드래그 시작 여부 실브라우저 확인 필요(클릭 배치로 기능 대체 가능) → to-do `R73`. tsc·lint·Vitest 61파일/733개·diff-check·정적 export 빌드 통과, 변경 파일 허용 범위 내. 개발 서버 실사용 확인은 로그인 필요로 미수행. 산출물 `d273032`(ajv 스키마 검증 통과, `run.json` `completed`) |
 
 #### 📌 `r62-preset-workspace-desktop` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -402,7 +402,7 @@
   - R63: 보유 캐릭터만 즐겨찾기(기존 미보유 즐겨찾기 해제), 순서 DB 저장, 프리셋 선택 목록에도 3구역 적용 — DB 변경, Opus 승격 조건 ①.
   - R64: 분류 옵션만, 필터 칩·캐릭터 설정 창·관리자 캐릭터 목록 표시, 별도 테이블 — 명세 선행.
   - R66: 템플릿 없는 게임에서만 기존 `[+ (명칭) 추가]` 자리에 `[+ 캐릭터 추가]`(픽업 전용 생성).
-- **다음 단계**: ① R61·R65·R66 완료(`main` 병합 `9962a21`) → ② R62 Run `r62-preset-workspace-desktop` 등록됨(Step 1 `▶ READY`) → ③ R63 DB+UI → ④ R64 명세 후 구현.
+- **다음 단계**: ① R61·R65·R66 완료(`main` 병합 `9962a21`) → ② R62 완료(`main` 병합 `e8d9b41`) → ③ R63 DB+UI → ④ R64 명세 후 구현.
 - **같은 날 `main` 직접 반영 (소규모 UI)**: R67 `46393eb`, R68 `d67921e`, R69 `f99e4fb`, R70 `f93ff31`.
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
