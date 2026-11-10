@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-11 (Run `r79-sql-tests-local-run` Step 1 — `f13087d`, 미병합)
+
+- `sql/tests/TESTS.sql`이 로컬 Supabase에서 처음으로 끝까지 통과함(38개 블록). 사용자 전환 누락, 삭제 대기 상태 잔존, `\gset` 오타 등 테스트 버그 3건을 고침.
+- `sql/README.md`에 Docker·Supabase CLI로 로컬에서 테스트를 반복 실행하는 절차를 추가함.
+
 ## 2026-11-11 (R80 마이그레이션 운영 적용)
 
 - 운영 DB에 `MIGRATION_R80_CLASSIFICATION_ICON_ADMIN_POLICY.sql` 적용·확인 쿼리 검증 완료함(사용자). 분류 아이콘 쓰기 정책이 다른 관리자 기능과 같은 조건으로 운영에 반영됨.

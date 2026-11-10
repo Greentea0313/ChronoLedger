@@ -31,7 +31,31 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r80-classification-icon-admin-policy` **(완료, `main` 병합 `dbded69`, R80 마이그레이션 운영 적용·확인 쿼리 `true`(사용자, 2026-11-11), 아이콘 등록 재시도 결과 대기)** *(R64 분류 아이콘 쓰기 정책을 다른 관리자 테이블과 같은 조건으로 통일 + 저장 실패 원인 표시, 보유 캐릭터 아바타·이름 확대)*
+- **활성 Run ID**: `r79-sql-tests-local-run` *(`sql/tests/TESTS.sql` 첫 실제 실행: 로컬 Supabase에서 끝까지 통과시키기)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
+- **Worktree 경로**: `.worktrees/r79-sql-tests-local-run` (브랜치: `collab/r79-sql-tests-local-run`, manifest `72072b6`)
+- **Base SHA**: `a580d1d08f656de5816956c5dde0228cd40bd64f`
+- **DB 변경**: 없음. 테스트 파일과 README만 수정함. 운영 DB에는 접속하지 않음.
+- **실행 환경**: 사용자 PC 로컬 Supabase(CLI 2.120.0, Postgres 17.11, Docker Desktop 29.9.2), 작업 폴더 `C:\Users\inha\.chronoledger-localdb`(저장소 밖). 빈 DB에 `SCHEMA.sql`을 오류 없이 적용하고 비공개 `user-icons` 버킷을 만든 뒤 실행함.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: f13087d)`** | **Claude Opus** *(GPT Codex 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (TESTS.sql Local Run)` | `sql/tests/TESTS.sql`, `sql/README.md` | `✅ f13087d`: 첫 실행 30개 블록에서 멈춤 → 테스트 버그 3건 수정 후 38개 블록 전체 PASS·마지막 `ROLLBACK` PASS 확인. 스키마·RPC 버그 없음. README에 로컬 실행 절차 추가 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `a580d1d` ↔ Target `f13087d` 정적 리뷰(수정이 테스트 의도를 약하게 만들지 않았는지), 가능하면 로컬 재실행, `review.json`·`test.json`, `main` 병합, 문서 마감 | - |
+
+#### 📝 `r79-sql-tests-local-run` Step 1 완료 기록 (Claude Opus, 2026-11-11)
+
+- **Target SHA**: `f13087d` (워크트리 브랜치, 미병합)임.
+- **찾은 실패와 수정 (모두 테스트 버그)**:
+  1. 1549행 계정 삭제 대기 차단 블록: `request.jwt.claims`만 사용자 A로 바꾸고 `request.jwt.claim.sub`는 R63 블록의 사용자 B로 남아 있었음. `auth.uid()`는 `claim.sub`를 먼저 읽어 B로 실행돼 차단 검증이 실패함 → `claim.sub`도 A로 설정함.
+  2. 사용자 A의 삭제 대기 요청이 파일 끝까지 남아 R76 블록의 A 프리셋 쓰기를 막음(2094행) → 이 상태에 의존하는 마지막 블록(R35) 직후 요청 행을 지움.
+  3. R76 블록 한 줄에서 `\gset`의 역슬래시가 빠져 구문 오류(2186행) → 고침. r78 리뷰 수정(`e2d1de9`) 때 Claude Opus가 넣은 실수임.
+- **검증**: 수정 후 `psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql` 종료 코드 0, `PASS` 38줄, 마지막 `PASS: all smoke-test fixtures and mutations rolled back` 확인함. R64·R76·R80 블록이 처음으로 실제 실행됨.
+- **문서**: `sql/README.md` `TESTS.sql` 항목에 로컬 실행 절차(Docker·CLI·스키마·버킷·실행·초기화·PowerShell 인코딩) 추가함.
+
+### 🗂️ 이전 Run 기록 (완료): `r80-classification-icon-admin-policy`
+
+- **Run ID**: `r80-classification-icon-admin-policy` **(완료, `main` 병합 `dbded69`, R80 마이그레이션 운영 적용·확인 쿼리 `true`(사용자, 2026-11-11), 아이콘 등록 재시도 결과 대기)** *(R64 분류 아이콘 쓰기 정책을 다른 관리자 테이블과 같은 조건으로 통일 + 저장 실패 원인 표시, 보유 캐릭터 아바타·이름 확대)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
 - **Worktree 경로**: `.worktrees/r80-classification-icon-admin-policy` (브랜치: `collab/r80-classification-icon-admin-policy`, manifest `e5e1946`)
 - **Base SHA**: `103dbf5cbf47ef1375d2d7cffa0a674e60001aca`

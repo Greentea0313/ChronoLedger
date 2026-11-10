@@ -136,3 +136,7 @@
     - 증상: R80 확인 쿼리 `position('public.users' IN pg_get_expr(polqual, polrelid)) > 0`이 정책이 바르게 적용됐는데도 `false`를 반환함(2026-11-11).
     - 원인: 식을 문자열로 되돌릴 때 현재 `search_path`에 있는 스키마(`public`)는 생략됨. Supabase SQL Editor는 `public`이 `search_path`에 있음.
     - 방어책: 확인 쿼리는 스키마 이름 없이 테이블 별칭·조건(`users u`, `u.role = 'admin'`)으로 찾거나 `pg_policies.qual` 전체를 함께 출력해 사람이 확인하게 함.
+40. **`TESTS.sql`의 JWT 사용자 전환은 `claims`와 `claim.sub`를 함께 설정**
+    - 증상: 블록이 `request.jwt.claims`만 바꿨는데 앞 블록의 다른 사용자로 실행됨(2026-11-11 첫 로컬 실행).
+    - 원인: Supabase `auth.uid()`는 `request.jwt.claim.sub`를 먼저 읽고, 비어 있을 때만 `claims`의 `sub`를 씀. 또한 파일 전체가 한 트랜잭션이라 앞 블록이 만든 상태(삭제 대기 요청 등)가 끝까지 남음.
+    - 방어책: 사용자를 바꿀 때 두 값을 모두 설정하고, 특정 블록용 상태는 그 블록 뒤에 되돌림. 수정 후 로컬 Supabase에서 실제로 실행함(`sql/README.md` C절).

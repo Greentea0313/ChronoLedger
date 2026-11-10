@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r79-sql-tests-local-run` 등록·Step 1 완료 (2026-11-11)
+
+- **수행 주체**: Claude Opus (Orchestrator 대체 + Maker)임.
+- **환경**: 사용자가 psql 17·Docker Desktop을 설치함. 저장소 밖 폴더에 로컬 Supabase(CLI 2.120.0)를 띄우고 `SCHEMA.sql`·`user-icons` 버킷을 적용함.
+- **결과 (워크트리 `f13087d`, 미병합)**: `TESTS.sql` 첫 실행에서 테스트 버그 3건을 찾아 고친 뒤 38개 블록 전체 PASS함. 스키마·RPC 버그는 없음. README에 로컬 실행 절차를 추가함.
+- **다음 단계**: Step 2(`Gemini 4 Argon`, 리뷰·병합) `▶ READY`임.
+
 ## R80 마이그레이션 운영 적용 (2026-11-11)
 
 - 사용자가 운영 DB에 `MIGRATION_R80_CLASSIFICATION_ICON_ADMIN_POLICY.sql`을 적용하고 수정된 확인 쿼리에서 `true`를 확인함. `users.role` 관리자도 분류 아이콘을 저장할 수 있는 상태임.
