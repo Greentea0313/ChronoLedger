@@ -1678,8 +1678,8 @@ CREATE POLICY "Read icons of approved games" ON public.game_classification_icons
     USING (EXISTS (SELECT 1 FROM public.games g WHERE g.id = game_id AND g.status = 'APPROVED'));
 DROP POLICY IF EXISTS "Admin manage classification icons" ON public.game_classification_icons;
 CREATE POLICY "Admin manage classification icons" ON public.game_classification_icons FOR ALL TO authenticated
-    USING (coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false))
-    WITH CHECK (coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false));
+    USING (coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false) OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin'))
+    WITH CHECK (coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false) OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin'));
 DROP POLICY IF EXISTS "Users insert own character requests" ON public.character_requests;
 CREATE POLICY "Users insert own character requests" ON public.character_requests FOR INSERT TO authenticated
     WITH CHECK (auth.uid() = user_id AND request_status = 'PENDING' AND admin_memo IS NULL AND approved_character_id IS NULL);

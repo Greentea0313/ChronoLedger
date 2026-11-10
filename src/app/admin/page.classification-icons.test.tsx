@@ -363,13 +363,14 @@ describe("AdminPage - 분류 옵션 아이콘 (R64)", () => {
 
     iconWriteError = { code: "42501", message: "denied" }
     submitIconDialog()
-    await waitFor(() => expect(within(dialog).getByRole("alert").textContent).toBe("분류 아이콘을 저장하지 못했습니다."))
+    await waitFor(() => expect(within(dialog).getByRole("alert").textContent).toBe("분류 아이콘을 저장하지 못했습니다. 관리자 권한이 확인되지 않았습니다. (42501)"))
     expect(within(editor).queryByRole("button", { name: "속성 물 아이콘 삭제" })).toBeNull()
 
     fireEvent.click(screen.getByRole("button", { name: "취소" }))
     await waitFor(() => expect(screen.queryByTestId("classification-icon-dialog")).toBeNull())
+    iconWriteError = { code: "P0001", message: "boom" }
     fireEvent.click(within(editor).getByRole("button", { name: "속성 불 아이콘 삭제" }))
-    await waitFor(() => expect(within(editor).getByRole("alert").textContent).toBe("분류 아이콘을 삭제하지 못했습니다."))
+    await waitFor(() => expect(within(editor).getByRole("alert").textContent).toBe("분류 아이콘을 삭제하지 못했습니다. (P0001: boom)"))
     expect(within(editor).getByRole("button", { name: "속성 불 아이콘 삭제" })).toBeTruthy()
   })
 

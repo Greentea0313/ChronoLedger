@@ -76,9 +76,9 @@ GRANT INSERT, UPDATE, DELETE ON public.game_classification_icons TO authenticate
 | Policy | Role | Command | Rule |
 | :--- | :--- | :--- | :--- |
 | `Read icons of approved games` | `anon`, `authenticated` | `SELECT` | `EXISTS (SELECT 1 FROM public.games g WHERE g.id = game_id AND g.status = 'APPROVED')` (same scope as `games` public read) |
-| `Admin manage classification icons` | `authenticated` | `ALL` | `USING` and `WITH CHECK`: `coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false)` |
+| `Admin manage classification icons` | `authenticated` | `ALL` | `USING` and `WITH CHECK`: `coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false) OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')` (R80) |
 
-- Admin check uses **only** the JWT `app_metadata.role` claim. No `user_metadata`, and no `public.users.role` fallback (unlike older policies; the approval RPCs already rely on the JWT claim only).
+- **Amended by R80 (2026-11-11)**: the admin check is the same as the other admin tables and the approval RPCs: JWT `app_metadata.role = 'admin'` **or** `public.users.role = 'admin'` (users cannot change their own role: `prevent_users_role_self_change`). The original JWT-only rule assumed the approval RPCs were JWT-only, but they also accept `users.role`, so an admin promoted only through `users.role` could use every admin screen except icon saves. `user_metadata` is still never used.
 - Admins read all rows through the `ALL` policy, including icons of non-approved games.
 - All policies use `DROP POLICY IF EXISTS` first so the migration is re-runnable.
 
@@ -141,7 +141,7 @@ Add `game_classification_icons` (`Row` / `Insert` / `Update`, `Relationships` to
 
 ## 7. SQL Regression Tests (`sql/tests/TESTS.sql`, Step 3)
 
-1. Admin (JWT `app_metadata.role = admin`) inserts, updates (upsert) and deletes an icon of an existing option; `updated_at` advances on update.
+1. Admin (JWT `app_metadata.role = admin`, or `public.users.role = admin` since R80) inserts, updates (upsert) and deletes an icon of an existing option; `updated_at` advances on update.
 2. Regular authenticated user insert/update/delete is rejected (RLS; insert raises `42501`, update/delete affect 0 rows).
 3. A user with `public.users.role = 'admin'` but **no** JWT claim cannot write (no fallback).
 4. `anon` and authenticated non-admin can read icons of an `APPROVED` game and see 0 rows for a non-approved game; admin sees both.
