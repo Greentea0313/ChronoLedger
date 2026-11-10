@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` Step 4 — `da78bc6`)
+
+- R64 UI: 관리자 템플릿 설정 수정 모달에 `분류 아이콘` 섹션을 추가해 분류 선택지별 아이콘을 등록·교체·삭제함(64×64 WebP, 20,000자 이하, 즉시 저장). 관리자 캐릭터 목록 분류 열과 사용자 보유 캐릭터 화면의 필터 칩·캐릭터 설정 창에 옵션 아이콘을 텍스트 옆에 표시함.
+- 마이그레이션 미적용 DB(`42P01`/`PGRST205`)에서는 기능을 숨기고 기존 화면 그대로 동작함. 프리셋 화면·레어도는 대상 아님.
+- tsc·lint·diff-check, Vitest 63파일/780개 통과함. Step 5(`Claude Opus`)를 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` Step 3 — `bcdc71c`)
 
 - R64 분류 옵션 아이콘 DB 지원 추가함. `game_classification_icons` 별도 테이블, WebP Data URL·축/옵션 CHECK, `classification_schema` 검증 및 제거 옵션 정리 트리거, 승인 게임 공개 읽기와 JWT 관리자 쓰기 RLS를 반영함.

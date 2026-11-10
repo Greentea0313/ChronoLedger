@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r64-r72-r73-classification-icons-followups` *(`R72` 픽업 중복 이름 문구 정리 + `R73` Firefox 호환 드래그 시작 요소 + `R64` 관리자 분류 옵션 아이콘(별도 테이블))*
+- **활성 Run ID**: `r64-r72-r73-classification-icons-followups` **(완료, `main` 병합 `66dd067`, R64 마이그레이션 운영 적용·실브라우저 확인 사용자 대기)** *(`R72` 픽업 중복 이름 문구 정리 + `R73` Firefox 호환 드래그 시작 요소 + `R64` 관리자 분류 옵션 아이콘(별도 테이블))*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r64-r72-r73-classification-icons-followups` (브랜치: `collab/r64-r72-r73-classification-icons-followups`, manifest `0715b7a`)
 - **Base SHA**: `bc7fbad477e13de89b81c6a8ba474ca3fd3145c3`
@@ -44,8 +44,8 @@
 | **1** | **`✅ DONE (SHA: e17e960)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R72·R73 Follow-ups)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅ e17e960`: R72 중복 이름 문구 분리(`DuplicatePickupNameError`), R73 드래그 시작 요소를 버튼 밖 손잡이로 교체. tsc·lint·diff-check 통과, Vitest 61파일/750개 통과 (아래 Step 1 완료 기록 참고) |
 | **2** | **`✅ DONE (SHA: 966535e)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R64 Spec)` | 아래 **Step 2 수용 기준** 수행 완료함. | `✅ 966535e`: [`R64_Classification_Option_Icons_Spec.md`](spec/R64_Classification_Option_Icons_Spec.md)(워크트리) 작성. 테이블·검증/정리 트리거·RLS·UI·폴백·SQL 테스트·Step 3/4 허용 파일 확정 (아래 Step 2 완료 기록 참고) |
 | **3** | **`✅ DONE (SHA: bcdc71c)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 DB)` | 아래 **Step 3 수용 기준** + 명세서 §2·§7 수행. 허용 파일(명세서 §8 확정): 신규 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (`src/lib` 변경 불필요) | `✅ bcdc71c`: R64 테이블·검증/정리 트리거·RLS·스키마/타입/실행 가이드/스모크 테스트 반영. tsc·lint·Vitest 151파일/1371개·diff-check 통과함. 운영 DB 미적용함. |
-| **4** | **`▶ READY`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 UI)` | 아래 **Step 4 수용 기준** + 명세서 §3~§5 수행. 허용 파일(명세서 §8 확정): 신규 `src/lib/classification-icons.ts`(+테스트), 신규 `src/components/character/classification-option-icon.tsx`(+테스트 선택), `src/app/admin/page.tsx`(+테스트), `src/components/character/character-filter-bar.tsx`, `src/components/character/character-roster.tsx`, `src/app/dashboard/characters/page.tsx`(+테스트) | - |
-| **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bc7fbad` ↔ Target(Step 4 커밋) 통합 정적 리뷰(R64 RLS·마이그레이션 포함), 동적 검증, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | - |
+| **4** | **`✅ DONE (SHA: da78bc6)`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 UI)` | 아래 **Step 4 수용 기준** + 명세서 §3~§5 수행 완료함. | `✅ da78bc6`: 아이콘 로더·변환 lib, 옵션 아이콘 컴포넌트, 관리자 템플릿 편집기 `분류 아이콘` 섹션·캐릭터 목록 표시, 사용자 필터 칩·캐릭터 설정 창 표시, 미적용 DB 폴백. tsc·lint·diff-check 통과, Vitest 63파일/780개 통과 (아래 Step 4 완료 기록 참고) |
+| **5** | **`✅ DONE (리뷰: bc7fbad ↔ da78bc6, 산출물 871a34a, main 병합 66dd067)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bc7fbad` ↔ Target(Step 4 커밋) 통합 정적 리뷰(R64 RLS·마이그레이션 포함), 동적 검증, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | `✅` P1·P2 없음, P3 1건·P4 3건(to-do `R75` 이관). tsc·lint·diff-check·build 통과, Vitest 63파일/780개 통과. **R64 마이그레이션 운영 수동 적용·R73/R64 실브라우저 확인은 사용자 대기** (아래 Step 5 완료 기록 참고) |
 
 #### 📌 `r64-r72-r73-classification-icons-followups` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -110,6 +110,41 @@
 - **변경**: `game_classification_icons` 테이블과 WebP Data URL·축/옵션 검증 CHECK, 현재 `classification_schema` 기준 검증 트리거, 축·옵션 제거 시 정리 트리거, 승인 게임 공개 읽기·JWT `app_metadata.role = 'admin'` 쓰기 RLS를 추가함. `SCHEMA.sql`, 타입, README 확인 쿼리, SQL 스모크 테스트에도 반영함.
 - **검증**: `npm.cmd exec tsc -- --noEmit`, `npm.cmd run lint`, `npm.cmd run test -- --run`(151파일/1371개), `git diff --check` 통과함. SQL 테스트는 전용 Supabase 테스트 DB 미접속으로 실행하지 않음.
 - **운영 DB**: 마이그레이션은 운영 DB에 적용하지 않음. Step 4 UI 구현 후 Step 5 리뷰에서 수동 적용 안내함.
+
+#### 📝 `r64-r72-r73-classification-icons-followups` Step 4 완료 기록 (Claude Sonnet, 2026-11-10)
+
+- **Target SHA**: `da78bc6` (`collab/r64-r72-r73-classification-icons-followups`, 미병합)임.
+- **신규 파일**: `src/lib/classification-icons.ts`(+테스트: `CLASSIFICATION_ICON_SIZE`=64, `MAX_CLASSIFICATION_ICON_DATA_URL_LENGTH`=20,000, `isMissingClassificationIconTable`, `loadClassificationIcons`, `createClassificationIconDataUrl`), `src/lib/classification-icon-key.ts`, `src/components/character/classification-option-icon.tsx`, `src/app/admin/page.classification-icons.test.tsx`.
+- **관리자(`admin/page.tsx`)**:
+  - 템플릿 설정 수정 모달(템플릿 흐름)에서 **저장된** 분류 축·선택지를 나열하는 `분류 아이콘` 섹션을 추가함. 선택지마다 24px 미리보기, `이미지 선택`(png/jpeg/webp 파일), 아이콘이 있을 때만 `삭제` 버튼을 둠.
+  - 업로드는 `resizeImageToWebP(file, 64)` → Data URL → 20,000자 초과 시 거부 → `upsert(onConflict: game_id,axis_key,option_value)`, 삭제는 `delete().eq(game_id).eq(axis_key).eq(option_value)`로 즉시 저장함. 선택지별 1건씩만 진행(`pendingIconKeys`), `isOffline()` 가드 적용함.
+  - `23514`는 `선택지가 변경되었습니다. 창을 다시 열어 주세요.`, 그 밖의 실패는 `분류 아이콘을 저장/삭제하지 못했습니다.`를 보여줌. 템플릿 저장 성공 후 해당 게임 아이콘을 다시 불러옴(정리 트리거 반영).
+  - 캐릭터 목록 분류 열에 아이콘이 있는 값만 16px 아이콘을 텍스트 앞에 표시함. 아이콘 로드는 게임 id(원시값) 기준 1회임.
+- **사용자(`/dashboard/characters`)**: 선택 게임 변경 시 1회 로드해 `CharacterRoster`로 전달함. 필터 칩(축 옵션 칩만, `전체`·`기타`·레어도 제외)과 캐릭터 설정 창 설명줄(`레어도 · 축: [아이콘] 값`)에 16px 아이콘(`alt=""`, `aria-hidden`)을 표시함. 프리셋 UI에는 전달하지 않음.
+- **미적용 폴백**: `42P01`/`PGRST205`는 조용히 기능 숨김(관리자 섹션 없음, 오류 없음), 그 밖의 읽기 오류는 `console.error` 후 아이콘 없이 기존 화면 유지함.
+- **결정/가정**:
+  - 성공 알림은 기존 `setMessage`, 오류는 모달 가림을 피하려고 섹션 안 `role="alert"`로 표시함(명세 §3.2의 토스트 대신).
+  - `classificationIconKey`를 Supabase 클라이언트 import 없이 쓰려고 `classification-icon-key.ts`로 분리하고 `classification-icons.ts`에서 재수출함(프리셋 테스트 등이 환경변수 없이 컴포넌트를 import함).
+  - 클립보드 붙여넣기는 선택 사항이라 구현하지 않음. 명세 §8의 허용 파일 외 `src/lib/classification-icon-key.ts`, `src/app/admin/page.classification-icons.test.tsx`를 추가함(Step 5 범위 확인 요청).
+  - `admin/page.tsx`에서 `activeCharacterGameId` 선언을 조기 반환 위 훅 영역으로 옮김(아이콘 로딩 effect가 조건 없이 실행돼야 함).
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 63파일/780개 통과함(워크트리에서 `node ../../node_modules/...` 경유). SQL 마이그레이션 실DB 적용·실브라우저 확인(아이콘 업로드·표시, 16/24px 시각 확인)은 미수행임 → Step 5에서 마이그레이션 수동 적용 후 확인 필요함.
+
+#### 📝 `r64-r72-r73-classification-icons-followups` Step 5 완료 기록 (Claude Opus, 2026-11-10)
+
+- **리뷰 범위**: Base `bc7fbad` ↔ Target `da78bc6` 전체(R72·R73·R64 SQL/UI). 산출물 `artifacts/r64-r72-r73-classification-icons-followups/iteration-01/review.json`·`test.json`, `run.json`(`completed`) 커밋 `871a34a`. `main` 병합 `66dd067`(`--no-ff`)임.
+- **결과**: `findings`(P1·P2 없음 → 병합 승인).
+  - `R64-REV-001`(P3): `TESTS.sql` R64 블록이 명세 §7 일부만 다룸. 일반 사용자 쓰기 거부, `users.role` 관리자(JWT 없음) 쓰기 거부, 비승인 게임 조회 차단, 잘못된 `axis_key`·빈 옵션, 축 삭제·순서 변경 유지·게임 삭제 CASCADE, `updated_at` 갱신, 메시지 단위 검증 누락함. 정책 자체는 명세와 일치함(정적 확인).
+  - `R64-REV-002`(P4): 관리자 아이콘 삭제가 RLS로 0행 삭제돼도 성공 처리함(JWT 클레임 없는 UI 관리자만 해당).
+  - `R64-REV-003`(P4): 템플릿 저장 후 취소 불가 아이콘 재조회가 캐릭터 탭 게임 로드와 경쟁해, 다른 게임 템플릿 편집 후 목록 아이콘이 숨을 수 있음(표시만).
+  - `R64-REV-004`(P4): 아이콘 행 직접 `UPDATE`와 템플릿 저장이 동시에 실행되면 잠금 순서 역전으로 교착 가능. 앱은 upsert만 써서 해당 없음.
+- **확인 사항**: 쓰기 RLS는 JWT `app_metadata.role`만 사용(`user_metadata`·`users.role` 미사용), 마이그레이션 재실행 안전(`IF NOT EXISTS`·`CREATE OR REPLACE`·`DROP ... IF EXISTS`), 트리거 함수 `SECURITY DEFINER`+`search_path` 고정·EXECUTE 회수, 미적용 폴백(`42P01`/`PGRST205`) 확인함. Step 4의 허용 범위 밖 추가 파일 2개(`classification-icon-key.ts`, `page.classification-icons.test.tsx`)는 사유 타당해 수용함.
+- **동적 검증**: 워크트리 `da78bc6`에서 `tsc --noEmit`, `next lint`, `git diff --check`, `next build`(placeholder env) 통과, Vitest 63파일/780개 통과함. 병합 후 `main`에서 `tsc --noEmit` 재확인함. 실DB `TESTS.sql`·실브라우저 확인은 미수행(skipped)임.
+- **산출물 스키마 검증**: 공식 `validate_collaboration_artifact.py`는 Python `jsonschema` 모듈 부재로 실행 실패함. 세션 스크래치패드 간이 검증기(필수 키·enum·pattern·조건부 규칙)로 3개 파일 `VALID` 확인함 → **공식 검증 미완료**임.
+- **사용자 수동 작업 (남음)**:
+  1. Supabase SQL Editor에서 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql` 실행함.
+  2. `sql/README.md` R64 행 확인 쿼리 실행함. 기대값: `game_classification_icons, true, 2` / 트리거 `2` / 권한 `true, true`.
+  3. 관리자 계정으로 `템플릿 설정 수정` → `분류 아이콘`에서 아이콘 업로드·삭제, 필터 칩·캐릭터 설정 창·관리자 목록 표시 확인함.
+  4. R73: Chrome·Firefox에서 프리셋 작업 공간·즐겨찾기 손잡이 드래그, 900px 경계 전환 확인함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r63-character-favorite-sections`
 

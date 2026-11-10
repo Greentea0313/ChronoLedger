@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r64-r72-r73-classification-icons-followups` Step 4 (R64 UI) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Sonnet (`Maker (R64 UI)`)임.
+- **커밋 `da78bc6`** (워크트리, 미병합): 관리자 템플릿 편집기 `분류 아이콘` 섹션(선택지별 즉시 upsert/delete, 64×64 WebP·20,000자 상한, 오프라인 가드, `23514` 안내)과 캐릭터 목록 표시, 사용자 필터 칩·캐릭터 설정 창 아이콘 표시를 구현함. 마이그레이션 미적용(`42P01`/`PGRST205`) 시 기능을 숨기고 기존 화면을 유지함. 프리셋 UI는 변경 없음.
+- **검증**: tsc·lint·diff-check 통과, Vitest 63파일/780개 통과함. 실DB·실브라우저 확인은 미수행(마이그레이션 운영 미적용)임.
+- **다음 단계**: Step 5(`Claude Opus`, 통합 리뷰·병합·마이그레이션 수동 적용 안내) `▶ READY`임.
+
 ## Run `r64-r72-r73-classification-icons-followups` Step 3 (R64 DB) 완료 (2026-11-10)
 
 - **수행 주체**: GPT Codex (`Maker (R64 DB)`)임.
