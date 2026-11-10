@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-11 (Run `r80-classification-icon-admin-policy` Step 2 — `main` 병합 `dbded69`)
+
+- Base `103dbf5` ↔ Target `c6ddd4d` 정적 리뷰에서 findings 없음으로 확인하고 `main`에 병합함.
+- `review.json`·`test.json`을 추가함. tsc·lint·diff-check·Vitest 64파일/783개 통과함.
+- 운영 DB에는 R80 마이그레이션이 아직 미적용 상태이며, 사용자 적용·아이콘 저장 재시험이 남아 있음.
+
 ## 2026-11-11 (Run `r80-classification-icon-admin-policy` Step 1 — `a2c2f47`·`c6ddd4d`, 미병합)
 
 - 분류 아이콘 쓰기 정책을 다른 관리자 테이블처럼 JWT `app_metadata.role` 또는 `users.role = 'admin'`이면 허용하도록 바꾸는 마이그레이션 `MIGRATION_R80_CLASSIFICATION_ICON_ADMIN_POLICY.sql`을 추가함(운영 미적용).

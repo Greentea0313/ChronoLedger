@@ -1,10 +1,17 @@
 # 프로젝트 진행 현황
+## Run `r80-classification-icon-admin-policy` Step 2 완료 — `main` 병합 `dbded69` (2026-11-11)
+
+- **리뷰**: Base `103dbf5` ↔ Target `c6ddd4d` 정적 리뷰 findings 없음. 정책의 JWT `app_metadata.role`·`users.role` 조건, 자기 승격 차단 트리거, 사용자 조회 정책을 확인함.
+- **산출물**: `review.json`·`test.json` 커밋 `d621604`임.
+- **검증**: tsc·lint·diff-check·Vitest 64파일/783개 통과함. Python 부재로 아티팩트 스키마 검증은 미실행함.
+- **다음 단계**: 사용자가 운영 DB에 `MIGRATION_R80_CLASSIFICATION_ICON_ADMIN_POLICY.sql`을 적용하고 확인 쿼리 및 아이콘 저장을 재시험해야 함.
+
 ## Run `r80-classification-icon-admin-policy` 등록·Step 1 완료 (2026-11-11)
 
 - **수행 주체**: Claude Opus (Orchestrator 대체 + Maker)임.
 - **원인**: 분류 아이콘 저장 실패는 R64 쓰기 정책만 JWT `app_metadata.role`을 요구해서였음. `users.role`로만 관리자인 계정은 RLS `42501`로 막혔고 화면에는 일반 문구만 나왔음.
 - **Step 1 (워크트리 `a2c2f47`·`c6ddd4d`, 미병합)**: 정책을 다른 관리자 테이블과 같은 조건으로 교체하는 마이그레이션·스키마·테스트·명세 개정, 저장 실패 시 코드·메시지 표시, 보유 캐릭터 아바타·이름 확대. tsc·lint·diff-check 통과, Vitest 783개 통과함.
-- **다음 단계**: Step 2(`Gemini 4 Argon`, 리뷰·병합) `▶ READY`. 이후 사용자가 R80 마이그레이션을 운영 DB에 적용해야 아이콘 저장이 됨.
+- **상태**: Step 2 리뷰·병합 완료함. 이후 사용자가 R80 마이그레이션을 운영 DB에 적용해야 아이콘 저장이 됨.
 
 ## Run `r78-r76-followups-and-browser-check` 완료 — `main` 병합 `519ac81` (2026-11-10)
 

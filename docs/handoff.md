@@ -45,8 +45,8 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: c6ddd4d)`** | **Claude Opus** *(GPT Codex 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R80 Policy · Error Text · Roster Size)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅ a2c2f47`: 정책 교체 마이그레이션·`SCHEMA.sql`·`README`·`TESTS.sql`(`users.role` 관리자 쓰기 허용·일반 사용자 거부)·R64 명세 개정·아이콘 저장/삭제 실패 시 코드·메시지 표시. `c6ddd4d`: 보유 캐릭터 아바타 64px·이름 `text-sm`. tsc·lint·diff-check 통과, Vitest 64파일/783개 통과 |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `103dbf5` ↔ Target `c6ddd4d` 정적 리뷰(정책이 `user_metadata`·클라이언트 값을 쓰지 않는지, 자기 승격 차단 트리거 유지), `review.json`·`test.json`, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | - |
-| **3** | **`⏳ WAITING`** | **사용자** | `Migration Apply & Retest` | 운영 DB에 R80 마이그레이션 적용 → `sql/README.md` 확인 쿼리(`true`) → 관리자 화면에서 분류 아이콘 등록 재시도 | - |
+| **2** | **`✅ DONE (main 병합: dbded69, 산출물: d621604)`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `103dbf5` ↔ Target `c6ddd4d` 정적 리뷰(정책이 `user_metadata`·클라이언트 값을 쓰지 않는지, 자기 승격 차단 트리거 유지), `review.json`·`test.json`, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | `✅` findings 없음. tsc·lint·Vitest 64파일/783개·diff-check 통과. Python 부재로 아티팩트 스키마 검증 미실행함. |
+| **3** | **`▶ READY`** | **사용자** | `Migration Apply & Retest` | 운영 DB에 R80 마이그레이션 적용 → `sql/README.md` 확인 쿼리(`true`) → 관리자 화면에서 분류 아이콘 등록 재시도 | - |
 
 #### 📌 `r80-classification-icon-admin-policy` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -64,6 +64,13 @@
 - **Target SHA**: `c6ddd4d` (워크트리 브랜치, 미병합)임. `a2c2f47`(정책·오류 표시) + `c6ddd4d`(보유 캐릭터 크기).
 - **검증**: tsc·lint·diff-check 통과, Vitest 64파일/783개 통과(관리자 아이콘 테스트 2건 갱신). `TESTS.sql` R80 블록은 `psql`·테스트 DB가 없어 미실행임(to-do `R79`).
 - **주의**: 이 Run의 정책은 `users.role`을 신뢰함. `prevent_users_role_self_change` 트리거가 `authenticated`·`anon`의 역할 변경을 막고 있어 자기 승격은 불가함(Step 2 확인 대상).
+
+#### 📝 `r80-classification-icon-admin-policy` Step 2 완료 기록 (Gemini 4 Argon 대체, 2026-11-11)
+
+- **리뷰**: Base `103dbf5` ↔ Target `c6ddd4d` 정적 리뷰에서 findings 없음으로 확인함. 정책은 JWT `app_metadata.role` 또는 `public.users.role`만 사용하며 `user_metadata`·클라이언트 권한 판정이 없음. 자기 역할 변경 차단 트리거와 사용자 조회 정책을 확인함.
+- **산출물**: `review.json`·`test.json` 커밋 `d621604`, `main` 병합 커밋 `dbded69`임.
+- **검증**: tsc·lint·Vitest 64파일/783개·diff-check 통과함. Python 미설치로 아티팩트 스키마 검증은 미실행함.
+- **다음 단계**: 사용자가 R80 마이그레이션을 운영 DB에 적용하고 확인 쿼리 및 아이콘 저장을 재시험해야 함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r78-r76-followups-and-browser-check`
 
