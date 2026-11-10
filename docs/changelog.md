@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-10 (Run `r61-r65-r66-character-admin-quick-fixes` 등록)
+
+- 격리 Worktree·manifest(`60f4530`, Base `bf8cdce`) 생성하고 Dispatch Queue에 Step 1(Claude Sonnet)·Step 2(Gemini 4 Argon)와 수용 기준 등록함.
+
 ## 2026-11-10 (R71 픽업 일정 제목·아바타 세로 정렬)
 
 - `hero-sidebar.tsx`: 픽업 아바타가 있는 일정의 제목(·`[비공식]` 배지)을 2px 내려 아바타 중심과 맞춤(단일·묶음 일정).

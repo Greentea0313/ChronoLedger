@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r61-r65-r66-character-admin-quick-fixes` 등록 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **Worktree**: `.worktrees/r61-r65-r66-character-admin-quick-fixes` 생성(Base `bf8cdce`, manifest `60f4530`)함.
+- **범위**: R61 프리셋 제목 예시 삭제, R65 관리자 캐릭터 필터 `모든 게임` 제거·게임별 레어도, R66 템플릿 없는 게임의 픽업 전용 `[+ 캐릭터 추가]`임. DB 변경 없음.
+- **다음 단계**: Step 1(`Claude Sonnet`, Maker) `▶ READY` → Step 2(`Gemini 4 Argon`, 리뷰·병합)임.
+
 ## R71 픽업 일정 제목·아바타 세로 정렬 보정 (2026-11-10)
 
 - **수행 주체**: Claude Opus임. `main` 직접 수정(DB 변경 없음)임.

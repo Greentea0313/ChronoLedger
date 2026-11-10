@@ -31,7 +31,39 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: 없음 *(최근 완료 Run: `r60-ai-icon-upscaler`, R60)*
+- **활성 Run ID**: `r61-r65-r66-character-admin-quick-fixes` *(`R61` 프리셋 제목 예시 삭제 + `R65` 관리자 캐릭터 필터 `모든 게임` 제거·게임별 레어도 + `R66` 템플릿 없는 게임의 픽업 전용 `[+ 캐릭터 추가]`)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
+- **Worktree 경로**: `.worktrees/r61-r65-r66-character-admin-quick-fixes` (브랜치: `collab/r61-r65-r66-character-admin-quick-fixes`, manifest `60f4530`)
+- **Base SHA**: `bf8cdced9efe0d104b910914776d6c3ad1bf2961`
+- **DB 변경**: 없음 (기존 CHECK가 픽업 전용 캐릭터의 아이콘·등급 생략을 이미 허용함)
+- **근거 문서**: [`docs/character-preset-ux-review.md`](character-preset-ux-review.md) §1·§5·§6 및 `사용자 결정 사항`
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Character Admin Quick Fixes)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/components/character/preset-editor-dialog.tsx`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/characters/page.test.tsx`(프리셋 편집기 회귀 확인 시), 신규 `src/lib/pickup-character-registration.ts`(+테스트, 공용 등록 로직 추출 시에만) | `⏳ Step 1 Maker 커밋 후 Step 2를 ▶ READY로 전환` |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bf8cdce` ↔ Step 1 Target 통합 정적 리뷰(`iteration-01/review.json`·`test.json`), tsc·lint·Vitest·diff-check 확인, `main` 병합 및 문서 마감 | `⏳ Step 1 완료 후 착수` |
+
+#### 📌 `r61-r65-r66-character-admin-quick-fixes` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Sonnet` — Maker)**:
+   - **R61 (프리셋 제목 예시 삭제)**: `preset-editor-dialog.tsx` 제목 입력란의 `placeholder="예: 혼돈 전반 파티"`를 제거함. 메모 입력란 안내 문구(`공략 메모 (최대 300자)`)는 유지함.
+   - **R65 (관리자 캐릭터 탭 필터)**:
+     - 게임 선택(`aria-label="캐릭터 게임 필터"`)에서 `모든 게임` 옵션을 제거하고, 기본값을 게임 목록의 첫 번째 게임으로 둠. 게임 목록이 늦게 로드되거나 선택한 게임이 삭제되면 첫 게임으로 보정함.
+     - 레어도 필터는 선택한 게임의 레어도만 표시함(전 게임 합집합 분기 제거). 게임 변경 시 레어도 필터 초기화는 유지함.
+     - `selectedCharacterGame`이 없는 경우를 전제로 한 분기(기본 라벨 `캐릭터 추가` 버튼 등)를 정리함. 등록된 게임이 0개면 빈 상태 안내 문구를 보여 줌.
+   - **R66 (템플릿 없는 게임의 픽업 전용 캐릭터 추가)**:
+     - 선택한 게임에 템플릿이 없을 때(`!isSelectedTemplateActive`), 템플릿 있는 게임의 `[+ (명칭) 추가]` 버튼과 **같은 위치**에 `[+ 캐릭터 추가]` 버튼을 표시함. 템플릿이 있는 게임에서는 표시하지 않음(기존 정식 캐릭터 추가만).
+     - 버튼을 누르면 이름(1~100자, 필수)과 이미지(선택: 파일 업로드·URL·붙여넣기, 256×256 WebP 변환, PC 저해상도 AI 업스케일 토글 기존 흐름 재사용)를 입력받아 `game_characters`에 `is_pickup_only = true`로 등록함. 등록 후 아래 픽업 전용 캐릭터 목록에 바로 나타나야 함.
+     - 일정 폼의 `handleRegisterNewPickupCharacter`와 같은 검증(같은 게임 내 이름 중복, `23505` 중복 오류 문구, 오프라인 차단 `OFFLINE_WRITE_MESSAGE`, 아이콘 Data URL 크기 검사, 변환 중 중복 제출 방지)을 적용하고, 가능하면 공용 함수로 추출해 두 흐름이 같은 로직을 쓰게 함.
+   - **테스트**: `admin/page.test.tsx`에 `모든 게임` 미노출·첫 게임 기본 선택·게임별 레어도만 표시, 템플릿 없는 게임에서만 `[+ 캐릭터 추가]` 노출·등록 시 `is_pickup_only: true` insert·중복 이름 거부, 템플릿 있는 게임에서는 미노출 테스트 추가. 기존 `모든 게임` 전제 테스트는 갱신함.
+   - `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src`, `git diff --check` 통과 후 Worktree에 커밋하고 Target SHA를 기록, Step 2를 `▶ READY`로 전환함.
+
+2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**:
+   - Base `bf8cdce` ↔ Step 1 Target 정적 리뷰, 동적 검증 재실행, 산출물(`artifacts/r61-r65-r66-character-admin-quick-fixes/iteration-01/`) 작성·스키마 검증, `main` 병합, `docs/` 마감(`to-do` R61·R65·R66 완료 처리, 검토 안건 갱신).
+
+### 🗂️ 이전 Run 기록 (완료): `r60-ai-icon-upscaler`
+
+- **Run ID**: `r60-ai-icon-upscaler` (R60, 완료)
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/r60-ai-icon-upscaler` (브랜치: `collab/r60-ai-icon-upscaler`, 완료 상태)
 - **Base SHA**: `a908144` ↔ Final Target `38b989d`, 리뷰 `8082c78`, `main` 병합 `75476b3` 완료함. DB 변경 없음.
@@ -299,7 +331,7 @@
   - R63: 보유 캐릭터만 즐겨찾기(기존 미보유 즐겨찾기 해제), 순서 DB 저장, 프리셋 선택 목록에도 3구역 적용 — DB 변경, Opus 승격 조건 ①.
   - R64: 분류 옵션만, 필터 칩·캐릭터 설정 창·관리자 캐릭터 목록 표시, 별도 테이블 — 명세 선행.
   - R66: 템플릿 없는 게임에서만 기존 `[+ (명칭) 추가]` 자리에 `[+ 캐릭터 추가]`(픽업 전용 생성).
-- **다음 단계**: Orchestrator가 Run 등록(권장: ① R61·R65·R66 소규모 묶음 → ② R62 → ③ R63 DB+UI → ④ R64 명세 후 구현).
+- **다음 단계**: ① R61·R65·R66은 Run `r61-r65-r66-character-admin-quick-fixes`로 등록됨(2026-11-10, Step 1 `▶ READY`) → ② R62 → ③ R63 DB+UI → ④ R64 명세 후 구현.
 - **같은 날 `main` 직접 반영 (소규모 UI)**: R67 `46393eb`, R68 `d67921e`, R69 `f99e4fb`, R70 `f93ff31`.
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
