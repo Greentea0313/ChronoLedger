@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (R60 통합 리뷰·main 병합)
+
+- R60 iteration-02 재리뷰를 clean으로 마감하고 `main`에 병합함(`75476b3`).
+- wasm 전용 ONNX Runtime 동적 로딩, waifu2x 모델 계약, 폴백·투명도·중복 제출 방지 구현을 검증함.
+- 실제 PC 브라우저 업스케일 동작은 별도 수동 검증 필요 상태로 기록함.
+
 ## 2026-11-10 (R60 AI 아이콘 업스케일러 완성 — iteration-02)
 
 - 정적 빌드 실패를 해소하고(ONNX Runtime 런타임 로드), wasm 백엔드와 waifu2x 2배 모델(`public/models/waifu2x/cunet_art_scale2x.onnx`)로 PC 저해상도 아이콘 업스케일이 실제로 동작하도록 함(`38b989d`).

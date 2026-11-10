@@ -31,10 +31,10 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r60-ai-icon-upscaler` *(`R60`: PC 데스크톱 한정 저해상도 아이콘 AI 업스케일러 및 안전 폴백)*
+- **활성 Run ID**: 없음 *(최근 완료 Run: `r60-ai-icon-upscaler`, R60)*
 - **Orchestrator**: Gemini 4 Argon
-- **Worktree 경로**: `.worktrees/r60-ai-icon-upscaler` (브랜치: `collab/r60-ai-icon-upscaler`)
-- **Base SHA**: `HEAD` 기준 신규 Run 생성 후 manifest에 기록함. DB 변경 없음.
+- **Worktree 경로**: `.worktrees/r60-ai-icon-upscaler` (브랜치: `collab/r60-ai-icon-upscaler`, 완료 상태)
+- **Base SHA**: `a908144` ↔ Final Target `38b989d`, 리뷰 `8082c78`, `main` 병합 `75476b3` 완료함. DB 변경 없음.
 - **직전 Run 마감 (`r55-r56-favorite-hook-and-version-pass-trigger`)**: 2026-11-10 Step 3 통합 정적 리뷰(`8b9689f` ↔ `daf9a5a`) **Gemini 4 Argon `clean` (P1~P4 0건)**, 로컬 PostgreSQL 17 2개 DB(`db_upgraded`·`db_fresh`) 마이그레이션 2회 멱등 적용 및 `sql/tests/TESTS.sql` 34 PASS, Vitest 57파일/642개 통과, `main` 병합(`25b3953`) 완료 (`✅ DONE`).
 - **차기 등록 백로그 (`R60`, 2026-11-10)**: `R60` PC 데스크톱 한정 저해상도 아이콘 AI 업스케일러 (Waifu2x / ONNX Web) 도입 — DB 변경 없음, 담당: **Claude Sonnet** *(Fallback: GitHub Copilot / Gemini 3.8 Flash)*. 256px 미만 저해상도 이미지 감지 시 `[AI 고화질 업스케일 (PC 전용)]` 기본 활성화(Default ON), 동적 `import()` 지연 로딩으로 모바일 번들/메모리 보호, 모바일/WASM 미지원 환경 기존 캔버스 리사이저 즉시 폴백.
 - **✅ 운영 DB 마이그레이션 적용 완료 (`R58`, 2026-11-10 사용자 적용·확인 쿼리 `true`)**:
@@ -49,7 +49,7 @@
 | **1** | **`✅ DONE (SHA: f177a96cf672486815ab3625e25e2b98e6a4a72c)`** | ~~Claude Sonnet~~ *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (PC AI Icon Upscaler)` | `R60` Step 1: 동적 ONNX 업스케일러·기존 리사이저 폴백·관리자/요청 UI 연동·단위 테스트 구현. 허용 파일: `src/lib/image-upscaler.ts`, `src/lib/image-upscaler.test.ts`, `src/app/admin/page.tsx`, `src/components/game/request-submission-modal.tsx`, `package.json`, `package-lock.json`, `docs/to-do.md` | `✅ f177a96: onnxruntime-web 동적 import, PC/WebGL/WASM·256px 미만 감지, 모바일·미지원·모델 실패 시 기존 리사이저 폴백, 관리자·요청 모달 기본 ON 토글·로딩 상태 연결. tsc/lint/Vitest 58파일·670개/diff-check 통과. `/models/waifu2x.onnx` 배포 자산 및 모델 입출력 계약은 리뷰에서 확인 필요함.` |
 | **2** | **`✅ DONE (iteration-01 리뷰 findings, 산출물 SHA: d430a31)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `a908144` ↔ Target `f177a96` 통합 정적 리뷰, 빌드·번들·폴백 검증 | `✅ d430a31: findings — R60-REV-001 P1 next build 실패(onnxruntime-web Node 엔트리 ort.node.min.mjs를 Terser가 처리 못함), REV-002 P2 기본 ORT 번들에 webgl 백엔드 없음(항상 폴백), REV-003 P2 /models/waifu2x.onnx 자산·출처·입출력 계약 부재, REV-004 P3 변환 중 저장 미차단, REV-005 P3 알파 채널 손실, REV-006 P4 세션 재사용·토글 노출 조건. tsc/lint/Vitest 58파일·670개 통과, build 실패(test.json failed). main 병합 보류. 사용자 결정(2026-11-10): 기능 유지·완성.` |
 | **3** | **`✅ DONE (SHA: 38b989d38a90ba360a7a169989543bd0cb54e993)`** | **Claude Opus** *(GitHub Copilot 1순위 대체 / Claude Sonnet 2순위 대체)* | `Maker (iteration-02 Upscaler Completion)` | Step 3 수용 기준 1~8 | `✅ 38b989d: next.config.mjs가 wasm 전용 ORT(ort.wasm.bundle.min.mjs 77 KB·ort-wasm-simd-threaded.wasm 14.8 MB)를 public/ort/로 복사(gitignore)하고 webpackIgnore 동적 import로 로드 → npm run build 통과·번들 내 ORT 없음. executionProviders ["wasm"]·스레드 1·세션 캐시(실패 시 재시도). waifu2x cunet/art scale2x 모델(5,178,591 bytes, SHA-256 0966d74d…f495, 사용자 다운로드 승인) public/models/waifu2x/ 수록, 입력 x·출력 y·18px 복제 패딩·2배 계약을 Node 실측으로 확인, docs/upscaler-model.md 기록. 알파 채널 별도 확대 결합, 256px 미만일 때만 토글, 변환 중 저장/등록/제출 비활성화. sw.js는 /ort/·/models/를 원래 캐시하지 않아 변경 없음. tsc/lint/diff-check 통과, Vitest 58파일·675개 통과, build 통과(자리표시자 env). 실제 브라우저 업스케일 동작은 미확인.` |
-| **4** | **`▶ READY`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Sonnet 2순위 대체)* | `Reviewer & Orchestrator` | Base `a908144` ↔ Step 3 Target iteration-02 재리뷰(**`npm run build` 포함**), `run.json` 마감, `main` 병합 | `▶ Step 3 완료. Target SHA: 38b989d (PC 브라우저에서 저해상도 아이콘 실제 업스케일 확인 권장)` |
+| **4** | **`✅ DONE (main 병합: 75476b3)`** | ~~Gemini 4 Argon~~ ➡️ **GitHub Copilot** *(fallback 수행 / Claude Sonnet 2순위 대체)* | `Reviewer & Orchestrator` | Base `a908144` ↔ Step 3 Target `38b989d` 재리뷰(`npm run build` 포함), `review.json` 검증, `main` 병합 | `✅ clean: iteration-02 리뷰 `review.json`(`8082c78`) 스키마 검증 통과. tsc/lint/Vitest 58파일·675개/diff-check 통과, 자리표시자 Supabase 환경 변수 기반 build 통과, `.next/static`에 ORT 문자열 없음. 실제 PC 브라우저 업스케일은 미확인임.` |
 
 #### 📌 `r60-ai-icon-upscaler` 배경 및 단계별 수용 기준 (Acceptance Criteria)
 

@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## R60 통합 리뷰·main 병합 완료 (2026-11-10)
+
+- Base `a908144` ↔ Target `38b989d` 재리뷰를 clean으로 마감함(`review.json` 커밋 `8082c78`).
+- 자리표시자 Supabase 환경 변수 기반 `npm run build`, tsc, lint, Vitest 58파일/675개, diff-check 통과함.
+- `.next/static` 검색에서 ORT 런타임 문자열이 확인되지 않아 초기 번들 분리 조건을 검증함.
+- `main` 병합 커밋 `75476b3` 완료함. 실제 PC 브라우저 업스케일 동작은 미확인 상태임.
+
 ## r60-ai-icon-upscaler iteration-02 완성 (Step 3, 2026-11-10)
 
 - **수행 주체**: Claude Opus (Maker)임. 커밋 `38b989d`(워크트리)임.
