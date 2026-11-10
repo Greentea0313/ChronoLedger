@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-10 (R76 마이그레이션 운영 적용)
+
+- 운영 DB에 `MIGRATION_R76_PRESET_GRID_EDITING.sql` 적용·확인 쿼리 검증 완료함(사용자). 빈 프리셋 허용 제약과 `update_character_preset_slots`·`reorder_character_presets` RPC가 운영에 반영됨.
+
 ## 2026-11-10 (Run `r76-r77-preset-grid-dnd-and-icon-modal` 완료 — `main` 병합 `e5e6140`)
 
 - R76 프리셋 카드 그리드(@dnd-kit 드래그·즉시 저장)·R77 분류 아이콘 등록 모달을 `main`에 병합함.

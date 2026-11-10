@@ -1,4 +1,9 @@
 # 프로젝트 진행 현황
+## R76 마이그레이션 운영 적용 (2026-11-10)
+
+- 사용자가 운영 DB에 `MIGRATION_R76_PRESET_GRID_EDITING.sql`을 적용하고 `sql/README.md` 확인 쿼리(제약 1행·함수 2행)와 구 cardinality CHECK 잔존 없음(1행)을 확인함. 빈 프리셋·프리셋 간 이동·카드 순서 변경이 운영에서 활성화됨.
+- **남은 작업 (사용자)**: Chrome·Firefox·터치 실기기 드래그와 R77 모달 실브라우저 확인.
+
 ## Run `r76-r77-preset-grid-dnd-and-icon-modal` 완료 — `main` 병합 `e5e6140` (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 5)임.

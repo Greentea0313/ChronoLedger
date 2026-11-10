@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r76-r77-preset-grid-dnd-and-icon-modal` **(완료, `main` 병합 `e5e6140`, R76 마이그레이션 운영 적용·실브라우저 확인은 사용자 대기)** *(`R77` 분류 아이콘 이미지 등록 모달(URL·붙여넣기·파일) + `R76` pickupgg식 프리셋 카드 그리드 편집·@dnd-kit 드래그(터치 포함))*
+- **활성 Run ID**: `r76-r77-preset-grid-dnd-and-icon-modal` **(완료, `main` 병합 `e5e6140`, R76 마이그레이션 운영 적용·확인 쿼리 완료(사용자, 2026-11-10), 실브라우저 확인 대기)** *(`R77` 분류 아이콘 이미지 등록 모달(URL·붙여넣기·파일) + `R76` pickupgg식 프리셋 카드 그리드 편집·@dnd-kit 드래그(터치 포함))*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r76-r77-preset-grid-dnd-and-icon-modal` (브랜치: `collab/r76-r77-preset-grid-dnd-and-icon-modal`, manifest `41cdd56`)
 - **Base SHA**: `f5807eb1668c5dcf08c188bffce2accc18b1ef11`
@@ -49,7 +49,7 @@
 | **2** | **`✅ DONE (SHA: 4821658)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R76 Spec)` | 아래 **Step 2 수용 기준** 수행 완료함. | `✅ 4821658`: [`R76_Preset_Grid_Editing_Spec.md`](spec/R76_Preset_Grid_Editing_Spec.md)(워크트리) 작성. 사용자 결정 4건 반영, DB 변경 필요 → Step 3 수행 (아래 Step 2 완료 기록 참고) |
 | **3** | **`✅ DONE (SHA: 0ad856e)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 DB)` | 명세서 §4 수행. 허용 파일(명세서 §10 확정): 신규 `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`. 운영 DB 미적용 | `✅ 0ad856e`: 빈 프리셋 0~12명 제약·삭제 정리 보존·슬롯 원자 RPC·프리셋 순서 RPC·스키마/README/테스트/타입 반영. tsc·lint·Vitest 153파일/1402개·diff-check 통과. `psql` 부재로 SQL 테스트 미실행함. |
 | **4** | **`✅ DONE (SHA: 25182e5)`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 UI)` | 아래 **Step 4 수용 기준** 수행 완료함. 별도로 Step 3 RPC 버그를 고침(`60109dd`, Codex 1순위 대체) | `✅ 25182e5`: `@dnd-kit` 프리셋 카드 그리드·즉시 저장 큐·모바일 하단 선택 창·즐겨찾기 dnd-kit 전환, 구 작업 공간·목록·편집 창 제거. tsc·lint·diff-check·build 통과, Vitest 64파일/777개 통과 (아래 Step 4 완료 기록 참고) |
-| **5** | **`✅ DONE (리뷰: f5807eb ↔ 25182e5, 수정 434e6aa·8dcfecc, 산출물 571166b, main 병합 e5e6140)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `f5807eb` ↔ Target(Step 4 커밋) 통합 정적 리뷰, 동적 검증, `main` 병합, 문서 마감, (DB 변경 시) 마이그레이션 수동 적용 안내 | `✅` P1 없음, P2 1건·P3 1건 수정, P3 1건·P4 3건 to-do `R78` 이관. tsc·lint·diff-check·build 통과, Vitest 64파일/779개 통과. **R76 마이그레이션 운영 적용·실브라우저 드래그 확인은 사용자 대기** (아래 Step 5 완료 기록 참고) |
+| **5** | **`✅ DONE (리뷰: f5807eb ↔ 25182e5, 수정 434e6aa·8dcfecc, 산출물 571166b, main 병합 e5e6140)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `f5807eb` ↔ Target(Step 4 커밋) 통합 정적 리뷰, 동적 검증, `main` 병합, 문서 마감, (DB 변경 시) 마이그레이션 수동 적용 안내 | `✅` P1 없음, P2 1건·P3 1건 수정, P3 1건·P4 3건 to-do `R78` 이관. tsc·lint·diff-check·build 통과, Vitest 64파일/779개 통과. **R76 마이그레이션 운영 적용·확인 쿼리 완료(사용자), 실브라우저 드래그 확인은 사용자 대기** (아래 Step 5 완료 기록 참고) |
 
 #### 📌 `r76-r77-preset-grid-dnd-and-icon-modal` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -136,7 +136,7 @@
 - **검증**: `8dcfecc` 기준 tsc·lint·diff-check 통과, Vitest 64파일/779개 통과, `25182e5` 기준 `next build`(placeholder env) 통과함. 산출물은 Python 부재로 Node 부분 검증기로만 스키마 검증함(공식 `validate_collaboration_artifact.py` 미실행).
 - **병합**: `main` 병합 `e5e6140`(`--no-ff`). 병합 후 `main`에서 `npm install`(@dnd-kit 3종 추가)·tsc·Vitest 154파일/1401개 통과함.
 - **사용자 수동 작업 남음**:
-  1. 운영 DB에 `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql` 적용 후 `sql/README.md` R76 확인 쿼리 실행(제약 1행·함수 2행). 적용 전에는 프리셋 간 이동·카드 순서 변경·빈 프리셋 생성·마지막 캐릭터 제거가 안내 토스트로 막힘.
+  1. ✅ (사용자, 2026-11-10 완료: 제약 1행·함수 2행·구 cardinality CHECK 잔존 없음 확인) 운영 DB에 `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql` 적용 후 `sql/README.md` R76 확인 쿼리 실행(제약 1행·함수 2행). 적용 전에는 프리셋 간 이동·카드 순서 변경·빈 프리셋 생성·마지막 캐릭터 제거가 안내 토스트로 막힘.
   2. 실브라우저 확인: Chrome·Firefox 마우스 드래그(사이드바→슬롯, 슬롯 정렬, 프리셋 간 이동, 카드 밖 제거, 카드 순서), 터치 실기기 길게 눌러 드래그·세로 스크롤 유지, 키보드(스페이스 집기·방향키·Esc), 900px·1280px 레이아웃, 즐겨찾기 정렬 후 짧은 클릭 시 설정 창, R77 분류 아이콘 모달(URL·붙여넣기·파일).
 
 ### 🗂️ 이전 Run 기록 (완료): `r64-r72-r73-classification-icons-followups`
