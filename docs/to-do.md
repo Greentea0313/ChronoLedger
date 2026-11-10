@@ -707,6 +707,7 @@
 - [ ] R64. [캐릭터·프리셋 UX · 사용자 결정 대기 · DB 변경 · 명세 선행] 관리자 캐릭터 템플릿 생성 후 레어도·분류 옵션별 아이콘 등록 기능 설계 (`classification_schema`는 문자열 옵션만 허용 → 별도 테이블 권장, 결정: 아이콘 대상·표시 위치·저장 방식, 담당: Claude Opus 명세 → GPT Codex(DB) + Claude Sonnet(UI)) — 검토 문서 §4
 - [ ] R65. [캐릭터·프리셋 UX · 결정 불필요] 관리자 캐릭터 탭 게임 필터에서 `모든 게임` 제거(기본값 첫 게임), 레어도 필터는 선택한 게임 레어도만 표시 (`src/app/admin/page.tsx`, DB 변경 없음, 담당: Claude Sonnet, Fallback: GitHub Copilot) — 검토 문서 §5
 - [ ] R66. [캐릭터·프리셋 UX · 확인 완료 · 개선 여부 결정 대기] 픽업 전용 캐릭터 생성 경로 확인: 관리자 일정(`PICKUP`) 폼의 `[+ 새 픽업 캐릭터]` 또는 사용자 일정 요청 제안 승인으로만 생성되며 캐릭터 탭 직접 생성 버튼 없음 → 채택 시 캐릭터 탭에 템플릿 무관 `[+ 픽업 전용 캐릭터 추가]` 추가 (DB 변경 없음, 담당: Claude Sonnet) — 검토 문서 §6
+- [x] R67. [캐릭터·프리셋 UX · 완료 · `main` 직접 수정] 모바일(`md` 900px 미만) 캐릭터 페이지 상단 요청 버튼을 관리자 캐릭터 시스템 명칭 대신 `+ 캐릭터 추가·수정 요청`으로 고정 표시함(PC는 `+ (명칭) 추가·수정 요청` 유지). `RequestSubmissionModal.triggerText`를 `ReactNode`로 확장함 (DB 변경 없음, Claude Opus)
 - [ ] R39. [우선 낮음] 일정·결제 알림(픽업 종료 D-1, 예정 지출 결제일) PWA/Tauri 알림 방식 조사 및 설계 (담당: Claude Opus / Gemini 4 Argon)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 

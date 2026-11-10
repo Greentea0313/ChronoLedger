@@ -223,6 +223,15 @@ describe("CharactersPage", () => {
 
   const buttonByText = (text: string, scope: ParentNode = document.body) =>
     Array.from(scope.querySelectorAll("button")).find((b) => b.textContent?.trim() === text)
+  // The request button renders a mobile label (md:hidden) and a desktop label (hidden md:inline).
+  const requestButtonLabels = (scope: ParentNode = document.body) => {
+    const button = Array.from(scope.querySelectorAll("button")).find((b) => b.textContent?.includes("추가·수정 요청"))
+    return {
+      button,
+      mobile: button?.querySelector("span.md\\:hidden")?.textContent,
+      desktop: button?.querySelector("span.hidden")?.textContent,
+    }
+  }
 
   const pickerButton = (name: string, scope: ParentNode) =>
     Array.from(scope.querySelectorAll("button")).find((b) => b.querySelector("span.truncate")?.textContent === name) as HTMLButtonElement
@@ -272,7 +281,7 @@ describe("CharactersPage", () => {
       expect(gameChip("가나게임")?.getAttribute("aria-pressed")).toBe("true")
       expect(gameChip("다라게임")?.getAttribute("aria-pressed")).toBe("false")
       expect(cardNames()).toEqual(["구캐릭터", "라이덴", "아케론", "칼리"])
-      expect(buttonByText("+ 캐릭터 추가·수정 요청", container)).toBeTruthy()
+      expect(requestButtonLabels(container)).toMatchObject({ mobile: "+ 캐릭터 추가·수정 요청", desktop: "+ 캐릭터 추가·수정 요청" })
     })
 
     it("switches the selected game and shows that game's catalog", async () => {
@@ -358,7 +367,8 @@ describe("CharactersPage", () => {
       expect(container.textContent).toContain("보유 공명자 2 / 4명 · 프리셋 1개")
       const tab = Array.from(container.querySelectorAll('[role="tab"]')).find((el) => el.textContent === "보유 공명자")
       expect(tab).toBeTruthy()
-      expect(buttonByText("+ 공명자 추가·수정 요청", container)).toBeTruthy()
+      // Mobile always shows the generic label; the admin label appears from md up.
+      expect(requestButtonLabels(container)).toMatchObject({ mobile: "+ 캐릭터 추가·수정 요청", desktop: "+ 공명자 추가·수정 요청" })
     })
 
     it("preselects the game from the ?gameId= query", async () => {
@@ -378,7 +388,7 @@ describe("CharactersPage", () => {
 
     it("opens the request modal on the character request kind", async () => {
       await renderPage()
-      await click(buttonByText("+ 캐릭터 추가·수정 요청", container))
+      await click(requestButtonLabels(container).button)
       await flush()
 
       const select = document.body.querySelector("#request-kind") as HTMLSelectElement | null

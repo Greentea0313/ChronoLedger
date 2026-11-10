@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react"
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -66,7 +66,7 @@ export function RequestSubmissionModal({
   className,
   initialKind,
 }: {
-  triggerText?: string
+  triggerText?: ReactNode
   className?: string
   initialKind?: RequestKind
 } = {}) {

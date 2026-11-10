@@ -499,7 +499,13 @@ export default function CharactersPage() {
         </div>
         <RequestSubmissionModal
           initialKind="character"
-          triggerText={`+ ${selectedGame?.characterLabel ?? "캐릭터"} 추가·수정 요청`}
+          triggerText={
+            <>
+              {/* Mobile keeps the generic label; the admin character_label is shown from md (900px) up. */}
+              <span className="md:hidden">+ 캐릭터 추가·수정 요청</span>
+              <span className="hidden md:inline">{`+ ${selectedGame?.characterLabel ?? "캐릭터"} 추가·수정 요청`}</span>
+            </>
+          }
           className="h-10 border-line font-medium text-content hover:bg-surface-2"
         />
       </header>

@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (R67 모바일 캐릭터 요청 버튼 문구)
+
+- `src/app/dashboard/characters/page.tsx`: 요청 버튼 문구를 모바일 `+ 캐릭터 추가·수정 요청` / PC `+ (명칭) 추가·수정 요청`으로 나눔(`md:hidden` / `hidden md:inline`).
+- `src/components/game/request-submission-modal.tsx`: `triggerText` 타입을 `string`에서 `ReactNode`로 확장함(기존 문자열 호출부 영향 없음).
+- `src/app/dashboard/characters/page.test.tsx`: 모바일·PC 문구를 각각 확인하도록 테스트 갱신함.
+
 ## 2026-11-10 (캐릭터·프리셋 UX 개선 요청 검토, R61~R66 등록)
 
 - `docs/character-preset-ux-review.md` 신규 추가: 사용자 요청 6건의 현행 코드 근거, 구현 방향, DB 변경 여부, 결정 필요 사항 정리함.
