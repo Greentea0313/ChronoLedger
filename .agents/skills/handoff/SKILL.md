@@ -58,7 +58,7 @@ When the Orchestrator breaks down tasks into the Dispatch Queue, use this role d
   2. Update `Assigned Model` to `~~Current Model~~ ➡️ [Fallback Model]`.
   3. Record **① Completed work (modified files/functions), ② Remaining concrete tasks, ③ Decisions/assumptions, ④ Tests executed** in `### 📌 중단 체크포인트 (Handover Checkpoint)` and `docs/progress.md`.
 - Save current project-file edits and preserve unfinished work. Do not leave the user with only a chat summary when a durable project checkpoint can be written.
-- In the final response, instruct the user: *"토큰/컨텍스트 한도로 체크포인트를 남겼습니다. **[대체 모델명]**으로 전환하여 `'인수인계 문서를 확인해'`라고 입력해 주세요."*
+- In the final response, instruct the user: *"토큰/컨텍스트 한도로 체크포인트 남김. **[대체 모델명]**으로 전환 후 `'인수인계 문서를 확인해'` 입력 필요."*
 
 ## 4. Required Updates
 

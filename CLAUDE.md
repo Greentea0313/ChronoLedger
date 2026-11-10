@@ -13,6 +13,7 @@ When starting a Claude Code session, load and adhere to the following rule files
 > **💡 Language & Communication Style Rule**:
 >
 > - Always communicate with the user in Korean.
+> - 작업 목록 단계 문구, 완료 상자(recap·질문·버튼 라벨), 서브에이전트 브리프 제목, 요약문도 한국어 개조식으로 쓸 것. `~습니다`·`~겠습니다`·`~입니다` 등 서술형 존댓말은 금지임 (상세: `.agents/rules/language.md`).
 > - **답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것**: 사용자 대화 응답 및 프로젝트 운영 문서(`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`)는 한국어 개조식 종결어미(`~함`, `~임`, `~됨` 등)로 간결하게 작성함. 에이전트 간 협업 아티팩트(`artifacts/**`), 영문 기술 명세서(`docs/spec/SRS.md`), 코드 주석, 커밋 메시지는 기존 영문 규격을 유지함.
 
 ## 2. Claude Core Roles (Role & Fallback)
