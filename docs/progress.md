@@ -1,4 +1,15 @@
 # 프로젝트 진행 현황
+## Run `r63-character-favorite-sections` 리뷰·`main` 병합 마감 (2026-11-10)
+
+- **수행 주체**: Claude Opus (Step 3 Reviewer & Orchestrator)임. Maker는 GitHub Copilot(Step 1, GPT Codex 대체)·Claude Sonnet(Step 2)이라 교차 리뷰됨.
+- **보존 조치**: Step 1·2 모델이 `main`에 남긴 미커밋 완료 문서를 `6380db7`로 커밋해 보존함.
+- **결과**: Base `5689861` ↔ Target `1781495` 판정 `findings`(P4 4건, 비차단), 산출물 `f4d6b5c`, `main` 병합 `478b137` 완료함.
+  - 즐겨찾기 / 보유 / 미보유 3구역, 미보유 즐겨찾기 불가 트리거, 맨 뒤 추가, `reorder_favorite_characters`(SECURITY INVOKER·RLS·집합 일치 검사) 원자 저장, 실패 롤백, 미적용 DB 폴백, 프리셋 선택 목록 3구역 확인함.
+  - P4: `R63-REV-001`·`003` → `R74`, `R63-REV-002` 수용, `R63-REV-004` → `R73`에 포함.
+- **검증**: tsc·lint·Vitest 61파일/750개·diff-check·정적 export 빌드 통과(병합 후 `main` 재확인)함. 실DB SQL 테스트·개발 서버 확인은 미수행임.
+- **⚠️ 사용자 조치**: Supabase SQL Editor에서 `MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` 실행 필요함(`R74` ① 먼저 반영 권장).
+- **다음 단계**: R64(분류 옵션 아이콘, 명세 선행) 또는 후속 R72·R73·R74임.
+
 ## Run `r63-character-favorite-sections` Step 2 (보유 캐릭터·프리셋 선택 목록 3구역 UI) 완료 (2026-11-10)
 
 - **수행 주체**: Claude Sonnet (`Maker (Roster & Picker UI)`)임.

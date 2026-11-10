@@ -31,7 +31,12 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r63-character-favorite-sections` *(`R63` 보유 캐릭터 화면 즐겨찾기 / 보유 / 미보유 3구역 + 즐겨찾기 순서 드래그·DB 저장 + 프리셋 캐릭터 선택 목록 3구역 적용)*
+- **활성 Run ID**: 없음 *(최근 완료 Run: `r63-character-favorite-sections`, `main` 병합 `478b137`)*
+- **⚠️ 사용자 조치 필요**: Supabase SQL Editor에서 `sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` 수동 실행 필요함. 미적용 상태에서는 이름순 표시·순서 변경 비활성 폴백으로 동작함. 확인 쿼리는 `sql/README.md` 참고.
+
+### 🗂️ 이전 Run 기록 (완료): `r63-character-favorite-sections`
+
+- **Run ID**: `r63-character-favorite-sections` (완료, `main` 병합 `478b137`) *(`R63` 보유 캐릭터 화면 즐겨찾기 / 보유 / 미보유 3구역 + 즐겨찾기 순서 드래그·DB 저장 + 프리셋 캐릭터 선택 목록 3구역 적용)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r63-character-favorite-sections` (브랜치: `collab/r63-character-favorite-sections`, manifest `77675c0`)
 - **Base SHA**: `56898613677af30c0096fa94b1b4b157349c9169`
@@ -42,7 +47,7 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: cb5d5be)`** | ~~GPT Codex~~ ➡️ **GitHub Copilot** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (DB & Pure Logic)` | Step 1 수용 기준 수행 완료함. | `✅ cb5d5be` (기능 `29b2900` 포함): 즐겨찾기 순서 컬럼·초기 정리/정렬·보유 상태 강제 트리거·SECURITY INVOKER 재정렬 RPC·스키마/권한/스모크 테스트·순수 3구역/순서 함수 반영함. 마이그레이션 재실행 시 기존 순서 보존함. |
 | **2** | **`✅ DONE (SHA: 1781495)`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Roster & Picker UI)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/characters/page.tsx`(+`.test.tsx`), `src/components/character/character-roster.tsx`(+테스트), `src/components/character/preset-editor-dialog.tsx`, `src/components/character/preset-workspace.tsx`(+테스트), `src/lib/character-utils.ts`(+테스트, Step 1 함수 보완 시에만) | `✅ 1781495`: 보유 캐릭터·프리셋 선택 목록 3구역, 미보유 즐겨찾기 불가, 즐겨찾기 순서 드래그·버튼 이동 + RPC 저장/롤백, 미적용 DB 폴백 반영. `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 61파일/750개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `5689861` ↔ Target(Step 2 커밋) 통합 정적 리뷰(마이그레이션·트리거·RPC·RLS 경계 포함), 동적 검증, `main` 병합 및 문서 마감 | `▶ Base 5689861 ↔ Target 1781495 통합 정적 리뷰 착수` |
+| **3** | **`✅ DONE (main 병합: 478b137)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `5689861` ↔ Target `1781495` 통합 정적 리뷰(마이그레이션·트리거·RPC·RLS 경계 포함), 동적 검증, `main` 병합 및 문서 마감 | `✅ findings(P4 4건, 비차단)`: `R63-REV-001` RPC `REVOKE`에 `PUBLIC` 누락(`auth.uid()` 검사로 악용 불가), `R63-REV-002` 동시 즐겨찾기 시 순서 중복 가능(이름순 동률 처리), `R63-REV-003` `sortCharactersFavoriteFirst` 미사용, `R63-REV-004` 보유 목록 즐겨찾기 드래그 Firefox 확인 → to-do `R74`·`R73`. tsc·lint·Vitest 61파일/750개·diff-check·정적 export 빌드 통과, 변경 파일 허용 범위 내. 실DB SQL 테스트·개발 서버 확인은 미수행. 산출물 `f4d6b5c`(ajv 스키마 검증 통과, `run.json` `completed`) |
 
 #### 📌 `r63-character-favorite-sections` 단계별 수용 기준 (Acceptance Criteria)
 

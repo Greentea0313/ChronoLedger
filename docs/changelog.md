@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Run `r63-character-favorite-sections` 마감, `main` 병합 `478b137`)
+
+- R63: 보유 캐릭터 화면과 프리셋 선택 목록(모달·PC 사이드바)을 즐겨찾기 / 보유 / 미보유 3구역으로 표시함. 즐겨찾기는 보유 캐릭터만 가능하고, 즐겨찾기 순서는 드래그·앞/뒤 이동 버튼으로 바꿔 `reorder_favorite_characters` RPC로 저장함.
+- DB: `user_characters.favorite_sort_order`, 미보유 즐겨찾기 자동 해제·맨 뒤 추가 트리거, 재정렬 RPC 추가(`MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql`, 수동 적용 필요).
+- 리뷰 산출물 `iteration-01/review.json`(P4 4건)·`test.json` 기록, to-do `R74` 추가·`R73` 범위 확장함.
+
 ## 2026-11-10 (Run `r63-character-favorite-sections` Step 2 — `1781495`)
 
 - 보유 캐릭터 화면을 `즐겨찾기` / `보유` / `미보유` 3구역(제목·개수, 빈 구역 숨김)으로 나누고 기존 필터는 구역 안에서 적용함.
