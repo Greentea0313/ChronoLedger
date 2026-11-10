@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## R60 Step 1 Maker 완료 (2026-11-10)
+
+- `r60-ai-icon-upscaler` Worktree에서 `f177a96` 커밋 완료함.
+- `onnxruntime-web` 동적 import와 PC/WebGL/WASM·256px 미만 판정, 기존 `resizeImageToWebP` 폴백을 구현함.
+- 관리자 게임·캐릭터·픽업 아이콘 및 사용자 일정/캐릭터 요청에 기본 ON 업스케일 토글과 추론 중 인디케이터를 연결함.
+- 검증 완료함: tsc, lint, diff-check, Vitest 58파일/670개 통과함.
+- `/models/waifu2x.onnx` 배포 자산과 모델 입출력 계약은 Step 2 리뷰에서 확인 필요함.
+
 ## R60 Run 활성화: PC 저해상도 아이콘 AI 업스케일러 (2026-11-10)
 
 - **Run**: `r60-ai-icon-upscaler`, Worktree `.worktrees/r60-ai-icon-upscaler`, Base `a908144`임.

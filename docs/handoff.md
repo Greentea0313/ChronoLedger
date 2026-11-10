@@ -46,8 +46,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (PC AI Icon Upscaler)` | `R60` Step 1: 동적 ONNX 업스케일러·기존 리사이저 폴백·관리자/요청 UI 연동·단위 테스트 구현. 허용 파일: `src/lib/image-upscaler.ts`, `src/lib/image-resizer.ts`, `src/lib/image-upscaler.test.ts`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `public/models/waifu2x.onnx`, `package.json`, `package-lock.json`, `docs/to-do.md` | `▶ R60 수용 기준에 따라 착수함` |
-| **2** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Step 1 Target 통합 정적 리뷰, 업스케일러 번들 분리·폴백·브라우저 경계 검증, `run.json`·`review.json`·`test.json` 마감 및 `main` 병합 | `⏳ Step 1 완료 후 진행함` |
+| **1** | **`✅ DONE (SHA: f177a96cf672486815ab3625e25e2b98e6a4a72c)`** | ~~Claude Sonnet~~ *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (PC AI Icon Upscaler)` | `R60` Step 1: 동적 ONNX 업스케일러·기존 리사이저 폴백·관리자/요청 UI 연동·단위 테스트 구현. 허용 파일: `src/lib/image-upscaler.ts`, `src/lib/image-upscaler.test.ts`, `src/app/admin/page.tsx`, `src/components/game/request-submission-modal.tsx`, `package.json`, `package-lock.json`, `docs/to-do.md` | `✅ f177a96: onnxruntime-web 동적 import, PC/WebGL/WASM·256px 미만 감지, 모바일·미지원·모델 실패 시 기존 리사이저 폴백, 관리자·요청 모달 기본 ON 토글·로딩 상태 연결. tsc/lint/Vitest 58파일·670개/diff-check 통과. `/models/waifu2x.onnx` 배포 자산 및 모델 입출력 계약은 리뷰에서 확인 필요함.` |
+| **2** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `a908144` ↔ Target `f177a96` 통합 정적 리뷰, 업스케일러 번들 분리·폴백·브라우저 경계 검증, `run.json`·`review.json`·`test.json` 마감 및 `main` 병합 | `▶ Step 1 완료. `/models/waifu2x.onnx` 자산 포함 여부와 모델 입력·출력 계약을 우선 확인함.` |
 
 #### 📌 `r60-ai-icon-upscaler` 배경 및 단계별 수용 기준 (Acceptance Criteria)
 
