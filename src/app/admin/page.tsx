@@ -725,6 +725,12 @@ export default function AdminPage() {
     }
   }
 
+  // R80: show why an icon write failed (RLS denial, code and message) instead of a bare generic sentence.
+  const iconWriteErrorText = (failureText: string, error: { code?: string; message: string }) =>
+    error.code === "42501"
+      ? `${failureText} 관리자 권한이 확인되지 않았습니다. (42501)`
+      : `${failureText} (${error.code ?? "오류"}: ${error.message})`
+
   const patchClassificationIcon = (targetGameId: string, axisKey: string, option: string, dataUrl: string | null) => {
     setClassificationIcons((prev) => {
       if (!prev || prev.gameId !== targetGameId) return prev
@@ -744,7 +750,7 @@ export default function AdminPage() {
           { game_id: targetGameId, axis_key: axisKey, option_value: option, icon_data_url: dataUrl },
           { onConflict: "game_id,axis_key,option_value" },
         )
-      if (error) return error.code === "23514" ? CLASSIFICATION_OPTION_CHANGED_MESSAGE : "분류 아이콘을 저장하지 못했습니다."
+      if (error) return error.code === "23514" ? CLASSIFICATION_OPTION_CHANGED_MESSAGE : iconWriteErrorText("분류 아이콘을 저장하지 못했습니다.", error)
       patchClassificationIcon(targetGameId, axisKey, option, dataUrl)
       setMessage({ type: "success", text: `'${option}' 분류 아이콘을 저장했습니다.` })
       return null
@@ -810,7 +816,7 @@ export default function AdminPage() {
         .eq("game_id", targetGameId)
         .eq("axis_key", axisKey)
         .eq("option_value", option)
-      if (error) return "분류 아이콘을 삭제하지 못했습니다."
+      if (error) return iconWriteErrorText("분류 아이콘을 삭제하지 못했습니다.", error)
       patchClassificationIcon(targetGameId, axisKey, option, null)
       setMessage({ type: "success", text: `'${option}' 분류 아이콘을 삭제했습니다.` })
       return null

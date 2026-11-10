@@ -2027,6 +2027,54 @@ $$;
 RESET ROLE;
 \echo PASS: R64 classification option icon validation, approved guest read, admin write, and schema cleanup
 
+-- R80: an admin promoted only through public.users.role (no JWT app_metadata.role) can write icons;
+-- the same user without the role is denied by RLS.
+SELECT role AS r80_original_role FROM public.users WHERE id = :'test_user_id'::uuid \gset
+UPDATE public.users SET role = 'admin' WHERE id = :'test_user_id'::uuid;
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.test_user_id'), 'role', 'authenticated')::text,
+    true
+);
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.test_user_id'), true);
+SET LOCAL ROLE authenticated;
+INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+VALUES (current_setting('chronoledger.r13_game_id')::uuid, 'element', '물', 'data:image/webp;base64,' || repeat('B', 32))
+ON CONFLICT (game_id, axis_key, option_value) DO UPDATE SET icon_data_url = EXCLUDED.icon_data_url;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.game_classification_icons
+        WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid
+          AND axis_key = 'element' AND option_value = '물'
+          AND icon_data_url = 'data:image/webp;base64,' || repeat('B', 32)
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R80 users.role admin could not write a classification icon';
+    END IF;
+END;
+$$;
+RESET ROLE;
+UPDATE public.users SET role = :'r80_original_role' WHERE id = :'test_user_id'::uuid;
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    BEGIN
+        DELETE FROM public.game_classification_icons
+        WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid AND axis_key = 'element' AND option_value = '물';
+        IF FOUND THEN
+            RAISE EXCEPTION 'FAIL: R80 non-admin deleted a classification icon';
+        END IF;
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (current_setting('chronoledger.r13_game_id')::uuid, 'element', '물', 'data:image/webp;base64,' || repeat('C', 32))
+        ON CONFLICT (game_id, axis_key, option_value) DO UPDATE SET icon_data_url = EXCLUDED.icon_data_url;
+        RAISE EXCEPTION 'FAIL: R80 non-admin wrote a classification icon';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END;
+$$;
+RESET ROLE;
+\echo PASS: R80 users.role admin writes classification icons, non-admin is denied
+
 -- R76 empty presets, atomic slot changes, preset ordering, and RPC ACL.
 SELECT set_config(
     'request.jwt.claims',
