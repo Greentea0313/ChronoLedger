@@ -1,0 +1,18 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r61-r65-r66-character-admin-quick-fixes",
+    "created_at":  "2026-11-10T08:48:31.4037123+00:00",
+    "objective":  "R61 preset title placeholder removal, R65 admin character filter without All games and per-game rarities, R66 pickup-only character add button for games without a template",
+    "acceptance_criteria":  [
+                                "Step 1: R61 remove preset title example placeholder",
+                                "Step 1: R65 remove All games option, default to first game, rarities of the selected game only",
+                                "Step 1: R66 [+ 캐릭터 추가] creates pickup-only characters for games without a template, reusing the schedule-form registration logic",
+                                "Step 2: static review, tests, merge to main"
+                            ],
+    "base_sha":  "bf8cdced9efe0d104b910914776d6c3ad1bf2961",
+    "target_sha":  null,
+    "branch":  "collab/r61-r65-r66-character-admin-quick-fixes",
+    "worktree_path":  ".worktrees/r61-r65-r66-character-admin-quick-fixes",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
