@@ -723,6 +723,7 @@
 - [ ] R79. [Run `r79-sql-tests-local-run` 진행 중(Step 1 `✅ f13087d` → Step 2 리뷰 `R79-REV-001`(P3) 지적 → 수정 `270f2c7`, 재리뷰 `⏸️` R81 이후) · 후속 · 우선 낮음] `sql/README.md:61-62`의 잘못된 `psql ******127.0.0.1:54322/postgres` 명령을 유효한 URI 또는 `-h/-p/-U/-d` 형식으로 수정한 뒤 재리뷰·main 병합함. TESTS.sql 로컬 38개 블록 PASS와 최종 rollback PASS는 확인 완료함.
 - [x] R80. [Run `r80-classification-icon-admin-policy` 완료(`main` 병합 `dbded69`, 확인 쿼리 수정 `e08c2f0`) · R80 마이그레이션 운영 적용·확인 쿼리 `true`(사용자, 2026-11-11) · **사용자 남은 확인: 아이콘 등록 재시도·보유 캐릭터 크기** · DB 변경(RLS)] 분류 아이콘 저장 실패(RLS `42501`) 해결: 쓰기 정책을 JWT 또는 `users.role` 관리자 조건으로 통일하고 실패 원인을 화면에 표시함. 보유 캐릭터 아바타·이름 확대(게임 무관 고정 크기) 포함 (담당: Claude Opus → Gemini 4 Argon → 사용자)
 - [ ] R81. [Run `r81-image-input-unification` 진행 중(Step 1 명세 `✅ 96d4b3d` → Step 2 Claude Sonnet `▶ READY`) · 사용자 요청·결정 2026-11-11 · DB 변경 없음(예정)] 이미지 입력을 공용 등록 모달(URL·붙여넣기·파일·미리보기)로 통일함. 대상: 사용자 화면 4곳(게임 커스텀 아이콘 2곳, 보유 캐릭터 커스텀 아이콘, 프로필 사진) + 관리자·요청 화면 8곳 + R77 모달. 캘린더 배경 제외. 사용자 화면도 wsrv.nl 프록시 대체 경로 사용 (담당: Claude Opus 명세 → Claude Sonnet 구현 → Claude Opus 리뷰)
+- [ ] R82. [Run `r82-version-grouped-schedules` 진행 중(Step 1 Claude Sonnet `▶ READY`) · 사용자 요청·결정 2026-11-11 · DB 변경 없음] 버전 일정이 있는 게임은 픽업·콘텐츠 일정을 시작일 기준으로 소속 버전 아래에 접어서(유형별 개수·픽업 아바타 요약) 표시함. 대상: 주간 일정 목록, 선택일 상세(사이드바·모바일 하단 창). 달력 칸·방송 일정은 그대로 (담당: Claude Sonnet → Claude Opus 리뷰)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---

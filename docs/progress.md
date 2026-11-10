@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Run `r82-version-grouped-schedules` 등록 (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **배경**: 사용자 요청. 버전 일정이 있는 게임은 버전을 상위 일정으로 두고 픽업·콘텐츠를 그 아래로 묶어 표시를 간소화함.
+- **결정**: 주간 일정 목록·선택일 상세만 적용(달력 칸 유지), 시작일 기준 자동 소속, 접힘 + 요약, 방송 일정 제외, DB 변경 없음.
+- **Worktree**: `.worktrees/r82-version-grouped-schedules`(Base `7c0a319`). r81과 파일이 겹치지 않아 병행 가능함.
+- **다음 단계**: Step 1(`Claude Sonnet`) `▶ READY`임.
+
 ## Run `r81-image-input-unification` Step 1 (명세) 완료 (2026-11-11)
 
 - **수행 주체**: Claude Opus (`Architect`)임.

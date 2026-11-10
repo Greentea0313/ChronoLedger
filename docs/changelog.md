@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-11 (Run `r82-version-grouped-schedules` 등록)
+
+- 버전 일정 기준 일정 묶음 표시 Run을 등록함(구현 Sonnet → 리뷰 Opus). 주간 일정 목록과 선택일 상세만 대상이며 달력 칸은 유지함.
+
 ## 2026-11-11 (Run `r81-image-input-unification` Step 1 — `96d4b3d`)
 
 - R81 명세서 `docs/spec/R81_Image_Input_Unification_Spec.md` 추가함. 이미지 입력을 공용 등록 모달 하나로 통일하는 설계(대상 13곳, 캘린더 배경 제외)를 확정함.

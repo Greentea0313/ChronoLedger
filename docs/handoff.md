@@ -74,6 +74,37 @@
 - **회귀 금지·테스트·허용 파일**: 명세 §5~§7에 확정함. 남은 사용자 결정 없음.
 - **다음 단계**: Step 2(`Claude Sonnet`, 공용 모달 + 사용자 화면 4곳) `▶ READY`임.
 
+### 🚦 병행 활성 Run: `r82-version-grouped-schedules` (r81과 수정 파일이 겹치지 않아 병행 가능)
+
+- **Run ID**: `r82-version-grouped-schedules` *(버전 일정이 있는 게임의 픽업·콘텐츠 일정을 버전 아래로 묶어 목록·상세 표시를 간소화)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
+- **Worktree 경로**: `.worktrees/r82-version-grouped-schedules` (브랜치: `collab/r82-version-grouped-schedules`, manifest `c896198`)
+- **Base SHA**: `7c0a31901c8fce006bbe3aee2adc10e49338e91b`
+- **DB 변경**: 없음. 소속은 날짜로 화면에서 계산함.
+- **사용자 결정 (2026-11-11 질문 카드·예시 설명 후 회신)**:
+  - 적용 화면: **주간 일정 목록**(`weekly-schedule-list.tsx`)과 **선택일 상세**(`hero-sidebar.tsx`의 `HeroSidebarContent`, 모바일 하단 창도 같은 컴포넌트)만. **달력 칸은 지금처럼 유형별 점 유지**함.
+  - 소속 기준: 같은 게임에서 픽업·콘텐츠의 **시작일이 버전 기간 안**이면 그 버전 소속. 어느 버전에도 안 들어가면 지금처럼 단독 표시함. DB 변경 없음.
+  - 하위 일정 표시: **접힌 상태 + 요약**(유형별 개수·픽업 캐릭터 아바타), 누르면 펼침.
+  - **방송(BROADCAST) 일정은 묶지 않음**.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Version Grouping UI)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `src/lib/version-schedule-groups.ts`(+테스트), `src/components/calendar/weekly-schedule-list.tsx`(+테스트), `src/components/calendar/hero-sidebar.tsx`(+테스트), `src/components/calendar/mobile-drawer.test.tsx`(필요 시) | - |
+| **2** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 1 커밋) 리뷰, 산출물, `main` 병합, 문서 마감, 실브라우저 확인 안내 | - |
+
+#### 📌 `r82-version-grouped-schedules` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Sonnet` — Maker)**:
+   - **순수 함수** `src/lib/version-schedule-groups.ts`: 일정 목록을 받아 게임별로 VERSION 그룹(버전 + 하위 PICKUP·CONTENTS)과 단독 일정으로 나눔.
+     - 소속: 같은 게임(`game_id` 기준)이고 하위 일정의 `start_date`가 버전의 `[start_date, end_date]` 안이면 소속. 겹치는 버전이 여럿이면 시작일이 가장 늦은 버전에 둠. BROADCAST·다른 VERSION은 소속시키지 않음.
+     - 각 하위 일정에 소속 버전 id·제목을 붙인 결과도 돌려줌(상세 화면의 작은 라벨용).
+     - 입력 순서·기존 정렬을 해치지 않음.
+   - **주간 일정 목록**: 게임 그룹 안에서 버전 행 하나에 요약(`픽업 n · 콘텐츠 n`, 픽업 아바타)과 펼침 버튼(▸/▾, `aria-expanded`)을 둠. 기본은 접힘이고 펼치면 하위 일정을 들여 써서 기존 행 모양(유형 배지·제목·기간·D-day·관심 일정 버튼)으로 보여줌. 버전 소속이 아닌 일정과 버전이 없는 게임은 지금과 같음. 펼침 상태는 기존 접기 상태 관리 방식을 따름.
+   - **선택일 상세**: 버전 카드가 보이는 날에는 그 버전 소속 하위 카드들을 버전 카드 안에 접어 넣고 요약·펼침을 둠. 버전 카드가 안 보이는 날(버전 시작일이 아닌 날)의 하위 일정은 지금처럼 단독 카드로 두되 `3.2 버전` 같은 소속 버전 이름을 작게 표시함. `진행 중 모두 보기` 토글 ON일 때도 같은 규칙을 적용함.
+   - **변경 금지**: 달력 칸 표시, BROADCAST, 관심 일정(즐겨찾기) 동작, 픽업 아바타·재연(rerun) 배지, 지출 탭·메모 탭.
+   - **테스트**: 소속 판정(경계일 포함, 겹치는 버전, 다른 게임, 방송 제외, 버전 없는 게임), 주간 목록 접힘·펼침·요약 개수, 상세 카드 묶음과 소속 라벨. `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
+2. **Step 2 (`Claude Opus` — Reviewer & Orchestrator)**: 리뷰·산출물·병합·문서 마감, 사용자에게 데스크톱·모바일에서 주간 목록과 선택일 상세 확인을 안내함.
+
 ### ⏸️ 보류 중 Run: `r79-sql-tests-local-run` (Step 2 리뷰는 `r81` 이후 진행, 사용자 요청 2026-11-11)
 
 - **Run ID**: `r79-sql-tests-local-run` *(`sql/tests/TESTS.sql` 첫 실제 실행: 로컬 Supabase에서 끝까지 통과시키기)*
