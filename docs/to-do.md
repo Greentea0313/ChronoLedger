@@ -701,6 +701,12 @@
     4. **UI 프리징 방지**: AI 추론 비동기 처리 중 로딩 인디케이터 제공.
   - verify: PC 데스크톱 브라우저에서 256px 미만 이미지 입력 시 Waifu2x ONNX 동적 로딩 및 256×256 고화질 WebP 변환 단위/통합 테스트, 모바일/WASM 미지원 환경 폴백 테스트, 빌드 번들 크기(First Load JS) 영향 없음 확인.
   - 담당 모델: Claude Sonnet (UI/동적 임포트 구현), Fallback: GitHub Copilot / Gemini 3.8 Flash (DB 변경 없음, Opus 승격 조건 비해당).
+- [ ] R61. [캐릭터·프리셋 UX · 결정 불필요] 프리셋 제목 입력란의 예시 `placeholder`("예: 혼돈 전반 파티") 삭제 (`preset-editor-dialog.tsx`, DB 변경 없음, 담당: Claude Sonnet, Fallback: GitHub Copilot) — 검토 문서 [`docs/character-preset-ux-review.md`](character-preset-ux-review.md) §1
+- [ ] R62. [캐릭터·프리셋 UX · 사용자 결정 대기] PC 프리셋 탭을 좌측 보유 캐릭터 사이드바 + 우측 프리셋 편집으로 분할하고, 아바타 드래그 또는 슬롯 클릭 → 아바타 클릭으로 특정 슬롯에 배치 (모바일 현행 유지·추후 논의, DB 변경 없음, 결정: 적용 너비 `md`/`lg`, 인라인 편집 vs 넓은 모달, 저장 시점, 담당: Claude Sonnet + Claude Opus 리뷰) — 검토 문서 §2
+- [ ] R63. [캐릭터·프리셋 UX · 사용자 결정 대기 · DB 변경] 보유 캐릭터 화면을 즐겨찾기 / 보유 / 미보유 3구역으로 나누고 즐겨찾기 순서를 드래그로 조정 (`user_characters.favorite_sort_order` 추가 시 Opus 승격 조건 ①, 결정: 미보유 즐겨찾기 허용 여부, 순서 저장 DB vs `localStorage`, 프리셋 선택 목록 적용 여부, 담당: GPT Codex(DB) + Claude Sonnet(UI) + Claude Opus 리뷰) — 검토 문서 §3
+- [ ] R64. [캐릭터·프리셋 UX · 사용자 결정 대기 · DB 변경 · 명세 선행] 관리자 캐릭터 템플릿 생성 후 레어도·분류 옵션별 아이콘 등록 기능 설계 (`classification_schema`는 문자열 옵션만 허용 → 별도 테이블 권장, 결정: 아이콘 대상·표시 위치·저장 방식, 담당: Claude Opus 명세 → GPT Codex(DB) + Claude Sonnet(UI)) — 검토 문서 §4
+- [ ] R65. [캐릭터·프리셋 UX · 결정 불필요] 관리자 캐릭터 탭 게임 필터에서 `모든 게임` 제거(기본값 첫 게임), 레어도 필터는 선택한 게임 레어도만 표시 (`src/app/admin/page.tsx`, DB 변경 없음, 담당: Claude Sonnet, Fallback: GitHub Copilot) — 검토 문서 §5
+- [ ] R66. [캐릭터·프리셋 UX · 확인 완료 · 개선 여부 결정 대기] 픽업 전용 캐릭터 생성 경로 확인: 관리자 일정(`PICKUP`) 폼의 `[+ 새 픽업 캐릭터]` 또는 사용자 일정 요청 제안 승인으로만 생성되며 캐릭터 탭 직접 생성 버튼 없음 → 채택 시 캐릭터 탭에 템플릿 무관 `[+ 픽업 전용 캐릭터 추가]` 추가 (DB 변경 없음, 담당: Claude Sonnet) — 검토 문서 §6
 - [ ] R39. [우선 낮음] 일정·결제 알림(픽업 종료 D-1, 예정 지출 결제일) PWA/Tauri 알림 방식 조사 및 설계 (담당: Claude Opus / Gemini 4 Argon)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
