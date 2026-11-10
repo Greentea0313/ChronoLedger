@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r57-character-template-gate-and-validation",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "static-review",
+  "base_sha": "25b39536223b998143e8df443dc8eea1e4c7e349",
+  "target_sha": "15c0d1411ab548a49eb02b2e44b284aa6771722f",
+  "status": "clean",
+  "created_at": "2026-11-10T03:00:00Z",
+  "findings": []
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "run_id": "r57-character-template-gate-and-validation",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "dynamic-test",
+  "base_sha": "25b39536223b998143e8df443dc8eea1e4c7e349",
+  "target_sha": "15c0d1411ab548a49eb02b2e44b284aa6771722f",
+  "status": "passed",
+  "created_at": "2026-11-10T02:58:08Z",
+  "finished_at": "2026-11-10T02:59:05Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check 25b3953 15c0d14", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (57 files, 665 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}
