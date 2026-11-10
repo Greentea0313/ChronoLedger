@@ -1,4 +1,11 @@
 # 변경 이력
+## 2026-11-10 (Run `r61-r65-r66-character-admin-quick-fixes` 마감, `main` 병합 `9962a21`)
+
+- R61: 프리셋 제목 입력란 예시 `placeholder` 제거함.
+- R65: 관리자 캐릭터 탭 게임 필터에서 `모든 게임` 제거(첫 게임 기본, 삭제·로딩 시 보정), 레어도 필터는 선택 게임 등급만 표시, 게임 0개 안내 추가함.
+- R66: 템플릿 없는 게임에서 `[+ 캐릭터 추가]`로 픽업 전용 캐릭터 등록. 일정 폼과 같은 `src/lib/pickup-character-registration.ts`(`registerPickupOnlyCharacter`)를 공용으로 사용함.
+- 리뷰 산출물 `iteration-01/review.json`(P4 1건)·`test.json` 기록, to-do `R72` 추가함.
+
 ## 2026-11-10 (Run `r61-r65-r66-character-admin-quick-fixes` Step 1 — R61·R65·R66, `07e5c89`)
 
 - `R61`: 프리셋 편집기 제목 입력란의 예시 `placeholder`를 제거함.

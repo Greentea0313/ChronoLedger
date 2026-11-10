@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r61-r65-r66-character-admin-quick-fixes` *(`R61` 프리셋 제목 예시 삭제 + `R65` 관리자 캐릭터 필터 `모든 게임` 제거·게임별 레어도 + `R66` 템플릿 없는 게임의 픽업 전용 `[+ 캐릭터 추가]`)*
+- **활성 Run ID**: 없음 *(최근 완료 Run: `r61-r65-r66-character-admin-quick-fixes`, `main` 병합 `9962a21`)* — 직전 Run 요약: *(`R61` 프리셋 제목 예시 삭제 + `R65` 관리자 캐릭터 필터 `모든 게임` 제거·게임별 레어도 + `R66` 템플릿 없는 게임의 픽업 전용 `[+ 캐릭터 추가]`)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r61-r65-r66-character-admin-quick-fixes` (브랜치: `collab/r61-r65-r66-character-admin-quick-fixes`, manifest `60f4530`)
 - **Base SHA**: `bf8cdced9efe0d104b910914776d6c3ad1bf2961`
@@ -41,7 +41,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 07e5c89)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Character Admin Quick Fixes)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/components/character/preset-editor-dialog.tsx`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/dashboard/characters/page.test.tsx`(프리셋 편집기 회귀 확인 시), 신규 `src/lib/pickup-character-registration.ts`(+테스트, 공용 등록 로직 추출 시에만) | `✅ 07e5c89`: R61·R65·R66 반영, 공용 등록 함수 `pickup-character-registration.ts` 추출. `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 59파일/692개 통과 (아래 Step 1 완료 기록 참고) |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bf8cdce` ↔ Step 1 Target 통합 정적 리뷰(`iteration-01/review.json`·`test.json`), tsc·lint·Vitest·diff-check 확인, `main` 병합 및 문서 마감 | `▶ 착수 가능: Base bf8cdce ↔ Target 07e5c89` |
+| **2** | **`✅ DONE (main 병합: 9962a21)`** | ~~Gemini 4 Argon~~ ➡️ **Claude Opus** *(1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bf8cdce` ↔ Target `07e5c89` 통합 정적 리뷰, 동적 검증, `main` 병합 및 문서 마감 | `✅ findings(P4 1건, 비차단)`: `R66-REV-001` 공용 중복 이름 문구의 '목록에서 선택해 주세요.'가 캐릭터 탭 대화상자에는 맞지 않음 → to-do `R72`. tsc·lint·Vitest 59파일/692개·diff-check 통과, 변경 파일 허용 범위 내 확인. 산출물 `ea2a962`(`iteration-01/review.json`·`test.json` ajv 스키마 검증 통과, `run.json` `completed`) |
 
 #### 📌 `r61-r65-r66-character-admin-quick-fixes` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -345,7 +345,7 @@
   - R63: 보유 캐릭터만 즐겨찾기(기존 미보유 즐겨찾기 해제), 순서 DB 저장, 프리셋 선택 목록에도 3구역 적용 — DB 변경, Opus 승격 조건 ①.
   - R64: 분류 옵션만, 필터 칩·캐릭터 설정 창·관리자 캐릭터 목록 표시, 별도 테이블 — 명세 선행.
   - R66: 템플릿 없는 게임에서만 기존 `[+ (명칭) 추가]` 자리에 `[+ 캐릭터 추가]`(픽업 전용 생성).
-- **다음 단계**: ① R61·R65·R66은 Run `r61-r65-r66-character-admin-quick-fixes`로 등록됨(2026-11-10, Step 1 `▶ READY`) → ② R62 → ③ R63 DB+UI → ④ R64 명세 후 구현.
+- **다음 단계**: ① R61·R65·R66 완료(`main` 병합 `9962a21`) → ② R62 → ③ R63 DB+UI → ④ R64 명세 후 구현.
 - **같은 날 `main` 직접 반영 (소규모 UI)**: R67 `46393eb`, R68 `d67921e`, R69 `f99e4fb`, R70 `f93ff31`.
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)

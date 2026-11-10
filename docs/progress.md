@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## Run `r61-r65-r66-character-admin-quick-fixes` 리뷰·`main` 병합 마감 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Step 2 Reviewer & Orchestrator)임. Maker는 Claude Sonnet(`07e5c89`)이라 교차 리뷰됨.
+- **결과**: Base `bf8cdce` ↔ Target `07e5c89` 판정 `findings`(P4 1건, 비차단), 산출물 `ea2a962`, `main` 병합 `9962a21` 완료함.
+  - R61 프리셋 제목 예시 삭제, R65 관리자 캐릭터 탭 단일 게임 필터·게임별 레어도, R66 템플릿 없는 게임의 픽업 전용 `[+ 캐릭터 추가]`(공용 `registerPickupOnlyCharacter`) 반영 확인함.
+  - `R66-REV-001`(P4): 공용 중복 이름 문구가 캐릭터 탭 대화상자에 맞지 않음 → to-do `R72`.
+- **검증**: tsc·lint·Vitest 59파일/692개·diff-check 통과(병합 후 `main`에서도 재확인)함. 브라우저 실사용 확인은 미수행임.
+- **다음 단계**: R62(PC 프리셋 분할 편집) Run 등록 권장함.
+
 ## Run `r61-r65-r66-character-admin-quick-fixes` Step 1 (R61·R65·R66 Maker) 완료 (2026-11-10)
 
 - **수행 주체**: Claude Sonnet (`Maker (Character Admin Quick Fixes)`)임.
