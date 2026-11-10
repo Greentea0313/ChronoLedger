@@ -21,6 +21,9 @@ import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
+import { cn } from "@/lib/utils"
+import { classificationIconKey, createClassificationIconDataUrl, loadClassificationIcons } from "@/lib/classification-icons"
+import { ClassificationOptionIcon } from "@/components/character/classification-option-icon"
 import { DuplicatePickupNameError, registerPickupOnlyCharacter } from "@/lib/pickup-character-registration"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import {
@@ -79,6 +82,8 @@ interface GameOption {
 const DEFAULT_MAX_PRESET_SLOTS = 4
 const MAX_PICKUP_CHARACTERS = 8
 const DEFAULT_CHARACTER_LABEL = "캐릭터"
+
+const CLASSIFICATION_OPTION_CHANGED_MESSAGE = "선택지가 변경되었습니다. 창을 다시 열어 주세요."
 
 const getCharacterLabel = (schema: ClassificationSchema | undefined) => schema?.character_label || DEFAULT_CHARACTER_LABEL
 
@@ -192,6 +197,10 @@ export default function AdminPage() {
   const [gameFormWarning, setGameFormWarning] = useState<string | null>(null)
   const [deletingCharacter, setDeletingCharacter] = useState<CharacterItem | null>(null)
   const [isDeletingCharacter, setIsDeletingCharacter] = useState(false)
+  // R64 classification option icons: `available` is false when the table is not migrated (feature hidden).
+  const [classificationIcons, setClassificationIcons] = useState<{ gameId: string; available: boolean; icons: Map<string, string> } | null>(null)
+  const [pendingIconKeys, setPendingIconKeys] = useState<string[]>([])
+  const [iconError, setIconError] = useState<string | null>(null)
 
   useEffect(() => {
     setIsAiUpscaleVisible(isDesktopAiUpscaleAvailable())
@@ -391,6 +400,27 @@ export default function AdminPage() {
       void fetchSchedules()
     }
   }, [fetchCharacters, fetchGames, fetchSchedules, role])
+
+  // R64: classification option icons of one game at a time: the open template editor's game, otherwise the character tab's game.
+  // Hoisted above the early returns because the effect below must run unconditionally.
+  const activeCharacterGameId = games.some((game) => game.id === characterGameFilter) ? characterGameFilter : (games[0]?.id ?? "")
+  const iconTargetGameId = templateFlowGameId !== null && editingGame?.id === templateFlowGameId ? editingGame.id : activeCharacterGameId
+
+  const refreshClassificationIcons = useCallback(async (targetGameId: string) => {
+    const set = await loadClassificationIcons(targetGameId)
+    setClassificationIcons({ gameId: targetGameId, ...set })
+  }, [])
+
+  useEffect(() => {
+    if (role !== "admin" || !iconTargetGameId) return
+    let cancelled = false
+    void loadClassificationIcons(iconTargetGameId).then((set) => {
+      if (!cancelled) setClassificationIcons({ gameId: iconTargetGameId, ...set })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [role, iconTargetGameId])
 
   if (authLoading) return <div className="p-6">불러오는 중...</div>
   if (!user || role !== "admin") {
@@ -651,6 +681,7 @@ export default function AdminPage() {
     })))
     setGameFormWarning(null)
     setAcknowledgedRemovalWarning(null)
+    setIconError(null)
     setIsGameModalOpen(true)
   }
 
@@ -662,6 +693,69 @@ export default function AdminPage() {
     handleOpenEditGame(game)
     setTemplateFlowGameId(game.id)
   }
+
+  // R64: each option icon is saved immediately (upload = upsert, remove = delete); one write per option at a time.
+  const runIconWrite = async (axisKey: string, option: string, failureText: string, write: (gameId: string) => Promise<string | null>) => {
+    if (!editingGame) return
+    const targetGameId = editingGame.id
+    const key = classificationIconKey(axisKey, option)
+    if (pendingIconKeys.includes(key)) return
+    if (isOffline()) {
+      setIconError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
+    setIconError(null)
+    setPendingIconKeys((prev) => [...prev, key])
+    try {
+      const errorText = await write(targetGameId)
+      if (errorText) setIconError(errorText)
+    } catch (error: unknown) {
+      setIconError(error instanceof Error ? error.message : failureText)
+    } finally {
+      setPendingIconKeys((prev) => prev.filter((item) => item !== key))
+    }
+  }
+
+  const patchClassificationIcon = (targetGameId: string, axisKey: string, option: string, dataUrl: string | null) => {
+    setClassificationIcons((prev) => {
+      if (!prev || prev.gameId !== targetGameId) return prev
+      const icons = new Map(prev.icons)
+      if (dataUrl) icons.set(classificationIconKey(axisKey, option), dataUrl)
+      else icons.delete(classificationIconKey(axisKey, option))
+      return { ...prev, icons }
+    })
+  }
+
+  const handleUploadClassificationIcon = (axisKey: string, option: string, file: File | null | undefined) => {
+    if (!file) return Promise.resolve()
+    return runIconWrite(axisKey, option, "분류 아이콘을 저장하지 못했습니다.", async (targetGameId) => {
+      const dataUrl = await createClassificationIconDataUrl(file)
+      const { error } = await supabase
+        .from("game_classification_icons")
+        .upsert(
+          { game_id: targetGameId, axis_key: axisKey, option_value: option, icon_data_url: dataUrl },
+          { onConflict: "game_id,axis_key,option_value" },
+        )
+      if (error) return error.code === "23514" ? CLASSIFICATION_OPTION_CHANGED_MESSAGE : "분류 아이콘을 저장하지 못했습니다."
+      patchClassificationIcon(targetGameId, axisKey, option, dataUrl)
+      setMessage({ type: "success", text: `'${option}' 분류 아이콘을 저장했습니다.` })
+      return null
+    })
+  }
+
+  const handleDeleteClassificationIcon = (axisKey: string, option: string) =>
+    runIconWrite(axisKey, option, "분류 아이콘을 삭제하지 못했습니다.", async (targetGameId) => {
+      const { error } = await supabase
+        .from("game_classification_icons")
+        .delete()
+        .eq("game_id", targetGameId)
+        .eq("axis_key", axisKey)
+        .eq("option_value", option)
+      if (error) return "분류 아이콘을 삭제하지 못했습니다."
+      patchClassificationIcon(targetGameId, axisKey, option, null)
+      setMessage({ type: "success", text: `'${option}' 분류 아이콘을 삭제했습니다.` })
+      return null
+    })
 
   const handleOpenAddCharacter = (targetGameId?: string) => {
     const firstGame = games[0]
@@ -959,6 +1053,8 @@ export default function AdminPage() {
         })
         setIsGameModalOpen(false)
         const continueWithFirstCharacter = templateFlowGameId === editingGame.id && rarities.length >= 1
+        // The cleanup trigger may have deleted icons of removed/renamed options: reload this game's icons.
+        if (isTemplateSave) void refreshClassificationIcons(editingGame.id)
         setTemplateFlowGameId(null)
         if (continueWithFirstCharacter) {
           // Reflect the new template locally so the first character form already uses it.
@@ -1061,7 +1157,6 @@ export default function AdminPage() {
   const externalIconGames = games.filter(isExternalIconGame)
   // R65: the character tab always shows one game (no 모든 게임). Fall back to the first game while the list is still
   // loading or when the selected game was deleted; the rarity filter only offers the selected game's own ranks.
-  const activeCharacterGameId = games.some((game) => game.id === characterGameFilter) ? characterGameFilter : (games[0]?.id ?? "")
   const activeRarityFilter = getGameSchema(activeCharacterGameId).rarities.includes(characterRarityFilter) ? characterRarityFilter : ""
   const filteredCharacters = characters.filter((character) => {
     if (character.game_id !== activeCharacterGameId) return false
@@ -1072,6 +1167,10 @@ export default function AdminPage() {
   })
 
   const isTemplateFlow = templateFlowGameId !== null && editingGame?.id === templateFlowGameId
+  const tableIcons = classificationIcons?.gameId === activeCharacterGameId ? classificationIcons.icons : undefined
+  // The editor lists the SAVED template's options (not the unsaved form text); hidden when the table is not migrated.
+  const editorIconSet = isTemplateFlow && editingGame && classificationIcons?.gameId === editingGame.id && classificationIcons.available ? classificationIcons : null
+  const editorIconAxes = editorIconSet && editingGame ? editingGame.classification_schema.axes : []
   const rosterCountOf = (id: string) => characters.filter((character) => character.game_id === id && !character.is_pickup_only).length
   const isGameTemplateActive = (game: GameOption | undefined | null) => (game ? isCharacterTemplateActive(game, rosterCountOf(game.id)) : true)
   const selectedCharacterGame = games.find((game) => game.id === activeCharacterGameId) ?? null
@@ -1832,7 +1931,14 @@ export default function AdminPage() {
                             </td>
                             <td className="py-2 pr-2 text-content-secondary">{character.rarity ?? "-"}</td>
                             {selectedSchema.axes.map((axis) => (
-                              <td key={axis.key} className="py-2 pr-2 text-content-secondary">{character.attributes[axis.key] ?? "-"}</td>
+                              <td key={axis.key} className="py-2 pr-2 text-content-secondary">
+                                {character.attributes[axis.key] ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <ClassificationOptionIcon icons={tableIcons} axisKey={axis.key} option={character.attributes[axis.key]} />
+                                    {character.attributes[axis.key]}
+                                  </span>
+                                ) : "-"}
+                              </td>
                             ))}
                             <td className="py-2">
                               <div className="flex justify-end gap-2">
@@ -2495,6 +2601,65 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+
+            {editorIconSet && editorIconAxes.length >= 1 && (
+              <section aria-label="분류 아이콘" className="space-y-2" data-testid="classification-icon-editor">
+                <h3 className="text-sm font-medium">분류 아이콘</h3>
+                <p className="text-[11px] text-content-muted">
+                  분류 기준·선택지를 바꾼 경우 먼저 [수정 저장]한 뒤 아이콘을 등록함. 이름을 바꾸거나 지운 선택지의 아이콘은 자동으로 삭제됨.
+                </p>
+                {editorIconAxes.map((axis) => (
+                  <div key={axis.key} className="space-y-1">
+                    <p className="text-xs font-semibold text-content-secondary">{axis.label}</p>
+                    <ul className="space-y-1">
+                      {axis.options.map((option) => {
+                        const key = classificationIconKey(axis.key, option)
+                        const hasIcon = editorIconSet.icons.has(key)
+                        const pending = pendingIconKeys.includes(key)
+                        return (
+                          <li key={key} className="flex items-center gap-2" data-testid="classification-icon-row">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-line bg-surface-2">
+                              <ClassificationOptionIcon icons={editorIconSet.icons} axisKey={axis.key} option={option} size={24} />
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-sm text-content">{option}</span>
+                            <label className={cn("inline-flex min-h-8 cursor-pointer items-center rounded-md border border-line-control bg-surface-2 px-2 text-xs text-content", pending && "pointer-events-none opacity-50")}>
+                              {pending ? "저장 중..." : "이미지 선택"}
+                              <input
+                                type="file"
+                                className="sr-only"
+                                accept="image/png,image/jpeg,image/webp"
+                                aria-label={`${axis.label} ${option} 아이콘 파일`}
+                                disabled={pending}
+                                onChange={(event) => {
+                                  const file = event.target.files?.[0]
+                                  event.target.value = ""
+                                  void handleUploadClassificationIcon(axis.key, option, file)
+                                }}
+                              />
+                            </label>
+                            {hasIcon && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                disabled={pending}
+                                aria-label={`${axis.label} ${option} 아이콘 삭제`}
+                                onClick={() => void handleDeleteClassificationIcon(axis.key, option)}
+                              >
+                                삭제
+                              </Button>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                ))}
+                {iconError && (
+                  <p role="alert" className="rounded border border-danger/30 bg-danger/20 p-2 text-xs text-danger">{iconError}</p>
+                )}
+              </section>
+            )}
 
             {gameFormWarning && (
               <div role="alert" className="p-3 bg-warning/15 text-warning rounded text-sm border border-warning/30">

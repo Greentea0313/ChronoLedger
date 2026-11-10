@@ -25,6 +25,7 @@ import {
 } from "@/lib/character-utils"
 import { CharacterFilterBar } from "./character-filter-bar"
 import { CharacterIcon } from "./character-icon"
+import { ClassificationOptionIcon, type ClassificationIconMap } from "./classification-option-icon"
 
 interface CharacterSettingsDialogProps {
   character: GameCharacter | null
@@ -33,6 +34,7 @@ interface CharacterSettingsDialogProps {
   customIconUrl: string | undefined
   maxBreakthrough: number
   isBusy: boolean
+  classificationIcons?: ClassificationIconMap
   onClose: () => void
   onToggleOwned: (character: GameCharacter) => void
   onToggleFavorite: (character: GameCharacter) => void
@@ -48,6 +50,7 @@ function CharacterSettingsDialog({
   customIconUrl,
   maxBreakthrough,
   isBusy,
+  classificationIcons,
   onClose,
   onToggleOwned,
   onToggleFavorite,
@@ -61,14 +64,31 @@ function CharacterSettingsDialog({
   const isFavorite = isOwned && (state?.is_favorite ?? false)
   const level = state?.breakthrough_level ?? 0
 
-  const description = character
+  // Rarity stays text-only; each axis value is preceded by its option icon when one exists (R64).
+  const descriptionParts: React.ReactNode[] = character
     ? [
-        character.rarity,
-        ...schema.axes.map((axis) => (character.attributes[axis.key] ? `${axis.label}: ${character.attributes[axis.key]}` : null)),
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : ""
+        character.rarity ? <span key="rarity">{character.rarity}</span> : null,
+        ...schema.axes.map((axis) => {
+          const value = character.attributes[axis.key]
+          if (!value) return null
+          return (
+            <span key={axis.key} className="inline-flex items-center gap-1 align-middle">
+              {`${axis.label}: `}
+              <ClassificationOptionIcon icons={classificationIcons} axisKey={axis.key} option={value} />
+              {value}
+            </span>
+          )
+        }),
+      ].filter(Boolean)
+    : []
+  const description = descriptionParts.length
+    ? descriptionParts.map((part, index) => (
+        <span key={index}>
+          {index > 0 && " · "}
+          {part}
+        </span>
+      ))
+    : null
 
   return (
     <Dialog open={!!character} onOpenChange={(open) => !open && onClose()}>
@@ -77,7 +97,7 @@ function CharacterSettingsDialog({
           <>
             <DialogHeader>
               <DialogTitle>{character.name}</DialogTitle>
-              <DialogDescription>{description || "보유 여부, 즐겨찾기, 돌파 단계를 설정합니다."}</DialogDescription>
+              <DialogDescription>{description ?? "보유 여부, 즐겨찾기, 돌파 단계를 설정합니다."}</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
@@ -204,6 +224,8 @@ interface CharacterRosterProps {
   favoriteOrderSupported?: boolean
   /** True while a reorder is being saved; ordering controls are locked. */
   isReordering?: boolean
+  /** Classification option icons of the game (R64); empty/undefined renders text only. */
+  classificationIcons?: ClassificationIconMap
   /** Receives the complete new favorite order (all favorites of the game). */
   onReorderFavorites?: (orderedIds: string[]) => void
   onToggleOwned: (character: GameCharacter) => void
@@ -223,6 +245,7 @@ export function CharacterRoster({
   isLoading,
   favoriteOrderSupported = true,
   isReordering = false,
+  classificationIcons,
   onReorderFavorites,
   onToggleOwned,
   onToggleFavorite,
@@ -257,7 +280,14 @@ export function CharacterRoster({
 
   return (
     <div className="space-y-4">
-      <CharacterFilterBar idPrefix="roster" characters={characters} schema={schema} filters={filters} onChange={setFilters} />
+      <CharacterFilterBar
+        idPrefix="roster"
+        characters={characters}
+        schema={schema}
+        filters={filters}
+        onChange={setFilters}
+        classificationIcons={classificationIcons}
+      />
 
       {isLoading ? (
         <p className="py-6 text-center text-sm text-content-secondary">캐릭터를 불러오는 중입니다...</p>
@@ -406,6 +436,7 @@ export function CharacterRoster({
         customIconUrl={selected ? customIconUrls[selected.id] : undefined}
         maxBreakthrough={maxBreakthrough}
         isBusy={selected ? !!busyIds[selected.id] : false}
+        classificationIcons={classificationIcons}
         onClose={() => setSelectedId(null)}
         onToggleOwned={onToggleOwned}
         onToggleFavorite={onToggleFavorite}

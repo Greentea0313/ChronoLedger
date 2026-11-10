@@ -12,6 +12,7 @@ import {
   type GameCharacter,
   type OwnershipFilter,
 } from "@/lib/character-utils"
+import { ClassificationOptionIcon, type ClassificationIconMap } from "./classification-option-icon"
 
 const OWNERSHIP_OPTIONS: { value: OwnershipFilter; label: string }[] = [
   { value: "all", label: "전체" },
@@ -44,10 +45,12 @@ interface CharacterFilterBarProps {
   filters: CharacterFilters
   onChange: (next: CharacterFilters) => void
   idPrefix: string
+  /** Optional option icons (R64); only the roster passes them. Missing icon = text-only chip. */
+  classificationIcons?: ClassificationIconMap
 }
 
 /** Ownership, rarity, classification-axis and name filters shared by the roster and the preset picker. */
-export function CharacterFilterBar({ characters, schema, filters, onChange, idPrefix }: CharacterFilterBarProps) {
+export function CharacterFilterBar({ characters, schema, filters, onChange, idPrefix, classificationIcons }: CharacterFilterBarProps) {
   const showOtherRarity = hasOtherRarity(characters, schema)
 
   return (
@@ -93,7 +96,12 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
             <span className="w-14 shrink-0 truncate text-xs text-content-muted" title={axis.label}>{axis.label}</span>
             <Chip active={selected === ""} onClick={() => setAxis("")}>전체</Chip>
             {axis.options.map((option) => (
-              <Chip key={option} active={selected === option} onClick={() => setAxis(option)}>{option}</Chip>
+              <Chip key={option} active={selected === option} onClick={() => setAxis(option)}>
+                <span className="inline-flex items-center gap-1">
+                  <ClassificationOptionIcon icons={classificationIcons} axisKey={axis.key} option={option} />
+                  {option}
+                </span>
+              </Chip>
             ))}
             {hasOtherAxisValue(characters, axis) && (
               <Chip active={selected === OTHER_FILTER_VALUE} onClick={() => setAxis(OTHER_FILTER_VALUE)}>
