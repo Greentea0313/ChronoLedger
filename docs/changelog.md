@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-11 (R80 마이그레이션 운영 적용)
+
+- 운영 DB에 `MIGRATION_R80_CLASSIFICATION_ICON_ADMIN_POLICY.sql` 적용·확인 쿼리 검증 완료함(사용자). 분류 아이콘 쓰기 정책이 다른 관리자 기능과 같은 조건으로 운영에 반영됨.
+
 ## 2026-11-11 (Run `r80-classification-icon-admin-policy` Step 2 — `main` 병합 `dbded69`)
 
 - Base `103dbf5` ↔ Target `c6ddd4d` 정적 리뷰에서 findings 없음으로 확인하고 `main`에 병합함.

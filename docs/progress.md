@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## R80 마이그레이션 운영 적용 (2026-11-11)
+
+- 사용자가 운영 DB에 `MIGRATION_R80_CLASSIFICATION_ICON_ADMIN_POLICY.sql`을 적용하고 수정된 확인 쿼리에서 `true`를 확인함. `users.role` 관리자도 분류 아이콘을 저장할 수 있는 상태임.
+- **남은 확인 (사용자)**: 관리자 화면 분류 아이콘 등록 재시도, 보유 캐릭터 화면 아바타·이름 크기 확인.
+- **다음 단계**: 활성 Dispatch Queue 과제 없음.
+
 ## R80 확인 쿼리 수정 (2026-11-11)
 
 - 사용자가 R80 마이그레이션 적용 후 확인 쿼리에서 `false`를 받음 → `pg_get_expr`가 `public.`을 생략해 생긴 확인 쿼리 오류임. `sql/README.md` 쿼리를 고치고 `docs/known-pitfalls.md` 39번에 기록함(Claude Opus).
