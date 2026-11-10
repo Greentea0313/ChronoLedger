@@ -1,4 +1,15 @@
 # 변경 이력
+## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` Step 2 — `966535e`)
+
+- R64 명세서 `docs/spec/R64_Classification_Option_Icons_Spec.md` 추가함. 분류 옵션 아이콘을 `game_classification_icons` 별도 테이블(64×64 WebP Data URL, 20,000자 이하)에 저장하고, 템플릿에서 옵션·축이 사라지면 DB 트리거로 아이콘을 자동 삭제하도록 설계함. 쓰기는 JWT 관리자만, 읽기는 승인 게임만 허용함.
+- Step 3(`GPT Codex`)를 `▶ READY`로 전환함.
+
+## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` Step 1 — `e17e960`)
+
+- R72: 픽업 캐릭터 공용 등록의 사전 중복 이름 오류를 `DuplicatePickupNameError`로 분리하고 문구에서 `목록에서 선택해 주세요.`를 뺌. 관리자 일정 폼은 호출부에서 안내를 덧붙여 현행 문구를 유지하고, 캐릭터 탭 픽업 전용 추가 대화상자에는 안내를 표시하지 않음.
+- R73: Firefox가 `<button>`에서 드래그를 시작하지 못하는 문제에 대비해, 프리셋 작업 공간 사이드바 아바타·채워진 슬롯과 보유 캐릭터 즐겨찾기 카드의 드래그 시작 요소를 버튼 밖 `GripVertical` 손잡이(`aria-hidden`)로 교체함. 클릭 배치·이동 버튼·키보드 동작과 드롭 규칙은 변경 없음.
+- Vitest 61파일/750개, `tsc --noEmit`, `npm run lint`, `git diff --check` 통과함. 실브라우저 확인은 Step 5 사용자 수동 확인 대기임. Step 2(`Claude Opus`)를 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` 등록)
 
 - 격리 Worktree·manifest(`0715b7a`, Base `bc7fbad`) 생성하고 Dispatch Queue에 5단계(R72·R73 Sonnet → R64 명세 Opus → R64 DB Codex → R64 UI Sonnet → 리뷰 Opus)와 수용 기준 등록함.

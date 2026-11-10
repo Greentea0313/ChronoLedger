@@ -1,4 +1,17 @@
 # 프로젝트 진행 현황
+## Run `r64-r72-r73-classification-icons-followups` Step 2 (R64 명세) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Architect (R64 Spec)`)임.
+- **커밋 `966535e`** (워크트리, 미병합): `docs/spec/R64_Classification_Option_Icons_Spec.md` 작성함. 별도 테이블·검증/정리 트리거·JWT 관리자 쓰기 RLS·64×64 WebP 20,000자 상한·UI 위치·미적용 폴백·SQL 테스트 시나리오·Step 3/4 허용 파일 확정함.
+- **다음 단계**: Step 3(`GPT Codex`, R64 DB) `▶ READY`임.
+
+## Run `r64-r72-r73-classification-icons-followups` Step 1 (R72·R73) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Sonnet (`Maker (R72·R73 Follow-ups)`)임.
+- **커밋 `e17e960`** (`.worktrees/r64-r72-r73-classification-icons-followups`, 미병합): R72 공용 중복 이름 오류 문구에서 `목록에서 선택해 주세요.`를 분리(관리자 일정 폼만 호출부에서 덧붙임), R73 프리셋 작업 공간 사이드바 아바타·슬롯과 보유 캐릭터 즐겨찾기 카드의 드래그 시작 요소를 버튼 밖 손잡이로 교체함. DB 변경 없음.
+- **검증**: tsc·lint·diff-check 통과, Vitest 61파일/750개 통과함. Chrome·Firefox 실브라우저 확인은 미수행(Step 5 사용자 수동 확인)임.
+- **다음 단계**: Step 2(`Claude Opus`, R64 명세) `▶ READY`임.
+
 ## Run `r64-r72-r73-classification-icons-followups` 등록 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.

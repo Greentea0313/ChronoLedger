@@ -41,10 +41,10 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R72·R73 Follow-ups)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/lib/pickup-character-registration.ts`(+테스트), `src/app/admin/page.tsx`(+`.test.tsx`, 문구 호출부만), `src/components/character/preset-workspace.tsx`(+테스트), `src/components/character/character-roster.tsx`(+테스트), `src/app/dashboard/characters/page.test.tsx` | - |
-| **2** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R64 Spec)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: 신규 `docs/spec/R64_Classification_Option_Icons_Spec.md`, `docs/character-preset-ux-review.md`(결정 반영 시) | - |
-| **3** | **`⏳ WAITING`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 DB)` | 아래 **Step 3 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `src/lib/character-utils.ts`(+테스트, 순수 함수 추가 시) | - |
-| **4** | **`⏳ WAITING`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 UI)` | 아래 **Step 4 수용 기준** 수행. 허용 파일: 명세서가 정한 범위(`src/app/admin/page.tsx`(+테스트), `src/components/character/character-filter-bar.tsx`, `src/components/character/character-roster.tsx`, `src/app/dashboard/characters/page.tsx`(+테스트), 신규 아이콘 로더/컴포넌트(+테스트)) | - |
+| **1** | **`✅ DONE (SHA: e17e960)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R72·R73 Follow-ups)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅ e17e960`: R72 중복 이름 문구 분리(`DuplicatePickupNameError`), R73 드래그 시작 요소를 버튼 밖 손잡이로 교체. tsc·lint·diff-check 통과, Vitest 61파일/750개 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`✅ DONE (SHA: 966535e)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R64 Spec)` | 아래 **Step 2 수용 기준** 수행 완료함. | `✅ 966535e`: [`R64_Classification_Option_Icons_Spec.md`](spec/R64_Classification_Option_Icons_Spec.md)(워크트리) 작성. 테이블·검증/정리 트리거·RLS·UI·폴백·SQL 테스트·Step 3/4 허용 파일 확정 (아래 Step 2 완료 기록 참고) |
+| **3** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 DB)` | 아래 **Step 3 수용 기준** + 명세서 §2·§7 수행. 허용 파일(명세서 §8 확정): 신규 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (`src/lib` 변경 불필요) | - |
+| **4** | **`⏳ WAITING`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 UI)` | 아래 **Step 4 수용 기준** + 명세서 §3~§5 수행. 허용 파일(명세서 §8 확정): 신규 `src/lib/classification-icons.ts`(+테스트), 신규 `src/components/character/classification-option-icon.tsx`(+테스트 선택), `src/app/admin/page.tsx`(+테스트), `src/components/character/character-filter-bar.tsx`, `src/components/character/character-roster.tsx`, `src/app/dashboard/characters/page.tsx`(+테스트) | - |
 | **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bc7fbad` ↔ Target(Step 4 커밋) 통합 정적 리뷰(R64 RLS·마이그레이션 포함), 동적 검증, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | - |
 
 #### 📌 `r64-r72-r73-classification-icons-followups` 단계별 수용 기준 (Acceptance Criteria)
@@ -77,6 +77,32 @@
 5. **Step 5 (`Claude Opus` — Reviewer & Orchestrator)**:
    - Base `bc7fbad` ↔ Target 통합 정적 리뷰(관리자 쓰기 RLS, `user_metadata` 미사용, 마이그레이션 재실행 안전성, 폴백), 동적 검증, `review.json`·`test.json` 작성·스키마 검증, `main` 병합, 문서 마감함.
    - 사용자에게 R73 실브라우저 확인(Chrome·Firefox 드래그, 900px 전환)과 R64 마이그레이션 수동 적용을 안내함.
+
+#### 📝 `r64-r72-r73-classification-icons-followups` Step 1 완료 기록 (Claude Sonnet, 2026-11-10)
+
+- **Target SHA**: `e17e960` (`collab/r64-r72-r73-classification-icons-followups`, 미병합)임. 변경 8개 파일 모두 허용 범위 내임.
+- **R72**: `registerPickupOnlyCharacter`의 사전 중복 검사가 `DuplicatePickupNameError`(메시지 `같은 이름의 캐릭터가 이미 있습니다.`)를 던짐. 선택 목록이 있는 관리자 일정 폼(`admin/page.tsx`)만 `목록에서 선택해 주세요.`를 덧붙여 현행 문구를 유지하고, 캐릭터 탭 픽업 전용 추가 대화상자는 안내 없이 표시함. 서버 `23505` 중복 문구와 요청 모달(`request-submission-modal.tsx`)은 변경 없음.
+- **R73**: 드래그 시작 요소를 `<button>`/`draggable` 래퍼에서 버튼 밖 `GripVertical` 손잡이(`<span draggable aria-hidden>`)로 교체함.
+  - 대상: `preset-workspace.tsx` 사이드바 아바타(우상단 손잡이)·채워진 슬롯(좌측 손잡이), `character-roster.tsx` 즐겨찾기 구역 카드(우상단 손잡이, 순서 변경 가능할 때만 표시).
+  - 드롭 대상(슬롯·즐겨찾기 카드 `<li>`), 클릭 배치, 앞/뒤·위/아래 이동 버튼, 키보드 동작은 변경 없음. 드래그 이미지는 `setDragImage`(있을 때만)로 카드 전체를 사용함.
+- **테스트**: 드래그 테스트를 손잡이 기준으로 갱신하고 `preset-workspace.test.tsx`에 `버튼이 드래그 원본이 아님` 검증 1건, `page.test.tsx`에 카드 비-draggable·손잡이 속성·보유 구역 손잡이 없음 검증, `admin/page.test.tsx`에 캐릭터 탭 대화상자 안내 문구 부재 검증을 추가함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 61파일/750개 통과함(워크트리에서 `node ../../node_modules/...` 경유 실행). **Chrome·Firefox 실브라우저 드래그·900px 전환 확인은 미수행**이며 Step 5에서 사용자 수동 확인으로 처리함.
+- **결정/가정**: 손잡이는 `aria-hidden`이라 키보드·스크린리더 경로는 기존 클릭 배치·이동 버튼이 담당함. 손잡이 위치·크기(`h-4 w-4`)는 시각 확인 전 값이라 Step 5 수동 확인 시 조정 가능함.
+
+#### 📝 `r64-r72-r73-classification-icons-followups` Step 2 완료 기록 (Claude Opus, 2026-11-10)
+
+- **Target SHA**: `966535e` (워크트리 브랜치, 미병합)임. 신규 `docs/spec/R64_Classification_Option_Icons_Spec.md`(영문) 작성, `docs/character-preset-ux-review.md` R64 결정에 명세 요약 1줄 추가함.
+- **DB 설계**: `game_classification_icons(game_id UUID, axis_key, option_value, icon_data_url, updated_at)`, PK `(game_id, axis_key, option_value)`, `games` 삭제 시 CASCADE. `classification_schema`·`is_valid_classification_schema`는 변경 없음.
+  - 아이콘: 64×64 WebP Data URL, 20,000자 이하 CHECK, `https://` 금지함.
+  - 검증 트리거(`BEFORE INSERT/UPDATE`, `games` 행 `FOR SHARE` 잠금): 현재 템플릿에 있는 축·옵션만 허용(`23514`)하고 `updated_at` 갱신함.
+  - 정리 트리거(`AFTER UPDATE OF classification_schema ON games`): 사라진 축·옵션의 아이콘 자동 삭제, 순서 변경 시 유지함.
+  - RLS: 읽기는 승인 게임만(`anon`·`authenticated`), 쓰기는 JWT `app_metadata.role = 'admin'`만 허용함(`public.users.role` 폴백 없음).
+- **UI 설계**: 관리자 `템플릿 설정 수정` 창 `분류 아이콘` 구역에서 **저장된** 옵션별로 즉시 업로드·삭제함. 변환은 항상 `resizeImageToWebP(file, 64)` 사용(문자열 WebP Data URL은 `convertIconSourceToDataUrl`이 리사이즈 없이 통과시키므로 금지). 표시는 필터 칩·캐릭터 설정 창·관리자 캐릭터 목록 16px. 테이블 없음(`42P01`/`PGRST205`) 시 기능 숨김.
+- **결정/가정 (질문 카드 없이 확정, 이견 시 Step 3 착수 전 조정 필요)**:
+  - 옵션별 즉시 저장 채택함(템플릿 저장과 묶으면 2단계 쓰기 부분 실패 위험 있음).
+  - 관리자 폼이 쉼표 목록이라 이름 변경을 감지할 수 없음 → 이름을 바꾼 옵션의 아이콘은 삭제되며 재등록 필요함.
+  - R57은 차단이 아닌 경고 흐름임을 확인함. 경고 흐름은 유지하고 아이콘만 트리거로 정리함.
+- **테스트**: 문서 전용 단계라 코드 테스트 없음. `git diff --check` 통과함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r63-character-favorite-sections`
 
