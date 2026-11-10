@@ -21,6 +21,7 @@ import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
+import { registerPickupOnlyCharacter } from "@/lib/pickup-character-registration"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import {
   assignAxisKey,
@@ -252,6 +253,8 @@ export default function AdminPage() {
   const [newPickupError, setNewPickupError] = useState<string | null>(null)
   const [isSavingNewPickup, setIsSavingNewPickup] = useState(false)
   const [characterKindFilter, setCharacterKindFilter] = useState<"" | "roster" | "pickup">("")
+  // R66: pickup-only character dialog of the character tab (template-less games). Reuses the new-pickup form state above.
+  const [isPickupOnlyDialogOpen, setIsPickupOnlyDialogOpen] = useState(false)
   const [characterFormPromote, setCharacterFormPromote] = useState(false)
   const [isTitleAutoFilled, setIsTitleAutoFilled] = useState(false)
   const [originalIsRerun, setOriginalIsRerun] = useState<boolean | null>(null)
@@ -663,7 +666,7 @@ export default function AdminPage() {
   const handleOpenAddCharacter = (targetGameId?: string) => {
     const firstGame = games[0]
     setEditingCharacter(null)
-    setCharacterFormGameId(targetGameId ?? (characterGameFilter || firstGame?.id) ?? "")
+    setCharacterFormGameId(targetGameId ?? firstGame?.id ?? "")
     setCharacterFormName("")
     setCharacterFormRarity("")
     setCharacterFormAttributes({})
@@ -1056,9 +1059,13 @@ export default function AdminPage() {
   }
 
   const externalIconGames = games.filter(isExternalIconGame)
+  // R65: the character tab always shows one game (no 모든 게임). Fall back to the first game while the list is still
+  // loading or when the selected game was deleted; the rarity filter only offers the selected game's own ranks.
+  const activeCharacterGameId = games.some((game) => game.id === characterGameFilter) ? characterGameFilter : (games[0]?.id ?? "")
+  const activeRarityFilter = getGameSchema(activeCharacterGameId).rarities.includes(characterRarityFilter) ? characterRarityFilter : ""
   const filteredCharacters = characters.filter((character) => {
-    if (characterGameFilter && character.game_id !== characterGameFilter) return false
-    if (characterRarityFilter && character.rarity !== characterRarityFilter) return false
+    if (character.game_id !== activeCharacterGameId) return false
+    if (activeRarityFilter && character.rarity !== activeRarityFilter) return false
     if (characterKindFilter === "roster" && character.is_pickup_only) return false
     if (characterKindFilter === "pickup" && !character.is_pickup_only) return false
     return !characterSearchQuery.trim() || character.name.toLowerCase().includes(characterSearchQuery.trim().toLowerCase())
@@ -1067,7 +1074,7 @@ export default function AdminPage() {
   const isTemplateFlow = templateFlowGameId !== null && editingGame?.id === templateFlowGameId
   const rosterCountOf = (id: string) => characters.filter((character) => character.game_id === id && !character.is_pickup_only).length
   const isGameTemplateActive = (game: GameOption | undefined | null) => (game ? isCharacterTemplateActive(game, rosterCountOf(game.id)) : true)
-  const selectedCharacterGame = games.find((game) => game.id === characterGameFilter) ?? null
+  const selectedCharacterGame = games.find((game) => game.id === activeCharacterGameId) ?? null
   const selectedSchema = selectedCharacterGame?.classification_schema
   // Template/support checks count regular roster characters only; pickup-only ones do not activate a template (D-06).
   const selectedRosterCount = selectedCharacterGame
@@ -1136,44 +1143,68 @@ export default function AdminPage() {
       setNewPickupError(`픽업 캐릭터는 최대 ${MAX_PICKUP_CHARACTERS}명까지 선택할 수 있습니다.`)
       return
     }
-    if (characters.some((character) => character.game_id === gameId && character.name === name)) {
-      setNewPickupError("같은 이름의 캐릭터가 이미 있습니다. 목록에서 선택해 주세요.")
-      return
-    }
-    if (isOffline()) {
-      setNewPickupError(OFFLINE_WRITE_MESSAGE)
-      return
-    }
     setIsSavingNewPickup(true)
     setNewPickupError(null)
     setIsProcessingIcon(true)
     try {
-      const source = newPickupImageFile ?? newPickupImageSource.trim()
-      const iconUrl = source ? assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(source, useAiUpscale)) : null
-      const { data, error } = await supabase
-        .from("game_characters")
-        .insert({ game_id: gameId, name, default_icon_url: iconUrl, is_pickup_only: true })
-        .select("id, game_id, name, rarity, attributes, default_icon_url, is_pickup_only")
-        .single()
-      if (error || !data) {
-        const duplicate = error?.code === "23505"
-        throw new Error(duplicate ? "같은 이름의 캐릭터가 이미 있습니다." : `픽업 캐릭터를 등록하지 못했습니다: ${error?.message ?? "알 수 없는 오류"}`)
-      }
-      const created: CharacterItem = {
-        id: data.id,
-        game_id: data.game_id,
-        name: data.name,
-        rarity: data.rarity ?? null,
-        attributes: {},
-        default_icon_url: data.default_icon_url ?? null,
-        is_pickup_only: true,
-      }
+      const created = await registerPickupOnlyCharacter({
+        gameId,
+        name,
+        imageSource: newPickupImageFile ?? newPickupImageSource,
+        existingCharacters: characters,
+        useAiUpscale,
+      })
       setCharacters((prev) => [...prev, created])
       togglePickupCharacter(created.id, created.name)
       setIsNewPickupOpen(false)
       setNewPickupName("")
       setNewPickupImageSource("")
       setNewPickupImageFile(null)
+    } catch (error: unknown) {
+      setNewPickupError(error instanceof Error ? error.message : "픽업 캐릭터를 등록하지 못했습니다.")
+    } finally {
+      setIsSavingNewPickup(false)
+      setIsProcessingIcon(false)
+    }
+  }
+
+  const resetNewPickupForm = () => {
+    setNewPickupName("")
+    setNewPickupImageSource("")
+    setNewPickupImageFile(null)
+    setNewPickupError(null)
+    setIsAiUpscaleCandidate(false)
+  }
+
+  const handleOpenPickupOnlyDialog = () => {
+    resetNewPickupForm()
+    setIsPickupOnlyDialogOpen(true)
+  }
+
+  const handleClosePickupOnlyDialog = () => {
+    if (isSavingNewPickup) return
+    setIsPickupOnlyDialogOpen(false)
+    resetNewPickupForm()
+  }
+
+  // Registers a pickup-only character for the game selected in the character tab (R66).
+  const handleRegisterPickupOnlyCharacter = async () => {
+    if (isProcessingIcon || !selectedCharacterGame) return
+    setIsSavingNewPickup(true)
+    setNewPickupError(null)
+    setIsProcessingIcon(true)
+    try {
+      const created = await registerPickupOnlyCharacter({
+        gameId: selectedCharacterGame.id,
+        name: newPickupName,
+        imageSource: newPickupImageFile ?? newPickupImageSource,
+        existingCharacters: characters,
+        useAiUpscale,
+      })
+      setCharacters((prev) => [...prev, created])
+      setMessage({ type: "success", text: `'${created.name}' 픽업 전용 캐릭터를 등록했습니다.` })
+      setIsPickupOnlyDialogOpen(false)
+      resetNewPickupForm()
     } catch (error: unknown) {
       setNewPickupError(error instanceof Error ? error.message : "픽업 캐릭터를 등록하지 못했습니다.")
     } finally {
@@ -1666,24 +1697,23 @@ export default function AdminPage() {
           <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 sm:flex-row sm:items-center">
             <select
               className="h-9 rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content"
-              value={characterGameFilter}
+              value={activeCharacterGameId}
               onChange={(event) => {
                 setCharacterGameFilter(event.target.value)
                 setCharacterRarityFilter("")
               }}
               aria-label="캐릭터 게임 필터"
             >
-              <option value="">모든 게임</option>
               {games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
             </select>
             <select
               className="h-9 rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content"
-              value={characterRarityFilter}
+              value={activeRarityFilter}
               onChange={(event) => setCharacterRarityFilter(event.target.value)}
               aria-label="캐릭터 레어도 필터"
             >
               <option value="">모든 레어도</option>
-              {(characterGameFilter ? getGameSchema(characterGameFilter).rarities : Array.from(new Set(games.flatMap((game) => game.classification_schema.rarities)))).map((rarity) => (
+              {getGameSchema(activeCharacterGameId).rarities.map((rarity) => (
                 <option key={rarity} value={rarity}>{rarity}</option>
               ))}
             </select>
@@ -1706,17 +1736,29 @@ export default function AdminPage() {
             />
             <div className="flex gap-2 sm:ml-auto">
               {selectedCharacterGame && isSelectedTemplateActive && (
-                <Button variant="outline" onClick={() => handleOpenTemplate(selectedCharacterGame)}>템플릿 설정 수정</Button>
+                <>
+                  <Button variant="outline" onClick={() => handleOpenTemplate(selectedCharacterGame)}>템플릿 설정 수정</Button>
+                  <Button onClick={() => handleOpenAddCharacter(selectedCharacterGame.id)}>
+                    <Plus className="mr-1 h-4 w-4" />{selectedCharacterLabel} 추가
+                  </Button>
+                </>
               )}
-              {(!selectedCharacterGame || isSelectedTemplateActive) && (
-                <Button onClick={() => handleOpenAddCharacter(selectedCharacterGame?.id)}>
-                  <Plus className="mr-1 h-4 w-4" />{selectedCharacterGame ? selectedCharacterLabel : DEFAULT_CHARACTER_LABEL} 추가
+              {/* R66: a game without a template can still get pickup-only characters, in the same spot as the regular add button. */}
+              {selectedCharacterGame && !isSelectedTemplateActive && (
+                <Button onClick={handleOpenPickupOnlyDialog}>
+                  <Plus className="mr-1 h-4 w-4" />캐릭터 추가
                 </Button>
               )}
             </div>
           </div>
 
-          {selectedCharacterGame && !isSelectedTemplateActive ? (
+          {!selectedCharacterGame ? (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <p className="text-sm text-content-secondary">등록된 게임이 없습니다. 게임을 먼저 등록해 주세요.</p>
+              </CardContent>
+            </Card>
+          ) : !isSelectedTemplateActive ? (
             <>
               <Card>
                 <CardContent className="space-y-3 py-10 text-center">
@@ -1751,16 +1793,16 @@ export default function AdminPage() {
             </>
           ) : (
             <Card>
-              <CardHeader><CardTitle className="text-base">{selectedCharacterGame ? `${selectedCharacterLabel} 카탈로그` : "캐릭터 카탈로그"}</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{`${selectedCharacterLabel} 카탈로그`}</CardTitle></CardHeader>
               <CardContent className="space-y-2">
-                {selectedCharacterGame && (selectedSchema?.rarities.length ?? 0) === 0 && (
+                {(selectedSchema?.rarities.length ?? 0) === 0 && (
                   <p role="status" className="rounded border border-warning/30 bg-warning/15 p-3 text-xs text-warning">
                     등급이 설정되지 않은 게임입니다. [템플릿 설정 수정]에서 등급·분류 기준을 등록하면 등급별로 정리됩니다.
                   </p>
                 )}
                 {filteredCharacters.length === 0 ? (
                   <p className="py-8 text-center text-sm text-content-secondary">조건에 맞는 캐릭터가 없습니다.</p>
-                ) : selectedCharacterGame && selectedSchema ? (
+                ) : selectedSchema ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm" data-testid="character-table">
                       <thead>
@@ -1799,34 +1841,7 @@ export default function AdminPage() {
                       </tbody>
                     </table>
                   </div>
-                ) : filteredCharacters.map((character) => (
-                  <div key={character.id} className="flex items-center justify-between gap-3 rounded-lg border border-line p-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-line">
-                        <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-content">
-                          {character.name}
-                          {character.is_pickup_only && <span className="ml-1.5 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-normal text-warning">픽업 전용</span>}
-                        </p>
-                        <p className="text-xs text-content-secondary">
-                          {games.find((game) => game.id === character.game_id)?.name ?? "알 수 없음"} · {character.rarity ?? "레어도 없음"} · {Object.values(character.attributes).join(", ")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleOpenEditCharacter(character)}>수정</Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setDeletingCharacter(character)}
-                      >
-                        삭제
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                ) : null}
               </CardContent>
             </Card>
           )}
@@ -2552,6 +2567,56 @@ export default function AdminPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isPickupOnlyDialogOpen} onOpenChange={(open) => { if (!open) handleClosePickupOnlyDialog() }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{`${selectedCharacterGame?.name ?? ""} 픽업 전용 캐릭터 추가`.trim()}</DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              캐릭터 템플릿이 없는 게임에는 픽업 일정에 표시할 캐릭터 이름과 이미지(선택)만 등록할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2" data-testid="pickup-only-character-form">
+            <label htmlFor="pickup-only-name" className="block text-sm font-medium">캐릭터 이름 *</label>
+            <Input id="pickup-only-name" maxLength={100} value={newPickupName} onChange={(event) => setNewPickupName(event.target.value)} />
+            <label htmlFor="pickup-only-image-url" className="block text-sm font-medium">이미지 (선택)</label>
+            <Input
+              id="pickup-only-image-url"
+              value={newPickupImageSource.startsWith("data:image/webp;base64,") ? "" : newPickupImageSource}
+              onPaste={handleNewPickupImagePaste}
+              onChange={(event) => {
+                setNewPickupImageSource(event.target.value)
+                setNewPickupImageFile(null)
+              }}
+              placeholder="https://... 또는 이미지 붙여넣기"
+            />
+            <Input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              aria-label="픽업 전용 캐릭터 이미지 파일"
+              onChange={(event) => { const file = event.target.files?.[0] ?? null; setNewPickupImageFile(file); noteIconCandidate(file) }}
+            />
+            {isAiUpscaleVisible && isAiUpscaleCandidate && (
+              <label className="flex items-center gap-2 text-xs text-content-secondary">
+                <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
+                AI 고화질 업스케일 (PC 전용)
+              </label>
+            )}
+            {isProcessingIcon && <p className="text-xs text-content-muted">AI 고화질 변환 중...</p>}
+            {newPickupImageSource.startsWith("data:image/webp;base64,") && (
+              <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
+                <GameIcon src={newPickupImageSource} alt="픽업 전용 캐릭터 이미지 미리보기" />
+              </div>
+            )}
+            {newPickupError && <p role="alert" className="text-xs text-danger">{newPickupError}</p>}
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button type="button" variant="outline" disabled={isSavingNewPickup} onClick={handleClosePickupOnlyDialog}>취소</Button>
+            <Button type="button" disabled={isSavingNewPickup || isProcessingIcon} onClick={() => void handleRegisterPickupOnlyCharacter()}>
+              {isSavingNewPickup ? "등록 중..." : "등록"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog open={deletingCharacter !== null} onOpenChange={(open) => !open && !isDeletingCharacter && setDeletingCharacter(null)}>
