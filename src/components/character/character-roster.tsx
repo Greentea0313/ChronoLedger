@@ -412,7 +412,7 @@ export function CharacterRoster({
                   onDragEnd={handleFavoriteDragEnd}
                 >
                 <ul
-                  className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"
+                  className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6"
                   data-testid={`roster-list-${key}`}
                 >
                   {items.map((character) => {
@@ -433,9 +433,9 @@ export function CharacterRoster({
                           dimmed={!isOwned}
                           favorite={isOwned && (state?.is_favorite ?? false)}
                           breakthroughLevel={isOwned ? (state?.breakthrough_level ?? 0) : null}
-                          className="h-16 w-16"
+                          className="h-20 w-20"
                         />
-                        <span className="w-full truncate text-center text-sm text-content">{character.name}</span>
+                        <span className="w-full truncate text-center text-base text-content">{character.name}</span>
                       </button>
                     )
                     return reorderable ? (

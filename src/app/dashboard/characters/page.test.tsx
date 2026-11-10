@@ -484,7 +484,7 @@ describe("CharactersPage", () => {
 
       const list = container.querySelector('[data-testid="roster-list-owned"]') as HTMLElement
       expect(list.className).toContain("grid-cols-3")
-      expect(list.className).toContain("lg:grid-cols-8")
+      expect(list.className).toContain("lg:grid-cols-6")
       expect(container.querySelector("textarea")).toBeNull()
     })
 
