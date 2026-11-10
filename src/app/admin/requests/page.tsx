@@ -577,7 +577,7 @@ export default function AdminRequestsPage() {
                         <span className="rounded bg-primary/15 px-2 py-1 text-xs text-primary">{req.target_character_id ? "UPDATE" : "ADD"}</span>
                         <h3 className="text-lg font-bold text-content">{req.name}</h3>
                       </div>
-                      <p className="text-sm text-content-secondary">{req.games?.name ?? "알 수 없음"} · {req.rarity ?? "성급 없음"} · {Object.values(req.attributes ?? {}).join(", ")}</p>
+                      <p className="text-sm text-content-secondary">{req.games?.name ?? "알 수 없음"} · {req.rarity ?? "레어도 없음"} · {Object.values(req.attributes ?? {}).join(", ")}</p>
                       {req.memo && <p className="mt-1 text-sm text-content-muted">메모: {req.memo}</p>}
                     </div>
                   </div>

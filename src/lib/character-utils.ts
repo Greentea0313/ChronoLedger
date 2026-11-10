@@ -303,7 +303,7 @@ export function validateClassificationTemplate(
   }
   if (options.requireRarities && input.rarities.length < 1) return "등급 목록을 1개 이상 입력해 주세요."
   if (input.rarities.length > TEMPLATE_RARITY_MAX_COUNT) {
-    return `성급은 비어 있지 않은 문자열을 최대 ${TEMPLATE_RARITY_MAX_COUNT}개까지 입력할 수 있습니다.`
+    return `레어도는 비어 있지 않은 문자열을 최대 ${TEMPLATE_RARITY_MAX_COUNT}개까지 입력할 수 있습니다.`
   }
   if (input.rarities.some((rarity) => rarity.length > TEMPLATE_RARITY_MAX_LENGTH)) {
     return `등급 이름은 각 ${TEMPLATE_RARITY_MAX_LENGTH}자 이내로 입력해 주세요.`

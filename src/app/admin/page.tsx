@@ -778,7 +778,7 @@ export default function AdminPage() {
     game.classification_schema.rarities.forEach((rarity) => {
       if (nextRarities.includes(rarity)) return
       const count = gameCharacters.filter((character) => character.rarity === rarity).length
-      if (count > 0) usage.push(`성급 '${rarity}' ${count}명`)
+      if (count > 0) usage.push(`레어도 '${rarity}' ${count}명`)
     })
     game.classification_schema.axes.forEach((axis) => {
       const nextAxis = nextAxes.find((item) => item.key === axis.key)
@@ -1644,9 +1644,9 @@ export default function AdminPage() {
               className="h-9 rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content"
               value={characterRarityFilter}
               onChange={(event) => setCharacterRarityFilter(event.target.value)}
-              aria-label="캐릭터 성급 필터"
+              aria-label="캐릭터 레어도 필터"
             >
-              <option value="">모든 성급</option>
+              <option value="">모든 레어도</option>
               {(characterGameFilter ? getGameSchema(characterGameFilter).rarities : Array.from(new Set(games.flatMap((game) => game.classification_schema.rarities)))).map((rarity) => (
                 <option key={rarity} value={rarity}>{rarity}</option>
               ))}
@@ -1740,7 +1740,7 @@ export default function AdminPage() {
                         {tableCharacters.map((character) => (
                           <tr key={character.id} className="border-b border-line/60">
                             <td className="py-2 pr-2">
-                              <div className="h-10 w-10 overflow-hidden rounded-lg border border-line">
+                              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-line">
                                 <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
                               </div>
                             </td>
@@ -1766,14 +1766,16 @@ export default function AdminPage() {
                 ) : filteredCharacters.map((character) => (
                   <div key={character.id} className="flex items-center justify-between gap-3 rounded-lg border border-line p-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-line">
+                        <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
+                      </div>
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-content">
                           {character.name}
                           {character.is_pickup_only && <span className="ml-1.5 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-normal text-warning">픽업 전용</span>}
                         </p>
                         <p className="text-xs text-content-secondary">
-                          {games.find((game) => game.id === character.game_id)?.name ?? "알 수 없음"} · {character.rarity ?? "성급 없음"} · {Object.values(character.attributes).join(", ")}
+                          {games.find((game) => game.id === character.game_id)?.name ?? "알 수 없음"} · {character.rarity ?? "레어도 없음"} · {Object.values(character.attributes).join(", ")}
                         </p>
                       </div>
                     </div>
@@ -2407,7 +2409,7 @@ export default function AdminPage() {
                 <Input id="game-form-max-breakthrough" type="number" min={0} max={12} value={gameFormMaxBreakthrough} onChange={(event) => setGameFormMaxBreakthrough(event.target.value)} />
               </div>
               <div>
-                <label htmlFor="game-form-rarities" className="block text-sm font-medium mb-1">{isTemplateFlow ? "등급 목록 (최고 등급부터) *" : "성급 목록"}</label>
+                <label htmlFor="game-form-rarities" className="block text-sm font-medium mb-1">{isTemplateFlow ? "등급 목록 (최고 등급부터) *" : "레어도 목록"}</label>
                 <Input id="game-form-rarities" value={gameFormRarities} onChange={(event) => setGameFormRarities(event.target.value)} placeholder="5★, 4★ (최고 등급부터)" />
               </div>
             </div>

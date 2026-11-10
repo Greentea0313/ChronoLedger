@@ -1066,17 +1066,17 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect(await screen.findByText("알리스")).toBeTruthy()
   }
 
-  it("게임 수정 모달이 슬롯·성급·분류 축을 불러오고 변경값을 classification_schema로 저장한다", async () => {
+  it("게임 수정 모달이 슬롯·레어도·분류 축을 불러오고 변경값을 classification_schema로 저장한다", async () => {
     await openGameEditModal()
 
     expect((screen.getByLabelText("최대 프리셋 슬롯") as HTMLInputElement).value).toBe("4")
-    expect((screen.getByLabelText("성급 목록") as HTMLInputElement).value).toBe("5★, 4★")
+    expect((screen.getByLabelText("레어도 목록") as HTMLInputElement).value).toBe("5★, 4★")
     // The internal axis key is no longer editable (R57): it stays hidden and is preserved on save.
     expect(screen.queryByLabelText("분류 축 1 키")).toBeNull()
     expect((screen.getByLabelText("분류 축 1 옵션") as HTMLInputElement).value).toBe("불, 물")
 
     fireEvent.change(screen.getByLabelText("최대 프리셋 슬롯"), { target: { value: "6" } })
-    fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★, 4★, 3★" } })
+    fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★, 4★, 3★" } })
     fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "불, 물, 바람" } })
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
@@ -1107,15 +1107,15 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     })
   })
 
-  it("성급이 10개를 초과하면 저장하지 않는다", async () => {
+  it("레어도가 10개를 초과하면 저장하지 않는다", async () => {
     await openGameEditModal()
 
-    fireEvent.change(screen.getByLabelText("성급 목록"), {
+    fireEvent.change(screen.getByLabelText("레어도 목록"), {
       target: { value: "1★, 2★, 3★, 4★, 5★, 6★, 7★, 8★, 9★, 10★, 11★" },
     })
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
-    expect(await screen.findByText("성급은 비어 있지 않은 문자열을 최대 10개까지 입력할 수 있습니다.")).toBeTruthy()
+    expect(await screen.findByText("레어도는 비어 있지 않은 문자열을 최대 10개까지 입력할 수 있습니다.")).toBeTruthy()
     expect(gamesBuilder.update).not.toHaveBeenCalled()
   })
 
@@ -1132,15 +1132,15 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect(afterInput.value).toBe("원소 속성")
   })
 
-  it("기존 캐릭터가 쓰는 성급·분류 옵션을 제거하면 사용 인원 경고를 보이고 재확인 후 저장한다 (§7.3.4)", async () => {
+  it("기존 캐릭터가 쓰는 레어도·분류 옵션을 제거하면 사용 인원 경고를 보이고 재확인 후 저장한다 (§7.3.4)", async () => {
     await openGameEditModal()
 
-    fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★" } })
+    fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★" } })
     fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "불" } })
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
     const warning = await screen.findByText(/제거되는 분류 값을 사용 중인 캐릭터가 있음/)
-    expect(warning.textContent).toContain("성급 '4★' 2명")
+    expect(warning.textContent).toContain("레어도 '4★' 2명")
     expect(warning.textContent).toContain("속성 '물' 1명")
     expect(gamesBuilder.update).not.toHaveBeenCalled()
 
@@ -1158,18 +1158,18 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
   it("사용 중이지 않은 옵션만 변경하면 경고 없이 바로 저장한다", async () => {
     await openGameEditModal()
 
-    fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★, 4★, 3★" } })
+    fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★, 4★, 3★" } })
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
     await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalled())
     expect(screen.queryByText(/제거되는 분류 값을 사용 중인 캐릭터가 있음/)).toBeNull()
   })
 
-  it("캐릭터 관리 탭에서 성급 필터와 이름 검색으로 목록을 좁힌다", async () => {
+  it("캐릭터 관리 탭에서 레어도 필터와 이름 검색으로 목록을 좁힌다", async () => {
     await openCharacterTab()
     expect(screen.getByText("보리스")).toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText("캐릭터 성급 필터"), { target: { value: "4★" } })
+    fireEvent.change(screen.getByLabelText("캐릭터 레어도 필터"), { target: { value: "4★" } })
     expect(screen.queryByText("알리스")).toBeNull()
     expect(screen.getByText("보리스")).toBeTruthy()
     expect(screen.getByText("카린")).toBeTruthy()
@@ -1224,7 +1224,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
   })
 
-  it("아이콘 URL이 있으면 캐릭터를 WebP Data URL·성급·분류와 함께 등록한다", async () => {
+  it("아이콘 URL이 있으면 캐릭터를 WebP Data URL·레어도·분류와 함께 등록한다", async () => {
     charactersBuilder.insert.mockResolvedValue({ error: null })
     await openCharacterTab()
 
@@ -1469,11 +1469,11 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       it("중복 등급·중복 선택지·선택지 21개를 항목별 오류로 막는다", async () => {
         await openGameEditModal()
 
-        fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★, 4★, 5★" } })
+        fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★, 4★, 5★" } })
         fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
         expect(await screen.findByText("등급 '5★'이(가) 중복되었습니다.")).toBeTruthy()
 
-        fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★, 4★" } })
+        fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★, 4★" } })
         fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "불, 물, 불" } })
         fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
         expect(await screen.findByText("분류 기준 1(속성)의 선택지 '불'이(가) 중복되었습니다.")).toBeTruthy()
@@ -1530,7 +1530,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
 
         expect(screen.getByRole("heading", { name: "게임 정보 수정" })).toBeTruthy()
         expect(screen.getByText("게임 명칭 및 기본 대표 아이콘 URL을 변경합니다.")).toBeTruthy()
-        expect(screen.getByLabelText("성급 목록")).toBeTruthy()
+        expect(screen.getByLabelText("레어도 목록")).toBeTruthy()
       })
 
       it("템플릿 모달의 제목은 기존 템플릿이 있으면 수정, 없으면 생성이며 설명을 바꾼다", async () => {

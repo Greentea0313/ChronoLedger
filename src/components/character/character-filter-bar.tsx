@@ -67,7 +67,7 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
 
       {schema.rarities.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" data-testid={`${idPrefix}-rarity-filter`}>
-          <span className="w-14 shrink-0 text-xs text-content-muted">성급</span>
+          <span className="w-14 shrink-0 text-xs text-content-muted">레어도</span>
           <Chip active={filters.rarity === ""} onClick={() => onChange({ ...filters, rarity: "" })}>전체</Chip>
           {schema.rarities.map((rarity) => (
             <Chip key={rarity} active={filters.rarity === rarity} onClick={() => onChange({ ...filters, rarity })}>
