@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-10 (Run `r78-r76-followups-and-browser-check` 등록, 즐겨찾기 이동 버튼 삭제 `f61e90f` 미병합)
+
+- 격리 Worktree·manifest(`2d36a31`, Base `3c71e9c`) 생성하고 Dispatch Queue에 3단계(SQL 테스트 Codex → R77 입력 초기화·명세 Sonnet → 리뷰·실브라우저 확인 기록 Opus) 등록함. 이전 Run `r76-r77`은 완료 기록으로 옮김.
+- 보유 캐릭터 즐겨찾기 카드의 `←`/`→` 이동 버튼을 없앰. 순서는 카드 전체를 끌어 바꾸고, 키보드는 카드에서 스페이스로 집고 방향키로 옮김.
+
 ## 2026-11-10 (R76 마이그레이션 운영 적용)
 
 - 운영 DB에 `MIGRATION_R76_PRESET_GRID_EDITING.sql` 적용·확인 쿼리 검증 완료함(사용자). 빈 프리셋 허용 제약과 `update_character_preset_slots`·`reorder_character_presets` RPC가 운영에 반영됨.

@@ -31,7 +31,45 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r76-r77-preset-grid-dnd-and-icon-modal` **(완료, `main` 병합 `e5e6140`, R76 마이그레이션 운영 적용·확인 쿼리 완료(사용자, 2026-11-10), 실브라우저 확인 대기)** *(`R77` 분류 아이콘 이미지 등록 모달(URL·붙여넣기·파일) + `R76` pickupgg식 프리셋 카드 그리드 편집·@dnd-kit 드래그(터치 포함))*
+- **활성 Run ID**: `r78-r76-followups-and-browser-check` *(R76 리뷰 후속 정리(`R78`) + 병합된 R76 프리셋 보드·R77 아이콘 모달 실브라우저 확인)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
+- **Worktree 경로**: `.worktrees/r78-r76-followups-and-browser-check` (브랜치: `collab/r78-r76-followups-and-browser-check`, manifest `2d36a31`)
+- **Base SHA**: `3c71e9ca584dd008caee4c45fa8fb1af3cb7a1df`
+- **등록 메모**: `main`에 사용자 미커밋 규칙 파일 수정분(`.agents/rules/*`, `.agents/skills/handoff/SKILL.md`, `CLAUDE.md`)이 있어 `New-CollaborationRun.ps1`의 작업 트리 청결 검사만 뺀 세션 임시 복사본으로 생성함. 해당 파일은 건드리지 않았고 Base는 커밋된 `HEAD`임.
+- **DB 변경**: 없음. Step 1은 `sql/tests/TESTS.sql`만 수정하며 운영 DB에는 실행하지 않음.
+- **근거**: Run `r76-r77-preset-grid-dnd-and-icon-modal` 리뷰 산출물(`artifacts/r76-r77-preset-grid-dnd-and-icon-modal/iteration-01/review.json`)의 `R76-REV-003`~`006`, to-do `R78`.
+- **사용자 보고 (2026-11-10)**: 손잡이·↑↓ 버튼이 있는 구 화면이 보인다고 함. 화면 문구(`슬롯 배치 (4/4)`, `슬롯을 선택한 뒤 캐릭터를 눌러 배치합니다`)가 삭제된 R62 `preset-workspace.tsx`(`f5807eb`)와 같아 **R76 이전 빌드를 보고 있는 것으로 판단**함(`main` 소스에는 해당 파일·`GripVertical` 없음). 어느 환경(웹 배포·데스크톱 앱·로컬)인지 확인 후 재빌드·재배포 필요함.
+- **진행 원칙**: Step 1(SQL 테스트)과 Step 2(관리자 화면·명세)는 파일이 겹치지 않아 순서 무관함. 한 Worktree에서 순서대로 진행함. 사용자 실브라우저 확인은 이미 `main`에 병합된 기능 대상이라 Step 1·2와 상관없이 언제든 해도 됨. 결과는 Step 3에서 기록함.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 SQL Tests)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/tests/TESTS.sql` | - |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Input Reset · Spec Note)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.classification-icons.test.tsx`, `docs/spec/R76_Preset_Grid_Editing_Spec.md`(§10) | 즐겨찾기 화살표 삭제(사용자 추가 요청)는 Claude Opus가 `f61e90f`로 먼저 처리함(아래 참고). R77 입력 초기화·명세 §10은 남음 |
+| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `3c71e9c` ↔ Target(Step 2 커밋) 정적 리뷰, 동적 검증, 사용자 실브라우저 확인 결과 기록, `main` 병합, 문서 마감 | - |
+
+#### 📌 `r78-r76-followups-and-browser-check` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`GPT Codex` — Maker, `R76-REV-003`)**:
+   - `sql/tests/TESTS.sql` R76 블록에 명세 `docs/spec/R76_Preset_Grid_Editing_Spec.md` §4.5 누락 시나리오를 추가함.
+     - `update_character_preset_slots`: 두 프리셋 이동 성공(양쪽 `character_ids` 확인), 원자성(두 번째 변경이 트리거 오류면 첫 번째도 미반영), 대상 프리셋 중복 → 오류·둘 다 그대로, 이동 아닌 2행 변경(캐릭터 증감) → `22023`, 다른 게임 프리셋 2개 → 오류, 객체 3개 → `22023`, 다른 사용자 프리셋 → `40001`(RLS로 행이 안 보임).
+     - `reorder_character_presets`: id 누락·추가 → `40001`, 다른 사용자 프리셋 id 포함 → `40001`.
+   - 테스트 데이터는 블록 안에서 만들고 다른 블록의 프리셋 개수 가정(순서 RPC는 게임의 모든 프리셋을 요구함)을 깨지 않게 함. 다른 사용자 시나리오는 기존 테스트의 두 번째 사용자 패턴을 재사용함.
+   - 스키마·RPC·마이그레이션은 바꾸지 않음. `psql`과 임시 DB를 쓸 수 있으면 전체 `TESTS.sql`을 실행하고, 없으면 미실행으로 기록함.
+   - `git diff --check` 통과, 기존 Vitest 전체 통과 확인함(코드 변경 없음).
+2. **Step 2 (`Claude Sonnet` — Maker, `R76-REV-004`·`005`)**:
+   - 관리자 분류 아이콘 등록 모달에서 URL을 입력하거나 이미지를 붙여넣으면 파일 입력칸 표시값도 비움(ref 또는 key 재생성). 모달을 다시 열 때도 빈 상태로 시작함.
+   - `page.classification-icons.test.tsx`에 파일 선택 → URL 입력 시 파일 입력값이 비는지, 붙여넣기 시 비는지 테스트 추가함.
+   - ✅ (사용자 추가 요청 2026-11-10, Claude Opus 선행 처리 `f61e90f`) 보유 캐릭터 즐겨찾기 카드 아래 `←`/`→` 이동 버튼 삭제함. 마우스·터치는 카드 전체 드래그, 키보드는 설정 버튼에서 스페이스로 집고 방향키로 이동함(Enter는 설정 창). 명세 §7 개정, 페이지 테스트를 드래그 종료 기준으로 교체함(tsc·lint·diff-check 통과, Vitest 64파일/779개 통과).
+   - 명세 §10 Step 4 허용 파일에 `src/lib/use-board-sensors.ts`(프리셋 보드·즐겨찾기 정렬 공용 센서, Step 5 리뷰에서 수용)를 추가함. `docs/architecture.md`는 이미 반영됨.
+   - `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
+3. **Step 3 (`Claude Opus` — Reviewer & Orchestrator, `R76-REV-006` 포함)**:
+   - Base ↔ Target 정적 리뷰, 동적 검증, `review.json`·`test.json` 작성·검증, `main` 병합, 문서 마감함.
+   - 사용자 실브라우저 확인 결과를 받아 기록함. 확인 항목: Chrome·Firefox 마우스 드래그(사이드바→슬롯, 슬롯 정렬, 프리셋 간 이동, 카드 밖 제거, 카드 순서), 터치 실기기 길게 눌러 드래그·세로 스크롤 유지, 키보드(스페이스 집기·방향키·Esc), 900px·1280px 레이아웃, 즐겨찾기 정렬 후 짧은 클릭 시 설정 창, R77 모달(URL·붙여넣기·파일).
+   - 모바일 카드 사이 놓기로 인한 실수 제거가 잦거나 키보드 드래그 대상이 어긋나면 새 to-do 항목으로 등록함(명시적 제거 영역 등은 사용자 결정 필요).
+
+### 🗂️ 이전 Run 기록 (완료): `r76-r77-preset-grid-dnd-and-icon-modal`
+
+- **Run ID**: `r76-r77-preset-grid-dnd-and-icon-modal` **(완료, `main` 병합 `e5e6140`, R76 마이그레이션 운영 적용·확인 쿼리 완료(사용자, 2026-11-10), 실브라우저 확인 대기)** *(`R77` 분류 아이콘 이미지 등록 모달(URL·붙여넣기·파일) + `R76` pickupgg식 프리셋 카드 그리드 편집·@dnd-kit 드래그(터치 포함))*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r76-r77-preset-grid-dnd-and-icon-modal` (브랜치: `collab/r76-r77-preset-grid-dnd-and-icon-modal`, manifest `41cdd56`)
 - **Base SHA**: `f5807eb1668c5dcf08c188bffce2accc18b1ef11`

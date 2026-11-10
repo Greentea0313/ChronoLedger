@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## Run `r78-r76-followups-and-browser-check` 등록 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **배경**: R76 리뷰 후속(to-do `R78`)과 병합된 R76·R77 실브라우저 확인을 활성 Run으로 등록함(사용자 요청).
+- **Worktree**: `.worktrees/r78-r76-followups-and-browser-check`(manifest `2d36a31`, Base `3c71e9c`). `main`의 사용자 미커밋 규칙 파일 때문에 생성 스크립트의 청결 검사만 뺀 임시 복사본으로 생성함.
+- **사용자 추가 요청 선행 처리**: 즐겨찾기 `←`/`→` 이동 버튼 삭제, 키보드는 설정 버튼에서 dnd-kit 키보드 드래그로 대체함(워크트리 `f61e90f`, 미병합).
+- **사용자 보고**: 손잡이 있는 구 화면이 보인다고 함 → 화면 문구로 보아 R76 이전 빌드임. 보고 있는 환경 확인·재빌드 필요함.
+- **다음 단계**: Step 1(`GPT Codex`, SQL 테스트) `▶ READY`임.
+
 ## R76 마이그레이션 운영 적용 (2026-11-10)
 
 - 사용자가 운영 DB에 `MIGRATION_R76_PRESET_GRID_EDITING.sql`을 적용하고 `sql/README.md` 확인 쿼리(제약 1행·함수 2행)와 구 cardinality CHECK 잔존 없음(1행)을 확인함. 빈 프리셋·프리셋 간 이동·카드 순서 변경이 운영에서 활성화됨.
