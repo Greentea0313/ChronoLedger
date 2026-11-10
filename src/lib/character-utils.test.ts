@@ -14,6 +14,7 @@ import {
   isCharacterTemplateActive,
   moveCharacterInPreset,
   moveCharacterToSlot,
+  moveFavoriteCharacter,
   placeCharacterInSlot,
   assignAxisKey,
   splitCommaList,
@@ -22,6 +23,7 @@ import {
   normalizeMaxBreakthrough,
   normalizeMaxPresetSlots,
   sortCharactersFavoriteFirst,
+  splitCharacterRosterSections,
   removeCharacterFromPreset,
   validatePresetInput,
   type CharacterFilters,
@@ -184,6 +186,28 @@ describe("breakthrough and favorites", () => {
 
     expect(sorted.map((item) => item.name)).toEqual(["나", "라", "가", "다"])
     expect(input.map((item) => item.name)).toEqual(["다", "가", "나", "라"])
+  })
+
+  it("splits roster entries into exclusive sections and preserves favorite order", () => {
+    const entries = [
+      { ...makeCharacter("a", "다", null), isOwned: true, isFavorite: true, favoriteSortOrder: 2 },
+      { ...makeCharacter("b", "가", null), isOwned: true, isFavorite: false, favoriteSortOrder: null },
+      { ...makeCharacter("c", "나", null), isOwned: false, isFavorite: true, favoriteSortOrder: 1 },
+      { ...makeCharacter("d", "라", null), isOwned: true, isFavorite: true, favoriteSortOrder: 1 },
+    ]
+    const sections = splitCharacterRosterSections(entries)
+
+    expect(sections.favorites.map((entry) => entry.id)).toEqual(["d", "a"])
+    expect(sections.owned.map((entry) => entry.id)).toEqual(["b"])
+    expect(sections.unowned.map((entry) => entry.id)).toEqual(["c"])
+    expect(new Set(Object.values(sections).flat().map((entry) => entry.id)).size).toBe(4)
+  })
+
+  it("moves favorite order without mutating the input", () => {
+    const ids = ["a", "b", "c"]
+    expect(moveFavoriteCharacter(ids, 2, 0)).toEqual(["c", "a", "b"])
+    expect(moveFavoriteCharacter(ids, -1, 0)).toEqual(ids)
+    expect(ids).toEqual(["a", "b", "c"])
   })
 })
 

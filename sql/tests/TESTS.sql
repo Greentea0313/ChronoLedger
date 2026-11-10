@@ -1478,6 +1478,55 @@ DO $$ BEGIN
 END $$;
 \echo PASS: game breakthrough cap rejects excess values and preserves existing values on cap reduction
 
+-- R63 favorite sections, ownership guard, append ordering, and atomic reorder.
+RESET ROLE;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'other_user_id', 'role', 'authenticated')::text, true);
+SELECT set_config('request.jwt.claim.sub', :'other_user_id', true);
+SET LOCAL ROLE authenticated;
+INSERT INTO public.user_characters(user_id, game_id, character_id, is_owned, is_favorite)
+VALUES (:'other_user_id', :'r13_game_id', :'r13_character_1', true, true),
+       (:'other_user_id', :'r13_game_id', :'r13_character_2', true, true),
+       (:'other_user_id', :'r13_game_id', :'r13_character_3', false, true);
+DO $$
+DECLARE v_first INTEGER; v_second INTEGER; v_third INTEGER;
+BEGIN
+    SELECT favorite_sort_order INTO v_first FROM public.user_characters
+    WHERE user_id = current_setting('chronoledger.other_user_id')::uuid AND character_id = current_setting('chronoledger.r13_character_1_id')::uuid;
+    SELECT favorite_sort_order INTO v_second FROM public.user_characters
+    WHERE user_id = current_setting('chronoledger.other_user_id')::uuid AND character_id = current_setting('chronoledger.r13_character_2_id')::uuid;
+    IF v_first <> 1 OR v_second <> 2 OR EXISTS (
+        SELECT 1 FROM public.user_characters
+        WHERE user_id = current_setting('chronoledger.other_user_id')::uuid AND character_id = current_setting('chronoledger.r13_character_3_id')::uuid AND is_favorite
+    ) THEN RAISE EXCEPTION 'FAIL: R63 initial favorite ordering or unowned guard'; END IF;
+END $$;
+UPDATE public.user_characters SET is_owned = true, is_favorite = true
+WHERE user_id = :'other_user_id' AND character_id = :'r13_character_3';
+SELECT public.reorder_favorite_characters(
+    :'r13_game_id',
+    ARRAY[:'r13_character_2'::uuid, :'r13_character_1'::uuid, :'r13_character_3'::uuid]
+);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.user_characters
+        WHERE user_id = current_setting('chronoledger.other_user_id')::uuid
+          AND game_id = current_setting('chronoledger.r13_game_id')::uuid
+          AND is_favorite AND favorite_sort_order = 1
+          AND character_id = current_setting('chronoledger.r13_character_2_id')::uuid
+    ) OR NOT EXISTS (
+        SELECT 1 FROM public.user_characters
+        WHERE user_id = current_setting('chronoledger.other_user_id')::uuid
+          AND character_id = current_setting('chronoledger.r13_character_3_id')::uuid
+          AND favorite_sort_order = 3
+    ) THEN RAISE EXCEPTION 'FAIL: R63 reorder did not persist atomically'; END IF;
+    BEGIN
+        PERFORM public.reorder_favorite_characters(current_setting('chronoledger.r13_game_id')::uuid, ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid]);
+        RAISE EXCEPTION 'FAIL: R63 incomplete favorite set was accepted';
+    EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF; END;
+END $$;
+RESET ROLE;
+\echo PASS: R63 favorite ownership guard, append ordering, and reorder RPC
+
 INSERT INTO public.account_deletion_requests(user_id, status_token_hash, status) VALUES (:'test_user_id', repeat('a', 64), 'PENDING');
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated')::text, true);
 SET LOCAL ROLE authenticated;

@@ -229,6 +229,7 @@ CREATE TABLE IF NOT EXISTS public.user_characters (
     character_id UUID NOT NULL REFERENCES public.game_characters(id) ON DELETE CASCADE,
     is_owned BOOLEAN NOT NULL DEFAULT true,
     is_favorite BOOLEAN NOT NULL DEFAULT false,
+    favorite_sort_order INTEGER,
     breakthrough_level SMALLINT NOT NULL DEFAULT 0 CHECK (breakthrough_level BETWEEN 0 AND 12),
     custom_icon_path TEXT CHECK (custom_icon_path IS NULL OR custom_icon_path = user_id::text || '/characters/' || character_id::text || '.webp'),
     memo VARCHAR(200),
@@ -237,6 +238,9 @@ CREATE TABLE IF NOT EXISTS public.user_characters (
     CONSTRAINT uq_user_characters_user_character UNIQUE (user_id, character_id)
 );
 CREATE INDEX IF NOT EXISTS idx_user_characters_user_game ON public.user_characters(user_id, game_id);
+CREATE INDEX IF NOT EXISTS idx_user_characters_favorite_order
+    ON public.user_characters(user_id, game_id, favorite_sort_order)
+    WHERE is_favorite;
 
 CREATE TABLE IF NOT EXISTS public.user_character_presets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -266,12 +270,68 @@ BEGIN
             RAISE EXCEPTION '캐릭터 돌파 단계가 게임의 최대 돌파 단계를 초과합니다.';
         END IF;
     END IF;
+    IF NOT NEW.is_owned THEN
+        NEW.is_favorite := false;
+        NEW.favorite_sort_order := NULL;
+    ELSIF NOT NEW.is_favorite THEN
+        NEW.favorite_sort_order := NULL;
+    ELSIF NEW.favorite_sort_order IS NULL THEN
+        SELECT COALESCE(MAX(favorite_sort_order), 0) + 1
+        INTO NEW.favorite_sort_order
+        FROM public.user_characters
+        WHERE user_id = NEW.user_id
+          AND game_id = NEW.game_id
+          AND is_favorite
+          AND id IS DISTINCT FROM NEW.id;
+    END IF;
     RETURN NEW;
 END;
 $$;
 DROP TRIGGER IF EXISTS trg_validate_user_character_game ON public.user_characters;
 CREATE TRIGGER trg_validate_user_character_game BEFORE INSERT OR UPDATE ON public.user_characters
 FOR EACH ROW EXECUTE FUNCTION public.validate_user_character_game();
+
+CREATE OR REPLACE FUNCTION public.reorder_favorite_characters(
+    p_game_id UUID,
+    p_character_ids UUID[]
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_expected UUID[];
+    v_requested UUID[];
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION '로그인한 사용자만 즐겨찾기 순서를 변경할 수 있습니다.';
+    END IF;
+    IF p_game_id IS NULL OR p_character_ids IS NULL THEN
+        RAISE EXCEPTION '게임과 즐겨찾기 캐릭터 목록이 필요합니다.';
+    END IF;
+    SELECT COALESCE(array_agg(uc.character_id ORDER BY uc.character_id), '{}'::UUID[])
+    INTO v_expected
+    FROM public.user_characters uc
+    WHERE uc.user_id = v_user_id AND uc.game_id = p_game_id
+      AND uc.is_owned AND uc.is_favorite;
+    SELECT COALESCE(array_agg(item.character_id ORDER BY item.character_id), '{}'::UUID[])
+    INTO v_requested
+    FROM unnest(p_character_ids) AS item(character_id);
+    IF v_requested IS DISTINCT FROM v_expected THEN
+        RAISE EXCEPTION '즐겨찾기 캐릭터 목록이 현재 상태와 일치하지 않습니다.';
+    END IF;
+    UPDATE public.user_characters uc
+    SET favorite_sort_order = ordered.sort_order, updated_at = NOW()
+    FROM unnest(p_character_ids) WITH ORDINALITY AS ordered(character_id, sort_order)
+    WHERE uc.user_id = v_user_id AND uc.game_id = p_game_id
+      AND uc.character_id = ordered.character_id
+      AND uc.is_owned AND uc.is_favorite;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) FROM anon;
+GRANT EXECUTE ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.validate_user_character_preset()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$

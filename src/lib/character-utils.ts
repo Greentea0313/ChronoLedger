@@ -42,6 +42,7 @@ export type GameCharacter = {
 export type UserCharacterState = {
   is_owned: boolean
   is_favorite: boolean
+  favorite_sort_order?: number | null
   breakthrough_level: number
   custom_icon_path: string | null
 }
@@ -114,6 +115,49 @@ export function sortCharactersFavoriteFirst(
     const favoriteDiff = Number(isFavorite(b.id)) - Number(isFavorite(a.id))
     return favoriteDiff !== 0 ? favoriteDiff : a.name.localeCompare(b.name, "ko")
   })
+}
+
+export type CharacterRosterEntry = GameCharacter & {
+  isOwned: boolean
+  isFavorite: boolean
+  favoriteSortOrder: number | null
+}
+
+export type CharacterRosterSections = {
+  favorites: CharacterRosterEntry[]
+  owned: CharacterRosterEntry[]
+  unowned: CharacterRosterEntry[]
+}
+
+/** Splits the filtered roster into mutually exclusive favorite, owned, and unowned sections. */
+export function splitCharacterRosterSections(entries: readonly CharacterRosterEntry[]): CharacterRosterSections {
+  const favorites: CharacterRosterEntry[] = []
+  const owned: CharacterRosterEntry[] = []
+  const unowned: CharacterRosterEntry[] = []
+  entries.forEach((entry) => {
+    if (entry.isOwned && entry.isFavorite) {
+      favorites.push(entry)
+    } else if (entry.isOwned) {
+      owned.push(entry)
+    } else {
+      unowned.push(entry)
+    }
+  })
+  favorites.sort((a, b) => {
+    const orderA = a.favoriteSortOrder ?? Number.MAX_SAFE_INTEGER
+    const orderB = b.favoriteSortOrder ?? Number.MAX_SAFE_INTEGER
+    return orderA - orderB || a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id)
+  })
+  return { favorites, owned, unowned }
+}
+
+/** Moves a favorite from one position to another without mutating the input. */
+export function moveFavoriteCharacter(characterIds: readonly string[], from: number, to: number): string[] {
+  const next = [...characterIds]
+  if (from < 0 || from >= next.length || to < 0 || to >= next.length || from === to) return next
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
 }
 
 export function normalizeAttributes(raw: unknown): Record<string, string> {
