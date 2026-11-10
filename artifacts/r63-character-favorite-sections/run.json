@@ -1,0 +1,22 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r63-character-favorite-sections",
+    "created_at":  "2026-11-10T10:25:56.3462033+00:00",
+    "objective":  "R63: split the character roster into Favorites / Owned / Unowned sections, allow favorites only for owned characters, persist favorite order in user_characters.favorite_sort_order, and apply the same sections to preset character pickers.",
+    "acceptance_criteria":  [
+                                "Migration adds user_characters.favorite_sort_order INTEGER NULL, clears existing favorites on unowned rows, backfills order for existing favorites, and is reflected in SCHEMA.sql, database.types.ts, sql/README.md and sql/tests.",
+                                "A DB trigger enforces favorites only for owned characters (unowning clears is_favorite and favorite_sort_order) and appends new favorites to the end of the per-user per-game order.",
+                                "An atomic SECURITY INVOKER RPC reorders favorites for one game under existing RLS; no cross-user writes are possible.",
+                                "Client tolerates the unapplied migration (42703/PGRST204/PGRST202) by falling back to name order and disabling reordering without breaking the page.",
+                                "Roster shows Favorites / Owned / Unowned sections; each character appears once; favorite toggle is unavailable for unowned characters.",
+                                "Favorites can be reordered by drag and by keyboard-accessible move buttons; order persists after reload.",
+                                "Preset editor dialog and desktop preset workspace character pickers use the same three sections and favorite order.",
+                                "tsc --noEmit, npm run lint, git diff --check and the full Vitest suite pass."
+                            ],
+    "base_sha":  "56898613677af30c0096fa94b1b4b157349c9169",
+    "target_sha":  null,
+    "branch":  "collab/r63-character-favorite-sections",
+    "worktree_path":  ".worktrees/r63-character-favorite-sections",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
