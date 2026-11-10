@@ -23,7 +23,6 @@ import {
   normalizeClassificationSchema,
   normalizeMaxBreakthrough,
   normalizeMaxPresetSlots,
-  sortCharactersFavoriteFirst,
   splitCharacterRosterSections,
   removeCharacterFromPreset,
   validatePresetInput,
@@ -178,15 +177,6 @@ describe("breakthrough and favorites", () => {
     expect(normalizeMaxBreakthrough(-1)).toBe(6)
     expect(normalizeMaxBreakthrough(2.5)).toBe(6)
     expect(normalizeMaxBreakthrough(undefined)).toBe(6)
-  })
-
-  it("puts favorites first and sorts by name within each group without mutating the input", () => {
-    const input = [makeCharacter("a", "다", null), makeCharacter("b", "가", null), makeCharacter("c", "나", null), makeCharacter("d", "라", null)]
-    const favorites = new Set(["c", "d"])
-    const sorted = sortCharactersFavoriteFirst(input, (id) => favorites.has(id))
-
-    expect(sorted.map((item) => item.name)).toEqual(["나", "라", "가", "다"])
-    expect(input.map((item) => item.name)).toEqual(["다", "가", "나", "라"])
   })
 
   it("splits roster entries into exclusive sections and preserves favorite order", () => {

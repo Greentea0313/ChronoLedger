@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-10 (R74 R63 후속 정리)
+
+- `reorder_favorite_characters` 실행 권한 회수를 프로젝트 패턴(`FROM PUBLIC, anon`)에 맞춤(`R63-REV-001`). `sql/README.md`에 권한 확인 쿼리 추가함.
+- 미사용 `sortCharactersFavoriteFirst`와 테스트 삭제함(`R63-REV-003`).
+
 ## 2026-11-10 (Run `r63-character-favorite-sections` 마감, `main` 병합 `478b137`)
 
 - R63: 보유 캐릭터 화면과 프리셋 선택 목록(모달·PC 사이드바)을 즐겨찾기 / 보유 / 미보유 3구역으로 표시함. 즐겨찾기는 보유 캐릭터만 가능하고, 즐겨찾기 순서는 드래그·앞/뒤 이동 버튼으로 바꿔 `reorder_favorite_characters` RPC로 저장함.

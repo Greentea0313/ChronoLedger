@@ -123,7 +123,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) FROM anon;
+REVOKE ALL ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.reorder_favorite_characters(UUID, UUID[]) TO authenticated;
 
 COMMIT;

@@ -106,17 +106,6 @@ export function normalizeMaxBreakthrough(value: unknown): number {
     : DEFAULT_MAX_BREAKTHROUGH
 }
 
-/** Favorites first, then name ascending (ko). Returns a new array. */
-export function sortCharactersFavoriteFirst(
-  characters: GameCharacter[],
-  isFavorite: (characterId: string) => boolean,
-): GameCharacter[] {
-  return [...characters].sort((a, b) => {
-    const favoriteDiff = Number(isFavorite(b.id)) - Number(isFavorite(a.id))
-    return favoriteDiff !== 0 ? favoriteDiff : a.name.localeCompare(b.name, "ko")
-  })
-}
-
 export type CharacterRosterEntry = GameCharacter & {
   isOwned: boolean
   isFavorite: boolean
