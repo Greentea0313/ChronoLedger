@@ -1408,7 +1408,7 @@ DELETE FROM public.game_characters WHERE id = :'r13_character_4'::uuid;
 DELETE FROM public.game_characters WHERE id = :'r13_character_5'::uuid;
 DO $$ BEGIN
     IF (SELECT cardinality(character_ids) FROM public.user_character_presets WHERE id = current_setting('chronoledger.r13_over_limit_preset_id')::uuid) <> 3 THEN RAISE EXCEPTION 'FAIL: character delete did not shrink over-limit preset'; END IF;
-    IF (SELECT character_ids FROM public.user_character_presets WHERE id = current_setting('chronoledger.r13_empty_preset_id')::uuid) <> '{}'::uuid[] THEN RAISE EXCEPTION 'FAIL: empty preset was not preserved'; END IF;
+    IF (SELECT character_ids FROM public.user_character_presets WHERE id = current_setting('chronoledger.r13_empty_preset_id')::uuid) IS DISTINCT FROM '{}'::uuid[] THEN RAISE EXCEPTION 'FAIL: empty preset was not preserved'; END IF;
 END $$;
 DO $$ BEGIN
     BEGIN
@@ -2070,7 +2070,8 @@ SELECT public.reorder_character_presets(
     ARRAY[
         current_setting('chronoledger.r76_empty_preset_id')::uuid,
         current_setting('chronoledger.r13_over_limit_preset_id')::uuid,
-        current_setting('chronoledger.r13_game_change_preset_id')::uuid
+        current_setting('chronoledger.r13_game_change_preset_id')::uuid,
+        current_setting('chronoledger.r13_empty_preset_id')::uuid
     ]
 );
 DO $$
