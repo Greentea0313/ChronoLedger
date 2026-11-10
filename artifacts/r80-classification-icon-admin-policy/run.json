@@ -1,0 +1,16 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r80-classification-icon-admin-policy",
+    "created_at":  "2026-11-10T15:24:51.9759351+00:00",
+    "objective":  "Align the R64 game_classification_icons write policy with the other admin tables (JWT app_metadata.role = admin OR public.users.role = admin) and show the error code/message when an icon save fails.",
+    "acceptance_criteria":  [
+                                "Step 1 (DB+UI): a re-runnable migration replaces the \u0027Admin manage classification icons\u0027 policy with the JWT-or-users.role admin condition used by the other admin tables; SCHEMA.sql, sql/README.md and TESTS.sql (users.role-only admin can write, normal user denied) are updated; the admin icon dialog shows the Supabase error code and message on non-23514 failures; tsc, lint, git diff --check and the full Vitest suite pass.",
+                                "Step 2 (review): Base..Target static review of the policy (no user_metadata, no client-side checks, self-promotion still blocked by prevent_users_role_self_change), artifacts written, main merge, user applies the migration and re-tests the icon save."
+                            ],
+    "base_sha":  "103dbf5cbf47ef1375d2d7cffa0a674e60001aca",
+    "target_sha":  null,
+    "branch":  "collab/r80-classification-icon-admin-policy",
+    "worktree_path":  ".worktrees/r80-classification-icon-admin-policy",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
