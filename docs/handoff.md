@@ -36,7 +36,7 @@
 - **Worktree 경로**: `.worktrees/r57-character-template-gate-and-validation` (브랜치: `collab/r57-character-template-gate-and-validation`)
 - **Base SHA**: `25b39536223b998143e8df443dc8eea1e4c7e349` ↔ Target `15c0d1411ab548a49eb02b2e44b284aa6771722f` (`clean`, 산출물 `dbf1109`). **Run 마감: `main` 병합 `6712a24` 완료** *(push 미수행, DB 변경 없음, 차기 Run 미등록)*
 - **직전 Run 마감 (`r55-r56-favorite-hook-and-version-pass-trigger`)**: 2026-11-10 Step 3 통합 정적 리뷰(`8b9689f` ↔ `daf9a5a`) **Gemini 4 Argon `clean` (P1~P4 0건)**, 로컬 PostgreSQL 17 2개 DB(`db_upgraded`·`db_fresh`) 마이그레이션 2회 멱등 적용 및 `sql/tests/TESTS.sql` 34 PASS, Vitest 57파일/642개 통과, `main` 병합(`25b3953`) 완료 (`✅ DONE`).
-- **📌 운영 DB 마이그레이션 안내 (`R58`, 병행 적용 가능)**:
+- **✅ 운영 DB 마이그레이션 적용 완료 (`R58`, 2026-11-10 사용자 적용·확인 쿼리 `true`)**:
   - Supabase Dashboard $\to$ SQL Editor에서 [`sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`](../sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql) 전체를 실행한 뒤 [`sql/README.md`](../sql/README.md) B표의 확인 쿼리 결과를 검증함 (`true` 기대):
     ```sql
     SELECT position('R56 version pass' IN pg_get_functiondef('public.sync_version_expenses_trigger()'::regprocedure)) > 0 AS r56_applied;

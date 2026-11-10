@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## R58 운영 DB 마이그레이션 적용 완료 (2026-11-10)
+
+- 사용자가 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`을 적용하고 확인 쿼리(`r56_applied`) `true`를 확인함.
+- 운영 DB에서 VERSION 일정 기간 변경 시 버전 패스 예정 지출의 결제 예정일이 새 종료일로 유지됨.
+- 현재 운영 DB에 적용 대기 중인 마이그레이션 없음.
+
 ## r57-character-template-gate-and-validation 리뷰 및 `main` 병합 마감 (2026-11-10)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.
