@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## r55-r56 Step 1 완료: R56 버전 패스 결제 예정일 보존 (2026-11-10)
+
+- **수행 주체**: Claude Opus (사용자 지시로 GPT Codex 1순위 대체)임.
+- **워크트리**: `.worktrees/r55-r56-favorite-hook-and-version-pass-trigger`(Base `8b9689f`, manifest `e44709b`) 생성함.
+- **원인**: `sync_version_expenses_trigger()`가 VERSION 날짜 변경 시 연결된 모든 예정 지출의 `target_date`를 새 시작일로 덮어써, 버전 종료일에 결제하는 버전 패스 예정일이 시작일로 당겨짐.
+- **수정 (`5a479a5`)**: 여러 날 기간이면서 `target_date = end_date`(또는 이전 종료일)인 버전 패스 행은 새 종료일, 그 외 VERSION 연동 행은 새 시작일을 따르도록 트리거 교체함. 마이그레이션(멱등)·`SCHEMA.sql`·README 확인 쿼리·`TESTS.sql` 시나리오 추가함. 수용 기준의 함수명 오기(`sync_version_expenses_on_schedule_update`)는 실제 함수명으로 정정함.
+- **검증**: 임시 PostgreSQL 17에서 기존·신규 스키마 모두 마이그레이션 2회 후 `TESTS.sql` 34개 PASS, 기존 트리거로는 R56 시나리오가 실패함을 대조 확인함. tsc·lint 통과, Vitest 56파일/628개 통과함.
+- **다음 단계**: Step 2 `R55` 관심 일정 공용 훅(**Claude Sonnet** `▶ READY`)임. 운영 반영 시 R56 마이그레이션 적용 필요(배포 체크리스트는 Step 3에서 등록).
+
 ## R57 과제 등록: 캐릭터 템플릿 게이트·입력 검증 결함 (2026-11-10)
 
 - **수행 주체**: Claude Opus (Orchestrator, Gemini 4 Argon 1순위 대체)임.
