@@ -31,7 +31,53 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r64-r72-r73-classification-icons-followups` **(완료, `main` 병합 `66dd067`, R64 마이그레이션 운영 적용·확인 쿼리 완료(사용자, 2026-11-10), 실브라우저 확인 대기)** *(`R72` 픽업 중복 이름 문구 정리 + `R73` Firefox 호환 드래그 시작 요소 + `R64` 관리자 분류 옵션 아이콘(별도 테이블))*
+- **활성 Run ID**: `r76-r77-preset-grid-dnd-and-icon-modal` *(`R77` 분류 아이콘 이미지 등록 모달(URL·붙여넣기·파일) + `R76` pickupgg식 프리셋 카드 그리드 편집·@dnd-kit 드래그(터치 포함))*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
+- **Worktree 경로**: `.worktrees/r76-r77-preset-grid-dnd-and-icon-modal` (브랜치: `collab/r76-r77-preset-grid-dnd-and-icon-modal`, manifest `41cdd56`)
+- **Base SHA**: `f5807eb1668c5dcf08c188bffce2accc18b1ef11`
+- **DB 변경**: R77 없음. R76은 Step 2 명세에서 결정함(프리셋 순서·프리셋 간 이동의 원자적 저장에 RPC가 필요하면 Step 3 수행, 불필요하면 Step 3 `⏭️ SKIPPED`).
+- **사용자 결정 (2026-11-10 질문 카드 회신)**:
+  - 드래그는 `@dnd-kit`(core·sortable·utilities) 도입해 손잡이 없이 아바타·카드 전체를 끔. 짧은 클릭은 기존처럼 설정·배치 동작 유지함.
+  - 프리셋 편집은 pickupgg(`https://pickupgg.com/party?game=endfield`)처럼 **모든 프리셋 카드를 한 화면에서 바로 편집·즉시 저장**함 → R62 `저장 버튼` 결정과 R73 손잡이 방식을 대체함.
+  - 터치(모바일·태블릿) 드래그도 지원함(길게 눌러 시작).
+- **pickupgg 관찰 결과 (Claude Opus, 내장 브라우저, 샘플 모드)**: HTML5 `draggable` 없음, `aria-roledescription="sortable"` 요소 44개(게임 탭·프리셋 카드·슬롯 아바타) → 포인터 기반 sortable 방식임. 슬롯 아바타 드래그 시 끼워넣기 정렬(교체 아님), 사이드바(속성별 그룹, `편성됨`·`즐겨찾기` 표시) → 빈 슬롯 드래그로 추가, 같은 파티 중복 시 `이미 이 파티에 있어요` 토스트, 카드 `touch-action: pan-y`(세로 스크롤 유지)임.
+- **진행 원칙**: Step 1(R77, 관리자 화면)과 Step 2~4(R76, 캐릭터 화면)는 파일이 겹치지 않음. 한 Worktree에서 순서대로 진행함.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Icon Modal)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`(+`page.test.tsx`, `page.classification-icons.test.tsx`), `src/lib/classification-icons.ts`(+테스트), `src/lib/image-resizer.ts`(+테스트, 헬퍼 공개·재인코딩 추가 시), `docs/spec/R64_Classification_Option_Icons_Spec.md`(§3.2 개정) | - |
+| **2** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R76 Spec)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: 신규 `docs/spec/R76_Preset_Grid_Editing_Spec.md`, `docs/character-preset-ux-review.md`(R62·R73 대체 표시) | - |
+| **3** | **`⏳ WAITING`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 DB, 조건부)` | 명세서가 RPC·마이그레이션을 요구할 때만 수행(아니면 `⏭️ SKIPPED`). 허용 파일: 명세서 확정(예: 신규 `sql/migrations/MIGRATION_R76_*.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`) | - |
+| **4** | **`⏳ WAITING`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 UI)` | 아래 **Step 4 수용 기준** 수행(낙관적 갱신·비동기 경합 → Opus 승격 조건 ②). 허용 파일: 명세서 확정(예: `package.json`·`package-lock.json`, `src/app/dashboard/characters/page.tsx`(+테스트), `src/components/character/preset-*.tsx`(+테스트), `src/components/character/character-roster.tsx`, 신규 그리드·DnD 컴포넌트·훅(+테스트)) | - |
+| **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `f5807eb` ↔ Target(Step 4 커밋) 통합 정적 리뷰, 동적 검증, `main` 병합, 문서 마감, (DB 변경 시) 마이그레이션 수동 적용 안내 | - |
+
+#### 📌 `r76-r77-preset-grid-dnd-and-icon-modal` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Sonnet` — Maker, R77)**:
+   - 관리자 `템플릿 설정 수정` → `분류 아이콘`의 `이미지 선택` 버튼을 누르면 등록 모달(Dialog)이 뜸. 구성은 기존 이미지 입력(예: 관리자 일정 폼 `새 픽업 캐릭터`)과 같게: `https://... 또는 이미지 붙여넣기` 입력란(붙여넣기 시 이미지 파일 처리), `파일 선택`, 미리보기, `취소`·`등록`.
+   - 모든 입력은 64×64 WebP로 변환함. **WebP Data URL 문자열도 그대로 통과시키지 말고 다시 인코딩함**(`convertIconSourceToDataUrl`은 WebP Data URL을 그대로 반환하므로 그대로 쓰지 않음). URL은 기존 `fetchImageFile`(프록시 폴백 포함)을 재사용함. AI 업스케일은 쓰지 않음. 20,000자 초과 시 거부함.
+   - `등록` 시 기존과 같은 upsert, 성공 시 모달 닫고 목록 갱신, 실패 시 모달 안 오류 표시(`23514` 안내 유지). 오프라인 가드·선택지별 중복 쓰기 방지 유지함. 삭제 버튼 동작은 변경 없음.
+   - 명세서 R64 §3.2를 개정(URL·붙여넣기 허용, DB에는 여전히 Data URL만 저장)함.
+   - 테스트: 모달 열림, URL·붙여넣기·파일 각 경로의 64px 재인코딩 호출, WebP Data URL 재인코딩, 오류 표시. `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
+2. **Step 2 (`Claude Opus` — Architect, R76 명세)**:
+   - `docs/spec/R76_Preset_Grid_Editing_Spec.md`(영문) 작성함. 포함 항목:
+     - 화면 구성: 폭별(≥1280 / 900~1279 / <900) 프리셋 카드 그리드·캐릭터 사이드바(속성별 그룹, `편성됨` 표시) 배치, 카드 안 제목·메모·즐겨찾기·삭제·새 프리셋 추가.
+     - `@dnd-kit` 구성: 센서(포인터 이동 거리 활성화, 터치 길게 누르기, 키보드), 충돌 판정, 드래그 미리보기(`DragOverlay`), `touch-action`, 스크롤 중 드래그.
+     - 드롭 규칙: 사이드바→슬롯(추가·끼워넣기), 슬롯 내 정렬(끼워넣기), 프리셋 간 이동(이동 vs 복사), 슬롯 밖 드롭(제거 여부), 같은 프리셋 중복 거부 토스트, 슬롯 수 상한(`max_preset_slots`), 미보유·픽업 전용 캐릭터 처리, 프리셋 카드 순서 변경.
+     - 즉시 저장: 낙관적 갱신·실패 롤백, 프리셋별 쓰기 직렬화(연속 드롭 순서 보장), 오프라인 가드, 다중 탭 경합 허용 범위.
+     - DB: 프리셋 순서(`sort_order`)·프리셋 간 이동을 원자적으로 저장할 RPC 필요 여부와 시그니처·권한(본인 행만), 마이그레이션 미적용 폴백.
+     - 대체 범위: R62 저장 버튼·미저장 경고, R73 손잡이, `preset-editor-dialog`(모바일 유지 여부), R63 즐겨찾기 정렬의 dnd-kit 전환.
+   - 남은 사용자 결정은 질문 카드로 확인 후 반영함. Step 3 수행 여부와 Step 3·4 허용 파일을 확정함.
+3. **Step 3 (`GPT Codex` — Maker, R76 DB, 조건부)**: 명세서대로 재실행 안전한 마이그레이션·RPC·`SCHEMA.sql`·`README`·`TESTS.sql`(본인 행만 변경, 타 사용자 거부, `anon` 거부, 원자성)·`database.types.ts` 반영함. 운영 DB 미적용함.
+4. **Step 4 (`Claude Opus` — Maker, R76 UI)**:
+   - 명세서대로 그리드 편집·dnd-kit 드래그(손잡이 없음, 클릭 유지)·즉시 저장·롤백 구현, R63 즐겨찾기 정렬도 dnd-kit 전환함. 키보드 대안(이동 버튼 등) 유지함.
+   - 회귀 금지: R63 3구역, R64 분류 아이콘 표시, R65·R66 관리자 흐름, 게스트 읽기 전용 동작.
+   - 컴포넌트·훅·페이지 테스트 추가하고 `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
+5. **Step 5 (`Claude Opus` — Reviewer & Orchestrator)**: 통합 정적 리뷰, 동적 검증, `review.json`·`test.json` 작성·검증, `main` 병합, 문서 마감함. 사용자에게 Chrome·Firefox·터치 실기기 확인을 안내함.
+
+### 🗂️ 이전 Run 기록 (완료): `r64-r72-r73-classification-icons-followups`
+
+- **Run ID**: `r64-r72-r73-classification-icons-followups` **(완료, `main` 병합 `66dd067`, R64 마이그레이션 운영 적용·확인 쿼리 완료(사용자, 2026-11-10), 실브라우저 확인 대기)** *(`R72` 픽업 중복 이름 문구 정리 + `R73` Firefox 호환 드래그 시작 요소 + `R64` 관리자 분류 옵션 아이콘(별도 테이블))*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r64-r72-r73-classification-icons-followups` (브랜치: `collab/r64-r72-r73-classification-icons-followups`, manifest `0715b7a`)
 - **Base SHA**: `bc7fbad477e13de89b81c6a8ba474ca3fd3145c3`

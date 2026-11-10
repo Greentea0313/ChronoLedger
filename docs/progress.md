@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Run `r76-r77-preset-grid-dnd-and-icon-modal` 등록 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **배경**: 사용자 피드백 2건. ① 분류 아이콘이 파일 업로드만 가능함 → 다른 이미지 입력과 같은 등록 모달로 바꿈(R77). ② R73 손잡이 드래그가 원활하지 않음 → pickupgg식 전체 프리셋 그리드 편집·`@dnd-kit`·터치 지원으로 다시 설계함(R76, R62 저장 버튼·R73 대체).
+- **pickupgg 관찰**: 포인터 기반 sortable(HTML5 `draggable` 없음), 슬롯 끼워넣기 정렬, 사이드바→슬롯 추가, 같은 파티 중복 토스트 확인함.
+- **Worktree**: `.worktrees/r76-r77-preset-grid-dnd-and-icon-modal`(manifest `41cdd56`, Base `f5807eb`) 생성함.
+- **다음 단계**: Step 1(`Claude Sonnet`, R77) `▶ READY`임.
+
 ## R64 마이그레이션 운영 적용 (2026-11-10)
 
 - 사용자가 운영 DB에 `MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`을 적용하고 `sql/README.md` 확인 쿼리 검증을 마침. 이제 관리자 `분류 아이콘` 기능이 활성화됨.

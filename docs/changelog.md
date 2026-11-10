@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-10 (Run `r76-r77-preset-grid-dnd-and-icon-modal` 등록)
+
+- 격리 Worktree·manifest(`41cdd56`, Base `f5807eb`) 생성하고 Dispatch Queue에 5단계(R77 아이콘 모달 Sonnet → R76 명세 Opus → R76 DB Codex(조건부) → R76 UI Opus → 리뷰 Opus) 등록함.
+- R73(손잡이 드래그)은 R76으로 대체하며 종료 처리함. 사용자 결정: `@dnd-kit` 도입, pickupgg식 전체 그리드 편집·즉시 저장, 터치 지원.
+
 ## 2026-11-10 (R64 마이그레이션 운영 적용)
 
 - 운영 DB에 `MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql` 적용·확인 쿼리 검증 완료함(사용자). 분류 옵션 아이콘 테이블·트리거·RLS가 운영에 반영됨.
