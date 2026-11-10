@@ -18,7 +18,7 @@ WITH ranked AS (
         ) AS favorite_sort_order
     FROM public.user_characters uc
     JOIN public.game_characters gc ON gc.id = uc.character_id
-    WHERE uc.is_owned AND uc.is_favorite
+    WHERE uc.is_owned AND uc.is_favorite AND uc.favorite_sort_order IS NULL
 )
 UPDATE public.user_characters uc
 SET favorite_sort_order = ranked.favorite_sort_order
