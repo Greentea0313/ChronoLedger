@@ -38,6 +38,27 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   )
 }
 
+/**
+ * One filter group: the label sits left of the chips, or on its own line above them when `stacked`
+ * (narrow panels such as the preset sidebar and picker, where a left label leaves chips wrapping under it).
+ */
+function FilterRow({ label, stacked, testId, children }: { label: string; stacked: boolean; testId?: string; children: React.ReactNode }) {
+  if (stacked) {
+    return (
+      <div className="space-y-1.5" data-testid={testId}>
+        <span className="block truncate text-xs text-content-muted" title={label}>{label}</span>
+        <div className="flex flex-wrap items-center gap-2">{children}</div>
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2" data-testid={testId}>
+      <span className="w-14 shrink-0 truncate text-xs text-content-muted" title={label}>{label}</span>
+      {children}
+    </div>
+  )
+}
+
 interface CharacterFilterBarProps {
   /** Full catalog of the selected game; used only to decide whether a `기타` chip is needed. */
   characters: GameCharacter[]
@@ -47,16 +68,17 @@ interface CharacterFilterBarProps {
   idPrefix: string
   /** Optional option icons (R64); only the roster passes them. Missing icon = text-only chip. */
   classificationIcons?: ClassificationIconMap
+  /** Put each group label on its own line above its chips (narrow panels). */
+  stacked?: boolean
 }
 
 /** Ownership, rarity, classification-axis and name filters shared by the roster and the preset picker. */
-export function CharacterFilterBar({ characters, schema, filters, onChange, idPrefix, classificationIcons }: CharacterFilterBarProps) {
+export function CharacterFilterBar({ characters, schema, filters, onChange, idPrefix, classificationIcons, stacked = false }: CharacterFilterBarProps) {
   const showOtherRarity = hasOtherRarity(characters, schema)
 
   return (
-    <div className="space-y-2" data-testid={`${idPrefix}-filter-bar`}>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="w-14 shrink-0 text-xs text-content-muted">보유 여부</span>
+    <div className={stacked ? "space-y-3" : "space-y-2"} data-testid={`${idPrefix}-filter-bar`}>
+      <FilterRow label="보유 여부" stacked={stacked}>
         {OWNERSHIP_OPTIONS.map((option) => (
           <Chip
             key={option.value}
@@ -66,11 +88,10 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
             {option.label}
           </Chip>
         ))}
-      </div>
+      </FilterRow>
 
       {schema.rarities.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2" data-testid={`${idPrefix}-rarity-filter`}>
-          <span className="w-14 shrink-0 text-xs text-content-muted">레어도</span>
+        <FilterRow label="레어도" stacked={stacked} testId={`${idPrefix}-rarity-filter`}>
           <Chip active={filters.rarity === ""} onClick={() => onChange({ ...filters, rarity: "" })}>전체</Chip>
           {schema.rarities.map((rarity) => (
             <Chip key={rarity} active={filters.rarity === rarity} onClick={() => onChange({ ...filters, rarity })}>
@@ -85,15 +106,14 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
               {OTHER_FILTER_LABEL}
             </Chip>
           )}
-        </div>
+        </FilterRow>
       )}
 
       {schema.axes.map((axis) => {
         const selected = filters.axes[axis.key] ?? ""
         const setAxis = (value: string) => onChange({ ...filters, axes: { ...filters.axes, [axis.key]: value } })
         return (
-          <div key={axis.key} className="flex flex-wrap items-center gap-2" data-testid={`${idPrefix}-axis-${axis.key}`}>
-            <span className="w-14 shrink-0 truncate text-xs text-content-muted" title={axis.label}>{axis.label}</span>
+          <FilterRow key={axis.key} label={axis.label} stacked={stacked} testId={`${idPrefix}-axis-${axis.key}`}>
             <Chip active={selected === ""} onClick={() => setAxis("")}>전체</Chip>
             {axis.options.map((option) => (
               <Chip key={option} active={selected === option} onClick={() => setAxis(option)}>
@@ -108,7 +128,7 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
                 {OTHER_FILTER_LABEL}
               </Chip>
             )}
-          </div>
+          </FilterRow>
         )
       })}
 

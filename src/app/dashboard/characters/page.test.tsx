@@ -728,6 +728,16 @@ describe("CharactersPage", () => {
       ) as HTMLElement
     const slotRpcCalls = () => rpcCalls.filter((call) => call.fn === "update_character_preset_slots")
 
+    it("puts each sidebar filter label on its own line above its chips", async () => {
+      await openPresets()
+
+      const firstRow = container.querySelector('[data-testid="board-filter-bar"] > div') as HTMLElement
+      const [label, chips] = Array.from(firstRow.children) as HTMLElement[]
+      expect(label.textContent).toBe("보유 여부")
+      expect(label.className).toContain("block")
+      expect(Array.from(chips.querySelectorAll("button")).map((button) => button.textContent)).toEqual(["전체", "보유", "미보유"])
+    })
+
     it("shows every preset as a card with slots sized to the game limit, memo and dimmed unowned slots", async () => {
       await openPresets()
 

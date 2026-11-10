@@ -50,7 +50,7 @@ export function PresetCharacterPicker({ preset, maxSlots, characters, schema, st
           </DrawerDescription>
         </DrawerHeader>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4" data-testid="preset-picker">
-          <CharacterFilterBar idPrefix="picker" characters={characters} schema={schema} filters={filters} onChange={setFilters} />
+          <CharacterFilterBar idPrefix="picker" stacked characters={characters} schema={schema} filters={filters} onChange={setFilters} />
           {CHARACTER_SECTIONS.map(({ key, label }) => {
             const items = sections[key]
             if (items.length === 0) return null
