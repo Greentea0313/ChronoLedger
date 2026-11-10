@@ -238,6 +238,53 @@ export function moveCharacterInPreset(characterIds: readonly string[], index: nu
   return next
 }
 
+/**
+ * Places a character into a specific slot (desktop workspace drag/drop and slot-then-avatar click).
+ * - Empty slot (index >= length): appends; an already placed character is moved to the end instead.
+ * - Filled slot: replaces the occupant, or swaps both slots when the character is already placed elsewhere.
+ * Never creates duplicates or gaps; only appending is limited by the ceiling, so an over-limit preset can
+ * still replace/swap but never grows (spec §7.3.1).
+ */
+export function placeCharacterInSlot(
+  characterIds: readonly string[],
+  slotIndex: number,
+  characterId: string,
+  maxSlots: number,
+): string[] {
+  const next = [...characterIds]
+  if (slotIndex < 0) return next
+  const existingIndex = next.indexOf(characterId)
+
+  if (slotIndex >= next.length) {
+    if (existingIndex >= 0) {
+      next.splice(existingIndex, 1)
+      next.push(characterId)
+      return next
+    }
+    return canAddToPreset(maxSlots, next) ? [...next, characterId] : next
+  }
+
+  if (existingIndex === slotIndex) return next
+  if (existingIndex >= 0) {
+    next[existingIndex] = next[slotIndex]
+    next[slotIndex] = characterId
+    return next
+  }
+  next[slotIndex] = characterId
+  return next
+}
+
+/** Moves the character at `from` to slot `to` (clamped to the last filled slot, so an empty slot means "end"). */
+export function moveCharacterToSlot(characterIds: readonly string[], from: number, to: number): string[] {
+  const next = [...characterIds]
+  if (from < 0 || from >= next.length) return next
+  const target = Math.min(Math.max(to, 0), next.length - 1)
+  if (target === from) return next
+  const [moved] = next.splice(from, 1)
+  next.splice(target, 0, moved)
+  return next
+}
+
 export function validatePresetInput(input: {
   title: string
   memo: string
