@@ -31,23 +31,36 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r57-character-template-gate-and-validation` *(`R57`: 관리자 캐릭터 추가 모달 템플릿 게이트, 템플릿 폼 검증 DB `is_valid_classification_schema` 일치, 축 `key` 자동 관리 및 안내 문구 개선)*
+- **활성 Run ID**: `r60-ai-icon-upscaler` *(`R60`: PC 데스크톱 한정 저해상도 아이콘 AI 업스케일러 및 안전 폴백)*
 - **Orchestrator**: Gemini 4 Argon
-- **Worktree 경로**: `.worktrees/r57-character-template-gate-and-validation` (브랜치: `collab/r57-character-template-gate-and-validation`)
-- **Base SHA**: `25b39536223b998143e8df443dc8eea1e4c7e349` ↔ Target `15c0d1411ab548a49eb02b2e44b284aa6771722f` (`clean`, 산출물 `dbf1109`). **Run 마감: `main` 병합 `6712a24` 완료** *(push 미수행, DB 변경 없음, 차기 Run 미등록)*
+- **Worktree 경로**: `.worktrees/r60-ai-icon-upscaler` (브랜치: `collab/r60-ai-icon-upscaler`)
+- **Base SHA**: `HEAD` 기준 신규 Run 생성 후 manifest에 기록함. DB 변경 없음.
 - **직전 Run 마감 (`r55-r56-favorite-hook-and-version-pass-trigger`)**: 2026-11-10 Step 3 통합 정적 리뷰(`8b9689f` ↔ `daf9a5a`) **Gemini 4 Argon `clean` (P1~P4 0건)**, 로컬 PostgreSQL 17 2개 DB(`db_upgraded`·`db_fresh`) 마이그레이션 2회 멱등 적용 및 `sql/tests/TESTS.sql` 34 PASS, Vitest 57파일/642개 통과, `main` 병합(`25b3953`) 완료 (`✅ DONE`).
+- **차기 등록 백로그 (`R60`, 2026-11-10)**: `R60` PC 데스크톱 한정 저해상도 아이콘 AI 업스케일러 (Waifu2x / ONNX Web) 도입 — DB 변경 없음, 담당: **Claude Sonnet** *(Fallback: GitHub Copilot / Gemini 3.8 Flash)*. 256px 미만 저해상도 이미지 감지 시 `[AI 고화질 업스케일 (PC 전용)]` 기본 활성화(Default ON), 동적 `import()` 지연 로딩으로 모바일 번들/메모리 보호, 모바일/WASM 미지원 환경 기존 캔버스 리사이저 즉시 폴백.
 - **✅ 운영 DB 마이그레이션 적용 완료 (`R58`, 2026-11-10 사용자 적용·확인 쿼리 `true`)**:
   - Supabase Dashboard $\to$ SQL Editor에서 [`sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`](../sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql) 전체를 실행한 뒤 [`sql/README.md`](../sql/README.md) B표의 확인 쿼리 결과를 검증함 (`true` 기대):
+
     ```sql
     SELECT position('R56 version pass' IN pg_get_functiondef('public.sync_version_expenses_trigger()'::regprocedure)) > 0 AS r56_applied;
     ```
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: 15c0d1411ab548a49eb02b2e44b284aa6771722f)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Admin Character Template UI)` | `R57`: `.worktrees/r57-character-template-gate-and-validation`(Base `25b3953`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `docs/to-do.md` | `✅ 15c0d14: 추가 모달 템플릿 게이트((템플릿 없음) 표시·입력/저장 숨김·[캐릭터 템플릿 생성] 연결), validateClassificationTemplate/splitCommaList/assignAxisKey 추가(DB 규칙 일치), 축 key 입력란 제거·자동 관리, 템플릿 모달 제목/설명/등급 라벨 개선, 23514 템플릿 CHECK 안내. 단위·화면 테스트 추가. DB 변경 없음. tsc/lint 통과, Vitest 57파일/665개 통과.` |
-| **2** | **`✅ DONE (리뷰 clean, 산출물 SHA: dbf1109, main 병합 6712a24)`** | ~~Gemini 4 Argon~~ ➡️ **Claude Opus** *(1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `25b3953` ↔ Target `15c0d14` 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ clean(P1~P4 0건): 추가 모달 템플릿 게이트(전체 캐릭터 목록 중 정식 캐릭터 기준 판정), validateClassificationTemplate가 DB is_valid_classification_schema 규칙과 일치, 축 키 입력 제거·assignAxisKey 비중복 배정, 템플릿 모달 제목·설명·등급 라벨, 스키마 CHECK 오류 안내 확인. diff-check/tsc/lint 통과, Vitest 57파일/665개 통과, 스키마 검증 3종 통과. main 병합 6712a24. DB 변경 없음.` |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (PC AI Icon Upscaler)` | `R60` Step 1: 동적 ONNX 업스케일러·기존 리사이저 폴백·관리자/요청 UI 연동·단위 테스트 구현. 허용 파일: `src/lib/image-upscaler.ts`, `src/lib/image-resizer.ts`, `src/lib/image-upscaler.test.ts`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `public/models/waifu2x.onnx`, `package.json`, `package-lock.json`, `docs/to-do.md` | `▶ R60 수용 기준에 따라 착수함` |
+| **2** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Step 1 Target 통합 정적 리뷰, 업스케일러 번들 분리·폴백·브라우저 경계 검증, `run.json`·`review.json`·`test.json` 마감 및 `main` 병합 | `⏳ Step 1 완료 후 진행함` |
 
-#### 📌 `r57-character-template-gate-and-validation` 배경 및 단계별 수용 기준 (Acceptance Criteria)
+#### 📌 `r60-ai-icon-upscaler` 배경 및 단계별 수용 기준 (Acceptance Criteria)
+
+- **배경**: 256×256 미만 아이콘의 단순 Bilinear 확대 품질을 개선하되 모바일 PWA 번들·메모리 부담은 증가시키지 않음.
+- **수용 기준**:
+  1. PC 데스크톱에서만 저해상도 이미지 입력 시 `[AI 고화질 업스케일 (PC 전용)]` 토글을 노출하고 기본값을 ON으로 설정함.
+  2. `onnxruntime-web` 및 모델은 `src/lib/image-upscaler.ts`에서 동적 `import()`로 지연 로딩하며 초기 모바일 번들에 포함하지 않음.
+  3. 모바일, WebGL/WASM 미지원, 모델 로드·추론 실패 시 `resizeImageToWebP`로 즉시 폴백함.
+  4. 추론 중 로딩 인디케이터를 표시하고 입력 폼 중복 제출을 방지함.
+  5. 업스케일 결과를 256×256 WebP로 변환하며 기존 아이콘 업로드·요청 흐름을 보존함.
+  6. 단위 테스트로 저해상도 감지, PC 기본 ON, 모바일/미지원/실패 폴백, 동적 import 경계를 검증하고 tsc·lint·Vitest·diff-check를 통과함.
+
+### 🗂️ 이전 Run 기록 (완료): `r57-character-template-gate-and-validation`
 
 - **배경 (사용자 확인, 2026-11-10)**: 관리자 `캐릭터 관리`에서 게임 필터가 "전체"일 때 상단 `[+ 캐릭터 추가]`로 템플릿이 없는 게임(예: 명일방주: 엔드필드)을 고르면, 분류 입력 없이 이름·`등급 없음`·아이콘만 표시되고 그대로 저장됨. 저장 시 정식 캐릭터 1명이 생겨 `isCharacterTemplateActive`가 참이 되므로 템플릿 생성 단계(R52 §3.2)를 영구히 건너뜀.
 - **원인 분석 (Claude Opus)**:
@@ -65,6 +78,17 @@
        - ⑤ **DB 오류 안내**: `games_classification_schema_check`(`23514`) 위반 시 원문 대신 `캐릭터 템플릿 형식이 올바르지 않습니다(등급·분류 기준 개수와 길이를 확인해 주세요).`를 표시함.
        - ⑥ **테스트**: 전체 필터에서 템플릿 없는 게임 선택 시 입력·저장 숨김과 템플릿 생성 연결, 등급 미입력·선택지 21개·중복 등급·중복 선택지 오류, 축 삭제 후 추가 시 키 비중복, 템플릿 모달 제목·설명, `validateClassificationTemplate` 단위 테스트를 추가함. `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과 후 커밋하고 Target SHA를 기록함. DB 변경 없음.
   2. **Step 2 — 정적 리뷰 및 Run 마감 (Gemini 4 Argon)**: Base ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 문서 마감.
+
+#### 💡 차기 백로그 등록 과제 명세 (`R60`, 2026-11-10)
+
+- **과제 ID / 명칭**: `R60` — `[기능 확장 · 백로그] PC 데스크톱 환경 한정 저해상도 아이콘 AI 업스케일러 (Waifu2x / ONNX Web) 도입`
+- **배경**: 캐릭터/게임 아이콘 등록 시 256×256 미만 저해상도 이미지의 단순 Bilinear 캔버스 확대에 따른 뭉개짐 개선. 모바일 PWA 번들 크기(First Load JS) 및 저사양 모바일 OOM 방지를 위해 **PC(데스크톱) 환경 한정 + 동적 지연 로딩(Dynamic Import)** 아키텍처 채택.
+- **주요 요구사항 및 작업 범위**:
+  1. **동적 모듈 분리 (`src/lib/image-upscaler.ts`)**: `onnxruntime-web` 및 2D 애니메이션 특화 Waifu2x 초경량 ONNX 모델(~2MB, `public/models/waifu2x.onnx`)을 PC 환경 및 저해상도 이미지 입력 시에만 `import()`로 지연 로딩.
+  2. **모달 UI 연동 (`src/app/admin/page.tsx` 등)**: 가로/세로 256px 미만 이미지 감지 시 `[AI 고화질 업스케일 (PC 전용)]` 옵션 노출. PC 환경에서 256px 미만 감지 시 **기본 활성화(Default Enabled, 기본값 ON)** 상태로 동작하며 원할 경우 끌 수 있는 토글 스위치 제공.
+  3. **무조건적 안전 폴백(Fallback)**: 모바일 접속, WebGL/WASM 미지원 브라우저, 모델 로드 실패 시 기존 캔버스 리사이저(`resizeImageToWebP`)로 즉시 폴백.
+  4. **UI 프리징 방지**: AI 추론 비동기 처리 중 로딩 인디케이터 제공.
+- **담당 모델**: **Claude Sonnet** (UI/동적 임포트 구현), Fallback: **GitHub Copilot** / **Gemini 3.8 Flash** (DB 변경 없음, Opus 승격 조건 비해당).
 
 ---
 

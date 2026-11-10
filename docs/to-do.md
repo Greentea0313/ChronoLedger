@@ -686,6 +686,18 @@
 - [x] R58. [운영] Supabase SQL Editor에서 [`sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`](../sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql) 적용 후 [`sql/README.md`](../sql/README.md) B표 확인 쿼리(`SELECT position('R56 version pass' IN pg_get_functiondef('public.sync_version_expenses_trigger()'::regprocedure)) > 0 AS r56_applied;` → `true`) 확인 (사용자 수동) (`완료` - 2026-11-10 사용자 적용·확인 쿼리 `true` 확인)
 - [x] R57. [완료 · `r57-character-template-gate-and-validation` (`15c0d14`, 리뷰 `dbf1109`, `main` 병합 `6712a24`)] R57. [진행 중 · 활성 Run (`r57-character-template-gate-and-validation`) Step 1 `▶ READY` (Claude Sonnet) · 2026-11-10 사용자 확인 결함] 관리자 캐릭터 추가 모달의 템플릿 게이트(전체 필터에서 템플릿 없는 게임 선택 시 입력 차단·`[캐릭터 템플릿 생성]` 연결), 템플릿 폼 검증을 DB `is_valid_classification_schema`와 일치(등급 1개 이상 필수·선택지 20개·중복 불가), 축 `key` 입력 제거·자동 비중복 배정, 템플릿 모달 제목·설명 안내, 스키마 CHECK 오류 안내 (DB 변경 없음, 담당: Claude Sonnet, Fallback: GitHub Copilot / Gemini 3.8 Flash, 리뷰: Gemini 4 Argon)
 - [x] R59. [완료 · `main` 직접 수정 `4c849ce` (Base `4697920`), 2026-11-10 사용자 확인 결함] 캐릭터 템플릿 모달 세로 스크롤 복구(`overflow-hidden` 제거) 및 템플릿 흐름의 게임 이름·아이콘 입력 제거·템플릿 컬럼만 저장(상대 경로 아이콘 게임 템플릿 저장 실패 해소)
+- [ ] R60. [기능 확장 · 활성 Run `r60-ai-icon-upscaler`, Step 1 Claude Sonnet `▶ READY`] PC 데스크톱 환경 한정 저해상도 아이콘 AI 업스케일러 (Waifu2x / ONNX Web) 도입
+  - 대상 파일: `src/lib/image-upscaler.ts`, `src/lib/image-resizer.ts`, `src/app/admin/page.tsx`, `src/components/game/schedule-request-modal.tsx` 등
+  - 배경:
+    - 캐릭터/게임 아이콘 등록 시 원본이 256×256 미만인 저해상도 이미지일 경우 단순 캔버스 Bilinear 확대에 따른 뭉개짐 발생.
+    - 모바일 PWA 번들 크기(First Load JS) 및 저사양 모바일 기기의 OOM 리스크를 원천 방지하기 위해 **PC(데스크톱) 환경 한정 + 동적 지연 로딩(Dynamic Import)** 아키텍처 채택.
+  - 작업 (주요 요구사항 및 작업 범위):
+    1. **동적 모듈 분리 (`src/lib/image-upscaler.ts`)**: `onnxruntime-web` 및 2D 애니메이션 특화 Waifu2x 초경량 ONNX 모델(~2MB, `public/models/waifu2x.onnx`)을 PC 환경 및 저해상도 이미지 입력 시에만 `import()`로 지연 로딩.
+    2. **모달 UI 연동 (`src/app/admin/page.tsx` 등)**: 업로드 이미지 가로/세로가 256px 미만인 경우 `[AI 고화질 업스케일 (PC 전용)]` 옵션 노출. PC 환경에서 256px 미만의 저해상도 이미지가 감지되었을 때 해당 옵션은 **기본 활성화(Default Enabled, 기본값 ON)** 상태로 동작하도록 설정(원할 경우 끌 수 있는 토글 스위치는 유지).
+    3. **무조건적 안전 폴백(Fallback)**: 모바일 접속, WebGL/WASM 미지원 브라우저, 모델 로드 실패 시 기존 캔버스 리사이저(`resizeImageToWebP`)로 즉시 폴백.
+    4. **UI 프리징 방지**: AI 추론 비동기 처리 중 로딩 인디케이터 제공.
+  - verify: PC 데스크톱 브라우저에서 256px 미만 이미지 입력 시 Waifu2x ONNX 동적 로딩 및 256×256 고화질 WebP 변환 단위/통합 테스트, 모바일/WASM 미지원 환경 폴백 테스트, 빌드 번들 크기(First Load JS) 영향 없음 확인.
+  - 담당 모델: Claude Sonnet (UI/동적 임포트 구현), Fallback: GitHub Copilot / Gemini 3.8 Flash (DB 변경 없음, Opus 승격 조건 비해당).
 - [ ] R39. [우선 낮음] 일정·결제 알림(픽업 종료 D-1, 예정 지출 결제일) PWA/Tauri 알림 방식 조사 및 설계 (담당: Claude Opus / Gemini 4 Argon)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
