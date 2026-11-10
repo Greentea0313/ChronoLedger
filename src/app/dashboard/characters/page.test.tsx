@@ -667,6 +667,8 @@ describe("CharactersPage", () => {
       const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
       expect(dialog.querySelector("h2")?.textContent).toBe("새 프리셋 추가")
       expect(dialog.getAttribute("aria-describedby")).toBeTruthy()
+      // R61: the title input carries no example placeholder.
+      expect((dialog.querySelector("#preset-title") as HTMLInputElement).hasAttribute("placeholder")).toBe(false)
 
       await change(dialog.querySelector("#preset-title"), "  신규 파티  ")
       const picker = () => dialog.querySelector('[data-testid="preset-picker-list"]') as HTMLElement

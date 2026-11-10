@@ -152,7 +152,6 @@ export function PresetEditorDialog({
               value={title}
               maxLength={PRESET_TITLE_MAX}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="예: 혼돈 전반 파티"
             />
           </div>
 

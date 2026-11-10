@@ -1190,8 +1190,8 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     charactersBuilder.eq.mockResolvedValue({ error: null })
     await openCharacterTab()
 
-    const characterRow = screen.getByText("알리스").closest("div.flex.items-center.justify-between") as HTMLElement
-    fireEvent.click(within(characterRow).getByRole("button", { name: "삭제" }))
+    const characterRow = screen.getByText("알리스").closest("tr") as HTMLElement
+    fireEvent.click(within(characterRow).getByRole("button", { name: "알리스 삭제" }))
 
     expect(screen.getByRole("heading", { name: "캐릭터 삭제 확인" })).toBeTruthy()
     expect(screen.getByText(/보유 정보와 프리셋 슬롯에서도 제거되며 복구할 수 없습니다/)).toBeTruthy()
@@ -1209,8 +1209,8 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     charactersBuilder.delete.mockReturnValue(charactersBuilder)
     await openCharacterTab()
 
-    const characterRow = screen.getByText("알리스").closest("div.flex.items-center.justify-between") as HTMLElement
-    fireEvent.click(within(characterRow).getByRole("button", { name: "삭제" }))
+    const characterRow = screen.getByText("알리스").closest("tr") as HTMLElement
+    fireEvent.click(within(characterRow).getByRole("button", { name: "알리스 삭제" }))
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "취소" }))
 
     await waitFor(() => expect(screen.queryByRole("heading", { name: "캐릭터 삭제 확인" })).toBeNull())
@@ -1307,8 +1307,158 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
 
       expect(await screen.findByText("신규게임의 캐릭터 테이블이 아직 생성되지 않았습니다.")).toBeTruthy()
       expect(screen.getByRole("button", { name: "캐릭터 템플릿 생성" })).toBeTruthy()
-      expect(screen.queryByRole("button", { name: "캐릭터 추가" })).toBeNull()
       expect(screen.queryByTestId("character-table")).toBeNull()
+      // 정식 캐릭터 추가·템플릿 수정은 숨기고 R66 픽업 전용 추가 버튼만 남는다.
+      expect(screen.queryByRole("button", { name: "템플릿 설정 수정" })).toBeNull()
+      expect(screen.getAllByRole("button", { name: "캐릭터 추가" })).toHaveLength(1)
+    })
+
+    describe("캐릭터 탭 게임 필터 (R65)", () => {
+      const secondGame = {
+        id: "game-3",
+        name: "다른게임",
+        default_icon_url: "data:image/webp;base64,own",
+        max_preset_slots: 4,
+        max_breakthrough: 6,
+        classification_schema: { rarities: ["S급", "A급"], axes: [] },
+      }
+      const secondGameCharacter = { id: "s-1", game_id: "game-3", name: "에스급 캐릭", rarity: "S급", attributes: {}, default_icon_url: "data:image/webp;base64,s" }
+      const gameSelect = () => screen.getByLabelText("캐릭터 게임 필터") as HTMLSelectElement
+      const optionTexts = (label: string) => Array.from((screen.getByLabelText(label) as HTMLSelectElement).options).map((option) => option.textContent)
+
+      it("모든 게임 옵션 없이 첫 번째 게임을 기본 선택하고 그 게임의 캐릭터만 보여준다", async () => {
+        await openCharacterTabWith([schemaGame, secondGame], [...mockCharacters, secondGameCharacter])
+
+        expect(optionTexts("캐릭터 게임 필터")).toEqual(["원신", "다른게임"])
+        expect(gameSelect().value).toBe("game-1")
+        expect(await screen.findByTestId("character-table")).toBeTruthy()
+        expect(screen.getByText("알리스")).toBeTruthy()
+        expect(screen.queryByText("에스급 캐릭")).toBeNull()
+      })
+
+      it("레어도 필터는 선택한 게임의 등급만 나열하고 게임을 바꾸면 초기화한다", async () => {
+        await openCharacterTabWith([schemaGame, secondGame], [...mockCharacters, secondGameCharacter])
+        expect(optionTexts("캐릭터 레어도 필터")).toEqual(["모든 레어도", "5★", "4★"])
+
+        fireEvent.change(screen.getByLabelText("캐릭터 레어도 필터"), { target: { value: "4★" } })
+        expect(screen.queryByText("알리스")).toBeNull()
+
+        selectGame("game-3")
+        expect(optionTexts("캐릭터 레어도 필터")).toEqual(["모든 레어도", "S급", "A급"])
+        expect((screen.getByLabelText("캐릭터 레어도 필터") as HTMLSelectElement).value).toBe("")
+        expect(await screen.findByText("에스급 캐릭")).toBeTruthy()
+      })
+
+      it("등록된 게임이 없으면 안내 문구만 보여주고 추가 버튼을 숨긴다", async () => {
+        await openCharacterTabWith([], [])
+
+        expect(await screen.findByText("등록된 게임이 없습니다. 게임을 먼저 등록해 주세요.")).toBeTruthy()
+        expect(screen.queryByRole("button", { name: /추가$/ })).toBeNull()
+        expect(screen.queryByTestId("character-table")).toBeNull()
+      })
+    })
+
+    describe("템플릿 없는 게임의 픽업 전용 캐릭터 추가 (R66)", () => {
+      function mockPickupOnlyInsert(result: { data: unknown; error: unknown }) {
+        const single = vi.fn().mockResolvedValue(result)
+        const select = vi.fn().mockReturnValue({ single })
+        charactersBuilder.insert.mockReturnValue({ select })
+        return { select, single }
+      }
+      const openDialog = async () => {
+        selectGame("game-2")
+        fireEvent.click(await screen.findByRole("button", { name: "캐릭터 추가" }))
+        return await screen.findByRole("dialog")
+      }
+
+      it("템플릿이 있는 게임에는 [+ 캐릭터 추가]를 보이지 않고 정식 캐릭터 추가만 제공한다", async () => {
+        await openCharacterTabWith([labeledGame], labeledCharacters)
+
+        expect(screen.getByRole("button", { name: "공명자 추가" })).toBeTruthy()
+        expect(screen.queryByRole("button", { name: "캐릭터 추가" })).toBeNull()
+      })
+
+      it("이름만으로 is_pickup_only=true 캐릭터를 등록하고 목록에 즉시 보여준다", async () => {
+        await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
+        const chain = mockPickupOnlyInsert({
+          data: { id: "po-9", game_id: "game-2", name: "신규 픽업", rarity: null, default_icon_url: null, is_pickup_only: true },
+          error: null,
+        })
+        const dialog = await openDialog()
+        expect(within(dialog).getByRole("heading", { name: "신규게임 픽업 전용 캐릭터 추가" })).toBeTruthy()
+
+        fireEvent.change(within(dialog).getByLabelText("캐릭터 이름 *"), { target: { value: "신규 픽업" } })
+        fireEvent.click(within(dialog).getByRole("button", { name: "등록" }))
+
+        await waitFor(() => expect(charactersBuilder.insert).toHaveBeenCalledWith({ game_id: "game-2", name: "신규 픽업", default_icon_url: null, is_pickup_only: true }))
+        expect(chain.select).toHaveBeenCalled()
+        expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
+        const list = await screen.findByTestId("pickup-only-list")
+        expect(within(list).getByText("신규 픽업")).toBeTruthy()
+        expect(screen.getByText("'신규 픽업' 픽업 전용 캐릭터를 등록했습니다.")).toBeTruthy()
+        expect(screen.queryByRole("dialog")).toBeNull()
+      })
+
+      it("이미지 URL은 256×256 WebP Data URL로 변환해 저장한다", async () => {
+        await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
+        mockPickupOnlyInsert({
+          data: { id: "po-10", game_id: "game-2", name: "이미지 캐릭", rarity: null, default_icon_url: "data:image/webp;base64,converted", is_pickup_only: true },
+          error: null,
+        })
+        const dialog = await openDialog()
+
+        fireEvent.change(within(dialog).getByLabelText("캐릭터 이름 *"), { target: { value: "이미지 캐릭" } })
+        fireEvent.change(within(dialog).getByLabelText("이미지 (선택)"), { target: { value: "https://example.com/p.png" } })
+        fireEvent.click(within(dialog).getByRole("button", { name: "등록" }))
+
+        await waitFor(() => expect(charactersBuilder.insert).toHaveBeenCalledWith({ game_id: "game-2", name: "이미지 캐릭", default_icon_url: "data:image/webp;base64,converted", is_pickup_only: true }))
+        expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.com/p.png")
+      })
+
+      it("이름 필수·같은 게임 내 중복 이름·오프라인·중복 키 오류를 막고 저장하지 않는다", async () => {
+        await openCharacterTabWith([schemaGame, emptyGame], [...mockCharacters, { id: "po-1", game_id: "game-2", name: "기존 픽업", rarity: null, attributes: {}, default_icon_url: null, is_pickup_only: true }])
+        mockPickupOnlyInsert({ data: null, error: { code: "23505", message: "dup" } })
+        const dialog = await openDialog()
+        const submit = () => fireEvent.click(within(dialog).getByRole("button", { name: "등록" }))
+
+        submit()
+        expect(await within(dialog).findByText("캐릭터 이름을 1~100자로 입력해 주세요.")).toBeTruthy()
+
+        fireEvent.change(within(dialog).getByLabelText("캐릭터 이름 *"), { target: { value: "기존 픽업" } })
+        submit()
+        expect(await within(dialog).findByText("같은 이름의 캐릭터가 이미 있습니다. 목록에서 선택해 주세요.")).toBeTruthy()
+
+        fireEvent.change(within(dialog).getByLabelText("캐릭터 이름 *"), { target: { value: "오프라인 캐릭" } })
+        Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+        try {
+          submit()
+          expect(await within(dialog).findByText(/오프라인 상태에서는 저장할 수 없습니다/)).toBeTruthy()
+        } finally {
+          Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+        }
+        expect(charactersBuilder.insert).not.toHaveBeenCalled()
+
+        submit()
+        expect(await within(dialog).findByText("같은 이름의 캐릭터가 이미 있습니다.")).toBeTruthy()
+        expect(screen.getByRole("dialog")).toBeTruthy()
+      })
+
+      it("다른 게임의 같은 이름은 허용하고, 취소하면 입력값을 비운다", async () => {
+        await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
+        let dialog = await openDialog()
+        fireEvent.change(within(dialog).getByLabelText("캐릭터 이름 *"), { target: { value: "알리스" } })
+        fireEvent.click(within(dialog).getByRole("button", { name: "취소" }))
+        await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+        expect(charactersBuilder.insert).not.toHaveBeenCalled()
+
+        // 다시 열면 이전 입력이 남아 있지 않고, game-1에 있는 '알리스'는 game-2에서 중복이 아니다.
+        dialog = await openDialog()
+        expect((within(dialog).getByLabelText("캐릭터 이름 *") as HTMLInputElement).value).toBe("")
+        mockPickupOnlyInsert({ data: { id: "po-11", game_id: "game-2", name: "알리스", rarity: null, default_icon_url: null, is_pickup_only: true }, error: null })
+        fireEvent.change(within(dialog).getByLabelText("캐릭터 이름 *"), { target: { value: "알리스" } })
+        fireEvent.click(within(dialog).getByRole("button", { name: "등록" }))
+        await waitFor(() => expect(charactersBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ game_id: "game-2", name: "알리스" })))
+      })
     })
 
     it("등급 없이 캐릭터만 있는 기존 게임은 템플릿 활성으로 보고 설정 유도 배너를 보여준다 (NR-09)", async () => {
