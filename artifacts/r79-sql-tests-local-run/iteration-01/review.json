@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r79-sql-tests-local-run",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "a580d1d08f656de5816956c5dde0228cd40bd64f",
+  "target_sha": "f13087d81663df1b2f4746ca56b4801edb756a39",
+  "status": "findings",
+  "created_at": "2026-11-10T15:58:00Z",
+  "findings": [
+    {
+      "id": "R79-REV-001",
+      "severity": "P3",
+      "file": "sql/README.md",
+      "line": 61,
+      "evidence": "The documented commands use `psql ******127.0.0.1:54322/postgres`, which is not a valid psql database URI or host argument.",
+      "impact": "A developer following the new local-run procedure cannot execute the schema setup or test command as written, despite the underlying TESTS.sql having passed when invoked through Docker.",
+      "recommendation": "Replace the redacted/malformed prefix with a valid connection form, such as `psql postgresql://postgres:postgres@127.0.0.1:54322/postgres` or explicit `-h 127.0.0.1 -p 54322 -U postgres -d postgres` arguments, and use the same form on the test command at line 62."
+    }
+  ]
+}
