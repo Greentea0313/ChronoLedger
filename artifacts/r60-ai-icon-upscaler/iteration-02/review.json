@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r60-ai-icon-upscaler",
+  "iteration": 2,
+  "agent": "GitHub Copilot",
+  "role": "static-review",
+  "base_sha": "a908144aa216e79666b422fa132f345500e61546",
+  "target_sha": "38b989d38a90ba360a7a169989543bd0cb54e993",
+  "status": "clean",
+  "created_at": "2026-11-10T14:18:00+09:00",
+  "findings": []
+}
