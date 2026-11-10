@@ -289,6 +289,50 @@ describe("AdminPage - 분류 옵션 아이콘 (R64)", () => {
     await waitFor(() => expect(iconWrites("upsert")).toHaveLength(1))
   })
 
+  it("파일을 고른 뒤 URL을 입력하면 파일 입력칸을 새로 만들어 이전 파일명이 남지 않게 한다", async () => {
+    await openTemplateEditorWithIcons()
+    const dialog = await openIconDialog("속성 물")
+    const before = within(dialog).getByLabelText("분류 아이콘 이미지 파일")
+    pickIconFile(dialog, pngFile())
+    await within(dialog).findByAltText("분류 아이콘 미리보기")
+    expect(within(dialog).getByLabelText("분류 아이콘 이미지 파일")).toBe(before)
+
+    fireEvent.change(within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), { target: { value: "https://example.com/water.png" } })
+    const after = within(dialog).getByLabelText("분류 아이콘 이미지 파일") as HTMLInputElement
+    expect(after).not.toBe(before)
+    expect(after.value).toBe("")
+    expect(within(dialog).queryByAltText("분류 아이콘 미리보기")).toBeNull()
+  })
+
+  it("파일을 고른 뒤 이미지를 붙여넣으면 파일 입력칸을 새로 만든다", async () => {
+    await openTemplateEditorWithIcons()
+    const dialog = await openIconDialog("속성 물")
+    const before = within(dialog).getByLabelText("분류 아이콘 이미지 파일")
+    pickIconFile(dialog, pngFile())
+    await within(dialog).findByAltText("분류 아이콘 미리보기")
+
+    fireEvent.paste(within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), {
+      clipboardData: { files: [new File(["png2"], "pasted.png", { type: "image/png" })], items: [] },
+    })
+    expect(within(dialog).getByLabelText("분류 아이콘 이미지 파일")).not.toBe(before)
+    expect(await within(dialog).findByAltText("분류 아이콘 미리보기")).toBeTruthy()
+  })
+
+  it("모달을 닫았다 다시 열면 URL·파일·미리보기가 모두 빈 상태로 시작한다", async () => {
+    await openTemplateEditorWithIcons()
+    let dialog = await openIconDialog("속성 물")
+    fireEvent.change(within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), { target: { value: "https://example.com/water.png" } })
+    pickIconFile(dialog, pngFile())
+    await within(dialog).findByAltText("분류 아이콘 미리보기")
+    fireEvent.click(screen.getByRole("button", { name: "취소" }))
+    await waitFor(() => expect(screen.queryByTestId("classification-icon-dialog")).toBeNull())
+
+    dialog = await openIconDialog("속성 물")
+    expect((within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기") as HTMLInputElement).value).toBe("")
+    expect((within(dialog).getByLabelText("분류 아이콘 이미지 파일") as HTMLInputElement).value).toBe("")
+    expect(within(dialog).queryByAltText("분류 아이콘 미리보기")).toBeNull()
+  })
+
   it("변환 결과가 20,000자를 넘으면 저장하지 않고 모달 안에 용량 오류를 보여준다", async () => {
     resizeImageToWebP.mockResolvedValue(new Blob([new Uint8Array(20_000)], { type: "image/webp" }))
     await openTemplateEditorWithIcons()
