@@ -687,6 +687,8 @@
 - [x] R57. [완료 · `r57-character-template-gate-and-validation` (`15c0d14`, 리뷰 `dbf1109`, `main` 병합 `6712a24`)] R57. [진행 중 · 활성 Run (`r57-character-template-gate-and-validation`) Step 1 `▶ READY` (Claude Sonnet) · 2026-11-10 사용자 확인 결함] 관리자 캐릭터 추가 모달의 템플릿 게이트(전체 필터에서 템플릿 없는 게임 선택 시 입력 차단·`[캐릭터 템플릿 생성]` 연결), 템플릿 폼 검증을 DB `is_valid_classification_schema`와 일치(등급 1개 이상 필수·선택지 20개·중복 불가), 축 `key` 입력 제거·자동 비중복 배정, 템플릿 모달 제목·설명 안내, 스키마 CHECK 오류 안내 (DB 변경 없음, 담당: Claude Sonnet, Fallback: GitHub Copilot / Gemini 3.8 Flash, 리뷰: Gemini 4 Argon)
 - [x] R59. [완료 · `main` 직접 수정 `4c849ce` (Base `4697920`), 2026-11-10 사용자 확인 결함] 캐릭터 템플릿 모달 세로 스크롤 복구(`overflow-hidden` 제거) 및 템플릿 흐름의 게임 이름·아이콘 입력 제거·템플릿 컬럼만 저장(상대 경로 아이콘 게임 템플릿 저장 실패 해소)
 - [ ] R60. [기능 확장 · 활성 Run `r60-ai-icon-upscaler`, Step 1 Claude Sonnet `▶ READY`] PC 데스크톱 환경 한정 저해상도 아이콘 AI 업스케일러 (Waifu2x / ONNX Web) 도입
+  - [x] Step 1 구현: `onnxruntime-web` 동적 로딩, PC/WebGL/WASM 및 256px 미만 판정, 기존 `resizeImageToWebP` 폴백, 관리자·사용자 요청 아이콘 흐름과 기본 ON 토글 연동, 관련 테스트 추가함.
+  - [ ] Step 2 전 검토: `/models/waifu2x.onnx` 배포 자산 포함 여부와 모델 입력·출력 계약 확인 필요함.
   - 대상 파일: `src/lib/image-upscaler.ts`, `src/lib/image-resizer.ts`, `src/app/admin/page.tsx`, `src/components/game/schedule-request-modal.tsx` 등
   - 배경:
     - 캐릭터/게임 아이콘 등록 시 원본이 256×256 미만인 저해상도 이미지일 경우 단순 캔버스 Bilinear 확대에 따른 뭉개짐 발생.
