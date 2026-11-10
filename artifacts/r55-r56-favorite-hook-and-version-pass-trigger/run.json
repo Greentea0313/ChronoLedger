@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r55-r56-favorite-hook-and-version-pass-trigger",
+    "created_at":  "2026-11-10T01:48:01.8194141+00:00",
+    "objective":  "R56: preserve version-pass target_date on VERSION date changes; R55: shared favorite schedules hook with duplicate-click guard",
+    "acceptance_criteria":  [
+                                "Step 1 (R56 SQL, GPT Codex/Claude Opus fallback): idempotent sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql and SCHEMA.sql update of public.sync_version_expenses_trigger so that, on VERSION date changes, linked PLANNED version-pass expenses (start_date and end_date set, start_date \u003c\u003e end_date, target_date = end_date) keep target_date = NEW.end_date while other VERSION-linked PLANNED expenses keep target_date = NEW.start_date; README B-table check query; TESTS.sql smoke scenario; local PostgreSQL verification.",
+                                "Step 2 (R55 UI, Claude Sonnet): extract useFavoriteSchedules hook with in-flight duplicate click guard and replace duplicated favorite logic in /dashboard and /dashboard/games; tests.",
+                                "Step 3 (Review, Claude Opus / Gemini 4 Argon): integrated review, schema-validated artifacts, main merge and docs closeout."
+                            ],
+    "base_sha":  "8b9689fec7e48078cdb4a5d95504744fda08e108",
+    "target_sha":  null,
+    "branch":  "collab/r55-r56-favorite-hook-and-version-pass-trigger",
+    "worktree_path":  ".worktrees/r55-r56-favorite-hook-and-version-pass-trigger",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
