@@ -8,10 +8,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { cn } from "@/lib/utils"
 import {
+  CHARACTER_SECTIONS,
   EMPTY_CHARACTER_FILTERS,
   PRESET_MEMO_MAX,
   PRESET_TITLE_MAX,
   addCharacterToPreset,
+  buildCharacterSections,
   canAddToPreset,
   filterCharacters,
   getPresetSlotCount,
@@ -20,7 +22,6 @@ import {
   moveCharacterToSlot,
   placeCharacterInSlot,
   removeCharacterFromPreset,
-  sortCharactersFavoriteFirst,
   type CharacterFilters,
   type ClassificationSchema,
   type GameCharacter,
@@ -131,14 +132,11 @@ export function PresetWorkspace({
     return map
   }, [characters])
 
-  const sidebarCharacters = useMemo(
-    () =>
-      sortCharactersFavoriteFirst(
-        filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false),
-        (id) => states[id]?.is_favorite ?? false,
-      ),
+  const sidebarSections = useMemo(
+    () => buildCharacterSections(filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false), states),
     [characters, filters, schema, states],
   )
+  const sidebarCount = sidebarSections.favorites.length + sidebarSections.owned.length + sidebarSections.unowned.length
 
   const ids = draft.characterIds
   const slotCount = getPresetSlotCount(maxSlots, ids)
@@ -261,43 +259,56 @@ export function PresetWorkspace({
       <aside aria-label="보유 캐릭터 사이드바" className="flex max-h-[75dvh] min-h-0 flex-col gap-3 overflow-y-auto rounded-lg border border-line bg-surface p-3">
         <h3 className="text-sm font-semibold text-content">캐릭터 선택</h3>
         <CharacterFilterBar idPrefix="workspace" characters={characters} schema={schema} filters={filters} onChange={setFilters} />
-        {sidebarCharacters.length === 0 ? (
+        {sidebarCount === 0 ? (
           <p className="py-4 text-center text-sm text-content-secondary">조건에 맞는 캐릭터가 없습니다.</p>
         ) : (
-          <ul className="grid grid-cols-3 gap-2" data-testid="workspace-avatar-list">
-            {sidebarCharacters.map((character) => {
-              const placed = ids.includes(character.id)
-              const owned = states[character.id]?.is_owned ?? false
+          <div className="space-y-3" data-testid="workspace-avatar-list">
+            {CHARACTER_SECTIONS.map(({ key, label }) => {
+              const items = sidebarSections[key]
+              if (items.length === 0) return null
               return (
-                <li key={character.id}>
-                  <button
-                    type="button"
-                    draggable={!isSaving}
-                    aria-pressed={placed}
-                    title={!placed && !canAdd && selectedSlot === null ? "슬롯이 가득 찼습니다." : undefined}
-                    onClick={() => applyAvatar(character.id)}
-                    onDragStart={(event) => beginDrag(event, { type: "avatar", characterId: character.id })}
-                    onDragEnd={endDrag}
-                    className={cn(
-                      "flex w-full cursor-grab flex-col items-center gap-1 rounded-lg border p-2 text-xs transition-colors duration-fast active:cursor-grabbing [&_img]:pointer-events-none",
-                      placed ? "border-primary bg-primary/10 text-content" : "border-line bg-surface-2 text-content-secondary hover:text-content",
-                    )}
-                  >
-                    <CharacterIcon
-                      name={character.name}
-                      customIconUrl={customIconUrls[character.id]}
-                      defaultIconUrl={character.default_icon_url}
-                      dimmed={!owned}
-                      favorite={states[character.id]?.is_favorite ?? false}
-                      breakthroughLevel={owned ? (states[character.id]?.breakthrough_level ?? 0) : null}
-                      className="h-12 w-12"
-                    />
-                    <span className="w-full truncate text-center">{character.name}</span>
-                  </button>
-                </li>
+                <section key={key} aria-label={`${label} 캐릭터`} data-testid={`workspace-avatars-${key}`} className="space-y-1.5">
+                  <h4 className="text-xs font-semibold text-content-secondary">
+                    {label} ({items.length})
+                  </h4>
+                  <ul className="grid grid-cols-3 gap-2">
+                    {items.map((character) => {
+                      const placed = ids.includes(character.id)
+                      const owned = states[character.id]?.is_owned ?? false
+                      return (
+                        <li key={character.id}>
+                          <button
+                            type="button"
+                            draggable={!isSaving}
+                            aria-pressed={placed}
+                            title={!placed && !canAdd && selectedSlot === null ? "슬롯이 가득 찼습니다." : undefined}
+                            onClick={() => applyAvatar(character.id)}
+                            onDragStart={(event) => beginDrag(event, { type: "avatar", characterId: character.id })}
+                            onDragEnd={endDrag}
+                            className={cn(
+                              "flex w-full cursor-grab flex-col items-center gap-1 rounded-lg border p-2 text-xs transition-colors duration-fast active:cursor-grabbing [&_img]:pointer-events-none",
+                              placed ? "border-primary bg-primary/10 text-content" : "border-line bg-surface-2 text-content-secondary hover:text-content",
+                            )}
+                          >
+                            <CharacterIcon
+                              name={character.name}
+                              customIconUrl={customIconUrls[character.id]}
+                              defaultIconUrl={character.default_icon_url}
+                              dimmed={!owned}
+                              favorite={owned && (states[character.id]?.is_favorite ?? false)}
+                              breakthroughLevel={owned ? (states[character.id]?.breakthrough_level ?? 0) : null}
+                              className="h-12 w-12"
+                            />
+                            <span className="w-full truncate text-center">{character.name}</span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
               )
             })}
-          </ul>
+          </div>
         )}
       </aside>
 

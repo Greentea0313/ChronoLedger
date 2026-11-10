@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "run_id": "r63-character-favorite-sections",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "56898613677af30c0096fa94b1b4b157349c9169",
+  "target_sha": "178149545011b2a0c867bc0d81672fefa6c1a08c",
+  "status": "findings",
+  "created_at": "2026-11-10T11:00:00Z",
+  "findings": [
+    {
+      "id": "R63-REV-001",
+      "severity": "P4",
+      "file": "sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql",
+      "line": 126,
+      "evidence": "reorder_favorite_characters revokes EXECUTE only FROM anon (same in sql/SCHEMA.sql:333). PostgreSQL grants EXECUTE on new functions to PUBLIC by default, and the other user-facing RPCs in SCHEMA.sql revoke FROM PUBLIC, anon. The function is SECURITY INVOKER, raises when auth.uid() is NULL, and only updates rows allowed by the existing 'Manage own user characters' RLS policy.",
+      "impact": "Low: anon can still reach the function through the PUBLIC grant but always gets the login exception, so no data is read or written. It is a deviation from the project privilege pattern, not an exploitable path.",
+      "recommendation": "Non-blocking. Change both lines to REVOKE ALL ... FROM PUBLIC, anon (re-run safe) before or together with applying the migration."
+    },
+    {
+      "id": "R63-REV-002",
+      "severity": "P4",
+      "file": "sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql",
+      "line": 61,
+      "evidence": "New favorites get MAX(favorite_sort_order)+1 inside the BEFORE trigger without a lock or unique constraint, so two concurrent favorite inserts/updates for the same user and game (e.g. two devices) can receive the same order value.",
+      "impact": "Low: duplicate values only make the two favorites tie; splitCharacterRosterSections breaks ties by name and id, and the next reorder RPC call rewrites 1..n. No ownership or cross-user integrity is affected.",
+      "recommendation": "Non-blocking. Accept as is; if strict ordering is later required, serialize per (user_id, game_id) with pg_advisory_xact_lock or normalize in the reorder path."
+    },
+    {
+      "id": "R63-REV-003",
+      "severity": "P4",
+      "file": "src/lib/character-utils.ts",
+      "line": 110,
+      "evidence": "Step 2 replaced every production use of sortCharactersFavoriteFirst with buildCharacterSections; the export now has no non-test caller. Step 1 acceptance criteria intentionally kept it until Step 2.",
+      "impact": "Cosmetic: dead export and its tests remain.",
+      "recommendation": "Non-blocking. Remove sortCharactersFavoriteFirst and its tests in a later cleanup."
+    },
+    {
+      "id": "R63-REV-004",
+      "severity": "P4",
+      "file": "src/components/character/character-roster.tsx",
+      "line": 301,
+      "evidence": "Favorite reordering uses <li draggable> whose surface is mostly an inner <button>, the same pattern noted in R62-REV-001. jsdom tests dispatch drag events directly and cannot show whether Firefox starts the drag. A real-browser check was not possible (signed-in account required).",
+      "impact": "Low: if Firefox does not start the drag, the left/right move buttons still cover every reorder operation.",
+      "recommendation": "Non-blocking. Include the roster favorites drag in the existing R73 real-browser check."
+    }
+  ]
+}

@@ -42,6 +42,7 @@ export type GameCharacter = {
 export type UserCharacterState = {
   is_owned: boolean
   is_favorite: boolean
+  favorite_sort_order?: number | null
   breakthrough_level: number
   custom_icon_path: string | null
 }
@@ -114,6 +115,77 @@ export function sortCharactersFavoriteFirst(
     const favoriteDiff = Number(isFavorite(b.id)) - Number(isFavorite(a.id))
     return favoriteDiff !== 0 ? favoriteDiff : a.name.localeCompare(b.name, "ko")
   })
+}
+
+export type CharacterRosterEntry = GameCharacter & {
+  isOwned: boolean
+  isFavorite: boolean
+  favoriteSortOrder: number | null
+}
+
+export type CharacterRosterSections = {
+  favorites: CharacterRosterEntry[]
+  owned: CharacterRosterEntry[]
+  unowned: CharacterRosterEntry[]
+}
+
+/** Splits the filtered roster into mutually exclusive favorite, owned, and unowned sections. */
+export function splitCharacterRosterSections(entries: readonly CharacterRosterEntry[]): CharacterRosterSections {
+  const favorites: CharacterRosterEntry[] = []
+  const owned: CharacterRosterEntry[] = []
+  const unowned: CharacterRosterEntry[] = []
+  entries.forEach((entry) => {
+    if (entry.isOwned && entry.isFavorite) {
+      favorites.push(entry)
+    } else if (entry.isOwned) {
+      owned.push(entry)
+    } else {
+      unowned.push(entry)
+    }
+  })
+  favorites.sort((a, b) => {
+    const orderA = a.favoriteSortOrder ?? Number.MAX_SAFE_INTEGER
+    const orderB = b.favoriteSortOrder ?? Number.MAX_SAFE_INTEGER
+    return orderA - orderB || a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id)
+  })
+  return { favorites, owned, unowned }
+}
+
+export const CHARACTER_SECTIONS = [
+  { key: "favorites", label: "즐겨찾기" },
+  { key: "owned", label: "보유" },
+  { key: "unowned", label: "미보유" },
+] as const
+
+/**
+ * Builds the favorite / owned / unowned sections for already filtered characters (roster and preset pickers).
+ * Non-favorite sections are sorted by name (ko); favorites follow `favorite_sort_order`.
+ */
+export function buildCharacterSections(
+  characters: readonly GameCharacter[],
+  states: Record<string, UserCharacterState | undefined>,
+): CharacterRosterSections {
+  const entries = [...characters]
+    .sort((a, b) => a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id))
+    .map<CharacterRosterEntry>((character) => {
+      const state = states[character.id]
+      return {
+        ...character,
+        isOwned: state?.is_owned ?? false,
+        isFavorite: state?.is_favorite ?? false,
+        favoriteSortOrder: state?.favorite_sort_order ?? null,
+      }
+    })
+  return splitCharacterRosterSections(entries)
+}
+
+/** Moves a favorite from one position to another without mutating the input. */
+export function moveFavoriteCharacter(characterIds: readonly string[], from: number, to: number): string[] {
+  const next = [...characterIds]
+  if (from < 0 || from >= next.length || to < 0 || to >= next.length || from === to) return next
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
 }
 
 export function normalizeAttributes(raw: unknown): Record<string, string> {

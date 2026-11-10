@@ -14,6 +14,8 @@ import {
   isCharacterTemplateActive,
   moveCharacterInPreset,
   moveCharacterToSlot,
+  buildCharacterSections,
+  moveFavoriteCharacter,
   placeCharacterInSlot,
   assignAxisKey,
   splitCommaList,
@@ -22,6 +24,7 @@ import {
   normalizeMaxBreakthrough,
   normalizeMaxPresetSlots,
   sortCharactersFavoriteFirst,
+  splitCharacterRosterSections,
   removeCharacterFromPreset,
   validatePresetInput,
   type CharacterFilters,
@@ -185,6 +188,28 @@ describe("breakthrough and favorites", () => {
     expect(sorted.map((item) => item.name)).toEqual(["나", "라", "가", "다"])
     expect(input.map((item) => item.name)).toEqual(["다", "가", "나", "라"])
   })
+
+  it("splits roster entries into exclusive sections and preserves favorite order", () => {
+    const entries = [
+      { ...makeCharacter("a", "다", null), isOwned: true, isFavorite: true, favoriteSortOrder: 2 },
+      { ...makeCharacter("b", "가", null), isOwned: true, isFavorite: false, favoriteSortOrder: null },
+      { ...makeCharacter("c", "나", null), isOwned: false, isFavorite: true, favoriteSortOrder: 1 },
+      { ...makeCharacter("d", "라", null), isOwned: true, isFavorite: true, favoriteSortOrder: 1 },
+    ]
+    const sections = splitCharacterRosterSections(entries)
+
+    expect(sections.favorites.map((entry) => entry.id)).toEqual(["d", "a"])
+    expect(sections.owned.map((entry) => entry.id)).toEqual(["b"])
+    expect(sections.unowned.map((entry) => entry.id)).toEqual(["c"])
+    expect(new Set(Object.values(sections).flat().map((entry) => entry.id)).size).toBe(4)
+  })
+
+  it("moves favorite order without mutating the input", () => {
+    const ids = ["a", "b", "c"]
+    expect(moveFavoriteCharacter(ids, 2, 0)).toEqual(["c", "a", "b"])
+    expect(moveFavoriteCharacter(ids, -1, 0)).toEqual(ids)
+    expect(ids).toEqual(["a", "b", "c"])
+  })
 })
 
 
@@ -341,5 +366,41 @@ describe("moveCharacterToSlot", () => {
     expect(moveCharacterToSlot(ids, 0, -4)).toEqual(["a", "b"])
     moveCharacterToSlot(ids, 0, 1)
     expect(ids).toEqual(["a", "b"])
+  })
+})
+
+describe("buildCharacterSections", () => {
+  const char = (id: string, name: string) => ({ id, game_id: "g", name, rarity: null, attributes: {}, default_icon_url: null })
+  const state = (overrides: Partial<{ is_owned: boolean; is_favorite: boolean; favorite_sort_order: number | null }>) => ({
+    is_owned: true,
+    is_favorite: false,
+    favorite_sort_order: null,
+    breakthrough_level: 0,
+    custom_icon_path: null,
+    ...overrides,
+  })
+
+  it("splits into favorites (by saved order), owned and unowned (by name) without overlap", () => {
+    const characters = [char("a", "다"), char("b", "나"), char("c", "가"), char("d", "라"), char("e", "마")]
+    const sections = buildCharacterSections(characters, {
+      a: state({ is_favorite: true, favorite_sort_order: 2 }),
+      b: state({ is_favorite: true, favorite_sort_order: 1 }),
+      c: state({}),
+      d: state({ is_owned: false }),
+    })
+    expect(sections.favorites.map((c) => c.id)).toEqual(["b", "a"])
+    expect(sections.owned.map((c) => c.id)).toEqual(["c"])
+    expect(sections.unowned.map((c) => c.id)).toEqual(["d", "e"])
+  })
+
+  it("treats an unowned favorite as unowned and puts favorites without an order last by name", () => {
+    const characters = [char("a", "다"), char("b", "나"), char("c", "가")]
+    const sections = buildCharacterSections(characters, {
+      a: state({ is_owned: false, is_favorite: true, favorite_sort_order: 1 }),
+      b: state({ is_favorite: true }),
+      c: state({ is_favorite: true, favorite_sort_order: 5 }),
+    })
+    expect(sections.favorites.map((c) => c.id)).toEqual(["c", "b"])
+    expect(sections.unowned.map((c) => c.id)).toEqual(["a"])
   })
 })

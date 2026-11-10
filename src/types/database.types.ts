@@ -265,14 +265,14 @@ isOneToOne: false
                   ]
                 },"user_characters": {
                   Row: {
-                    "breakthrough_level": number,"character_id": string,"created_at": string,"custom_icon_path": string | null,"game_id": string,"id": string,"is_favorite": boolean,"is_owned": boolean,"memo": string | null,"updated_at": string,"user_id": string
+                    "breakthrough_level": number,"character_id": string,"created_at": string,"custom_icon_path": string | null,"favorite_sort_order": number | null,"game_id": string,"id": string,"is_favorite": boolean,"is_owned": boolean,"memo": string | null,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "breakthrough_level"?: number,"character_id": string,"created_at"?: string,"custom_icon_path"?: string | null,"game_id": string,"id"?: string,"is_favorite"?: boolean,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id": string
+                    "breakthrough_level"?: number,"character_id": string,"created_at"?: string,"custom_icon_path"?: string | null,"favorite_sort_order"?: number | null,"game_id": string,"id"?: string,"is_favorite"?: boolean,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "breakthrough_level"?: number,"character_id"?: string,"created_at"?: string,"custom_icon_path"?: string | null,"game_id"?: string,"id"?: string,"is_favorite"?: boolean,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id"?: string
+                    "breakthrough_level"?: number,"character_id"?: string,"created_at"?: string,"custom_icon_path"?: string | null,"favorite_sort_order"?: number | null,"game_id"?: string,"id"?: string,"is_favorite"?: boolean,"is_owned"?: boolean,"memo"?: string | null,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     { foreignKeyName: "user_characters_character_id_fkey"; columns: ["character_id"]; isOneToOne: false; referencedRelation: "game_characters"; referencedColumns: ["id"] },
@@ -416,6 +416,9 @@ isOneToOne: false
                            },
 "reject_schedule_request":
 { Args: { "p_admin_memo"?: string | null,"p_request_id": string }; Returns: undefined
+                           },
+"reorder_favorite_characters":
+{ Args: { "p_character_ids": string[],"p_game_id": string }; Returns: undefined
                            },
 "request_account_deletion":
 { Args: { "p_confirmation_email": string }; Returns: string
