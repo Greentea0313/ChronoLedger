@@ -40,11 +40,35 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (DB & Pure Logic)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts` | - |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Roster & Picker UI)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/characters/page.tsx`(+`.test.tsx`), `src/components/character/character-roster.tsx`(+테스트), `src/components/character/preset-editor-dialog.tsx`, `src/components/character/preset-workspace.tsx`(+테스트), `src/lib/character-utils.ts`(+테스트, Step 1 함수 보완 시에만) | - |
-| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `5689861` ↔ Target(Step 2 커밋) 통합 정적 리뷰(마이그레이션·트리거·RPC·RLS 경계 포함), 동적 검증, `main` 병합 및 문서 마감 | - |
+| **1** | **`✅ DONE (SHA: cb5d5be)`** | ~~GPT Codex~~ ➡️ **GitHub Copilot** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (DB & Pure Logic)` | Step 1 수용 기준 수행 완료함. | `✅ cb5d5be` (기능 `29b2900` 포함): 즐겨찾기 순서 컬럼·초기 정리/정렬·보유 상태 강제 트리거·SECURITY INVOKER 재정렬 RPC·스키마/권한/스모크 테스트·순수 3구역/순서 함수 반영함. 마이그레이션 재실행 시 기존 순서 보존함. |
+| **2** | **`✅ DONE (SHA: 1781495)`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Roster & Picker UI)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/dashboard/characters/page.tsx`(+`.test.tsx`), `src/components/character/character-roster.tsx`(+테스트), `src/components/character/preset-editor-dialog.tsx`, `src/components/character/preset-workspace.tsx`(+테스트), `src/lib/character-utils.ts`(+테스트, Step 1 함수 보완 시에만) | `✅ 1781495`: 보유 캐릭터·프리셋 선택 목록 3구역, 미보유 즐겨찾기 불가, 즐겨찾기 순서 드래그·버튼 이동 + RPC 저장/롤백, 미적용 DB 폴백 반영. `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 61파일/750개 통과 (아래 Step 2 완료 기록 참고) |
+| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `5689861` ↔ Target(Step 2 커밋) 통합 정적 리뷰(마이그레이션·트리거·RPC·RLS 경계 포함), 동적 검증, `main` 병합 및 문서 마감 | `▶ Base 5689861 ↔ Target 1781495 통합 정적 리뷰 착수` |
 
 #### 📌 `r63-character-favorite-sections` 단계별 수용 기준 (Acceptance Criteria)
+
+#### 📝 `r63-character-favorite-sections` Step 1 완료 기록 (GitHub Copilot, 2026-11-10)
+
+- **Target SHA**: `cb5d5be` (`collab/r63-character-favorite-sections`, 미병합)임.
+- **구현**: `favorite_sort_order` 컬럼·부분 인덱스·기존 순서 초기화 마이그레이션, 미보유 즐겨찾기 해제 및 보유 즐겨찾기 맨 뒤 추가 트리거, 본인 RLS만 갱신하는 `reorder_favorite_characters` RPC, `SCHEMA.sql`·README·스모크 테스트·Supabase 타입 반영함.
+- **순수 로직**: `splitCharacterRosterSections`(즐겨찾기/보유/미보유 상호 배타 분류 및 순서 정렬), `moveFavoriteCharacter` 추가함. 미적용 상태의 미보유 즐겨찾기는 미보유 구역으로 분류함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 61파일/735개 통과함. PostgreSQL 클라이언트 부재로 SQL 실행 검증은 미수행이며 정적 검토만 완료함.
+
+#### 📝 `r63-character-favorite-sections` Step 2 완료 기록 (Claude Sonnet, 2026-11-10)
+
+- **Target SHA**: `178149545011b2a0c867bc0d81672fefa6c1a08c` (`collab/r63-character-favorite-sections`, 미병합)임.
+- **구현 요약**:
+  - `character-utils.ts`: `buildCharacterSections`(필터된 목록 → 이름순 정렬 후 `splitCharacterRosterSections`), `CHARACTER_SECTIONS`(구역 키·제목) 추가함. Step 1 함수는 변경 없음.
+  - `character-roster.tsx`: `즐겨찾기` / `보유` / `미보유` 구역(제목+개수, 빈 구역 숨김, 필터는 구역 안 적용). 설정 대화상자의 즐겨찾기 버튼은 미보유 시 비활성(+안내 title). 즐겨찾기 구역만 HTML5 드래그와 `앞으로/뒤로 이동` 버튼으로 순서 변경하며, 필터로 일부가 가려져도 전체 즐겨찾기 순서 기준으로 이동함.
+  - `preset-editor-dialog.tsx`(900px 미만)·`preset-workspace.tsx` 사이드바(900px 이상): 같은 3구역(`preset-picker-<구역>`, `workspace-avatars-<구역>`)으로 표시함. 순서 변경 기능 없음, 배치 가능 범위·R62 동작은 그대로임.
+  - `page.tsx`: `user_characters` 조회에 `favorite_sort_order` 포함, 컬럼 미존재(`42703`/`PGRST204`) 시 컬럼 없이 재조회하고 순서 기능 비활성화함. `handleReorderFavorites`가 `reorder_favorite_characters` RPC를 1회 호출(낙관적 갱신, 실패 시 이전 상태 복구+오류 안내), RPC 미존재(`PGRST202`/`42883`)면 순서 UI를 끄고 마이그레이션 안내함. 새 즐겨찾기는 로컬에서도 맨 뒤에 추가하고, 보유 해제 시 즐겨찾기·순서를 즉시 해제하며 해당 요청에 `is_favorite: false`를 함께 보냄(트리거 미적용 DB 대비).
+- **결정 사항**:
+  - 순서 이동 버튼 문구는 가로 그리드 특성상 `위/아래` 대신 `앞으로/뒤로 이동`(aria-label)으로 함. 위/아래 문구가 필요하면 Step 3에서 판단 요청함.
+  - 오류 알림은 프로젝트에 토스트가 없어 기존 `notice`(상단 알림줄)로 표시함.
+  - 순서 저장 중에는 순서 변경·즐겨찾기/보유 토글을 막고(ref 가드), 저장 중 다른 캐릭터 저장이 진행 중이면 순서 변경을 무시함.
+  - 드래그 원본은 ref로 관리해 한 배치 안의 dragstart→drop을 처리함. 순서 변경은 개별 `UPDATE`가 아니라 RPC 1회만 사용함.
+- **테스트**: `character-utils.test.ts`(`buildCharacterSections`), `page.test.tsx`(3구역·빈 구역 숨김·필터·미보유 즐겨찾기 불가·맨 뒤 추가·보유 해제 시 해제·버튼/드래그 이동·필터 중 전체 순서·실패 롤백·RPC 미존재·컬럼 미존재 폴백·프리셋 선택 목록 구역), `preset-workspace.test.tsx`(사이드바 구역) 추가함. 기존 이름순 기대값은 구역 정렬에 맞춰 수정함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 61파일/750개 통과함. **개발 서버·실제 브라우저(드래그, 마이그레이션 적용/미적용 DB) 확인은 미수행**이며 SQL 마이그레이션은 운영 DB에 적용하지 않았음 → Step 3 확인 필요함.
+- **Step 3 확인 요청**: 미적용 DB(컬럼 없음/RPC 없음) 폴백 화면, 실제 DB에서 RPC 재정렬·실패 롤백, 필터 중 순서 이동 의미, 보유 해제 시 즐겨찾기 해제 경로(요청 payload에 `is_favorite: false` 병행), 로컬 낙관적 순서 번호(gap 허용)와 서버 번호(1..n) 불일치로 인한 재조회 시 순서 변동 여부 확인함.
 
 1. **Step 1 (`GPT Codex` — Maker, DB·순수 로직)**:
    - **마이그레이션** `MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` (재실행 안전, `IF NOT EXISTS`/`CREATE OR REPLACE`):

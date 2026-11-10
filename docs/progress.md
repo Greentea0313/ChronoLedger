@@ -1,4 +1,18 @@
 # 프로젝트 진행 현황
+## Run `r63-character-favorite-sections` Step 2 (보유 캐릭터·프리셋 선택 목록 3구역 UI) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Sonnet (`Maker (Roster & Picker UI)`)임.
+- **커밋 `1781495`** (`.worktrees/r63-character-favorite-sections`, 미병합): 보유 캐릭터 화면과 프리셋 캐릭터 선택 목록(대화상자·작업 공간 사이드바)을 즐겨찾기/보유/미보유 3구역으로 표시함. 미보유 즐겨찾기 불가, 즐겨찾기 순서 드래그·앞/뒤 버튼 이동과 `reorder_favorite_characters` RPC 저장(실패 시 복구), 마이그레이션 미적용(컬럼/RPC 없음) 폴백을 반영함. DB 변경은 Step 1 범위이며 이번 Step에는 없음.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 61파일/750개 통과함. 개발 서버·실제 DB 확인은 미수행임.
+- **다음 단계**: Step 3(`Claude Opus`) `▶ READY` — Base `5689861` ↔ Target `1781495` 통합 정적 리뷰(마이그레이션·트리거·RPC·RLS 포함), 동적 검증, `main` 병합, 문서 마감임.
+
+## Run `r63-character-favorite-sections` Step 1 완료 (2026-11-10)
+
+- **수행 주체**: GitHub Copilot (GPT Codex 2순위 대체)임.
+- **커밋 `cb5d5be`** (`.worktrees/r63-character-favorite-sections`, 미병합; 기능 `29b2900` 포함): `favorite_sort_order` 마이그레이션·초기 순서 채움·미보유 즐겨찾기 해제/보유 전환 시 맨 뒤 추가 트리거·`reorder_favorite_characters` SECURITY INVOKER RPC·스키마/권한/스모크 테스트·Supabase 타입을 반영함. 마이그레이션 재실행 시 기존 순서를 보존함. 순수 3구역 분류 및 즐겨찾기 순서 이동 함수와 테스트를 추가함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 61파일/735개 통과함. PostgreSQL 클라이언트 부재로 SQL 실행은 미수행임.
+- **다음 단계**: Step 2(Claude Sonnet) `▶ READY` — 보유 캐릭터 3구역 UI·즐겨찾기 순서 저장·프리셋 선택 목록 연동 구현임.
+
 ## Run `r63-character-favorite-sections` 등록 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.

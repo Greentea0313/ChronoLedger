@@ -1,4 +1,21 @@
 # 변경 이력
+## 2026-11-10 (Run `r63-character-favorite-sections` Step 2 — `1781495`)
+
+- 보유 캐릭터 화면을 `즐겨찾기` / `보유` / `미보유` 3구역(제목·개수, 빈 구역 숨김)으로 나누고 기존 필터는 구역 안에서 적용함.
+- 보유 중인 캐릭터만 즐겨찾기 가능(미보유는 버튼 비활성). 보유 해제 시 즐겨찾기·순서를 화면에서도 즉시 해제하고, 새 즐겨찾기는 즐겨찾기 구역 맨 뒤에 추가함.
+- 즐겨찾기 구역에서 드래그 또는 `앞으로/뒤로 이동` 버튼으로 순서를 바꾸고 `reorder_favorite_characters` RPC 1회로 저장함(실패 시 이전 순서 복구·오류 안내).
+- 프리셋 캐릭터 선택 목록(900px 미만 대화상자, 900px 이상 작업 공간 사이드바)에도 같은 3구역·즐겨찾기 순서를 적용함(순서 변경 기능 없음).
+- 마이그레이션 미적용 DB 폴백: `favorite_sort_order` 컬럼이 없으면 컬럼 없이 재조회해 이름순으로 표시하고, RPC가 없으면 순서 변경 UI를 숨기고 안내함.
+- 신규 `buildCharacterSections`·`CHARACTER_SECTIONS`(`character-utils.ts`)를 세 화면이 공유함. Vitest 61파일/750개, `tsc --noEmit`, `npm run lint`, `git diff --check` 통과함. Step 3(`Claude Opus`)를 `▶ READY`로 전환함.
+
+## 2026-11-10 (Run `r63-character-favorite-sections` Step 1 — `cb5d5be`)
+
+- R63 DB 기반 즐겨찾기 순서 저장을 추가함: `user_characters.favorite_sort_order`, 기존 순서 초기화, 미보유 즐겨찾기 자동 해제, 보유 전환 시 맨 뒤 추가 트리거를 반영함.
+- 본인 즐겨찾기 집합을 검증해 배열 순서대로 원자 갱신하는 `reorder_favorite_characters` SECURITY INVOKER RPC와 authenticated 전용 권한을 추가함.
+- 캐릭터 3구역 분류 및 즐겨찾기 순서 이동 순수 함수·테스트와 SQL 스모크 테스트를 추가함.
+- 마이그레이션 재실행 시 이미 저장된 즐겨찾기 순서를 보존하도록 보정함.
+- tsc·lint·Vitest 61파일/735개·diff-check 통과함. SQL 실행 검증은 PostgreSQL 클라이언트 부재로 미수행임.
+
 ## 2026-11-10 (Run `r63-character-favorite-sections` 등록)
 
 - 격리 Worktree·manifest(`77675c0`, Base `5689861`) 생성하고 Dispatch Queue에 Step 1(GPT Codex, 마이그레이션·트리거·RPC·순수 로직)·Step 2(Claude Sonnet, 3구역 UI·순서 변경·프리셋 선택 목록)·Step 3(Claude Opus, 리뷰·병합)과 수용 기준 등록함.
