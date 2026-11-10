@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "run_id": "r60-ai-icon-upscaler",
+  "iteration": 1,
+  "agent": "Claude Opus (Gemini 4 Argon Fallback 1)",
+  "role": "dynamic-test",
+  "base_sha": "a908144aa216e79666b422fa132f345500e61546",
+  "target_sha": "f177a96cf672486815ab3625e25e2b98e6a4a72c",
+  "status": "failed",
+  "created_at": "2026-11-10T04:50:00Z",
+  "finished_at": "2026-11-10T04:57:41Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Next.js static export build (fails: Terser cannot parse ort.node.min.mjs)", "command": "npm run build", "status": "failed", "exit_code": 1, "log_path": null },
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check a908144 f177a96", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (58 files, 670 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}
