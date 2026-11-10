@@ -870,11 +870,14 @@ export default function AdminPage() {
       }
     }
     setGameFormWarning(null)
-    if (!trimmedIconUrl && !gameFormIconFile) {
+    // The template flow edits only template columns of an existing game; its name and icon are left untouched
+    // (seed games keep relative /assets/... icons that the URL check below would reject).
+    const isTemplateSave = !!editingGame && templateFlowGameId === editingGame.id
+    if (!isTemplateSave && !trimmedIconUrl && !gameFormIconFile) {
       setGameFormError("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해주세요.")
       return
     }
-    if (!gameFormIconFile && !trimmedIconUrl.startsWith("data:image/webp;base64,")) {
+    if (!isTemplateSave && !gameFormIconFile && !trimmedIconUrl.startsWith("data:image/webp;base64,")) {
       try {
         const parsed = new URL(trimmedIconUrl)
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -889,34 +892,38 @@ export default function AdminPage() {
 
     setIsSubmittingGame(true)
     setGameFormError(null)
-    let defaultIconUrl: string
-    try {
-      defaultIconUrl = await convertIconSourceToDataUrl(gameFormIconFile ?? trimmedIconUrl)
-    } catch (error: unknown) {
-      setIsSubmittingGame(false)
-      setGameFormError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
-      return
+    let defaultIconUrl = ""
+    if (!isTemplateSave) {
+      try {
+        defaultIconUrl = await convertIconSourceToDataUrl(gameFormIconFile ?? trimmedIconUrl)
+      } catch (error: unknown) {
+        setIsSubmittingGame(false)
+        setGameFormError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
+        return
+      }
     }
 
     if (editingGame) {
-      // 게임 수정
+      // 게임 수정 (템플릿 흐름은 템플릿 컬럼만 갱신)
+      const templateColumns = {
+        max_preset_slots: maxPresetSlots,
+        max_breakthrough: maxBreakthrough,
+        classification_schema: classificationSchema,
+      }
       const { error } = await supabase
         .from("games")
-        .update({
-          name: trimmedName,
-          default_icon_url: defaultIconUrl,
-          max_preset_slots: maxPresetSlots,
-          max_breakthrough: maxBreakthrough,
-          classification_schema: classificationSchema,
-        })
+        .update(isTemplateSave ? templateColumns : { name: trimmedName, default_icon_url: defaultIconUrl, ...templateColumns })
         .eq("id", editingGame.id)
 
       setIsSubmittingGame(false)
 
       if (error) {
-        setGameFormError(describeGameSaveError(error, "게임 수정에 실패했습니다: "))
+        setGameFormError(describeGameSaveError(error, isTemplateSave ? "캐릭터 템플릿 저장에 실패했습니다: " : "게임 수정에 실패했습니다: "))
       } else {
-        setMessage({ type: "success", text: `'${trimmedName}' 게임 정보가 수정되었습니다.` })
+        setMessage({
+          type: "success",
+          text: isTemplateSave ? `'${editingGame.name}' 캐릭터 템플릿이 저장되었습니다.` : `'${trimmedName}' 게임 정보가 수정되었습니다.`,
+        })
         setIsGameModalOpen(false)
         const continueWithFirstCharacter = templateFlowGameId === editingGame.id && rarities.length >= 1
         setTemplateFlowGameId(null)
@@ -2290,7 +2297,8 @@ export default function AdminPage() {
 
       {/* 게임 등록 및 수정 모달 다이얼로그 */}
       <Dialog open={isGameModalOpen} onOpenChange={(open) => { setIsGameModalOpen(open); if (!open) setTemplateFlowGameId(null) }}>
-        <DialogContent className="max-w-md w-full overflow-hidden">
+        {/* No overflow override: the shared DialogContent scrolls vertically within the viewport height. */}
+        <DialogContent className="max-w-md w-full">
           <DialogHeader>
             <DialogTitle>
               {isTemplateFlow && editingGame
@@ -2307,6 +2315,9 @@ export default function AdminPage() {
           </DialogHeader>
 
           <form onSubmit={handleSaveGame} className="space-y-4 pt-2 w-full min-w-0">
+            {/* The template flow targets an already registered game, so its name and icon are not edited here. */}
+            {!isTemplateFlow && (
+            <>
             <div className="w-full min-w-0">
               <label htmlFor="game-form-name" className="block text-sm font-medium mb-1">
                 게임 이름 *
@@ -2372,6 +2383,8 @@ export default function AdminPage() {
                   </p>
                 </div>
               </div>
+            )}
+            </>
             )}
 
             <div>

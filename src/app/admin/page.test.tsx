@@ -1348,6 +1348,26 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       expect(screen.getByLabelText("직군 *")).toBeTruthy()
     })
 
+    it("템플릿 모달은 게임 이름·아이콘 입력 없이 템플릿 컬럼만 저장하고, 상대 경로 아이콘 게임도 저장된다", async () => {
+      gamesBuilder.update.mockReturnValue(gamesBuilder)
+      const seedGame = { ...emptyGame, default_icon_url: "/assets/games/endfield.png" }
+      await openCharacterTabWith([schemaGame, seedGame], mockCharacters)
+      selectGame("game-2")
+      fireEvent.click(await screen.findByRole("button", { name: "캐릭터 템플릿 생성" }))
+
+      expect(screen.queryByLabelText("게임 이름 *")).toBeNull()
+      expect(screen.queryByLabelText("기본 아이콘 URL")).toBeNull()
+      expect(screen.queryByLabelText("기본 아이콘 파일")).toBeNull()
+      fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), { target: { value: "6성, 5성" } })
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalledTimes(1))
+      const payload = gamesBuilder.update.mock.calls[0][0] as Record<string, unknown>
+      expect(Object.keys(payload).sort()).toEqual(["classification_schema", "max_breakthrough", "max_preset_slots"])
+      expect(payload.classification_schema).toEqual({ rarities: ["6성", "5성"], axes: [] })
+      expect(screen.queryByText("아이콘 URL이 올바른 주소 형식이 아닙니다.")).toBeNull()
+    })
+
     it("템플릿 생성 모달을 저장 없이 닫으면 첫 캐릭터 폼을 열지 않는다", async () => {
       await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
       selectGame("game-2")
