@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "run_id": "r64-r72-r73-classification-icons-followups",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "bc7fbad477e13de89b81c6a8ba474ca3fd3145c3",
+  "target_sha": "da78bc66cb2725b769c745c79c346173ddd5edeb",
+  "status": "findings",
+  "created_at": "2026-11-10T12:05:00Z",
+  "findings": [
+    {
+      "id": "R64-REV-001",
+      "severity": "P3",
+      "file": "sql/tests/TESTS.sql",
+      "line": 1924,
+      "evidence": "The R64 block covers admin insert, unknown option, https URL, oversized icon, approved-game anon read and option-removal cleanup only. Spec §7 scenarios 2 (regular user write denied), 3 (public.users.role admin without JWT claim denied), 4 (non-approved game hidden from anon/non-admin, visible to admin), 5 (bad axis_key, blank option), 6 (unknown axis key), 7 (axis removal, reorder keeps icons, game delete cascade), the updated_at bump and scenario 8 (assert the intended message, not just check_violation) are missing.",
+      "impact": "The admin-only write boundary and the no-fallback rule are verified by inspection only; a future policy edit that widens writes or reintroduces the users.role fallback would not be caught by the regression script.",
+      "recommendation": "Add the missing §7 scenarios to the R64 block (follow-up, DB-only; no migration change needed) and run TESTS.sql against a disposable database before or soon after the production apply."
+    },
+    {
+      "id": "R64-REV-002",
+      "severity": "P4",
+      "file": "src/app/admin/page.tsx",
+      "line": 746,
+      "evidence": "handleDeleteClassificationIcon treats a delete with no error as success. Under RLS a delete that matches no permitted row returns no error and zero rows (for example an account whose UI role comes from users.role while the JWT lacks app_metadata.role = admin).",
+      "impact": "The icon disappears locally and a success message is shown while the row stays in the database; it reappears on reload. Only reachable by an account that is admin in the UI but not by JWT claim.",
+      "recommendation": "Request the deleted row back (.delete().select('game_id')) and show the failure message when no row is returned."
+    },
+    {
+      "id": "R64-REV-003",
+      "severity": "P4",
+      "file": "src/app/admin/page.tsx",
+      "line": 1057,
+      "evidence": "After a template save, refreshClassificationIcons(editingGame.id) runs without cancellation while setTemplateFlowGameId(null) switches iconTargetGameId to activeCharacterGameId, which starts the effect load for that game. When the edited game differs from the character tab game (template opened from the character form for another game), whichever request resolves last wins.",
+      "impact": "If the refresh for the edited game resolves last, classificationIcons.gameId no longer matches the character tab game and the admin character list hides its icons until the game selection changes. Display only; no data loss.",
+      "recommendation": "Skip the explicit refresh when the edited game is not the active character game, or route the refresh through the same cancellable effect (for example a reload counter in its dependencies)."
+    },
+    {
+      "id": "R64-REV-004",
+      "severity": "P4",
+      "file": "sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql",
+      "line": 33,
+      "evidence": "validate_game_classification_icon takes FOR SHARE on the games row. A plain UPDATE of an icon row locks the icon row first and then the games row, while a template update locks the games row first and the cleanup trigger then deletes icon rows. The app only uses upsert, whose BEFORE INSERT trigger takes the games lock before any icon row lock, so the app path keeps a consistent lock order.",
+      "impact": "Only a manual direct UPDATE on game_classification_icons running concurrently with a template save can deadlock; PostgreSQL aborts one transaction (40P01). Not reachable from the app.",
+      "recommendation": "No change required; note in sql/README.md that icon edits should use INSERT ... ON CONFLICT (as the app does) rather than direct UPDATE."
+    }
+  ]
+}

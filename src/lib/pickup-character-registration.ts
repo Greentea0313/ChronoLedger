@@ -23,6 +23,14 @@ export interface RegisterPickupCharacterInput {
   useAiUpscale: boolean
 }
 
+/** Thrown when the name already exists for the game, before anything is saved. Callers with a selectable list may append guidance. */
+export class DuplicatePickupNameError extends Error {
+  constructor() {
+    super("같은 이름의 캐릭터가 이미 있습니다.")
+    this.name = "DuplicatePickupNameError"
+  }
+}
+
 /**
  * Registers a pickup-only character (`is_pickup_only = true`, no rarity/attributes) for a game.
  * Shared by the schedule form's "new pickup character" and the character tab's template-less game flow.
@@ -34,7 +42,7 @@ export async function registerPickupOnlyCharacter(input: RegisterPickupCharacter
     throw new Error("캐릭터 이름을 1~100자로 입력해 주세요.")
   }
   if (input.existingCharacters.some((character) => character.game_id === input.gameId && character.name === name)) {
-    throw new Error("같은 이름의 캐릭터가 이미 있습니다. 목록에서 선택해 주세요.")
+    throw new DuplicatePickupNameError()
   }
   if (isOffline()) {
     throw new Error(OFFLINE_WRITE_MESSAGE)

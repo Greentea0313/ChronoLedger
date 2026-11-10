@@ -87,6 +87,20 @@ isOneToOne: false
                   Relationships: [
                     { foreignKeyName: "game_characters_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] }
                   ]
+                },"game_classification_icons": {
+                  Row: {
+                    "axis_key": string,"game_id": string,"icon_data_url": string,"option_value": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "axis_key": string,"game_id": string,"icon_data_url": string,"option_value": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "axis_key"?: string,"game_id"?: string,"icon_data_url"?: string,"option_value"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    { foreignKeyName: "game_classification_icons_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] }
+                  ]
                 },"game_requests": {
                   Row: {
                     "admin_memo": string | null,"approved_game_id": string | null,"created_at": string,"id": string,"memo": string | null,"name": string,"request_status": "PENDING" | "APPROVED" | "REJECTED","user_id": string

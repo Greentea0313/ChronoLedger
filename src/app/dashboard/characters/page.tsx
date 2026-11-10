@@ -10,6 +10,7 @@ import { GameIcon } from "@/components/ui/game-icon"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RequestSubmissionModal } from "@/components/game/request-submission-modal"
 import { CharacterRoster } from "@/components/character/character-roster"
+import { loadClassificationIcons } from "@/lib/classification-icons"
 import { PresetEditorDialog, type PresetDraft, type PresetEditorTarget } from "@/components/character/preset-editor-dialog"
 import { PresetList, type PresetRow } from "@/components/character/preset-list"
 import { PresetWorkspace, UNSAVED_CHANGES_CONFIRM } from "@/components/character/preset-workspace"
@@ -292,6 +293,24 @@ export default function CharactersPage() {
       cancelled = true
     }
   }, [activeGameId])
+
+  // Classification option icons of the selected game (R64). Loaded once per game change; failures or an
+  // unapplied migration leave the map empty so every screen renders exactly as before.
+  const [loadedIcons, setLoadedIcons] = useState<{ gameId: string; icons: Map<string, string> } | null>(null)
+  useEffect(() => {
+    if (!activeGameId) return
+    let cancelled = false
+    void loadClassificationIcons(activeGameId).then(({ icons }) => {
+      if (!cancelled) setLoadedIcons({ gameId: activeGameId, icons })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [activeGameId])
+  const classificationIcons = useMemo(
+    () => (loadedIcons && loadedIcons.gameId === activeGameId ? loadedIcons.icons : undefined),
+    [loadedIcons, activeGameId],
+  )
 
   const rowsForGame = useMemo(
     () => userCharacterRows.filter((row) => row.game_id === activeGameId),
@@ -687,6 +706,7 @@ export default function CharactersPage() {
                   isLoading={isCatalogLoading}
                   favoriteOrderSupported={favoriteOrderSupported}
                   isReordering={isReordering}
+                  classificationIcons={classificationIcons}
                   onReorderFavorites={(ids) => void handleReorderFavorites(ids)}
                   onToggleOwned={(character) => void handleToggleOwned(character)}
                   onToggleFavorite={(character) => void handleToggleFavorite(character)}

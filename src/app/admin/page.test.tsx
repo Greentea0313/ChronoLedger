@@ -1426,7 +1426,8 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
 
         fireEvent.change(within(dialog).getByLabelText("캐릭터 이름 *"), { target: { value: "기존 픽업" } })
         submit()
-        expect(await within(dialog).findByText("같은 이름의 캐릭터가 이미 있습니다. 목록에서 선택해 주세요.")).toBeTruthy()
+        expect(await within(dialog).findByText("같은 이름의 캐릭터가 이미 있습니다.")).toBeTruthy()
+        expect(within(dialog).queryByText(/목록에서 선택해 주세요/)).toBeNull()
 
         fireEvent.change(within(dialog).getByLabelText("캐릭터 이름 *"), { target: { value: "오프라인 캐릭" } })
         Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })

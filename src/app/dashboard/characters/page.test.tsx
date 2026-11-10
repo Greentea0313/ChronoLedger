@@ -54,7 +54,10 @@ const db = {
   pickupColumnMissing: false,
   favoriteColumnMissing: false,
   rpcError: null as { code?: string; message: string } | null,
+  icons: [] as Row[],
+  iconError: null as { code?: string; message: string } | null,
 }
+let iconQueries: string[] = []
 let writes: Write[] = []
 let rpcCalls: { fn: string; args: Record<string, unknown> }[] = []
 let presetSeq = 0
@@ -81,6 +84,11 @@ function execute(table: string, ctx: { op: string; filters: Record<string, unkno
     }
     if (table === "user_character_presets") {
       return { data: [...db.presets].sort((a, b) => Number(a.sort_order) - Number(b.sort_order)), error: null }
+    }
+    if (table === "game_classification_icons") {
+      iconQueries.push(String(ctx.filters.game_id))
+      if (db.iconError) return { data: null, error: db.iconError }
+      return { data: db.icons.filter((row) => row.game_id === ctx.filters.game_id), error: null }
     }
     return { data: [], error: null }
   }
@@ -189,6 +197,8 @@ function seed() {
   db.pickupColumnMissing = false
   db.favoriteColumnMissing = false
   db.rpcError = null
+  db.icons = []
+  db.iconError = null
 }
 
 describe("CharactersPage", () => {
@@ -266,6 +276,7 @@ describe("CharactersPage", () => {
     seed()
     writes = []
     rpcCalls = []
+    iconQueries = []
     presetSeq = 0
     useAuth.mockReturnValue({ user: { id: USER_ID } })
     downloadUserIcon.mockResolvedValue(null)
@@ -1007,8 +1018,15 @@ describe("CharactersPage", () => {
       expect(sectionNames("favorites")).toEqual(["아케론", "구캐릭터", "라이덴"])
 
       const [first, , third] = cardsIn()
+      // Firefox cannot start a drag on a <button>: the card itself is not draggable, a non-button handle is.
+      const handle = first.querySelector('[data-testid="favorite-drag-handle"]') as HTMLElement
+      expect(first.getAttribute("draggable")).toBeNull()
+      expect(handle.tagName).not.toBe("BUTTON")
+      expect(handle.getAttribute("draggable")).toBe("true")
+      expect(handle.getAttribute("aria-hidden")).toBe("true")
+      expect(sectionEl("owned")?.querySelector('[data-testid="favorite-drag-handle"]') ?? null).toBeNull()
       await act(async () => {
-        Simulate.dragStart(first, { dataTransfer: { setData: vi.fn() } } as never)
+        Simulate.dragStart(handle, { dataTransfer: { setData: vi.fn() } } as never)
         Simulate.dragOver(third, { dataTransfer: { setData: vi.fn() } } as never)
         Simulate.drop(third, { dataTransfer: { setData: vi.fn() } } as never)
       })
@@ -1084,6 +1102,118 @@ describe("CharactersPage", () => {
       expect(dialog.querySelector('[data-testid="preset-picker-favorites"] h4')?.textContent).toBe("즐겨찾기 (1)")
       // The picker has no ordering controls.
       expect(dialog.querySelector('button[aria-label$="뒤로 이동"]')).toBeNull()
+    })
+  })
+
+  describe("classification option icons (R64)", () => {
+    const FIRE = "data:image/webp;base64,FIRE"
+    const iconsIn = (scope: ParentNode | null | undefined) =>
+      Array.from(scope?.querySelectorAll('[data-testid="classification-option-icon"]') ?? []) as HTMLImageElement[]
+    const openSettings = async (name: string) => {
+      await click(container.querySelector(`button[aria-label="${name} 설정"]`))
+      return document.body.querySelector('[role="dialog"]') as HTMLElement
+    }
+    const seedFireIcon = () => {
+      db.icons = [{ game_id: "game-a", axis_key: "element", option_value: "화염", icon_data_url: FIRE }]
+    }
+
+    it("shows the option icon before the option text in the axis filter chips only", async () => {
+      seedFireIcon()
+      await renderPage()
+
+      const fire = chip("roster-axis-element", "화염") as HTMLElement
+      const fireIcons = iconsIn(fire)
+      expect(fireIcons).toHaveLength(1)
+      expect(fireIcons[0].getAttribute("src")).toBe(FIRE)
+      expect(fireIcons[0].getAttribute("aria-hidden")).toBe("true")
+      expect(fireIcons[0].getAttribute("alt")).toBe("")
+      expect(fire.textContent).toBe("화염")
+      expect(fire.firstElementChild?.firstElementChild).toBe(fireIcons[0])
+      expect(iconsIn(chip("roster-axis-element", "얼음"))).toHaveLength(0)
+      expect(iconsIn(chip("roster-axis-element", "전체"))).toHaveLength(0)
+      expect(iconsIn(container.querySelector('[data-testid="roster-rarity-filter"]'))).toHaveLength(0)
+    })
+
+    it("keeps the chip filtering behaviour unchanged when an icon is shown", async () => {
+      seedFireIcon()
+      await renderPage()
+      await click(chip("roster-axis-element", "화염"))
+
+      expect(cardNames()).toEqual(["라이덴", "칼리"])
+    })
+
+    it("shows the icon before the axis value in the character settings dialog and leaves rarity as text", async () => {
+      seedFireIcon()
+      await renderPage()
+
+      const fireDialog = await openSettings("칼리")
+      const description = fireDialog.querySelector("p") as HTMLElement
+      expect(iconsIn(description)).toHaveLength(1)
+      expect(iconsIn(description)[0].getAttribute("src")).toBe(FIRE)
+      expect(description.textContent).toBe("4★ · 속성: 화염")
+    })
+
+    it("renders the dialog description text-only for an option without an icon", async () => {
+      seedFireIcon()
+      await renderPage()
+
+      const dialog = await openSettings("아케론")
+      expect(iconsIn(dialog)).toHaveLength(0)
+      expect(dialog.textContent).toContain("5★ · 속성: 얼음")
+    })
+
+    it("does not show icons in the preset picker", async () => {
+      seedFireIcon()
+      await renderPage()
+      await selectTab("조합 프리셋")
+      await click(buttonByText("새 프리셋 추가", container))
+
+      const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
+      expect(dialog).toBeTruthy()
+      expect(iconsIn(dialog)).toHaveLength(0)
+    })
+
+    it("renders exactly as before and shows no error when the icon table is not migrated", async () => {
+      seedFireIcon()
+      db.iconError = { code: "42P01", message: 'relation "game_classification_icons" does not exist' }
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined)
+      await renderPage()
+
+      expect(iconsIn(container)).toHaveLength(0)
+      expect(chip("roster-axis-element", "화염")?.textContent).toBe("화염")
+      expect(cardNames().length).toBeGreaterThan(0)
+      expect(container.textContent).not.toContain("game_classification_icons")
+      expect(errorSpy).not.toHaveBeenCalled()
+    })
+
+    it("treats PGRST205 as an unmigrated table and any other read error as no icons (logged)", async () => {
+      seedFireIcon()
+      db.iconError = { code: "PGRST205", message: "not in schema cache" }
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined)
+      await renderPage()
+      expect(iconsIn(container)).toHaveLength(0)
+      expect(errorSpy).not.toHaveBeenCalled()
+
+      await act(async () => root.unmount())
+      container.remove()
+      container = document.createElement("div")
+      document.body.append(container)
+      root = createRoot(container)
+      db.iconError = { code: "XX000", message: "boom" }
+      await renderPage()
+
+      expect(iconsIn(container)).toHaveLength(0)
+      expect(cardNames().length).toBeGreaterThan(0)
+      expect(errorSpy).toHaveBeenCalled()
+    })
+
+    it("loads the icons once per selected game", async () => {
+      seedFireIcon()
+      await renderPage()
+      expect(iconQueries).toEqual(["game-a"])
+
+      await click(gameChip("다라게임"))
+      expect(iconQueries).toEqual(["game-a", "game-b"])
     })
   })
 })

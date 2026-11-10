@@ -58,9 +58,12 @@ describe("PresetWorkspace", () => {
 
   const avatar = (name: string) =>
     Array.from(container.querySelectorAll('[data-testid="workspace-avatar-list"] button')).find((b) => b.querySelector("span.truncate")?.textContent === name) as HTMLButtonElement
+  // Drag sources are non-button handles (Firefox cannot start a drag on a <button>).
+  const avatarHandle = (name: string) => avatar(name).parentElement?.querySelector('[data-testid="workspace-avatar-drag-handle"]')
   const slotEls = () => Array.from(container.querySelectorAll('[data-testid="workspace-slot"], [data-testid="workspace-slot-empty"]'))
   const slotNames = () => slotEls().map((el) => el.querySelector("span.truncate")?.textContent ?? "(빈)")
   const slotAt = (index: number) => slotEls()[index] as HTMLElement
+  const slotHandle = (index: number) => slotAt(index).querySelector('[data-testid="workspace-slot-drag-handle"]')
   const slotButton = (index: number) => slotAt(index).querySelector("button") as HTMLButtonElement
   const buttonByText = (text: string) => Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.trim() === text) as HTMLButtonElement
   const titleInput = () => container.querySelector("#workspace-title") as HTMLInputElement
@@ -132,31 +135,44 @@ describe("PresetWorkspace", () => {
   describe("drag and drop", () => {
     it("appends an avatar dropped on an empty slot", async () => {
       await renderWorkspace([preset("p1", "혼돈 파티", ["c1", "c2"])])
-      await drag(avatar("라이덴"), slotAt(2))
+      await drag(avatarHandle("라이덴"), slotAt(2))
 
       expect(slotNames()).toEqual(["아케론", "칼리", "라이덴"])
     })
 
+    it("starts drags only from non-button handles, never from a button", async () => {
+      await renderWorkspace([preset("p1", "혼돈 파티", ["c1", "c2"])])
+
+      expect(avatar("라이덴").draggable).toBe(false)
+      expect(avatarHandle("라이덴")?.tagName).not.toBe("BUTTON")
+      expect(avatarHandle("라이덴")?.getAttribute("draggable")).toBe("true")
+      expect(avatarHandle("라이덴")?.getAttribute("aria-hidden")).toBe("true")
+      expect(slotButton(0).closest("[draggable='true']")).toBeNull()
+      expect(slotHandle(0)?.tagName).not.toBe("BUTTON")
+      expect(slotHandle(0)?.getAttribute("draggable")).toBe("true")
+      expect(slotHandle(0)?.getAttribute("aria-hidden")).toBe("true")
+    })
+
     it("replaces the occupant when an avatar is dropped on a filled slot", async () => {
       await renderWorkspace([preset("p1", "혼돈 파티", ["c1", "c2"])])
-      await drag(avatar("라이덴"), slotAt(0))
+      await drag(avatarHandle("라이덴"), slotAt(0))
 
       expect(slotNames()).toEqual(["라이덴", "칼리", "(빈)"])
     })
 
     it("swaps two slots when the avatar is already placed in another slot", async () => {
       await renderWorkspace([preset("p1", "혼돈 파티", ["c1", "c2"])])
-      await drag(avatar("칼리"), slotAt(0))
+      await drag(avatarHandle("칼리"), slotAt(0))
 
       expect(slotNames()).toEqual(["칼리", "아케론", "(빈)"])
     })
 
     it("reorders slots by dragging one slot onto another and to an empty slot", async () => {
       await renderWorkspace([preset("p1", "혼돈 파티", ["c1", "c2"])])
-      await drag(slotAt(0), slotAt(1))
+      await drag(slotHandle(0), slotAt(1))
       expect(slotNames()).toEqual(["칼리", "아케론", "(빈)"])
 
-      await drag(slotAt(0), slotAt(2))
+      await drag(slotHandle(0), slotAt(2))
       expect(slotNames()).toEqual(["아케론", "칼리", "(빈)"])
     })
 
@@ -173,7 +189,7 @@ describe("PresetWorkspace", () => {
       expect(slotEls()).toHaveLength(4)
       expect(container.textContent).toContain("교체·이동·제거만 가능")
 
-      await drag(avatar("라이덴"), slotAt(0))
+      await drag(avatarHandle("라이덴"), slotAt(0))
       expect(slotNames()).toEqual(["라이덴", "칼리", "구캐릭터", "아케론"])
     })
   })
