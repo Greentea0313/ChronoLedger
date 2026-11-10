@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "run_id": "r62-preset-workspace-desktop",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "564b83bbc78fa011df81514b3ce878d3b5737faf",
+  "target_sha": "ffd07b917468ea6d543622db13f674f99dd1a745",
+  "status": "passed",
+  "created_at": "2026-11-10T10:10:00Z",
+  "finished_at": "2026-11-10T10:28:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check 564b83bbc78fa011df81514b3ce878d3b5737faf ffd07b917468ea6d543622db13f674f99dd1a745", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Changed files stay within the Step 1 allowed list", "command": "git diff --name-only 564b83bbc78fa011df81514b3ce878d3b5737faf ffd07b917468ea6d543622db13f674f99dd1a745", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (61 files, 733 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder Supabase env", "command": "npm run build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Manual desktop/mobile width and real-browser drag check on the dev server (requires a signed-in account; not available to the reviewer)", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}
