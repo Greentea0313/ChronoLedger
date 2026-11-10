@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r62-preset-workspace-desktop",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "564b83bbc78fa011df81514b3ce878d3b5737faf",
+  "target_sha": "ffd07b917468ea6d543622db13f674f99dd1a745",
+  "status": "findings",
+  "created_at": "2026-11-10T10:30:00Z",
+  "findings": [
+    {
+      "id": "R62-REV-001",
+      "severity": "P4",
+      "file": "src/components/character/preset-workspace.tsx",
+      "line": 274,
+      "evidence": "Sidebar avatars are <button draggable> and filled slots are <li draggable> whose surface is mostly an inner <button>. Chromium (incl. Tauri WebView2) starts HTML5 drags from buttons, but Firefox has historically not started drags from <button> elements. jsdom tests dispatch dragstart/drop directly, so they cannot show this. No real-browser drag check was possible in this review (the characters page needs a signed-in account).",
+      "impact": "Low: if the browser does not start the drag, Firefox users cannot drag avatars or slots, but slot-then-avatar click placement, arrow buttons and remove buttons still cover every operation, so no function is lost.",
+      "recommendation": "Non-blocking. Verify drag in current Firefox and Chromium on the dev server. If Firefox does not drag, make the draggable element a non-button wrapper (e.g. a div/li with draggable and role/keyboard handled by the inner button) or start the drag from a dedicated handle. Track as a follow-up."
+    }
+  ]
+}

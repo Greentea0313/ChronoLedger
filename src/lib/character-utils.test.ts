@@ -13,6 +13,8 @@ import {
   isCharacterSupported,
   isCharacterTemplateActive,
   moveCharacterInPreset,
+  moveCharacterToSlot,
+  placeCharacterInSlot,
   assignAxisKey,
   splitCommaList,
   validateClassificationTemplate,
@@ -277,5 +279,67 @@ describe("validateClassificationTemplate", () => {
     expect(validateClassificationTemplate({ ...valid, axes: [axis({ key: "x".repeat(25) })] })).toContain("내부 키")
     expect(validateClassificationTemplate({ ...valid, axes: [axis(), axis({ label: "무기" })] })).toContain("분류 기준 2")
     expect(validateClassificationTemplate({ ...valid, axes: [axis({ key: "element" })] })).toBeNull()
+  })
+})
+
+describe("placeCharacterInSlot", () => {
+  it("appends to an empty slot and ignores a duplicate-free overflow at the ceiling", () => {
+    expect(placeCharacterInSlot(["a"], 1, "b", 3)).toEqual(["a", "b"])
+    expect(placeCharacterInSlot(["a"], 2, "b", 3)).toEqual(["a", "b"])
+    expect(placeCharacterInSlot([], 0, "a", 3)).toEqual(["a"])
+    expect(placeCharacterInSlot(["a", "b", "c"], 3, "d", 3)).toEqual(["a", "b", "c"])
+  })
+
+  it("moves an already placed character to the end when dropped on an empty slot", () => {
+    expect(placeCharacterInSlot(["a", "b"], 2, "a", 3)).toEqual(["b", "a"])
+    expect(placeCharacterInSlot(["a", "b", "c"], 3, "a", 3)).toEqual(["b", "c", "a"])
+  })
+
+  it("replaces the occupant of a filled slot, also when the preset is full", () => {
+    expect(placeCharacterInSlot(["a", "b"], 0, "x", 3)).toEqual(["x", "b"])
+    expect(placeCharacterInSlot(["a", "b", "c"], 1, "x", 3)).toEqual(["a", "x", "c"])
+  })
+
+  it("swaps two slots when the character is already placed elsewhere", () => {
+    expect(placeCharacterInSlot(["a", "b", "c"], 0, "c", 3)).toEqual(["c", "b", "a"])
+    expect(placeCharacterInSlot(["a", "b"], 1, "a", 3)).toEqual(["b", "a"])
+  })
+
+  it("is a no-op for the same slot and invalid indexes, and never mutates the input", () => {
+    const ids = ["a", "b"]
+    expect(placeCharacterInSlot(ids, 0, "a", 3)).toEqual(["a", "b"])
+    expect(placeCharacterInSlot(ids, -1, "x", 3)).toEqual(["a", "b"])
+    placeCharacterInSlot(ids, 0, "b", 3)
+    expect(ids).toEqual(["a", "b"])
+  })
+
+  it("lets an over-limit preset replace and swap but never grow", () => {
+    const over = ["a", "b", "c", "d"]
+    expect(placeCharacterInSlot(over, 4, "x", 3)).toEqual(over)
+    expect(placeCharacterInSlot(over, 1, "x", 3)).toEqual(["a", "x", "c", "d"])
+    expect(placeCharacterInSlot(over, 0, "d", 3)).toEqual(["d", "b", "c", "a"])
+    expect(placeCharacterInSlot(over, 4, "a", 3)).toEqual(["b", "c", "d", "a"])
+  })
+})
+
+describe("moveCharacterToSlot", () => {
+  it("moves a slot to another position", () => {
+    expect(moveCharacterToSlot(["a", "b", "c"], 0, 2)).toEqual(["b", "c", "a"])
+    expect(moveCharacterToSlot(["a", "b", "c"], 2, 0)).toEqual(["c", "a", "b"])
+  })
+
+  it("treats a target past the last filled slot as the end", () => {
+    expect(moveCharacterToSlot(["a", "b"], 0, 3)).toEqual(["b", "a"])
+    expect(moveCharacterToSlot(["a", "b"], 1, 5)).toEqual(["a", "b"])
+  })
+
+  it("ignores invalid sources and identical positions without mutating the input", () => {
+    const ids = ["a", "b"]
+    expect(moveCharacterToSlot(ids, 2, 0)).toEqual(["a", "b"])
+    expect(moveCharacterToSlot(ids, -1, 0)).toEqual(["a", "b"])
+    expect(moveCharacterToSlot(ids, 1, 1)).toEqual(["a", "b"])
+    expect(moveCharacterToSlot(ids, 0, -4)).toEqual(["a", "b"])
+    moveCharacterToSlot(ids, 0, 1)
+    expect(ids).toEqual(["a", "b"])
   })
 })

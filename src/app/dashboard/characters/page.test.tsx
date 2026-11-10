@@ -235,6 +235,7 @@ describe("CharactersPage", () => {
 
   const pickerButton = (name: string, scope: ParentNode) =>
     Array.from(scope.querySelectorAll("button")).find((b) => b.querySelector("span.truncate")?.textContent === name) as HTMLButtonElement
+  const presetCardCount = () => container.querySelectorAll('[data-testid="preset-card"]').length
   const cards = () => Array.from(container.querySelectorAll('[data-testid="character-card"]'))
   const cardNames = () => cards().map((card) => card.querySelector("span.truncate")?.textContent)
   const cardByName = (name: string) => cards().find((card) => card.querySelector("span.truncate")?.textContent === name) as HTMLElement
@@ -762,6 +763,125 @@ describe("CharactersPage", () => {
 
       expect(writes).toHaveLength(0)
       expect(presetCards()).toHaveLength(1)
+    })
+  })
+
+  describe("preset tab viewport split", () => {
+    const originalMatchMedia = Object.getOwnPropertyDescriptor(window, "matchMedia")
+
+    function setViewport(width: number) {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        configurable: true,
+        value: (query: string) => ({
+          matches: query === "(min-width: 900px)" && width >= 900,
+          media: query,
+          addEventListener: () => undefined,
+          removeEventListener: () => undefined,
+        }),
+      })
+    }
+
+    afterEach(() => {
+      if (originalMatchMedia) Object.defineProperty(window, "matchMedia", originalMatchMedia)
+      else delete (window as { matchMedia?: unknown }).matchMedia
+    })
+
+    async function openPresets() {
+      await renderPage()
+      await selectTab("조합 프리셋")
+    }
+
+    const workspace = () => container.querySelector('[data-testid="preset-workspace"]')
+    const avatarButton = (name: string) =>
+      Array.from(container.querySelectorAll('[data-testid="workspace-avatar-list"] button')).find((b) => b.querySelector("span.truncate")?.textContent === name) as HTMLButtonElement
+    const slotNames = () =>
+      Array.from(container.querySelectorAll('[data-testid="workspace-slot"], [data-testid="workspace-slot-empty"]')).map((el) => el.querySelector("span.truncate")?.textContent ?? "(빈)")
+
+    it("keeps the dialog flow below 900px", async () => {
+      setViewport(899)
+      await openPresets()
+
+      expect(workspace()).toBeNull()
+      expect(presetCardCount()).toBe(1)
+      await click(buttonByText("새 프리셋 추가", container))
+      expect(document.body.querySelector('[role="dialog"]')).toBeTruthy()
+    })
+
+    it("shows the workspace instead of the list and dialog from 900px", async () => {
+      setViewport(900)
+      await openPresets()
+
+      expect(workspace()).toBeTruthy()
+      expect(presetCardCount()).toBe(0)
+      expect((container.querySelector("#workspace-title") as HTMLInputElement).value).toBe("혼돈 파티")
+      expect(slotNames()).toEqual(["아케론", "칼리", "(빈)"])
+
+      await click(buttonByText("새 프리셋 추가", container))
+      expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    })
+
+    it("saves workspace edits with the existing update path", async () => {
+      setViewport(1280)
+      await openPresets()
+      await click(avatarButton("라이덴"))
+      await click(buttonByText("저장", container))
+
+      const update = writes.find((item) => item.table === "user_character_presets" && item.op === "update")
+      expect(update?.payload).toEqual({ title: "혼돈 파티", memo: "첫째 줄\n둘째 줄", character_ids: ["c1", "c2", "c4"] })
+      expect(update?.filters).toEqual({ id: "p1", user_id: USER_ID })
+      expect(container.textContent).toContain("프리셋을 저장했습니다.")
+      expect((buttonByText("저장", container) as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it("inserts a new preset only on save and selects it afterwards", async () => {
+      setViewport(1280)
+      await openPresets()
+      await click(buttonByText("새 프리셋 추가", container))
+      expect(writes.filter((item) => item.table === "user_character_presets")).toHaveLength(0)
+
+      await change(container.querySelector("#workspace-title"), "  신규 파티  ")
+      await click(avatarButton("라이덴"))
+      await click(buttonByText("저장", container))
+
+      const insert = writes.find((item) => item.table === "user_character_presets" && item.op === "insert")
+      expect(insert?.payload).toEqual({
+        user_id: USER_ID,
+        game_id: "game-a",
+        title: "신규 파티",
+        memo: null,
+        character_ids: ["c4"],
+        sort_order: 1,
+      })
+      const selected = container.querySelector('[data-testid="workspace-preset-list"] button[aria-pressed="true"]')
+      expect(selected?.textContent).toBe("신규 파티")
+    })
+
+    it("warns before switching games or leaving the tab with unsaved changes", async () => {
+      setViewport(1280)
+      await openPresets()
+      await click(avatarButton("라이덴"))
+
+      vi.spyOn(window, "confirm").mockReturnValue(false)
+      await click(gameChip("다라게임"))
+      expect(window.confirm).toHaveBeenCalledTimes(1)
+      expect(container.querySelector('nav[aria-label="구독 게임 선택"] button[aria-pressed="true"]')?.textContent).toContain("가나게임")
+
+      await selectTab("보유 캐릭터")
+      expect(window.confirm).toHaveBeenCalledTimes(2)
+      expect(workspace()).toBeTruthy()
+
+      vi.spyOn(window, "confirm").mockReturnValue(true)
+      await click(gameChip("다라게임"))
+      expect(container.querySelector('nav[aria-label="구독 게임 선택"] button[aria-pressed="true"]')?.textContent).toContain("다라게임")
+    })
+
+    it("does not warn after saving or when nothing changed", async () => {
+      setViewport(1280)
+      await openPresets()
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true)
+      await click(gameChip("다라게임"))
+      expect(confirmSpy).not.toHaveBeenCalled()
     })
   })
 })
