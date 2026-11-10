@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r64-r72-r73-classification-icons-followups` **(완료, `main` 병합 `66dd067`, R64 마이그레이션 운영 적용·실브라우저 확인 사용자 대기)** *(`R72` 픽업 중복 이름 문구 정리 + `R73` Firefox 호환 드래그 시작 요소 + `R64` 관리자 분류 옵션 아이콘(별도 테이블))*
+- **활성 Run ID**: `r64-r72-r73-classification-icons-followups` **(완료, `main` 병합 `66dd067`, R64 마이그레이션 운영 적용·확인 쿼리 완료(사용자, 2026-11-10), 실브라우저 확인 대기)** *(`R72` 픽업 중복 이름 문구 정리 + `R73` Firefox 호환 드래그 시작 요소 + `R64` 관리자 분류 옵션 아이콘(별도 테이블))*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r64-r72-r73-classification-icons-followups` (브랜치: `collab/r64-r72-r73-classification-icons-followups`, manifest `0715b7a`)
 - **Base SHA**: `bc7fbad477e13de89b81c6a8ba474ca3fd3145c3`
@@ -45,7 +45,7 @@
 | **2** | **`✅ DONE (SHA: 966535e)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R64 Spec)` | 아래 **Step 2 수용 기준** 수행 완료함. | `✅ 966535e`: [`R64_Classification_Option_Icons_Spec.md`](spec/R64_Classification_Option_Icons_Spec.md)(워크트리) 작성. 테이블·검증/정리 트리거·RLS·UI·폴백·SQL 테스트·Step 3/4 허용 파일 확정 (아래 Step 2 완료 기록 참고) |
 | **3** | **`✅ DONE (SHA: bcdc71c)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 DB)` | 아래 **Step 3 수용 기준** + 명세서 §2·§7 수행. 허용 파일(명세서 §8 확정): 신규 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (`src/lib` 변경 불필요) | `✅ bcdc71c`: R64 테이블·검증/정리 트리거·RLS·스키마/타입/실행 가이드/스모크 테스트 반영. tsc·lint·Vitest 151파일/1371개·diff-check 통과함. 운영 DB 미적용함. |
 | **4** | **`✅ DONE (SHA: da78bc6)`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 UI)` | 아래 **Step 4 수용 기준** + 명세서 §3~§5 수행 완료함. | `✅ da78bc6`: 아이콘 로더·변환 lib, 옵션 아이콘 컴포넌트, 관리자 템플릿 편집기 `분류 아이콘` 섹션·캐릭터 목록 표시, 사용자 필터 칩·캐릭터 설정 창 표시, 미적용 DB 폴백. tsc·lint·diff-check 통과, Vitest 63파일/780개 통과 (아래 Step 4 완료 기록 참고) |
-| **5** | **`✅ DONE (리뷰: bc7fbad ↔ da78bc6, 산출물 871a34a, main 병합 66dd067)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bc7fbad` ↔ Target(Step 4 커밋) 통합 정적 리뷰(R64 RLS·마이그레이션 포함), 동적 검증, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | `✅` P1·P2 없음, P3 1건·P4 3건(to-do `R75` 이관). tsc·lint·diff-check·build 통과, Vitest 63파일/780개 통과. **R64 마이그레이션 운영 수동 적용·R73/R64 실브라우저 확인은 사용자 대기** (아래 Step 5 완료 기록 참고) |
+| **5** | **`✅ DONE (리뷰: bc7fbad ↔ da78bc6, 산출물 871a34a, main 병합 66dd067)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bc7fbad` ↔ Target(Step 4 커밋) 통합 정적 리뷰(R64 RLS·마이그레이션 포함), 동적 검증, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | `✅` P1·P2 없음, P3 1건·P4 3건(to-do `R75` 이관). tsc·lint·diff-check·build 통과, Vitest 63파일/780개 통과. **R64 마이그레이션 운영 적용·확인 쿼리 완료(사용자), R73/R64 실브라우저 확인은 사용자 대기** (아래 Step 5 완료 기록 참고) |
 
 #### 📌 `r64-r72-r73-classification-icons-followups` 단계별 수용 기준 (Acceptance Criteria)
 
