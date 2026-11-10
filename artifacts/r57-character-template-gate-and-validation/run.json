@@ -1,0 +1,16 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r57-character-template-gate-and-validation",
+    "created_at":  "2026-11-10T02:35:55.4907958+00:00",
+    "objective":  "Implement R57 admin character template gate, template form validation aligned with DB is_valid_classification_schema, automatic axis key allocation, and template modal guidance",
+    "acceptance_criteria":  [
+                                "Step 1 (Claude Sonnet): In src/app/admin/page.tsx and src/lib/character-utils.ts, add character creation template gate when isCharacterTemplateActive is false, add validateClassificationTemplate aligned with DB constraints, auto-assign axis keys without exposing key input, update template modal title/description/23514 error message, and add Vitest tests.",
+                                "Step 2 (Gemini 4 Argon / Claude Opus): Complete Base-to-Target SHA static review (review.json, test.json), close run.json, merge into main, and sync docs."
+                            ],
+    "base_sha":  "25b39536223b998143e8df443dc8eea1e4c7e349",
+    "target_sha":  null,
+    "branch":  "collab/r57-character-template-gate-and-validation",
+    "worktree_path":  ".worktrees/r57-character-template-gate-and-validation",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
