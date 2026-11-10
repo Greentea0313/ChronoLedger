@@ -1,0 +1,19 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r76-r77-preset-grid-dnd-and-icon-modal",
+    "created_at":  "2026-11-10T12:31:23.5190597+00:00",
+    "objective":  "R77 classification icon image modal with URL, paste and file input like other image inputs; R76 pickupgg-style preset card grid editing with @dnd-kit pointer/touch drag (sidebar to slot, slot reorder, cross-preset move, preset card reorder, immediate save) replacing the R62 single-preset save-button workspace and the R73 drag handles.",
+    "acceptance_criteria":  [
+                                "Step 1 (R77): clicking an option row image button in the admin classification icon section opens a dialog with URL/paste input and file input, preview, cancel and register; every source is resized to 64x64 WebP (data URL strings are re-encoded, never passed through); spec R64 amended.",
+                                "Step 2 (R76 spec): an English spec defines grid layout per breakpoint, @dnd-kit sensors (pointer distance, touch long-press, keyboard), drop rules, immediate-save semantics with optimistic update and rollback, concurrency, preset reorder persistence, cross-preset move atomicity, and the DB/RPC changes needed.",
+                                "Step 3 (R76 DB): any RPC/migration required by the spec is re-runnable, SECURITY INVOKER or tightly scoped, reflected in SCHEMA.sql, README, TESTS.sql and database.types.ts.",
+                                "Step 4 (R76 UI): the characters page preset tab and favorite roster use @dnd-kit with whole-avatar/card drag (no handles), click still opens settings, Chrome/Firefox/touch work, keyboard alternatives remain.",
+                                "Every Maker step passes tsc --noEmit, npm run lint, git diff --check and the full Vitest suite."
+                            ],
+    "base_sha":  "f5807eb1668c5dcf08c188bffce2accc18b1ef11",
+    "target_sha":  null,
+    "branch":  "collab/r76-r77-preset-grid-dnd-and-icon-modal",
+    "worktree_path":  ".worktrees/r76-r77-preset-grid-dnd-and-icon-modal",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
