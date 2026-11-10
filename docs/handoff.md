@@ -31,7 +31,43 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r78-r76-followups-and-browser-check` **(완료, `main` 병합 `519ac81`, 실브라우저 재확인은 사용자 대기)** *(R76 리뷰 후속 정리(`R78`) + 병합된 R76 프리셋 보드·R77 아이콘 모달 실브라우저 확인)*
+- **활성 Run ID**: `r80-classification-icon-admin-policy` *(R64 분류 아이콘 쓰기 정책을 다른 관리자 테이블과 같은 조건으로 통일 + 저장 실패 원인 표시, 보유 캐릭터 아바타·이름 확대)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
+- **Worktree 경로**: `.worktrees/r80-classification-icon-admin-policy` (브랜치: `collab/r80-classification-icon-admin-policy`, manifest `e5e1946`)
+- **Base SHA**: `103dbf5cbf47ef1375d2d7cffa0a674e60001aca`
+- **DB 변경**: 있음(RLS 정책 교체, Opus 승격 조건 ①). 신규 `sql/migrations/MIGRATION_R80_CLASSIFICATION_ICON_ADMIN_POLICY.sql`, 운영 DB 미적용.
+- **배경 (사용자 보고 2026-11-11)**: 관리자 분류 아이콘 등록 시 `분류 아이콘을 저장하지 못했습니다.`만 표시되고 저장되지 않음.
+  - 원인: R64 정책 `Admin manage classification icons`만 JWT `app_metadata.role`을 요구함. 다른 관리자 테이블·승인 RPC는 JWT 또는 `public.users.role = 'admin'`을 인정하므로, `users.role`로만 관리자인 계정은 다른 관리자 기능은 되고 아이콘 저장만 RLS(`42501`)에 막힘. 화면은 `23514` 외 오류를 일반 문구로만 보여 원인이 가려졌음.
+  - R64 명세는 "승인 RPC도 JWT만 확인한다"를 근거로 JWT 전용을 정했으나 실제 RPC(`SCHEMA.sql` 592·648행)는 `users.role`도 인정함 → 명세 전제 오류.
+  - 사용자 결정: A안(정책 통일 + 오류 표시) 선택.
+- **사용자 추가 요청 (2026-11-11)**: 보유 캐릭터 화면 아바타·이름을 키우고 게임마다 크기가 달라지지 않게 고정함.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: c6ddd4d)`** | **Claude Opus** *(GPT Codex 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R80 Policy · Error Text · Roster Size)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅ a2c2f47`: 정책 교체 마이그레이션·`SCHEMA.sql`·`README`·`TESTS.sql`(`users.role` 관리자 쓰기 허용·일반 사용자 거부)·R64 명세 개정·아이콘 저장/삭제 실패 시 코드·메시지 표시. `c6ddd4d`: 보유 캐릭터 아바타 64px·이름 `text-sm`. tsc·lint·diff-check 통과, Vitest 64파일/783개 통과 |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `103dbf5` ↔ Target `c6ddd4d` 정적 리뷰(정책이 `user_metadata`·클라이언트 값을 쓰지 않는지, 자기 승격 차단 트리거 유지), `review.json`·`test.json`, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | - |
+| **3** | **`⏳ WAITING`** | **사용자** | `Migration Apply & Retest` | 운영 DB에 R80 마이그레이션 적용 → `sql/README.md` 확인 쿼리(`true`) → 관리자 화면에서 분류 아이콘 등록 재시도 | - |
+
+#### 📌 `r80-classification-icon-admin-policy` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Opus` — Maker)**:
+   - 재실행 안전한 마이그레이션으로 `Admin manage classification icons` 정책을 `coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false) OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')`로 교체함(다른 관리자 테이블과 같은 식). `SCHEMA.sql`·`sql/README.md`(확인 쿼리)·R64 명세 반영함.
+   - `TESTS.sql` R80 블록: JWT 관리자 클레임 없이 `users.role = 'admin'`인 사용자가 upsert 가능, 역할을 되돌린 같은 사용자는 삭제 0행·쓰기 `42501`.
+   - 관리자 아이콘 저장·삭제 실패 시 `42501`은 권한 안내, 그 밖에는 `(코드: 메시지)`를 함께 표시함. `23514` 안내는 유지함.
+   - 보유 캐릭터 아바타 `h-16 w-16`, 이름 `text-sm`(게임과 무관한 고정 크기, 이미지는 정사각형 `object-cover`).
+   - tsc·lint·diff-check·Vitest 전체 통과함.
+2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**: 정적 리뷰, 산출물 작성·검증, `main` 병합, 문서 마감, 사용자에게 마이그레이션 적용 안내함. 리뷰 독립성을 위해 Step 1 작성 모델(Claude Opus)은 2순위 대체로만 둠.
+3. **Step 3 (사용자)**: 마이그레이션 적용·확인 쿼리, 아이콘 등록 재시도, 보유 캐릭터 화면 크기 확인함.
+
+#### 📝 `r80-classification-icon-admin-policy` Step 1 완료 기록 (Claude Opus, 2026-11-11)
+
+- **Target SHA**: `c6ddd4d` (워크트리 브랜치, 미병합)임. `a2c2f47`(정책·오류 표시) + `c6ddd4d`(보유 캐릭터 크기).
+- **검증**: tsc·lint·diff-check 통과, Vitest 64파일/783개 통과(관리자 아이콘 테스트 2건 갱신). `TESTS.sql` R80 블록은 `psql`·테스트 DB가 없어 미실행임(to-do `R79`).
+- **주의**: 이 Run의 정책은 `users.role`을 신뢰함. `prevent_users_role_self_change` 트리거가 `authenticated`·`anon`의 역할 변경을 막고 있어 자기 승격은 불가함(Step 2 확인 대상).
+
+### 🗂️ 이전 Run 기록 (완료): `r78-r76-followups-and-browser-check`
+
+- **Run ID**: `r78-r76-followups-and-browser-check` **(완료, `main` 병합 `519ac81`, 실브라우저 재확인은 사용자 대기)** *(R76 리뷰 후속 정리(`R78`) + 병합된 R76 프리셋 보드·R77 아이콘 모달 실브라우저 확인)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-10)*
 - **Worktree 경로**: `.worktrees/r78-r76-followups-and-browser-check` (브랜치: `collab/r78-r76-followups-and-browser-check`, manifest `2d36a31`)
 - **Base SHA**: `3c71e9ca584dd008caee4c45fa8fb1af3cb7a1df`

@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-11 (Run `r80-classification-icon-admin-policy` Step 1 — `a2c2f47`·`c6ddd4d`, 미병합)
+
+- 분류 아이콘 쓰기 정책을 다른 관리자 테이블처럼 JWT `app_metadata.role` 또는 `users.role = 'admin'`이면 허용하도록 바꾸는 마이그레이션 `MIGRATION_R80_CLASSIFICATION_ICON_ADMIN_POLICY.sql`을 추가함(운영 미적용).
+- 관리자 분류 아이콘 저장·삭제 실패 시 권한 문제(`42501`)나 오류 코드·메시지를 함께 표시함.
+- 보유 캐릭터 화면 아바타를 64px, 이름을 한 단계 큰 글자로 키움. 모든 게임에서 같은 크기임.
+
 ## 2026-11-10 (Run `r78-r76-followups-and-browser-check` 완료 — `main` 병합 `519ac81`)
 
 - 보유 캐릭터 즐겨찾기 `←`/`→` 버튼 삭제·카드 드래그 정렬, 프리셋 드래그 미리보기 위치 수정, 프리셋 사이드바·모바일 선택 창 필터 줄바꿈 배치, R77 분류 아이콘 모달 파일 입력칸 초기화를 `main`에 반영함.

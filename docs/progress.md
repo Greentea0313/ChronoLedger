@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r80-classification-icon-admin-policy` 등록·Step 1 완료 (2026-11-11)
+
+- **수행 주체**: Claude Opus (Orchestrator 대체 + Maker)임.
+- **원인**: 분류 아이콘 저장 실패는 R64 쓰기 정책만 JWT `app_metadata.role`을 요구해서였음. `users.role`로만 관리자인 계정은 RLS `42501`로 막혔고 화면에는 일반 문구만 나왔음.
+- **Step 1 (워크트리 `a2c2f47`·`c6ddd4d`, 미병합)**: 정책을 다른 관리자 테이블과 같은 조건으로 교체하는 마이그레이션·스키마·테스트·명세 개정, 저장 실패 시 코드·메시지 표시, 보유 캐릭터 아바타·이름 확대. tsc·lint·diff-check 통과, Vitest 783개 통과함.
+- **다음 단계**: Step 2(`Gemini 4 Argon`, 리뷰·병합) `▶ READY`. 이후 사용자가 R80 마이그레이션을 운영 DB에 적용해야 아이콘 저장이 됨.
+
 ## Run `r78-r76-followups-and-browser-check` 완료 — `main` 병합 `519ac81` (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.
