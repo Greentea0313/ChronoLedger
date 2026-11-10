@@ -1,4 +1,17 @@
 # 프로젝트 진행 현황
+## Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 2 (R76 명세) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Opus (`Architect (R76 Spec)`)임.
+- **커밋 `4821658`** (워크트리, 미병합): `docs/spec/R76_Preset_Grid_Editing_Spec.md` 작성함. 전체 프리셋 카드 그리드·`@dnd-kit` 센서·드롭 규칙·단일 쓰기 큐 즉시 저장·빈 프리셋 허용·원자 저장 RPC 2종·모바일 하단 선택 창·R63 즐겨찾기 dnd-kit 전환 확정함.
+- **다음 단계**: Step 3(`GPT Codex`, R76 DB) `▶ READY`임.
+
+## R77 분류 아이콘 등록 모달 구현 (2026-11-10)
+
+- **수행 주체**: Claude Sonnet (Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 1)임.
+- **결과**: 워크트리 커밋 `f3fdd91`(미병합). URL·붙여넣기·파일 모두 64×64 WebP로 재인코딩하는 등록 모달 구현, R64 명세 §3.2 개정함. tsc·lint·diff-check 통과, Vitest 789개 통과함.
+- **미확인**: 실브라우저 모달 동작, 외부 URL 실제 가져오기.
+- **다음 단계**: Step 2(`Claude Opus`, R76 명세) `▶ READY`임.
+
 ## Run `r76-r77-preset-grid-dnd-and-icon-modal` 등록 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.

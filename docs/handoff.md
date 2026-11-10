@@ -45,9 +45,9 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Icon Modal)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`(+`page.test.tsx`, `page.classification-icons.test.tsx`), `src/lib/classification-icons.ts`(+테스트), `src/lib/image-resizer.ts`(+테스트, 헬퍼 공개·재인코딩 추가 시), `docs/spec/R64_Classification_Option_Icons_Spec.md`(§3.2 개정) | - |
-| **2** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R76 Spec)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: 신규 `docs/spec/R76_Preset_Grid_Editing_Spec.md`, `docs/character-preset-ux-review.md`(R62·R73 대체 표시) | - |
-| **3** | **`⏳ WAITING`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 DB, 조건부)` | 명세서가 RPC·마이그레이션을 요구할 때만 수행(아니면 `⏭️ SKIPPED`). 허용 파일: 명세서 확정(예: 신규 `sql/migrations/MIGRATION_R76_*.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`) | - |
+| **1** | **`✅ DONE (SHA: f3fdd91)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Icon Modal)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`(+`page.test.tsx`, `page.classification-icons.test.tsx`), `src/lib/classification-icons.ts`(+테스트), `src/lib/image-resizer.ts`(+테스트, 헬퍼 공개·재인코딩 추가 시), `docs/spec/R64_Classification_Option_Icons_Spec.md`(§3.2 개정) | `✅ f3fdd91`: 분류 아이콘 등록 모달(URL·붙여넣기·파일, 64×64 재인코딩, 미리보기·취소·등록), R64 명세 §3.2 개정. tsc·lint·diff-check 통과, Vitest 전체 789개 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`✅ DONE (SHA: 4821658)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R76 Spec)` | 아래 **Step 2 수용 기준** 수행 완료함. | `✅ 4821658`: [`R76_Preset_Grid_Editing_Spec.md`](spec/R76_Preset_Grid_Editing_Spec.md)(워크트리) 작성. 사용자 결정 4건 반영, DB 변경 필요 → Step 3 수행 (아래 Step 2 완료 기록 참고) |
+| **3** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 DB)` | 명세서 §4 수행. 허용 파일(명세서 §10 확정): 신규 `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`. 운영 DB 미적용 | - |
 | **4** | **`⏳ WAITING`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 UI)` | 아래 **Step 4 수용 기준** 수행(낙관적 갱신·비동기 경합 → Opus 승격 조건 ②). 허용 파일: 명세서 확정(예: `package.json`·`package-lock.json`, `src/app/dashboard/characters/page.tsx`(+테스트), `src/components/character/preset-*.tsx`(+테스트), `src/components/character/character-roster.tsx`, 신규 그리드·DnD 컴포넌트·훅(+테스트)) | - |
 | **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `f5807eb` ↔ Target(Step 4 커밋) 통합 정적 리뷰, 동적 검증, `main` 병합, 문서 마감, (DB 변경 시) 마이그레이션 수동 적용 안내 | - |
 
@@ -74,6 +74,31 @@
    - 회귀 금지: R63 3구역, R64 분류 아이콘 표시, R65·R66 관리자 흐름, 게스트 읽기 전용 동작.
    - 컴포넌트·훅·페이지 테스트 추가하고 `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
 5. **Step 5 (`Claude Opus` — Reviewer & Orchestrator)**: 통합 정적 리뷰, 동적 검증, `review.json`·`test.json` 작성·검증, `main` 병합, 문서 마감함. 사용자에게 Chrome·Firefox·터치 실기기 확인을 안내함.
+
+#### 📝 `r76-r77-preset-grid-dnd-and-icon-modal` Step 1 완료 기록 (Claude Sonnet, 2026-11-10)
+
+- **Target SHA**: `f3fdd91` (`collab/r76-r77-preset-grid-dnd-and-icon-modal`, 미병합)임. 변경 6개 파일 모두 허용 범위 내임.
+- **구현**: `이미지 선택` 버튼이 등록 모달(`classification-icon-dialog`)을 엶. `https://... 또는 이미지 붙여넣기` 입력란(이미지 붙여넣기는 파일로 처리), 파일 선택, 64×64 미리보기, `취소`·`등록`으로 구성함. 오류는 모달 안에 표시하고 저장 성공 시에만 닫음.
+- **변환**: `createClassificationIconDataUrlFromSource`(`classification-icons.ts`) 추가함. 파일·URL·이미지 Data URL을 모두 `resizeImageToWebP(…, 64)`로 재인코딩하며 WebP Data URL도 그대로 통과시키지 않음. URL은 `fetchImageFile`(프록시 폴백 포함, `image-resizer.ts`에서 `export`로 공개)을 재사용함. DB에는 여전히 Data URL만 저장함. 20,000자 초과 거부, 오프라인 가드(네트워크 요청 전 차단), 선택지별 중복 쓰기 방지, `23514` 안내, 삭제 동작은 유지함.
+- **문서**: `docs/spec/R64_Classification_Option_Icons_Spec.md` §3.2를 모달·URL 입력 허용으로 개정함.
+- **테스트**: `page.classification-icons.test.tsx`를 모달 흐름으로 갱신하고 모달 열림·미리보기, URL, 붙여넣기, WebP Data URL 재인코딩, 빈 입력, 오프라인, 용량·변환·`23514`·일반 오류 시 모달 유지를 검증함. `classification-icons.test.ts`에 소스 변환 4건 추가함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 전체 789개 통과함. 실DB 저장·실브라우저 모달 동작과 외부 URL 실제 가져오기는 미확인임(Step 5 사용자 확인).
+- **다음**: Step 2(`Claude Opus`, R76 명세)가 `▶ READY`임.
+
+#### 📝 `r76-r77-preset-grid-dnd-and-icon-modal` Step 2 완료 기록 (Claude Opus, 2026-11-10)
+
+- **Target SHA**: `4821658` (워크트리 브랜치, 미병합)임. 신규 `docs/spec/R76_Preset_Grid_Editing_Spec.md`(영문), `docs/character-preset-ux-review.md` R62 항목에 `R76으로 대체됨` 표시함.
+- **추가 사용자 결정 (질문 카드)**: 빈 프리셋 허용(0~12명), 프리셋 간 드롭은 **이동**, 제거는 **카드 밖으로 끌기 + X 버튼**, 모바일은 **빈 슬롯 탭 → 하단 선택 창**(정렬·이동은 길게 눌러 드래그).
+- **화면**: ≥1280 사이드바 280px + 3열, 900~1279 사이드바 240px + 2열, <900 사이드바 없이 1열(600px부터 2열). 사이드바에 `편성됨` 표시, 클릭은 활성 프리셋(마지막으로 다룬 카드)에 추가. 카드 제목·메모 인라인 편집, 슬롯 4개씩 줄바꿈, 슬롯 초과 프리셋은 추가만 막음.
+- **dnd-kit**: `MouseSensor`(6px) + `TouchSensor`(200ms) + `KeyboardSensor`, `pointerWithin`→`closestCenter`, `DragOverlay`, 한국어 스크린리더 안내. 슬롯은 프리셋별 `SortableContext`, 카드도 정렬 가능(슬롯·입력·버튼 외 영역에서 시작).
+- **DB (Step 3)**:
+  - `character_ids` CHECK를 0~12명으로 완화(이름 붙은 제약으로 교체), 캐릭터 삭제 시 빈 프리셋도 유지하도록 정리 함수 수정함.
+  - `update_character_preset_slots(p_changes jsonb)`: 1~2개 프리셋을 `expected`→`next`로 원자 저장(행 잠금 id 순서, 불일치 `40001`, 2개일 때 캐릭터 집합 보존 검사 `22023`).
+  - `reorder_character_presets(p_game_id, p_preset_ids)`: 즐겨찾기 정렬 RPC와 같은 방식. 둘 다 `SECURITY INVOKER`, `authenticated`만 실행 가능함.
+- **즉시 저장**: 페이지 단일 FIFO 쓰기 큐 + 낙관적 갱신, 실패 시 대기 작업 폐기·재조회·토스트(`40001`은 `다른 곳에서 프리셋이 변경되어 다시 불러왔습니다.`). 큐 처리 중 백그라운드 재조회는 미룸. 큐가 남아 있을 때만 이탈 경고함.
+- **대체·삭제**: `preset-workspace.tsx`·`preset-list.tsx`·`preset-editor-dialog.tsx`와 미저장 경고 로직 제거, R63 즐겨찾기 정렬도 dnd-kit 전체 카드 드래그로 바꾸고 R73 손잡이 삭제함.
+- **미적용 폴백**: RPC 없음(`PGRST202`/`42883`) 시 단일 프리셋 변경은 직접 `update`, 프리셋 간 이동·카드 순서·마지막 캐릭터 제거는 토스트로 막음. 빈 프리셋 CHECK 위반(`23514`) 시 `[+ 프리셋 추가]` 막음.
+- **테스트**: 문서 전용 단계라 코드 테스트 없음. `git diff --check` 통과함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r64-r72-r73-classification-icons-followups`
 

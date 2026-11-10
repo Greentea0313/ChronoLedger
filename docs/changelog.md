@@ -1,4 +1,13 @@
 # 변경 이력
+## 2026-11-10 (Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 2 — `4821658`)
+
+- R76 명세서 `docs/spec/R76_Preset_Grid_Editing_Spec.md` 추가함. pickupgg식 프리셋 카드 그리드 즉시 편집(`@dnd-kit`, 터치 길게 누르기), 빈 프리셋 허용, 프리셋 간 이동·순서 변경을 원자 저장하는 RPC 2종, 실패 시 재조회 롤백을 설계함. R62 저장 버튼·R73 손잡이는 대체됨.
+- Step 3(`GPT Codex`)를 `▶ READY`로 전환함.
+
+## 2026-11-10 (R77 분류 아이콘 등록 모달, `f3fdd91` 미병합)
+
+- 관리자 분류 아이콘 `이미지 선택`을 등록 모달(URL·붙여넣기·파일, 미리보기, 취소·등록)로 교체함. 모든 입력을 64×64 WebP로 재인코딩하고 WebP Data URL도 통과시키지 않음. `fetchImageFile` 공개, `createClassificationIconDataUrlFromSource` 추가, R64 명세 §3.2 개정함.
+
 ## 2026-11-10 (Run `r76-r77-preset-grid-dnd-and-icon-modal` 등록)
 
 - 격리 Worktree·manifest(`41cdd56`, Base `f5807eb`) 생성하고 Dispatch Queue에 5단계(R77 아이콘 모달 Sonnet → R76 명세 Opus → R76 DB Codex(조건부) → R76 UI Opus → 리뷰 Opus) 등록함.
