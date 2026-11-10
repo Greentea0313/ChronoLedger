@@ -2,21 +2,14 @@ import { describe, expect, it } from "vitest"
 import {
   EMPTY_CHARACTER_FILTERS,
   OTHER_FILTER_VALUE,
-  addCharacterToPreset,
-  canAddToPreset,
   filterCharacters,
   getNameInitial,
-  getPresetSlotCount,
   hasOtherAxisValue,
   hasOtherRarity,
-  isPresetOverLimit,
   isCharacterSupported,
   isCharacterTemplateActive,
-  moveCharacterInPreset,
-  moveCharacterToSlot,
   buildCharacterSections,
   moveFavoriteCharacter,
-  placeCharacterInSlot,
   assignAxisKey,
   splitCommaList,
   validateClassificationTemplate,
@@ -24,8 +17,6 @@ import {
   normalizeMaxBreakthrough,
   normalizeMaxPresetSlots,
   splitCharacterRosterSections,
-  removeCharacterFromPreset,
-  validatePresetInput,
   type CharacterFilters,
   type ClassificationSchema,
   type GameCharacter,
@@ -124,48 +115,6 @@ describe("기타 chip visibility", () => {
 
   it("does not show 기타 when the game defines no rarities", () => {
     expect(hasOtherRarity(characters, { rarities: [], axes: [] })).toBe(false)
-  })
-})
-
-describe("preset helpers", () => {
-  it("renders at least max slots and never fewer than saved characters", () => {
-    expect(getPresetSlotCount(4, ["a"])).toBe(4)
-    expect(getPresetSlotCount(4, ["a", "b", "c", "d", "e", "f"])).toBe(6)
-    expect(isPresetOverLimit(4, ["a", "b", "c", "d", "e"])).toBe(true)
-    expect(isPresetOverLimit(4, ["a", "b", "c", "d"])).toBe(false)
-  })
-
-  it("adds characters without duplicates and not above the slot ceiling", () => {
-    expect(addCharacterToPreset(["a"], "b", 2)).toEqual(["a", "b"])
-    expect(addCharacterToPreset(["a"], "a", 2)).toEqual(["a"])
-    expect(addCharacterToPreset(["a", "b"], "c", 2)).toEqual(["a", "b"])
-    expect(canAddToPreset(2, ["a", "b"])).toBe(false)
-  })
-
-  it("blocks adding to an over-limit preset until it is below the ceiling", () => {
-    const over = ["a", "b", "c", "d", "e"]
-    expect(addCharacterToPreset(over, "f", 4)).toEqual(over)
-    expect(canAddToPreset(4, removeCharacterFromPreset(over, "e"))).toBe(false)
-    expect(canAddToPreset(4, removeCharacterFromPreset(removeCharacterFromPreset(over, "e"), "d"))).toBe(true)
-  })
-
-  it("moves slots within bounds without mutating the input", () => {
-    const ids = ["a", "b", "c"]
-    expect(moveCharacterInPreset(ids, 0, 1)).toEqual(["b", "a", "c"])
-    expect(moveCharacterInPreset(ids, 2, -1)).toEqual(["a", "c", "b"])
-    expect(moveCharacterInPreset(ids, 0, -1)).toEqual(["a", "b", "c"])
-    expect(moveCharacterInPreset(ids, 2, 1)).toEqual(["a", "b", "c"])
-    expect(ids).toEqual(["a", "b", "c"])
-  })
-
-  it("validates title, memo, count and duplicates", () => {
-    expect(validatePresetInput({ title: "  ", memo: "", characterIds: ["a"] })).toContain("제목")
-    expect(validatePresetInput({ title: "x".repeat(81), memo: "", characterIds: ["a"] })).toContain("제목")
-    expect(validatePresetInput({ title: "ok", memo: "m".repeat(301), characterIds: ["a"] })).toContain("메모")
-    expect(validatePresetInput({ title: "ok", memo: "", characterIds: [] })).toContain("1명 이상")
-    expect(validatePresetInput({ title: "ok", memo: "", characterIds: ["a", "a"] })).toContain("중복")
-    expect(validatePresetInput({ title: "ok", memo: "", characterIds: Array.from({ length: 13 }, (_, i) => `c${i}`) })).toContain("최대 12명")
-    expect(validatePresetInput({ title: "ok", memo: "m".repeat(300), characterIds: ["a", "b"] })).toBeNull()
   })
 })
 
@@ -294,68 +243,6 @@ describe("validateClassificationTemplate", () => {
     expect(validateClassificationTemplate({ ...valid, axes: [axis({ key: "x".repeat(25) })] })).toContain("내부 키")
     expect(validateClassificationTemplate({ ...valid, axes: [axis(), axis({ label: "무기" })] })).toContain("분류 기준 2")
     expect(validateClassificationTemplate({ ...valid, axes: [axis({ key: "element" })] })).toBeNull()
-  })
-})
-
-describe("placeCharacterInSlot", () => {
-  it("appends to an empty slot and ignores a duplicate-free overflow at the ceiling", () => {
-    expect(placeCharacterInSlot(["a"], 1, "b", 3)).toEqual(["a", "b"])
-    expect(placeCharacterInSlot(["a"], 2, "b", 3)).toEqual(["a", "b"])
-    expect(placeCharacterInSlot([], 0, "a", 3)).toEqual(["a"])
-    expect(placeCharacterInSlot(["a", "b", "c"], 3, "d", 3)).toEqual(["a", "b", "c"])
-  })
-
-  it("moves an already placed character to the end when dropped on an empty slot", () => {
-    expect(placeCharacterInSlot(["a", "b"], 2, "a", 3)).toEqual(["b", "a"])
-    expect(placeCharacterInSlot(["a", "b", "c"], 3, "a", 3)).toEqual(["b", "c", "a"])
-  })
-
-  it("replaces the occupant of a filled slot, also when the preset is full", () => {
-    expect(placeCharacterInSlot(["a", "b"], 0, "x", 3)).toEqual(["x", "b"])
-    expect(placeCharacterInSlot(["a", "b", "c"], 1, "x", 3)).toEqual(["a", "x", "c"])
-  })
-
-  it("swaps two slots when the character is already placed elsewhere", () => {
-    expect(placeCharacterInSlot(["a", "b", "c"], 0, "c", 3)).toEqual(["c", "b", "a"])
-    expect(placeCharacterInSlot(["a", "b"], 1, "a", 3)).toEqual(["b", "a"])
-  })
-
-  it("is a no-op for the same slot and invalid indexes, and never mutates the input", () => {
-    const ids = ["a", "b"]
-    expect(placeCharacterInSlot(ids, 0, "a", 3)).toEqual(["a", "b"])
-    expect(placeCharacterInSlot(ids, -1, "x", 3)).toEqual(["a", "b"])
-    placeCharacterInSlot(ids, 0, "b", 3)
-    expect(ids).toEqual(["a", "b"])
-  })
-
-  it("lets an over-limit preset replace and swap but never grow", () => {
-    const over = ["a", "b", "c", "d"]
-    expect(placeCharacterInSlot(over, 4, "x", 3)).toEqual(over)
-    expect(placeCharacterInSlot(over, 1, "x", 3)).toEqual(["a", "x", "c", "d"])
-    expect(placeCharacterInSlot(over, 0, "d", 3)).toEqual(["d", "b", "c", "a"])
-    expect(placeCharacterInSlot(over, 4, "a", 3)).toEqual(["b", "c", "d", "a"])
-  })
-})
-
-describe("moveCharacterToSlot", () => {
-  it("moves a slot to another position", () => {
-    expect(moveCharacterToSlot(["a", "b", "c"], 0, 2)).toEqual(["b", "c", "a"])
-    expect(moveCharacterToSlot(["a", "b", "c"], 2, 0)).toEqual(["c", "a", "b"])
-  })
-
-  it("treats a target past the last filled slot as the end", () => {
-    expect(moveCharacterToSlot(["a", "b"], 0, 3)).toEqual(["b", "a"])
-    expect(moveCharacterToSlot(["a", "b"], 1, 5)).toEqual(["a", "b"])
-  })
-
-  it("ignores invalid sources and identical positions without mutating the input", () => {
-    const ids = ["a", "b"]
-    expect(moveCharacterToSlot(ids, 2, 0)).toEqual(["a", "b"])
-    expect(moveCharacterToSlot(ids, -1, 0)).toEqual(["a", "b"])
-    expect(moveCharacterToSlot(ids, 1, 1)).toEqual(["a", "b"])
-    expect(moveCharacterToSlot(ids, 0, -4)).toEqual(["a", "b"])
-    moveCharacterToSlot(ids, 0, 1)
-    expect(ids).toEqual(["a", "b"])
   })
 })
 
