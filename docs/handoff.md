@@ -34,7 +34,7 @@
 - **활성 Run ID**: `r57-character-template-gate-and-validation` *(`R57`: 관리자 캐릭터 추가 모달 템플릿 게이트, 템플릿 폼 검증 DB `is_valid_classification_schema` 일치, 축 `key` 자동 관리 및 안내 문구 개선)*
 - **Orchestrator**: Gemini 4 Argon
 - **Worktree 경로**: `.worktrees/r57-character-template-gate-and-validation` (브랜치: `collab/r57-character-template-gate-and-validation`)
-- **Base SHA**: `25b39536223b998143e8df443dc8eea1e4c7e349`
+- **Base SHA**: `25b39536223b998143e8df443dc8eea1e4c7e349` ↔ Target `15c0d1411ab548a49eb02b2e44b284aa6771722f` (`clean`, 산출물 `dbf1109`). **Run 마감: `main` 병합 `6712a24` 완료** *(push 미수행, DB 변경 없음, 차기 Run 미등록)*
 - **직전 Run 마감 (`r55-r56-favorite-hook-and-version-pass-trigger`)**: 2026-11-10 Step 3 통합 정적 리뷰(`8b9689f` ↔ `daf9a5a`) **Gemini 4 Argon `clean` (P1~P4 0건)**, 로컬 PostgreSQL 17 2개 DB(`db_upgraded`·`db_fresh`) 마이그레이션 2회 멱등 적용 및 `sql/tests/TESTS.sql` 34 PASS, Vitest 57파일/642개 통과, `main` 병합(`25b3953`) 완료 (`✅ DONE`).
 - **📌 운영 DB 마이그레이션 안내 (`R58`, 병행 적용 가능)**:
   - Supabase Dashboard $\to$ SQL Editor에서 [`sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql`](../sql/migrations/MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql) 전체를 실행한 뒤 [`sql/README.md`](../sql/README.md) B표의 확인 쿼리 결과를 검증함 (`true` 기대):
@@ -45,7 +45,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 15c0d1411ab548a49eb02b2e44b284aa6771722f)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Admin Character Template UI)` | `R57`: `.worktrees/r57-character-template-gate-and-validation`(Base `25b3953`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `docs/to-do.md` | `✅ 15c0d14: 추가 모달 템플릿 게이트((템플릿 없음) 표시·입력/저장 숨김·[캐릭터 템플릿 생성] 연결), validateClassificationTemplate/splitCommaList/assignAxisKey 추가(DB 규칙 일치), 축 key 입력란 제거·자동 관리, 템플릿 모달 제목/설명/등급 라벨 개선, 23514 템플릿 CHECK 안내. 단위·화면 테스트 추가. DB 변경 없음. tsc/lint 통과, Vitest 57파일/665개 통과.` |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `25b3953` ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: 15c0d1411ab548a49eb02b2e44b284aa6771722f` |
+| **2** | **`✅ DONE (리뷰 clean, 산출물 SHA: dbf1109, main 병합 6712a24)`** | ~~Gemini 4 Argon~~ ➡️ **Claude Opus** *(1순위 대체 수행 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `25b3953` ↔ Target `15c0d14` 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `✅ clean(P1~P4 0건): 추가 모달 템플릿 게이트(전체 캐릭터 목록 중 정식 캐릭터 기준 판정), validateClassificationTemplate가 DB is_valid_classification_schema 규칙과 일치, 축 키 입력 제거·assignAxisKey 비중복 배정, 템플릿 모달 제목·설명·등급 라벨, 스키마 CHECK 오류 안내 확인. diff-check/tsc/lint 통과, Vitest 57파일/665개 통과, 스키마 검증 3종 통과. main 병합 6712a24. DB 변경 없음.` |
 
 #### 📌 `r57-character-template-gate-and-validation` 배경 및 단계별 수용 기준 (Acceptance Criteria)
 

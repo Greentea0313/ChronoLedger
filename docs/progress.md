@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## r57-character-template-gate-and-validation 리뷰 및 `main` 병합 마감 (2026-11-10)
+
+- **수행 주체**: Claude Opus (Reviewer & Orchestrator, Gemini 4 Argon 1순위 대체)임.
+- **리뷰 (`25b3953` ↔ `15c0d14`)**: 템플릿 없는 게임의 정식 캐릭터 추가 차단·템플릿 생성 연결, 템플릿 폼 검증의 DB 규칙 일치, 축 키 자동 비중복 배정, 템플릿 모달 안내 문구, 스키마 CHECK 오류 안내를 확인함. P1~P4 0건으로 `clean` 판정함.
+- **검증**: `git diff --check`, tsc·lint 통과, Vitest 57파일/665개 통과함. 산출물 스키마 검증 및 커밋(`dbf1109`) 완료함.
+- **`main` 병합**: `6712a24` 완료함. DB 변경 없어 운영 마이그레이션 선행 조건 없음. push 미수행임.
+- **다음 단계**: Dispatch Queue에 `▶ READY` 과제 없음. 운영 마이그레이션 `R58`(R56 트리거)은 미적용 상태로 남아 있음. 보안 안건 `R50`은 `📝 AGENDA` 대기임.
+
 ## Phase 12.43 (`r55-r56-favorite-hook-and-version-pass-trigger`) Step 3 통합 리뷰 `clean` 마감, `main` 병합 및 `r57` 활성화 (2026-11-10)
 
 - **수행 주체**: Gemini 4 Argon (`Reviewer & Orchestrator`)임.
