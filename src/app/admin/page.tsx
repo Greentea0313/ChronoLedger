@@ -22,9 +22,12 @@ import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFil
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import {
+  assignAxisKey,
   isCharacterTemplateActive,
   normalizeClassificationSchema,
   normalizeMaxBreakthrough,
+  splitCommaList,
+  validateClassificationTemplate,
   type ClassificationAxis,
   type ClassificationSchema,
 } from "@/lib/character-utils"
@@ -807,6 +810,16 @@ export default function AdminPage() {
     setDeletingCharacter(null)
   }
 
+  // games_classification_schema_check (23514): show a template-specific hint instead of the raw database message.
+  const describeGameSaveError = (error: { code?: string; message?: string }, fallback: string) => {
+    const message = error.message ?? ""
+    const isTemplateCheck =
+      message.includes("games_classification_schema_check") || (error.code === "23514" && !message.includes("constraint"))
+    return isTemplateCheck
+      ? "캐릭터 템플릿 형식이 올바르지 않습니다(등급·분류 기준 개수와 길이를 확인해 주세요)."
+      : fallback + message
+  }
+
   const handleSaveGame = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmedName = gameFormName.trim()
@@ -827,26 +840,21 @@ export default function AdminPage() {
       return
     }
     const characterLabel = gameFormCharacterLabel.trim()
-    if (characterLabel.length > 20) {
-      setGameFormError("캐릭터 시스템 명칭은 20자 이내로 입력해 주세요.")
+    const rarities = splitCommaList(gameFormRarities)
+    // Axis keys are managed automatically (kept for existing axes, class1/class2 for new ones); the user never types them.
+    const axes: ClassificationAxis[] = gameFormAxes.map((axis) => ({
+      key: axis.key,
+      label: axis.label.trim(),
+      options: splitCommaList(axis.options),
+    }))
+    // Same limits as the DB is_valid_classification_schema; the template flow additionally needs at least one rank.
+    const templateError = validateClassificationTemplate(
+      { characterLabel, rarities, axes },
+      { requireRarities: templateFlowGameId !== null && editingGame?.id === templateFlowGameId },
+    )
+    if (templateError) {
+      setGameFormError(templateError)
       return
-    }
-    const rarities = gameFormRarities.split(",").map((value) => value.trim()).filter(Boolean)
-    if (rarities.length > 10 || rarities.some((value) => value.length > 20)) {
-      setGameFormError("성급은 비어 있지 않은 문자열을 최대 10개까지 입력할 수 있습니다.")
-      return
-    }
-    const axes: ClassificationAxis[] = []
-    for (let index = 0; index < Math.min(gameFormAxes.length, 2); index += 1) {
-      const axis = gameFormAxes[index]
-      const options = axis.options.split(",").map((value) => value.trim()).filter(Boolean)
-      const key = axis.key.trim() || `axis_${index + 1}`
-      const label = axis.label.trim()
-      if (!label || key.length > 32 || label.length > 30 || options.length < 1 || options.length > 30 || options.some((value) => value.length > 30)) {
-        setGameFormError("분류 축은 키·표시명·옵션을 올바르게 입력해 주세요.")
-        return
-      }
-      axes.push({ key, label, options })
     }
     const classificationSchema = { ...(characterLabel ? { character_label: characterLabel } : {}), rarities, axes }
     if (editingGame) {
@@ -906,7 +914,7 @@ export default function AdminPage() {
       setIsSubmittingGame(false)
 
       if (error) {
-        setGameFormError("게임 수정에 실패했습니다: " + error.message)
+        setGameFormError(describeGameSaveError(error, "게임 수정에 실패했습니다: "))
       } else {
         setMessage({ type: "success", text: `'${trimmedName}' 게임 정보가 수정되었습니다.` })
         setIsGameModalOpen(false)
@@ -943,7 +951,7 @@ export default function AdminPage() {
         ) {
           setGameFormError("이미 등록된 게임 이름입니다.")
         } else {
-          setGameFormError("게임 등록에 실패했습니다: " + error.message)
+          setGameFormError(describeGameSaveError(error, "게임 등록에 실패했습니다: "))
         }
       } else {
         setMessage({ type: "success", text: `'${trimmedName}' 게임이 성공적으로 등록되었습니다.` })
@@ -1019,6 +1027,9 @@ export default function AdminPage() {
     return !characterSearchQuery.trim() || character.name.toLowerCase().includes(characterSearchQuery.trim().toLowerCase())
   })
 
+  const isTemplateFlow = templateFlowGameId !== null && editingGame?.id === templateFlowGameId
+  const rosterCountOf = (id: string) => characters.filter((character) => character.game_id === id && !character.is_pickup_only).length
+  const isGameTemplateActive = (game: GameOption | undefined | null) => (game ? isCharacterTemplateActive(game, rosterCountOf(game.id)) : true)
   const selectedCharacterGame = games.find((game) => game.id === characterGameFilter) ?? null
   const selectedSchema = selectedCharacterGame?.classification_schema
   // Template/support checks count regular roster characters only; pickup-only ones do not activate a template (D-06).
@@ -2282,10 +2293,14 @@ export default function AdminPage() {
         <DialogContent className="max-w-md w-full overflow-hidden">
           <DialogHeader>
             <DialogTitle>
-              {editingGame ? "게임 정보 수정" : "새 게임 등록"}
+              {isTemplateFlow && editingGame
+                ? `${editingGame.name} 캐릭터 템플릿 ${editingGame.classification_schema.rarities.length >= 1 ? "수정" : "생성"}`
+                : editingGame ? "게임 정보 수정" : "새 게임 등록"}
             </DialogTitle>
             <DialogDescription className="text-xs text-content-secondary">
-              {editingGame
+              {isTemplateFlow
+                ? "캐릭터 시스템 명칭·등급·분류 기준(최대 2개)·최대 프리셋 슬롯·최대 돌파 단계를 설정함."
+                : editingGame
                 ? "게임 명칭 및 기본 대표 아이콘 URL을 변경합니다."
                 : "공식 마스터 카탈로그에 새로운 게임을 등록합니다."}
             </DialogDescription>
@@ -2379,18 +2394,17 @@ export default function AdminPage() {
                 <Input id="game-form-max-breakthrough" type="number" min={0} max={12} value={gameFormMaxBreakthrough} onChange={(event) => setGameFormMaxBreakthrough(event.target.value)} />
               </div>
               <div>
-                <label htmlFor="game-form-rarities" className="block text-sm font-medium mb-1">성급 목록</label>
+                <label htmlFor="game-form-rarities" className="block text-sm font-medium mb-1">{isTemplateFlow ? "등급 목록 (최고 등급부터) *" : "성급 목록"}</label>
                 <Input id="game-form-rarities" value={gameFormRarities} onChange={(event) => setGameFormRarities(event.target.value)} placeholder="5★, 4★ (최고 등급부터)" />
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-medium">분류 기준 (최대 2개)</label>
-                <Button type="button" size="sm" variant="outline" onClick={() => setGameFormAxes((current) => current.length >= 2 ? current : [...current, { rowId: nextAxisRowId(), key: `class${current.length + 1}`, label: "", options: "" }])}>축 추가</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setGameFormAxes((current) => current.length >= 2 ? current : [...current, { rowId: nextAxisRowId(), key: assignAxisKey(current.map((item) => item.key)), label: "", options: "" }])}>축 추가</Button>
               </div>
               {gameFormAxes.map((axis, index) => (
-                <div key={axis.rowId}className="grid grid-cols-[1fr_1fr_2fr_auto] gap-2">
-                  <Input aria-label={`분류 축 ${index + 1} 키`} placeholder="key" value={axis.key} onChange={(event) => setGameFormAxes((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, key: event.target.value } : item))} />
+                <div key={axis.rowId} className="grid grid-cols-[1fr_2fr_auto] gap-2">
                   <Input aria-label={`분류 축 ${index + 1} 이름`} placeholder="표시명" value={axis.label} onChange={(event) => setGameFormAxes((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))} />
                   <Input aria-label={`분류 축 ${index + 1} 옵션`} placeholder="옵션1, 옵션2" value={axis.options} onChange={(event) => setGameFormAxes((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, options: event.target.value } : item))} />
                   <Button type="button" variant="ghost" onClick={() => setGameFormAxes((current) => current.filter((_, itemIndex) => itemIndex !== index))}>삭제</Button>
@@ -2503,6 +2517,8 @@ export default function AdminPage() {
             const isPickupOnlyEdit = editingCharacter?.is_pickup_only === true
             const canPromote = isPickupOnlyEdit && isCharacterTemplateActive(formGame, characters.filter((character) => character.game_id === formGame?.id && !character.is_pickup_only).length)
             const showClassification = !isPickupOnlyEdit || characterFormPromote
+            // A game without a template cannot get regular characters yet; the template step comes first (R52 §3.2, R57).
+            const isGated = !editingCharacter && !!formGame && !isGameTemplateActive(formGame)
             return (
               <>
                 <DialogHeader>
@@ -2514,9 +2530,27 @@ export default function AdminPage() {
                     <label htmlFor="character-form-game" className="mb-1 block text-sm font-medium">대상 게임</label>
                     <select id="character-form-game" className="h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content" value={characterFormGameId} onChange={(event) => { setCharacterFormGameId(event.target.value); setCharacterFormRarity(""); setCharacterFormAttributes({}) }}>
                       <option value="">게임을 선택하세요</option>
-                      {games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
+                      {games.map((game) => <option key={game.id} value={game.id}>{!editingCharacter && !isGameTemplateActive(game) ? `${game.name} (템플릿 없음)` : game.name}</option>)}
                     </select>
                   </div>
+                  {isGated && formGame ? (
+                    <div className="space-y-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-warning" data-testid="character-template-gate">
+                      <p>{`${formGame.name}은(는) 캐릭터 템플릿이 아직 없습니다. 템플릿(명칭·등급·분류 기준)을 먼저 만들어야 합니다.`}</p>
+                      <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsCharacterModalOpen(false)}>취소</Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setIsCharacterModalOpen(false)
+                            handleOpenTemplate(formGame)
+                          }}
+                        >
+                          캐릭터 템플릿 생성
+                        </Button>
+                      </DialogFooter>
+                    </div>
+                  ) : (
+                  <>
                   <div>
                     <label htmlFor="character-form-name" className="mb-1 block text-sm font-medium">{`${formLabel} 이름 *`}</label>
                     <Input id="character-form-name" maxLength={100} value={characterFormName} onChange={(event) => setCharacterFormName(event.target.value)} />
@@ -2558,6 +2592,8 @@ export default function AdminPage() {
                     <Button type="button" variant="outline" onClick={() => setIsCharacterModalOpen(false)}>취소</Button>
                     <Button type="submit" disabled={isSubmittingCharacter}>{isSubmittingCharacter ? "저장 중..." : "저장"}</Button>
                   </DialogFooter>
+                  </>
+                  )}
                 </form>
               </>
             )
