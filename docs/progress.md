@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r62-preset-workspace-desktop` Step 1 (R62 PC 프리셋 작업 공간 Maker) 완료 (2026-11-10)
+
+- **수행 주체**: Claude Sonnet (`Maker (Desktop Preset Workspace)`)임.
+- **커밋 `ffd07b9`** (`.worktrees/r62-preset-workspace-desktop`, 미병합): 900px 이상에서 프리셋 탭을 좌측 보유 캐릭터 사이드바 + 우측 인라인 편집(`PresetWorkspace`)으로 전환함. 아바타→슬롯 드래그, 슬롯 간 드래그, 슬롯 선택 후 아바타 클릭 배치, `저장`·`되돌리기`, 미저장 경고(`confirm`)를 반영함. 900px 미만은 현행 `PresetList`+`PresetEditorDialog` 유지함. DB 변경 없음.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 61파일/733개 통과함. 개발 서버·실제 브라우저 DnD 확인은 미수행임.
+- **다음 단계**: Step 2(`Gemini 4 Argon`, Claude Opus 1순위 대체) `▶ READY` — Base `564b83b` ↔ Target `ffd07b9` 통합 정적 리뷰, 수동 확인, `main` 병합, 문서 마감임.
+
 ## Run `r62-preset-workspace-desktop` 등록 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.

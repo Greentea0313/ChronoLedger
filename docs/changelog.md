@@ -1,4 +1,12 @@
 # 변경 이력
+## 2026-11-10 (Run `r62-preset-workspace-desktop` Step 1 — R62, `ffd07b9`)
+
+- 화면 너비 900px 이상에서 `조합 프리셋` 탭을 `PresetWorkspace`(좌측 보유 캐릭터 사이드바·필터 + 우측 프리셋 목록·인라인 편집)로 표시함. 900px 미만은 기존 목록·모달 흐름 유지함.
+- 배치: 아바타→슬롯 드래그(빈 슬롯 추가/채워진 슬롯 교체/기존 배치 시 맞바꿈), 슬롯 간 드래그 순서 이동, 슬롯 선택(`aria-pressed`) 후 아바타 클릭 배치, Esc·재클릭 해제함. 슬롯 상한·비파괴 축소 규칙을 모든 경로에 적용함.
+- 저장은 `저장` 버튼으로만 하고 `되돌리기` 추가, 프리셋 전환·새 프리셋·게임 전환·`보유 캐릭터` 탭 이동 시 미저장 변경 `confirm()` 경고함.
+- 신규: `preset-workspace.tsx`, `use-media-query.ts`(+테스트), `character-utils.ts`에 `placeCharacterInSlot`·`moveCharacterToSlot` 추가함. `handleSavePreset`를 `(draft, presetId)`로 분리해 두 UI가 공유함.
+- Vitest 61파일/733개, `tsc --noEmit`, `npm run lint`, `git diff --check` 통과함. Step 2(`Gemini 4 Argon`)를 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Run `r62-preset-workspace-desktop` 등록)
 
 - 격리 Worktree·manifest(`07748d1`, Base `564b83b`) 생성하고 Dispatch Queue에 Step 1(Claude Sonnet)·Step 2(Gemini 4 Argon)와 수용 기준(배치 규칙·미저장 경고·900px 분기·테스트) 등록함.

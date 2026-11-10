@@ -40,8 +40,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Desktop Preset Workspace)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `src/components/character/preset-list.tsx`, `src/components/character/preset-editor-dialog.tsx`(공용 슬롯 UI 추출 시에만), 신규 `src/components/character/preset-workspace.tsx`(+`.test.tsx`), 신규 `src/components/character/preset-slot-editor.tsx`(공용 추출 시), `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, 신규 `src/lib/use-media-query.ts`(+테스트) | `⏳ Step 1 Maker 커밋 후 Step 2를 ▶ READY로 전환` |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `564b83b` ↔ Step 1 Target 통합 정적 리뷰(`iteration-01/review.json`·`test.json`), tsc·lint·Vitest·diff-check, 가능하면 개발 서버에서 PC·모바일 너비 수동 확인, `main` 병합 및 문서 마감 | `⏳ Step 1 완료 후 착수` |
+| **1** | **`✅ DONE (SHA: ffd07b9)`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (Desktop Preset Workspace)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/dashboard/characters/page.tsx`, `src/app/dashboard/characters/page.test.tsx`, `src/components/character/preset-list.tsx`, `src/components/character/preset-editor-dialog.tsx`(공용 슬롯 UI 추출 시에만), 신규 `src/components/character/preset-workspace.tsx`(+`.test.tsx`), 신규 `src/components/character/preset-slot-editor.tsx`(공용 추출 시), `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, 신규 `src/lib/use-media-query.ts`(+테스트) | `✅ ffd07b9`: R62 반영. 신규 `preset-workspace.tsx`·`use-media-query.ts`, `character-utils.ts`에 `placeCharacterInSlot`·`moveCharacterToSlot` 추가, `page.tsx` 900px 분기·미저장 경고 연동. `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 61파일/733개 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `564b83b` ↔ Step 1 Target 통합 정적 리뷰(`iteration-01/review.json`·`test.json`), tsc·lint·Vitest·diff-check, 가능하면 개발 서버에서 PC·모바일 너비 수동 확인, `main` 병합 및 문서 마감 | `▶ Base 564b83b ↔ Target ffd07b9 통합 정적 리뷰 착수` |
 
 #### 📌 `r62-preset-workspace-desktop` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -67,6 +67,24 @@
 
 2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**:
    - Base `564b83b` ↔ Step 1 Target 정적 리뷰(상태 동기화·드래그 이벤트·미저장 경고·상한 규칙 중심), 동적 검증, 산출물 작성·스키마 검증, `main` 병합, `docs/` 마감(`to-do` R62 완료 처리, 검토 안건 갱신).
+
+#### 📝 `r62-preset-workspace-desktop` Step 1 완료 기록 (Claude Sonnet, 2026-11-10)
+
+- **Target SHA**: `ffd07b917468ea6d543622db13f674f99dd1a745` (`collab/r62-preset-workspace-desktop`, 미병합)
+- **구현 요약**:
+  - `src/lib/use-media-query.ts`(신규): `useSyncExternalStore` 기반 `useMediaQuery`. 서버/첫 하이드레이션·`matchMedia` 미지원 환경은 `false`(모바일 기준)임.
+  - `src/lib/character-utils.ts`: `placeCharacterInSlot`(빈 슬롯=끝 추가/기존 배치 캐릭터는 끝으로 이동, 채워진 슬롯=교체, 다른 슬롯에 있으면 맞바꿈, 상한 초과 프리셋은 교체·이동만 가능), `moveCharacterToSlot`(순서 이동, 빈 슬롯 지정 시 끝) 추가함.
+  - `src/components/character/preset-workspace.tsx`(신규): 좌측 보유 캐릭터 사이드바(`CharacterFilterBar`, 즐겨찾기 우선, 독립 스크롤) + 우측 프리셋 목록/인라인 편집(제목·메모·슬롯), `저장`·`되돌리기`. HTML5 DnD(아바타→슬롯, 슬롯↔슬롯), 슬롯 클릭(`aria-pressed`) 후 아바타 클릭 배치, 같은 슬롯 재클릭·Esc로 해제, 기존 화살표·제거 버튼 유지함.
+  - `src/app/dashboard/characters/page.tsx`: `(min-width: 900px)`에서만 `PresetWorkspace`(`key=gameId`), 미만은 `PresetList`+`PresetEditorDialog` 유지(대화상자는 데스크톱에서 미마운트·열림 상태 해제). `handleSavePreset(draft, presetId)`로 시그니처 분리해 두 UI가 같은 검증·저장 경로를 사용함.
+- **결정 사항**:
+  - 미저장 경고는 `confirm()`: 프리셋 전환·`새 프리셋 추가`는 작업 공간 내부, 게임 전환·`보유 캐릭터` 탭 이동은 페이지에서 `onDirtyChange` ref로 판단함. Radix Tabs가 mousedown·focus에서 `onValueChange`를 두 번 호출해 취소 시 확인창이 중복되므로, 거절 직후 500ms 내 같은 대상 요청은 무시함.
+  - 너비 전환(900px 경계)으로 작업 공간이 언마운트되면 미저장 편집 내용은 폐기됨(저장된 프리셋은 유지). 전환 중 경고는 불가해 수용 범위로 기록함.
+  - 새 프리셋은 저장 전 DB 행을 만들지 않으며, 저장 후 목록 갱신에서 새로 나타난 행을 선택함(INSERT 반환 id 미사용, DB 호출 변경 없음).
+  - 사이드바 아바타는 가득 찬 상태에서도 `disabled`하지 않음(네이티브 `disabled` 버튼은 드래그 불가). 슬롯 미선택 클릭이 불가하면 `role="alert"` 안내를 표시함.
+  - 공용 슬롯 UI 추출(`preset-slot-editor.tsx`)은 하지 않음(대화상자와 동작이 달라 단일 사용 추상화 회피).
+- **테스트**: `character-utils.test.ts`(경계 사례), `use-media-query.test.tsx`, `preset-workspace.test.tsx`(24개: 드래그·슬롯 클릭·교체/맞바꿈·상한·미저장 경고·저장 인자), `page.test.tsx`(900px 분기·저장 경로·게임/탭 이동 경고) 추가함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 61파일/733개 통과함. **개발 서버에서 PC·모바일 너비 실사용(실제 브라우저 DnD) 확인은 미수행**임 → Step 2에서 확인 필요함.
+- **Step 2 확인 요청**: 실제 브라우저 HTML5 DnD(특히 `draggable` 버튼 내부 이미지·Firefox), 900px 경계 전환 동작, 키보드 접근성(슬롯 선택·Esc), `beforeunload` 미구현(범위 밖) 확인함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r61-r65-r66-character-admin-quick-fixes`
 
