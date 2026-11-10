@@ -155,11 +155,14 @@ function ScheduleTree({
       return next
     })
   }, [schedules, today])
-  const renderSchedule = (schedule: GameScheduleRow, withCountdown = false) => (
+  const renderSchedule = (schedule: GameScheduleRow, withCountdown = false) => {
+    const pickupAvatars = getPickupAvatars(schedule, pickupCharacters)
+    return (
     <div key={schedule.id} className="rounded-lg border border-line bg-surface-2 p-3 space-y-1.5">
       <div className="flex items-start justify-between gap-2.5">
-        <PickupAvatars avatars={getPickupAvatars(schedule, pickupCharacters)} size={28} />
-        <span className="min-w-0 flex-1 break-words text-sm font-semibold text-content">
+        <PickupAvatars avatars={pickupAvatars} size={28} />
+        {/* With 28px avatars, pt-1 centres the first 20px text line on the avatars. */}
+        <span className={`min-w-0 flex-1 break-words text-sm font-semibold text-content ${pickupAvatars.length > 0 ? "pt-1" : ""}`}>
           {schedule.title.includes("/")
             ? schedule.title
                 .split("/")
@@ -231,7 +234,8 @@ function ScheduleTree({
         </p>
       )}
     </div>
-  )
+    )
+  }
   const grouped = new Set<string>()
   const versionChildren = new Map<string, GameScheduleRow[]>()
   versions.forEach((version) => {

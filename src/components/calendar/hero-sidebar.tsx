@@ -387,19 +387,22 @@ export function HeroSidebarContent({
                               <div className="flex items-start gap-2">
                                 <div className="min-w-0 flex-1 font-bold text-sm text-content">
                                   <PickupAvatars avatars={item.pickupAvatars} size={28} className="mr-1.5 align-middle" />
-                                  {item.is_official === false && (
-                                    <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                                      [비공식]
-                                    </span>
-                                  )}
-                                  {item.title.includes("/") ? (
-                                    <span className="inline-flex items-center gap-1">
-                                      <span>•</span>
-                                      <ScheduleTitleBadges title={item.title} />
-                                    </span>
-                                  ) : (
-                                    `• ${item.title}`
-                                  )}
+                                  {/* Text sits ~2px above the avatar centre with align-middle; nudge it down when avatars are shown. */}
+                                  <span className={item.pickupAvatars?.length ? "relative top-0.5" : undefined}>
+                                    {item.is_official === false && (
+                                      <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                        [비공식]
+                                      </span>
+                                    )}
+                                    {item.title.includes("/") ? (
+                                      <span className="inline-flex items-center gap-1">
+                                        <span>•</span>
+                                        <ScheduleTitleBadges title={item.title} />
+                                      </span>
+                                    ) : (
+                                      `• ${item.title}`
+                                    )}
+                                  </span>
                                 </div>
                                 {/* Favourite controls sit right of the title so they do not add a line to the card. */}
                                 <FavoriteScheduleActions
@@ -424,12 +427,15 @@ export function HeroSidebarContent({
                           <div className="relative z-10 flex items-start gap-2">
                             <div className="min-w-0 flex-1 font-bold text-sm text-content leading-snug">
                               <PickupAvatars avatars={group.items[0].pickupAvatars} size={28} className="mr-2 align-middle" />
-                              {group.items[0].is_official === false && (
-                                <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                                  [비공식]
-                                </span>
-                              )}
-                              <ScheduleTitleBadges title={group.items[0].title} />
+                              {/* Text sits ~2px above the avatar centre with align-middle; nudge it down when avatars are shown. */}
+                              <span className={group.items[0].pickupAvatars?.length ? "relative top-0.5" : undefined}>
+                                {group.items[0].is_official === false && (
+                                  <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                    [비공식]
+                                  </span>
+                                )}
+                                <ScheduleTitleBadges title={group.items[0].title} />
+                              </span>
                             </div>
                             {/* Favourite controls sit right of the title so they do not add a line to the card. */}
                             <FavoriteScheduleActions
