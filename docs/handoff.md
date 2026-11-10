@@ -47,8 +47,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 SQL Tests)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/tests/TESTS.sql` | - |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Input Reset · Spec Note)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.classification-icons.test.tsx`, `docs/spec/R76_Preset_Grid_Editing_Spec.md`(§10) | 사용자 추가 요청(즐겨찾기 화살표 삭제 `f61e90f`, 드래그 미리보기 위치·사이드바 필터 줄바꿈 `7c683cc`)은 Claude Opus가 먼저 처리함(위 참고). R77 입력 초기화·명세 §10은 남음 |
+| **1** | **`✅ DONE (SHA: b5b66e1)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 SQL Tests)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `sql/tests/TESTS.sql` | `✅ b5b66e1`: R76 누락 시나리오(이동·원자 롤백·중복·비이동 2행·다른 게임·3행·타 사용자·순서 누락/추가) 추가함. diff-check·Vitest 64파일/780개 통과. `psql` 부재로 SQL 미실행함. |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Input Reset · Spec Note)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.classification-icons.test.tsx`, `docs/spec/R76_Preset_Grid_Editing_Spec.md`(§10) | 사용자 추가 요청(즐겨찾기 화살표 삭제 `f61e90f`, 드래그 미리보기 위치·사이드바 필터 줄바꿈 `7c683cc`)은 Claude Opus가 먼저 처리함(위 참고). R77 입력 초기화·명세 §10은 남음 |
 | **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `3c71e9c` ↔ Target(Step 2 커밋) 정적 리뷰, 동적 검증, 사용자 실브라우저 확인 결과 기록, `main` 병합, 문서 마감 | - |
 
 #### 📌 `r78-r76-followups-and-browser-check` 단계별 수용 기준 (Acceptance Criteria)
@@ -70,6 +70,13 @@
    - Base ↔ Target 정적 리뷰, 동적 검증, `review.json`·`test.json` 작성·검증, `main` 병합, 문서 마감함.
    - 사용자 실브라우저 확인 결과를 받아 기록함. 확인 항목: Chrome·Firefox 마우스 드래그(사이드바→슬롯, 슬롯 정렬, 프리셋 간 이동, 카드 밖 제거, 카드 순서), 터치 실기기 길게 눌러 드래그·세로 스크롤 유지, 키보드(스페이스 집기·방향키·Esc), 900px·1280px 레이아웃, 즐겨찾기 정렬 후 짧은 클릭 시 설정 창, R77 모달(URL·붙여넣기·파일).
    - 모바일 카드 사이 놓기로 인한 실수 제거가 잦거나 키보드 드래그 대상이 어긋나면 새 to-do 항목으로 등록함(명시적 제거 영역 등은 사용자 결정 필요).
+
+#### 📝 `r78-r76-followups-and-browser-check` Step 1 완료 기록 (GPT Codex, 2026-11-10)
+
+- **Target SHA**: `b5b66e1` (워크트리 브랜치, 미병합)임.
+- **변경**: R76 SQL 스모크 테스트에 프리셋 간 이동 성공, 트리거 실패 원자 롤백, 대상 중복, 비이동 2행 변경, 다른 게임, 3개 객체, 타 사용자, 프리셋 순서 누락·추가 검증을 추가함.
+- **검증**: `git diff --check`, Vitest 64파일/780개 통과함. `psql` 부재로 전체 SQL 테스트는 미실행함.
+- **다음 단계**: Step 2(`Claude Sonnet`, R77 입력 초기화·명세 §10) `▶ READY`임.
 
 ### 🗂️ 이전 Run 기록 (완료): `r76-r77-preset-grid-dnd-and-icon-modal`
 
