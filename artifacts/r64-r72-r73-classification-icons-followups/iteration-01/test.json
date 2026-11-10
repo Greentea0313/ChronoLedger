@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "run_id": "r64-r72-r73-classification-icons-followups",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "bc7fbad477e13de89b81c6a8ba474ca3fd3145c3",
+  "target_sha": "da78bc66cb2725b769c745c79c346173ddd5edeb",
+  "status": "passed",
+  "created_at": "2026-11-10T12:00:00Z",
+  "finished_at": "2026-11-10T12:05:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check bc7fbad477e13de89b81c6a8ba474ca3fd3145c3 da78bc66cb2725b769c745c79c346173ddd5edeb", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "node ../../node_modules/typescript/bin/tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "node ../../node_modules/next/dist/bin/next lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (63 files, 780 tests)", "command": "node ../../node_modules/vitest/vitest.mjs run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder Supabase env", "command": "node ../../node_modules/next/dist/bin/next build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "R64 migration and TESTS.sql R64 block against a live database (migration is applied manually by the user in Supabase SQL Editor; no DB available to the reviewer)", "command": "psql -f sql/tests/TESTS.sql", "status": "skipped", "exit_code": null, "log_path": null },
+    { "name": "Manual browser check of R73 drag handles (Chrome, Firefox, 900px switch) and R64 icon upload/display (requires a signed-in admin account; not available to the reviewer)", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}
