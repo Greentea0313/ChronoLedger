@@ -178,6 +178,15 @@ function ScheduleTree({
           </span>
         )}
         <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="md" />
+        {/* Favourite controls sit on the title row so they do not add a line to the card. */}
+        <FavoriteScheduleActions
+          scheduleId={schedule.id}
+          title={schedule.title}
+          favoriteScheduleIds={favoriteScheduleIds}
+          onToggleFavorite={onToggleFavorite}
+          onAddPlannedExpense={onAddPlannedExpense}
+          className="shrink-0 flex-wrap justify-end"
+        />
       </div>
       <p className="text-xs text-content-secondary">
         {schedule.start_date === schedule.end_date
@@ -221,13 +230,6 @@ function ScheduleTree({
             : schedule.memo}
         </p>
       )}
-      <FavoriteScheduleActions
-        scheduleId={schedule.id}
-        title={schedule.title}
-        favoriteScheduleIds={favoriteScheduleIds}
-        onToggleFavorite={onToggleFavorite}
-        onAddPlannedExpense={onAddPlannedExpense}
-      />
     </div>
   )
   const grouped = new Set<string>()

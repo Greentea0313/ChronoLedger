@@ -384,48 +384,62 @@ export function HeroSidebarContent({
                         <ul className="relative z-10 flex flex-col gap-0.5">
                           {group.items.map((item) => (
                             <li key={item.id} className="leading-snug">
-                              <div className="font-bold text-sm text-content">
-                                <PickupAvatars avatars={item.pickupAvatars} size={28} className="mr-1.5 align-middle" />
-                                {item.is_official === false && (
-                                  <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                                    [비공식]
-                                  </span>
-                                )}
-                                {item.title.includes("/") ? (
-                                  <span className="inline-flex items-center gap-1">
-                                    <span>•</span>
-                                    <ScheduleTitleBadges title={item.title} />
-                                  </span>
-                                ) : (
-                                  `• ${item.title}`
-                                )}
+                              <div className="flex items-start gap-2">
+                                <div className="min-w-0 flex-1 font-bold text-sm text-content">
+                                  <PickupAvatars avatars={item.pickupAvatars} size={28} className="mr-1.5 align-middle" />
+                                  {item.is_official === false && (
+                                    <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                      [비공식]
+                                    </span>
+                                  )}
+                                  {item.title.includes("/") ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      <span>•</span>
+                                      <ScheduleTitleBadges title={item.title} />
+                                    </span>
+                                  ) : (
+                                    `• ${item.title}`
+                                  )}
+                                </div>
+                                {/* Favourite controls sit right of the title so they do not add a line to the card. */}
+                                <FavoriteScheduleActions
+                                  scheduleId={item.id}
+                                  title={item.title}
+                                  favoriteScheduleIds={favoriteScheduleIds}
+                                  onToggleFavorite={onToggleFavorite}
+                                  onAddPlannedExpense={onAddPlannedExpense}
+                                  className="shrink-0 flex-wrap justify-end"
+                                />
                               </div>
                               {item.memo && (
                                 <p className="pl-3 text-[11px] text-content-secondary whitespace-pre-wrap">
                                   {item.memo}
                                 </p>
                               )}
-                              <FavoriteScheduleActions
-                                scheduleId={item.id}
-                                title={item.title}
-                                favoriteScheduleIds={favoriteScheduleIds}
-                                onToggleFavorite={onToggleFavorite}
-                                onAddPlannedExpense={onAddPlannedExpense}
-                                className="mt-1 pl-3"
-                              />
                             </li>
                           ))}
                         </ul>
                       ) : (
                         <>
-                          <div className="relative z-10 font-bold text-sm text-content leading-snug">
-                            <PickupAvatars avatars={group.items[0].pickupAvatars} size={28} className="mr-2 align-middle" />
-                            {group.items[0].is_official === false && (
-                              <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                                [비공식]
-                              </span>
-                            )}
-                            <ScheduleTitleBadges title={group.items[0].title} />
+                          <div className="relative z-10 flex items-start gap-2">
+                            <div className="min-w-0 flex-1 font-bold text-sm text-content leading-snug">
+                              <PickupAvatars avatars={group.items[0].pickupAvatars} size={28} className="mr-2 align-middle" />
+                              {group.items[0].is_official === false && (
+                                <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                  [비공식]
+                                </span>
+                              )}
+                              <ScheduleTitleBadges title={group.items[0].title} />
+                            </div>
+                            {/* Favourite controls sit right of the title so they do not add a line to the card. */}
+                            <FavoriteScheduleActions
+                              scheduleId={group.items[0].id}
+                              title={group.items[0].title}
+                              favoriteScheduleIds={favoriteScheduleIds}
+                              onToggleFavorite={onToggleFavorite}
+                              onAddPlannedExpense={onAddPlannedExpense}
+                              className="shrink-0 flex-wrap justify-end"
+                            />
                           </div>
 
                           {/* Line 4: 메모 (있는 경우) */}
@@ -434,14 +448,6 @@ export function HeroSidebarContent({
                               {group.items[0].memo}
                             </p>
                           )}
-                          <FavoriteScheduleActions
-                            scheduleId={group.items[0].id}
-                            title={group.items[0].title}
-                            favoriteScheduleIds={favoriteScheduleIds}
-                            onToggleFavorite={onToggleFavorite}
-                            onAddPlannedExpense={onAddPlannedExpense}
-                            className="relative z-10 mt-1"
-                          />
                         </>
                       )}
                     </div>
