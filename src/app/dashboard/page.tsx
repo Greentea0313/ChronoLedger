@@ -25,8 +25,9 @@ import { ExpenseDetailModal } from "@/components/expense/expense-detail-modal"
 import { OverduePlannedModal, type OverduePlannedExpense } from "@/components/expense/overdue-planned-modal"
 import { calculateConfirmedExpense, calculateExpectedExpense, findOverduePlannedExpenses } from "@/lib/budget-calculations"
 import { getKstToday } from "@/lib/dashboard-date"
+import { useFavoriteSchedules } from "@/lib/use-favorite-schedules"
 import { useOnlineStatus } from "@/lib/use-online-status"
-import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
+import { isOffline } from "@/lib/offline-guard"
 import { ensureMonthlySubscriptionExpenses } from "@/lib/subscription-sync"
 import { DashboardSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
@@ -88,12 +89,6 @@ interface AllGameRow {
   default_icon_url: string | null
 }
 
-/** `user_favorite_schedules` not migrated yet (R35): fall back to an empty favourite set instead of failing the page. */
-function isMissingFavoriteTable(error: { code?: string; message?: string } | null | undefined): boolean {
-  const code = error?.code ?? ""
-  return code === "42P01" || code === "PGRST205"
-}
-
 function getCurrentWeekRange(todayDate: string): { weekStart: string; weekEnd: string; weekEndExclusive: string } {
   const today = parseLocalDate(todayDate)
   const week = groupDatesByWeek(today.getFullYear(), today.getMonth() + 1, todayDate).find((w) => w.isCurrentWeek)
@@ -128,7 +123,6 @@ export default function DashboardPage() {
 
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
   // R35: favourite schedules (own rows only via RLS), "관심 일정만" filter and the favourite -> planned-expense prefill.
-  const [favoriteScheduleIds, setFavoriteScheduleIds] = useState<ReadonlySet<string>>(() => new Set())
   const [onlyFavorites, setOnlyFavorites] = useState(false)
   const [expensePrefill, setExpensePrefill] = useState<ExpensePrefill | null>(null)
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false)
@@ -524,6 +518,7 @@ export default function DashboardPage() {
   // null = not read yet (localStorage is client-only)
   const [onboardingDismissed, setOnboardingDismissed] = useState<boolean | null>(null)
   const userId = user?.id
+  const { favoriteScheduleIds, toggleFavorite } = useFavoriteSchedules(userId, { onError: setError })
   useEffect(() => {
     setGameOrder(loadGameOrder(userId))
     setOnboardingDismissed(userId ? isGameOnboardingDismissed(userId) : null)
@@ -567,64 +562,8 @@ export default function DashboardPage() {
   )
 
   useEffect(() => {
-    if (!userId) {
-      setFavoriteScheduleIds(new Set())
-      setOnlyFavorites(false)
-      return
-    }
-    let cancelled = false
-    void (async () => {
-      try {
-        const { data, error: favoriteError } = await supabase.from("user_favorite_schedules").select("schedule_id")
-        if (cancelled) return
-        if (favoriteError) {
-          if (!isMissingFavoriteTable(favoriteError)) console.error("관심 일정을 불러오지 못했습니다:", favoriteError)
-          setFavoriteScheduleIds(new Set())
-          return
-        }
-        setFavoriteScheduleIds(new Set((data ?? []).map((row: { schedule_id: string }) => row.schedule_id)))
-      } catch (cause) {
-        if (!cancelled) {
-          console.error("관심 일정을 불러오지 못했습니다:", cause)
-          setFavoriteScheduleIds(new Set())
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
+    if (!userId) setOnlyFavorites(false)
   }, [userId])
-
-  const handleToggleFavorite = async (scheduleId: string) => {
-    if (!userId) return
-    if (isOffline()) {
-      setError(OFFLINE_WRITE_MESSAGE)
-      return
-    }
-    const wasFavorite = favoriteScheduleIds.has(scheduleId)
-    const applyLocal = (favorite: boolean) =>
-      setFavoriteScheduleIds((prev) => {
-        const next = new Set(prev)
-        if (favorite) next.add(scheduleId)
-        else next.delete(scheduleId)
-        return next
-      })
-    setError(null)
-    applyLocal(!wasFavorite)
-    try {
-      const result = wasFavorite
-        ? await supabase.from("user_favorite_schedules").delete().eq("schedule_id", scheduleId)
-        : await supabase.from("user_favorite_schedules").insert({ user_id: userId, schedule_id: scheduleId })
-      // A duplicate insert (23505) means another tab already favourited it, which is the desired end state.
-      if (result.error && !(result.error as { code?: string }).code?.startsWith("23505")) {
-        applyLocal(wasFavorite)
-        setError("관심 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
-      }
-    } catch {
-      applyLocal(wasFavorite)
-      setError("관심 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
-    }
-  }
 
   const handleAddPlannedExpenseFromSchedule = (scheduleId: string) => {
     const schedule = schedules.find((item) => item.id === scheduleId)
@@ -997,7 +936,7 @@ export default function DashboardPage() {
               }}
               onSelectExpense={setDetailExpenseId}
               favoriteScheduleIds={favoriteScheduleIds}
-              onToggleFavorite={user ? (id) => void handleToggleFavorite(id) : undefined}
+              onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
               onAddPlannedExpense={user ? handleAddPlannedExpenseFromSchedule : undefined}
               onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
               onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}
@@ -1065,7 +1004,7 @@ export default function DashboardPage() {
             onIncomeAdded={() => void load()}
             todayDate={todayDate}
             favoriteScheduleIds={favoriteScheduleIds}
-            onToggleFavorite={user ? (id) => void handleToggleFavorite(id) : undefined}
+            onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
             onAddPlannedExpense={user ? handleAddPlannedExpenseFromSchedule : undefined}
           />
         </div>
@@ -1087,7 +1026,7 @@ export default function DashboardPage() {
           onIncomeAdded={() => void load()}
           todayDate={todayDate}
           favoriteScheduleIds={favoriteScheduleIds}
-          onToggleFavorite={user ? (id) => void handleToggleFavorite(id) : undefined}
+          onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
           onAddPlannedExpense={user ? handleAddPlannedExpenseFromSchedule : undefined}
         />
       </div>

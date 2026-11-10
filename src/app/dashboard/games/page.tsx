@@ -16,6 +16,7 @@ import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-
 import { resizeImageToWebP } from "@/lib/image-resizer"
 import { getKstToday } from "@/lib/dashboard-date"
 import { getDdayLabel, getPeriodProgress } from "@/lib/calendar-utils"
+import { useFavoriteSchedules } from "@/lib/use-favorite-schedules"
 import { loadSchedulePreference } from "@/lib/schedule-preferences"
 import { GameIcon } from "@/components/ui/game-icon"
 import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
@@ -23,7 +24,6 @@ import { preloadImages } from "@/lib/icon-preload"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
 import { ExpenseModal, type ExpensePrefill } from "@/components/expense/expense-modal"
-import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getPickupAvatars, PickupAvatars } from "@/components/calendar/pickup-avatars"
 import { Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
@@ -468,73 +468,16 @@ export default function GamesPage() {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const hasLoadedInitialRef = useRef(false)
   const userId = user?.id
+  const { favoriteScheduleIds, toggleFavorite } = useFavoriteSchedules(userId, { onError: setScheduleError })
 
   // R35: favourite schedules (own rows via RLS), the 관심 일정만 filter and the favourite -> planned-expense prefill.
-  const [favoriteScheduleIds, setFavoriteScheduleIds] = useState<ReadonlySet<string>>(() => new Set())
   const [onlyFavorites, setOnlyFavorites] = useState(false)
   const [expensePrefill, setExpensePrefill] = useState<ExpensePrefill | null>(null)
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
 
   useEffect(() => {
-    if (!userId) {
-      setFavoriteScheduleIds(new Set())
-      setOnlyFavorites(false)
-      return
-    }
-    let cancelled = false
-    void (async () => {
-      try {
-        const { data, error } = await supabase.from("user_favorite_schedules").select("schedule_id")
-        if (cancelled) return
-        if (error) {
-          // 42P01 / PGRST205: migration not applied yet -> non-blocking empty set.
-          if (error.code !== "42P01" && error.code !== "PGRST205") console.error("관심 일정을 불러오지 못했습니다:", error)
-          setFavoriteScheduleIds(new Set())
-          return
-        }
-        setFavoriteScheduleIds(new Set((data ?? []).map((row: { schedule_id: string }) => row.schedule_id)))
-      } catch (cause) {
-        if (!cancelled) {
-          console.error("관심 일정을 불러오지 못했습니다:", cause)
-          setFavoriteScheduleIds(new Set())
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
+    if (!userId) setOnlyFavorites(false)
   }, [userId])
-
-  const handleToggleFavorite = async (scheduleId: string) => {
-    if (!userId) return
-    if (isOffline()) {
-      setScheduleError(OFFLINE_WRITE_MESSAGE)
-      return
-    }
-    const wasFavorite = favoriteScheduleIds.has(scheduleId)
-    const applyLocal = (favorite: boolean) =>
-      setFavoriteScheduleIds((prev) => {
-        const next = new Set(prev)
-        if (favorite) next.add(scheduleId)
-        else next.delete(scheduleId)
-        return next
-      })
-    setScheduleError(null)
-    applyLocal(!wasFavorite)
-    try {
-      const result = wasFavorite
-        ? await supabase.from("user_favorite_schedules").delete().eq("schedule_id", scheduleId)
-        : await supabase.from("user_favorite_schedules").insert({ user_id: userId, schedule_id: scheduleId })
-      // 23505 = already favourited in another tab/device, which is the desired end state.
-      if (result.error && result.error.code !== "23505") {
-        applyLocal(wasFavorite)
-        setScheduleError("관심 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
-      }
-    } catch {
-      applyLocal(wasFavorite)
-      setScheduleError("관심 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
-    }
-  }
 
   const handleAddPlannedExpenseFromSchedule = (scheduleId: string) => {
     const schedule = schedules.find((item) => item.id === scheduleId)
@@ -554,7 +497,7 @@ export default function GamesPage() {
 
   const favoriteControls = {
     favoriteScheduleIds,
-    onToggleFavorite: userId ? (id: string) => void handleToggleFavorite(id) : undefined,
+    onToggleFavorite: userId ? (id: string) => void toggleFavorite(id) : undefined,
     onAddPlannedExpense: userId ? handleAddPlannedExpenseFromSchedule : undefined,
     onlyFavorites,
     onOnlyFavoritesChange: userId ? setOnlyFavorites : undefined,
