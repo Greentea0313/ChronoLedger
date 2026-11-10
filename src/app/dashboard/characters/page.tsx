@@ -11,17 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RequestSubmissionModal } from "@/components/game/request-submission-modal"
 import { CharacterRoster } from "@/components/character/character-roster"
 import { loadClassificationIcons } from "@/lib/classification-icons"
-import { PresetEditorDialog, type PresetDraft, type PresetEditorTarget } from "@/components/character/preset-editor-dialog"
-import { PresetList, type PresetRow } from "@/components/character/preset-list"
-import { PresetWorkspace, UNSAVED_CHANGES_CONFIRM } from "@/components/character/preset-workspace"
+import { PresetBoard } from "@/components/character/preset-board"
 import {
-  PRESET_SLOT_HARD_LIMIT,
   isCharacterSupported,
   normalizeCharacterRow,
   normalizeClassificationSchema,
   normalizeMaxBreakthrough,
   normalizeMaxPresetSlots,
-  validatePresetInput,
   type ClassificationSchema,
   type GameCharacter,
   type UserCharacterState,
@@ -36,7 +32,8 @@ import {
 import { resizeImageToWebP } from "@/lib/image-resizer"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 import { preloadImages } from "@/lib/icon-preload"
-import { useMediaQuery } from "@/lib/use-media-query"
+import type { BoardPreset } from "@/lib/preset-board"
+import { usePresetBoard } from "@/lib/use-preset-board"
 
 interface UserGameRow {
   id: string
@@ -105,10 +102,9 @@ export default function CharactersPage() {
 
   const [loadedCatalog, setLoadedCatalog] = useState<{ gameId: string; items: GameCharacter[] } | null>(null)
   const [userCharacterRows, setUserCharacterRows] = useState<UserCharacterRow[]>([])
-  const [presets, setPresets] = useState<PresetRow[]>([])
+  const [presets, setPresets] = useState<BoardPreset[]>([])
   const [characterIcons, setCharacterIcons] = useState<Record<string, string>>({})
   const [busyCharacterIds, setBusyCharacterIds] = useState<Record<string, boolean>>({})
-  const [isPresetBusy, setIsPresetBusy] = useState(false)
   // Favorite order needs the favorite_sort_order column and reorder_favorite_characters RPC (R63 migration).
   const [favoriteOrderSupported, setFavoriteOrderSupported] = useState(true)
   const [isReordering, setIsReordering] = useState(false)
@@ -116,17 +112,7 @@ export default function CharactersPage() {
   const [notice, setNotice] = useState<Notice | null>(null)
   const [activeTab, setActiveTab] = useState("roster")
 
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editorTarget, setEditorTarget] = useState<PresetEditorTarget | null>(null)
-
   const hasLoadedInitialRef = useRef(false)
-  // Desktop (md, 900px+) edits presets inline in a workspace; below that the dialog flow is unchanged.
-  const isDesktop = useMediaQuery("(min-width: 900px)")
-  // Unsaved-changes flag reported by PresetWorkspace; a ref because only event handlers read it.
-  const presetDirtyRef = useRef(false)
-  // Radix Tabs fires onValueChange on both mousedown and focus; a declined confirm must not prompt twice.
-  const declinedTabRef = useRef<{ value: string; at: number } | null>(null)
-
   // The optional `?gameId=` query selects a game on first render (static export: read it on the client).
   useEffect(() => {
     const queryGameId = new URLSearchParams(window.location.search).get("gameId")
@@ -165,11 +151,6 @@ export default function CharactersPage() {
     () => (loadedCatalog && loadedCatalog.gameId === activeGameId ? loadedCatalog.items : []),
     [loadedCatalog, activeGameId],
   )
-
-  // The dialog is only mounted below 900px; never leave it open behind the workspace.
-  useEffect(() => {
-    if (isDesktop) setEditorOpen(false)
-  }, [isDesktop])
 
   const loadSubscribedGames = useCallback(async () => {
     if (!userId) return
@@ -244,7 +225,7 @@ export default function CharactersPage() {
       return
     }
     setUserCharacterRows((ownedResult.data as UserCharacterRow[]) ?? [])
-    setPresets((presetResult.data as PresetRow[]) ?? [])
+    setPresets((presetResult.data as BoardPreset[]) ?? [])
   }, [userId])
 
   useEffect(() => {
@@ -332,6 +313,8 @@ export default function CharactersPage() {
   }, [rowsForGame])
 
   const presetsForGame = useMemo(() => presets.filter((preset) => preset.game_id === activeGameId), [presets, activeGameId])
+  // R76: every preset change is applied at once and saved through one write queue.
+  const presetBoard = usePresetBoard({ userId, presets, setPresets, reload: loadUserCharacterData, onNotice: setNotice })
 
   // Download the user's custom icons for the selected game (cached per full object path).
   const customIconKey = rowsForGame
@@ -521,97 +504,9 @@ export default function CharactersPage() {
     }
   }
 
-  const openPresetEditor = (preset: PresetRow | null) => {
-    setNotice(null)
-    setEditorTarget(
-      preset
-        ? { id: preset.id, title: preset.title, memo: preset.memo, characterIds: preset.character_ids }
-        : { id: null, title: "", memo: null, characterIds: [] },
-    )
-    setEditorOpen(true)
-  }
-
-  const handleSavePreset = async (draft: PresetDraft, presetId: string | null): Promise<string | null> => {
-    if (!userId || !activeGameId || !selectedGame) return "로그인이 필요합니다."
-    if (isOffline()) return OFFLINE_WRITE_MESSAGE
-    const validationError = validatePresetInput(draft)
-    if (validationError) return validationError
-
-    const existing = presetId ? presetsForGame.find((preset) => preset.id === presetId) : undefined
-    // Non-destructive shrink (spec §7.3.1): an over-limit preset may be saved only if it does not grow.
-    const allowed = Math.min(PRESET_SLOT_HARD_LIMIT, Math.max(selectedGame.maxPresetSlots, existing?.character_ids.length ?? 0))
-    if (draft.characterIds.length > allowed) return `슬롯은 최대 ${selectedGame.maxPresetSlots}칸까지 사용할 수 있습니다.`
-
-    const title = draft.title.trim()
-    const memo = draft.memo.trim() === "" ? null : draft.memo
-    setIsPresetBusy(true)
-    try {
-      const result = existing
-        ? await supabase
-            .from("user_character_presets")
-            .update({ title, memo, character_ids: draft.characterIds })
-            .eq("id", existing.id)
-            .eq("user_id", userId)
-        : await supabase.from("user_character_presets").insert({
-            user_id: userId,
-            game_id: activeGameId,
-            title,
-            memo,
-            character_ids: draft.characterIds,
-            sort_order: presetsForGame.reduce((max, preset) => Math.max(max, preset.sort_order + 1), 0),
-          })
-      if (result.error) return `프리셋을 저장하지 못했습니다: ${result.error.message}`
-      await loadUserCharacterData()
-      setNotice({ type: "success", text: "프리셋을 저장했습니다." })
-      return null
-    } finally {
-      setIsPresetBusy(false)
-    }
-  }
-
-  const handlePresetDirtyChange = useCallback((dirty: boolean) => {
-    presetDirtyRef.current = dirty
-  }, [])
-
-  const handleDeletePreset = async (preset: PresetRow) => {
-    if (!userId) return
-    if (isOffline()) {
-      setNotice({ type: "error", text: OFFLINE_WRITE_MESSAGE })
-      return
-    }
-    if (!confirm(`'${preset.title}' 프리셋을 삭제하시겠습니까?`)) return
-    setNotice(null)
-    setIsPresetBusy(true)
-    try {
-      const { error } = await supabase.from("user_character_presets").delete().eq("id", preset.id).eq("user_id", userId)
-      if (error) {
-        setNotice({ type: "error", text: `프리셋을 삭제하지 못했습니다: ${error.message}` })
-        return
-      }
-      await loadUserCharacterData()
-    } finally {
-      setIsPresetBusy(false)
-    }
-  }
-
-  const confirmDiscardPresetDraft = () => !presetDirtyRef.current || confirm(UNSAVED_CHANGES_CONFIRM)
-
   const handleSelectGame = (gameId: string) => {
     if (gameId === activeGameId) return
-    if (activeTab === "presets" && !confirmDiscardPresetDraft()) return
     setSelectedGameId(gameId)
-  }
-
-  const handleTabChange = (value: string) => {
-    if (activeTab === "presets" && value !== "presets") {
-      const declined = declinedTabRef.current
-      if (declined && declined.value === value && Date.now() - declined.at < 500) return
-      if (!confirmDiscardPresetDraft()) {
-        declinedTabRef.current = { value, at: Date.now() }
-        return
-      }
-    }
-    setActiveTab(value)
   }
 
   if (isLoading && !hasLoadedInitialRef.current) return <CharactersPageSkeleton />
@@ -688,7 +583,7 @@ export default function CharactersPage() {
           </nav>
 
           {selectedGame && (
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full max-w-sm grid-cols-2 border border-line bg-surface-2">
                 <TabsTrigger value="roster">{`보유 ${selectedGame.characterLabel}`}</TabsTrigger>
                 <TabsTrigger value="presets">조합 프리셋</TabsTrigger>
@@ -717,52 +612,22 @@ export default function CharactersPage() {
               </TabsContent>
 
               <TabsContent value="presets" className="mt-4">
-                {isDesktop ? (
-                  <PresetWorkspace
-                    key={selectedGame.gameId}
-                    presets={presetsForGame}
-                    maxSlots={selectedGame.maxPresetSlots}
-                    gameName={selectedGame.name}
-                    characters={characters}
-                    schema={selectedGame.schema}
-                    states={characterStates}
-                    customIconUrls={characterIcons}
-                    isBusy={isPresetBusy}
-                    onSave={handleSavePreset}
-                    onDelete={(preset) => void handleDeletePreset(preset)}
-                    onDirtyChange={handlePresetDirtyChange}
-                  />
-                ) : (
-                  <PresetList
-                    presets={presetsForGame}
-                    maxSlots={selectedGame.maxPresetSlots}
-                    characters={characters}
-                    states={characterStates}
-                    customIconUrls={characterIcons}
-                    isBusy={isPresetBusy}
-                    onAdd={() => openPresetEditor(null)}
-                    onEdit={(preset) => openPresetEditor(preset)}
-                    onDelete={(preset) => void handleDeletePreset(preset)}
-                  />
-                )}
+                <PresetBoard
+                  key={selectedGame.gameId}
+                  gameId={selectedGame.gameId}
+                  presets={presetsForGame}
+                  maxSlots={selectedGame.maxPresetSlots}
+                  characters={characters}
+                  schema={selectedGame.schema}
+                  states={characterStates}
+                  customIconUrls={characterIcons}
+                  board={presetBoard}
+                  onError={(text) => setNotice({ type: "error", text })}
+                />
               </TabsContent>
             </Tabs>
           )}
 
-          {selectedGame && !isDesktop && (
-            <PresetEditorDialog
-              open={editorOpen}
-              onOpenChange={setEditorOpen}
-              preset={editorTarget}
-              gameName={selectedGame.name}
-              characters={characters}
-              schema={selectedGame.schema}
-              maxSlots={selectedGame.maxPresetSlots}
-              states={characterStates}
-              customIconUrls={characterIcons}
-              onSave={(draft) => handleSavePreset(draft, editorTarget?.id ?? null)}
-            />
-          )}
         </>
       )}
     </div>

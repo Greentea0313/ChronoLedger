@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "run_id": "r76-r77-preset-grid-dnd-and-icon-modal",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "f5807eb1668c5dcf08c188bffce2accc18b1ef11",
+  "target_sha": "25182e5f9d2eec746a6bf2bbb1b027e043e1f2f9",
+  "status": "findings",
+  "created_at": "2026-11-10T14:20:00Z",
+  "findings": [
+    {
+      "id": "R76-REV-001",
+      "severity": "P2",
+      "file": "sql/tests/TESTS.sql",
+      "line": 2068,
+      "evidence": "The R76 block calls reorder_character_presets for the test user's r13 game with three ids (r76 empty, over-limit, game-change). The R13 'kept when empty' preset (r13_empty_preset_id, same user and game) is now preserved by the R76 cleanup change, so the requested id set differs from the user's presets and the RPC raises 40001.",
+      "impact": "The SQL smoke suite aborts at the R76 block when run against a database, so the R76 RPC tests and every later block never execute (it was never run because psql is unavailable).",
+      "recommendation": "Include r13_empty_preset_id in the reorder array, and make the empty-preset check at line 1411 null-safe (IS DISTINCT FROM). Fixed in 434e6aa."
+    },
+    {
+      "id": "R76-REV-002",
+      "severity": "P3",
+      "file": "src/lib/use-preset-board.ts",
+      "line": 193,
+      "evidence": "createPreset sets isCreating=true and clears it only in a finally inside the queued task. enqueue skips tasks of an older generation without calling them, so when a write queued before the create fails, the create task is skipped and setIsCreating(false) never runs.",
+      "impact": "The [+ 프리셋 추가] button stays disabled with a spinner until the page is remounted after a conflict or save failure that happened while a create was queued.",
+      "recommendation": "Clear isCreating after awaiting the enqueue result (try/finally around await enqueue). Fixed in 8dcfecc with a regression test that fails on the old code."
+    },
+    {
+      "id": "R76-REV-003",
+      "severity": "P3",
+      "file": "sql/tests/TESTS.sql",
+      "line": 2030,
+      "evidence": "Spec section 4.5 lists two-preset move success and atomicity, another user's preset (40001), non-move two-row change (22023), different games, 3 objects, duplicate in target, reorder missing/extra/foreign ids. The R76 block only covers empty insert, one single-preset update, one stale update, one reorder and anon ACL.",
+      "impact": "The move path and the authorization boundary of update_character_preset_slots are not covered by SQL tests; the 60109dd uuid parsing bug showed the block had not been exercised.",
+      "recommendation": "Add the missing spec 4.5 cases to TESTS.sql and run the suite once against a disposable Supabase database (tracked in to-do)."
+    },
+    {
+      "id": "R76-REV-004",
+      "severity": "P4",
+      "file": "src/app/admin/page.tsx",
+      "line": 2775,
+      "evidence": "In the R77 icon dialog, typing a URL or pasting an image clears the selected file state, but the native file input still shows the previously chosen file name.",
+      "impact": "Cosmetic: the dialog can show a file name while the URL or pasted image is what will be registered.",
+      "recommendation": "Reset the file input value (ref or key) when the URL changes or an image is pasted."
+    },
+    {
+      "id": "R76-REV-005",
+      "severity": "P4",
+      "file": "src/lib/use-board-sensors.ts",
+      "line": 72,
+      "evidence": "The shared sensor module is not in the spec section 10 allowed file list for Step 4.",
+      "impact": "Scope deviation only; the module is shared by the preset board and the favorite roster and avoids duplicating sensor setup.",
+      "recommendation": "Accept and record it in the spec/architecture docs."
+    },
+    {
+      "id": "R76-REV-006",
+      "severity": "P4",
+      "file": "src/components/character/preset-board.tsx",
+      "line": 81,
+      "evidence": "Spec D-06 removes a slot dropped outside every card. Below 900px there is no sidebar, so a long-press drag released in a grid gap or over the help text also removes the character; keyboard drags fall back to closestCenter across sidebar/card/slot droppables.",
+      "impact": "Accidental removals on touch devices are possible and keyboard drag targeting is unverified in jsdom.",
+      "recommendation": "Verify on a real touch device and with keyboard; if removals feel accidental, consider requiring the drop on an explicit remove zone on mobile."
+    }
+  ]
+}

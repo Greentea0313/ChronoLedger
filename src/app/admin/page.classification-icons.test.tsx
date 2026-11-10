@@ -92,7 +92,21 @@ describe("AdminPage - 분류 옵션 아이콘 (R64)", () => {
   const iconSelects = () => iconCalls.filter((call) => call.op === "select")
   const iconWrites = (op: IconOp) => iconCalls.filter((call) => call.op === op)
   const pngFile = () => new File(["png"], "fire.png", { type: "image/png" })
-  const uploadInput = (label: string) => screen.getByLabelText(label) as HTMLInputElement
+  // R77: the "이미지 선택" button opens a registration modal (URL / paste / file) instead of a bare file input.
+  async function openIconDialog(optionLabel: string) {
+    fireEvent.click(screen.getByRole("button", { name: `${optionLabel} 아이콘 이미지 선택` }))
+    return await screen.findByTestId("classification-icon-dialog")
+  }
+  const pickIconFile = (dialog: HTMLElement, file: File) =>
+    fireEvent.change(within(dialog).getByLabelText("분류 아이콘 이미지 파일"), { target: { files: [file] } })
+  const submitIconDialog = () => fireEvent.click(screen.getByRole("button", { name: "등록" }))
+  async function registerFile(optionLabel: string, file: File = pngFile()) {
+    const dialog = await openIconDialog(optionLabel)
+    pickIconFile(dialog, file)
+    await within(dialog).findByAltText("분류 아이콘 미리보기")
+    submitIconDialog()
+    return dialog
+  }
 
   async function openTemplateEditor() {
     render(<AdminPage />)
@@ -147,19 +161,39 @@ describe("AdminPage - 분류 옵션 아이콘 (R64)", () => {
     expect(within(rows[1]).queryByTestId("classification-option-icon")).toBeNull()
     expect(within(editor).getByRole("button", { name: "속성 불 아이콘 삭제" })).toBeTruthy()
     expect(within(editor).queryByRole("button", { name: "속성 물 아이콘 삭제" })).toBeNull()
-    expect(uploadInput("속성 불 아이콘 파일").getAttribute("accept")).toBe("image/png,image/jpeg,image/webp")
+    expect(within(editor).getByRole("button", { name: "속성 불 아이콘 이미지 선택" })).toBeTruthy()
     expect(editor.textContent).toContain("먼저 [수정 저장]한 뒤 아이콘을 등록함")
     expect(iconSelects()[0].args).toEqual(["axis_key, option_value, icon_data_url"])
     expect(iconSelects()[0].filters).toEqual([["game_id", "game-1"]])
   })
 
-  it("이미지를 선택하면 64px로 변환해 즉시 upsert하고 미리보기·삭제 버튼을 갱신한다", async () => {
+  it("이미지 선택 버튼은 등록 모달을 열고, 파일을 고르면 64px 미리보기를 보여준다", async () => {
+    await openTemplateEditorWithIcons()
+    const dialog = await openIconDialog("속성 물")
+    expect(screen.getByRole("heading", { name: "속성 · 물 아이콘 등록" })).toBeTruthy()
+    expect(within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기")).toBeTruthy()
+    expect(within(dialog).getByLabelText("분류 아이콘 이미지 파일").getAttribute("accept")).toBe("image/png,image/jpeg,image/webp")
+    expect(within(dialog).queryByAltText("분류 아이콘 미리보기")).toBeNull()
+
+    const file = pngFile()
+    pickIconFile(dialog, file)
+    expect((await within(dialog).findByAltText("분류 아이콘 미리보기")).getAttribute("src")).toMatch(/^data:image\/webp;base64,/)
+    expect(resizeImageToWebP).toHaveBeenCalledWith(file, 64)
+    expect(iconWrites("upsert")).toHaveLength(0)
+
+    fireEvent.click(screen.getByRole("button", { name: "취소" }))
+    await waitFor(() => expect(screen.queryByTestId("classification-icon-dialog")).toBeNull())
+    expect(iconWrites("upsert")).toHaveLength(0)
+  })
+
+  it("파일 등록은 64px로 변환해 upsert하고 모달을 닫으며 미리보기·삭제 버튼을 갱신한다", async () => {
     await openTemplateEditorWithIcons()
     const file = pngFile()
-    fireEvent.change(uploadInput("속성 물 아이콘 파일"), { target: { files: [file] } })
+    await registerFile("속성 물", file)
 
     await waitFor(() => expect(iconWrites("upsert")).toHaveLength(1))
     expect(resizeImageToWebP).toHaveBeenCalledWith(file, 64)
+    await waitFor(() => expect(screen.queryByTestId("classification-icon-dialog")).toBeNull())
     expect(iconWrites("upsert")[0].args).toEqual([
       { game_id: "game-1", axis_key: "element", option_value: "물", icon_data_url: expect.stringMatching(/^data:image\/webp;base64,/) },
       { onConflict: "game_id,axis_key,option_value" },
@@ -183,46 +217,113 @@ describe("AdminPage - 분류 옵션 아이콘 (R64)", () => {
 
   it("오프라인이면 쓰기 없이 오프라인 안내를 보여준다", async () => {
     const editor = await openTemplateEditorWithIcons()
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+    const dialog = await openIconDialog("속성 물")
+    fireEvent.change(within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), { target: { value: "https://example.com/water.png" } })
     Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
-    fireEvent.change(uploadInput("속성 물 아이콘 파일"), { target: { files: [pngFile()] } })
+    submitIconDialog()
 
-    expect((await within(editor).findByRole("alert")).textContent).toMatch(/오프라인 상태에서는 저장할 수 없습니다/)
+    expect((await within(dialog).findByRole("alert")).textContent).toMatch(/오프라인 상태에서는 저장할 수 없습니다/)
     expect(iconWrites("upsert")).toHaveLength(0)
+    expect(fetchSpy).not.toHaveBeenCalled()
     expect(resizeImageToWebP).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole("button", { name: "취소" }))
+    await waitFor(() => expect(screen.queryByTestId("classification-icon-dialog")).toBeNull())
     fireEvent.click(within(editor).getByRole("button", { name: "속성 불 아이콘 삭제" }))
     expect(iconWrites("delete")).toHaveLength(0)
+    fetchSpy.mockRestore()
   })
 
-  it("변환 결과가 20,000자를 넘으면 저장하지 않고 용량 오류를 보여준다", async () => {
+  it("입력이 비어 있으면 등록하지 않고 안내를 보여준다", async () => {
+    await openTemplateEditorWithIcons()
+    const dialog = await openIconDialog("속성 물")
+    submitIconDialog()
+
+    expect((await within(dialog).findByRole("alert")).textContent).toMatch(/이미지 URL을 입력하거나/)
+    expect(iconWrites("upsert")).toHaveLength(0)
+  })
+
+  it("URL 등록은 이미지를 가져와 64px로 변환한 뒤 upsert한다", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(new Blob(["png"], { type: "image/png" }), { status: 200, headers: { "content-type": "image/png" } }),
+    )
+    await openTemplateEditorWithIcons()
+    const dialog = await openIconDialog("속성 물")
+    fireEvent.change(within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), { target: { value: "https://example.com/water.png" } })
+    submitIconDialog()
+
+    await waitFor(() => expect(iconWrites("upsert")).toHaveLength(1))
+    expect(fetchSpy.mock.calls[0][0]).toBe("https://example.com/water.png")
+    expect(resizeImageToWebP).toHaveBeenCalledTimes(1)
+    expect(resizeImageToWebP.mock.calls[0][1]).toBe(64)
+    expect((resizeImageToWebP.mock.calls[0][0] as File).type).toBe("image/png")
+    await waitFor(() => expect(screen.queryByTestId("classification-icon-dialog")).toBeNull())
+    fetchSpy.mockRestore()
+  })
+
+  it("WebP Data URL도 그대로 저장하지 않고 64px로 다시 인코딩한다", async () => {
+    const original = "data:image/webp;base64,UklGRg=="
+    await openTemplateEditorWithIcons()
+    const dialog = await openIconDialog("속성 물")
+    fireEvent.change(within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), { target: { value: original } })
+    submitIconDialog()
+
+    await waitFor(() => expect(iconWrites("upsert")).toHaveLength(1))
+    expect(resizeImageToWebP).toHaveBeenCalledTimes(1)
+    expect(resizeImageToWebP.mock.calls[0][1]).toBe(64)
+    const saved = (iconWrites("upsert")[0].args[0] as { icon_data_url: string }).icon_data_url
+    expect(saved).not.toBe(original)
+  })
+
+  it("입력란에 이미지를 붙여넣으면 파일로 처리해 미리보기를 보여주고 등록한다", async () => {
+    await openTemplateEditorWithIcons()
+    const dialog = await openIconDialog("속성 물")
+    const file = pngFile()
+    fireEvent.paste(within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), {
+      clipboardData: { files: [file], items: [] },
+    })
+
+    expect(await within(dialog).findByAltText("분류 아이콘 미리보기")).toBeTruthy()
+    expect(resizeImageToWebP).toHaveBeenCalledWith(file, 64)
+    submitIconDialog()
+    await waitFor(() => expect(iconWrites("upsert")).toHaveLength(1))
+  })
+
+  it("변환 결과가 20,000자를 넘으면 저장하지 않고 모달 안에 용량 오류를 보여준다", async () => {
     resizeImageToWebP.mockResolvedValue(new Blob([new Uint8Array(20_000)], { type: "image/webp" }))
-    const editor = await openTemplateEditorWithIcons()
-    fireEvent.change(uploadInput("속성 물 아이콘 파일"), { target: { files: [pngFile()] } })
+    await openTemplateEditorWithIcons()
+    const dialog = await openIconDialog("속성 물")
+    pickIconFile(dialog, pngFile())
 
-    expect((await within(editor).findByRole("alert")).textContent).toMatch(/용량이 너무 큽니다/)
+    expect((await within(dialog).findByRole("alert")).textContent).toMatch(/용량이 너무 큽니다/)
     expect(iconWrites("upsert")).toHaveLength(0)
   })
 
-  it("변환 실패 메시지(형식·원본 용량)를 그대로 보여준다", async () => {
+  it("변환 실패 메시지(형식·원본 용량)를 모달 안에 그대로 보여준다", async () => {
     resizeImageToWebP.mockRejectedValue(new Error("PNG, JPG, JPEG, WebP 형식의 이미지만 지원합니다."))
-    const editor = await openTemplateEditorWithIcons()
-    fireEvent.change(uploadInput("속성 물 아이콘 파일"), { target: { files: [pngFile()] } })
+    await openTemplateEditorWithIcons()
+    const dialog = await openIconDialog("속성 물")
+    pickIconFile(dialog, pngFile())
 
-    expect((await within(editor).findByRole("alert")).textContent).toBe("PNG, JPG, JPEG, WebP 형식의 이미지만 지원합니다.")
+    expect((await within(dialog).findByRole("alert")).textContent).toBe("PNG, JPG, JPEG, WebP 형식의 이미지만 지원합니다.")
     expect(iconWrites("upsert")).toHaveLength(0)
   })
 
-  it("검증 트리거 23514는 선택지 변경 안내를, 그 밖의 저장·삭제 실패는 일반 오류를 보여주고 화면을 바꾸지 않는다", async () => {
+  it("검증 트리거 23514는 선택지 변경 안내를, 그 밖의 저장·삭제 실패는 일반 오류를 보여주고 모달·화면을 유지한다", async () => {
     const editor = await openTemplateEditorWithIcons()
 
     iconWriteError = { code: "23514", message: "classification option not found" }
-    fireEvent.change(uploadInput("속성 물 아이콘 파일"), { target: { files: [pngFile()] } })
-    expect((await within(editor).findByRole("alert")).textContent).toBe("선택지가 변경되었습니다. 창을 다시 열어 주세요.")
-    expect(within(editor).queryByRole("button", { name: "속성 물 아이콘 삭제" })).toBeNull()
+    const dialog = await registerFile("속성 물")
+    expect((await within(dialog).findByRole("alert")).textContent).toBe("선택지가 변경되었습니다. 창을 다시 열어 주세요.")
+    expect(screen.getByTestId("classification-icon-dialog")).toBeTruthy()
 
     iconWriteError = { code: "42501", message: "denied" }
-    fireEvent.change(uploadInput("속성 물 아이콘 파일"), { target: { files: [pngFile()] } })
-    await waitFor(() => expect(within(editor).getByRole("alert").textContent).toBe("분류 아이콘을 저장하지 못했습니다."))
+    submitIconDialog()
+    await waitFor(() => expect(within(dialog).getByRole("alert").textContent).toBe("분류 아이콘을 저장하지 못했습니다."))
+    expect(within(editor).queryByRole("button", { name: "속성 물 아이콘 삭제" })).toBeNull()
 
+    fireEvent.click(screen.getByRole("button", { name: "취소" }))
+    await waitFor(() => expect(screen.queryByTestId("classification-icon-dialog")).toBeNull())
     fireEvent.click(within(editor).getByRole("button", { name: "속성 불 아이콘 삭제" }))
     await waitFor(() => expect(within(editor).getByRole("alert").textContent).toBe("분류 아이콘을 삭제하지 못했습니다."))
     expect(within(editor).getByRole("button", { name: "속성 불 아이콘 삭제" })).toBeTruthy()

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "run_id": "r76-r77-preset-grid-dnd-and-icon-modal",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "f5807eb1668c5dcf08c188bffce2accc18b1ef11",
+  "target_sha": "8dcfecc0e5bed6d6742b46073b78ba70ff3fffa9",
+  "status": "passed",
+  "created_at": "2026-11-10T14:05:00Z",
+  "finished_at": "2026-11-10T14:30:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check f5807eb1668c5dcf08c188bffce2accc18b1ef11 8dcfecc0e5bed6d6742b46073b78ba70ff3fffa9", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (64 files, 779 tests, includes R76-REV-002 regression test that fails on 25182e5)", "command": "npx vitest run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder Supabase env (run on 25182e5; later commits change only TESTS.sql and the preset hook)", "command": "npx next build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "R76 migration and TESTS.sql against a live database (psql and a disposable database are not available; migration is applied manually by the user)", "command": "psql -f sql/tests/TESTS.sql", "status": "skipped", "exit_code": null, "log_path": null },
+    { "name": "Manual browser check of dnd-kit drag (mouse, touch long-press, keyboard), immediate save, 900px/1280px layouts, Chrome/Firefox, and the R77 icon dialog (requires signed-in accounts)", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}

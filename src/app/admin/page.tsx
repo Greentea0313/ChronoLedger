@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { getKstToday } from "@/lib/dashboard-date"
@@ -21,8 +21,7 @@ import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
-import { cn } from "@/lib/utils"
-import { classificationIconKey, createClassificationIconDataUrl, loadClassificationIcons } from "@/lib/classification-icons"
+import { classificationIconKey, createClassificationIconDataUrl, createClassificationIconDataUrlFromSource, loadClassificationIcons } from "@/lib/classification-icons"
 import { ClassificationOptionIcon } from "@/components/character/classification-option-icon"
 import { DuplicatePickupNameError, registerPickupOnlyCharacter } from "@/lib/pickup-character-registration"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
@@ -201,6 +200,12 @@ export default function AdminPage() {
   const [classificationIcons, setClassificationIcons] = useState<{ gameId: string; available: boolean; icons: Map<string, string> } | null>(null)
   const [pendingIconKeys, setPendingIconKeys] = useState<string[]>([])
   const [iconError, setIconError] = useState<string | null>(null)
+  // R77: registration modal of one option icon (URL / pasted image / file, all re-encoded to 64×64 WebP on register).
+  const [iconDialog, setIconDialog] = useState<{ axisKey: string; axisLabel: string; option: string } | null>(null)
+  const [iconDialogUrl, setIconDialogUrl] = useState("")
+  const [iconDialogFile, setIconDialogFile] = useState<File | null>(null)
+  const [iconDialogPreview, setIconDialogPreview] = useState<string | null>(null)
+  const iconPreviewSeqRef = useRef(0)
 
   useEffect(() => {
     setIsAiUpscaleVisible(isDesktopAiUpscaleAvailable())
@@ -696,21 +701,23 @@ export default function AdminPage() {
 
   // R64: each option icon is saved immediately (upload = upsert, remove = delete); one write per option at a time.
   const runIconWrite = async (axisKey: string, option: string, failureText: string, write: (gameId: string) => Promise<string | null>) => {
-    if (!editingGame) return
+    if (!editingGame) return false
     const targetGameId = editingGame.id
     const key = classificationIconKey(axisKey, option)
-    if (pendingIconKeys.includes(key)) return
+    if (pendingIconKeys.includes(key)) return false
     if (isOffline()) {
       setIconError(OFFLINE_WRITE_MESSAGE)
-      return
+      return false
     }
     setIconError(null)
     setPendingIconKeys((prev) => [...prev, key])
     try {
       const errorText = await write(targetGameId)
       if (errorText) setIconError(errorText)
+      return !errorText
     } catch (error: unknown) {
       setIconError(error instanceof Error ? error.message : failureText)
+      return false
     } finally {
       setPendingIconKeys((prev) => prev.filter((item) => item !== key))
     }
@@ -726,10 +733,9 @@ export default function AdminPage() {
     })
   }
 
-  const handleUploadClassificationIcon = (axisKey: string, option: string, file: File | null | undefined) => {
-    if (!file) return Promise.resolve()
+  const handleUploadClassificationIcon = (axisKey: string, option: string, source: File | string) => {
     return runIconWrite(axisKey, option, "분류 아이콘을 저장하지 못했습니다.", async (targetGameId) => {
-      const dataUrl = await createClassificationIconDataUrl(file)
+      const dataUrl = await createClassificationIconDataUrlFromSource(source)
       const { error } = await supabase
         .from("game_classification_icons")
         .upsert(
@@ -741,6 +747,55 @@ export default function AdminPage() {
       setMessage({ type: "success", text: `'${option}' 분류 아이콘을 저장했습니다.` })
       return null
     })
+  }
+
+  const openIconDialog = (axisKey: string, axisLabel: string, option: string) => {
+    iconPreviewSeqRef.current += 1
+    setIconError(null)
+    setIconDialogUrl("")
+    setIconDialogFile(null)
+    setIconDialogPreview(null)
+    setIconDialog({ axisKey, axisLabel, option })
+  }
+
+  const closeIconDialog = () => {
+    iconPreviewSeqRef.current += 1
+    setIconDialog(null)
+  }
+
+  // Previews the picked/pasted file as the final 64×64 icon; a stale preview from an older pick is dropped.
+  const setIconDialogSelectedFile = (file: File | null) => {
+    const seq = ++iconPreviewSeqRef.current
+    setIconError(null)
+    setIconDialogFile(file)
+    setIconDialogPreview(null)
+    if (!file) return
+    createClassificationIconDataUrl(file)
+      .then((dataUrl) => { if (seq === iconPreviewSeqRef.current) setIconDialogPreview(dataUrl) })
+      .catch((error: unknown) => {
+        if (seq !== iconPreviewSeqRef.current) return
+        setIconDialogFile(null)
+        setIconError(error instanceof Error ? error.message : "이미지를 변환하지 못했습니다.")
+      })
+  }
+
+  const handleIconDialogPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const file = getClipboardImageFile(event.clipboardData)
+    if (!file) return
+    event.preventDefault()
+    setIconDialogUrl("")
+    setIconDialogSelectedFile(file)
+  }
+
+  const handleSubmitIconDialog = async () => {
+    if (!iconDialog) return
+    const source = iconDialogFile ?? iconDialogUrl.trim()
+    if (!source) {
+      setIconError("이미지 URL을 입력하거나 이미지를 붙여넣거나 파일을 선택해 주세요.")
+      return
+    }
+    const saved = await handleUploadClassificationIcon(iconDialog.axisKey, iconDialog.option, source)
+    if (saved) closeIconDialog()
   }
 
   const handleDeleteClassificationIcon = (axisKey: string, option: string) =>
@@ -2622,21 +2677,16 @@ export default function AdminPage() {
                               <ClassificationOptionIcon icons={editorIconSet.icons} axisKey={axis.key} option={option} size={24} />
                             </span>
                             <span className="min-w-0 flex-1 truncate text-sm text-content">{option}</span>
-                            <label className={cn("inline-flex min-h-8 cursor-pointer items-center rounded-md border border-line-control bg-surface-2 px-2 text-xs text-content", pending && "pointer-events-none opacity-50")}>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={pending}
+                              aria-label={`${axis.label} ${option} 아이콘 이미지 선택`}
+                              onClick={() => openIconDialog(axis.key, axis.label, option)}
+                            >
                               {pending ? "저장 중..." : "이미지 선택"}
-                              <input
-                                type="file"
-                                className="sr-only"
-                                accept="image/png,image/jpeg,image/webp"
-                                aria-label={`${axis.label} ${option} 아이콘 파일`}
-                                disabled={pending}
-                                onChange={(event) => {
-                                  const file = event.target.files?.[0]
-                                  event.target.value = ""
-                                  void handleUploadClassificationIcon(axis.key, option, file)
-                                }}
-                              />
-                            </label>
+                            </Button>
                             {hasIcon && (
                               <Button
                                 type="button"
@@ -2655,7 +2705,7 @@ export default function AdminPage() {
                     </ul>
                   </div>
                 ))}
-                {iconError && (
+                {iconError && !iconDialog && (
                   <p role="alert" className="rounded border border-danger/30 bg-danger/20 p-2 text-xs text-danger">{iconError}</p>
                 )}
               </section>
@@ -2701,6 +2751,54 @@ export default function AdminPage() {
       </Dialog>
 
       {/* 게임 삭제 확인 모달 다이얼로그 */}
+      <Dialog open={iconDialog !== null} onOpenChange={(open) => { if (!open) closeIconDialog() }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{iconDialog ? `${iconDialog.axisLabel} · ${iconDialog.option} 아이콘 등록` : "분류 아이콘 등록"}</DialogTitle>
+            <DialogDescription className="text-xs text-content-secondary">
+              이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 64×64 WebP로 변환해 저장함.
+            </DialogDescription>
+          </DialogHeader>
+          {iconDialog && (
+            <div className="space-y-2" data-testid="classification-icon-dialog">
+              <label htmlFor="classification-icon-url" className="block text-sm font-medium">이미지</label>
+              <Input
+                id="classification-icon-url"
+                value={iconDialogUrl}
+                onPaste={handleIconDialogPaste}
+                onChange={(event) => { setIconDialogUrl(event.target.value); setIconDialogSelectedFile(null) }}
+                placeholder="https://... 또는 이미지 붙여넣기"
+              />
+              <Input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                aria-label="분류 아이콘 이미지 파일"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null
+                  setIconDialogUrl("")
+                  setIconDialogSelectedFile(file)
+                }}
+              />
+              {iconDialogPreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={iconDialogPreview} alt="분류 아이콘 미리보기" width={64} height={64} className="h-16 w-16 rounded border border-line" />
+              )}
+              {iconError && <p role="alert" className="rounded border border-danger/30 bg-danger/20 p-2 text-xs text-danger">{iconError}</p>}
+            </div>
+          )}
+          <DialogFooter className="gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={closeIconDialog}>취소</Button>
+            <Button
+              type="button"
+              disabled={!iconDialog || pendingIconKeys.includes(classificationIconKey(iconDialog.axisKey, iconDialog.option))}
+              onClick={() => void handleSubmitIconDialog()}
+            >
+              {iconDialog && pendingIconKeys.includes(classificationIconKey(iconDialog.axisKey, iconDialog.option)) ? "등록 중..." : "등록"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={deletingGame !== null} onOpenChange={(open) => !open && setDeletingGame(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>

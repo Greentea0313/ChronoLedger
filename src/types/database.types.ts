@@ -434,8 +434,14 @@ isOneToOne: false
 "reorder_favorite_characters":
 { Args: { "p_character_ids": string[],"p_game_id": string }; Returns: undefined
                            },
+"reorder_character_presets":
+{ Args: { "p_game_id": string,"p_preset_ids": string[] }; Returns: undefined
+                           },
 "request_account_deletion":
 { Args: { "p_confirmation_email": string }; Returns: string
+                           },
+"update_character_preset_slots":
+{ Args: { "p_changes": Json }; Returns: undefined
                            },
 "restore_cancelled_expense":
 { Args: { "p_expense_id": string }; Returns: undefined

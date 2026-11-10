@@ -100,7 +100,11 @@ function execute(table: string, ctx: { op: string; filters: Record<string, unkno
     else db.userCharacters.push({ is_favorite: false, breakthrough_level: 0, custom_icon_path: null, ...payload })
   }
   if (table === "user_character_presets") {
-    if (ctx.op === "insert") db.presets.push({ id: `preset-new-${++presetSeq}`, created_at: "2026-11-09T00:00:00Z", ...payload })
+    if (ctx.op === "insert") {
+      const row = { id: `preset-new-${++presetSeq}`, created_at: "2026-11-09T00:00:00Z", ...payload }
+      db.presets.push(row)
+      return { data: row, error: null }
+    }
     if (ctx.op === "update") Object.assign(db.presets.find((row) => row.id === ctx.filters.id) ?? {}, payload)
     if (ctx.op === "delete") db.presets = db.presets.filter((row) => row.id !== ctx.filters.id)
   }
@@ -128,6 +132,7 @@ function createQuery(table: string) {
     return query
   })
   query.order = vi.fn(() => query)
+  query.single = vi.fn(() => query)
   query.upsert = vi.fn((payload: unknown, options?: unknown) => (record("upsert", payload, options), query))
   query.insert = vi.fn((payload: unknown) => (record("insert", payload), query))
   query.update = vi.fn((payload: unknown) => (record("update", payload), query))
@@ -256,9 +261,6 @@ describe("CharactersPage", () => {
     }
   }
 
-  const pickerButton = (name: string, scope: ParentNode) =>
-    Array.from(scope.querySelectorAll("button")).find((b) => b.querySelector("span.truncate")?.textContent === name) as HTMLButtonElement
-  const presetCardCount = () => container.querySelectorAll('[data-testid="preset-card"]').length
   const cards = () => Array.from(container.querySelectorAll('[data-testid="character-card"]'))
   const cardNames = () => cards().map((card) => card.querySelector("span.truncate")?.textContent)
   const cardByName = (name: string) => cards().find((card) => card.querySelector("span.truncate")?.textContent === name) as HTMLElement
@@ -288,6 +290,18 @@ describe("CharactersPage", () => {
     rpc.mockImplementation(async (fn: string, args: Record<string, unknown>) => {
       rpcCalls.push({ fn, args })
       if (db.rpcError) return { data: null, error: db.rpcError }
+      if (fn === "update_character_preset_slots") {
+        ;(args.p_changes as { id: string; next: string[] }[]).forEach((change) => {
+          const row = db.presets.find((item) => item.id === change.id)
+          if (row) row.character_ids = change.next
+        })
+      }
+      if (fn === "reorder_character_presets") {
+        ;(args.p_preset_ids as string[]).forEach((id, index) => {
+          const row = db.presets.find((item) => item.id === id)
+          if (row) row.sort_order = index + 1
+        })
+      }
       if (fn === "reorder_favorite_characters") {
         const ids = args.p_character_ids as string[]
         db.userCharacters.forEach((row) => {
@@ -665,145 +679,7 @@ describe("CharactersPage", () => {
     })
   })
 
-  describe("preset tab", () => {
-    async function openPresets() {
-      await renderPage()
-      await selectTab("조합 프리셋")
-    }
-
-    const presetCards = () => Array.from(container.querySelectorAll('[data-testid="preset-card"]'))
-    const slots = (card: Element) => Array.from(card.querySelectorAll('[data-testid="preset-slot"]'))
-
-    it("renders title, slot grid sized to the game limit, memo and dims unowned slots without badges", async () => {
-      await openPresets()
-
-      const card = presetCards()[0]
-      expect(card.textContent).toContain("혼돈 파티")
-      expect(card.querySelectorAll('[data-testid="preset-slot"], [data-testid="preset-slot-empty"]')).toHaveLength(3)
-      expect(slots(card)).toHaveLength(2)
-      expect(isDimmed(slots(card)[0])).toBe(false)
-      expect(isDimmed(slots(card)[1])).toBe(true)
-      expect(card.textContent).not.toContain("미보유")
-      expect(card.textContent).not.toContain("2돌")
-      const memo = Array.from(card.querySelectorAll("p")).find((p) => p.textContent === "첫째 줄\n둘째 줄")
-      expect(memo?.className).toContain("whitespace-pre-wrap")
-    })
-
-    it("grows the slot grid for presets above the reduced slot limit and warns", async () => {
-      db.presets[0].character_ids = ["c1", "c2", "c3", "c4"]
-      await openPresets()
-
-      const card = presetCards()[0]
-      expect(card.querySelectorAll('[data-testid="preset-slot"], [data-testid="preset-slot-empty"]')).toHaveLength(4)
-      expect(card.textContent).toContain("슬롯 상한(3칸)을 초과한 프리셋")
-    })
-
-    it("creates a preset without duplicates and stops at the slot limit", async () => {
-      await openPresets()
-      await click(buttonByText("새 프리셋 추가", container))
-
-      const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
-      expect(dialog.querySelector("h2")?.textContent).toBe("새 프리셋 추가")
-      expect(dialog.getAttribute("aria-describedby")).toBeTruthy()
-      // R61: the title input carries no example placeholder.
-      expect((dialog.querySelector("#preset-title") as HTMLInputElement).hasAttribute("placeholder")).toBe(false)
-
-      await change(dialog.querySelector("#preset-title"), "  신규 파티  ")
-      const picker = () => dialog.querySelector('[data-testid="preset-picker-list"]') as HTMLElement
-      const pick = (name: string) => pickerButton(name, picker())
-
-      await click(pick("아케론"))
-      await click(pick("칼리"))
-      await click(pick("라이덴"))
-      expect(pick("구캐릭터").disabled).toBe(true)
-      expect(pick("아케론").getAttribute("aria-pressed")).toBe("true")
-
-      // Clicking a selected character removes it instead of adding a duplicate.
-      await click(pick("칼리"))
-      await click(pick("칼리"))
-      expect(dialog.querySelectorAll('[data-testid="preset-editor-slots"] > li')).toHaveLength(3)
-
-      await click(buttonByText("저장", dialog))
-
-      const insert = writes.find((item) => item.table === "user_character_presets" && item.op === "insert")
-      expect(insert?.payload).toEqual({
-        user_id: USER_ID,
-        game_id: "game-a",
-        title: "신규 파티",
-        memo: null,
-        character_ids: ["c1", "c4", "c2"],
-        sort_order: 1,
-      })
-      expect(document.body.querySelector('[role="dialog"]')).toBeNull()
-      expect(presetCards()).toHaveLength(2)
-      expect(container.textContent).toContain("프리셋 2개")
-    })
-
-    it("reorders and removes slots in the editor and saves with update", async () => {
-      await openPresets()
-      await click(container.querySelector('button[aria-label="혼돈 파티 수정"]'))
-
-      const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
-      expect((dialog.querySelector("#preset-title") as HTMLInputElement).value).toBe("혼돈 파티")
-      await click(dialog.querySelector('button[aria-label="아케론 아래로 이동"]'))
-      await click(buttonByText("저장", dialog))
-
-      const update = writes.find((item) => item.table === "user_character_presets" && item.op === "update")
-      expect(update?.payload).toEqual({ title: "혼돈 파티", memo: "첫째 줄\n둘째 줄", character_ids: ["c2", "c1"] })
-      expect(update?.filters).toEqual({ id: "p1", user_id: USER_ID })
-    })
-
-    it("validates the title before saving", async () => {
-      await openPresets()
-      await click(buttonByText("새 프리셋 추가", container))
-      const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
-      await click(pickerButton("아케론", dialog.querySelector('[data-testid="preset-picker-list"]') as HTMLElement))
-      await click(buttonByText("저장", dialog))
-
-      expect(dialog.textContent).toContain("프리셋 제목은 1~80자")
-      expect(writes.filter((item) => item.table === "user_character_presets")).toHaveLength(0)
-    })
-
-    it("lets an over-limit preset shrink but blocks adding characters until below the limit", async () => {
-      db.presets[0].character_ids = ["c1", "c2", "c3", "c4"]
-      await openPresets()
-      await click(container.querySelector('button[aria-label="혼돈 파티 수정"]'))
-
-      const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
-      expect(dialog.textContent).toContain("인원을 상한 이하로 줄이기 전에는 캐릭터를 추가할 수 없습니다")
-      const picker = dialog.querySelector('[data-testid="preset-picker-list"]') as HTMLElement
-      Array.from(picker.querySelectorAll("button")).forEach((button) => {
-        expect(button.disabled).toBe(button.getAttribute("aria-pressed") !== "true")
-      })
-
-      await click(dialog.querySelector('button[aria-label="라이덴 제거"]'))
-      await click(buttonByText("저장", dialog))
-
-      const update = writes.find((item) => item.table === "user_character_presets" && item.op === "update")
-      expect(update?.payload).toMatchObject({ character_ids: ["c1", "c2", "c3"] })
-    })
-
-    it("deletes a preset after confirmation and refreshes the list", async () => {
-      await openPresets()
-      await click(container.querySelector('button[aria-label="혼돈 파티 삭제"]'))
-
-      const del = writes.find((item) => item.table === "user_character_presets" && item.op === "delete")
-      expect(del?.filters).toEqual({ id: "p1", user_id: USER_ID })
-      expect(presetCards()).toHaveLength(0)
-      expect(container.textContent).toContain("저장된 프리셋이 없습니다.")
-    })
-
-    it("does not delete when the confirmation is cancelled", async () => {
-      vi.spyOn(window, "confirm").mockReturnValue(false)
-      await openPresets()
-      await click(container.querySelector('button[aria-label="혼돈 파티 삭제"]'))
-
-      expect(writes).toHaveLength(0)
-      expect(presetCards()).toHaveLength(1)
-    })
-  })
-
-  describe("preset tab viewport split", () => {
+  describe("preset board (R76)", () => {
     const originalMatchMedia = Object.getOwnPropertyDescriptor(window, "matchMedia")
 
     function setViewport(width: number) {
@@ -824,101 +700,199 @@ describe("CharactersPage", () => {
       else delete (window as { matchMedia?: unknown }).matchMedia
     })
 
-    async function openPresets() {
+    async function openPresets(width = 1280) {
+      setViewport(width)
       await renderPage()
       await selectTab("조합 프리셋")
     }
 
-    const workspace = () => container.querySelector('[data-testid="preset-workspace"]')
-    const avatarButton = (name: string) =>
-      Array.from(container.querySelectorAll('[data-testid="workspace-avatar-list"] button')).find((b) => b.querySelector("span.truncate")?.textContent === name) as HTMLButtonElement
-    const slotNames = () =>
-      Array.from(container.querySelectorAll('[data-testid="workspace-slot"], [data-testid="workspace-slot-empty"]')).map((el) => el.querySelector("span.truncate")?.textContent ?? "(빈)")
+    const presetCards = () => Array.from(container.querySelectorAll('[data-testid="preset-card"]')) as HTMLElement[]
+    const slotNames = (card: Element) =>
+      Array.from(card.querySelectorAll('[data-testid="preset-slot"]')).map((el) => el.querySelector("span.truncate")?.textContent)
+    const sidebarAvatar = (name: string) =>
+      Array.from(container.querySelectorAll('[data-testid="board-sidebar-avatar"] > div')).find(
+        (el) => el.querySelector("span.truncate")?.textContent === name,
+      ) as HTMLElement
+    const slotRpcCalls = () => rpcCalls.filter((call) => call.fn === "update_character_preset_slots")
 
-    it("keeps the dialog flow below 900px", async () => {
-      setViewport(899)
+    it("shows every preset as a card with slots sized to the game limit, memo and dimmed unowned slots", async () => {
       await openPresets()
 
-      expect(workspace()).toBeNull()
-      expect(presetCardCount()).toBe(1)
-      await click(buttonByText("새 프리셋 추가", container))
-      expect(document.body.querySelector('[role="dialog"]')).toBeTruthy()
+      expect(container.querySelector('[data-testid="preset-board-layout"]')).toBeTruthy()
+      const card = presetCards()[0]
+      expect(card.getAttribute("aria-label")).toBe("혼돈 파티")
+      expect(slotNames(card)).toEqual(["아케론", "칼리"])
+      expect(card.querySelectorAll('[data-testid="preset-empty-slot"]')).toHaveLength(1)
+      const [first, second] = Array.from(card.querySelectorAll('[data-testid="preset-slot"]'))
+      expect(isDimmed(first)).toBe(false)
+      expect(isDimmed(second)).toBe(true)
+      expect(card.querySelector('button[aria-label="혼돈 파티 메모 수정"]')?.textContent).toBe("첫째 줄\n둘째 줄")
+      // No save button and no handle: the whole avatar is the drag source.
+      expect(buttonByText("저장", container)).toBeUndefined()
+      expect(container.querySelector('[draggable="true"]')).toBeNull()
+      expect(first.querySelector('[aria-roledescription="sortable"]')).toBeTruthy()
     })
 
-    it("shows the workspace instead of the list and dialog from 900px", async () => {
-      setViewport(900)
+    it("marks placed characters in the sidebar and adds a clicked character to the active preset at once", async () => {
       await openPresets()
+      expect(sidebarAvatar("아케론").getAttribute("aria-label")).toBe("아케론, 편성됨")
+      expect(sidebarAvatar("라이덴").getAttribute("aria-label")).toBe("라이덴")
 
-      expect(workspace()).toBeTruthy()
-      expect(presetCardCount()).toBe(0)
-      expect((container.querySelector("#workspace-title") as HTMLInputElement).value).toBe("혼돈 파티")
-      expect(slotNames()).toEqual(["아케론", "칼리", "(빈)"])
+      await click(sidebarAvatar("라이덴"))
 
-      await click(buttonByText("새 프리셋 추가", container))
-      expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+      expect(slotNames(presetCards()[0])).toEqual(["아케론", "칼리", "라이덴"])
+      expect(slotRpcCalls()).toEqual([
+        { fn: "update_character_preset_slots", args: { p_changes: [{ id: "p1", expected: ["c1", "c2"], next: ["c1", "c2", "c4"] }] } },
+      ])
+      expect(writes.filter((item) => item.table === "user_character_presets")).toHaveLength(0)
     })
 
-    it("saves workspace edits with the existing update path", async () => {
-      setViewport(1280)
+    it("rejects a duplicate or a full preset with a message and no write", async () => {
       await openPresets()
-      await click(avatarButton("라이덴"))
-      await click(buttonByText("저장", container))
+      await click(sidebarAvatar("아케론"))
+      expect(container.textContent).toContain("이미 이 프리셋에 있어요.")
+
+      await click(sidebarAvatar("라이덴"))
+      await click(sidebarAvatar("구캐릭터"))
+      expect(container.textContent).toContain("슬롯은 최대 3칸까지 사용할 수 있습니다.")
+      expect(slotRpcCalls()).toHaveLength(1)
+    })
+
+    it("removes a character with the X button, keeping an empty preset", async () => {
+      db.presets[0].character_ids = ["c1"]
+      await openPresets()
+      await click(presetCards()[0].querySelector('button[aria-label="아케론 빼기"]'))
+
+      expect(slotNames(presetCards()[0])).toEqual([])
+      expect(slotRpcCalls()[0].args).toEqual({ p_changes: [{ id: "p1", expected: ["c1"], next: [] }] })
+      expect(presetCards()).toHaveLength(1)
+    })
+
+    it("reloads and explains when another tab changed the preset (40001)", async () => {
+      await openPresets()
+      db.rpcError = { code: "40001", message: "preset changed" }
+      await click(sidebarAvatar("라이덴"))
+
+      expect(container.textContent).toContain("다른 곳에서 프리셋이 변경되어 다시 불러왔습니다.")
+      expect(slotNames(presetCards()[0])).toEqual(["아케론", "칼리"])
+    })
+
+    it("falls back to a plain update when the R76 RPC is not migrated", async () => {
+      await openPresets()
+      db.rpcError = { code: "PGRST202", message: "missing" }
+      await click(sidebarAvatar("라이덴"))
 
       const update = writes.find((item) => item.table === "user_character_presets" && item.op === "update")
-      expect(update?.payload).toEqual({ title: "혼돈 파티", memo: "첫째 줄\n둘째 줄", character_ids: ["c1", "c2", "c4"] })
+      expect(update?.payload).toEqual({ character_ids: ["c1", "c2", "c4"] })
       expect(update?.filters).toEqual({ id: "p1", user_id: USER_ID })
-      expect(container.textContent).toContain("프리셋을 저장했습니다.")
-      expect((buttonByText("저장", container) as HTMLButtonElement).disabled).toBe(true)
+      expect(container.querySelector('[role="alert"]')).toBeNull()
     })
 
-    it("inserts a new preset only on save and selects it afterwards", async () => {
-      setViewport(1280)
+    it("creates an empty preset with the next title at the end and makes it active", async () => {
       await openPresets()
-      await click(buttonByText("새 프리셋 추가", container))
-      expect(writes.filter((item) => item.table === "user_character_presets")).toHaveLength(0)
-
-      await change(container.querySelector("#workspace-title"), "  신규 파티  ")
-      await click(avatarButton("라이덴"))
-      await click(buttonByText("저장", container))
+      await click(buttonByText("프리셋 추가", container))
 
       const insert = writes.find((item) => item.table === "user_character_presets" && item.op === "insert")
-      expect(insert?.payload).toEqual({
-        user_id: USER_ID,
-        game_id: "game-a",
-        title: "신규 파티",
-        memo: null,
-        character_ids: ["c4"],
-        sort_order: 1,
-      })
-      const selected = container.querySelector('[data-testid="workspace-preset-list"] button[aria-pressed="true"]')
-      expect(selected?.textContent).toBe("신규 파티")
+      expect(insert?.payload).toEqual({ user_id: USER_ID, game_id: "game-a", title: "새 프리셋", memo: null, character_ids: [], sort_order: 1 })
+      expect(presetCards().map((card) => card.getAttribute("aria-label"))).toEqual(["혼돈 파티", "새 프리셋"])
+      expect(presetCards()[1].getAttribute("aria-current")).toBe("true")
+      expect(container.textContent).toContain("프리셋 2개")
+
+      await click(sidebarAvatar("라이덴"))
+      expect(slotRpcCalls()[0].args).toEqual({ p_changes: [{ id: "preset-new-1", expected: [], next: ["c4"] }] })
     })
 
-    it("warns before switching games or leaving the tab with unsaved changes", async () => {
-      setViewport(1280)
+    it("edits the title and memo inline and saves each change", async () => {
       await openPresets()
-      await click(avatarButton("라이덴"))
+      await click(container.querySelector('button[aria-label="혼돈 파티 제목 수정"]'))
+      const titleInput = container.querySelector('input[aria-label="프리셋 제목"]') as HTMLInputElement
+      await change(titleInput, "  보스전  ")
+      await act(async () => Simulate.keyDown(titleInput, { key: "Enter" }))
+      await flush()
 
+      await click(container.querySelector('button[aria-label="보스전 메모 수정"]'))
+      const memo = container.querySelector('textarea[aria-label="프리셋 메모"]') as HTMLTextAreaElement
+      await change(memo, "   ")
+      await act(async () => Simulate.blur(memo))
+      await flush()
+
+      const updates = writes.filter((item) => item.table === "user_character_presets" && item.op === "update")
+      expect(updates.map((item) => item.payload)).toEqual([{ title: "보스전" }, { memo: null }])
+      expect(presetCards()[0].querySelector('button[aria-label="보스전 메모 수정"]')?.textContent).toBe("메모 추가")
+    })
+
+    it("cancels an inline title edit with Escape", async () => {
+      await openPresets()
+      await click(container.querySelector('button[aria-label="혼돈 파티 제목 수정"]'))
+      const titleInput = container.querySelector('input[aria-label="프리셋 제목"]') as HTMLInputElement
+      await change(titleInput, "다른 이름")
+      await act(async () => Simulate.keyDown(titleInput, { key: "Escape" }))
+      await flush()
+
+      expect(presetCards()[0].getAttribute("aria-label")).toBe("혼돈 파티")
+      expect(writes).toHaveLength(0)
+    })
+
+    it("moves cards with the arrow buttons through the reorder RPC", async () => {
+      db.presets.push({ id: "p2", game_id: "game-a", title: "둘째", character_ids: [], memo: null, sort_order: 1, created_at: "2026-11-02T00:00:00Z" })
+      await openPresets()
+      await click(container.querySelector('button[aria-label="둘째 앞으로"]'))
+
+      expect(rpcCalls.find((call) => call.fn === "reorder_character_presets")?.args).toEqual({ p_game_id: "game-a", p_preset_ids: ["p2", "p1"] })
+      expect(presetCards().map((card) => card.getAttribute("aria-label"))).toEqual(["둘째", "혼돈 파티"])
+    })
+
+    it("deletes a preset only after confirmation", async () => {
       vi.spyOn(window, "confirm").mockReturnValue(false)
-      await click(gameChip("다라게임"))
-      expect(window.confirm).toHaveBeenCalledTimes(1)
-      expect(container.querySelector('nav[aria-label="구독 게임 선택"] button[aria-pressed="true"]')?.textContent).toContain("가나게임")
-
-      await selectTab("보유 캐릭터")
-      expect(window.confirm).toHaveBeenCalledTimes(2)
-      expect(workspace()).toBeTruthy()
+      await openPresets()
+      await click(container.querySelector('button[aria-label="혼돈 파티 삭제"]'))
+      expect(writes).toHaveLength(0)
 
       vi.spyOn(window, "confirm").mockReturnValue(true)
+      await click(container.querySelector('button[aria-label="혼돈 파티 삭제"]'))
+      const del = writes.find((item) => item.table === "user_character_presets" && item.op === "delete")
+      expect(del?.filters).toEqual({ id: "p1", user_id: USER_ID })
+      expect(presetCards()).toHaveLength(0)
+    })
+
+    it("does not write while offline", async () => {
+      await openPresets()
+      Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+      await click(sidebarAvatar("라이덴"))
+
+      expect(slotRpcCalls()).toHaveLength(0)
+      expect(slotNames(presetCards()[0])).toEqual(["아케론", "칼리"])
+    })
+
+    it("shows an over-limit preset with all characters, a warning, and no empty slot", async () => {
+      db.presets[0].character_ids = ["c1", "c2", "c3", "c4"]
+      await openPresets()
+      const card = presetCards()[0]
+      expect(slotNames(card)).toHaveLength(4)
+      expect(card.querySelectorAll('[data-testid="preset-empty-slot"]')).toHaveLength(0)
+      expect(card.textContent).toContain("슬롯 초과")
+    })
+
+    it("switches games without any unsaved-changes prompt", async () => {
+      await openPresets()
+      const confirmSpy = vi.spyOn(window, "confirm")
       await click(gameChip("다라게임"))
+      expect(confirmSpy).not.toHaveBeenCalled()
       expect(container.querySelector('nav[aria-label="구독 게임 선택"] button[aria-pressed="true"]')?.textContent).toContain("다라게임")
     })
 
-    it("does not warn after saving or when nothing changed", async () => {
-      setViewport(1280)
-      await openPresets()
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true)
-      await click(gameChip("다라게임"))
-      expect(confirmSpy).not.toHaveBeenCalled()
+    it("has no sidebar below 900px and opens the bottom picker from an empty slot", async () => {
+      await openPresets(899)
+      expect(container.querySelector("[data-board-sidebar]")).toBeNull()
+      await click(presetCards()[0].querySelector('[data-testid="preset-empty-slot"] button'))
+
+      const picker = document.body.querySelector('[data-testid="preset-picker"]') as HTMLElement
+      expect(picker).toBeTruthy()
+      const pick = (name: string) =>
+        Array.from(picker.querySelectorAll("button")).find((b) => b.getAttribute("aria-label")?.startsWith(name)) as HTMLButtonElement
+      expect(pick("아케론").disabled).toBe(true)
+      await click(pick("라이덴"))
+      expect(slotRpcCalls()[0].args).toEqual({ p_changes: [{ id: "p1", expected: ["c1", "c2"], next: ["c1", "c2", "c4"] }] })
     })
   })
 
@@ -1011,29 +985,18 @@ describe("CharactersPage", () => {
       expect(sectionNames("favorites")).toEqual(["구캐릭터", "아케론"])
     })
 
-    it("reorders favorites by dragging one card onto another", async () => {
+    it("makes whole favorite cards sortable with dnd-kit and no HTML5 drag handle", async () => {
       db.userCharacters = [favRow("c1", 1), favRow("c3", 2), favRow("c4", 3)]
       await renderPage()
-      const cardsIn = () => Array.from(sectionEl("favorites")?.querySelectorAll('[data-testid="character-card"]') ?? [])
-      expect(sectionNames("favorites")).toEqual(["아케론", "구캐릭터", "라이덴"])
+      const cardsIn = (key: string) => Array.from(sectionEl(key)?.querySelectorAll('[data-testid="character-card"]') ?? [])
 
-      const [first, , third] = cardsIn()
-      // Firefox cannot start a drag on a <button>: the card itself is not draggable, a non-button handle is.
-      const handle = first.querySelector('[data-testid="favorite-drag-handle"]') as HTMLElement
-      expect(first.getAttribute("draggable")).toBeNull()
-      expect(handle.tagName).not.toBe("BUTTON")
-      expect(handle.getAttribute("draggable")).toBe("true")
-      expect(handle.getAttribute("aria-hidden")).toBe("true")
-      expect(sectionEl("owned")?.querySelector('[data-testid="favorite-drag-handle"]') ?? null).toBeNull()
-      await act(async () => {
-        Simulate.dragStart(handle, { dataTransfer: { setData: vi.fn() } } as never)
-        Simulate.dragOver(third, { dataTransfer: { setData: vi.fn() } } as never)
-        Simulate.drop(third, { dataTransfer: { setData: vi.fn() } } as never)
-      })
-      await flush()
-
-      expect(orderRpcCalls()[0]?.args).toEqual({ p_game_id: "game-a", p_character_ids: ["c3", "c4", "c1"] })
-      expect(sectionNames("favorites")).toEqual(["구캐릭터", "라이덴", "아케론"])
+      expect(cardsIn("favorites").map((card) => card.getAttribute("data-sortable"))).toEqual(["true", "true", "true"])
+      expect(container.querySelector('[draggable="true"]')).toBeNull()
+      expect(container.querySelector('[data-testid="favorite-drag-handle"]')).toBeNull()
+      expect(cardsIn("owned").every((card) => card.getAttribute("data-sortable") === null)).toBe(true)
+      // A short click still opens the settings dialog.
+      await click(cardsIn("favorites")[0].querySelector('button[aria-label="아케론 설정"]'))
+      expect(document.body.querySelector('[role="dialog"]')).toBeTruthy()
     })
 
     it("reorders against the full favorite order while a filter hides some favorites", async () => {
@@ -1083,25 +1046,25 @@ describe("CharactersPage", () => {
       expect(container.querySelector('button[aria-label$="뒤로 이동"]')).toBeNull()
     })
 
-    it("lists the preset picker in the same three sections (dialog below 900px)", async () => {
+    it("lists the mobile preset picker in the same three sections", async () => {
       db.userCharacters = [
         favRow("c3", 1),
         { character_id: "c1", game_id: "game-a", is_owned: true, is_favorite: false, favorite_sort_order: null, breakthrough_level: 0, custom_icon_path: null },
         favRow("c2", 1, false),
       ]
+      db.presets[0].character_ids = []
       await renderPage()
       await selectTab("조합 프리셋")
-      await click(buttonByText("새 프리셋 추가", container))
+      await click(container.querySelector('[data-testid="preset-empty-slot"] button'))
 
-      const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
+      const picker = document.body.querySelector('[data-testid="preset-picker"]') as HTMLElement
       const names = (key: string) =>
-        Array.from(dialog.querySelectorAll(`[data-testid="preset-picker-${key}"] button`)).map((b) => b.querySelector("span.truncate")?.textContent)
+        Array.from(picker.querySelectorAll(`[data-testid="preset-picker-${key}"] button`)).map((b) => b.querySelector("span.truncate")?.textContent)
       expect(names("favorites")).toEqual(["구캐릭터"])
       expect(names("owned")).toEqual(["아케론"])
       expect(names("unowned")).toEqual(["라이덴", "칼리"])
-      expect(dialog.querySelector('[data-testid="preset-picker-favorites"] h4')?.textContent).toBe("즐겨찾기 (1)")
-      // The picker has no ordering controls.
-      expect(dialog.querySelector('button[aria-label$="뒤로 이동"]')).toBeNull()
+      expect(picker.querySelector('[data-testid="preset-picker-favorites"] h4')?.textContent).toBe("즐겨찾기 (1)")
+      expect(picker.querySelector('button[aria-label$="뒤로 이동"]')).toBeNull()
     })
   })
 
@@ -1166,11 +1129,11 @@ describe("CharactersPage", () => {
       seedFireIcon()
       await renderPage()
       await selectTab("조합 프리셋")
-      await click(buttonByText("새 프리셋 추가", container))
+      await click(container.querySelector('[data-testid="preset-empty-slot"] button'))
 
-      const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
-      expect(dialog).toBeTruthy()
-      expect(iconsIn(dialog)).toHaveLength(0)
+      const picker = document.body.querySelector('[data-testid="preset-picker"]') as HTMLElement
+      expect(picker).toBeTruthy()
+      expect(iconsIn(picker)).toHaveLength(0)
     })
 
     it("renders exactly as before and shows no error when the icon table is not migrated", async () => {

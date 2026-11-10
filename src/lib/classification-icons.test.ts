@@ -4,14 +4,15 @@ import {
   MAX_CLASSIFICATION_ICON_DATA_URL_LENGTH,
   classificationIconKey,
   createClassificationIconDataUrl,
+  createClassificationIconDataUrlFromSource,
   isMissingClassificationIconTable,
   loadClassificationIcons,
 } from "./classification-icons"
 
-const { from, resizeImageToWebP } = vi.hoisted(() => ({ from: vi.fn(), resizeImageToWebP: vi.fn() }))
+const { from, resizeImageToWebP, fetchImageFile } = vi.hoisted(() => ({ from: vi.fn(), resizeImageToWebP: vi.fn(), fetchImageFile: vi.fn() }))
 
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
-vi.mock("@/lib/image-resizer", () => ({ resizeImageToWebP }))
+vi.mock("@/lib/image-resizer", () => ({ resizeImageToWebP, fetchImageFile }))
 
 describe("classificationIconKey", () => {
   it("joins axis key and option with a separator that axis keys ([a-z0-9_]) cannot contain", () => {
@@ -122,5 +123,39 @@ describe("createClassificationIconDataUrl", () => {
     resizeImageToWebP.mockRejectedValue(new Error("PNG, JPG, JPEG, WebP 형식의 이미지만 지원합니다."))
 
     await expect(createClassificationIconDataUrl(file)).rejects.toThrow("PNG, JPG, JPEG, WebP 형식의 이미지만 지원합니다.")
+  })
+})
+
+describe("createClassificationIconDataUrlFromSource", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    resizeImageToWebP.mockResolvedValue(new Blob(["webp"], { type: "image/webp" }))
+  })
+
+  it("resizes a File at 64px", async () => {
+    const file = new File(["png"], "a.png", { type: "image/png" })
+    await expect(createClassificationIconDataUrlFromSource(file)).resolves.toMatch(/^data:image\/webp;base64,/)
+    expect(resizeImageToWebP).toHaveBeenCalledWith(file, 64)
+  })
+
+  it("fetches an http(s) URL through fetchImageFile and resizes the result at 64px", async () => {
+    const fetched = new File(["png"], "game-icon", { type: "image/png" })
+    fetchImageFile.mockResolvedValue(fetched)
+    await createClassificationIconDataUrlFromSource(" https://example.com/a.png ")
+    expect(fetchImageFile).toHaveBeenCalledWith("https://example.com/a.png")
+    expect(resizeImageToWebP).toHaveBeenCalledWith(fetched, 64)
+  })
+
+  it("re-encodes a WebP Data URL instead of passing it through", async () => {
+    await createClassificationIconDataUrlFromSource("data:image/webp;base64,UklGRg==")
+    expect(fetchImageFile).not.toHaveBeenCalled()
+    expect(resizeImageToWebP).toHaveBeenCalledTimes(1)
+    expect(resizeImageToWebP.mock.calls[0][1]).toBe(64)
+  })
+
+  it("propagates URL fetch errors", async () => {
+    fetchImageFile.mockRejectedValue(new Error("이미지 URL을 가져오지 못했습니다."))
+    await expect(createClassificationIconDataUrlFromSource("https://example.com/a.png")).rejects.toThrow("이미지 URL을 가져오지 못했습니다.")
+    expect(resizeImageToWebP).not.toHaveBeenCalled()
   })
 })
