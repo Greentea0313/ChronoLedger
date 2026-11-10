@@ -190,8 +190,9 @@ export function usePresetBoard({ userId, presets, setPresets, reload, onNotice }
       onNotice(null)
       setIsCreating(true)
       let createdId: string | null = null
-      await enqueue([], async () => {
-        try {
+      // Cleared after the queued task settles, also when it is skipped because an earlier write failed.
+      try {
+        await enqueue([], async () => {
           const gamePresets = presetsRef.current.filter((preset) => preset.game_id === gameId)
           const { data, error } = await supabase
             .from("user_character_presets")
@@ -216,10 +217,10 @@ export function usePresetBoard({ userId, presets, setPresets, reload, onNotice }
           createdId = row.id
           setPresets((prev) => [...prev, row])
           return null
-        } finally {
-          setIsCreating(false)
-        }
-      })
+        })
+      } finally {
+        setIsCreating(false)
+      }
       return createdId
     },
     [canWrite, enqueue, onNotice, setPresets, userId],

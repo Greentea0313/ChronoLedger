@@ -183,6 +183,25 @@ describe("usePresetBoard", () => {
     expect(result.current.presets.map((item) => item.id)).toEqual(["a", "b", "new"])
   })
 
+  it("clears the creating state when a queued create is skipped after an earlier failure", async () => {
+    const first = deferred()
+    rpc.mockImplementationOnce(() => first.promise)
+    from.mockImplementation(() => query({ data: preset("new", [], 2), error: null }, []))
+    const { result } = setup([preset("a", ["c1"], 1)])
+    let created: Promise<string | null> = Promise.resolve(null)
+    act(() => {
+      result.current.board.applySlots([{ id: "a", expected: ["c1"], next: [] }])
+      created = result.current.board.createPreset("g")
+    })
+    expect(result.current.board.isCreating).toBe(true)
+    first.resolve({ data: null, error: { code: "40001", message: "preset changed" } })
+    await act(async () => {
+      expect(await created).toBeNull()
+    })
+    expect(from).not.toHaveBeenCalled()
+    expect(result.current.board.isCreating).toBe(false)
+  })
+
   it("explains and stops creating empty presets when the CHECK is not migrated", async () => {
     from.mockImplementation(() => query({ data: null, error: { code: "23514", message: "check" } }, []))
     const { result } = setup([preset("a", ["c1"], 1)])
