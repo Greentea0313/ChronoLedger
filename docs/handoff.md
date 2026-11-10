@@ -47,8 +47,8 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: f3fdd91)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R77 Icon Modal)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`(+`page.test.tsx`, `page.classification-icons.test.tsx`), `src/lib/classification-icons.ts`(+테스트), `src/lib/image-resizer.ts`(+테스트, 헬퍼 공개·재인코딩 추가 시), `docs/spec/R64_Classification_Option_Icons_Spec.md`(§3.2 개정) | `✅ f3fdd91`: 분류 아이콘 등록 모달(URL·붙여넣기·파일, 64×64 재인코딩, 미리보기·취소·등록), R64 명세 §3.2 개정. tsc·lint·diff-check 통과, Vitest 전체 789개 통과 (아래 Step 1 완료 기록 참고) |
 | **2** | **`✅ DONE (SHA: 4821658)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R76 Spec)` | 아래 **Step 2 수용 기준** 수행 완료함. | `✅ 4821658`: [`R76_Preset_Grid_Editing_Spec.md`](spec/R76_Preset_Grid_Editing_Spec.md)(워크트리) 작성. 사용자 결정 4건 반영, DB 변경 필요 → Step 3 수행 (아래 Step 2 완료 기록 참고) |
-| **3** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 DB)` | 명세서 §4 수행. 허용 파일(명세서 §10 확정): 신규 `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`. 운영 DB 미적용 | - |
-| **4** | **`⏳ WAITING`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 UI)` | 아래 **Step 4 수용 기준** 수행(낙관적 갱신·비동기 경합 → Opus 승격 조건 ②). 허용 파일: 명세서 확정(예: `package.json`·`package-lock.json`, `src/app/dashboard/characters/page.tsx`(+테스트), `src/components/character/preset-*.tsx`(+테스트), `src/components/character/character-roster.tsx`, 신규 그리드·DnD 컴포넌트·훅(+테스트)) | - |
+| **3** | **`✅ DONE (SHA: 0ad856e)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 DB)` | 명세서 §4 수행. 허용 파일(명세서 §10 확정): 신규 `sql/migrations/MIGRATION_R76_PRESET_GRID_EDITING.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`. 운영 DB 미적용 | `✅ 0ad856e`: 빈 프리셋 0~12명 제약·삭제 정리 보존·슬롯 원자 RPC·프리셋 순서 RPC·스키마/README/테스트/타입 반영. tsc·lint·Vitest 153파일/1402개·diff-check 통과. `psql` 부재로 SQL 테스트 미실행함. |
+| **4** | **`▶ READY`** | **Claude Opus** *(Claude Sonnet 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R76 UI)` | 아래 **Step 4 수용 기준** 수행(낙관적 갱신·비동기 경합 → Opus 승격 조건 ②). 허용 파일: 명세서 확정(예: `package.json`·`package-lock.json`, `src/app/dashboard/characters/page.tsx`(+테스트), `src/components/character/preset-*.tsx`(+테스트), `src/components/character/character-roster.tsx`, 신규 그리드·DnD 컴포넌트·훅(+테스트)) | - |
 | **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `f5807eb` ↔ Target(Step 4 커밋) 통합 정적 리뷰, 동적 검증, `main` 병합, 문서 마감, (DB 변경 시) 마이그레이션 수동 적용 안내 | - |
 
 #### 📌 `r76-r77-preset-grid-dnd-and-icon-modal` 단계별 수용 기준 (Acceptance Criteria)
@@ -99,6 +99,13 @@
 - **대체·삭제**: `preset-workspace.tsx`·`preset-list.tsx`·`preset-editor-dialog.tsx`와 미저장 경고 로직 제거, R63 즐겨찾기 정렬도 dnd-kit 전체 카드 드래그로 바꾸고 R73 손잡이 삭제함.
 - **미적용 폴백**: RPC 없음(`PGRST202`/`42883`) 시 단일 프리셋 변경은 직접 `update`, 프리셋 간 이동·카드 순서·마지막 캐릭터 제거는 토스트로 막음. 빈 프리셋 CHECK 위반(`23514`) 시 `[+ 프리셋 추가]` 막음.
 - **테스트**: 문서 전용 단계라 코드 테스트 없음. `git diff --check` 통과함.
+
+#### 📝 `r76-r77-preset-grid-dnd-and-icon-modal` Step 3 완료 기록 (GPT Codex, 2026-11-10)
+
+- **Target SHA**: `0ad856e` (워크트리 브랜치, 미병합)임.
+- **변경**: 빈 프리셋을 허용하는 이름 있는 CHECK로 교체하고 캐릭터 삭제 시 마지막 캐릭터가 사라져도 프리셋 행을 유지함. `update_character_preset_slots(JSONB)` 원자 슬롯 변경 RPC와 `reorder_character_presets(UUID, UUID[])` 순서 저장 RPC를 추가하고 `SECURITY INVOKER`·authenticated 실행 권한만 부여함.
+- **검증**: `npm.cmd exec tsc -- --noEmit`, `npm.cmd run lint`, `npm.cmd run test -- --run`(153파일/1402개), `git diff --check` 통과함. `psql` 부재로 전용 Supabase SQL 테스트는 미실행함.
+- **운영 DB**: 마이그레이션은 운영 DB에 적용하지 않음. 다음 Step 4 UI 구현 후 Step 5 리뷰에서 수동 적용 안내함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r64-r72-r73-classification-icons-followups`
 

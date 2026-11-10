@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 3 — `0ad856e`)
+
+- R76 프리셋 그리드 편집용 DB 지원 추가함. 빈 프리셋(0~12명) 허용, 캐릭터 삭제 시 빈 프리셋 보존, 슬롯 변경 원자 RPC와 프리셋 순서 변경 RPC를 반영함.
+- 스키마·타입·SQL 실행 가이드·스모크 테스트 동기화함. 운영 DB에는 미적용함.
+- tsc·lint·Vitest 153파일/1402개·diff-check 통과함. SQL 테스트는 `psql` 부재로 미실행함. Step 4 UI를 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 2 — `4821658`)
 
 - R76 명세서 `docs/spec/R76_Preset_Grid_Editing_Spec.md` 추가함. pickupgg식 프리셋 카드 그리드 즉시 편집(`@dnd-kit`, 터치 길게 누르기), 빈 프리셋 허용, 프리셋 간 이동·순서 변경을 원자 저장하는 RPC 2종, 실패 시 재조회 롤백을 설계함. R62 저장 버튼·R73 손잡이는 대체됨.

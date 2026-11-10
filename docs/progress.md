@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 3 (R76 DB) 완료 (2026-11-10)
+
+- **수행 주체**: GPT Codex (`Maker (R76 DB)`)임.
+- **커밋 `0ad856e`** (워크트리, 미병합): 빈 프리셋 허용·캐릭터 삭제 정리 보존·슬롯 변경 원자 RPC·프리셋 순서 RPC와 스키마/타입/README/SQL 테스트 반영함.
+- **검증**: tsc·lint·Vitest 153파일/1402개·diff-check 통과함. `psql` 부재로 SQL 테스트는 미실행함.
+- **다음 단계**: Step 4(`Claude Opus`, R76 UI) `▶ READY`임.
+
 ## Run `r76-r77-preset-grid-dnd-and-icon-modal` Step 2 (R76 명세) 완료 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Architect (R76 Spec)`)임.
