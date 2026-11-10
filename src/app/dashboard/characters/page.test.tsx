@@ -9,6 +9,7 @@ type Write = { table: string; op: "upsert" | "insert" | "update" | "delete"; pay
 
 const {
   from,
+  rpc,
   useAuth,
   downloadUserIcon,
   getCustomCharacterIconUrl,
@@ -17,6 +18,7 @@ const {
   resizeImageToWebP,
 } = vi.hoisted(() => ({
   from: vi.fn(),
+  rpc: vi.fn(),
   useAuth: vi.fn(),
   downloadUserIcon: vi.fn(),
   getCustomCharacterIconUrl: vi.fn(),
@@ -26,7 +28,7 @@ const {
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
-vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
+vi.mock("@/lib/supabase/client", () => ({ supabase: { from, rpc } }))
 vi.mock("@/lib/storage-upload", () => ({
   downloadUserIcon,
   getCustomCharacterIconUrl,
@@ -50,8 +52,11 @@ const db = {
   writeError: null as { message: string } | null,
   countErrorGames: [] as string[],
   pickupColumnMissing: false,
+  favoriteColumnMissing: false,
+  rpcError: null as { code?: string; message: string } | null,
 }
 let writes: Write[] = []
+let rpcCalls: { fn: string; args: Record<string, unknown> }[] = []
 let presetSeq = 0
 
 function execute(table: string, ctx: { op: string; filters: Record<string, unknown>; head: boolean; payload: unknown; options: unknown; columns: string }) {
@@ -67,7 +72,13 @@ function execute(table: string, ctx: { op: string; filters: Record<string, unkno
       if (ctx.head && db.countErrorGames.includes(String(ctx.filters.game_id))) return { data: null, count: null, error: { message: "count failed" } }
       return ctx.head ? { data: null, count: rows.length, error: null } : { data: rows, error: null }
     }
-    if (table === "user_characters") return { data: db.userCharacters, error: null }
+    if (table === "user_characters") {
+      // Unmigrated DB: the favorite_sort_order column does not exist yet.
+      if (db.favoriteColumnMissing && ctx.columns.includes("favorite_sort_order")) {
+        return { data: null, error: { code: "42703", message: 'column "favorite_sort_order" does not exist' } }
+      }
+      return { data: db.userCharacters, error: null }
+    }
     if (table === "user_character_presets") {
       return { data: [...db.presets].sort((a, b) => Number(a.sort_order) - Number(b.sort_order)), error: null }
     }
@@ -176,6 +187,8 @@ function seed() {
   db.writeError = null
   db.countErrorGames = []
   db.pickupColumnMissing = false
+  db.favoriteColumnMissing = false
+  db.rpcError = null
 }
 
 describe("CharactersPage", () => {
@@ -252,6 +265,7 @@ describe("CharactersPage", () => {
     root = createRoot(container)
     seed()
     writes = []
+    rpcCalls = []
     presetSeq = 0
     useAuth.mockReturnValue({ user: { id: USER_ID } })
     downloadUserIcon.mockResolvedValue(null)
@@ -260,6 +274,18 @@ describe("CharactersPage", () => {
     deleteCustomCharacterIcon.mockResolvedValue(undefined)
     resizeImageToWebP.mockResolvedValue(new Blob(["webp"], { type: "image/webp" }))
     from.mockImplementation((table: string) => createQuery(table))
+    rpc.mockImplementation(async (fn: string, args: Record<string, unknown>) => {
+      rpcCalls.push({ fn, args })
+      if (db.rpcError) return { data: null, error: db.rpcError }
+      if (fn === "reorder_favorite_characters") {
+        const ids = args.p_character_ids as string[]
+        db.userCharacters.forEach((row) => {
+          const index = ids.indexOf(String(row.character_id))
+          if (index >= 0) row.favorite_sort_order = index + 1
+        })
+      }
+      return { data: null, error: null }
+    })
     vi.spyOn(window, "confirm").mockReturnValue(true)
   })
 
@@ -281,7 +307,7 @@ describe("CharactersPage", () => {
       expect(container.textContent).toContain("보유 캐릭터 0 / 1명 · 프리셋 0개")
       expect(gameChip("가나게임")?.getAttribute("aria-pressed")).toBe("true")
       expect(gameChip("다라게임")?.getAttribute("aria-pressed")).toBe("false")
-      expect(cardNames()).toEqual(["구캐릭터", "라이덴", "아케론", "칼리"])
+      expect(cardNames()).toEqual(["구캐릭터", "아케론", "라이덴", "칼리"])
       expect(requestButtonLabels(container)).toMatchObject({ mobile: "+ 캐릭터 추가·수정 요청", desktop: "+ 캐릭터 추가·수정 요청" })
     })
 
@@ -325,7 +351,7 @@ describe("CharactersPage", () => {
       db.characters["game-a"] = [...db.characters["game-a"], { ...character("po2", "픽업전용A", null), is_pickup_only: true }]
       await renderPage()
 
-      expect(cardNames()).toEqual(["구캐릭터", "라이덴", "아케론", "칼리"])
+      expect(cardNames()).toEqual(["구캐릭터", "아케론", "라이덴", "칼리"])
       expect(container.textContent).not.toContain("픽업전용A")
       expect(container.textContent).toContain("보유 캐릭터 2 / 4명")
     })
@@ -334,7 +360,7 @@ describe("CharactersPage", () => {
       db.pickupColumnMissing = true
       await renderPage()
 
-      expect(cardNames()).toEqual(["구캐릭터", "라이덴", "아케론", "칼리"])
+      expect(cardNames()).toEqual(["구캐릭터", "아케론", "라이덴", "칼리"])
       expect(container.textContent).toContain("보유 캐릭터 2 / 4명")
       expect(container.textContent).not.toContain("캐릭터 목록을 불러오지 못했습니다")
     })
@@ -418,7 +444,7 @@ describe("CharactersPage", () => {
     it("renders a compact tile grid without any memo field", async () => {
       await renderPage()
 
-      const list = container.querySelector('[data-testid="character-roster-list"]') as HTMLElement
+      const list = container.querySelector('[data-testid="roster-list-owned"]') as HTMLElement
       expect(list.className).toContain("grid-cols-3")
       expect(list.className).toContain("lg:grid-cols-8")
       expect(container.querySelector("textarea")).toBeNull()
@@ -434,14 +460,14 @@ describe("CharactersPage", () => {
       expect(cardByName("아케론").querySelector('[data-testid="breakthrough-badge"]')?.className).toContain("bottom-0 left-0")
     })
 
-    it("lists favorites first with a gold ring, then sorts by name", async () => {
-      db.userCharacters.push({ character_id: "c2", game_id: "game-a", is_owned: false, is_favorite: true, breakthrough_level: 0, custom_icon_path: null })
+    it("shows owned favorites first with a gold ring, then owned and unowned characters by name", async () => {
+      db.userCharacters.push({ character_id: "c4", game_id: "game-a", is_owned: true, is_favorite: true, favorite_sort_order: 1, breakthrough_level: 0, custom_icon_path: null })
       await renderPage()
 
-      expect(cardNames()).toEqual(["칼리", "구캐릭터", "라이덴", "아케론"])
-      expect(isFavoriteIcon(cardByName("칼리"))).toBe("true")
+      expect(cardNames()).toEqual(["라이덴", "구캐릭터", "아케론", "칼리"])
+      expect(isFavoriteIcon(cardByName("라이덴"))).toBe("true")
       expect(isFavoriteIcon(cardByName("아케론"))).toBe("false")
-      expect(cardByName("칼리").querySelector('[data-testid="character-icon"]')?.className).toContain("ring-amber-400")
+      expect(cardByName("라이덴").querySelector('[data-testid="character-icon"]')?.className).toContain("ring-amber-400")
     })
 
     it("falls back to an initial avatar when no icon is available", async () => {
@@ -524,16 +550,16 @@ describe("CharactersPage", () => {
       expect(container.textContent).toContain("보유 캐릭터 3 / 4명 · 프리셋 1개")
     })
 
-    it("toggles favorite without flipping an unowned character to owned", async () => {
+    it("toggles favorite of an owned character without changing ownership", async () => {
       await renderPage()
-      const dialog = await openSettings("칼리")
+      const dialog = await openSettings("아케론")
 
-      await click(dialog.querySelector('button[aria-label="칼리 즐겨찾기"]'))
+      await click(dialog.querySelector('button[aria-label="아케론 즐겨찾기"]'))
 
-      expect(writes[0].payload).toEqual({ user_id: USER_ID, game_id: "game-a", character_id: "c2", is_owned: false, is_favorite: true })
-      expect(cardByName("칼리").getAttribute("data-owned")).toBe("false")
-      expect(isFavoriteIcon(cardByName("칼리"))).toBe("true")
-      expect(cardNames()[0]).toBe("칼리")
+      expect(writes[0].payload).toEqual({ user_id: USER_ID, game_id: "game-a", character_id: "c1", is_owned: true, is_favorite: true })
+      expect(cardByName("아케론").getAttribute("data-owned")).toBe("true")
+      expect(isFavoriteIcon(cardByName("아케론"))).toBe("true")
+      expect(cardNames()[0]).toBe("아케론")
     })
 
     it("offers breakthrough buttons 0★ to max_breakthrough for owned characters and saves the level", async () => {
@@ -882,6 +908,182 @@ describe("CharactersPage", () => {
       const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true)
       await click(gameChip("다라게임"))
       expect(confirmSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("favorite sections (R63)", () => {
+    const openSettings = async (name: string) => {
+      await click(container.querySelector(`button[aria-label="${name} 설정"]`))
+      return document.body.querySelector('[role="dialog"]') as HTMLElement
+    }
+    const isFavoriteIcon = (card: Element | undefined) => card?.querySelector('[data-testid="character-icon"]')?.getAttribute("data-favorite")
+    const sectionEl = (key: string) => container.querySelector(`[data-testid="roster-section-${key}"]`)
+    const sectionNames = (key: string) =>
+      Array.from(sectionEl(key)?.querySelectorAll('[data-testid="character-card"]') ?? []).map((card) => card.querySelector("span.truncate")?.textContent)
+    const favRow = (id: string, order: number | null, owned = true) => ({
+      character_id: id,
+      game_id: "game-a",
+      is_owned: owned,
+      is_favorite: true,
+      favorite_sort_order: order,
+      breakthrough_level: 0,
+      custom_icon_path: null,
+    })
+    const orderRpcCalls = () => rpcCalls.filter((call) => call.fn === "reorder_favorite_characters")
+
+    it("splits the roster into favorites (saved order), owned and unowned with counts and hides empty sections", async () => {
+      db.userCharacters = [favRow("c3", 1), favRow("c1", 2), favRow("c2", 1, false)]
+      await renderPage()
+
+      expect(sectionNames("favorites")).toEqual(["구캐릭터", "아케론"])
+      expect(sectionEl("owned")).toBeNull()
+      // A stale unowned favorite (unmigrated data) is listed as unowned and not highlighted.
+      expect(sectionNames("unowned")).toEqual(["라이덴", "칼리"])
+      expect(isFavoriteIcon(cardByName("칼리"))).toBe("false")
+      expect(isFavoriteIcon(cardByName("구캐릭터"))).toBe("true")
+      expect(sectionEl("favorites")?.querySelector("h3")?.textContent).toContain("즐겨찾기 (2)")
+      expect(sectionEl("unowned")?.querySelector("h3")?.textContent).toContain("미보유 (2)")
+    })
+
+    it("applies the existing filters inside the sections", async () => {
+      db.userCharacters = [favRow("c3", 1), favRow("c1", 2)]
+      await renderPage()
+      await click(buttonByText("미보유", container.querySelector('[data-testid="roster-filter-bar"]') as HTMLElement))
+
+      expect(sectionEl("favorites")).toBeNull()
+      expect(sectionNames("unowned")).toEqual(["라이덴", "칼리"])
+    })
+
+    it("does not allow favoriting an unowned character", async () => {
+      await renderPage()
+      const dialog = await openSettings("칼리")
+      const button = dialog.querySelector('button[aria-label="칼리 즐겨찾기"]') as HTMLButtonElement
+
+      expect(button.disabled).toBe(true)
+      await click(button)
+      expect(writes).toHaveLength(0)
+    })
+
+    it("adds a new favorite at the end of the favorite section", async () => {
+      db.userCharacters = [favRow("c1", 1), { character_id: "c3", game_id: "game-a", is_owned: true, is_favorite: false, favorite_sort_order: null, breakthrough_level: 0, custom_icon_path: null }]
+      await renderPage()
+      expect(sectionNames("favorites")).toEqual(["아케론"])
+
+      const dialog = await openSettings("구캐릭터")
+      await click(dialog.querySelector('button[aria-label="구캐릭터 즐겨찾기"]'))
+
+      expect(writes[0].payload).toEqual({ user_id: USER_ID, game_id: "game-a", character_id: "c3", is_owned: true, is_favorite: true })
+      expect(sectionNames("favorites")).toEqual(["아케론", "구캐릭터"])
+      expect(sectionEl("owned")).toBeNull()
+    })
+
+    it("clears the favorite and its place immediately when ownership is removed", async () => {
+      db.userCharacters = [favRow("c1", 1), favRow("c3", 2)]
+      await renderPage()
+      const dialog = await openSettings("아케론")
+      await toggle(dialog.querySelector('input[aria-label="아케론 보유"]'))
+
+      expect(writes[0].payload).toEqual({ user_id: USER_ID, game_id: "game-a", character_id: "c1", is_owned: false, is_favorite: false })
+      expect(sectionNames("favorites")).toEqual(["구캐릭터"])
+      expect(sectionNames("unowned")).toContain("아케론")
+    })
+
+    it("moves a favorite with the buttons and saves the whole order with one RPC call", async () => {
+      db.userCharacters = [favRow("c1", 1), favRow("c3", 2)]
+      await renderPage()
+      expect((container.querySelector('button[aria-label="아케론 앞으로 이동"]') as HTMLButtonElement).disabled).toBe(true)
+      expect((container.querySelector('button[aria-label="구캐릭터 뒤로 이동"]') as HTMLButtonElement).disabled).toBe(true)
+
+      await click(container.querySelector('button[aria-label="아케론 뒤로 이동"]'))
+
+      expect(orderRpcCalls()).toEqual([{ fn: "reorder_favorite_characters", args: { p_game_id: "game-a", p_character_ids: ["c3", "c1"] } }])
+      expect(sectionNames("favorites")).toEqual(["구캐릭터", "아케론"])
+    })
+
+    it("reorders favorites by dragging one card onto another", async () => {
+      db.userCharacters = [favRow("c1", 1), favRow("c3", 2), favRow("c4", 3)]
+      await renderPage()
+      const cardsIn = () => Array.from(sectionEl("favorites")?.querySelectorAll('[data-testid="character-card"]') ?? [])
+      expect(sectionNames("favorites")).toEqual(["아케론", "구캐릭터", "라이덴"])
+
+      const [first, , third] = cardsIn()
+      await act(async () => {
+        Simulate.dragStart(first, { dataTransfer: { setData: vi.fn() } } as never)
+        Simulate.dragOver(third, { dataTransfer: { setData: vi.fn() } } as never)
+        Simulate.drop(third, { dataTransfer: { setData: vi.fn() } } as never)
+      })
+      await flush()
+
+      expect(orderRpcCalls()[0]?.args).toEqual({ p_game_id: "game-a", p_character_ids: ["c3", "c4", "c1"] })
+      expect(sectionNames("favorites")).toEqual(["구캐릭터", "라이덴", "아케론"])
+    })
+
+    it("reorders against the full favorite order while a filter hides some favorites", async () => {
+      db.userCharacters = [favRow("c1", 1), favRow("c3", 2), favRow("c4", 3)]
+      await renderPage()
+      await change(container.querySelector('input[aria-label="캐릭터 이름 검색"]'), "라이덴")
+      expect(sectionNames("favorites")).toEqual(["라이덴"])
+      await change(container.querySelector('input[aria-label="캐릭터 이름 검색"]'), "")
+      await click(container.querySelector('button[aria-label="라이덴 앞으로 이동"]'))
+
+      expect(orderRpcCalls()[0]?.args).toEqual({ p_game_id: "game-a", p_character_ids: ["c1", "c4", "c3"] })
+    })
+
+    it("rolls back to the previous order and shows the error when saving the order fails", async () => {
+      db.userCharacters = [favRow("c1", 1), favRow("c3", 2)]
+      db.rpcError = { code: "P0001", message: "boom" }
+      await renderPage()
+      await click(container.querySelector('button[aria-label="아케론 뒤로 이동"]'))
+
+      expect(sectionNames("favorites")).toEqual(["아케론", "구캐릭터"])
+      expect(container.textContent).toContain("즐겨찾기 순서를 저장하지 못했습니다: boom")
+      expect(container.querySelector('button[aria-label="아케론 뒤로 이동"]')).toBeTruthy()
+    })
+
+    it("hides the ordering controls and explains when the reorder RPC is not migrated", async () => {
+      db.userCharacters = [favRow("c1", 1), favRow("c3", 2)]
+      db.rpcError = { code: "PGRST202", message: "function not found" }
+      await renderPage()
+      await click(container.querySelector('button[aria-label="아케론 뒤로 이동"]'))
+
+      expect(sectionNames("favorites")).toEqual(["아케론", "구캐릭터"])
+      expect(container.textContent).toContain("MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql")
+      expect(container.querySelector('button[aria-label="아케론 뒤로 이동"]')).toBeNull()
+    })
+
+    it("falls back to the query without favorite_sort_order and disables ordering when the column is missing", async () => {
+      db.favoriteColumnMissing = true
+      db.userCharacters = [
+        { character_id: "c3", game_id: "game-a", is_owned: true, is_favorite: true, breakthrough_level: 0, custom_icon_path: null },
+        { character_id: "c1", game_id: "game-a", is_owned: true, is_favorite: true, breakthrough_level: 0, custom_icon_path: null },
+      ]
+      await renderPage()
+
+      expect(container.textContent).not.toContain("R13 마이그레이션")
+      expect(sectionNames("favorites")).toEqual(["구캐릭터", "아케론"])
+      expect(container.textContent).toContain("즐겨찾기 순서 저장 기능이 아직 적용되지 않아")
+      expect(container.querySelector('button[aria-label$="뒤로 이동"]')).toBeNull()
+    })
+
+    it("lists the preset picker in the same three sections (dialog below 900px)", async () => {
+      db.userCharacters = [
+        favRow("c3", 1),
+        { character_id: "c1", game_id: "game-a", is_owned: true, is_favorite: false, favorite_sort_order: null, breakthrough_level: 0, custom_icon_path: null },
+        favRow("c2", 1, false),
+      ]
+      await renderPage()
+      await selectTab("조합 프리셋")
+      await click(buttonByText("새 프리셋 추가", container))
+
+      const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
+      const names = (key: string) =>
+        Array.from(dialog.querySelectorAll(`[data-testid="preset-picker-${key}"] button`)).map((b) => b.querySelector("span.truncate")?.textContent)
+      expect(names("favorites")).toEqual(["구캐릭터"])
+      expect(names("owned")).toEqual(["아케론"])
+      expect(names("unowned")).toEqual(["라이덴", "칼리"])
+      expect(dialog.querySelector('[data-testid="preset-picker-favorites"] h4')?.textContent).toBe("즐겨찾기 (1)")
+      // The picker has no ordering controls.
+      expect(dialog.querySelector('button[aria-label$="뒤로 이동"]')).toBeNull()
     })
   })
 })

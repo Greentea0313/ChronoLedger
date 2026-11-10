@@ -16,17 +16,18 @@ import { Textarea } from "@/components/ui/textarea"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { cn } from "@/lib/utils"
 import {
+  CHARACTER_SECTIONS,
   EMPTY_CHARACTER_FILTERS,
   PRESET_MEMO_MAX,
   PRESET_TITLE_MAX,
   addCharacterToPreset,
+  buildCharacterSections,
   canAddToPreset,
   filterCharacters,
   getPresetSlotCount,
   isPresetOverLimit,
   moveCharacterInPreset,
   removeCharacterFromPreset,
-  sortCharactersFavoriteFirst,
   type CharacterFilters,
   type ClassificationSchema,
   type GameCharacter,
@@ -102,14 +103,11 @@ export function PresetEditorDialog({
     return map
   }, [characters])
 
-  const pickerCharacters = useMemo(
-    () =>
-      sortCharactersFavoriteFirst(
-        filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false),
-        (id) => states[id]?.is_favorite ?? false,
-      ),
+  const pickerSections = useMemo(
+    () => buildCharacterSections(filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false), states),
     [characters, filters, schema, states],
   )
+  const pickerCount = pickerSections.favorites.length + pickerSections.owned.length + pickerSections.unowned.length
 
   const slotCount = getPresetSlotCount(maxSlots, characterIds)
   const overLimit = isPresetOverLimit(maxSlots, characterIds)
@@ -244,41 +242,55 @@ export function PresetEditorDialog({
           <section aria-label="캐릭터 선택" className="space-y-3">
             <h3 className="text-sm font-semibold text-content">캐릭터 선택</h3>
             <CharacterFilterBar idPrefix="picker" characters={characters} schema={schema} filters={filters} onChange={setFilters} />
-            {pickerCharacters.length === 0 ? (
+            {pickerCount === 0 ? (
               <p className="py-4 text-center text-sm text-content-secondary">조건에 맞는 캐릭터가 없습니다.</p>
             ) : (
-              <ul className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4 md:grid-cols-5" data-testid="preset-picker-list">
-                {pickerCharacters.map((character) => {
-                  const selected = characterIds.includes(character.id)
-                  const disabled = !selected && !canAdd
+              <div className="max-h-64 space-y-3 overflow-y-auto" data-testid="preset-picker-list">
+                {CHARACTER_SECTIONS.map(({ key, label }) => {
+                  const items = pickerSections[key]
+                  if (items.length === 0) return null
                   return (
-                    <li key={character.id}>
-                      <button
-                        type="button"
-                        aria-pressed={selected}
-                        disabled={disabled}
-                        title={disabled ? "슬롯이 가득 찼습니다." : undefined}
-                        onClick={() => togglePicker(character.id)}
-                        className={cn(
-                          "flex w-full flex-col items-center gap-1 rounded-lg border p-2 text-xs transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-50",
-                          selected ? "border-primary bg-primary/10 text-content" : "border-line bg-surface-2 text-content-secondary hover:text-content",
-                        )}
-                      >
-                        <CharacterIcon
-                          name={character.name}
-                          customIconUrl={customIconUrls[character.id]}
-                          defaultIconUrl={character.default_icon_url}
-                          dimmed={!(states[character.id]?.is_owned ?? false)}
-                          favorite={states[character.id]?.is_favorite ?? false}
-                          breakthroughLevel={states[character.id]?.is_owned ? (states[character.id]?.breakthrough_level ?? 0) : null}
-                          className="h-12 w-12"
-                        />
-                        <span className="w-full truncate text-center">{character.name}</span>
-                      </button>
-                    </li>
+                    <section key={key} aria-label={`${label} 캐릭터`} data-testid={`preset-picker-${key}`} className="space-y-1.5">
+                      <h4 className="text-xs font-semibold text-content-secondary">
+                        {label} ({items.length})
+                      </h4>
+                      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                        {items.map((character) => {
+                          const selected = characterIds.includes(character.id)
+                          const disabled = !selected && !canAdd
+                          const isOwned = states[character.id]?.is_owned ?? false
+                          return (
+                            <li key={character.id}>
+                              <button
+                                type="button"
+                                aria-pressed={selected}
+                                disabled={disabled}
+                                title={disabled ? "슬롯이 가득 찼습니다." : undefined}
+                                onClick={() => togglePicker(character.id)}
+                                className={cn(
+                                  "flex w-full flex-col items-center gap-1 rounded-lg border p-2 text-xs transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-50",
+                                  selected ? "border-primary bg-primary/10 text-content" : "border-line bg-surface-2 text-content-secondary hover:text-content",
+                                )}
+                              >
+                                <CharacterIcon
+                                  name={character.name}
+                                  customIconUrl={customIconUrls[character.id]}
+                                  defaultIconUrl={character.default_icon_url}
+                                  dimmed={!isOwned}
+                                  favorite={isOwned && (states[character.id]?.is_favorite ?? false)}
+                                  breakthroughLevel={isOwned ? (states[character.id]?.breakthrough_level ?? 0) : null}
+                                  className="h-12 w-12"
+                                />
+                                <span className="w-full truncate text-center">{character.name}</span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </section>
                   )
                 })}
-              </ul>
+              </div>
             )}
           </section>
 

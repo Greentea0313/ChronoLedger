@@ -69,6 +69,14 @@ interface UserCharacterRow extends UserCharacterState {
 
 type Notice = { type: "error" | "success"; text: string }
 
+const FAVORITE_ORDER_MIGRATION_HINT =
+  "즐겨찾기 순서 저장 기능이 아직 적용되지 않았습니다. MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql 적용 여부를 확인해 주세요."
+
+/** Postgres undefined_column / PostgREST schema-cache miss: the column is not migrated yet. */
+const isMissingColumnError = (error: { code?: string } | null) => error?.code === "42703" || error?.code === "PGRST204"
+/** PostgREST function-not-found / Postgres undefined_function: the RPC is not migrated yet. */
+const isMissingFunctionError = (error: { code?: string } | null) => error?.code === "PGRST202" || error?.code === "42883"
+
 const MIGRATION_HINT = "캐릭터 데이터를 불러오지 못했습니다. R13 마이그레이션(MIGRATION_R13_CHARACTERS_AND_PRESETS.sql) 적용 여부를 확인해 주세요."
 
 function CharactersPageSkeleton() {
@@ -100,6 +108,10 @@ export default function CharactersPage() {
   const [characterIcons, setCharacterIcons] = useState<Record<string, string>>({})
   const [busyCharacterIds, setBusyCharacterIds] = useState<Record<string, boolean>>({})
   const [isPresetBusy, setIsPresetBusy] = useState(false)
+  // Favorite order needs the favorite_sort_order column and reorder_favorite_characters RPC (R63 migration).
+  const [favoriteOrderSupported, setFavoriteOrderSupported] = useState(true)
+  const [isReordering, setIsReordering] = useState(false)
+  const reorderingRef = useRef(false)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [activeTab, setActiveTab] = useState("roster")
 
@@ -210,11 +222,9 @@ export default function CharactersPage() {
 
   const loadUserCharacterData = useCallback(async () => {
     if (!userId) return
-    const [ownedResult, presetResult] = await Promise.all([
-      supabase
-        .from("user_characters")
-        .select("character_id, game_id, is_owned, is_favorite, breakthrough_level, custom_icon_path")
-        .eq("user_id", userId),
+    const ownedColumns = "character_id, game_id, is_owned, is_favorite, breakthrough_level, custom_icon_path"
+    const [initialOwnedResult, presetResult] = await Promise.all([
+      supabase.from("user_characters").select(`${ownedColumns}, favorite_sort_order`).eq("user_id", userId),
       supabase
         .from("user_character_presets")
         .select("id, game_id, title, character_ids, memo, sort_order, created_at")
@@ -222,6 +232,12 @@ export default function CharactersPage() {
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true }),
     ])
+    let ownedResult = initialOwnedResult
+    // Not migrated yet: load without the order column and show favorites by name.
+    if (isMissingColumnError(ownedResult.error)) {
+      ownedResult = (await supabase.from("user_characters").select(ownedColumns).eq("user_id", userId)) as typeof ownedResult
+      setFavoriteOrderSupported(false)
+    }
     if (ownedResult.error || presetResult.error) {
       setNotice({ type: "error", text: MIGRATION_HINT })
       return
@@ -288,6 +304,7 @@ export default function CharactersPage() {
       map[row.character_id] = {
         is_owned: row.is_owned,
         is_favorite: row.is_favorite,
+        favorite_sort_order: row.favorite_sort_order ?? null,
         breakthrough_level: row.breakthrough_level,
         custom_icon_path: row.custom_icon_path,
       }
@@ -341,7 +358,7 @@ export default function CharactersPage() {
   // Writes one user_characters row. A missing row is created unowned unless the patch says otherwise,
   // so saving a favorite for an unowned character never flips it to owned (DB default is_owned = true).
   const saveUserCharacter = async (character: GameCharacter, patch: Partial<UserCharacterState>): Promise<boolean> => {
-    if (!userId || !activeGameId) return false
+    if (!userId || !activeGameId || reorderingRef.current) return false
     if (isOffline()) {
       setNotice({ type: "error", text: OFFLINE_WRITE_MESSAGE })
       return false
@@ -350,14 +367,31 @@ export default function CharactersPage() {
     const next: UserCharacterState = {
       is_owned: current?.is_owned ?? false,
       is_favorite: current?.is_favorite ?? false,
+      favorite_sort_order: current?.favorite_sort_order ?? null,
       breakthrough_level: current?.breakthrough_level ?? 0,
       custom_icon_path: current?.custom_icon_path ?? null,
       ...patch,
     }
+    // Mirror the DB trigger: only owned characters can be favorites; a new favorite goes to the end of the order.
+    const clearsFavorite = !next.is_owned && !!current?.is_favorite
+    if (!next.is_owned || !next.is_favorite) {
+      next.is_favorite = next.is_owned && next.is_favorite
+      next.favorite_sort_order = null
+    } else if (!current?.is_favorite) {
+      next.favorite_sort_order =
+        Object.values(characterStates).reduce((max, state) => (state.is_favorite && state.is_owned ? Math.max(max, state.favorite_sort_order ?? 0) : max), 0) + 1
+    }
     setBusy(character.id, true)
     try {
       const { error } = await supabase.from("user_characters").upsert(
-        { user_id: userId, game_id: activeGameId, character_id: character.id, is_owned: next.is_owned, ...patch },
+        {
+          user_id: userId,
+          game_id: activeGameId,
+          character_id: character.id,
+          is_owned: next.is_owned,
+          ...patch,
+          ...(clearsFavorite ? { is_favorite: false } : {}),
+        },
         { onConflict: "user_id,character_id" },
       )
       if (error) {
@@ -377,8 +411,45 @@ export default function CharactersPage() {
   }
 
   const handleToggleFavorite = async (character: GameCharacter) => {
+    // Only owned characters can be favorites (R63).
+    if (!(characterStates[character.id]?.is_owned ?? false)) return
     setNotice(null)
     await saveUserCharacter(character, { is_favorite: !(characterStates[character.id]?.is_favorite ?? false) })
+  }
+
+  // Saves the complete favorite order with one RPC call; rolls back to the previous order on failure.
+  const handleReorderFavorites = async (orderedIds: string[]) => {
+    if (!userId || !activeGameId || reorderingRef.current || Object.values(busyCharacterIds).some(Boolean)) return
+    if (isOffline()) {
+      setNotice({ type: "error", text: OFFLINE_WRITE_MESSAGE })
+      return
+    }
+    setNotice(null)
+    const gameId = activeGameId
+    const previousRows = userCharacterRows
+    reorderingRef.current = true
+    setIsReordering(true)
+    setUserCharacterRows((prev) =>
+      prev.map((row) => {
+        const index = orderedIds.indexOf(row.character_id)
+        return row.game_id === gameId && index >= 0 ? { ...row, favorite_sort_order: index + 1 } : row
+      }),
+    )
+    try {
+      const { error } = await supabase.rpc("reorder_favorite_characters", { p_game_id: gameId, p_character_ids: orderedIds })
+      if (error) {
+        setUserCharacterRows(previousRows)
+        if (isMissingFunctionError(error)) {
+          setFavoriteOrderSupported(false)
+          setNotice({ type: "error", text: FAVORITE_ORDER_MIGRATION_HINT })
+        } else {
+          setNotice({ type: "error", text: `즐겨찾기 순서를 저장하지 못했습니다: ${error.message}` })
+        }
+      }
+    } finally {
+      reorderingRef.current = false
+      setIsReordering(false)
+    }
   }
 
   const handleSetBreakthrough = async (character: GameCharacter, level: number) => {
@@ -614,6 +685,9 @@ export default function CharactersPage() {
                   busyIds={busyCharacterIds}
                   maxBreakthrough={selectedGame.maxBreakthrough}
                   isLoading={isCatalogLoading}
+                  favoriteOrderSupported={favoriteOrderSupported}
+                  isReordering={isReordering}
+                  onReorderFavorites={(ids) => void handleReorderFavorites(ids)}
                   onToggleOwned={(character) => void handleToggleOwned(character)}
                   onToggleFavorite={(character) => void handleToggleFavorite(character)}
                   onSetBreakthrough={(character, level) => void handleSetBreakthrough(character, level)}

@@ -151,6 +151,34 @@ export function splitCharacterRosterSections(entries: readonly CharacterRosterEn
   return { favorites, owned, unowned }
 }
 
+export const CHARACTER_SECTIONS = [
+  { key: "favorites", label: "즐겨찾기" },
+  { key: "owned", label: "보유" },
+  { key: "unowned", label: "미보유" },
+] as const
+
+/**
+ * Builds the favorite / owned / unowned sections for already filtered characters (roster and preset pickers).
+ * Non-favorite sections are sorted by name (ko); favorites follow `favorite_sort_order`.
+ */
+export function buildCharacterSections(
+  characters: readonly GameCharacter[],
+  states: Record<string, UserCharacterState | undefined>,
+): CharacterRosterSections {
+  const entries = [...characters]
+    .sort((a, b) => a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id))
+    .map<CharacterRosterEntry>((character) => {
+      const state = states[character.id]
+      return {
+        ...character,
+        isOwned: state?.is_owned ?? false,
+        isFavorite: state?.is_favorite ?? false,
+        favoriteSortOrder: state?.favorite_sort_order ?? null,
+      }
+    })
+  return splitCharacterRosterSections(entries)
+}
+
 /** Moves a favorite from one position to another without mutating the input. */
 export function moveFavoriteCharacter(characterIds: readonly string[], from: number, to: number): string[] {
   const next = [...characterIds]

@@ -107,6 +107,28 @@ describe("PresetWorkspace", () => {
     expect(buttonByText("새 프리셋 추가")).toBeTruthy()
   })
 
+  it("lists the sidebar in favorites, owned and unowned sections without ordering controls", async () => {
+    const sectionStates: Record<string, UserCharacterState> = {
+      c1: { is_owned: true, is_favorite: false, breakthrough_level: 0, custom_icon_path: null },
+      c2: { is_owned: true, is_favorite: true, favorite_sort_order: 2, breakthrough_level: 0, custom_icon_path: null },
+      c4: { is_owned: true, is_favorite: true, favorite_sort_order: 1, breakthrough_level: 0, custom_icon_path: null },
+      c3: { is_owned: false, is_favorite: true, favorite_sort_order: 1, breakthrough_level: 0, custom_icon_path: null },
+    }
+    await act(async () =>
+      root.render(
+        <PresetWorkspace {...baseProps} states={sectionStates} presets={[preset("p1", "혼돈 파티", ["c1"])]} onSave={onSave} onDelete={onDelete} onDirtyChange={onDirtyChange} />,
+      ),
+    )
+    const names = (key: string) =>
+      Array.from(container.querySelectorAll(`[data-testid="workspace-avatars-${key}"] button`)).map((b) => b.querySelector("span.truncate")?.textContent)
+
+    expect(names("favorites")).toEqual(["라이덴", "칼리"])
+    expect(names("owned")).toEqual(["아케론"])
+    expect(names("unowned")).toEqual(["구캐릭터"])
+    expect(container.querySelector('[data-testid="workspace-avatars-favorites"] h4')?.textContent).toBe("즐겨찾기 (2)")
+    expect(container.querySelector('button[aria-label$="뒤로 이동"][aria-label^="라이덴"]')).toBeNull()
+  })
+
   describe("drag and drop", () => {
     it("appends an avatar dropped on an empty slot", async () => {
       await renderWorkspace([preset("p1", "혼돈 파티", ["c1", "c2"])])

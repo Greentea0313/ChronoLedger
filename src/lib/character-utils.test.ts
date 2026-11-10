@@ -14,6 +14,7 @@ import {
   isCharacterTemplateActive,
   moveCharacterInPreset,
   moveCharacterToSlot,
+  buildCharacterSections,
   moveFavoriteCharacter,
   placeCharacterInSlot,
   assignAxisKey,
@@ -365,5 +366,41 @@ describe("moveCharacterToSlot", () => {
     expect(moveCharacterToSlot(ids, 0, -4)).toEqual(["a", "b"])
     moveCharacterToSlot(ids, 0, 1)
     expect(ids).toEqual(["a", "b"])
+  })
+})
+
+describe("buildCharacterSections", () => {
+  const char = (id: string, name: string) => ({ id, game_id: "g", name, rarity: null, attributes: {}, default_icon_url: null })
+  const state = (overrides: Partial<{ is_owned: boolean; is_favorite: boolean; favorite_sort_order: number | null }>) => ({
+    is_owned: true,
+    is_favorite: false,
+    favorite_sort_order: null,
+    breakthrough_level: 0,
+    custom_icon_path: null,
+    ...overrides,
+  })
+
+  it("splits into favorites (by saved order), owned and unowned (by name) without overlap", () => {
+    const characters = [char("a", "다"), char("b", "나"), char("c", "가"), char("d", "라"), char("e", "마")]
+    const sections = buildCharacterSections(characters, {
+      a: state({ is_favorite: true, favorite_sort_order: 2 }),
+      b: state({ is_favorite: true, favorite_sort_order: 1 }),
+      c: state({}),
+      d: state({ is_owned: false }),
+    })
+    expect(sections.favorites.map((c) => c.id)).toEqual(["b", "a"])
+    expect(sections.owned.map((c) => c.id)).toEqual(["c"])
+    expect(sections.unowned.map((c) => c.id)).toEqual(["d", "e"])
+  })
+
+  it("treats an unowned favorite as unowned and puts favorites without an order last by name", () => {
+    const characters = [char("a", "다"), char("b", "나"), char("c", "가")]
+    const sections = buildCharacterSections(characters, {
+      a: state({ is_owned: false, is_favorite: true, favorite_sort_order: 1 }),
+      b: state({ is_favorite: true }),
+      c: state({ is_favorite: true, favorite_sort_order: 5 }),
+    })
+    expect(sections.favorites.map((c) => c.id)).toEqual(["c", "b"])
+    expect(sections.unowned.map((c) => c.id)).toEqual(["a"])
   })
 })

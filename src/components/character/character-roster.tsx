@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useRef, useState } from "react"
-import { ImagePlus, Loader2, RotateCcw, Star } from "lucide-react"
+import { ArrowLeft, ArrowRight, ImagePlus, Loader2, RotateCcw, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,9 +13,11 @@ import {
 import { EmptyState } from "@/components/ui/empty-state"
 import { cn } from "@/lib/utils"
 import {
+  CHARACTER_SECTIONS,
   EMPTY_CHARACTER_FILTERS,
+  buildCharacterSections,
   filterCharacters,
-  sortCharactersFavoriteFirst,
+  moveFavoriteCharacter,
   type CharacterFilters,
   type ClassificationSchema,
   type GameCharacter,
@@ -55,7 +57,8 @@ function CharacterSettingsDialog({
 }: CharacterSettingsDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isOwned = state?.is_owned ?? false
-  const isFavorite = state?.is_favorite ?? false
+  // Only owned characters can be favorites (R63); a stale unowned favorite is shown as not favorite.
+  const isFavorite = isOwned && (state?.is_favorite ?? false)
   const level = state?.breakthrough_level ?? 0
 
   const description = character
@@ -107,7 +110,8 @@ function CharacterSettingsDialog({
                     size="sm"
                     aria-pressed={isFavorite}
                     aria-label={`${character.name} 즐겨찾기`}
-                    disabled={isBusy}
+                    disabled={isBusy || !isOwned}
+                    title={isOwned ? undefined : "보유 중인 캐릭터만 즐겨찾기할 수 있습니다."}
                     onClick={() => onToggleFavorite(character)}
                   >
                     <Star className={cn("mr-1 h-3.5 w-3.5", isFavorite && "fill-amber-400 text-amber-400")} />
@@ -196,6 +200,12 @@ interface CharacterRosterProps {
   busyIds: Record<string, boolean>
   maxBreakthrough: number
   isLoading: boolean
+  /** False when the favorite-order migration/RPC is not applied: ordering controls are hidden. */
+  favoriteOrderSupported?: boolean
+  /** True while a reorder is being saved; ordering controls are locked. */
+  isReordering?: boolean
+  /** Receives the complete new favorite order (all favorites of the game). */
+  onReorderFavorites?: (orderedIds: string[]) => void
   onToggleOwned: (character: GameCharacter) => void
   onToggleFavorite: (character: GameCharacter) => void
   onSetBreakthrough: (character: GameCharacter, level: number) => void
@@ -211,6 +221,9 @@ export function CharacterRoster({
   busyIds,
   maxBreakthrough,
   isLoading,
+  favoriteOrderSupported = true,
+  isReordering = false,
+  onReorderFavorites,
   onToggleOwned,
   onToggleFavorite,
   onSetBreakthrough,
@@ -220,14 +233,26 @@ export function CharacterRoster({
   const [filters, setFilters] = useState<CharacterFilters>(EMPTY_CHARACTER_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const visible = useMemo(
-    () =>
-      sortCharactersFavoriteFirst(
-        filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false),
-        (id) => states[id]?.is_favorite ?? false,
-      ),
+  // The drag source lives in a ref so handlers fired within one batch (drop right after dragstart) see it.
+  const dragIdRef = useRef<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+
+  const sections = useMemo(
+    () => buildCharacterSections(filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false), states),
     [characters, filters, schema, states],
   )
+  const visibleCount = sections.favorites.length + sections.owned.length + sections.unowned.length
+  // Reordering works on the complete favorite order even while filters hide some favorites.
+  const allFavoriteIds = useMemo(() => buildCharacterSections(characters, states).favorites.map((character) => character.id), [characters, states])
+  const canReorder = favoriteOrderSupported && !!onReorderFavorites && !isReordering
+  const showOrderUnavailable = !favoriteOrderSupported && allFavoriteIds.length > 1
+
+  const moveFavorite = (characterId: string, targetId: string) => {
+    const from = allFavoriteIds.indexOf(characterId)
+    const to = allFavoriteIds.indexOf(targetId)
+    if (!canReorder || from < 0 || to < 0 || from === to) return
+    onReorderFavorites?.(moveFavoriteCharacter(allFavoriteIds, from, to))
+  }
   const selected = useMemo(() => characters.find((character) => character.id === selectedId) ?? null, [characters, selectedId])
 
   return (
@@ -241,36 +266,133 @@ export function CharacterRoster({
           message="등록된 캐릭터가 없습니다."
           hint="[+ 캐릭터 추가·수정 요청]으로 관리자에게 캐릭터 등록을 요청할 수 있습니다."
         />
-      ) : visible.length === 0 ? (
+      ) : visibleCount === 0 ? (
         <EmptyState message="조건에 맞는 캐릭터가 없습니다." />
       ) : (
-        <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8" data-testid="character-roster-list">
-          {visible.map((character) => {
-            const state = states[character.id]
-            const isOwned = state?.is_owned ?? false
+        <div className="space-y-5" data-testid="character-roster-sections">
+          {showOrderUnavailable && (
+            <p role="status" className="text-xs text-content-secondary">
+              즐겨찾기 순서 저장 기능이 아직 적용되지 않아 순서를 변경할 수 없습니다. (이름순으로 표시됩니다.)
+            </p>
+          )}
+          {CHARACTER_SECTIONS.map(({ key, label }) => {
+            const items = sections[key]
+            if (items.length === 0) return null
+            const reorderable = key === "favorites" && favoriteOrderSupported && !!onReorderFavorites
             return (
-              <li key={character.id} data-testid="character-card" data-owned={isOwned ? "true" : "false"}>
-                <button
-                  type="button"
-                  aria-label={`${character.name} 설정`}
-                  onClick={() => setSelectedId(character.id)}
-                  className="flex w-full flex-col items-center gap-1 rounded-lg p-1 transition-colors duration-fast hover:bg-surface-2"
+              <section key={key} aria-label={label} data-testid={`roster-section-${key}`} className="space-y-2">
+                <h3 className="text-sm font-semibold text-content">
+                  {label} <span className="font-normal text-content-secondary">({items.length})</span>
+                </h3>
+                <ul
+                  className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"
+                  data-testid={`roster-list-${key}`}
                 >
-                  <CharacterIcon
-                    name={character.name}
-                    customIconUrl={customIconUrls[character.id]}
-                    defaultIconUrl={character.default_icon_url}
-                    dimmed={!isOwned}
-                    favorite={state?.is_favorite ?? false}
-                    breakthroughLevel={isOwned ? (state?.breakthrough_level ?? 0) : null}
-                    className="h-14 w-14"
-                  />
-                  <span className="w-full truncate text-center text-xs text-content">{character.name}</span>
-                </button>
-              </li>
+                  {items.map((character, index) => {
+                    const state = states[character.id]
+                    const isOwned = state?.is_owned ?? false
+                    const previous = items[index - 1]
+                    const next = items[index + 1]
+                    return (
+                      <li
+                        key={character.id}
+                        data-testid="character-card"
+                        data-owned={isOwned ? "true" : "false"}
+                        draggable={reorderable && canReorder}
+                        onDragStart={
+                          reorderable
+                            ? (event) => {
+                                if (!canReorder) {
+                                  event.preventDefault()
+                                  return
+                                }
+                                dragIdRef.current = character.id
+                                event.dataTransfer?.setData("text/plain", character.id)
+                              }
+                            : undefined
+                        }
+                        onDragOver={
+                          reorderable
+                            ? (event) => {
+                                if (!dragIdRef.current) return
+                                event.preventDefault()
+                                if (dragOverId !== character.id) setDragOverId(character.id)
+                              }
+                            : undefined
+                        }
+                        onDragLeave={reorderable ? () => setDragOverId((prev) => (prev === character.id ? null : prev)) : undefined}
+                        onDrop={
+                          reorderable
+                            ? (event) => {
+                                event.preventDefault()
+                                const source = dragIdRef.current
+                                dragIdRef.current = null
+                                setDragOverId(null)
+                                if (source) moveFavorite(source, character.id)
+                              }
+                            : undefined
+                        }
+                        onDragEnd={
+                          reorderable
+                            ? () => {
+                                dragIdRef.current = null
+                                setDragOverId(null)
+                              }
+                            : undefined
+                        }
+                        className={cn("rounded-lg", dragOverId === character.id && "bg-primary/10")}
+                      >
+                        <button
+                          type="button"
+                          aria-label={`${character.name} 설정`}
+                          onClick={() => setSelectedId(character.id)}
+                          className="flex w-full flex-col items-center gap-1 rounded-lg p-1 transition-colors duration-fast hover:bg-surface-2 [&_img]:pointer-events-none"
+                        >
+                          <CharacterIcon
+                            name={character.name}
+                            customIconUrl={customIconUrls[character.id]}
+                            defaultIconUrl={character.default_icon_url}
+                            dimmed={!isOwned}
+                            favorite={isOwned && (state?.is_favorite ?? false)}
+                            breakthroughLevel={isOwned ? (state?.breakthrough_level ?? 0) : null}
+                            className="h-14 w-14"
+                          />
+                          <span className="w-full truncate text-center text-xs text-content">{character.name}</span>
+                        </button>
+                        {reorderable && (
+                          <div className="flex justify-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              disabled={!canReorder || !previous}
+                              aria-label={`${character.name} 앞으로 이동`}
+                              onClick={() => previous && moveFavorite(character.id, previous.id)}
+                            >
+                              <ArrowLeft className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              disabled={!canReorder || !next}
+                              aria-label={`${character.name} 뒤로 이동`}
+                              onClick={() => next && moveFavorite(character.id, next.id)}
+                            >
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
             )
           })}
-        </ul>
+        </div>
       )}
 
       <CharacterSettingsDialog
