@@ -15,6 +15,7 @@ const expenses: WeeklyExpenseEntry[] = [
 const currentWeek = () =>
   screen.getAllByTestId("week-group").find((group) => group.getAttribute("data-current-week") === "true") as HTMLElement
 const otherWeeks = () => screen.getAllByTestId("week-group").filter((group) => group.getAttribute("data-current-week") !== "true")
+const openWeek = (week: HTMLElement) => fireEvent.click(within(week).getByTestId("week-header"))
 
 function renderList(overrides: Partial<React.ComponentProps<typeof WeeklyScheduleList>> = {}) {
   const props = {
@@ -74,7 +75,10 @@ describe("WeeklyScheduleList", () => {
   it("lists a multi-week schedule in every week it overlaps once the weeks are expanded", () => {
     renderList()
     // Only the current week is open by default; expanding the other weeks reveals the same schedule there.
-    otherWeeks().forEach((week) => within(week).getAllByTestId("game-group-header").forEach((header) => fireEvent.click(header)))
+    otherWeeks().forEach((week) => {
+      openWeek(week)
+      within(week).queryAllByTestId("game-group-header").forEach((header) => fireEvent.click(header))
+    })
     expect(screen.getAllByText("버전 1.0").length).toBeGreaterThan(3)
   })
 
@@ -159,13 +163,17 @@ describe("WeeklyScheduleList", () => {
       expect(within(currentWeek()).getByText("픽업 A")).toBeTruthy()
       expect(within(currentWeek()).getByTestId("expense-section-header").getAttribute("aria-expanded")).toBe("true")
 
+      expect(within(currentWeek()).getByTestId("week-header").getAttribute("aria-expanded")).toBe("true")
       otherWeeks().forEach((week) => {
-        within(week).queryAllByTestId("game-group-header").forEach((header) => expect(header.getAttribute("aria-expanded")).toBe("false"))
+        // R70: other weeks start collapsed, so their game groups and expense sections are not rendered.
+        expect(within(week).getByTestId("week-header").getAttribute("aria-expanded")).toBe("false")
+        expect(within(week).queryAllByTestId("game-group-header")).toHaveLength(0)
+        expect(within(week).queryByTestId("expense-section-header")).toBeNull()
         expect(within(week).queryByText("픽업 A")).toBeNull()
       })
-      const collapsedExpense = otherWeeks().map((week) => within(week).queryByTestId("expense-section-header")).find(Boolean) as HTMLElement
-      expect(collapsedExpense.getAttribute("aria-expanded")).toBe("false")
       expect(screen.queryByText("다른 주")).toBeNull()
+      // Subtotals stay visible in the collapsed week header.
+      expect(otherWeeks().some((week) => within(week).getByTestId("week-subtotal").textContent === "예정 700원 · 확정 0원")).toBe(true)
     })
 
     it("toggles a game group with aria-expanded and keeps other groups untouched", () => {
@@ -188,15 +196,27 @@ describe("WeeklyScheduleList", () => {
       expect(within(currentWeek()).getByText("픽업 A")).toBeTruthy()
     })
 
-    it("lets the user open a collapsed week's group", () => {
+    it("lets the user open a collapsed week, then its group", () => {
       renderList()
-      const week = otherWeeks().find((candidate) => within(candidate).queryAllByTestId("game-group-header").length > 0) as HTMLElement
+      const week = otherWeeks()[0]
+      openWeek(week)
+      expect(within(week).getByTestId("week-header").getAttribute("aria-expanded")).toBe("true")
       const header = within(week).getAllByTestId("game-group-header")[0]
+      expect(header.getAttribute("aria-expanded")).toBe("false")
 
       fireEvent.click(header)
 
       expect(header.getAttribute("aria-expanded")).toBe("true")
       expect(within(week).getByText("버전 1.0")).toBeTruthy()
+    })
+
+    it("collapses the current week from its header (R70)", () => {
+      renderList()
+      const header = within(currentWeek()).getByTestId("week-header")
+      fireEvent.click(header)
+      expect(header.getAttribute("aria-expanded")).toBe("false")
+      expect(within(currentWeek()).queryByText("픽업 A")).toBeNull()
+      expect(within(currentWeek()).getByText("이번 주")).toBeTruthy()
     })
 
     it("shows the schedule count and up to three distinct 20px pickup avatars with +n in the group header", () => {

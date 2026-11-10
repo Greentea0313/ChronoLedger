@@ -163,6 +163,9 @@ export function WeeklyScheduleList({
           const defaultOpen = week.isCurrentWeek
           const expenseKey = `${week.weekStart}|expenses`
           const expensesOpen = isOpen(expenseKey, defaultOpen)
+          const weekKey = `${week.weekStart}|week`
+          const weekOpen = isOpen(weekKey, defaultOpen)
+          const weekPanelId = `week-panel-${weekKey}`
 
           return (
             <article
@@ -175,11 +178,22 @@ export function WeeklyScheduleList({
               )}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="flex items-center gap-2 text-sm font-semibold text-content">
-                  {`${index + 1}주차 · ${shortDate(week.weekStart)} ~ ${shortDate(week.weekEnd)}`}
-                  {week.isCurrentWeek && (
-                    <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">이번 주</span>
-                  )}
+                <h3>
+                  {/* R70: every week collapses; only the current week starts open. */}
+                  <button
+                    type="button"
+                    data-testid="week-header"
+                    aria-expanded={weekOpen}
+                    aria-controls={weekPanelId}
+                    onClick={() => toggle(weekKey, defaultOpen)}
+                    className="flex items-center gap-2 rounded-md text-left text-sm font-semibold text-content hover:text-primary"
+                  >
+                    <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", !weekOpen && "-rotate-90")} aria-hidden="true" />
+                    {`${index + 1}주차 · ${shortDate(week.weekStart)} ~ ${shortDate(week.weekEnd)}`}
+                    {week.isCurrentWeek && (
+                      <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">이번 주</span>
+                    )}
+                  </button>
                 </h3>
                 {expenses !== null && (
                   <p data-testid="week-subtotal" className="text-xs text-content-secondary">
@@ -188,10 +202,12 @@ export function WeeklyScheduleList({
                 )}
               </div>
 
-              {weekSchedules.length === 0 && weekExpenses.length === 0 ? (
-                <EmptyState message="이 주에는 일정이 없습니다." />
+              {!weekOpen ? null : weekSchedules.length === 0 && weekExpenses.length === 0 ? (
+                <div id={weekPanelId}>
+                  <EmptyState message="이 주에는 일정이 없습니다." />
+                </div>
               ) : (
-                <div className="space-y-3">
+                <div id={weekPanelId} className="space-y-3">
                   {gameGroups.map((group) => {
                     const groupKey = `${week.weekStart}|game|${group.key}`
                     const open = isOpen(groupKey, defaultOpen)
