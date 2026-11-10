@@ -32,7 +32,7 @@
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 Run ID**: 없음 *(최근 완료 Run: `r63-character-favorite-sections`, `main` 병합 `478b137`)*
-- **⚠️ 사용자 조치 필요**: Supabase SQL Editor에서 `sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` 수동 실행 필요함. 미적용 상태에서는 이름순 표시·순서 변경 비활성 폴백으로 동작함. 확인 쿼리는 `sql/README.md` 참고.
+- **운영 DB 반영**: `sql/migrations/MIGRATION_USER_CHARACTER_FAVORITE_ORDER.sql` 사용자 수동 적용·검증 완료함(2026-11-10). `R74` ① 권한 회수 보정은 별도 `REVOKE` 1줄 실행으로 남음.
 
 ### 🗂️ 이전 Run 기록 (완료): `r63-character-favorite-sections`
 
