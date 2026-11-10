@@ -1071,7 +1071,8 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
 
     expect((screen.getByLabelText("최대 프리셋 슬롯") as HTMLInputElement).value).toBe("4")
     expect((screen.getByLabelText("성급 목록") as HTMLInputElement).value).toBe("5★, 4★")
-    expect((screen.getByLabelText("분류 축 1 키") as HTMLInputElement).value).toBe("element")
+    // The internal axis key is no longer editable (R57): it stays hidden and is preserved on save.
+    expect(screen.queryByLabelText("분류 축 1 키")).toBeNull()
     expect((screen.getByLabelText("분류 축 1 옵션") as HTMLInputElement).value).toBe("불, 물")
 
     fireEvent.change(screen.getByLabelText("최대 프리셋 슬롯"), { target: { value: "6" } })
@@ -1118,17 +1119,17 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect(gamesBuilder.update).not.toHaveBeenCalled()
   })
 
-  it("분류 축 키를 입력해도 입력란이 다시 마운트되지 않는다 (안정적인 행 key)", async () => {
+  it("분류 축 이름을 입력해도 입력란이 다시 마운트되지 않는다 (안정적인 행 key)", async () => {
     await openGameEditModal()
 
-    const keyInput = screen.getByLabelText("분류 축 1 키") as HTMLInputElement
-    fireEvent.change(keyInput, { target: { value: "elem" } })
-    fireEvent.change(keyInput, { target: { value: "element2" } })
+    const nameInput = screen.getByLabelText("분류 축 1 이름") as HTMLInputElement
+    fireEvent.change(nameInput, { target: { value: "원소" } })
+    fireEvent.change(nameInput, { target: { value: "원소 속성" } })
 
-    const afterInput = screen.getByLabelText("분류 축 1 키") as HTMLInputElement
-    expect(afterInput).toBe(keyInput)
-    expect(keyInput.isConnected).toBe(true)
-    expect(afterInput.value).toBe("element2")
+    const afterInput = screen.getByLabelText("분류 축 1 이름") as HTMLInputElement
+    expect(afterInput).toBe(nameInput)
+    expect(nameInput.isConnected).toBe(true)
+    expect(afterInput.value).toBe("원소 속성")
   })
 
   it("기존 캐릭터가 쓰는 성급·분류 옵션을 제거하면 사용 인원 경고를 보이고 재확인 후 저장한다 (§7.3.4)", async () => {
@@ -1320,9 +1321,9 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       selectGame("game-2")
       fireEvent.click(await screen.findByRole("button", { name: "캐릭터 템플릿 생성" }))
 
-      expect(screen.getByRole("heading", { name: "게임 정보 수정" })).toBeTruthy()
+      expect(screen.getByRole("heading", { name: "신규게임 캐릭터 템플릿 생성" })).toBeTruthy()
       fireEvent.change(screen.getByLabelText("캐릭터 시스템 명칭"), { target: { value: "오퍼레이터" } })
-      fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "S급, A급" } })
+      fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), { target: { value: "S급, A급" } })
       fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
       fireEvent.change(screen.getByLabelText("분류 축 1 이름"), { target: { value: "직군" } })
       fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "선봉, 중무장" } })
@@ -1353,7 +1354,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       fireEvent.click(await screen.findByRole("button", { name: "캐릭터 템플릿 생성" }))
       fireEvent.click(screen.getByRole("button", { name: "취소" }))
 
-      await waitFor(() => expect(screen.queryByRole("heading", { name: "게임 정보 수정" })).toBeNull())
+      await waitFor(() => expect(screen.queryByRole("heading", { name: "신규게임 캐릭터 템플릿 생성" })).toBeNull())
       expect(screen.queryByRole("heading", { name: /캐릭터 추가/ })).toBeNull()
     })
 
@@ -1380,13 +1381,179 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       })
     })
 
+    describe("템플릿 게이트와 입력 검증 (R57)", () => {
+      const addButton = () => screen.getByRole("button", { name: "캐릭터 추가" })
+      const gateGames = [schemaGame, emptyGame]
+
+      it("전체 필터에서 템플릿 없는 게임을 고르면 입력·저장을 숨기고 템플릿 생성 안내를 보여준다", async () => {
+        await openCharacterTabWith(gateGames, mockCharacters)
+        fireEvent.click(addButton())
+        const dialog = screen.getByRole("dialog")
+        fireEvent.change(within(dialog).getByLabelText("대상 게임"), { target: { value: "game-2" } })
+
+        expect(within(dialog).getByText("신규게임은(는) 캐릭터 템플릿이 아직 없습니다. 템플릿(명칭·등급·분류 기준)을 먼저 만들어야 합니다.")).toBeTruthy()
+        expect(within(dialog).queryByLabelText("캐릭터 이름 *")).toBeNull()
+        expect(within(dialog).queryByRole("button", { name: "저장" })).toBeNull()
+        expect(within(dialog).queryByLabelText("기본 아이콘 URL")).toBeNull()
+        expect(within(dialog).getByRole("button", { name: "캐릭터 템플릿 생성" })).toBeTruthy()
+      })
+
+      it("게임 선택 목록의 템플릿 없는 게임에 (템플릿 없음)을 붙인다", async () => {
+        await openCharacterTabWith(gateGames, mockCharacters)
+        fireEvent.click(addButton())
+
+        const options = Array.from(within(screen.getByRole("dialog")).getByLabelText("대상 게임").querySelectorAll("option")).map((option) => option.textContent)
+        expect(options).toEqual(["게임을 선택하세요", "원신", "신규게임 (템플릿 없음)"])
+      })
+
+      it("[캐릭터 템플릿 생성]은 추가 모달을 닫고 템플릿 모달을 열며, 저장하면 첫 캐릭터 폼이 이어서 열린다", async () => {
+        gamesBuilder.update.mockReturnValue(gamesBuilder)
+        await openCharacterTabWith(gateGames, mockCharacters)
+        fireEvent.click(addButton())
+        fireEvent.change(within(screen.getByRole("dialog")).getByLabelText("대상 게임"), { target: { value: "game-2" } })
+        fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "캐릭터 템플릿 생성" }))
+
+        expect(await screen.findByRole("heading", { name: "신규게임 캐릭터 템플릿 생성" })).toBeTruthy()
+        expect(screen.queryByRole("heading", { name: /캐릭터 추가/ })).toBeNull()
+        gamesBuilder.order.mockResolvedValue({
+          data: [schemaGame, { ...emptyGame, classification_schema: { rarities: ["S급"], axes: [] } }],
+          error: null,
+        })
+        fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), { target: { value: "S급" } })
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+        expect(await screen.findByRole("heading", { name: "신규게임 캐릭터 추가" })).toBeTruthy()
+        expect(screen.getByLabelText("캐릭터 이름 *")).toBeTruthy()
+      })
+
+      it("템플릿이 있는 게임과 기존 캐릭터 수정은 게이트 대상이 아니다", async () => {
+        await openCharacterTabWith([schemaGame, { ...emptyGame }], [...mockCharacters, { id: "po-x", game_id: "game-2", name: "픽업 전용", rarity: null, attributes: {}, default_icon_url: null, is_pickup_only: true }])
+        selectGame("game-2")
+        fireEvent.click(await screen.findByRole("button", { name: "픽업 전용 수정" }))
+
+        expect(screen.queryByTestId("character-template-gate")).toBeNull()
+        expect(screen.getByLabelText("캐릭터 이름 *")).toBeTruthy()
+      })
+
+      it("등급이 하나도 없으면 템플릿 흐름에서는 저장을 막고 일반 게임 수정에서는 허용한다", async () => {
+        gamesBuilder.update.mockReturnValue(gamesBuilder)
+        await openCharacterTabWith(gateGames, mockCharacters)
+        selectGame("game-2")
+        fireEvent.click(await screen.findByRole("button", { name: "캐릭터 템플릿 생성" }))
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+        expect(await screen.findByText("등급 목록을 1개 이상 입력해 주세요.")).toBeTruthy()
+        expect(gamesBuilder.update).not.toHaveBeenCalled()
+      })
+
+      it("중복 등급·중복 선택지·선택지 21개를 항목별 오류로 막는다", async () => {
+        await openGameEditModal()
+
+        fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★, 4★, 5★" } })
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+        expect(await screen.findByText("등급 '5★'이(가) 중복되었습니다.")).toBeTruthy()
+
+        fireEvent.change(screen.getByLabelText("성급 목록"), { target: { value: "5★, 4★" } })
+        fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "불, 물, 불" } })
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+        expect(await screen.findByText("분류 기준 1(속성)의 선택지 '불'이(가) 중복되었습니다.")).toBeTruthy()
+
+        fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: Array.from({ length: 21 }, (_, i) => `옵션${i}`).join(", ") } })
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+        expect(await screen.findByText("분류 기준 1(속성)의 선택지는 최대 20개까지 입력할 수 있습니다.")).toBeTruthy()
+        expect(gamesBuilder.update).not.toHaveBeenCalled()
+      })
+
+      it("분류 기준 이름이 비어 있으면 저장하지 않는다", async () => {
+        await openGameEditModal()
+        fireEvent.change(screen.getByLabelText("분류 축 1 이름"), { target: { value: "  " } })
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+        expect(await screen.findByText("분류 기준 1의 이름을 1~30자로 입력해 주세요.")).toBeTruthy()
+        expect(gamesBuilder.update).not.toHaveBeenCalled()
+      })
+
+      it("축을 삭제한 뒤 다시 추가해도 내부 키가 중복되지 않고 기존 축 키는 유지된다", async () => {
+        gamesBuilder.update.mockReturnValue(gamesBuilder)
+        const twoAxisGame = {
+          ...schemaGame,
+          classification_schema: {
+            rarities: ["5★"],
+            axes: [
+              { key: "class1", label: "속성", options: ["불"] },
+              { key: "class2", label: "무기", options: ["검"] },
+            ],
+          },
+        }
+        gamesBuilder.order.mockResolvedValue({ data: [twoAxisGame], error: null })
+        render(<AdminPage />)
+        fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
+        fireEvent.click(await screen.findByRole("button", { name: "게임 수정: 원신" }))
+
+        // Delete axis 1 (class1), keep axis 2 (class2), add a new one: it must take class1, not a second class2.
+        fireEvent.click(screen.getAllByRole("button", { name: "삭제" }).find((button) => button.closest(".grid")) as HTMLElement)
+        fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
+        fireEvent.change(screen.getByLabelText("분류 축 2 이름"), { target: { value: "역할" } })
+        fireEvent.change(screen.getByLabelText("분류 축 2 옵션"), { target: { value: "딜러" } })
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+        await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalled())
+        const saved = gamesBuilder.update.mock.calls[0][0].classification_schema
+        expect(saved.axes).toEqual([
+          { key: "class2", label: "무기", options: ["검"] },
+          { key: "class1", label: "역할", options: ["딜러"] },
+        ])
+      })
+
+      it("템플릿 흐름이 아닌 일반 게임 수정 모달은 기존 문구를 유지한다", async () => {
+        await openGameEditModal()
+
+        expect(screen.getByRole("heading", { name: "게임 정보 수정" })).toBeTruthy()
+        expect(screen.getByText("게임 명칭 및 기본 대표 아이콘 URL을 변경합니다.")).toBeTruthy()
+        expect(screen.getByLabelText("성급 목록")).toBeTruthy()
+      })
+
+      it("템플릿 모달의 제목은 기존 템플릿이 있으면 수정, 없으면 생성이며 설명을 바꾼다", async () => {
+        await openCharacterTabWith([labeledGame, emptyGame], labeledCharacters)
+        selectGame("game-1")
+        fireEvent.click(await screen.findByRole("button", { name: "템플릿 설정 수정" }))
+
+        expect(screen.getByRole("heading", { name: "원신 캐릭터 템플릿 수정" })).toBeTruthy()
+        expect(screen.getByText("캐릭터 시스템 명칭·등급·분류 기준(최대 2개)·최대 프리셋 슬롯·최대 돌파 단계를 설정함.")).toBeTruthy()
+        expect(screen.getByLabelText("등급 목록 (최고 등급부터) *")).toBeTruthy()
+      })
+
+      it.each([
+        ["23514 + 제약명", { code: "23514", message: 'new row violates check constraint "games_classification_schema_check"' }],
+        ["제약명만", { code: "XX000", message: "games_classification_schema_check failed" }],
+        ["23514 코드만", { code: "23514", message: "check failed" }],
+      ])("DB 템플릿 CHECK 위반(%s)은 원문 대신 형식 안내를 보여준다", async (_label, error) => {
+        gamesBuilder.update.mockReturnValue(gamesBuilder)
+        gamesBuilder.eq.mockResolvedValue({ error })
+        await openGameEditModal()
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+        expect(await screen.findByText("캐릭터 템플릿 형식이 올바르지 않습니다(등급·분류 기준 개수와 길이를 확인해 주세요).")).toBeTruthy()
+        expect(screen.queryByText(/violates check constraint/)).toBeNull()
+      })
+
+      it("다른 CHECK 제약 위반은 원문을 그대로 보여준다", async () => {
+        gamesBuilder.update.mockReturnValue(gamesBuilder)
+        gamesBuilder.eq.mockResolvedValue({ error: { code: "23514", message: 'violates check constraint "games_max_breakthrough_check"' } })
+        await openGameEditModal()
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+        expect(await screen.findByText(/games_max_breakthrough_check/)).toBeTruthy()
+      })
+    })
+
     it("분류 기준은 최대 2개까지만 추가할 수 있다", async () => {
       await openGameEditModal()
       fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
       fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
 
-      expect(screen.getByLabelText("분류 축 2 키")).toBeTruthy()
-      expect(screen.queryByLabelText("분류 축 3 키")).toBeNull()
+      expect(screen.getByLabelText("분류 축 2 이름")).toBeTruthy()
+      expect(screen.queryByLabelText("분류 축 3 이름")).toBeNull()
       expect(screen.getByText("분류 기준 (최대 2개)")).toBeTruthy()
     })
 

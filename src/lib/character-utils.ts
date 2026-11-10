@@ -251,3 +251,84 @@ export function validatePresetInput(input: {
   if (new Set(input.characterIds).size !== input.characterIds.length) return "같은 캐릭터를 중복 배치할 수 없습니다."
   return null
 }
+
+// ---------------------------------------------------------------------------
+// Classification template (admin form) - mirrors the DB is_valid_classification_schema (R52 / R57)
+// ---------------------------------------------------------------------------
+
+export const CHARACTER_LABEL_MAX = 20
+export const TEMPLATE_RARITY_MAX_COUNT = 10
+export const TEMPLATE_RARITY_MAX_LENGTH = 20
+export const TEMPLATE_AXIS_MAX_COUNT = 2
+export const TEMPLATE_AXIS_LABEL_MAX = 30
+export const TEMPLATE_AXIS_OPTION_MAX_COUNT = 20
+export const TEMPLATE_AXIS_OPTION_MAX_LENGTH = 30
+const AXIS_KEY_PATTERN = /^[a-z0-9_]{1,24}$/
+const DEFAULT_AXIS_KEYS = ["class1", "class2"]
+
+/** `a, b ,, c` -> `["a", "b", "c"]` (trimmed, blanks dropped; duplicates are kept so validation can report them). */
+export function splitCommaList(value: string): string[] {
+  return value.split(",").map((item) => item.trim()).filter(Boolean)
+}
+
+/** First unused default axis key (`class1`, `class2`, ...), so deleting then adding an axis never repeats a key. */
+export function assignAxisKey(usedKeys: readonly string[]): string {
+  const free = DEFAULT_AXIS_KEYS.find((key) => !usedKeys.includes(key))
+  if (free) return free
+  let index = DEFAULT_AXIS_KEYS.length + 1
+  while (usedKeys.includes(`class${index}`)) index += 1
+  return `class${index}`
+}
+
+export type ClassificationTemplateInput = {
+  characterLabel: string
+  rarities: string[]
+  axes: ClassificationAxis[]
+}
+
+function findDuplicate(values: readonly string[]): string | undefined {
+  return values.find((value, index) => values.indexOf(value) !== index)
+}
+
+/**
+ * Validates the admin template form with the same limits as the database CHECK, returning a Korean error for the first
+ * violation or null. `requireRarities` is set in the template create/edit flow, where a rank list is mandatory.
+ */
+export function validateClassificationTemplate(
+  input: ClassificationTemplateInput,
+  options: { requireRarities?: boolean } = {},
+): string | null {
+  if (input.characterLabel.trim().length > CHARACTER_LABEL_MAX) {
+    return `캐릭터 시스템 명칭은 ${CHARACTER_LABEL_MAX}자 이내로 입력해 주세요.`
+  }
+  if (options.requireRarities && input.rarities.length < 1) return "등급 목록을 1개 이상 입력해 주세요."
+  if (input.rarities.length > TEMPLATE_RARITY_MAX_COUNT) {
+    return `성급은 비어 있지 않은 문자열을 최대 ${TEMPLATE_RARITY_MAX_COUNT}개까지 입력할 수 있습니다.`
+  }
+  if (input.rarities.some((rarity) => rarity.length > TEMPLATE_RARITY_MAX_LENGTH)) {
+    return `등급 이름은 각 ${TEMPLATE_RARITY_MAX_LENGTH}자 이내로 입력해 주세요.`
+  }
+  const duplicateRarity = findDuplicate(input.rarities)
+  if (duplicateRarity) return `등급 '${duplicateRarity}'이(가) 중복되었습니다.`
+
+  if (input.axes.length > TEMPLATE_AXIS_MAX_COUNT) return `분류 기준은 최대 ${TEMPLATE_AXIS_MAX_COUNT}개까지 설정할 수 있습니다.`
+  for (let index = 0; index < input.axes.length; index += 1) {
+    const axis = input.axes[index]
+    const name = `분류 기준 ${index + 1}`
+    const label = axis.label.trim()
+    if (label.length < 1 || label.length > TEMPLATE_AXIS_LABEL_MAX) return `${name}의 이름을 1~${TEMPLATE_AXIS_LABEL_MAX}자로 입력해 주세요.`
+    if (!AXIS_KEY_PATTERN.test(axis.key) || input.axes.findIndex((other) => other.key === axis.key) !== index) {
+      return `${name}의 내부 키가 올바르지 않거나 중복되었습니다. 분류 기준을 삭제한 뒤 다시 추가해 주세요.`
+    }
+    if (axis.options.length < 1) return `${name}(${label})의 선택지를 1개 이상 입력해 주세요.`
+    if (axis.options.length > TEMPLATE_AXIS_OPTION_MAX_COUNT) {
+      return `${name}(${label})의 선택지는 최대 ${TEMPLATE_AXIS_OPTION_MAX_COUNT}개까지 입력할 수 있습니다.`
+    }
+    if (axis.options.some((option) => option.length > TEMPLATE_AXIS_OPTION_MAX_LENGTH)) {
+      return `${name}(${label})의 선택지는 각 ${TEMPLATE_AXIS_OPTION_MAX_LENGTH}자 이내로 입력해 주세요.`
+    }
+    const duplicateOption = findDuplicate(axis.options)
+    if (duplicateOption) return `${name}(${label})의 선택지 '${duplicateOption}'이(가) 중복되었습니다.`
+  }
+  return null
+}

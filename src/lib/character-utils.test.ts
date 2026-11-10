@@ -13,6 +13,9 @@ import {
   isCharacterSupported,
   isCharacterTemplateActive,
   moveCharacterInPreset,
+  assignAxisKey,
+  splitCommaList,
+  validateClassificationTemplate,
   normalizeClassificationSchema,
   normalizeMaxBreakthrough,
   normalizeMaxPresetSlots,
@@ -200,5 +203,79 @@ describe("R52 character template helpers", () => {
   it("supports games with at least one character", () => {
     expect(isCharacterSupported(1)).toBe(true)
     expect(isCharacterSupported(0)).toBe(false)
+  })
+})
+
+describe("splitCommaList", () => {
+  it("trims items, drops blanks and keeps duplicates for validation", () => {
+    expect(splitCommaList(" 5★ , ,4★,,5★ ")).toEqual(["5★", "4★", "5★"])
+    expect(splitCommaList("")).toEqual([])
+  })
+})
+
+describe("assignAxisKey", () => {
+  it("hands out class1 then class2 and reuses a freed key instead of repeating one", () => {
+    expect(assignAxisKey([])).toBe("class1")
+    expect(assignAxisKey(["class1"])).toBe("class2")
+    // class1 was deleted while class2 stayed: the next new axis must not collide with class2.
+    expect(assignAxisKey(["class2"])).toBe("class1")
+    expect(assignAxisKey(["element"])).toBe("class1")
+  })
+
+  it("keeps generating unique keys when both defaults are taken", () => {
+    expect(assignAxisKey(["class1", "class2"])).toBe("class3")
+    expect(assignAxisKey(["class1", "class2", "class3"])).toBe("class4")
+  })
+})
+
+describe("validateClassificationTemplate", () => {
+  const axis = (overrides: Partial<{ key: string; label: string; options: string[] }> = {}) => ({
+    key: "class1",
+    label: "속성",
+    options: ["불", "물"],
+    ...overrides,
+  })
+  const valid = { characterLabel: "공명자", rarities: ["5성", "4성"], axes: [axis(), axis({ key: "class2", label: "무기", options: ["검"] })] }
+
+  it("accepts a valid template and an empty one when ranks are not required", () => {
+    expect(validateClassificationTemplate(valid, { requireRarities: true })).toBeNull()
+    expect(validateClassificationTemplate({ characterLabel: "", rarities: [], axes: [] })).toBeNull()
+  })
+
+  it("requires at least one rank only in the template flow", () => {
+    const noRanks = { ...valid, rarities: [] }
+    expect(validateClassificationTemplate(noRanks, { requireRarities: true })).toBe("등급 목록을 1개 이상 입력해 주세요.")
+    expect(validateClassificationTemplate(noRanks)).toBeNull()
+  })
+
+  it("enforces label, rank count/length and rank duplicates", () => {
+    expect(validateClassificationTemplate({ ...valid, characterLabel: "가".repeat(21) })).toContain("20자 이내")
+    expect(validateClassificationTemplate({ ...valid, rarities: Array.from({ length: 11 }, (_, i) => `R${i}`) })).toContain("최대 10개")
+    expect(validateClassificationTemplate({ ...valid, rarities: ["가".repeat(21)] })).toContain("각 20자 이내")
+    expect(validateClassificationTemplate({ ...valid, rarities: ["5성", "4성", "5성"] })).toBe("등급 '5성'이(가) 중복되었습니다.")
+    expect(validateClassificationTemplate({ ...valid, rarities: Array.from({ length: 10 }, (_, i) => `R${i}`) })).toBeNull()
+  })
+
+  it("limits axes to two with a 1~30 character name", () => {
+    expect(validateClassificationTemplate({ ...valid, axes: [axis(), axis({ key: "class2" }), axis({ key: "class3" })] })).toContain("최대 2개")
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ label: " " })] })).toBe("분류 기준 1의 이름을 1~30자로 입력해 주세요.")
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ label: "가".repeat(31) })] })).toContain("1~30자")
+  })
+
+  it("validates option count (1~20), length (<=30) and duplicates per axis", () => {
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ options: [] })] })).toBe("분류 기준 1(속성)의 선택지를 1개 이상 입력해 주세요.")
+    const twentyOne = Array.from({ length: 21 }, (_, i) => `옵션${i}`)
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ options: twentyOne })] })).toContain("최대 20개")
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ options: twentyOne.slice(0, 20) })] })).toBeNull()
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ options: ["가".repeat(31)] })] })).toContain("각 30자 이내")
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ options: ["불", "물", "불"] })] })).toBe("분류 기준 1(속성)의 선택지 '불'이(가) 중복되었습니다.")
+    expect(validateClassificationTemplate({ ...valid, axes: [axis(), axis({ key: "class2", label: "무기", options: ["검", "검"] })] })).toContain("분류 기준 2(무기)")
+  })
+
+  it("rejects invalid or duplicated internal axis keys with guidance to recreate the axis", () => {
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ key: "Bad Key" })] })).toContain("내부 키가 올바르지 않거나 중복")
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ key: "x".repeat(25) })] })).toContain("내부 키")
+    expect(validateClassificationTemplate({ ...valid, axes: [axis(), axis({ label: "무기" })] })).toContain("분류 기준 2")
+    expect(validateClassificationTemplate({ ...valid, axes: [axis({ key: "element" })] })).toBeNull()
   })
 })
