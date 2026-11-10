@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r64-r72-r73-classification-icons-followups` Step 3 (R64 DB) 완료 (2026-11-10)
+
+- **수행 주체**: GPT Codex (`Maker (R64 DB)`)임.
+- **커밋 `bcdc71c`** (워크트리, 미병합): R64 분류 옵션 아이콘 테이블·검증/정리 트리거·JWT 관리자 쓰기/승인 게임 읽기 RLS, 통합 스키마·타입·실행 가이드·SQL 스모크 테스트 반영함.
+- **검증**: `npm.cmd exec tsc -- --noEmit`, `npm.cmd run lint`, Vitest 151파일/1371개, `git diff --check` 통과함. SQL 테스트는 전용 Supabase 테스트 DB 미접속으로 미실행함.
+- **다음 단계**: Step 4(`Claude Sonnet`, R64 UI) `▶ READY`임.
+
 ## Run `r64-r72-r73-classification-icons-followups` Step 2 (R64 명세) 완료 (2026-11-10)
 
 - **수행 주체**: Claude Opus (`Architect (R64 Spec)`)임.

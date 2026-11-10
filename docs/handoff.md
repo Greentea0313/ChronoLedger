@@ -43,8 +43,8 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: e17e960)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (R72·R73 Follow-ups)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅ e17e960`: R72 중복 이름 문구 분리(`DuplicatePickupNameError`), R73 드래그 시작 요소를 버튼 밖 손잡이로 교체. tsc·lint·diff-check 통과, Vitest 61파일/750개 통과 (아래 Step 1 완료 기록 참고) |
 | **2** | **`✅ DONE (SHA: 966535e)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R64 Spec)` | 아래 **Step 2 수용 기준** 수행 완료함. | `✅ 966535e`: [`R64_Classification_Option_Icons_Spec.md`](spec/R64_Classification_Option_Icons_Spec.md)(워크트리) 작성. 테이블·검증/정리 트리거·RLS·UI·폴백·SQL 테스트·Step 3/4 허용 파일 확정 (아래 Step 2 완료 기록 참고) |
-| **3** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 DB)` | 아래 **Step 3 수용 기준** + 명세서 §2·§7 수행. 허용 파일(명세서 §8 확정): 신규 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (`src/lib` 변경 불필요) | - |
-| **4** | **`⏳ WAITING`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 UI)` | 아래 **Step 4 수용 기준** + 명세서 §3~§5 수행. 허용 파일(명세서 §8 확정): 신규 `src/lib/classification-icons.ts`(+테스트), 신규 `src/components/character/classification-option-icon.tsx`(+테스트 선택), `src/app/admin/page.tsx`(+테스트), `src/components/character/character-filter-bar.tsx`, `src/components/character/character-roster.tsx`, `src/app/dashboard/characters/page.tsx`(+테스트) | - |
+| **3** | **`✅ DONE (SHA: bcdc71c)`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 DB)` | 아래 **Step 3 수용 기준** + 명세서 §2·§7 수행. 허용 파일(명세서 §8 확정): 신규 `sql/migrations/MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (`src/lib` 변경 불필요) | `✅ bcdc71c`: R64 테이블·검증/정리 트리거·RLS·스키마/타입/실행 가이드/스모크 테스트 반영. tsc·lint·Vitest 151파일/1371개·diff-check 통과함. 운영 DB 미적용함. |
+| **4** | **`▶ READY`** | **Claude Sonnet** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R64 UI)` | 아래 **Step 4 수용 기준** + 명세서 §3~§5 수행. 허용 파일(명세서 §8 확정): 신규 `src/lib/classification-icons.ts`(+테스트), 신규 `src/components/character/classification-option-icon.tsx`(+테스트 선택), `src/app/admin/page.tsx`(+테스트), `src/components/character/character-filter-bar.tsx`, `src/components/character/character-roster.tsx`, `src/app/dashboard/characters/page.tsx`(+테스트) | - |
 | **5** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `bc7fbad` ↔ Target(Step 4 커밋) 통합 정적 리뷰(R64 RLS·마이그레이션 포함), 동적 검증, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | - |
 
 #### 📌 `r64-r72-r73-classification-icons-followups` 단계별 수용 기준 (Acceptance Criteria)
@@ -103,6 +103,13 @@
   - 관리자 폼이 쉼표 목록이라 이름 변경을 감지할 수 없음 → 이름을 바꾼 옵션의 아이콘은 삭제되며 재등록 필요함.
   - R57은 차단이 아닌 경고 흐름임을 확인함. 경고 흐름은 유지하고 아이콘만 트리거로 정리함.
 - **테스트**: 문서 전용 단계라 코드 테스트 없음. `git diff --check` 통과함.
+
+#### 📝 `r64-r72-r73-classification-icons-followups` Step 3 완료 기록 (GPT Codex, 2026-11-10)
+
+- **Target SHA**: `bcdc71c` (워크트리 브랜치, 미병합)임.
+- **변경**: `game_classification_icons` 테이블과 WebP Data URL·축/옵션 검증 CHECK, 현재 `classification_schema` 기준 검증 트리거, 축·옵션 제거 시 정리 트리거, 승인 게임 공개 읽기·JWT `app_metadata.role = 'admin'` 쓰기 RLS를 추가함. `SCHEMA.sql`, 타입, README 확인 쿼리, SQL 스모크 테스트에도 반영함.
+- **검증**: `npm.cmd exec tsc -- --noEmit`, `npm.cmd run lint`, `npm.cmd run test -- --run`(151파일/1371개), `git diff --check` 통과함. SQL 테스트는 전용 Supabase 테스트 DB 미접속으로 실행하지 않음.
+- **운영 DB**: 마이그레이션은 운영 DB에 적용하지 않음. Step 4 UI 구현 후 Step 5 리뷰에서 수동 적용 안내함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r63-character-favorite-sections`
 

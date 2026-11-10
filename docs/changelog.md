@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` Step 3 — `bcdc71c`)
+
+- R64 분류 옵션 아이콘 DB 지원 추가함. `game_classification_icons` 별도 테이블, WebP Data URL·축/옵션 CHECK, `classification_schema` 검증 및 제거 옵션 정리 트리거, 승인 게임 공개 읽기와 JWT 관리자 쓰기 RLS를 반영함.
+- `SCHEMA.sql`, `database.types.ts`, SQL 실행 가이드·스모크 테스트를 동기화함. 운영 DB에는 미적용함.
+- `tsc`, lint, Vitest 151파일/1371개, diff-check 통과함. Step 4 UI를 `▶ READY`로 전환함.
+
 ## 2026-11-10 (Run `r64-r72-r73-classification-icons-followups` Step 2 — `966535e`)
 
 - R64 명세서 `docs/spec/R64_Classification_Option_Icons_Spec.md` 추가함. 분류 옵션 아이콘을 `game_classification_icons` 별도 테이블(64×64 WebP Data URL, 20,000자 이하)에 저장하고, 템플릿에서 옵션·축이 사라지면 DB 트리거로 아이콘을 자동 삭제하도록 설계함. 쓰기는 JWT 관리자만, 읽기는 승인 게임만 허용함.
