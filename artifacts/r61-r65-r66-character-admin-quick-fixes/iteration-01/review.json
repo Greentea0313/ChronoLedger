@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r61-r65-r66-character-admin-quick-fixes",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "bf8cdced9efe0d104b910914776d6c3ad1bf2961",
+  "target_sha": "07e5c89",
+  "status": "findings",
+  "created_at": "2026-11-10T09:30:00Z",
+  "findings": [
+    {
+      "id": "R66-REV-001",
+      "severity": "P4",
+      "file": "src/lib/pickup-character-registration.ts",
+      "line": 37,
+      "evidence": "registerPickupOnlyCharacter is now shared by the schedule form's new-pickup flow and the character tab's template-less [+ 캐릭터 추가] dialog. Its same-game duplicate message is '같은 이름의 캐릭터가 이미 있습니다. 목록에서 선택해 주세요.', which fits the schedule form (the existing character can be picked from the pickup list) but not the character tab dialog, where there is no list to select from.",
+      "impact": "Cosmetic: an admin adding a duplicate name from the character tab is told to pick from a list that does not exist in that dialog. Saving is still correctly blocked.",
+      "recommendation": "Non-blocking. Drop the '목록에서 선택해 주세요.' suffix in the shared helper (or let the caller pass the hint) and update the two tests that assert the full message. Track as a small follow-up; no re-review needed."
+    }
+  ]
+}
