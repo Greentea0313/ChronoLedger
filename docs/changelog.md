@@ -1,4 +1,12 @@
 # 변경 이력
+## 2026-11-10 (R57 — 캐릭터 템플릿 게이트·입력 검증)
+
+- 관리자 캐릭터 추가 모달: 템플릿이 없는 게임을 고르면 입력·저장을 숨기고 `캐릭터 템플릿 생성` 안내를 보여줌. 버튼은 템플릿 모달로 이어지며 저장 후 첫 캐릭터 폼이 열림. 게임 선택 목록에 `(템플릿 없음)`을 표시함. 픽업 전용 등록·기존 캐릭터 수정은 게이트 대상이 아님.
+- `character-utils`에 `validateClassificationTemplate`(DB `is_valid_classification_schema`와 같은 한도: 등급 ≤10·각 ≤20자·중복 불가, 분류 기준 ≤2·이름 1~30자, 선택지 1~20개·각 ≤30자·중복 불가), `splitCommaList`, `assignAxisKey`를 추가함. 템플릿 흐름에서는 등급 1개 이상이 필수임.
+- 분류 기준 `key` 입력란을 제거하고 기존 키는 유지, 새 축은 `class1`/`class2` 중 미사용 키를 배정해 삭제 후 추가 시 중복을 막음(R52 NR-08 유지).
+- 템플릿 모달 제목(`{게임명} 캐릭터 템플릿 생성/수정`)·설명·`등급 목록 (최고 등급부터) *` 라벨을 개선하고, `games_classification_schema_check`(23514) 위반 시 형식 안내 문구를 표시함.
+- 검증: tsc·lint 통과, Vitest 57파일/665개 통과함(DB 변경 없음). 워크트리 커밋 `15c0d1411ab548a49eb02b2e44b284aa6771722f`임.
+
 ## 2026-11-10 (Phase 12.43 Step 3 — `r55-r56` 통합 리뷰 `clean`, `main` 병합 `25b3953` 및 `r57` 활성화)
 
 - `r55-r56-favorite-hook-and-version-pass-trigger` Base `8b9689f` ↔ Target `daf9a5a` 통합 정적 리뷰 결과 `clean`(P1~P4 지적 0건) 판정하고, 로컬 PostgreSQL 17(`db_upgraded`·`db_fresh`)에서 `MIGRATION_R56_VERSION_PASS_TARGET_DATE_SYNC.sql` 2회 멱등 적용 및 `sql/tests/TESTS.sql` 34 PASS, `tsc --noEmit`, `npm run lint`, Vitest 57파일/642개 테스트 통과를 확인함(`artifacts/r55-r56-favorite-hook-and-version-pass-trigger/iteration-01/review.json`·`test.json`·`run.json` 스키마 검증 완료).

@@ -44,8 +44,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Admin Character Template UI)` | `R57`: `.worktrees/r57-character-template-gate-and-validation`(Base `25b3953`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `docs/to-do.md` | `▶ 워크트리 생성 완료. Claude Sonnet 착수 대기` |
-| **2** | `⏳ WAITING` | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `25b3953` ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `⏳ Step 1 완료 후 진행` |
+| **1** | **`✅ DONE (SHA: 15c0d1411ab548a49eb02b2e44b284aa6771722f)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Admin Character Template UI)` | `R57`: `.worktrees/r57-character-template-gate-and-validation`(Base `25b3953`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/lib/character-utils.ts`, `src/lib/character-utils.test.ts`, `docs/to-do.md` | `✅ 15c0d14: 추가 모달 템플릿 게이트((템플릿 없음) 표시·입력/저장 숨김·[캐릭터 템플릿 생성] 연결), validateClassificationTemplate/splitCommaList/assignAxisKey 추가(DB 규칙 일치), 축 key 입력란 제거·자동 관리, 템플릿 모달 제목/설명/등급 라벨 개선, 23514 템플릿 CHECK 안내. 단위·화면 테스트 추가. DB 변경 없음. tsc/lint 통과, Vitest 57파일/665개 통과.` |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `25b3953` ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `run.json` 마감, `main` 병합 및 `docs/` 동기화 | `▶ Step 1 완료. Target SHA: 15c0d1411ab548a49eb02b2e44b284aa6771722f` |
 
 #### 📌 `r57-character-template-gate-and-validation` 배경 및 단계별 수용 기준 (Acceptance Criteria)
 
