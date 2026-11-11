@@ -8,7 +8,7 @@
                                 "Step 2 (review): Base..Target static review, artifacts, main merge, and production migration instructions if any schema/RPC bug was fixed."
                             ],
     "base_sha":  "a580d1d08f656de5816956c5dde0228cd40bd64f",
-    "target_sha":  null,
+    "target_sha":  "270f2c7",
     "branch":  "collab/r79-sql-tests-local-run",
     "worktree_path":  ".worktrees/r79-sql-tests-local-run",
     "max_iterations":  3,

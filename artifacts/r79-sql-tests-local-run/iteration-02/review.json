@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r79-sql-tests-local-run",
+  "iteration": 2,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "a580d1d08f656de5816956c5dde0228cd40bd64f",
+  "target_sha": "270f2c7",
+  "status": "clean",
+  "created_at": "2026-11-11T08:00:00Z",
+  "findings": []
+}
