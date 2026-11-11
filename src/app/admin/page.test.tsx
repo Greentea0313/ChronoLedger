@@ -2,7 +2,8 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import AdminPage from "./page"
 
-const { from, useAuth, mockGetKstToday, convertIconSourceToDataUrl } = vi.hoisted(() => ({
+const { from, useAuth, mockGetKstToday, convertIconSourceToDataUrl, fetchImageFile } = vi.hoisted(() => ({
+  fetchImageFile: vi.fn(async () => new File(["fetched"], "fetched.png", { type: "image/png" })),
   from: vi.fn(),
   useAuth: vi.fn(),
   mockGetKstToday: vi.fn(() => "2026-09-01"),
@@ -15,6 +16,7 @@ vi.mock("@/lib/dashboard-date", () => ({ getKstToday: mockGetKstToday }))
 vi.mock("@/lib/image-resizer", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/image-resizer")>(),
   convertIconSourceToDataUrl,
+  fetchImageFile,
 }))
 // jsdom has WebAssembly but cannot decode images, so the AI path is bypassed: icons go straight to the resizer mock.
 vi.mock("@/lib/image-upscaler", async (importOriginal) => ({
@@ -22,6 +24,19 @@ vi.mock("@/lib/image-upscaler", async (importOriginal) => ({
   convertIconSourceToDataUrlWithUpscale: (source: File | string) => convertIconSourceToDataUrl(source),
   isLowResolutionFile: async () => false,
 }))
+
+// R81: every image input opens the shared dialog; URL sources are fetched through the (mocked) fetchImageFile.
+async function openImageDialog() {
+  fireEvent.click(screen.getByRole("button", { name: /^이미지 (선택|변경)$/ }))
+  return await screen.findByTestId("image-source-dialog")
+}
+async function registerImageInDialog(source: { url?: string; file?: File } = { url: "https://example.com/icon.png" }) {
+  const dialog = await openImageDialog()
+  if (source.url) fireEvent.change(within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), { target: { value: source.url } })
+  if (source.file) fireEvent.change(within(dialog).getByLabelText("이미지 파일"), { target: { files: [source.file] } })
+  fireEvent.click(within(dialog.closest('[role="dialog"]') as HTMLElement).getByRole("button", { name: "등록" }))
+  await waitFor(() => expect(screen.queryByTestId("image-source-dialog")).toBeNull())
+}
 
 function createQueryBuilder() {
   const query = {
@@ -375,7 +390,7 @@ describe("AdminPage - 일정 관리", () => {
       await openNewPickupForm("game-2")
       fireEvent.click(screen.getByRole("button", { name: "+ 새 픽업 캐릭터" }))
       fireEvent.change(screen.getByLabelText("새 픽업 캐릭터 이름 *"), { target: { value: " 신규 캐릭 " } })
-      fireEvent.change(screen.getByLabelText("이미지 (선택)"), { target: { value: "https://example.com/new.png" } })
+      await registerImageInDialog({ url: "https://example.com/new.png" })
       fireEvent.click(screen.getByRole("button", { name: "등록" }))
 
       await waitFor(() => expect(charactersBuilder.insert).toHaveBeenCalled())
@@ -385,7 +400,8 @@ describe("AdminPage - 일정 관리", () => {
         default_icon_url: "data:image/webp;base64,new256",
         is_pickup_only: true,
       })
-      expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.com/new.png")
+      expect(fetchImageFile).toHaveBeenCalledWith("https://example.com/new.png", 256)
+      expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(expect.any(File))
       expect(chain.select).toHaveBeenCalledWith("id, game_id, name, rarity, attributes, default_icon_url, is_pickup_only")
       const added = await screen.findByRole("button", { name: /신규 캐릭/ })
       expect(added.getAttribute("aria-pressed")).toBe("true")
@@ -447,14 +463,19 @@ describe("AdminPage - 일정 관리", () => {
       fireEvent.click(screen.getByRole("button", { name: "등록" }))
       expect(await screen.findByText("같은 이름의 캐릭터가 이미 있습니다.")).toBeTruthy()
 
+      // Conversion errors are shown inside the shared image dialog, which stays open.
       convertIconSourceToDataUrl.mockRejectedValueOnce(new Error("이미지 URL을 가져오지 못했습니다."))
-      fireEvent.change(screen.getByLabelText("이미지 (선택)"), { target: { value: "https://bad.example/x.png" } })
-      fireEvent.click(screen.getByRole("button", { name: "등록" }))
-      expect(await screen.findByText("이미지 URL을 가져오지 못했습니다.")).toBeTruthy()
+      const imageDialog = await openImageDialog()
+      fireEvent.change(within(imageDialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), { target: { value: "https://bad.example/x.png" } })
+      const registerImage = () => fireEvent.click(within(imageDialog.closest('[role="dialog"]') as HTMLElement).getByRole("button", { name: "등록" }))
+      registerImage()
+      expect(await within(imageDialog).findByText("이미지 URL을 가져오지 못했습니다.")).toBeTruthy()
 
       convertIconSourceToDataUrl.mockResolvedValueOnce(`data:image/webp;base64,${"A".repeat(150_000)}`)
-      fireEvent.click(screen.getByRole("button", { name: "등록" }))
-      expect(await screen.findByText(/이미지 용량이 너무 큽니다/)).toBeTruthy()
+      registerImage()
+      expect(await within(imageDialog).findByText(/이미지 용량이 너무 큽니다/)).toBeTruthy()
+      fireEvent.click(within(imageDialog.closest('[role="dialog"]') as HTMLElement).getByRole("button", { name: "취소" }))
+      await waitFor(() => expect(screen.queryByTestId("image-source-dialog")).toBeNull())
       expect(screen.queryByRole("button", { name: /경합/ })).toBeNull()
     })
 
@@ -703,8 +724,7 @@ describe("AdminPage - 일정 관리", () => {
 
     // 이름 및 아이콘 변경
     fireEvent.change(nameInput, { target: { value: "원신 (수정됨)" } })
-    const iconInput = screen.getByPlaceholderText("https://... (웹 이미지 주소)") as HTMLInputElement
-    fireEvent.change(iconInput, { target: { value: "https://example.com/genshin-new.webp" } })
+    await registerImageInDialog({ url: "https://example.com/genshin-new.webp" })
 
     // 수정 저장
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
@@ -822,7 +842,7 @@ describe("AdminPage - 일정 관리", () => {
 
     // 인풋 입력
     fireEvent.change(screen.getByPlaceholderText("예: 원신, 붕괴: 스타레일"), { target: { value: "명조: 워더링 웨이브" } })
-    fireEvent.change(screen.getByPlaceholderText("https://... (웹 이미지 주소)"), { target: { value: "https://example.com/wuthering.webp" } })
+    await registerImageInDialog({ url: "https://example.com/wuthering.webp" })
 
     // 게임 등록 버튼 클릭
     fireEvent.click(screen.getByRole("button", { name: "게임 등록" }))
@@ -838,19 +858,23 @@ describe("AdminPage - 일정 관리", () => {
     })
   })
 
-  it("게임 아이콘 입력란은 이미지 붙여넣기를 변환하고 텍스트 붙여넣기는 가로채지 않는다", async () => {
+  it("게임 아이콘 등록 모달은 이미지 붙여넣기를 변환하고 텍스트 붙여넣기는 가로채지 않는다", async () => {
     gamesBuilder.insert.mockResolvedValue({ error: null })
 
     render(<AdminPage />)
     fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
     fireEvent.click(screen.getByRole("button", { name: "새 게임 등록" }))
 
-    const iconInput = screen.getByPlaceholderText("https://... (웹 이미지 주소)")
+    const dialog = await openImageDialog()
+    const iconInput = within(dialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기")
     expect(fireEvent.paste(iconInput, { clipboardData: { files: [], items: [] } })).toBe(true)
 
     const imageFile = new File(["image"], "clipboard.png", { type: "image/png" })
     expect(fireEvent.paste(iconInput, { clipboardData: { files: [imageFile], items: [] } })).toBe(false)
     await waitFor(() => expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(imageFile))
+    await within(dialog).findByAltText("미리보기")
+    fireEvent.click(within(dialog.closest('[role="dialog"]') as HTMLElement).getByRole("button", { name: "등록" }))
+    await waitFor(() => expect(screen.queryByTestId("image-source-dialog")).toBeNull())
 
     fireEvent.change(screen.getByPlaceholderText("예: 원신, 붕괴: 스타레일"), {
       target: { value: "클립보드 테스트 게임" },
@@ -1238,7 +1262,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     fireEvent.change(screen.getByLabelText("캐릭터 이름 *"), { target: { value: "신규" } })
     fireEvent.change(screen.getByLabelText("등급 *"), { target: { value: "5★" } })
     fireEvent.change(screen.getByLabelText("속성 *"), { target: { value: "물" } })
-    fireEvent.change(screen.getByLabelText("기본 아이콘 URL"), { target: { value: "https://example.com/new.png" } })
+    await registerImageInDialog({ url: "https://example.com/new.png" })
     fireEvent.click(screen.getByRole("button", { name: "저장" }))
 
     await waitFor(() => {
@@ -1250,7 +1274,8 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         default_icon_url: "data:image/webp;base64,converted",
       })
     })
-    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.com/new.png")
+    expect(fetchImageFile).toHaveBeenCalledWith("https://example.com/new.png", 256)
+    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(expect.any(File))
   })
 
   describe("R52 동적 캐릭터 템플릿", () => {
@@ -1408,11 +1433,12 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         const dialog = await openDialog()
 
         fireEvent.change(within(dialog).getByLabelText("캐릭터 이름 *"), { target: { value: "이미지 캐릭" } })
-        fireEvent.change(within(dialog).getByLabelText("이미지 (선택)"), { target: { value: "https://example.com/p.png" } })
+        await registerImageInDialog({ url: "https://example.com/p.png" })
         fireEvent.click(within(dialog).getByRole("button", { name: "등록" }))
 
         await waitFor(() => expect(charactersBuilder.insert).toHaveBeenCalledWith({ game_id: "game-2", name: "이미지 캐릭", default_icon_url: "data:image/webp;base64,converted", is_pickup_only: true }))
-        expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.com/p.png")
+        expect(fetchImageFile).toHaveBeenCalledWith("https://example.com/p.png", 256)
+        expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(expect.any(File))
       })
 
       it("이름 필수·같은 게임 내 중복 이름·오프라인·중복 키 오류를 막고 저장하지 않는다", async () => {
@@ -1855,10 +1881,11 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       fireEvent.change(screen.getByLabelText("등급 *"), { target: { value: "5성" } })
       fireEvent.change(screen.getByLabelText("속성 *"), { target: { value: "기류" } })
       fireEvent.change(screen.getByLabelText("무기 *"), { target: { value: "직검" } })
-      fireEvent.change(screen.getByLabelText("기본 아이콘 URL"), { target: { value: "data:image/webp;base64,big" } })
-      fireEvent.click(screen.getByRole("button", { name: "저장" }))
+      const imageDialog = await openImageDialog()
+      fireEvent.change(within(imageDialog).getByPlaceholderText("https://... 또는 이미지 붙여넣기"), { target: { value: "data:image/webp;base64,big" } })
+      fireEvent.click(within(imageDialog.closest('[role="dialog"]') as HTMLElement).getByRole("button", { name: "등록" }))
 
-      expect(await screen.findByText(/이미지 용량이 너무 큽니다/)).toBeTruthy()
+      expect(await within(imageDialog).findByText(/이미지 용량이 너무 큽니다/)).toBeTruthy()
       expect(charactersBuilder.insert).not.toHaveBeenCalled()
     })
 
@@ -1880,7 +1907,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
 
       expect(screen.getByRole("heading", { name: "원신 공명자 추가" })).toBeTruthy()
       fireEvent.change(screen.getByLabelText("공명자 이름 *"), { target: { value: "신규" } })
-      fireEvent.change(screen.getByLabelText("기본 아이콘 URL"), { target: { value: "https://example.com/new.png" } })
+      await registerImageInDialog({ url: "https://example.com/new.png" })
       fireEvent.click(screen.getByRole("button", { name: "저장" }))
       expect(await screen.findByText("공명자 등급을 선택해 주세요.")).toBeTruthy()
 
