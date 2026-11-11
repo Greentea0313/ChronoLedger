@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r83-schedule-dialog-and-character-sort",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "25716636ad66affc3871c19d92354488f8298bd9",
+  "target_sha": "bc33d8365652f87941e79b5fa94a8c85c3493701",
+  "status": "clean",
+  "created_at": "2026-11-11T10:00:00Z",
+  "findings": []
+}

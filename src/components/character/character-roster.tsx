@@ -344,7 +344,7 @@ export function CharacterRoster({
   const lastDragEndRef = useRef(0)
 
   const sections = useMemo(
-    () => buildCharacterSections(filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false), states),
+    () => buildCharacterSections(filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false), states, schema),
     [characters, filters, schema, states],
   )
   const visibleCount = sections.favorites.length + sections.owned.length + sections.unowned.length

@@ -613,9 +613,10 @@ describe("GamesPage", () => {
     expect(ver1Btn?.getAttribute("aria-expanded")).toBe("false")
     expect(countOccurrences("픽업 캐릭터 A")).toBe(1)
 
-    // 3. 기타 일정
-    expect(document.body.textContent).toContain("기타 일정")
-    expect(document.body.textContent).toContain("새해 특별 이벤트")
+    // 3. R83: 기타 일정 영역은 없고, 어느 버전에도 속하지 않는 일정은 다음 예정 일정에 한 번만 나온다
+    expect(document.body.textContent).not.toContain("기타 일정")
+    expect(countOccurrences("새해 특별 이벤트")).toBe(1)
+    expect(document.body.querySelector('section[aria-label="다음 예정 일정"]')?.textContent).toContain("새해 특별 이벤트")
   })
 
   it("renders guest mode notice when user is unauthenticated", async () => {

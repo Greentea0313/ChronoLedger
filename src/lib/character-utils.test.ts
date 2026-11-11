@@ -8,6 +8,7 @@ import {
   isCharacterSupported,
   isCharacterTemplateActive,
   buildCharacterSections,
+  sortCharactersByClassification,
   moveFavoriteCharacter,
   assignAxisKey,
   splitCommaList,
@@ -270,5 +271,81 @@ describe("buildCharacterSections", () => {
     })
     expect(sections.favorites.map((c) => c.id)).toEqual(["c", "b"])
     expect(sections.unowned.map((c) => c.id)).toEqual(["a"])
+  })
+})
+
+describe("sortCharactersByClassification (R83)", () => {
+  const ids = (list: GameCharacter[]) => list.map((c) => c.id)
+
+  it("orders by the first axis option order, then name (ko), then id", () => {
+    const list = [
+      makeCharacter("a", "다", null, { element: "얼음" }),
+      makeCharacter("b", "나", null, { element: "화염" }),
+      makeCharacter("c", "가", null, { element: "얼음" }),
+      makeCharacter("d", "라", null, { element: "화염" }),
+    ]
+    expect(ids(sortCharactersByClassification(list, schema))).toEqual(["b", "d", "c", "a"])
+  })
+
+  it("uses id as the last tie-breaker for identical names", () => {
+    const list = [makeCharacter("z", "같음", null, { element: "화염" }), makeCharacter("y", "같음", null, { element: "화염" })]
+    expect(ids(sortCharactersByClassification(list, schema))).toEqual(["y", "z"])
+  })
+
+  it("puts a missing or unregistered first-axis value last, still sorted by name", () => {
+    const list = [
+      makeCharacter("a", "라", null, {}),
+      makeCharacter("b", "나", null, { element: "바람" }),
+      makeCharacter("c", "다", null, { element: "얼음" }),
+      makeCharacter("d", "가", null, { element: "" }),
+    ]
+    expect(ids(sortCharactersByClassification(list, schema))).toEqual(["c", "d", "b", "a"])
+  })
+
+  it("sorts by name only for a game without axes or without a schema", () => {
+    const list = [makeCharacter("a", "다", null, { element: "화염" }), makeCharacter("b", "가", null, { element: "얼음" })]
+    expect(ids(sortCharactersByClassification(list, { rarities: [], axes: [] }))).toEqual(["b", "a"])
+    expect(ids(sortCharactersByClassification(list))).toEqual(["b", "a"])
+    expect(ids(sortCharactersByClassification(list, null))).toEqual(["b", "a"])
+  })
+
+  it("ignores rarity and does not mutate the input", () => {
+    const list = [makeCharacter("a", "가", "4★", { element: "화염" }), makeCharacter("b", "나", "5★", { element: "화염" })]
+    const copy = [...list]
+    expect(ids(sortCharactersByClassification(list, schema))).toEqual(["a", "b"])
+    expect(list).toEqual(copy)
+  })
+})
+
+describe("buildCharacterSections with a schema (R83)", () => {
+  const chars = [
+    makeCharacter("a", "가", null, { element: "얼음" }),
+    makeCharacter("b", "나", null, { element: "화염" }),
+    makeCharacter("c", "다", null, { element: "얼음" }),
+    makeCharacter("d", "라", null, { element: "화염" }),
+  ]
+  const st = (o: Partial<{ is_owned: boolean; is_favorite: boolean; favorite_sort_order: number | null }>) => ({
+    is_owned: true,
+    is_favorite: false,
+    favorite_sort_order: null,
+    breakthrough_level: 0,
+    custom_icon_path: null,
+    ...o,
+  })
+
+  it("sorts owned and unowned by classification but keeps favorites in their saved order", () => {
+    const sections = buildCharacterSections(
+      chars,
+      { a: st({ is_favorite: true, favorite_sort_order: 2 }), c: st({ is_favorite: true, favorite_sort_order: 1 }), b: st({}), d: st({ is_owned: false }) },
+      schema,
+    )
+    expect(sections.favorites.map((c) => c.id)).toEqual(["c", "a"])
+    expect(sections.owned.map((c) => c.id)).toEqual(["b"])
+    expect(sections.unowned.map((c) => c.id)).toEqual(["d"])
+  })
+
+  it("orders the unowned section by the first axis then name", () => {
+    const sections = buildCharacterSections(chars, {}, schema)
+    expect(sections.unowned.map((c) => c.id)).toEqual(["b", "d", "a", "c"])
   })
 })

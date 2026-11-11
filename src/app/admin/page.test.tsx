@@ -1313,7 +1313,8 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       const headers = Array.from(table.querySelectorAll("th")).map((th) => th.textContent)
       expect(headers).toEqual(["아이콘", "공명자 이름", "등급", "속성", "무기", "관리"])
       const names = Array.from(table.querySelectorAll("tbody tr td:nth-child(2)")).map((td) => td.textContent)
-      expect(names).toEqual(["나 높은 등급", "가 낮은 등급"])
+      // R83: default order is the first classification axis (속성 option order), then name - not rarity.
+      expect(names).toEqual(["가 낮은 등급", "나 높은 등급"])
       expect(screen.getByRole("button", { name: "공명자 추가" })).toBeTruthy()
       expect(screen.getByRole("button", { name: "템플릿 설정 수정" })).toBeTruthy()
     })
@@ -1778,10 +1779,10 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         const table = await screen.findByTestId("character-table")
 
         expect(within(table).getByText("픽업 전용")).toBeTruthy()
-        // 정식 캐릭터가 먼저, 등급 없는 픽업 전용은 마지막에 온다.
+        // 첫 번째 분류 축 순서 기준이며, 축 값이 없는 픽업 전용은 마지막에 온다.
         expect(Array.from(table.querySelectorAll("tbody tr td:nth-child(2)")).map((td) => td.textContent)).toEqual([
-          "나 높은 등급",
           "가 낮은 등급",
+          "나 높은 등급",
           "픽업 전용 캐릭픽업 전용",
         ])
 

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r83-schedule-dialog-and-character-sort",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "25716636ad66affc3871c19d92354488f8298bd9",
+  "target_sha": "bc33d8365652f87941e79b5fa94a8c85c3493701",
+  "status": "passed",
+  "created_at": "2026-11-11T09:50:00Z",
+  "finished_at": "2026-11-11T10:00:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check 434f063 bc33d8365652f87941e79b5fa94a8c85c3493701", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "node ../../node_modules/typescript/bin/tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "node ../../node_modules/next/dist/bin/next lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (69 files, 835 tests)", "command": "node ../../node_modules/vitest/vitest.mjs run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder Supabase env", "command": "node ../../node_modules/next/dist/bin/next build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Real-browser check of the per-game schedule dialog and character order (requires a signed-in account)", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}

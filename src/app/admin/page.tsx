@@ -32,6 +32,7 @@ import {
   isCharacterTemplateActive,
   normalizeClassificationSchema,
   normalizeMaxBreakthrough,
+  sortCharactersByClassification,
   splitCommaList,
   validateClassificationTemplate,
   type ClassificationAxis,
@@ -1160,13 +1161,8 @@ export default function AdminPage() {
     : 0
   const isSelectedTemplateActive = selectedCharacterGame ? isCharacterTemplateActive(selectedCharacterGame, selectedRosterCount) : false
   const selectedCharacterLabel = getCharacterLabel(selectedSchema)
-  const rankOrder = (rarity: string | null) => {
-    const index = rarity ? (selectedSchema?.rarities.indexOf(rarity) ?? -1) : -1
-    return index < 0 ? Number.MAX_SAFE_INTEGER : index
-  }
-  const tableCharacters = [...filteredCharacters].sort(
-    (a, b) => rankOrder(a.rarity) - rankOrder(b.rarity) || a.name.localeCompare(b.name, "ko"),
-  )
+  // R83: the admin table uses the same default order as the user screens (first classification axis, then name).
+  const tableCharacters = sortCharactersByClassification(filteredCharacters, selectedSchema)
 
   // Pickup avatar source of the schedule form: characters of the chosen game (mode A) or direct image (mode B).
   const pickupGameCharacters = characters.filter((character) => character.game_id === gameId)

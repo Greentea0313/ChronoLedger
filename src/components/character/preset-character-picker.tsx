@@ -34,7 +34,7 @@ interface PresetCharacterPickerProps {
 export function PresetCharacterPicker({ preset, maxSlots, characters, schema, states, customIconUrls, onPick, onClose }: PresetCharacterPickerProps) {
   const [filters, setFilters] = useState<CharacterFilters>(EMPTY_CHARACTER_FILTERS)
   const sections = useMemo(
-    () => buildCharacterSections(filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false), states),
+    () => buildCharacterSections(filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false), states, schema),
     [characters, filters, schema, states],
   )
   const ids = preset?.character_ids ?? []
