@@ -52,9 +52,12 @@ function FilterRow({ label, stacked, testId, children }: { label: string; stacke
     )
   }
   return (
-    <div className="flex flex-wrap items-center gap-2" data-testid={testId}>
-      <span className="w-14 shrink-0 truncate text-xs text-content-muted" title={label}>{label}</span>
-      {children}
+    // The label keeps its own column; only the chips wrap, so wrapped chips stay aligned instead of starting under the label.
+    <div className="flex items-start gap-2" data-testid={testId}>
+      <span className="flex min-h-8 w-14 shrink-0 items-center text-xs text-content-muted" title={label}>
+        <span className="truncate">{label}</span>
+      </span>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{children}</div>
     </div>
   )
 }

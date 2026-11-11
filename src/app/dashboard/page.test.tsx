@@ -123,6 +123,10 @@ describe("DashboardPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "주차별 리스트" }))
     expect(screen.queryByLabelText("월간 캘린더")).toBeNull()
+    // Mobile: the main column is a minmax(0,1fr) track that may shrink, so long one-line titles cannot widen the page.
+    const mainColumn = screen.getByRole("group", { name: "보기 방식" }).closest("div.space-y-4") as HTMLElement
+    expect(mainColumn.className).toContain("min-w-0")
+    expect((mainColumn.parentElement as HTMLElement).className).toContain("grid-cols-1")
     const current = screen.getAllByTestId("week-group").filter((group) => group.getAttribute("data-current-week") === "true")
     expect(current).toHaveLength(1)
     expect(current[0].textContent).toContain("예정 5,000원 · 확정 30,000원")

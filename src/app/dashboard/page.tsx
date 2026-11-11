@@ -893,8 +893,9 @@ export default function DashboardPage() {
         <p>{`이번 주 진행 `}<strong data-testid="summary-ongoing-week">{summary.ongoingThisWeek}</strong>{`건`}</p>
         <p>{`이번 주 예정 지출 `}<strong data-testid="summary-planned-week">{summary.plannedThisWeek === null ? "-" : `${summary.plannedThisWeek.toLocaleString()} 원`}</strong></p>
       </section>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="space-y-4">
+      {/* grid-cols-1 = minmax(0, 1fr): long single-line titles must not widen the mobile column and the page. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <div role="group" aria-label="보기 방식" className="inline-flex rounded-md border border-line bg-surface-2 p-0.5 text-sm">
               {([["calendar", "캘린더형"], ["weekly", "주차별 리스트"]] as const).map(([mode, label]) => (
