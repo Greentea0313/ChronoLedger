@@ -1,4 +1,21 @@
 # 프로젝트 진행 현황
+## Run `r88-optional-character-icons` 완료 — `main` 병합 `66d55d8` (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.
+- **결과**: 템플릿 게임 일반 캐릭터도 아이콘 없이 등록·승인 가능함(아이콘 없으면 기본 아바타). 리뷰 지적 없음.
+- **검증**: 로컬 Supabase에서 마이그레이션·`TESTS.sql` 전체 통과, 병합 후 `main` tsc·Vitest 159파일/1463개 통과함.
+- **남은 작업 (사용자)**: 운영 DB에 `MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql` 적용·확인 쿼리, 실브라우저 확인.
+- **규칙 추가**: Docker Desktop이 필요한 작업은 시작 전 상태를 확인하고, 꺼져 있으면 기다리지 않고 즉시 사용자에게 요청함(`.agents/rules/handoff.md` §5).
+- **다음 단계**: 활성 과제 없음. `R85`(결정 완료)·`R89`(푸시 알림 조사)·`R86`은 지목 시 등록함.
+
+
+## R88 일반 캐릭터 아이콘 선택 사항 UI 구현 (2026-11-11)
+
+- **수행 주체**: Claude Sonnet (Run `r88-optional-character-icons` Step 2)임.
+- **결과**: 워크트리 커밋 `f30ae52`(미병합). 관리자 캐릭터 폼·요청 승인·요청 모달에서 아이콘을 선택 사항으로 바꾸고 미적용 DB 오류 안내를 추가함. tsc·lint·diff-check 통과, Vitest 69파일/841개 통과함.
+- **미확인**: 실DB(R88 마이그레이션 적용 전후)·실브라우저 동작.
+- **다음 단계**: Step 3(`Claude Opus`, 리뷰·병합·마이그레이션 적용 안내) `▶ READY`임.
+
 ## Run `r88-optional-character-icons` Step 1 완료 — Target `0be4f44` (2026-11-11)
 
 - **수행 주체**: Claude Opus (`GPT Codex` 1순위 대체, RLS/SQL 승격 조건)임.

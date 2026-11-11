@@ -63,7 +63,7 @@ When the Orchestrator breaks down tasks into the Dispatch Queue, use this role d
 ## 5. Rules
 
 - **답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것**: 모든 대화 응답과 `docs/` 내 운영 문서(인수인계/진행상황/변경이력 등)는 한국어 개조식 종결어미(`~함`, `~임`, `~됨` 등)로 명확하고 간결하게 작성함 (기계 판독용 아티팩트 `artifacts/**`, 영문 명세서, 커밋 메시지는 기존 영문 규격 유지).
-- **Docker Desktop 사전 안내 (사용자 요청 2026-11-11)**: 로컬 Supabase(`sql/README.md` C절)처럼 Docker Desktop이 켜져 있어야 하는 작업은 시작 전에 사용자에게 "Docker Desktop을 켜고 `Engine running` 확인 필요"라고 먼저 안내하고, Dispatch Queue에 그런 과제를 등록할 때도 해당 행·수용 기준에 `🐳 Docker Desktop 필요`를 표시함.
+- **Docker Desktop 사전 안내 (사용자 요청 2026-11-11)**: 로컬 Supabase(`sql/README.md` C절)처럼 Docker Desktop이 켜져 있어야 하는 작업은 시작 전에 `docker version`으로 엔진 상태를 확인하고, 꺼져 있으면 **다른 작업을 진행하며 기다리지 말고 즉시 멈춰 사용자에게 "Docker Desktop을 켜고 `Engine running` 확인 필요"라고 요청함**(2026-11-11 사용자 추가 요청). 또한 Dispatch Queue에 그런 과제를 등록할 때도 해당 행·수용 기준에 `🐳 Docker Desktop 필요`를 표시함.
 - Keep entries concise, factual, and useful for the next AI agent or developer.
 - Preserve the existing format of each documentation file.
 - Do not rewrite entire documents unless the current content is outdated or misleading.

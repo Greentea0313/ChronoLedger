@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r88-optional-character-icons` *(템플릿 게임 일반 캐릭터도 아이콘 없이 등록 → 기본 아바타 표시)*
+- **활성 Run ID**: `r88-optional-character-icons` **(완료, `main` 병합 `66d55d8`, R88 마이그레이션 운영 적용·실브라우저 확인은 사용자 대기)** *(템플릿 게임 일반 캐릭터도 아이콘 없이 등록 → 기본 아바타 표시)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
 - **Worktree 경로**: `.worktrees/r88-optional-character-icons` (브랜치: `collab/r88-optional-character-icons`, manifest `ca696e0`)
 - **Base SHA**: `2bee444f7443be1966cf80e62565869c7defe2d9`
@@ -43,8 +43,8 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 0be4f44)`** | **Claude Opus** *(GPT Codex 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R88 DB)` | 아래 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql` | `✅ 0be4f44`: 일반 캐릭터 아이콘 제약 제거, `approve_character_request` 무아이콘 승인 허용, 확인 쿼리·직접 등록/승인 테스트 추가함. 운영 DB 미적용. Docker/psql 미실행 |
-| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (R88 UI)` | 아래 Step 2 수용 기준 수행. 허용 파일: `src/app/admin/page.tsx`(+테스트), `src/app/admin/requests/page.tsx`(+테스트), `src/components/game/request-submission-modal.tsx`(+테스트), `src/lib/pickup-character-registration.ts`(+테스트, 필요 시) | Step 1 `0be4f44` 기준으로 아이콘 선택 사항 UI와 기본 아바타 표시를 구현함 |
-| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 2 커밋) 리뷰(제약·RPC·화면 일관성), 산출물, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | - |
+| **2** | **`✅ DONE (SHA: f30ae52)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (R88 UI)` | 아래 Step 2 수용 기준 수행. 허용 파일: `src/app/admin/page.tsx`(+테스트), `src/app/admin/requests/page.tsx`(+테스트), `src/components/game/request-submission-modal.tsx`(+테스트), `src/lib/pickup-character-registration.ts`(+테스트, 필요 시) | `✅ f30ae52`: 관리자 캐릭터 폼·요청 승인·요청 모달 아이콘 선택 사항화, 미적용 DB 안내 추가. tsc·lint·diff-check 통과, Vitest 69파일/841개 통과 (미병합, 아래 Step 2 완료 기록 참고) |
+| **3** | **`✅ DONE (리뷰 clean: 2bee444 ↔ f30ae52, 산출물 8de4582, main 병합 66d55d8)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 2 커밋) 리뷰(제약·RPC·화면 일관성), 산출물, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | `✅` 지적 없음. tsc·lint·diff-check·build 통과, Vitest 69파일/841개·병합 후 159파일/1463개 통과, 🐳 로컬 `TESTS.sql` 전체 통과. **R88 마이그레이션 운영 적용·실브라우저 확인은 사용자 대기** (아래 Step 3 완료 기록 참고) |
 
 #### 📌 `r88-optional-character-icons` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -59,6 +59,27 @@
    - 마이그레이션 미적용 DB에서 아이콘 없이 저장하면 DB 오류(`23514` 등)를 알아볼 수 있는 안내로 보여줌(예: `업데이트 적용 전에는 아이콘이 필요합니다.`).
    - 테스트 갱신·추가, `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
 3. **Step 3 (`Claude Opus` — Reviewer & Orchestrator)**: 리뷰·산출물·병합·문서 마감, 사용자에게 마이그레이션 적용과 실브라우저 확인(아이콘 없이 캐릭터 추가·요청 승인) 안내함.
+
+#### 📝 `r88-optional-character-icons` Step 2 완료 기록 (Claude Sonnet, 2026-11-11)
+
+- **Target SHA**: `f30ae52` (`collab/r88-optional-character-icons`, 미병합)임. 변경 파일은 모두 허용 범위 내임(`pickup-character-registration.ts`는 안내 상수·판별 함수 추가).
+- **관리자 캐릭터 폼**(`admin/page.tsx`): 아이콘 필수 검사와 오류 문구를 제거하고 라벨을 항상 `{명칭} 아이콘 (선택)`으로 바꿈. 일반 캐릭터 payload의 `default_icon_url`은 `null` 허용이며(픽업 전용 수정·승격 포함), 아이콘이 없으면 기존 기본 아바타(`GameIcon` 폴백)로 표시됨.
+- **요청 승인 화면**(`admin/requests/page.tsx`): 신규 캐릭터 요청의 아이콘 필수 경고와 승인 버튼 비활성(`needsIcon`)을 제거하고 `아이콘이 없으면 기본 아바타로 표시됨` 안내로 바꿈. 아이콘 없이 승인하면 `approve_character_request`에 `p_request_id`만 전달하고, 아이콘 교체 이미지는 선택 사항으로 그대로 지정 가능함.
+- **요청 모달**: 캐릭터 요청 아이콘은 이미 선택 사항이라 코드 변경 없이 ADD 요청이 `default_icon_url: null`로 제출됨을 테스트로 고정함.
+- **미적용 DB 안내**: `isIconRequiredByUnappliedMigration`(23514 + `chk_game_characters_icon_or_pickup_only` 또는 `캐릭터 아이콘이 필요합니다` 메시지)로 판별해 관리자 폼·요청 승인 오류에 `업데이트 적용 전에는 아이콘이 필요합니다. 아이콘을 등록하거나 DB 업데이트(R88) 적용 후 다시 시도해 주세요.`를 표시함.
+- **테스트**: 관리자 화면 테스트(아이콘 없이 저장 payload `default_icon_url: null`·라벨 `(선택)`·미적용 DB 안내), 요청 승인 테스트(무아이콘 승인·아이콘 지정 승인·미적용 DB 안내), 요청 모달 무아이콘 ADD 제출, 판별 함수 단위 테스트를 추가·교체함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 69파일/841개 통과함. 실DB·실브라우저는 미확인(마이그레이션 수동 적용 후 Step 3 안내).
+- **다음 단계**: Step 3(`Claude Opus`, 리뷰·병합·문서 마감·마이그레이션 적용 안내) `▶ READY`임.
+
+#### 📝 `r88-optional-character-icons` Step 3 완료 기록 (Claude Opus, 2026-11-11)
+
+- **리뷰 범위**: Base `2bee444` ↔ Target `f30ae52`(Step 1 `0be4f44` + Step 2). 산출물 `artifacts/r88-optional-character-icons/iteration-01/review.json`(`clean`)·`test.json`(커밋 `8de4582`)임. Step 1은 다른 세션의 Claude Opus가 작성해 같은 모델 리뷰라는 독립성 한계가 있음.
+- **SQL 확인**: 마이그레이션은 `chk_game_characters_icon_or_pickup_only`만 제거하고 형식 CHECK(`chk_game_characters_icon_valid`)는 유지함. 재정의한 `approve_character_request` 본문은 `SCHEMA.sql`과 동일하며 아이콘 필수 검사 한 줄만 빠짐(관리자 판정·분류 검증·기존 캐릭터 수정 시 아이콘 유지 그대로). 다른 함수·트리거(`guard_game_character_pickup_only_transition` 등)에 일반 캐릭터 아이콘 전제 없음.
+- **화면 확인**: 관리자 캐릭터 폼은 항상 `(선택)` 표시·필수 검사 제거, 아이콘 없으면 `null` 저장, 기존 캐릭터 수정 시 기존 아이콘 유지. 요청 승인 화면은 경고 대신 "기본 아바타로 표시됨" 안내. 마이그레이션 미적용 DB의 거부(`23514` 제약 이름·구 RPC 문구)는 `업데이트 적용 전에는 아이콘이 필요합니다…` 안내로 보여줌. 지적 없음.
+- **검증**: 워크트리 tsc·lint·diff-check·build 통과, Vitest 69파일/841개 통과함. 🐳 로컬 Supabase에 R88 마이그레이션 적용(제약 1→0)·재실행(안전) 확인, `TESTS.sql` 전체 통과(38개 PASS·최종 rollback PASS). `main` 병합 `66d55d8` 후 tsc·Vitest 159파일/1463개 통과함.
+- **사용자 수동 작업 남음**:
+  1. 운영 DB에 `sql/migrations/MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql` 적용 후 `sql/README.md` R88 확인 쿼리 실행. 적용 전에는 아이콘 없이 저장하면 안내 문구와 함께 막힘.
+  2. 실브라우저: 템플릿 게임에서 아이콘 없이 캐릭터 추가 → 기본 아바타 표시, 아이콘 없는 캐릭터 요청 승인.
 
 ### 🗂️ 이전 Run 기록 (완료): `r83-schedule-dialog-and-character-sort`
 
