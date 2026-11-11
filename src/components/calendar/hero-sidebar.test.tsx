@@ -466,3 +466,85 @@ describe("HeroSidebarContent favourite schedules (R35)", () => {
     expect(onAddPlannedExpense).toHaveBeenCalledWith("c")
   })
 })
+
+describe("HeroSidebarContent version grouping (R82)", () => {
+  const item = (id: string, type: HeroScheduleItem["schedule_type"], start: string, end: string, extra: Partial<HeroScheduleItem> = {}): HeroScheduleItem => ({
+    id,
+    title: `T-${id}`,
+    schedule_type: type,
+    start_date: start,
+    end_date: end,
+    gameId: "g1",
+    gameName: "게임",
+    ...extra,
+  })
+  const version = item("v", "VERSION", "2026-11-01", "2026-11-21", { title: "3.2 버전" })
+  const pickup = item("p", "PICKUP", "2026-11-01", "2026-11-10", { title: "카프카 픽업" })
+  const contents = item("c", "CONTENTS", "2026-11-01", "2026-11-15", { title: "이벤트" })
+
+  const renderDay = (date: string, schedules: HeroScheduleItem[]) =>
+    render(
+      <HeroSidebarContent
+        selectedDateLabel={date}
+        todayDate={date}
+        totalAsset={0}
+        budgetAmount={0}
+        expectedExpense={0}
+        wallets={[]}
+        schedules={schedules}
+        expenses={[]}
+        memos={[]}
+      />,
+    )
+
+  it("nests children inside the visible version card, collapsed with a summary", () => {
+    renderDay("2026-11-01", [version, pickup, contents])
+    const toggle = screen.getByTestId("version-children-toggle")
+    expect(toggle.getAttribute("aria-expanded")).toBe("false")
+    expect(toggle.textContent).toContain("픽업 1 · 콘텐츠 1")
+    expect(screen.getByText("3.2 버전")).toBeTruthy()
+    expect(screen.queryByText("카프카 픽업")).toBeNull()
+
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute("aria-expanded")).toBe("true")
+    expect(screen.getAllByTestId("version-child-card")).toHaveLength(2)
+    expect(screen.getByText("카프카 픽업")).toBeTruthy()
+    expect(screen.queryByTestId("version-parent-label")).toBeNull()
+  })
+
+  it("keeps children standalone with a parent label when the version card is not shown that day", () => {
+    renderDay("2026-11-10", [version, pickup])
+    expect(screen.queryByTestId("version-children-toggle")).toBeNull()
+    expect(screen.getByText("카프카 픽업")).toBeTruthy()
+    expect(screen.getByTestId("version-parent-label").textContent).toBe("소속: 3.2 버전")
+  })
+
+  it("applies the same rule when all ongoing schedules are shown", () => {
+    renderDay("2026-11-05", [version, pickup])
+    expect(screen.queryByText("3.2 버전")).toBeNull()
+
+    fireEvent.click(screen.getByLabelText("진행 일정 전체 보기"))
+    expect(screen.getByText("3.2 버전")).toBeTruthy()
+    expect(screen.getByTestId("version-children-toggle").getAttribute("aria-expanded")).toBe("false")
+    expect(screen.queryByText("카프카 픽업")).toBeNull()
+    expect(screen.queryByTestId("version-parent-label")).toBeNull()
+  })
+
+  it("labels an ongoing child standalone once its version has ended", () => {
+    const late = item("late", "PICKUP", "2026-11-15", "2026-11-30", { title: "늦은 픽업" })
+    renderDay("2026-11-25", [version, late])
+    fireEvent.click(screen.getByLabelText("진행 일정 전체 보기"))
+    expect(screen.queryByTestId("version-children-toggle")).toBeNull()
+    expect(screen.getByText("늦은 픽업")).toBeTruthy()
+    expect(screen.getByTestId("version-parent-label").textContent).toBe("소속: 3.2 버전")
+  })
+
+  it("does not group broadcasts or other games under a version", () => {
+    const broadcast = item("b", "BROADCAST", "2026-11-01", "2026-11-01", { title: "특별 방송" })
+    const other = item("o", "PICKUP", "2026-11-01", "2026-11-10", { title: "다른 게임 픽업", gameId: "g2" })
+    renderDay("2026-11-01", [version, broadcast, other])
+    expect(screen.queryByTestId("version-children-toggle")).toBeNull()
+    expect(screen.getByText("특별 방송")).toBeTruthy()
+    expect(screen.getByText("다른 게임 픽업")).toBeTruthy()
+  })
+})

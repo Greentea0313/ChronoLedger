@@ -4,7 +4,7 @@ import { WeeklyScheduleList, type WeeklyExpenseEntry, type WeeklyScheduleEntry }
 
 const schedules: WeeklyScheduleEntry[] = [
   { id: "s1", title: "픽업 A", schedule_type: "PICKUP", start_date: "2026-11-09", end_date: "2026-11-12", gameId: "g1", gameName: "게임 가" },
-  { id: "s2", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-11-01", end_date: "2026-11-30", gameId: "g1", gameName: "게임 가" },
+  { id: "s2", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-11-01", end_date: "2026-11-30", gameId: "g9", gameName: "게임 다" },
 ]
 const expenses: WeeklyExpenseEntry[] = [
   { id: "e1", title: "예정 패키지", status: "PLANNED", amount: 5000, date: "2026-11-10" },
@@ -136,7 +136,7 @@ describe("WeeklyScheduleList", () => {
     renderList({
       schedules: [
         { id: "p", title: "카프카 픽업", schedule_type: "PICKUP", start_date: "2026-11-09", end_date: "2026-11-12", gameId: "g1", gameName: "게임 가", pickupAvatars: [{ id: "c1", name: "카프카", iconUrl: "data:image/webp;base64,a" }] },
-        { id: "v", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-11-09", end_date: "2026-11-30", gameId: "g1", gameName: "게임 가" },
+        { id: "v", title: "버전 1.0", schedule_type: "VERSION", start_date: "2026-11-09", end_date: "2026-11-30", gameId: "g2", gameName: "게임 나" },
       ],
     })
     const rows = within(currentWeek()).getAllByRole("listitem").map((item) => item.querySelector("button") as HTMLElement)
@@ -318,5 +318,58 @@ describe("WeeklyScheduleList favourite schedules (R35)", () => {
     fireEvent.click(week.getByRole("button", { name: "픽업 A 예정 지출 추가" }))
     expect(onAddPlannedExpense).toHaveBeenCalledWith("s1")
     expect(props.onSelectDate).not.toHaveBeenCalled()
+  })
+})
+
+describe("WeeklyScheduleList version grouping (R82)", () => {
+  const avatar = { id: "c1", name: "카프카", iconUrl: "data:image/webp;base64,a" }
+  const grouped: WeeklyScheduleEntry[] = [
+    { id: "v", title: "3.2 버전", schedule_type: "VERSION", start_date: "2026-11-01", end_date: "2026-11-30", gameId: "g1", gameName: "게임 가" },
+    { id: "p", title: "카프카 픽업", schedule_type: "PICKUP", start_date: "2026-11-09", end_date: "2026-11-12", gameId: "g1", gameName: "게임 가", pickupAvatars: [avatar] },
+    { id: "c", title: "이벤트 콘텐츠", schedule_type: "CONTENTS", start_date: "2026-11-10", end_date: "2026-11-20", gameId: "g1", gameName: "게임 가" },
+    { id: "bc", title: "특별 방송", schedule_type: "BROADCAST", start_date: "2026-11-10", end_date: "2026-11-10", gameId: "g1", gameName: "게임 가" },
+    { id: "far", title: "다음 달 픽업", schedule_type: "PICKUP", start_date: "2026-12-01", end_date: "2026-12-05", gameId: "g1", gameName: "게임 가" },
+  ]
+
+  it("collapses version children by default and shows a count summary", () => {
+    renderList({ schedules: grouped })
+    const week = within(currentWeek())
+    const toggle = week.getByTestId("version-group-toggle")
+    expect(toggle.getAttribute("aria-expanded")).toBe("false")
+    expect(toggle.textContent).toContain("픽업 1 · 콘텐츠 1")
+    expect(week.getByText("3.2 버전")).toBeTruthy()
+    expect(week.queryByText("카프카 픽업")).toBeNull()
+    expect(week.queryByText("이벤트 콘텐츠")).toBeNull()
+    // Broadcasts are never grouped.
+    expect(week.getByText("특별방송")).toBeTruthy()
+  })
+
+  it("expands and collapses the children with aria-expanded", () => {
+    renderList({ schedules: grouped })
+    const week = within(currentWeek())
+    fireEvent.click(week.getByTestId("version-group-toggle"))
+    expect(week.getByTestId("version-group-toggle").getAttribute("aria-expanded")).toBe("true")
+    expect(week.getByText("카프카 픽업")).toBeTruthy()
+    expect(week.getByText("이벤트 콘텐츠")).toBeTruthy()
+
+    fireEvent.click(week.getByTestId("version-group-toggle"))
+    expect(week.queryByText("카프카 픽업")).toBeNull()
+  })
+
+  it("keeps a child standalone when it starts after the version ended", () => {
+    renderList({
+      schedules: [
+        { ...grouped[0], end_date: "2026-11-08" },
+        grouped[1],
+      ],
+    })
+    const week = within(currentWeek())
+    expect(week.getByText("카프카 픽업")).toBeTruthy()
+    expect(week.queryByTestId("version-group-toggle")).toBeNull()
+  })
+
+  it("shows no toggle for a version without children", () => {
+    renderList({ schedules: [grouped[0]] })
+    expect(within(currentWeek()).queryByTestId("version-group-toggle")).toBeNull()
   })
 })
