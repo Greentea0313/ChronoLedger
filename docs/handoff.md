@@ -90,8 +90,18 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Version Grouping UI)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `src/lib/version-schedule-groups.ts`(+테스트), `src/components/calendar/weekly-schedule-list.tsx`(+테스트), `src/components/calendar/hero-sidebar.tsx`(+테스트), `src/components/calendar/mobile-drawer.test.tsx`(필요 시) | - |
-| **2** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 1 커밋) 리뷰, 산출물, `main` 병합, 문서 마감, 실브라우저 확인 안내 | - |
+| **1** | **`✅ DONE (SHA: 58aa956)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Version Grouping UI)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `src/lib/version-schedule-groups.ts`(+테스트), `src/components/calendar/weekly-schedule-list.tsx`(+테스트), `src/components/calendar/hero-sidebar.tsx`(+테스트), `src/components/calendar/mobile-drawer.test.tsx`(필요 시) | `✅ 58aa956`: 순수 함수 `version-schedule-groups.ts`(+테스트), 주간 목록·선택일 상세 접힘 묶음 적용. tsc·lint·`git diff --check`·Vitest 65파일 801개 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 1 커밋) 리뷰, 산출물, `main` 병합, 문서 마감, 실브라우저 확인 안내 | Base `7c0a319` ↔ Target `58aa956` |
+
+#### 📝 `r82-version-grouped-schedules` Step 1 완료 기록 (Claude Sonnet, 2026-11-11)
+
+- **Target SHA**: `58aa956` (워크트리 브랜치 `collab/r82-version-grouped-schedules`, 미병합)임. 이 PC에 워크트리가 없어 `7c0a319`에서 `git worktree add`로 새로 만들었으며 manifest(`c896198`)·`artifacts/` 디렉터리는 만들지 않음. Step 2에서 필요하면 `New-CollaborationRun.ps1` 산출물 정비 필요함.
+- **신규** `src/lib/version-schedule-groups.ts`(+테스트 9개): `getVersionParents`(같은 게임·시작일이 버전 기간 안·겹치면 시작일 늦은 버전·방송/다른 버전/게임 없음 제외), `splitVersionGroups`(입력 순서 유지, 부모가 목록에 있을 때만 묶음), `formatChildSummary`.
+- **주간 목록**: 버전 행 옆에 `픽업 n · 콘텐츠 n` 요약 + 아바타 접기 버튼(`aria-expanded`, 기본 접힘, 화면 안 접기 상태 저장). 펼치면 들여쓴 기존 행 모양으로 하위 일정 표시. 그룹 헤더 건수는 하위 포함 전체 건수 유지함.
+- **선택일 상세**: 버전 카드가 보이는 날은 하위 카드를 카드 안에 접어 넣음(기본 접힘, 요약·아바타). 버전 카드가 안 보이면 단독 카드 + `소속: 버전명` 라벨. `진행 일정 전체 보기` ON에도 같은 규칙임.
+- **테스트 수정**: 기존 주간 목록 테스트 일부가 같은 게임의 버전+픽업을 한 목록에서 바로 찾던 구조여서 버전을 다른 게임으로 옮김(동작 변경에 따른 의도된 수정). 상세 묶음·주간 접힘/펼침 테스트 추가함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`(CRLF 경고만), Vitest 65파일 801개 통과함. 실브라우저 확인은 하지 않음(Step 2 안내 대상).
+- **가정**: 상세에서 하위 일정은 "그날 목록에 보이는 것"만 버전 카드 안에 들어감(요약 개수도 그 기준)임. 버전 전체 기간의 하위 일정 개수가 필요하면 Step 2에서 결정 필요함.
 
 #### 📌 `r82-version-grouped-schedules` 단계별 수용 기준 (Acceptance Criteria)
 
