@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r86-schedule-crawling-research` Step 1 (조사) 완료 (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Researcher`)임.
+- **산출물**: `docs/schedule-crawling-research.md`. 등록 게임 14개 기준으로 공식 출처·이용 조건·실행 환경·데이터 흐름을 조사함.
+- **결론**: Steam 공식 공지 감지(6개 게임) + 버전 주기 추정 + 관리자 승인의 반자동 방식 권장. 네이버 라운지·X·비문서화 API는 제외함.
+- **다음 단계**: Step 2(`Gemini 4 Argon`, 검토·결정 질문) `▶ READY`임.
+
 ## R88 운영 적용 완료·Run `r86-schedule-crawling-research` 등록 (2026-11-11)
 
 - 사용자가 운영 DB에 `MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql`을 적용하고 확인 쿼리 검증을 마침. 일반 캐릭터도 아이콘 없이 등록 가능함.

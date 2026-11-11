@@ -40,8 +40,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Researcher (R86)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `docs/schedule-crawling-research.md`, `docs/to-do.md`(후속 과제 등록 시) | - |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토(근거 출처·결론 타당성·누락 항목), 사용자 결정 사항 정리, 문서 마감 | - |
+| **1** | **`✅ DONE (2026-11-11)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Researcher (R86)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅` [`schedule-crawling-research.md`](schedule-crawling-research.md) 작성. 결론: Steam 공지 감지(6개 게임) + 버전 주기 추정 + 관리자 승인의 반자동 방식 권장 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토(근거 출처·결론 타당성·누락 항목), 사용자 결정 사항 정리, 문서 마감 | - |
 
 #### 📌 `r86-schedule-crawling-research` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -54,6 +54,19 @@
    - **결론**: 게임별 "자동 수집 가능 / 반자동(사람 확인) / 수집 불가" 판정과 권장 1차 범위, 다음 Run 후보(구현 단계·DB 변경 여부·Opus 승격 조건)와 사용자 결정이 필요한 항목을 정리함.
    - 웹 조사 시 사용자 정보(이메일·프로젝트명 등)를 외부 요청에 넣지 않음.
 2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**: 근거·결론 검토, 결정 사항을 사용자에게 질문 카드로 확인, 후속 Run을 예약 목록에 반영, 문서 마감.
+
+#### 📝 `r86-schedule-crawling-research` Step 1 완료 기록 (Claude Opus, 2026-11-11)
+
+- **산출물**: [`docs/schedule-crawling-research.md`](schedule-crawling-research.md)(한국어 개조식). 대상은 사용자가 알려 준 등록 게임 14개임.
+- **결론**: 완전 자동 등록은 권장하지 않음. **Steam 공식 공지 감지(6개 게임) + 버전 주기 추정 + 관리자 승인**의 반자동 방식을 권장함.
+  - Steam 제공 확인: 림버스 컴퍼니(`1973530`)·명일방주: 엔드필드(`4732690`)·에픽세븐(`5019180`)·명조(`3513350`)·이환(`4508340`)·무한대(`4814120`). 공개 뉴스 API는 키 불필요, 하루 100,000회 제한.
+  - 표본 공지: 외부 매체 피드가 섞여 `steam_community_announcements`만 써야 함. 날짜 표기·시간대가 게임마다 다르고 픽업 기간은 거의 없어, 기간은 관리자가 확정해야 함.
+  - 제외: 네이버 게임 라운지(약관상 자동 수집 금지로 해석, 원문 확인 필요), X(스크래핑 명시 금지), HoYoLAB·공식 사이트 비문서화 API(약관 미확인·형식 변경 위험), Discord.
+  - HoYoverse 3종·니케 등 Steam 밖 게임은 수집 대신 버전 주기 추정을 제안함.
+- **데이터 흐름 제안**: 별도 `schedule_candidates` 테이블(외부 ID UNIQUE, 관리자 전용 RLS)을 권장함. `schedule_requests` 재사용은 `user_id`·종료일 필수 제약 때문에 불리함.
+- **실행 환경**: Supabase Edge Function + `pg_cron` 우선(키가 한곳에 머묾), GitHub Actions는 대안.
+- **한계**: 조사 도구가 네이버·X 약관·HoYoverse 약관 페이지를 열지 못해 2차 자료로 확인함(`확인 필요` 표시). 니케·스텔라 소라·카오스 제로 나이트메어·실버 팰리스의 Steam 제공 여부도 확인 필요함.
+- **다음 단계**: Step 2(`Gemini 4 Argon`, 검토·결정 질문·후속 Run 예약) `▶ READY`임. 결정 필요 항목은 문서 §8에 정리함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r88-optional-character-icons`
 

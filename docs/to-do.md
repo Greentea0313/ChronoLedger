@@ -730,7 +730,7 @@
 - [x] R83. [Run `r83-schedule-dialog-and-character-sort` 완료(`main` 병합 `6af6780`, 리뷰 clean) · **사용자 남은 확인: 일정 모달·캐릭터 정렬 실브라우저**] ① 게임별 일정 모달 `기타 일정`이 진행 중·다음 예정 일정과 항상 중복 표시되는 결함 수정 ② 캐릭터 기본 정렬을 첫 번째 분류 축 선택지 순서 + 가나다순으로 변경(캐릭터 페이지·프리셋 선택기·관리자 표, 즐겨찾기는 사용자 순서 유지) (DB 변경 없음, 담당: Claude Sonnet, 리뷰: Gemini 4 Argon)
 - [ ] R84. [보류 · `R89` 푸시 알림 설계 후 착수 · 결정: 분류 기능 제안·오류 신고·기타, 첨부 없음 · DB 변경] 기타 건의 요청 창구: 자유 형식 건의 테이블·RLS·탈퇴 정리, `+ 추가 요청` 모달 `기타 건의` 탭, 관리자 `건의` 탭(답변·상태), 내 요청 이력 표시 — 착수 전 분류 목록·첨부·답변 알림 방식 결정 필요 (담당: GPT Codex DB → Claude Sonnet UI → Claude Opus 리뷰)
 - [ ] R85. [결정 완료(2026-11-11): 분 단위·종료 미입력 시 날짜만·KST·달력 칸 미표시] [설계 우선 · `R37` 흡수] 일정 시간 단위 관리: 날짜 기준은 유지하고 표시·알림용 `start_at`·`end_at TIMESTAMPTZ NULL`·시각 예상 여부 추가안 명세화(서버 시간대 차이·점검 후 시작·일관성 CHECK·승인 RPC·폼·표시 범위) — 착수 전 입력 단위·종료 시각 기본값·달력 표시 여부 결정 필요 (담당: Claude Opus 설계)
-- [ ] R86. [Run `r86-schedule-crawling-research` 진행 중(Step 1 Claude Opus 조사 `▶ READY`, 2026-11-11 등록) · 조사 · 문서 전용] 공식 일정 자동 수집(크롤링) 가능성: 게임별 공식 출처 약관·robots.txt·구조화 정도·유지보수 비용·실행 환경(Supabase Edge Function/GitHub Actions)·관리자 승인 연계 검토 → `docs/schedule-crawling-research.md` (담당: Claude Opus)
+- [ ] R86. [Run `r86-schedule-crawling-research` 진행 중(Step 1 조사 `✅` `docs/schedule-crawling-research.md` → Step 2 Gemini 4 Argon 검토 `▶ READY`) · 조사 · 문서 전용] 공식 일정 자동 수집(크롤링) 가능성: 게임별 공식 출처 약관·robots.txt·구조화 정도·유지보수 비용·실행 환경(Supabase Edge Function/GitHub Actions)·관리자 승인 연계 검토 → `docs/schedule-crawling-research.md` (담당: Claude Opus)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---

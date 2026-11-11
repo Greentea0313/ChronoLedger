@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-11 (Run `r86-schedule-crawling-research` Step 1)
+
+- 공식 일정 자동 수집 가능성 조사 문서 `docs/schedule-crawling-research.md`를 추가함. Steam 공식 공지 감지와 버전 주기 추정을 관리자 승인과 묶는 반자동 방식을 권장함.
+
 ## 2026-11-11 (R88 운영 적용, Run `r86-schedule-crawling-research` 등록)
 
 - 운영 DB에 `MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql` 적용·확인 쿼리 검증 완료함(사용자).
