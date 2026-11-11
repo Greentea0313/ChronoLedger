@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r83-schedule-dialog-and-character-sort` 등록 (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **배경**: r81·r82·r79가 모두 마감돼 예약 `R83`을 활성 Run으로 등록함. `R84`·`R85`는 착수 전 사용자 결정이 필요해 대기, `R86`은 사용자 지목 시 착수함.
+- **Worktree**: `.worktrees/r83-schedule-dialog-and-character-sort`(Base `2571663`).
+- **다음 단계**: Step 1(`Claude Sonnet`) `▶ READY`임.
+
 ## Run `r79-sql-tests-local-run` 완료 — `main` 병합 `b38d65e` (2026-11-11)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임.

@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-11 (Run `r83-schedule-dialog-and-character-sort` 등록)
+
+- 예약 `R83`(게임별 일정 모달 `기타 일정` 중복 제거, 캐릭터 첫 번째 분류 축 + 가나다순 정렬)을 활성 Run으로 등록함(구현 Sonnet → 리뷰 Gemini 4 Argon).
+
 ## 2026-11-11 (Run `r79-sql-tests-local-run` 완료 — `main` 병합 `b38d65e`)
 
 - `sql/README.md`의 로컬 `psql` 예시를 유효한 `-h/-p/-U/-d` 연결 인자와 `PGPASSWORD` 방식으로 수정함.

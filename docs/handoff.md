@@ -31,7 +31,31 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r81-image-input-unification` **(완료, `main` 병합 `3c87917`, 실브라우저 확인은 사용자 대기)** *(이미지 입력 공용 등록 모달 통일: URL·붙여넣기·파일, 캘린더 배경 제외)*
+- **활성 Run ID**: `r83-schedule-dialog-and-character-sort` *(게임별 일정 모달 `기타 일정` 중복 제거 + 캐릭터 기본 정렬을 첫 번째 분류 축 + 가나다순으로 변경)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11, 예약 `R83` 실행)*
+- **Worktree 경로**: `.worktrees/r83-schedule-dialog-and-character-sort` (브랜치: `collab/r83-schedule-dialog-and-character-sort`, manifest `434f063`)
+- **Base SHA**: `25716636ad66affc3871c19d92354488f8298bd9`
+- **DB 변경**: 없음.
+- **근거**: 아래 `🗓️ 다음 Run 예약`의 `R83` 항목(사용자 요청 2026-11-11). r81·r82 마감으로 예약 규칙에 따라 등록함.
+- **코드 위치 확인 (Claude Opus)**: `기타 일정` = `src/app/dashboard/games/page.tsx` 약 319행(진행 중 251행·다음 예정 257행과 같은 모달). 이름순 정렬 = `src/lib/character-utils.ts` `buildCharacterSections`(약 158행, 보유 캐릭터 화면·프리셋 사이드바·모바일 선택 창 공용). 관리자 표 = `src/app/admin/page.tsx` 약 1167행(등급→이름순).
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Dialog · Character Sort)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/dashboard/games/page.tsx`(+테스트), `src/lib/character-utils.ts`(+테스트), `src/app/admin/page.tsx`(+테스트), `src/app/dashboard/characters/page.test.tsx`·`src/components/character/*.test.tsx`(정렬 기대값 갱신 시) | - |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 1 커밋) 리뷰, 산출물, `main` 병합, 문서 마감, 실브라우저 확인 안내 | - |
+
+#### 📌 `r83-schedule-dialog-and-character-sort` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Sonnet` — Maker)**:
+   - **`기타 일정` 중복 제거**: 게임별 일정 모달은 지난 일정을 따로 빼므로 남은 일정은 `진행 중(ON AIR)`·`다음 예정`에 이미 나옴. `기타 일정` 영역을 없애거나, 두 영역 어디에도 없는 일정만 그리도록 바꿔 한 일정이 두 번 보이지 않게 함. 같은 일정이 두 영역에 동시에 나오지 않음을 확인하는 회귀 테스트를 추가함. r82 버전 묶음 표시와 충돌하지 않게 함.
+   - **캐릭터 기본 정렬**: `src/lib/character-utils.ts`에 순수 정렬 함수를 둠. 첫 번째 분류 축(`axes[0]`)의 선택지 순서 → 같으면 이름 가나다순(`localeCompare(..., "ko")`) → 같으면 id. 첫 번째 축 값이 없거나 템플릿에 없는 값이면 맨 뒤. 분류 축이 없는 게임은 이름순.
+   - **적용 범위**: `buildCharacterSections`의 보유·미보유 구역(→ 보유 캐릭터 화면, 프리셋 사이드바, 모바일 선택 창), 관리자 캐릭터 표(현재 등급→이름순을 대체, 등급 필터 탭은 유지). **즐겨찾기는 사용자 지정 순서(`favorite_sort_order`) 유지**함.
+   - **테스트**: 정렬 함수 단위 테스트(축 순서·동률 이름순·값 없음/미등록 값 맨 뒤·축 없는 게임), 화면 테스트 기대값 갱신. `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
+2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**: 리뷰·산출물·병합·문서 마감, 사용자에게 게임별 일정 모달과 캐릭터 정렬 확인을 안내함.
+
+### 🗂️ 이전 Run 기록 (완료): `r81-image-input-unification`
+
+- **Run ID**: `r81-image-input-unification` **(완료, `main` 병합 `3c87917`, 실브라우저 확인은 사용자 대기)** *(이미지 입력 공용 등록 모달 통일: URL·붙여넣기·파일, 캘린더 배경 제외)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
 - **Worktree 경로**: `.worktrees/r81-image-input-unification` (브랜치: `collab/r81-image-input-unification`, manifest `651dc6a`)
 - **Base SHA**: `adb8e7202e3a5d4e0fadd8c3e89d9fdf4e790f01`
@@ -976,7 +1000,7 @@
 
 > **실행 규칙**: 활성 Run `r81`·`r82`가 게임·캐릭터·관리자·달력 화면을 수정 중이라, 파일이 겹칠 수 있는 아래 과제는 두 Run 마감 후 Orchestrator(Gemini 4 Argon, Fallback: Claude Opus)가 워크트리를 만들고 `▶ READY`로 전환함. `R86`은 문서 전용 조사라 사용자가 지목하면 바로 착수 가능함.
 
-- **`R83` 화면 결함 2건 (`r83-schedule-dialog-and-character-sort`, DB 변경 없음)** — Maker **Claude Sonnet** *(GitHub Copilot / Gemini 3.8 Flash)*, 리뷰 **Gemini 4 Argon** *(Claude Opus / GitHub Copilot)*
+- **`R83` 화면 결함 2건 (`r83-schedule-dialog-and-character-sort`, DB 변경 없음)** — ✅ **2026-11-11 활성 Run으로 등록함(위 Active Dispatch Table)** — Maker **Claude Sonnet** *(GitHub Copilot / Gemini 3.8 Flash)*, 리뷰 **Gemini 4 Argon** *(Claude Opus / GitHub Copilot)*
   1. **게임별 일정 모달 `기타 일정` 중복 제거**: `src/app/dashboard/games/page.tsx`의 `기타 일정` 영역(약 320행)이 버전에 묶이지 않은 비버전 일정 전체를 다시 그림. 이 모달은 지난 일정을 따로 빼므로 남은 일정은 모두 `진행 중(ON AIR)`·`다음 예정`에 이미 표시됨 → `기타 일정`이 항상 중복됨. 중복이 생기지 않도록 영역을 없애거나 두 영역에 없는 일정만 표시하고, 회귀 테스트를 추가함.
   2. **캐릭터 기본 정렬 = 첫 번째 분류 축 + 가나다순**: 첫 번째 분류 축(`axes[0]`)의 선택지 순서 → 같은 값이면 이름 가나다순(`localeCompare(..., "ko")`), 첫 번째 축 값이 없거나 템플릿에 없는 값이면 맨 뒤로 보냄. 분류 축이 없는 게임은 이름순. 적용: `/dashboard/characters` 보유·미보유 목록과 프리셋 캐릭터 선택기, 관리자 캐릭터 표(현재 등급→이름순을 변경, 등급 필터 탭은 유지). 즐겨찾기는 사용자 지정 순서를 유지함. 정렬 함수는 `src/lib/character-utils.ts`에 순수 함수로 두고 단위 테스트를 추가함.
 - **`R84` 기타 건의 요청 창구 (`r84-general-feedback-requests`, DB 변경 → Opus 승격 조건 ①)** — DB **GPT Codex** *(Claude Opus / GitHub Copilot)* → UI **Claude Sonnet** *(GitHub Copilot / Claude Opus)* → 리뷰 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
