@@ -1529,6 +1529,8 @@ RESET ROLE;
 
 INSERT INTO public.account_deletion_requests(user_id, status_token_hash, status) VALUES (:'test_user_id', repeat('a', 64), 'PENDING');
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated')::text, true);
+-- auth.uid() reads request.jwt.claim.sub first; the R63 block left it on the other user.
+SELECT set_config('request.jwt.claim.sub', :'test_user_id', true);
 SET LOCAL ROLE authenticated;
 DO $$ BEGIN
     BEGIN
@@ -1921,6 +1923,10 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R35 favorite schedules owner CRUD, duplicate/cross-user/UPDATE denial, cascade, purge, pending-deletion and anon boundary
+
+-- User A's PENDING account deletion request (R13-07) is only needed up to R35; later blocks write as user A.
+DELETE FROM public.account_deletion_requests WHERE user_id = :'test_user_id'::uuid AND status_token_hash = repeat('a', 64);
+
 -- R64 classification option icons: admin write, approved-game guest read, validation, and cleanup.
 UPDATE public.games
 SET status = 'APPROVED'
@@ -2176,7 +2182,7 @@ SELECT set_config('chronoledger.r76_dup_source_id', :'r76_dup_source', true);
 INSERT INTO public.user_character_presets (user_id, game_id, title, character_ids)
 VALUES (current_setting('chronoledger.test_user_id')::uuid, current_setting('chronoledger.r13_game_id')::uuid,
         'R76 duplicate target', ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid])
-RETURNING id AS r76_dup_target gset
+RETURNING id AS r76_dup_target \gset
 SELECT set_config('chronoledger.r76_dup_target_id', :'r76_dup_target', true);
 INSERT INTO public.user_character_presets (user_id, game_id, title, character_ids)
 VALUES (current_setting('chronoledger.test_user_id')::uuid, current_setting('chronoledger.r13_other_game_id')::uuid,

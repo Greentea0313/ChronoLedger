@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "run_id": "r79-sql-tests-local-run",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "a580d1d08f656de5816956c5dde0228cd40bd64f",
+  "target_sha": "f13087d81663df1b2f4746ca56b4801edb756a39",
+  "status": "passed",
+  "created_at": "2026-11-10T15:58:00Z",
+  "finished_at": "2026-11-10T15:59:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "TESTS.sql local Supabase rerun",
+      "command": "docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "Diff check",
+      "command": "git diff --check a580d1d..f13087d",
+      "status": "passed",
+      "exit_code": 0
+    }
+  ]
+}

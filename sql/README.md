@@ -55,6 +55,12 @@
 - `seed/DUMMY_DATA_USER.sql` / `seed/CLEANUP_DUMMY_DATA_USER.sql`: 하드코딩된 테스트 사용자 ID(`dae6adf8-…`)의 더미 데이터를 생성/정리합니다. 운영 사용자 데이터에는 사용하지 않습니다. 게임 카탈로그(`games`)는 정리 대상이 아닙니다.
 - `tests/TESTS.sql`: 배포된 스키마 대상 DB/RPC/RLS rollback-only 스모크 테스트입니다. 실행 전제와 `psql` 예시는 파일 상단을 따릅니다. 전체 SRS 수용 검증을 대체하지 않습니다.
   - 2026-10-29 기준 `SCHEMA.sql` + `migrations/` 전체를 적용한 DB에서 끝까지 PASS합니다. `WAL-01`은 포인트 플랫폼을 지정한 WALLET 결제가 스토어 적립률로 적립되는 현행 규칙을 검증합니다.
+  - 2026-11-11 로컬 Supabase에서 끝까지 PASS함(38개 블록, Run `r79-sql-tests-local-run`). 운영 DB가 아닌 로컬에서 반복 실행하는 방법:
+    1. Docker Desktop 실행(WSL2, `wsl --install`로 가상 머신 플랫폼 활성화 필요).
+    2. 저장소 밖 작업 폴더에서 로컬 스택 준비: `npx supabase@2.120.0 init --workdir <폴더>` → `config.toml`의 `project_id`를 `chronoledger-local`로 바꿈 → `npx supabase@2.120.0 start --workdir <폴더> -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,realtime,postgres-meta,supavisor`. 저장소 루트 `supabase/`는 운영 프로젝트 연결 정보와 과거 마이그레이션이 있어 쓰지 않음.
+    3. 접속 정보: 로컬 스택 기본값(호스트 `127.0.0.1`, 포트 `54322`, 사용자·DB `postgres`)이며 비밀번호는 `supabase status`의 DB 항목을 `PGPASSWORD` 환경 변수로 넘김(로컬 기본값은 `postgres`, 운영 비밀번호와 무관). 빈 로컬 DB에 1회: `psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/SCHEMA.sql` 후 `INSERT INTO storage.buckets (id, name, public) VALUES ('user-icons', 'user-icons', false);`.
+    4. 테스트: `psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql`. 전체가 `ROLLBACK`되므로 반복 실행 가능함. 스키마를 바꾼 뒤에는 `npx supabase@2.120.0 db reset --workdir <폴더>`로 초기화하고 3단계부터 다시 함.
+    5. Windows PowerShell에서는 한글 깨짐을 막으려고 `$env:PGCLIENTENCODING="UTF8"`을 먼저 설정함. psql은 PATH에 없으면 `C:\Program Files\PostgreSQL\17\bin\psql.exe` 전체 경로로 실행함.
 
 ## D. 아카이브 (`archive/`, 실행 금지)
 
