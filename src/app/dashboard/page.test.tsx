@@ -611,12 +611,12 @@ describe("DashboardPage", () => {
       expect(avatars).toEqual(["블랙 스완", "카프카"])
     })
 
-    it("shows an initial avatar for a pickup character without an icon", async () => {
+    it("shows the default avatar for a pickup character without an icon", async () => {
       setup({ schedule: { pickup_character_ids: ["c9"] }, characters: [{ id: "c9", name: "노이콘", default_icon_url: null }] })
       render(<DashboardPage />)
 
-      const initials = await screen.findAllByTestId("pickup-avatar-initial")
-      expect(initials[0].textContent).toBe("노")
+      const initials = await screen.findAllByTestId("pickup-avatar-default")
+      expect(initials[0].querySelector('[data-testid="default-avatar"]')).not.toBeNull()
       expect(initials[0].getAttribute("aria-label")).toBe("노이콘")
     })
 

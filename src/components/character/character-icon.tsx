@@ -1,8 +1,9 @@
 "use client"
 
 import { GameIcon } from "@/components/ui/game-icon"
+import { DefaultAvatar } from "@/components/character/default-avatar"
 import { cn } from "@/lib/utils"
-import { FAVORITE_ICON_CLASS, UNOWNED_ICON_CLASS, getNameInitial } from "@/lib/character-utils"
+import { FAVORITE_ICON_CLASS, UNOWNED_ICON_CLASS } from "@/lib/character-utils"
 
 interface CharacterIconProps {
   name: string
@@ -19,7 +20,7 @@ interface CharacterIconProps {
   className?: string
 }
 
-/** Three-tier icon fallback: custom icon -> catalog default icon -> initial avatar. */
+/** Three-tier icon fallback: custom icon -> catalog default icon -> default avatar. */
 export function CharacterIcon({ name, customIconUrl, defaultIconUrl, dimmed = false, favorite = false, breakthroughLevel = null, className }: CharacterIconProps) {
   return (
     <div
@@ -36,7 +37,7 @@ export function CharacterIcon({ name, customIconUrl, defaultIconUrl, dimmed = fa
       <GameIcon
         src={customIconUrl || defaultIconUrl || null}
         alt={name}
-        fallbackIcon={<span aria-hidden="true" className="text-lg font-semibold text-content-secondary">{getNameInitial(name)}</span>}
+        fallbackIcon={<DefaultAvatar />}
       />
       {breakthroughLevel !== null && (
         <span

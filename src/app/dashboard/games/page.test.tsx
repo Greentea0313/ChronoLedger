@@ -1039,11 +1039,11 @@ describe("GamesPage", () => {
         expect((document.body.querySelector('img[alt="카프카"]') as HTMLImageElement).style.width).toBe("28px")
       })
 
-      it("shows an initial avatar for characters without an icon and leaves legacy PICKUP cards plain", async () => {
+      it("shows the default avatar for characters without an icon and leaves legacy PICKUP cards plain", async () => {
         await openSchedules({ schedules: pickupSchedules, characters, expenses: [] })
 
-        const initial = document.body.querySelector('[data-testid="pickup-avatar-initial"]') as HTMLElement
-        expect(initial.textContent).toBe("노")
+        const initial = document.body.querySelector('[data-testid="pickup-avatar-default"]') as HTMLElement
+        expect(initial.querySelector('[data-testid="default-avatar"]')).not.toBeNull()
         expect(initial.getAttribute("aria-label")).toBe("노이콘")
         const legacyCard = Array.from(document.body.querySelectorAll("div.rounded-lg")).find((el) => el.textContent?.includes("레거시 픽업")) as HTMLElement
         expect(legacyCard.querySelector('[data-testid="pickup-avatars"]')).toBeNull()

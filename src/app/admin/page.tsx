@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { GameIcon } from "@/components/ui/game-icon"
+import { DefaultAvatar } from "@/components/character/default-avatar"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
 import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
@@ -1944,7 +1945,7 @@ export default function AdminPage() {
                       <div key={character.id} className="flex items-center justify-between gap-3 rounded-lg border border-line p-3">
                         <div className="flex min-w-0 items-center gap-3">
                           <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-line">
-                            <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
+                            <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<DefaultAvatar />} />
                           </div>
                           <p className="truncate font-semibold text-content">{character.name}</p>
                           <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning">픽업 전용</span>
@@ -1987,7 +1988,7 @@ export default function AdminPage() {
                           <tr key={character.id} className="border-b border-line/60">
                             <td className="py-2 pr-2">
                               <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-line">
-                                <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<span>{character.name.slice(0, 1)}</span>} />
+                                <GameIcon src={character.default_icon_url} alt="" fallbackIcon={<DefaultAvatar />} />
                               </div>
                             </td>
                             <td className="py-2 pr-2 font-semibold text-content">

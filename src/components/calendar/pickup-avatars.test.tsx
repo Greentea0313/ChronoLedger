@@ -53,11 +53,12 @@ describe("PickupAvatars", () => {
     expect((screen.getByRole("img") as HTMLImageElement).style.height).toBe("20px")
   })
 
-  it("renders a first-letter avatar for characters without an icon", () => {
+  it("renders the default person avatar for characters without an icon", () => {
     render(<PickupAvatars avatars={[{ id: "n", name: "노이콘", iconUrl: null }]} size={20} />)
 
-    const initial = screen.getByTestId("pickup-avatar-initial")
-    expect(initial.textContent).toBe("노")
+    const initial = screen.getByTestId("pickup-avatar-default")
+    expect(initial.querySelector('[data-testid="default-avatar"]')).not.toBeNull()
+    expect(initial.textContent).toBe("")
     expect(initial.getAttribute("aria-label")).toBe("노이콘")
     expect(initial.style.width).toBe("20px")
     expect(document.body.querySelector("img")).toBeNull()

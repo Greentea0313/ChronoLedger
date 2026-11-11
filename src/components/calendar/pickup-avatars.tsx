@@ -1,4 +1,5 @@
 // Pickup character avatars shared by the sidebar, weekly list and game schedule tree.
+import { DefaultAvatar } from "@/components/character/default-avatar"
 
 /** Character avatar shown on PICKUP schedule cards (spec §5.2, A1 U-08). `iconUrl` is null for characters without an icon. */
 export interface PickupAvatar {
@@ -9,7 +10,7 @@ export interface PickupAvatar {
 
 /**
  * Avatars of a PICKUP schedule in saved order. Ids that are no longer in the catalog (deleted) are skipped;
- * characters without an icon stay (rendered as an initial avatar). Legacy PICKUP schedules return [] (NR-10).
+ * characters without an icon stay (rendered as the default avatar). Legacy PICKUP schedules return [] (NR-10).
  */
 export function getPickupAvatars(
   schedule: { schedule_type: string; pickup_character_ids?: string[] | null },
@@ -22,7 +23,7 @@ export function getPickupAvatars(
   })
 }
 
-/** Up to three overlapping round avatars with a `+n` counter and a name tooltip; no icon -> first-letter avatar. */
+/** Up to three overlapping round avatars with a `+n` counter and a name tooltip; no icon -> default person avatar. */
 export function PickupAvatars({ avatars, size = 28, className }: { avatars?: PickupAvatar[]; size?: number; className?: string }) {
   if (!avatars || avatars.length === 0) return null
   const visible = avatars.slice(0, 3)
@@ -49,11 +50,11 @@ export function PickupAvatars({ avatars, size = 28, className }: { avatars?: Pic
             key={avatar.id}
             role="img"
             aria-label={avatar.name}
-            data-testid="pickup-avatar-initial"
-            style={{ width: size, height: size, fontSize: Math.max(9, Math.round(size * 0.45)) }}
-            className="flex items-center justify-center rounded-full border border-surface bg-surface-2 font-semibold text-content-secondary"
+            data-testid="pickup-avatar-default"
+            style={{ width: size, height: size }}
+            className="flex items-center justify-center overflow-hidden rounded-full border border-surface bg-surface-2"
           >
-            {Array.from(avatar.name.trim())[0]?.toUpperCase() ?? "?"}
+            <DefaultAvatar />
           </span>
         ),
       )}
