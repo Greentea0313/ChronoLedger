@@ -29,7 +29,6 @@ import {
   getCustomCharacterIconUrl,
   uploadCustomCharacterIcon,
 } from "@/lib/storage-upload"
-import { resizeImageToWebP } from "@/lib/image-resizer"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 import { preloadImages } from "@/lib/icon-preload"
 import type { BoardPreset } from "@/lib/preset-board"
@@ -459,25 +458,21 @@ export default function CharactersPage() {
     await saveUserCharacter(character, { breakthrough_level: level })
   }
 
-  const handleChangeIcon = async (character: GameCharacter, file: File) => {
-    if (!userId) return
-    if (isOffline()) {
-      setNotice({ type: "error", text: OFFLINE_WRITE_MESSAGE })
-      return
-    }
+  // R81: the blob is already a 256x256 WebP from the shared image dialog; returns the dialog error text (null = saved).
+  const handleChangeIcon = async (character: GameCharacter, webpBlob: Blob): Promise<string | null> => {
+    if (!userId) return "로그인이 필요합니다."
+    if (isOffline()) return OFFLINE_WRITE_MESSAGE
     setNotice(null)
     setBusy(character.id, true)
     try {
-      const webpBlob = await resizeImageToWebP(file)
       await uploadCustomCharacterIcon(userId, character.id, webpBlob)
     } catch (cause) {
-      setNotice({ type: "error", text: `아이콘 업로드에 실패했습니다: ${cause instanceof Error ? cause.message : "알 수 없는 오류"}` })
       setBusy(character.id, false)
-      return
+      return `아이콘 업로드에 실패했습니다: ${cause instanceof Error ? cause.message : "알 수 없는 오류"}`
     }
     setBusy(character.id, false)
     const saved = await saveUserCharacter(character, { custom_icon_path: getCustomCharacterIconPath(userId, character.id) })
-    if (!saved) return
+    if (!saved) return "아이콘 정보를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."
     try {
       const url = await getCustomCharacterIconUrl(userId, character.id)
       if (url) setCharacterIcons((prev) => ({ ...prev, [character.id]: url }))
@@ -485,6 +480,7 @@ export default function CharactersPage() {
       // The row is saved; the icon appears on the next load.
     }
     setNotice({ type: "success", text: `${character.name} 아이콘을 변경했습니다.` })
+    return null
   }
 
   const handleRestoreIcon = async (character: GameCharacter) => {
@@ -606,7 +602,7 @@ export default function CharactersPage() {
                   onToggleOwned={(character) => void handleToggleOwned(character)}
                   onToggleFavorite={(character) => void handleToggleFavorite(character)}
                   onSetBreakthrough={(character, level) => void handleSetBreakthrough(character, level)}
-                  onChangeIcon={(character, file) => void handleChangeIcon(character, file)}
+                  onChangeIcon={handleChangeIcon}
                   onRestoreIcon={(character) => void handleRestoreIcon(character)}
                 />
               </TabsContent>

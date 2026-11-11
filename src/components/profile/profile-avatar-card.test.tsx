@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const { upload, download, remove, resize } = vi.hoisted(() => ({
@@ -34,9 +34,14 @@ describe("ProfileAvatarCard", () => {
     render(<ProfileAvatarCard />)
 
     const file = new File(["x"], "me.png", { type: "image/png" })
-    fireEvent.change(screen.getByLabelText(/사진 선택/), { target: { files: [file] } })
+    fireEvent.click(screen.getByRole("button", { name: "사진 선택" }))
+    fireEvent.change(await screen.findByLabelText("이미지 파일"), { target: { files: [file] } })
+    await screen.findByAltText("미리보기")
+    expect(resize).toHaveBeenCalledWith(file)
+    fireEvent.click(screen.getByRole("button", { name: "등록" }))
 
     await waitFor(() => expect(upload).toHaveBeenCalledWith("user-1", blob))
+    await waitFor(() => expect(screen.queryByTestId("image-source-dialog")).toBeNull())
     expect((await screen.findByRole("status")).textContent).toContain("변경했습니다")
     expect(screen.getByRole("button", { name: "직접 올린 사진 삭제" })).toBeTruthy()
   })
@@ -45,10 +50,25 @@ describe("ProfileAvatarCard", () => {
     resize.mockRejectedValue(new Error("원본 이미지는 5MB 이하만 업로드 가능합니다."))
     render(<ProfileAvatarCard />)
 
-    fireEvent.change(screen.getByLabelText(/사진 선택/), { target: { files: [new File(["x"], "big.png", { type: "image/png" })] } })
+    fireEvent.click(screen.getByRole("button", { name: "사진 선택" }))
+    fireEvent.change(await screen.findByLabelText("이미지 파일"), { target: { files: [new File(["x"], "big.png", { type: "image/png" })] } })
 
-    expect((await screen.findByRole("alert")).textContent).toContain("5MB")
+    expect((await within(screen.getByTestId("image-source-dialog")).findByRole("alert")).textContent).toContain("5MB")
     expect(upload).not.toHaveBeenCalled()
+  })
+
+  it("keeps the dialog open and shows the upload error when saving fails", async () => {
+    resize.mockResolvedValue(new Blob(["x"], { type: "image/webp" }))
+    upload.mockRejectedValue(new Error("업로드 실패"))
+    render(<ProfileAvatarCard />)
+
+    fireEvent.click(screen.getByRole("button", { name: "사진 선택" }))
+    fireEvent.change(await screen.findByLabelText("이미지 파일"), { target: { files: [new File(["x"], "me.png", { type: "image/png" })] } })
+    await screen.findByAltText("미리보기")
+    fireEvent.click(screen.getByRole("button", { name: "등록" }))
+
+    expect((await within(screen.getByTestId("image-source-dialog")).findByRole("alert")).textContent).toBe("업로드 실패")
+    expect(screen.getByTestId("image-source-dialog")).toBeTruthy()
   })
 
   it("removes an existing custom photo", async () => {

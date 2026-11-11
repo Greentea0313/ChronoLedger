@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
 import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
@@ -33,17 +33,29 @@ export function GameSelectModal({
   const [games, setGames] = useState<Game[]>([])
   const [isLoadingGames, setIsLoadingGames] = useState(false)
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
-  const [iconFile, setIconFile] = useState<File | null>(null)
+  // R81: the custom icon is converted to a 256x256 WebP by the shared dialog and uploaded when the game is added.
+  const [iconBlob, setIconBlob] = useState<Blob | null>(null)
+  const [iconPreviewUrl, setIconPreviewUrl] = useState<string | null>(null)
+  const [isIconDialogOpen, setIsIconDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
   const resetState = () => {
     setSelectedGame(null)
-    setIconFile(null)
+    setIconBlob(null)
     setError(null)
   }
+
+  // Object URL of the chosen icon for the small preview; revoked when replaced or cleared.
+  useEffect(() => {
+    if (!iconBlob) {
+      setIconPreviewUrl(null)
+      return
+    }
+    const url = URL.createObjectURL(iconBlob)
+    setIconPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [iconBlob])
 
   // user 객체 대신 user?.id에 의존해, 세션 갱신으로 참조만 바뀔 때 목록 재조회·입력 초기화가 일어나지 않게 한다
   const fetchGames = useCallback(async () => {
@@ -80,12 +92,6 @@ export function GameSelectModal({
     }
   }, [fetchGames, isOpen])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setIconFile(e.target.files[0])
-    }
-  }
-
   const handleSubmit = async () => {
     if (!user || !selectedGame) return
     if (isOffline()) {
@@ -97,10 +103,9 @@ export function GameSelectModal({
     setError(null)
 
     try {
-      // 1. 커스텀 아이콘이 등록된 경우: 클라이언트 리사이징 후 Storage 업로드
-      if (iconFile) {
-        const webpBlob = await resizeImageToWebP(iconFile)
-        await uploadUserIcon(user.id, selectedGame.id, webpBlob)
+      // 1. 커스텀 아이콘이 등록된 경우: 다이얼로그에서 이미 256x256 WebP로 변환됨 → Storage 업로드
+      if (iconBlob) {
+        await uploadUserIcon(user.id, selectedGame.id, iconBlob)
       }
 
       // 2. 내 게임(user_games) 목록에 구독 정보 등록
@@ -180,20 +185,23 @@ export function GameSelectModal({
                   <Button
                     variant="outline"
                     className="w-full border-line-control bg-surface-2 text-content hover:bg-surface-3 justify-start"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => setIsIconDialogOpen(true)}
                   >
-                    <ImagePlus className="w-4 h-4 mr-2 text-content-secondary" />
+                    {iconPreviewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={iconPreviewUrl} alt="선택한 아이콘 미리보기" width={20} height={20} className="mr-2 h-5 w-5 rounded object-cover" />
+                    ) : (
+                      <ImagePlus className="w-4 h-4 mr-2 text-content-secondary" />
+                    )}
                     <span className="truncate w-48 text-left">
-                      {iconFile ? iconFile.name : "이미지 파일 선택 (최대 5MB)"}
+                      {iconBlob ? "아이콘 선택됨 (변경)" : "이미지 선택"}
                     </span>
                   </Button>
-                  <Input
-                    type="file"
-                    accept="image/png, image/jpeg, image/jpg, image/webp"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                  />
+                  {iconBlob && (
+                    <Button variant="ghost" size="sm" aria-label="선택한 아이콘 제거" onClick={() => setIconBlob(null)}>
+                      제거
+                    </Button>
+                  )}
                 </div>
                 <p className="text-xs text-content-secondary">설정하지 않으면 시스템 기본 아이콘이 적용됩니다.</p>
               </div>
@@ -212,6 +220,18 @@ export function GameSelectModal({
           )}
         </div>
       </DialogContent>
+      <ImageSourceDialog<Blob>
+        open={isIconDialogOpen}
+        onOpenChange={setIsIconDialogOpen}
+        title="커스텀 아이콘 등록"
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환함. 게임을 추가할 때 저장됨."
+        convert={(file) => resizeImageToWebP(file)}
+        previewSrc={(blob) => URL.createObjectURL(blob)}
+        onRegister={async (blob) => {
+          setIconBlob(blob)
+          return null
+        }}
+      />
     </Dialog>
   )
 }
