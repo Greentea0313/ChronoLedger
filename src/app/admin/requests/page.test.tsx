@@ -328,23 +328,39 @@ describe("AdminRequestsPage", () => {
     })
   })
 
-  it("disables approval for an ADD request without any icon until the admin supplies one", async () => {
+  it("approves an ADD request without any icon and shows the default-avatar hint (R88)", async () => {
     await openCharacterTab()
 
     const approve = byLabel<HTMLButtonElement>("NoIcon 캐릭터 요청 승인")
-    expect(approve.disabled).toBe(true)
-    expect(container.textContent).toContain("아이콘이 없는 신규 캐릭터 요청은 아이콘을 지정해야 승인할 수 있음")
-    // UPDATE requests keep the existing catalog icon, so they stay approvable without one.
+    expect(approve.disabled).toBe(false)
+    expect(container.textContent).toContain("아이콘이 없으면 기본 아바타로 표시됨")
+    expect(container.textContent).not.toContain("아이콘이 없는 신규 캐릭터 요청은 아이콘을 지정해야 승인할 수 있음")
     expect(byLabel<HTMLButtonElement>("Updater 캐릭터 요청 승인").disabled).toBe(false)
 
-    await registerIcon("NoIcon 캐릭터 아이콘 이미지 선택", { url: "https://example.test/noicon.png" })
-    expect(byLabel<HTMLButtonElement>("NoIcon 캐릭터 요청 승인").disabled).toBe(false)
+    await click(approve)
+    expect(rpc).toHaveBeenCalledWith("approve_character_request", { p_request_id: "char-req-2" })
+    expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
+  })
 
+  it("still lets the admin supply an icon for an ADD request without one", async () => {
+    await openCharacterTab()
+
+    await registerIcon("NoIcon 캐릭터 아이콘 이미지 선택", { url: "https://example.test/noicon.png" })
     await click(byLabel("NoIcon 캐릭터 요청 승인"))
+
     expect(rpc).toHaveBeenCalledWith("approve_character_request", {
       p_request_id: "char-req-2",
       p_default_icon_url: "data:image/webp;base64,converted",
     })
+  })
+
+  it("shows the update guidance when the unapplied DB still requires a character icon", async () => {
+    rpc.mockResolvedValue({ error: { message: "캐릭터 아이콘이 필요합니다." } })
+    await openCharacterTab()
+
+    await click(byLabel("NoIcon 캐릭터 요청 승인"))
+
+    expect(container.textContent).toContain("업데이트 적용 전에는 아이콘이 필요합니다.")
   })
 
   it("rejects an invalid replacement icon URL without calling the RPC", async () => {

@@ -421,6 +421,19 @@ describe("RequestSubmissionModal", () => {
     }))
   })
 
+  it("submits an ADD character request without an icon (icon is optional, R88)", async () => {
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-game", "game-1")
+    await change("#character-name", "No Icon Hero")
+    await change("#character-rarity", "5★")
+    await change("#character-axis-element", "불")
+    expect(document.body.textContent).toContain("아이콘 (선택)")
+    await submit()
+
+    expect(insertCharacter).toHaveBeenCalledWith(expect.objectContaining({ name: "No Icon Hero", target_character_id: null, default_icon_url: null }))
+  })
+
   it("registers a character icon through the shared image dialog and submits it as default_icon_url", async () => {
     await openModal()
     await change("#request-kind", "character")

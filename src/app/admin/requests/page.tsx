@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react"
 import { convertIconSourceToDataUrl } from "@/lib/image-resizer"
+import { ICON_MIGRATION_PENDING_MESSAGE, isIconRequiredByUnappliedMigration } from "@/lib/pickup-character-registration"
 import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
 
 type GameRequest = {
@@ -386,7 +387,11 @@ export default function AdminRequestsPage() {
     } catch (err: unknown) {
       // Supabase/PostgREST errors are plain objects with a message, not Error instances.
       const message = err instanceof Error ? err.message : typeof (err as { message?: unknown } | null)?.message === "string" ? (err as { message: string }).message : "알 수 없는 오류"
-      setError(`처리 중 오류가 발생했습니다: ${message}`)
+      setError(
+        type === "character" && isApprove && isIconRequiredByUnappliedMigration(err)
+          ? `처리 중 오류가 발생했습니다: ${ICON_MIGRATION_PENDING_MESSAGE}`
+          : `처리 중 오류가 발생했습니다: ${message}`,
+      )
     } finally {
       setProcessingId(null)
     }
@@ -509,7 +514,6 @@ export default function AdminRequestsPage() {
               : null
             const previewSrc = replacementPreview ?? req.default_icon_url
             const hasIcon = !!(req.default_icon_url?.trim() || defaultIconUrls[req.id]?.trim())
-            const needsIcon = !req.target_character_id && !hasIcon
             return (
               <Card key={req.id} className="bg-surface border-line">
                 <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
@@ -542,13 +546,11 @@ export default function AdminRequestsPage() {
                     >
                       {defaultIconUrls[req.id] ? "아이콘 교체 이미지 변경" : "아이콘 교체 이미지 선택"}
                     </Button>
-                    {needsIcon && (
-                      <p role="alert" className="text-[11px] text-warning">
-                        아이콘이 없는 신규 캐릭터 요청은 아이콘을 지정해야 승인할 수 있음
-                      </p>
+                    {!hasIcon && !req.target_character_id && (
+                      <p className="text-[11px] text-content-muted">아이콘이 없으면 기본 아바타로 표시됨</p>
                     )}
                     <div className="flex gap-2">
-                      <Button variant="outline" aria-label={`${req.name} 캐릭터 요청 승인`} className="border-success/60 text-success" onClick={() => processRequest("character", req.id, true)} disabled={processingId === req.id || !isOnline || needsIcon}>승인</Button>
+                      <Button variant="outline" aria-label={`${req.name} 캐릭터 요청 승인`} className="border-success/60 text-success" onClick={() => processRequest("character", req.id, true)} disabled={processingId === req.id || !isOnline}>승인</Button>
                       <Button variant="outline" aria-label={`${req.name} 캐릭터 요청 반려`} className="border-danger/60 text-danger" onClick={() => processRequest("character", req.id, false)} disabled={processingId === req.id || !isOnline}>반려</Button>
                     </div>
                   </div>

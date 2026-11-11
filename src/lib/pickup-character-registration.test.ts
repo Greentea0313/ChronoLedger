@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { DuplicatePickupNameError, registerPickupOnlyCharacter } from "./pickup-character-registration"
+import { DuplicatePickupNameError, ICON_MIGRATION_PENDING_MESSAGE, isIconRequiredByUnappliedMigration, registerPickupOnlyCharacter } from "./pickup-character-registration"
 
 const { from, convertIconSourceToDataUrlWithUpscale } = vi.hoisted(() => ({
   from: vi.fn(),
@@ -95,5 +95,20 @@ describe("registerPickupOnlyCharacter", () => {
 
     single.mockResolvedValueOnce({ data: null, error: null })
     await expect(registerPickupOnlyCharacter(input())).rejects.toThrow("픽업 캐릭터를 등록하지 못했습니다: 알 수 없는 오류")
+  })
+})
+
+describe("isIconRequiredByUnappliedMigration (R88)", () => {
+  it("recognises the old icon CHECK (23514) and the old approve_character_request exception", () => {
+    expect(isIconRequiredByUnappliedMigration({ code: "23514", message: 'violates check constraint "chk_game_characters_icon_or_pickup_only"' })).toBe(true)
+    expect(isIconRequiredByUnappliedMigration({ message: "캐릭터 아이콘이 필요합니다." })).toBe(true)
+  })
+
+  it("ignores other errors and non-objects", () => {
+    expect(isIconRequiredByUnappliedMigration({ code: "23514", message: 'violates check constraint "chk_game_characters_icon_valid"' })).toBe(false)
+    expect(isIconRequiredByUnappliedMigration({ code: "23505", message: "duplicate" })).toBe(false)
+    expect(isIconRequiredByUnappliedMigration(null)).toBe(false)
+    expect(isIconRequiredByUnappliedMigration("캐릭터 아이콘이 필요합니다.")).toBe(false)
+    expect(ICON_MIGRATION_PENDING_MESSAGE).toContain("업데이트 적용 전에는 아이콘이 필요합니다.")
   })
 })
