@@ -1,0 +1,16 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r83-schedule-dialog-and-character-sort",
+    "created_at":  "2026-11-11T08:09:12.4843139+00:00",
+    "objective":  "Remove the always-duplicated \u0027기타 일정\u0027 section of the per-game schedule dialog, and sort characters by the first classification axis option order then Korean name in the character screens, preset pickers and the admin character table.",
+    "acceptance_criteria":  [
+                                "Step 1 (Maker): the games page schedule dialog no longer renders a schedule twice (\u0027기타 일정\u0027 removed or limited to schedules shown in neither 진행 중 nor 다음 예정) with a regression test; a pure sort helper in src/lib/character-utils.ts orders by axes[0] option index, then name localeCompare ko, unknown or missing first-axis values last, name order when the game has no axes; owned/unowned sections, preset sidebar and picker use it while favorites keep favorite_sort_order; the admin character table uses it and keeps its rarity filter tabs; unit and page tests; tsc, lint, git diff --check and full Vitest pass.",
+                                "Step 2 (review): Base..Target review, artifacts, main merge, user real-browser check."
+                            ],
+    "base_sha":  "25716636ad66affc3871c19d92354488f8298bd9",
+    "target_sha":  null,
+    "branch":  "collab/r83-schedule-dialog-and-character-sort",
+    "worktree_path":  ".worktrees/r83-schedule-dialog-and-character-sort",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
