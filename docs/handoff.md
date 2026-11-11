@@ -42,8 +42,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R88 DB)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql` | - |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (R88 UI)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`(+테스트), `src/app/admin/requests/page.tsx`(+테스트), `src/components/game/request-submission-modal.tsx`(+테스트), `src/lib/pickup-character-registration.ts`(+테스트, 필요 시) | - |
+| **1** | **`✅ DONE (SHA: 0be4f44)`** | **Claude Opus** *(GPT Codex 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R88 DB)` | 아래 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql` | `✅ 0be4f44`: 일반 캐릭터 아이콘 제약 제거, `approve_character_request` 무아이콘 승인 허용, 확인 쿼리·직접 등록/승인 테스트 추가함. 운영 DB 미적용. Docker/psql 미실행 |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (R88 UI)` | 아래 Step 2 수용 기준 수행. 허용 파일: `src/app/admin/page.tsx`(+테스트), `src/app/admin/requests/page.tsx`(+테스트), `src/components/game/request-submission-modal.tsx`(+테스트), `src/lib/pickup-character-registration.ts`(+테스트, 필요 시) | Step 1 `0be4f44` 기준으로 아이콘 선택 사항 UI와 기본 아바타 표시를 구현함 |
 | **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 2 커밋) 리뷰(제약·RPC·화면 일관성), 산출물, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | - |
 
 #### 📌 `r88-optional-character-icons` 단계별 수용 기준 (Acceptance Criteria)
@@ -53,6 +53,7 @@
    - `approve_character_request`: 새 캐릭터 생성 시 아이콘이 없어도 생성되게 `캐릭터 아이콘이 필요합니다.` 검사를 제거함(기존 캐릭터 수정 경로는 `coalesce`로 기존 아이콘 유지 그대로).
    - `guard_game_character_pickup_only_transition` 등 일반 캐릭터의 아이콘을 전제로 한 다른 함수·트리거가 있는지 점검하고 필요하면 함께 고침(픽업 전용 → 일반 승격 시 아이콘 요구 여부 포함).
    - `SCHEMA.sql`·`sql/README.md`(실행 순서·확인 쿼리)·`TESTS.sql`(아이콘 없는 일반 캐릭터 INSERT 허용, 아이콘 없는 요청 승인 허용, 잘못된 형식은 여전히 거부) 반영함. 로컬 Supabase에서 `TESTS.sql` 전체 통과를 확인함(`sql/README.md` C절 절차). 운영 DB 미적용.
+   - **완료 기록 (Claude Opus 대체, 2026-11-11)**: Target `0be4f44`임. 마이그레이션·SCHEMA·README·TESTS.sql 반영 및 `git diff --check` 통과함. Docker/psql 미실행으로 전체 SQL 실행 검증은 미수행임.
 2. **Step 2 (`Claude Sonnet` — Maker, UI)**:
    - 관리자 캐릭터 폼(픽업 전용 승격 포함), 요청 승인 화면 캐릭터 승인, 요청 모달 캐릭터 요청에서 아이콘을 선택 사항으로 바꿈: 라벨의 `*` 제거, 필수 오류 문구 제거, 아이콘 없이 저장·승인·제출 가능. 아이콘이 없는 캐릭터는 기존 기본 아바타 컴포넌트로 표시됨을 확인함.
    - 마이그레이션 미적용 DB에서 아이콘 없이 저장하면 DB 오류(`23514` 등)를 알아볼 수 있는 안내로 보여줌(예: `업데이트 적용 전에는 아이콘이 필요합니다.`).

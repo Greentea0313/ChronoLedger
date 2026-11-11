@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Run `r88-optional-character-icons` Step 1 완료 — Target `0be4f44` (2026-11-11)
+
+- **수행 주체**: Claude Opus (`GPT Codex` 1순위 대체, RLS/SQL 승격 조건)임.
+- **변경**: 일반 캐릭터의 `chk_game_characters_icon_or_pickup_only` 제약 제거, 아이콘 없는 `approve_character_request` 생성 허용, 확인 쿼리·직접 등록/승인 SQL 테스트 추가함.
+- **검증**: `git diff --check` 통과함. Docker/psql 미실행으로 `TESTS.sql` 전체 실행은 미수행임.
+- **운영 상태**: 마이그레이션 미적용임. Step 2 UI 구현 후 Step 3 리뷰가 필요함.
+- **다음 단계**: Claude Sonnet이 R88 UI Step 2를 수행함.
+
 ## Run `r88-optional-character-icons` 등록·R84/R85 결정 기록 (2026-11-11)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
