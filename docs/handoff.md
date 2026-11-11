@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r86-schedule-crawling-research` *(공식 일정 자동 수집(크롤링) 가능성 조사, 문서 전용)*
+- **활성 Run ID**: 없음 *(R86 조사 마감, 다음 착수 후보 R89·R90)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11, 사용자 지목)*
 - **Worktree 경로**: `main` (문서 전용 조사라 격리 워크트리·`run.json` 없이 `main`에서 진행함. 코드·SQL 변경 없음)
 - **Base SHA**: `0bf461450d1cfb29a99e39909770a1f59dc3657b`
@@ -41,7 +41,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (2026-11-11)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Researcher (R86)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅` [`schedule-crawling-research.md`](schedule-crawling-research.md) 작성. 결론: Steam 공지 감지(6개 게임) + 버전 주기 추정 + 관리자 승인의 반자동 방식 권장 (아래 Step 1 완료 기록 참고) |
-| **2** | **`▶ READY`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토(근거 출처·결론 타당성·누락 항목), 사용자 결정 사항 정리, 문서 마감 | - |
+| **2** | **`✅ DONE (2026-11-11)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토, 사용자 결정 사항 정리, 문서 마감 | 조사 근거·한계·결론 검토 완료함. 별도 `schedule_candidates`, Steam 6개+버전 주기 추정, 하루 1회, Supabase Edge Function+pg_cron, 구현 전 추가 조사로 결정함. |
 
 #### 📌 `r86-schedule-crawling-research` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -66,7 +66,7 @@
 - **데이터 흐름 제안**: 별도 `schedule_candidates` 테이블(외부 ID UNIQUE, 관리자 전용 RLS)을 권장함. `schedule_requests` 재사용은 `user_id`·종료일 필수 제약 때문에 불리함.
 - **실행 환경**: Supabase Edge Function + `pg_cron` 우선(키가 한곳에 머묾), GitHub Actions는 대안.
 - **한계**: 조사 도구가 네이버·X 약관·HoYoverse 약관 페이지를 열지 못해 2차 자료로 확인함(`확인 필요` 표시). 니케·스텔라 소라·카오스 제로 나이트메어·실버 팰리스의 Steam 제공 여부도 확인 필요함.
-- **다음 단계**: Step 2(`Gemini 4 Argon`, 검토·결정 질문·후속 Run 예약) `▶ READY`임. 결정 필요 항목은 문서 §8에 정리함.
+- **다음 단계**: R89 푸시 알림 조사 후 R84 착수 여부를 결정하고, R90 일정 후보 수집 구현을 별도 Run으로 등록함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r88-optional-character-icons`
 
@@ -1125,6 +1125,8 @@
 - **`R86` 공식 일정 자동 수집(크롤링) 가능성 조사 (문서 전용)** — ✅ **2026-11-11 활성 Run `r86-schedule-crawling-research`로 등록함** — 조사 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
   - 1차 검토 요지: 앱은 서버 없는 정적 배포라 브라우저에서 직접 수집은 CORS·약관 문제로 불가함. 수집기는 별도 실행 환경(예: Supabase Edge Function + `pg_cron`, 또는 GitHub Actions 예약 작업)이 필요하고, 결과는 공용 일정에 바로 쓰지 않고 `schedule_requests`(대기)로 넣어 관리자 승인을 거치는 반자동 방식이 안전함.
   - 조사 항목: 게임별 공식 출처(공식 사이트 공지·RSS·HoYoLAB 등 커뮤니티 API·공식 X·YouTube)의 이용약관·robots.txt 허용 여부, 구조화 정도(날짜·시각·버전명 추출 난이도), 공지 형식 변경에 따른 유지보수 비용, 키·비밀 관리. 산출물 `docs/schedule-crawling-research.md`.
+  - **검토·결정 완료(2026-11-11)**: 별도 `schedule_candidates` 테이블, Steam 6개 공지 감지+버전 주기 추정, 하루 1회, Supabase Edge Function+`pg_cron`, 미확인 약관·Steam 제공 여부는 구현 전 추가 조사로 확정함.
+- **`R90` 일정 후보 수집 구현 (R86 후속, DB/RLS·Edge Function 변경)** — R89 푸시 알림 조사와 별개로 후속 착수 예정임. `schedule_candidates` 스키마·관리자 RLS·Steam 6개 앱 감지·버전 주기 추정·하루 1회 `pg_cron` 실행·관리자 후보 검토 UI를 구현함. 🐳 로컬 Supabase 검증에 Docker Desktop 필요함.
 
 ### 🛠️ `main` 직접 수정 기록: 모바일 대시보드 폭·필터 칩 줄바꿈 (2026-11-11)
 

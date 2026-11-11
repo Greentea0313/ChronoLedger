@@ -69,7 +69,7 @@
 
 - **원칙**: 수집 결과는 공용 일정(`game_schedules`)에 바로 쓰지 않고 관리자 승인을 거침.
 - **현재 구조의 제약**: `schedule_requests`는 `user_id`(가입 사용자)와 `start_date`·`end_date`가 필수임. 수집기는 사용자가 아니고, 감지한 공지에는 종료일이 없는 경우가 많음.
-- **선택지 (다음 Run에서 결정 필요)**:
+- **선택지 (사용자 결정 완료)**:
   - **A. 별도 테이블 `schedule_candidates`** (권장): 게임·출처(`steam:appid`)·외부 ID(Steam `gid`)·제목·원문 링크·감지 시각·추정 시작/종료(선택)·상태(`NEW/DISMISSED/CONVERTED`)를 저장함. 외부 ID에 UNIQUE를 걸어 중복을 막음. 관리자가 후보를 열어 기존 일정 폼으로 일정을 만들면 `CONVERTED`로 바꿈. 관리자만 읽고 쓰는 RLS.
   - **B. `schedule_requests` 재사용**: 전용 "수집 봇" 계정을 만들고 출처 컬럼을 추가함. 기존 승인 화면을 그대로 쓰지만, 날짜 필수 조건 때문에 추정 날짜를 강제로 넣어야 하고 사용자 요청과 섞임.
 - **버전 주기 추정**: 게임별 설정(예: `version_cycle_days`, 관리자 입력)과 마지막 VERSION 일정으로 다음 버전 예상 시작일을 계산해 같은 후보 목록에 `source = estimate`로 올림. 외부 요청이 없어 약관 문제가 없음.
@@ -84,12 +84,12 @@
 ## 8. 다음 Run 후보와 결정 필요 사항
 
 - **후보 Run (구현)**: `schedule_candidates` 테이블·RLS(관리자 전용) + Supabase Edge Function(Steam 공지 감지) + `pg_cron` 예약 + 관리자 화면 `후보` 탭 + 버전 주기 추정. DB·RLS·서버 함수 변경이라 Opus 승격 조건 ①에 해당함. 🐳 로컬 검증에 Docker Desktop 필요.
-- **사용자 결정 필요**:
-  1. 후보 저장 방식: A(별도 후보 테이블, 권장) / B(`schedule_requests` 재사용)
-  2. 1차 대상: Steam 6개 게임 공지 감지 + 버전 주기 추정 / Steam만 / 추정만
-  3. 실행 주기: 하루 1회 / 하루 4회 등
-  4. 실행 환경: Supabase Edge Function(권장) / GitHub Actions
-  5. `확인 필요` 항목(니케·스텔라 소라·카오스 제로 나이트메어·실버 팰리스의 Steam 제공 여부, HoYoverse 약관 원문)을 사용자가 직접 확인할지, 구현 전 추가 조사할지
+- **사용자 결정 완료(2026-11-11)**:
+  1. 후보 저장 방식: A(별도 `schedule_candidates` 테이블)
+  2. 1차 대상: Steam 6개 게임 공지 감지 + 버전 주기 추정
+  3. 실행 주기: 하루 1회
+  4. 실행 환경: Supabase Edge Function + `pg_cron`
+  5. 미확인 항목은 구현 전 추가 조사함
 
 ## 9. 근거 링크 (확인일 2026-11-11)
 

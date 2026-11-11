@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## Run `r86-schedule-crawling-research` 완료 (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Gemini 4 Argon 1순위 대체)임.
+- **검토**: 공식 출처·약관 확인 범위·Steam 피드 혼재·날짜 형식 변동·자동 기간 확정 위험을 확인함.
+- **사용자 결정**: 별도 `schedule_candidates` 테이블, Steam 6개 공지 감지+버전 주기 추정, 하루 1회, Supabase Edge Function+`pg_cron`, 미확인 항목은 구현 전 추가 조사로 확정함.
+- **다음 단계**: R89 푸시 알림 조사 후 R84를 재검토하고, R90 일정 후보 수집 구현을 별도 Run으로 등록함.
+
 ## Run `r86-schedule-crawling-research` Step 1 (조사) 완료 (2026-11-11)
 
 - **수행 주체**: Claude Opus (`Researcher`)임.

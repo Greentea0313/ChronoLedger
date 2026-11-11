@@ -1,4 +1,10 @@
 # 변경 이력
+## 2026-11-11 (Run `r86-schedule-crawling-research` 완료)
+
+- 공식 일정 자동 수집 조사 문서를 검토하고 사용자 결정을 반영함.
+- 후속 구현 방향을 `schedule_candidates` 별도 테이블, Steam 6개 공지 감지+버전 주기 추정, 하루 1회, Supabase Edge Function+`pg_cron`으로 확정함.
+- 네이버·X·비문서화 API는 제외하고, 미확인 약관·Steam 제공 여부는 구현 전 추가 조사 대상으로 남김.
+
 ## 2026-11-11 (Run `r86-schedule-crawling-research` Step 1)
 
 - 공식 일정 자동 수집 가능성 조사 문서 `docs/schedule-crawling-research.md`를 추가함. Steam 공식 공지 감지와 버전 주기 추정을 관리자 승인과 묶는 반자동 방식을 권장함.
