@@ -4,7 +4,9 @@ import { Simulate } from "react-dom/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import GamesPage from "./page"
 
-const { from, useAuth, downloadUserIcon, deleteUserIcon, loadSchedulePreference, getKstToday } = vi.hoisted(() => ({
+const { from, useAuth, downloadUserIcon, deleteUserIcon, uploadUserIcon, resizeImageToWebP, loadSchedulePreference, getKstToday } = vi.hoisted(() => ({
+  uploadUserIcon: vi.fn(),
+  resizeImageToWebP: vi.fn(),
   from: vi.fn(),
   getKstToday: vi.fn(),
   useAuth: vi.fn(),
@@ -18,7 +20,11 @@ vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
 vi.mock("@/lib/storage-upload", () => ({
   downloadUserIcon,
   deleteUserIcon,
-  uploadUserIcon: vi.fn(),
+  uploadUserIcon,
+}))
+vi.mock("@/lib/image-resizer", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/image-resizer")>()),
+  resizeImageToWebP,
 }))
 vi.mock("@/lib/schedule-preferences", () => ({ loadSchedulePreference }))
 vi.mock("@/lib/dashboard-date", () => ({ getKstToday }))
@@ -67,6 +73,7 @@ function createQuery(table: string) {
     delete: ReturnType<typeof vi.fn>
     insert: ReturnType<typeof vi.fn>
     upsert: ReturnType<typeof vi.fn>
+    update: ReturnType<typeof vi.fn>
     then: ReturnType<typeof vi.fn>
   }
   const query: Partial<MockQuery> = {}
@@ -78,8 +85,9 @@ function createQuery(table: string) {
   const del = vi.fn().mockReturnValue(query)
   const insert = vi.fn()
   const upsert = vi.fn()
+  const update = vi.fn().mockReturnValue(query)
   const then = vi.fn((resolve: (val: unknown) => unknown) => Promise.resolve(getResult()).then(resolve))
-  Object.assign(query, { select, eq, gte, in: inFilter, order, delete: del, insert, upsert, then })
+  Object.assign(query, { select, eq, gte, in: inFilter, order, delete: del, insert, upsert, update, then })
   return query as MockQuery
 }
 
@@ -125,6 +133,37 @@ describe("GamesPage", () => {
       (b) => b.textContent?.includes("+ 추가 요청")
     )
     expect(requestButtons.length).toBe(1)
+  })
+
+  it("registers a custom game icon through the shared image dialog", async () => {
+    const webp = new Blob(["webp"], { type: "image/webp" })
+    resizeImageToWebP.mockResolvedValue(webp)
+    uploadUserIcon.mockResolvedValue(undefined)
+    vi.spyOn(window, "alert").mockImplementation(() => undefined)
+    URL.createObjectURL = vi.fn(() => "blob:preview")
+    URL.revokeObjectURL = vi.fn()
+    await act(async () => root.render(<GamesPage />))
+
+    const trigger = container.querySelector('button[title="아이콘 등록/변경"]') as HTMLButtonElement
+    await act(async () => {
+      Simulate.click(trigger)
+    })
+    const dialog = document.body.querySelector('[data-testid="image-source-dialog"]') as HTMLElement
+    expect(dialog).toBeTruthy()
+    expect(document.body.textContent).toContain("붕괴: 스타레일 아이콘 등록")
+
+    const file = new File(["x"], "icon.png", { type: "image/png" })
+    await act(async () => {
+      Simulate.change(dialog.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } } as never)
+    })
+    const register = Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent === "등록") as HTMLButtonElement
+    await act(async () => {
+      Simulate.click(register)
+    })
+
+    expect(resizeImageToWebP).toHaveBeenCalledWith(file)
+    expect(uploadUserIcon).toHaveBeenCalledWith("test-user-id", "game-2", webp)
+    expect(document.body.querySelector('[data-testid="image-source-dialog"]')).toBeNull()
   })
 
   it("hides game request button for admin users", async () => {

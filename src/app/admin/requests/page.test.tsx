@@ -4,7 +4,8 @@ import { Simulate } from "react-dom/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import AdminRequestsPage from "./page"
 
-const { from, rpc, useAuth, replace, convertIconSourceToDataUrl } = vi.hoisted(() => ({
+const { from, rpc, useAuth, replace, convertIconSourceToDataUrl, fetchImageFile } = vi.hoisted(() => ({
+  fetchImageFile: vi.fn(async () => new File(["fetched"], "fetched.png", { type: "image/png" })),
   from: vi.fn(),
   rpc: vi.fn(),
   useAuth: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock("@/lib/supabase/client", () => ({
 vi.mock("@/lib/image-resizer", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/image-resizer")>(),
   convertIconSourceToDataUrl,
+  fetchImageFile,
 }))
 
 interface MockQueryBuilder {
@@ -174,13 +176,7 @@ describe("AdminRequestsPage", () => {
     expect(scheduleQuery.select).toHaveBeenCalledWith("*, games(name)")
     expect(scheduleQuery.eq).toHaveBeenCalledWith("request_status", "PENDING")
 
-    const iconUrlInput = container.querySelector('input[aria-label="Sample RPG 기본 아이콘 URL"]')
-    expect(iconUrlInput).not.toBeNull()
-    if (!(iconUrlInput instanceof HTMLInputElement)) throw new Error("Expected the game icon URL input.")
-    await act(async () => {
-      iconUrlInput.value = "https://example.test/game.webp"
-      Simulate.change(iconUrlInput)
-    })
+    await registerIcon("Sample RPG 기본 아이콘 이미지 선택", { url: "https://example.test/game.webp" })
 
     const approveButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.textContent?.includes("승인"),
@@ -195,22 +191,15 @@ describe("AdminRequestsPage", () => {
       p_request_id: "game-request-1",
       p_default_icon_url: "data:image/webp;base64,converted",
     })
-    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.test/game.webp")
+    expect(fetchImageFile).toHaveBeenCalledWith("https://example.test/game.webp", 256)
+    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(expect.any(File))
   })
 
   it("converts a pasted game image, previews it, and approves with its WebP Data URL", async () => {
     await renderPage()
 
-    const iconUrlInput = container.querySelector('input[aria-label="Sample RPG 기본 아이콘 URL"]')
-    if (!(iconUrlInput instanceof HTMLInputElement)) throw new Error("Expected the game icon URL input.")
     const imageFile = new File(["image"], "clipboard.png", { type: "image/png" })
-    await act(async () => {
-      Simulate.paste(iconUrlInput, {
-        clipboardData: { files: [imageFile], items: [] },
-      } as unknown as { clipboardData: DataTransfer })
-      await Promise.resolve()
-      await Promise.resolve()
-    })
+    await registerIcon("Sample RPG 기본 아이콘 이미지 선택", { paste: imageFile })
 
     expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(imageFile)
     expect(container.querySelector('img[alt="Sample RPG 아이콘 미리보기"]')).not.toBeNull()
@@ -254,6 +243,41 @@ describe("AdminRequestsPage", () => {
     })
   }
 
+  // R81: icons are registered through the shared image dialog (rendered in a portal outside the page container).
+  const imageDialog = () => document.body.querySelector('[data-testid="image-source-dialog"]') as HTMLElement | null
+  const flush = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)) })
+  async function registerIcon(triggerLabel: string, source: { url?: string; file?: File; paste?: File }, options: { submit?: boolean } = {}) {
+    await click(byLabel(triggerLabel))
+    const dialog = imageDialog()
+    if (!dialog) throw new Error("Expected the shared image dialog.")
+    const urlInput = dialog.querySelector("#image-source-url") as HTMLInputElement
+    const fileInput = dialog.querySelector('input[type="file"]') as HTMLInputElement
+    if (source.url) {
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(urlInput, source.url)
+        Simulate.change(urlInput)
+      })
+    }
+    if (source.file) {
+      await act(async () => {
+        Simulate.change(fileInput, { target: { files: [source.file] } } as unknown as Record<string, unknown>)
+      })
+    }
+    if (source.paste) {
+      await act(async () => {
+        Simulate.paste(urlInput, { clipboardData: { files: [source.paste], items: [] } } as unknown as { clipboardData: DataTransfer })
+      })
+    }
+    await flush()
+    if (options.submit === false) return dialog
+    const register = Array.from(dialog.closest('[role="dialog"]')!.querySelectorAll("button")).find((button) => button.textContent === "등록") as HTMLButtonElement
+    await act(async () => {
+      Simulate.click(register)
+    })
+    await flush()
+    return dialog
+  }
+
   it("lists pending character requests with ADD/UPDATE badges and a requested-icon preview", async () => {
     await openCharacterTab()
 
@@ -280,14 +304,10 @@ describe("AdminRequestsPage", () => {
   it("passes an admin replacement icon URL to approve_character_request as p_default_icon_url", async () => {
     await openCharacterTab()
 
-    const urlInput = byLabel<HTMLInputElement>("Hero 캐릭터 아이콘 URL")
-    await act(async () => {
-      urlInput.value = "https://example.test/hero.png"
-      Simulate.change(urlInput)
-    })
+    await registerIcon("Hero 캐릭터 아이콘 이미지 선택", { url: "https://example.test/hero.png" })
     await click(byLabel("Hero 캐릭터 요청 승인"))
 
-    expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://example.test/hero.png")
+    expect(fetchImageFile).toHaveBeenCalledWith("https://example.test/hero.png", 256)
     expect(rpc).toHaveBeenCalledWith("approve_character_request", {
       p_request_id: "char-req-1",
       p_default_icon_url: "data:image/webp;base64,converted",
@@ -297,11 +317,8 @@ describe("AdminRequestsPage", () => {
   it("converts an uploaded replacement icon file before approving", async () => {
     await openCharacterTab()
 
-    const fileInput = byLabel<HTMLInputElement>("Hero 캐릭터 아이콘 파일")
     const iconFile = new File(["image"], "hero.png", { type: "image/png" })
-    await act(async () => {
-      Simulate.change(fileInput, { target: { files: [iconFile] } } as unknown as Record<string, unknown>)
-    })
+    await registerIcon("Hero 캐릭터 아이콘 이미지 선택", { file: iconFile })
     await click(byLabel("Hero 캐릭터 요청 승인"))
 
     expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(iconFile)
@@ -320,11 +337,7 @@ describe("AdminRequestsPage", () => {
     // UPDATE requests keep the existing catalog icon, so they stay approvable without one.
     expect(byLabel<HTMLButtonElement>("Updater 캐릭터 요청 승인").disabled).toBe(false)
 
-    const urlInput = byLabel<HTMLInputElement>("NoIcon 캐릭터 아이콘 URL")
-    await act(async () => {
-      urlInput.value = "https://example.test/noicon.png"
-      Simulate.change(urlInput)
-    })
+    await registerIcon("NoIcon 캐릭터 아이콘 이미지 선택", { url: "https://example.test/noicon.png" })
     expect(byLabel<HTMLButtonElement>("NoIcon 캐릭터 요청 승인").disabled).toBe(false)
 
     await click(byLabel("NoIcon 캐릭터 요청 승인"))
@@ -337,15 +350,13 @@ describe("AdminRequestsPage", () => {
   it("rejects an invalid replacement icon URL without calling the RPC", async () => {
     await openCharacterTab()
 
-    const urlInput = byLabel<HTMLInputElement>("Hero 캐릭터 아이콘 URL")
-    await act(async () => {
-      urlInput.value = "ftp://example.test/hero.png"
-      Simulate.change(urlInput)
-    })
-    await click(byLabel("Hero 캐릭터 요청 승인"))
+    // The shared dialog refuses non-http(s) text, so no replacement icon is stored and nothing is approved.
+    const dialog = await registerIcon("Hero 캐릭터 아이콘 이미지 선택", { url: "ftp://example.test/hero.png" })
 
+    expect(dialog.textContent).toContain("이미지 URL(https://...)을 입력하거나")
+    expect(imageDialog()).not.toBeNull()
     expect(rpc).not.toHaveBeenCalled()
-    expect(container.textContent).toContain("캐릭터 아이콘 URL은 http 또는 https 주소여야 합니다.")
+    expect(fetchImageFile).not.toHaveBeenCalled()
   })
 
   it("rejects a character request via reject_character_request and removes it from the list", async () => {

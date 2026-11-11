@@ -134,21 +134,45 @@ describe("RequestSubmissionModal", () => {
     })
   }
 
-  it("blocks request submission while a pasted icon is still converting (R60-REV-004)", async () => {
+  // R81: icons and proposal images are registered through the shared image dialog (portal in document.body).
+  const imageDialog = () => document.body.querySelector('[data-testid="image-source-dialog"]') as HTMLElement | null
+  const imageDialogButton = (name: string) =>
+    Array.from(imageDialog()!.closest('[role="dialog"]')!.querySelectorAll("button")).find((button) => button.textContent === name) as HTMLButtonElement
+  const flushTasks = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)) })
+  async function openImageDialog() {
+    const open = Array.from(document.body.querySelectorAll("button")).find((button) => /^이미지 (선택|변경)$/.test(button.textContent ?? "")) as HTMLElement
+    expect(open).toBeDefined()
+    await act(async () => {
+      Simulate.click(open)
+    })
+    expect(imageDialog()).not.toBeNull()
+  }
+  /** Registers an image whose conversion result is `converted` (the site converter is mocked). Returns whether the dialog closed. */
+  async function registerImage(converted: string) {
+    convertWithUpscale.mockResolvedValueOnce(converted)
+    await openImageDialog()
+    await change("#image-source-url", "data:image/webp;base64,source")
+    await flushTasks()
+    await act(async () => {
+      Simulate.click(imageDialogButton("등록"))
+    })
+    await flushTasks()
+    return imageDialog() === null
+  }
+
+  it("keeps the dialog register button disabled while an image is still converting (R60-REV-004)", async () => {
     convertWithUpscale.mockImplementationOnce(() => new Promise<string>(() => {}))
     await openModal()
     await change("#request-kind", "character")
     await change("#character-game", "game-1")
     await change("#character-name", "New Hero")
-    const iconInput = document.body.querySelector("#character-icon-url")
-    expect(iconInput).not.toBeNull()
+    await openImageDialog()
     const file = new File(["png"], "icon.png", { type: "image/png" })
     await act(async () => {
-      Simulate.paste(iconInput!, { clipboardData: { files: [file], items: [] } as unknown as DataTransfer })
+      Simulate.paste(document.body.querySelector("#image-source-url")!, { clipboardData: { files: [file], items: [] } as unknown as DataTransfer })
     })
-    const submitButton = document.body.querySelector('button[type="submit"]') as HTMLButtonElement
-    expect(submitButton.disabled).toBe(true)
-    await submit()
+    expect(imageDialogButton("등록").disabled).toBe(true)
+    expect(document.body.querySelector('[role="status"]')?.textContent).toContain("이미지 변환 중")
     expect(insertCharacter).not.toHaveBeenCalled()
   })
 
@@ -397,6 +421,21 @@ describe("RequestSubmissionModal", () => {
     }))
   })
 
+  it("registers a character icon through the shared image dialog and submits it as default_icon_url", async () => {
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-game", "game-1")
+    await change("#character-name", "New Hero")
+    await change("#character-rarity", "5★")
+    await change("#character-axis-element", "불")
+    expect(await registerImage("data:image/webp;base64,iconreg")).toBe(true)
+
+    expect(document.body.querySelector('img[alt="캐릭터 아이콘 미리보기"]')?.getAttribute("src")).toBe("data:image/webp;base64,iconreg")
+    await submit()
+
+    expect(insertCharacter).toHaveBeenCalledWith(expect.objectContaining({ name: "New Hero", default_icon_url: "data:image/webp;base64,iconreg" }))
+  })
+
   it("shows a dedicated message when an UPDATE request has no target character", async () => {
     await openModal()
     await change("#request-kind", "character")
@@ -528,7 +567,7 @@ describe("RequestSubmissionModal", () => {
       const openButton = Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "+ 새 캐릭터 제안") as HTMLElement
       await click(openButton)
       await change("#proposal-name", name)
-      if (imageSource) await change("#proposal-image-url", imageSource)
+      if (imageSource) expect(await registerImage(imageSource)).toBe(true)
       const add = Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "제안 추가") as HTMLElement
       await click(add)
     }
@@ -640,9 +679,12 @@ describe("RequestSubmissionModal", () => {
 
     it("blocks an oversized proposal image with an image-size message (R52-REV-004)", async () => {
       await openPickupForm()
-      await typeProposal("큰 이미지", `data:image/webp;base64,${"A".repeat(150_000)}`)
+      const openButton = Array.from(document.body.querySelectorAll("button")).find((b) => b.textContent === "+ 새 캐릭터 제안") as HTMLElement
+      await click(openButton)
+      await change("#proposal-name", "큰 이미지")
+      expect(await registerImage(`data:image/webp;base64,${"A".repeat(150_000)}`)).toBe(false)
 
-      expect(document.body.querySelector('[data-testid="pickup-proposal-form"] [role="alert"]')?.textContent).toContain("이미지 용량이 너무 큽니다")
+      expect(imageDialog()?.querySelector('[role="alert"]')?.textContent).toContain("이미지 용량이 너무 큽니다")
       expect(document.body.querySelector('[data-testid="pickup-proposals"]')).toBeNull()
     })
 
@@ -699,10 +741,9 @@ describe("RequestSubmissionModal", () => {
       await change("#character-name", "큰 아이콘")
       await change("#character-rarity", "5★")
       await change("#character-axis-element", "불")
-      await change("#character-icon-url", `data:image/webp;base64,${"A".repeat(150_000)}`)
-      await submit()
+      expect(await registerImage(`data:image/webp;base64,${"A".repeat(150_000)}`)).toBe(false)
 
-      expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("이미지 용량이 너무 큽니다")
+      expect(imageDialog()?.querySelector('[role="alert"]')?.textContent).toContain("이미지 용량이 너무 큽니다")
       expect(insertCharacter).not.toHaveBeenCalled()
     })
 

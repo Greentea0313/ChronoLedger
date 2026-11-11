@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import type { ChangeEvent } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useOnlineStatus } from "@/lib/use-online-status"
+import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
 import { resizeImageToWebP } from "@/lib/image-resizer"
 import { deleteProfileAvatar, downloadProfileAvatar, uploadProfileAvatar } from "@/lib/storage-upload"
 
@@ -16,6 +16,7 @@ export function ProfileAvatarCard() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [hasCustom, setHasCustom] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null)
 
   useEffect(() => {
@@ -39,21 +40,19 @@ export function ProfileAvatarCard() {
     }
   }, [userId])
 
-  const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.target
-    const file = input.files?.[0]
-    input.value = ""
-    if (!file || !userId) return
+  // R81: the blob is already a 256x256 WebP from the shared image dialog; returns the dialog error text (null = saved).
+  const handleRegister = async (blob: Blob): Promise<string | null> => {
+    if (!userId) return "로그인이 필요합니다."
     setIsBusy(true)
     setMessage(null)
     try {
-      const blob = await resizeImageToWebP(file)
       await uploadProfileAvatar(userId, blob)
       setPreviewUrl(URL.createObjectURL(blob))
       setHasCustom(true)
       setMessage({ kind: "success", text: "프로필 사진을 변경했습니다." })
+      return null
     } catch (cause: unknown) {
-      setMessage({ kind: "error", text: cause instanceof Error ? cause.message : "프로필 사진을 변경하지 못했습니다." })
+      return cause instanceof Error ? cause.message : "프로필 사진을 변경하지 못했습니다."
     } finally {
       setIsBusy(false)
     }
@@ -87,17 +86,10 @@ export function ProfileAvatarCard() {
         ) : (
           <p className="text-sm text-content-secondary">직접 올린 사진이 없습니다. Google 프로필 사진 또는 이름 첫 글자가 표시됩니다.</p>
         )}
-        <label htmlFor="profile-avatar-file" className="block text-sm font-medium">
-          사진 선택 (PNG, JPG, WebP · 5MB 이하)
-        </label>
-        <input
-          id="profile-avatar-file"
-          type="file"
-          accept="image/png, image/jpeg, image/jpg, image/webp"
-          disabled={isBusy || !isOnline}
-          onChange={(event) => void handleFile(event)}
-          className="block w-full text-sm text-content-secondary file:mr-3 file:min-h-[44px] file:rounded-md file:border file:border-line-control file:bg-surface-2 file:px-3 file:text-content"
-        />
+        <Button type="button" variant="outline" className="min-h-[44px]" disabled={isBusy || !isOnline} onClick={() => setIsDialogOpen(true)}>
+          {previewUrl ? "사진 변경" : "사진 선택"}
+        </Button>
+        <p className="text-xs text-content-secondary">URL·붙여넣기·파일(PNG, JPG, WebP · 5MB 이하)로 등록함.</p>
         {hasCustom && (
           <Button type="button" variant="outline" disabled={isBusy || !isOnline} onClick={() => void handleRemove()}>
             직접 올린 사진 삭제
@@ -109,6 +101,15 @@ export function ProfileAvatarCard() {
           </p>
         )}
       </CardContent>
+      <ImageSourceDialog<Blob>
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        title="프로필 사진 등록"
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환해 저장함."
+        convert={(file) => resizeImageToWebP(file)}
+        previewSrc={(blob) => URL.createObjectURL(blob)}
+        onRegister={handleRegister}
+      />
     </Card>
   )
 }

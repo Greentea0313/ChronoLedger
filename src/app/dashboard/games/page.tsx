@@ -14,6 +14,7 @@ import { GameOnboardingModal } from "@/components/game/game-onboarding-modal"
 import { isGameOnboardingDismissed, loadGameOrder, moveGameInOrder, saveGameOrder, sortByGameOrder } from "@/lib/game-order-storage"
 import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-upload"
 import { resizeImageToWebP } from "@/lib/image-resizer"
+import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
 import { getKstToday } from "@/lib/dashboard-date"
 import { getDdayLabel, getPeriodProgress } from "@/lib/calendar-utils"
 import { useFavoriteSchedules } from "@/lib/use-favorite-schedules"
@@ -465,7 +466,8 @@ export default function GamesPage() {
   const [schedulePreferenceNotice, setSchedulePreferenceNotice] = useState<string | null>(null)
   const [scheduleError, setScheduleError] = useState<string | null>(null)
 
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  // R81: the custom game icon is registered through the shared image dialog (URL / paste / file).
+  const [iconDialogGame, setIconDialogGame] = useState<{ id: string; name: string } | null>(null)
   const hasLoadedInitialRef = useRef(false)
   const userId = user?.id
   const { favoriteScheduleIds, toggleFavorite } = useFavoriteSchedules(userId, { onError: setScheduleError })
@@ -654,11 +656,11 @@ export default function GamesPage() {
     void fetchExpenses()
   }, [selectedGame, isSheetOpen, showUnofficialSchedules, userId])
 
-  const handleIconUpload = async (gameId: string, file: File) => {
-    if (!user) return
+  // Returns the error text for the dialog (null = saved); the blob is already a 256x256 WebP.
+  const handleIconUpload = async (gameId: string, webpBlob: Blob): Promise<string | null> => {
+    if (!user) return "로그인이 필요합니다."
     setUploadingGameId(gameId)
     try {
-      const webpBlob = await resizeImageToWebP(file)
       await uploadUserIcon(user.id, gameId, webpBlob)
       await supabase
         .from("user_games")
@@ -668,9 +670,10 @@ export default function GamesPage() {
       const newUrl = (await downloadUserIcon(user.id, gameId)) ?? URL.createObjectURL(webpBlob)
       setGameIcons((prev) => ({ ...prev, [gameId]: newUrl }))
       alert("게임 아이콘이 성공적으로 변경되었습니다.")
+      return null
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "알 수 없는 오류"
-      alert(`아이콘 업로드에 실패했습니다: ${message}`)
+      return `아이콘 업로드에 실패했습니다: ${message}`
     } finally {
       setUploadingGameId(null)
     }
@@ -962,24 +965,11 @@ export default function GamesPage() {
                           variant="outline"
                           className="text-xs border-line-control hover:bg-surface-3 text-content px-2.5"
                           disabled={isUploading}
-                          onClick={() => fileInputRefs.current[ug.game_id]?.click()}
+                          onClick={() => setIconDialogGame({ id: ug.game_id, name: gameName })}
                           title="아이콘 등록/변경"
                         >
                           <ImagePlus className="w-3.5 h-3.5" />
                         </Button>
-                        <input
-                          type="file"
-                          accept="image/png, image/jpeg, image/jpg, image/webp"
-                          className="hidden"
-                          ref={(el) => {
-                            fileInputRefs.current[ug.game_id] = el
-                          }}
-                          onChange={(e) => {
-                            if (e.target.files?.[0]) {
-                              void handleIconUpload(ug.game_id, e.target.files[0])
-                            }
-                          }}
-                        />
 
                         {/* 구독 해제 버튼 */}
                         <Button
@@ -1158,6 +1148,16 @@ export default function GamesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImageSourceDialog<Blob>
+        open={iconDialogGame !== null}
+        onOpenChange={(open) => { if (!open) setIconDialogGame(null) }}
+        title={iconDialogGame ? `${iconDialogGame.name} 아이콘 등록` : "게임 아이콘 등록"}
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환해 저장함."
+        convert={(file) => resizeImageToWebP(file)}
+        previewSrc={(blob) => URL.createObjectURL(blob)}
+        onRegister={(blob) => (iconDialogGame ? handleIconUpload(iconDialogGame.id, blob) : Promise.resolve("게임을 선택해 주세요."))}
+      />
     </div>
   )
 }

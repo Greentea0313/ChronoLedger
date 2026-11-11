@@ -658,9 +658,22 @@ describe("CharactersPage", () => {
       expect(dialog.querySelector('button[aria-label="아케론 기본 아이콘 복원"]')).toBeNull()
 
       const file = new File(["x"], "icon.png", { type: "image/png" })
-      const input = dialog.querySelector('input[type="file"]') as HTMLInputElement
+      // R81: the icon is registered through the shared image dialog (URL / paste / file).
+      const trigger = dialog.querySelector('button[aria-label="아케론 아이콘 변경"]') as HTMLButtonElement
+      await act(async () => {
+        Simulate.click(trigger)
+      })
+      await flush()
+      const imageDialog = document.body.querySelector('[data-testid="image-source-dialog"]') as HTMLElement
+      expect(imageDialog).toBeTruthy()
+      const input = imageDialog.querySelector('input[type="file"]') as HTMLInputElement
       await act(async () => {
         Simulate.change(input, { target: { files: [file] } as unknown as EventTarget })
+      })
+      await flush()
+      const register = Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent === "등록") as HTMLButtonElement
+      await act(async () => {
+        Simulate.click(register)
       })
       await flush()
 

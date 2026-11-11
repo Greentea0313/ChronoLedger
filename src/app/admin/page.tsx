@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { getKstToday } from "@/lib/dashboard-date"
@@ -19,10 +19,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { GameIcon } from "@/components/ui/game-icon"
 import { DefaultAvatar } from "@/components/character/default-avatar"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
-import { assertIconDataUrlSize, convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
+import { assertIconDataUrlSize, convertIconSourceToDataUrl } from "@/lib/image-resizer"
+import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
 import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
-import { classificationIconKey, createClassificationIconDataUrl, createClassificationIconDataUrlFromSource, loadClassificationIcons } from "@/lib/classification-icons"
+import { classificationIconKey, createClassificationIconDataUrl, loadClassificationIcons } from "@/lib/classification-icons"
 import { ClassificationOptionIcon } from "@/components/character/classification-option-icon"
 import { DuplicatePickupNameError, registerPickupOnlyCharacter } from "@/lib/pickup-character-registration"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
@@ -161,7 +162,7 @@ export default function AdminPage() {
   const [characterFormRarity, setCharacterFormRarity] = useState("")
   const [characterFormAttributes, setCharacterFormAttributes] = useState<Record<string, string>>({})
   const [characterFormIconUrl, setCharacterFormIconUrl] = useState("")
-  const [characterFormIconFile, setCharacterFormIconFile] = useState<File | null>(null)
+  const [isCharacterIconDialogOpen, setIsCharacterIconDialogOpen] = useState(false)
   const [characterFormError, setCharacterFormError] = useState<string | null>(null)
   const [isSubmittingCharacter, setIsSubmittingCharacter] = useState(false)
   const [isAiUpscaleVisible, setIsAiUpscaleVisible] = useState(false)
@@ -184,7 +185,7 @@ export default function AdminPage() {
   const [editingGame, setEditingGame] = useState<GameOption | null>(null)
   const [gameFormName, setGameFormName] = useState("")
   const [gameFormIconUrl, setGameFormIconUrl] = useState("")
-  const [gameFormIconFile, setGameFormIconFile] = useState<File | null>(null)
+  const [isGameIconDialogOpen, setIsGameIconDialogOpen] = useState(false)
   const [gameFormError, setGameFormError] = useState<string | null>(null)
   const [gameFormMaxPresetSlots, setGameFormMaxPresetSlots] = useState("4")
   const [gameFormMaxBreakthrough, setGameFormMaxBreakthrough] = useState("6")
@@ -201,14 +202,8 @@ export default function AdminPage() {
   const [classificationIcons, setClassificationIcons] = useState<{ gameId: string; available: boolean; icons: Map<string, string> } | null>(null)
   const [pendingIconKeys, setPendingIconKeys] = useState<string[]>([])
   const [iconError, setIconError] = useState<string | null>(null)
-  // R77: registration modal of one option icon (URL / pasted image / file, all re-encoded to 64×64 WebP on register).
+  // R77/R81: target option of the shared image dialog (64x64 WebP classification icon).
   const [iconDialog, setIconDialog] = useState<{ axisKey: string; axisLabel: string; option: string } | null>(null)
-  const [iconDialogUrl, setIconDialogUrl] = useState("")
-  const [iconDialogFile, setIconDialogFile] = useState<File | null>(null)
-  const [iconDialogPreview, setIconDialogPreview] = useState<string | null>(null)
-  const iconPreviewSeqRef = useRef(0)
-  // Bumped to remount the file input, because a file input's displayed name cannot be cleared through React state.
-  const [iconFileInputKey, setIconFileInputKey] = useState(0)
 
   useEffect(() => {
     setIsAiUpscaleVisible(isDesktopAiUpscaleAvailable())
@@ -266,7 +261,8 @@ export default function AdminPage() {
   const [isNewPickupOpen, setIsNewPickupOpen] = useState(false)
   const [newPickupName, setNewPickupName] = useState("")
   const [newPickupImageSource, setNewPickupImageSource] = useState("")
-  const [newPickupImageFile, setNewPickupImageFile] = useState<File | null>(null)
+  // R81: one shared image dialog serves both new-pickup inputs (schedule form and pickup-only dialog).
+  const [isPickupImageDialogOpen, setIsPickupImageDialogOpen] = useState(false)
   const [newPickupError, setNewPickupError] = useState<string | null>(null)
   const [isSavingNewPickup, setIsSavingNewPickup] = useState(false)
   const [characterKindFilter, setCharacterKindFilter] = useState<"" | "roster" | "pickup">("")
@@ -448,7 +444,6 @@ export default function AdminPage() {
     setIsNewPickupOpen(false)
     setNewPickupName("")
     setNewPickupImageSource("")
-    setNewPickupImageFile(null)
     setNewPickupError(null)
   }
 
@@ -658,7 +653,6 @@ export default function AdminPage() {
     setEditingGame(null)
     setGameFormName("")
     setGameFormIconUrl("")
-    setGameFormIconFile(null)
     setGameFormError(null)
     setGameFormMaxPresetSlots("4")
     setGameFormMaxBreakthrough("6")
@@ -674,7 +668,6 @@ export default function AdminPage() {
     setEditingGame(game)
     setGameFormName(game.name)
     setGameFormIconUrl(game.default_icon_url || "")
-    setGameFormIconFile(null)
     setGameFormError(null)
     const schema = game.classification_schema ?? { rarities: [], axes: [] }
     setGameFormCharacterLabel(schema.character_label && schema.character_label !== DEFAULT_CHARACTER_LABEL ? schema.character_label : "")
@@ -703,24 +696,25 @@ export default function AdminPage() {
   }
 
   // R64: each option icon is saved immediately (upload = upsert, remove = delete); one write per option at a time.
-  const runIconWrite = async (axisKey: string, option: string, failureText: string, write: (gameId: string) => Promise<string | null>) => {
-    if (!editingGame) return false
+  const runIconWrite = async (axisKey: string, option: string, failureText: string, write: (gameId: string) => Promise<string | null>): Promise<string | null> => {
+    if (!editingGame) return "게임 정보를 찾을 수 없습니다."
     const targetGameId = editingGame.id
     const key = classificationIconKey(axisKey, option)
-    if (pendingIconKeys.includes(key)) return false
+    if (pendingIconKeys.includes(key)) return "이미 저장 중입니다."
     if (isOffline()) {
       setIconError(OFFLINE_WRITE_MESSAGE)
-      return false
+      return OFFLINE_WRITE_MESSAGE
     }
     setIconError(null)
     setPendingIconKeys((prev) => [...prev, key])
     try {
       const errorText = await write(targetGameId)
       if (errorText) setIconError(errorText)
-      return !errorText
+      return errorText
     } catch (error: unknown) {
-      setIconError(error instanceof Error ? error.message : failureText)
-      return false
+      const text = error instanceof Error ? error.message : failureText
+      setIconError(text)
+      return text
     } finally {
       setPendingIconKeys((prev) => prev.filter((item) => item !== key))
     }
@@ -742,9 +736,8 @@ export default function AdminPage() {
     })
   }
 
-  const handleUploadClassificationIcon = (axisKey: string, option: string, source: File | string) => {
+  const handleUploadClassificationIcon = (axisKey: string, option: string, dataUrl: string) => {
     return runIconWrite(axisKey, option, "분류 아이콘을 저장하지 못했습니다.", async (targetGameId) => {
-      const dataUrl = await createClassificationIconDataUrlFromSource(source)
       const { error } = await supabase
         .from("game_classification_icons")
         .upsert(
@@ -759,54 +752,8 @@ export default function AdminPage() {
   }
 
   const openIconDialog = (axisKey: string, axisLabel: string, option: string) => {
-    iconPreviewSeqRef.current += 1
     setIconError(null)
-    setIconDialogUrl("")
-    setIconDialogFile(null)
-    setIconDialogPreview(null)
-    setIconFileInputKey((key) => key + 1)
     setIconDialog({ axisKey, axisLabel, option })
-  }
-
-  const closeIconDialog = () => {
-    iconPreviewSeqRef.current += 1
-    setIconDialog(null)
-  }
-
-  // Previews the picked/pasted file as the final 64×64 icon; a stale preview from an older pick is dropped.
-  const setIconDialogSelectedFile = (file: File | null) => {
-    const seq = ++iconPreviewSeqRef.current
-    setIconError(null)
-    setIconDialogFile(file)
-    setIconDialogPreview(null)
-    if (!file) return
-    createClassificationIconDataUrl(file)
-      .then((dataUrl) => { if (seq === iconPreviewSeqRef.current) setIconDialogPreview(dataUrl) })
-      .catch((error: unknown) => {
-        if (seq !== iconPreviewSeqRef.current) return
-        setIconDialogFile(null)
-        setIconError(error instanceof Error ? error.message : "이미지를 변환하지 못했습니다.")
-      })
-  }
-
-  const handleIconDialogPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
-    const file = getClipboardImageFile(event.clipboardData)
-    if (!file) return
-    event.preventDefault()
-    setIconDialogUrl("")
-    setIconDialogSelectedFile(file)
-    setIconFileInputKey((key) => key + 1)
-  }
-
-  const handleSubmitIconDialog = async () => {
-    if (!iconDialog) return
-    const source = iconDialogFile ?? iconDialogUrl.trim()
-    if (!source) {
-      setIconError("이미지 URL을 입력하거나 이미지를 붙여넣거나 파일을 선택해 주세요.")
-      return
-    }
-    const saved = await handleUploadClassificationIcon(iconDialog.axisKey, iconDialog.option, source)
-    if (saved) closeIconDialog()
   }
 
   const handleDeleteClassificationIcon = (axisKey: string, option: string) =>
@@ -831,7 +778,6 @@ export default function AdminPage() {
     setCharacterFormRarity("")
     setCharacterFormAttributes({})
     setCharacterFormIconUrl("")
-    setCharacterFormIconFile(null)
     setCharacterFormPromote(false)
     setCharacterFormError(null)
     setIsCharacterModalOpen(true)
@@ -844,24 +790,9 @@ export default function AdminPage() {
     setCharacterFormRarity(character.rarity ?? "")
     setCharacterFormAttributes(character.attributes)
     setCharacterFormIconUrl(character.default_icon_url ?? "")
-    setCharacterFormIconFile(null)
     setCharacterFormPromote(false)
     setCharacterFormError(null)
     setIsCharacterModalOpen(true)
-  }
-
-  const handleCharacterIconPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
-    const file = getClipboardImageFile(event.clipboardData)
-    if (!file) return
-    event.preventDefault()
-    setCharacterFormIconFile(null)
-    setCharacterFormIconUrl("")
-    noteIconCandidate(file)
-    setIsProcessingIcon(true)
-    void convertIconSourceToDataUrlWithUpscale(file, useAiUpscale)
-      .then(setCharacterFormIconUrl)
-      .catch((error: unknown) => setCharacterFormError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다."))
-      .finally(() => setIsProcessingIcon(false))
   }
 
   const handleSaveCharacter = async (event: React.FormEvent) => {
@@ -874,7 +805,7 @@ export default function AdminPage() {
     }
     // Editing a pickup-only character without promoting it changes only name and image (A1 U-05).
     const pickupOnlyEdit = editingCharacter?.is_pickup_only === true && !characterFormPromote
-    const hasIconSource = !!characterFormIconFile || !!characterFormIconUrl.trim()
+    const hasIconSource = !!characterFormIconUrl.trim()
     if (!pickupOnlyEdit && !hasIconSource) {
       setCharacterFormError("캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")
       return
@@ -910,7 +841,7 @@ export default function AdminPage() {
     try {
       // An oversized pasted WebP skips the resize, so check the size here for a clear message (R52-REV-004).
       const iconUrl = hasIconSource
-        ? assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(characterFormIconFile ?? characterFormIconUrl.trim(), useAiUpscale))
+        ? assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(characterFormIconUrl.trim(), useAiUpscale))
         : null
       const payload = pickupOnlyEdit
         ? { game_id: characterFormGameId, name, ...(iconUrl ? { default_icon_url: iconUrl } : {}) }
@@ -940,24 +871,6 @@ export default function AdminPage() {
       setIsSubmittingCharacter(false)
       setIsProcessingIcon(false)
     }
-  }
-
-  const handleGameIconPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
-    const file = getClipboardImageFile(event.clipboardData)
-    if (!file) return
-
-    event.preventDefault()
-    setGameFormIconFile(null)
-    setGameFormIconUrl("")
-    setGameFormError(null)
-    noteIconCandidate(file)
-    setIsProcessingIcon(true)
-    void convertIconSourceToDataUrlWithUpscale(file, useAiUpscale)
-      .then(setGameFormIconUrl)
-      .catch((error: unknown) => {
-        setGameFormError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
-      })
-      .finally(() => setIsProcessingIcon(false))
   }
 
   // Lists removed rarities/axis options that existing catalog characters still use (spec §7.3.4).
@@ -1063,11 +976,11 @@ export default function AdminPage() {
     // The template flow edits only template columns of an existing game; its name and icon are left untouched
     // (seed games keep relative /assets/... icons that the URL check below would reject).
     const isTemplateSave = !!editingGame && templateFlowGameId === editingGame.id
-    if (!isTemplateSave && !trimmedIconUrl && !gameFormIconFile) {
+    if (!isTemplateSave && !trimmedIconUrl) {
       setGameFormError("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해주세요.")
       return
     }
-    if (!isTemplateSave && !gameFormIconFile && !trimmedIconUrl.startsWith("data:image/webp;base64,")) {
+    if (!isTemplateSave && !trimmedIconUrl.startsWith("data:image/webp;base64,")) {
       try {
         const parsed = new URL(trimmedIconUrl)
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -1086,7 +999,7 @@ export default function AdminPage() {
     let defaultIconUrl = ""
     if (!isTemplateSave) {
       try {
-        defaultIconUrl = await convertIconSourceToDataUrl(gameFormIconFile ?? trimmedIconUrl)
+        defaultIconUrl = await convertIconSourceToDataUrl(trimmedIconUrl)
       } catch (error: unknown) {
         setIsSubmittingGame(false)
         setIsProcessingIcon(false)
@@ -1278,20 +1191,6 @@ export default function AdminPage() {
     }
   }
 
-  const handleNewPickupImagePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
-    const file = getClipboardImageFile(event.clipboardData)
-    if (!file) return
-    event.preventDefault()
-    setNewPickupImageFile(null)
-    setNewPickupImageSource("")
-    noteIconCandidate(file)
-    setIsProcessingIcon(true)
-    void convertIconSourceToDataUrlWithUpscale(file, useAiUpscale)
-      .then((dataUrl) => setNewPickupImageSource(assertIconDataUrlSize(dataUrl)))
-      .catch((error: unknown) => setNewPickupError(error instanceof Error ? error.message : "이미지를 변환하지 못했습니다."))
-      .finally(() => setIsProcessingIcon(false))
-  }
-
   // Registers a pickup-only character for the schedule's game right away and adds it to the selection (U-04).
   const handleRegisterNewPickupCharacter = async () => {
     if (isProcessingIcon) return
@@ -1315,7 +1214,7 @@ export default function AdminPage() {
       const created = await registerPickupOnlyCharacter({
         gameId,
         name,
-        imageSource: newPickupImageFile ?? newPickupImageSource,
+        imageSource: newPickupImageSource,
         existingCharacters: characters,
         useAiUpscale,
       })
@@ -1324,8 +1223,7 @@ export default function AdminPage() {
       setIsNewPickupOpen(false)
       setNewPickupName("")
       setNewPickupImageSource("")
-      setNewPickupImageFile(null)
-    } catch (error: unknown) {
+      } catch (error: unknown) {
       if (error instanceof DuplicatePickupNameError) {
         setNewPickupError(`${error.message} 목록에서 선택해 주세요.`)
       } else {
@@ -1340,7 +1238,6 @@ export default function AdminPage() {
   const resetNewPickupForm = () => {
     setNewPickupName("")
     setNewPickupImageSource("")
-    setNewPickupImageFile(null)
     setNewPickupError(null)
     setIsAiUpscaleCandidate(false)
   }
@@ -1366,7 +1263,7 @@ export default function AdminPage() {
       const created = await registerPickupOnlyCharacter({
         gameId: selectedCharacterGame.id,
         name: newPickupName,
-        imageSource: newPickupImageFile ?? newPickupImageSource,
+        imageSource: newPickupImageSource,
         existingCharacters: characters,
         useAiUpscale,
       })
@@ -1381,6 +1278,15 @@ export default function AdminPage() {
       setIsProcessingIcon(false)
     }
   }
+
+  // R81: the AI upscale option lives in the shared image dialog (offered only for detected low-resolution images, R60-REV-006).
+  const aiUpscaleControl =
+    isAiUpscaleVisible && isAiUpscaleCandidate ? (
+      <label className="flex items-center gap-2 text-xs text-content-secondary">
+        <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
+        AI 고화질 업스케일 (PC 전용)
+      </label>
+    ) : null
 
   const paginatedSchedules = filteredSchedules.slice(
     (currentSchedulePage - 1) * SCHEDULES_PER_PAGE,
@@ -2324,35 +2230,20 @@ export default function AdminPage() {
                   <div className="space-y-2 rounded-lg border border-line bg-surface-2 p-3" data-testid="new-pickup-character-form">
                     <label htmlFor="new-pickup-name" className="block text-xs font-medium">새 픽업 캐릭터 이름 *</label>
                     <Input id="new-pickup-name" maxLength={100} value={newPickupName} onChange={(event) => setNewPickupName(event.target.value)} />
-                    <label htmlFor="new-pickup-image-url" className="block text-xs font-medium">이미지 (선택)</label>
-                    <Input
-                      id="new-pickup-image-url"
-                      value={newPickupImageSource.startsWith("data:image/webp;base64,") ? "" : newPickupImageSource}
-                      onPaste={handleNewPickupImagePaste}
-                      onChange={(event) => {
-                        setNewPickupImageSource(event.target.value)
-                        setNewPickupImageFile(null)
-                      }}
-                      placeholder="https://... 또는 이미지 붙여넣기"
-                    />
-                    <Input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      aria-label="새 픽업 캐릭터 이미지 파일"
-                      onChange={(event) => { const file = event.target.files?.[0] ?? null; setNewPickupImageFile(file); noteIconCandidate(file) }}
-                    />
-                    {isAiUpscaleVisible && isAiUpscaleCandidate && (
-                      <label className="flex items-center gap-2 text-xs text-content-secondary">
-                        <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
-                        AI 고화질 업스케일 (PC 전용)
-                      </label>
-                    )}
-                    {isProcessingIcon && <p className="text-xs text-content-muted">AI 고화질 변환 중...</p>}
-                    {newPickupImageSource.startsWith("data:image/webp;base64,") && (
-                      <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
-                        <GameIcon src={newPickupImageSource} alt="새 픽업 캐릭터 이미지 미리보기" />
-                      </div>
-                    )}
+                    <p className="block text-xs font-medium">이미지 (선택)</p>
+                    <div className="flex items-center gap-2">
+                      <Button type="button" size="sm" variant="outline" disabled={isSavingNewPickup} onClick={() => setIsPickupImageDialogOpen(true)}>
+                        {newPickupImageSource ? "이미지 변경" : "이미지 선택"}
+                      </Button>
+                      {newPickupImageSource && (
+                        <>
+                          <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
+                            <GameIcon src={newPickupImageSource} alt="새 픽업 캐릭터 이미지 미리보기" />
+                          </div>
+                          <Button type="button" size="sm" variant="ghost" disabled={isSavingNewPickup} onClick={() => setNewPickupImageSource("")}>제거</Button>
+                        </>
+                      )}
+                    </div>
                     {newPickupError && <p role="alert" className="text-xs text-danger">{newPickupError}</p>}
                     <div className="flex justify-end gap-2">
                       <Button type="button" size="sm" variant="ghost" disabled={isSavingNewPickup} onClick={() => { setIsNewPickupOpen(false); setNewPickupError(null) }}>취소</Button>
@@ -2570,39 +2461,13 @@ export default function AdminPage() {
             </div>
 
             <div className="w-full min-w-0">
-              <label htmlFor="game-form-icon-url" className="block text-sm font-medium mb-1">
-                기본 아이콘 URL
-              </label>
-              <Input
-                id="game-form-icon-url"
-                type="text"
-                value={gameFormIconUrl.startsWith("data:image/webp;base64,") ? "" : gameFormIconUrl}
-                onPaste={handleGameIconPaste}
-                onChange={(e) => {
-                  setGameFormIconUrl(e.target.value)
-                  setGameFormIconFile(null)
-                }}
-                placeholder="https://... (웹 이미지 주소)"
-                className="bg-surface-2 border-line text-content truncate"
-              />
+              <p className="block text-sm font-medium mb-1">기본 아이콘</p>
+              <Button type="button" variant="outline" onClick={() => setIsGameIconDialogOpen(true)}>
+                {gameFormIconUrl.trim() ? "이미지 변경" : "이미지 선택"}
+              </Button>
               <p className="text-[11px] text-content-muted mt-1">
                 URL은 직접 가져오기를 우선 시도하고, 실패하면 wsrv.nl에 전달해 변환합니다. 이미지 복사 후 붙여넣기 또는 파일 업로드도 가능합니다.
               </p>
-              <Input
-                id="game-form-icon-file"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                aria-label="기본 아이콘 파일"
-                onChange={(event) => { const file = event.target.files?.[0] ?? null; setGameFormIconFile(file); noteIconCandidate(file) }}
-                className="mt-2 bg-surface-2 border-line text-content"
-              />
-              {isAiUpscaleVisible && isAiUpscaleCandidate && (
-                <label className="mt-2 flex items-center gap-2 text-xs text-content-secondary">
-                  <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
-                  AI 고화질 업스케일 (PC 전용)
-                </label>
-              )}
-              {isProcessingIcon && <p className="text-xs text-content-muted">AI 고화질 변환 중...</p>}
             </div>
 
             {/* 실시간 아이콘 미리보기 */}
@@ -2762,54 +2627,64 @@ export default function AdminPage() {
       </Dialog>
 
       {/* 게임 삭제 확인 모달 다이얼로그 */}
-      <Dialog open={iconDialog !== null} onOpenChange={(open) => { if (!open) closeIconDialog() }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{iconDialog ? `${iconDialog.axisLabel} · ${iconDialog.option} 아이콘 등록` : "분류 아이콘 등록"}</DialogTitle>
-            <DialogDescription className="text-xs text-content-secondary">
-              이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 64×64 WebP로 변환해 저장함.
-            </DialogDescription>
-          </DialogHeader>
-          {iconDialog && (
-            <div className="space-y-2" data-testid="classification-icon-dialog">
-              <label htmlFor="classification-icon-url" className="block text-sm font-medium">이미지</label>
-              <Input
-                id="classification-icon-url"
-                value={iconDialogUrl}
-                onPaste={handleIconDialogPaste}
-                onChange={(event) => { setIconDialogUrl(event.target.value); setIconDialogSelectedFile(null); setIconFileInputKey((key) => key + 1) }}
-                placeholder="https://... 또는 이미지 붙여넣기"
-              />
-              <Input
-                key={iconFileInputKey}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                aria-label="분류 아이콘 이미지 파일"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null
-                  setIconDialogUrl("")
-                  setIconDialogSelectedFile(file)
-                }}
-              />
-              {iconDialogPreview && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={iconDialogPreview} alt="분류 아이콘 미리보기" width={64} height={64} className="h-16 w-16 rounded border border-line" />
-              )}
-              {iconError && <p role="alert" className="rounded border border-danger/30 bg-danger/20 p-2 text-xs text-danger">{iconError}</p>}
-            </div>
-          )}
-          <DialogFooter className="gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={closeIconDialog}>취소</Button>
-            <Button
-              type="button"
-              disabled={!iconDialog || pendingIconKeys.includes(classificationIconKey(iconDialog.axisKey, iconDialog.option))}
-              onClick={() => void handleSubmitIconDialog()}
-            >
-              {iconDialog && pendingIconKeys.includes(classificationIconKey(iconDialog.axisKey, iconDialog.option)) ? "등록 중..." : "등록"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ImageSourceDialog<string>
+        open={isPickupImageDialogOpen}
+        onOpenChange={setIsPickupImageDialogOpen}
+        title="픽업 캐릭터 이미지 등록"
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환함. 저장할 때 반영됨."
+        convert={async (file) => {
+          noteIconCandidate(file)
+          return assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(file, useAiUpscale))
+        }}
+        convertKey={useAiUpscale}
+        previewSrc={(dataUrl) => dataUrl}
+        onRegister={async (dataUrl) => {
+          setNewPickupImageSource(dataUrl)
+          return null
+        }}
+        extra={aiUpscaleControl}
+      />
+      <ImageSourceDialog<string>
+        open={isCharacterIconDialogOpen}
+        onOpenChange={setIsCharacterIconDialogOpen}
+        title="캐릭터 기본 아이콘 등록"
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환함. 저장할 때 반영됨."
+        convert={async (file) => {
+          noteIconCandidate(file)
+          return assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(file, useAiUpscale))
+        }}
+        convertKey={useAiUpscale}
+        previewSrc={(dataUrl) => dataUrl}
+        onRegister={async (dataUrl) => {
+          setCharacterFormIconUrl(dataUrl)
+          setCharacterFormError(null)
+          return null
+        }}
+        extra={aiUpscaleControl}
+      />
+      <ImageSourceDialog<string>
+        open={isGameIconDialogOpen}
+        onOpenChange={setIsGameIconDialogOpen}
+        title="게임 기본 아이콘 등록"
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환함. 저장할 때 반영됨."
+        convert={(file) => convertIconSourceToDataUrl(file)}
+        previewSrc={(dataUrl) => dataUrl}
+        onRegister={async (dataUrl) => {
+          setGameFormIconUrl(dataUrl)
+          setGameFormError(null)
+          return null
+        }}
+      />
+      <ImageSourceDialog<string>
+        open={iconDialog !== null}
+        onOpenChange={(open) => { if (!open) setIconDialog(null) }}
+        title={iconDialog ? `${iconDialog.axisLabel} · ${iconDialog.option} 아이콘 등록` : "분류 아이콘 등록"}
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 64×64 WebP로 변환해 저장함."
+        fetchSize={64}
+        convert={createClassificationIconDataUrl}
+        previewSrc={(dataUrl) => dataUrl}
+        onRegister={(dataUrl) => (iconDialog ? handleUploadClassificationIcon(iconDialog.axisKey, iconDialog.option, dataUrl) : Promise.resolve("분류 아이콘 대상을 찾을 수 없습니다."))}
+      />
 
       <Dialog open={deletingGame !== null} onOpenChange={(open) => !open && setDeletingGame(null)}>
         <DialogContent className="max-w-sm">
@@ -2859,35 +2734,20 @@ export default function AdminPage() {
           <div className="space-y-2" data-testid="pickup-only-character-form">
             <label htmlFor="pickup-only-name" className="block text-sm font-medium">캐릭터 이름 *</label>
             <Input id="pickup-only-name" maxLength={100} value={newPickupName} onChange={(event) => setNewPickupName(event.target.value)} />
-            <label htmlFor="pickup-only-image-url" className="block text-sm font-medium">이미지 (선택)</label>
-            <Input
-              id="pickup-only-image-url"
-              value={newPickupImageSource.startsWith("data:image/webp;base64,") ? "" : newPickupImageSource}
-              onPaste={handleNewPickupImagePaste}
-              onChange={(event) => {
-                setNewPickupImageSource(event.target.value)
-                setNewPickupImageFile(null)
-              }}
-              placeholder="https://... 또는 이미지 붙여넣기"
-            />
-            <Input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              aria-label="픽업 전용 캐릭터 이미지 파일"
-              onChange={(event) => { const file = event.target.files?.[0] ?? null; setNewPickupImageFile(file); noteIconCandidate(file) }}
-            />
-            {isAiUpscaleVisible && isAiUpscaleCandidate && (
-              <label className="flex items-center gap-2 text-xs text-content-secondary">
-                <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
-                AI 고화질 업스케일 (PC 전용)
-              </label>
-            )}
-            {isProcessingIcon && <p className="text-xs text-content-muted">AI 고화질 변환 중...</p>}
-            {newPickupImageSource.startsWith("data:image/webp;base64,") && (
-              <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
-                <GameIcon src={newPickupImageSource} alt="픽업 전용 캐릭터 이미지 미리보기" />
-              </div>
-            )}
+            <p className="block text-sm font-medium">이미지 (선택)</p>
+            <div className="flex items-center gap-2">
+              <Button type="button" size="sm" variant="outline" disabled={isSavingNewPickup} onClick={() => setIsPickupImageDialogOpen(true)}>
+                {newPickupImageSource ? "이미지 변경" : "이미지 선택"}
+              </Button>
+              {newPickupImageSource && (
+                <>
+                  <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
+                    <GameIcon src={newPickupImageSource} alt="픽업 전용 캐릭터 이미지 미리보기" />
+                  </div>
+                  <Button type="button" size="sm" variant="ghost" disabled={isSavingNewPickup} onClick={() => setNewPickupImageSource("")}>제거</Button>
+                </>
+              )}
+            </div>
             {newPickupError && <p role="alert" className="text-xs text-danger">{newPickupError}</p>}
           </div>
           <DialogFooter className="gap-2 pt-2">
@@ -2993,15 +2853,16 @@ export default function AdminPage() {
                   ))}
                   <div>
                     <label htmlFor="character-form-icon-url" className="mb-1 block text-sm font-medium">{isPickupOnlyEdit && !characterFormPromote ? `${formLabel} 아이콘 (선택)` : `${formLabel} 아이콘 *`}</label>
-                    <Input id="character-form-icon-url" value={characterFormIconUrl.startsWith("data:image/webp;base64,") ? "" : characterFormIconUrl} onPaste={handleCharacterIconPaste} onChange={(event) => { setCharacterFormIconUrl(event.target.value); setCharacterFormIconFile(null) }} placeholder="https://... 또는 이미지 붙여넣기" aria-label="기본 아이콘 URL" />
-                    <Input id="character-form-icon-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="캐릭터 기본 아이콘 파일" onChange={(event) => { const file = event.target.files?.[0] ?? null; setCharacterFormIconFile(file); noteIconCandidate(file) }} className="mt-2" />
-                    {isAiUpscaleVisible && isAiUpscaleCandidate && (
-                      <label className="mt-2 flex items-center gap-2 text-xs text-content-secondary">
-                        <input type="checkbox" checked={useAiUpscale} onChange={(event) => setUseAiUpscale(event.target.checked)} />
-                        AI 고화질 업스케일 (PC 전용)
-                      </label>
-                    )}
-                    {isProcessingIcon && <p className="text-xs text-content-muted">AI 고화질 변환 중...</p>}
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="outline" onClick={() => setIsCharacterIconDialogOpen(true)}>
+                        {characterFormIconUrl.trim() ? "이미지 변경" : "이미지 선택"}
+                      </Button>
+                      {characterFormIconUrl.trim() && (
+                        <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
+                          <GameIcon src={characterFormIconUrl.trim()} alt="캐릭터 기본 아이콘 미리보기" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {characterFormError && <div role="alert" className="rounded border border-danger/30 bg-danger/20 p-3 text-sm text-danger">{characterFormError}</div>}
                   <DialogFooter>

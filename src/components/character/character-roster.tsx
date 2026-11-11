@@ -14,6 +14,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
+import { resizeImageToWebP } from "@/lib/image-resizer"
 import { cn } from "@/lib/utils"
 import { useBoardSensors } from "@/lib/use-board-sensors"
 import {
@@ -116,7 +118,8 @@ interface CharacterSettingsDialogProps {
   onToggleOwned: (character: GameCharacter) => void
   onToggleFavorite: (character: GameCharacter) => void
   onSetBreakthrough: (character: GameCharacter, level: number) => void
-  onChangeIcon: (character: GameCharacter, file: File) => void
+  /** Receives the already converted 256x256 WebP; returns an error text for the dialog (null = saved). */
+  onChangeIcon: (character: GameCharacter, blob: Blob) => Promise<string | null>
   onRestoreIcon: (character: GameCharacter) => void
 }
 
@@ -135,7 +138,7 @@ function CharacterSettingsDialog({
   onChangeIcon,
   onRestoreIcon,
 }: CharacterSettingsDialogProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isIconDialogOpen, setIsIconDialogOpen] = useState(false)
   const isOwned = state?.is_owned ?? false
   // Only owned characters can be favorites (R63); a stale unowned favorite is shown as not favorite.
   const isFavorite = isOwned && (state?.is_favorite ?? false)
@@ -168,7 +171,8 @@ function CharacterSettingsDialog({
     : null
 
   return (
-    <Dialog open={!!character} onOpenChange={(open) => !open && onClose()}>
+    <>
+    <Dialog open={!!character} onOpenChange={(open) => { if (!open) { setIsIconDialogOpen(false); onClose() } }}>
       <DialogContent className="sm:max-w-md">
         {character && (
           <>
@@ -248,7 +252,7 @@ function CharacterSettingsDialog({
                     variant="outline"
                     size="sm"
                     disabled={isBusy}
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => setIsIconDialogOpen(true)}
                     aria-label={`${character.name} 아이콘 변경`}
                   >
                     {isBusy ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="mr-1 h-3.5 w-3.5" />}
@@ -267,18 +271,6 @@ function CharacterSettingsDialog({
                       기본 복원
                     </Button>
                   )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    className="hidden"
-                    aria-label={`${character.name} 아이콘 파일`}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0]
-                      event.target.value = ""
-                      if (file) onChangeIcon(character, file)
-                    }}
-                  />
                 </div>
               )}
             </div>
@@ -286,6 +278,18 @@ function CharacterSettingsDialog({
         )}
       </DialogContent>
     </Dialog>
+    {character && (
+      <ImageSourceDialog<Blob>
+        open={isIconDialogOpen}
+        onOpenChange={setIsIconDialogOpen}
+        title={`${character.name} 아이콘 등록`}
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환해 저장함."
+        convert={(file) => resizeImageToWebP(file)}
+        previewSrc={(blob) => URL.createObjectURL(blob)}
+        onRegister={(blob) => onChangeIcon(character, blob)}
+      />
+    )}
+    </>
   )
 }
 
@@ -308,7 +312,8 @@ interface CharacterRosterProps {
   onToggleOwned: (character: GameCharacter) => void
   onToggleFavorite: (character: GameCharacter) => void
   onSetBreakthrough: (character: GameCharacter, level: number) => void
-  onChangeIcon: (character: GameCharacter, file: File) => void
+  /** Receives the already converted 256x256 WebP; returns an error text for the dialog (null = saved). */
+  onChangeIcon: (character: GameCharacter, blob: Blob) => Promise<string | null>
   onRestoreIcon: (character: GameCharacter) => void
 }
 

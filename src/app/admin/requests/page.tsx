@@ -9,10 +9,10 @@ import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react"
-import { convertIconSourceToDataUrl, getClipboardImageFile } from "@/lib/image-resizer"
+import { convertIconSourceToDataUrl } from "@/lib/image-resizer"
+import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
 
 type GameRequest = {
   id: string
@@ -90,30 +90,10 @@ export default function AdminRequestsPage() {
   const isOnline = useOnlineStatus()
   const [pickupCharacters, setPickupCharacters] = useState<Record<string, { name: string; iconUrl: string | null }>>({})
   const [defaultIconUrls, setDefaultIconUrls] = useState<Record<string, string>>({})
-  const [defaultIconFiles, setDefaultIconFiles] = useState<Record<string, File>>({})
+  // R81: request whose replacement icon is being registered in the shared image dialog.
+  const [iconDialogRequest, setIconDialogRequest] = useState<{ id: string; name: string } | null>(null)
 
   const isAdmin = role === "admin" || user?.app_metadata?.role === "admin"
-
-  const handleGameIconPaste = (event: React.ClipboardEvent<HTMLInputElement>, requestId: string) => {
-    const file = getClipboardImageFile(event.clipboardData)
-    if (!file) return
-
-    event.preventDefault()
-    setDefaultIconFiles((current) => {
-      const next = { ...current }
-      delete next[requestId]
-      return next
-    })
-    setDefaultIconUrls((current) => ({ ...current, [requestId]: "" }))
-    setError(null)
-    void convertIconSourceToDataUrl(file)
-      .then((dataUrl) => {
-        setDefaultIconUrls((current) => ({ ...current, [requestId]: dataUrl }))
-      })
-      .catch((error: unknown) => {
-        setError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
-      })
-  }
 
   const fetchRequests = useCallback(async () => {
     setIsDataLoading(true)
@@ -208,16 +188,15 @@ export default function AdminRequestsPage() {
     try {
       let iconUrl: string | undefined
       if (type === "game" && isApprove) {
-        const iconFile = defaultIconFiles[id]
         const iconSource = defaultIconUrl?.trim() || defaultIconUrls[id]?.trim()
-        if (!iconFile && !iconSource) {
+        if (!iconSource) {
           throw new Error("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")
         }
 
-        if (!iconFile && !iconSource?.startsWith("data:image/webp;base64,")) {
+        if (!iconSource.startsWith("data:image/webp;base64,")) {
           let parsedUrl: URL
           try {
-            parsedUrl = new URL(iconSource!)
+            parsedUrl = new URL(iconSource)
           } catch {
             throw new Error("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.")
           }
@@ -225,7 +204,7 @@ export default function AdminRequestsPage() {
             throw new Error("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.")
           }
         }
-        iconUrl = await convertIconSourceToDataUrl(iconFile ?? iconSource!)
+        iconUrl = await convertIconSourceToDataUrl(iconSource)
       }
 
       if (type === "game") {
@@ -286,13 +265,12 @@ export default function AdminRequestsPage() {
       } else if (type === "character") {
         let replacementIcon: string | undefined
         if (isApprove) {
-          const iconFile = defaultIconFiles[id]
           const iconSource = defaultIconUrls[id]?.trim()
-          if (iconFile || iconSource) {
-            if (!iconFile && !iconSource!.startsWith("data:image/webp;base64,")) {
+          if (iconSource) {
+            if (!iconSource.startsWith("data:image/webp;base64,")) {
               let parsedUrl: URL
               try {
-                parsedUrl = new URL(iconSource!)
+                parsedUrl = new URL(iconSource)
               } catch {
                 throw new Error("캐릭터 아이콘 URL은 http 또는 https 주소여야 합니다.")
               }
@@ -300,7 +278,7 @@ export default function AdminRequestsPage() {
                 throw new Error("캐릭터 아이콘 URL은 http 또는 https 주소여야 합니다.")
               }
             }
-            replacementIcon = await convertIconSourceToDataUrl(iconFile ?? iconSource!)
+            replacementIcon = await convertIconSourceToDataUrl(iconSource)
           }
         }
         const { error: rpcError } = isApprove
@@ -472,44 +450,17 @@ export default function AdminRequestsPage() {
                     <p className="text-xs text-content-secondary/70 mt-1">요청일: {new Date(req.created_at).toLocaleDateString()}</p>
                   </div>
                   <div className="flex flex-col gap-2 w-full md:w-auto mt-2 md:mt-0">
-                    <label className="text-xs text-content-secondary">
-                      기본 아이콘 파일
-                      <Input
-                        type="file"
-                        aria-label={`${req.name} 기본 아이콘 파일`}
-                        accept="image/png,image/jpeg,image/webp"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0]
-                          if (file) setDefaultIconFiles((current) => ({ ...current, [req.id]: file }))
-                        }}
-                        disabled={processingId === req.id || !isOnline}
-                        className="mt-1 border-line bg-surface-2 text-content"
-                      />
-                    </label>
-                    <Input
-                      type="text"
-                      aria-label={`${req.name} 기본 아이콘 URL`}
-                      placeholder="또는 기본 아이콘 URL (https://...)"
-                      value={defaultIconUrls[req.id]?.startsWith("data:image/webp;base64,")
-                        ? ""
-                        : defaultIconUrls[req.id] ?? ""}
-                      onPaste={(event) => handleGameIconPaste(event, req.id)}
-                      onChange={(event) => {
-                        setDefaultIconUrls((current) => ({
-                          ...current,
-                          [req.id]: event.target.value,
-                        }))
-                        setDefaultIconFiles((current) => {
-                          const next = { ...current }
-                          delete next[req.id]
-                          return next
-                        })
-                      }}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      aria-label={`${req.name} 기본 아이콘 이미지 선택`}
+                      onClick={() => setIconDialogRequest({ id: req.id, name: req.name })}
                       disabled={processingId === req.id || !isOnline}
-                      className="border-line bg-surface-2 text-content truncate"
-                    />
+                    >
+                      {defaultIconUrls[req.id] ? "이미지 변경" : "이미지 선택"}
+                    </Button>
                     <p className="text-[11px] text-content-muted">
-                      URL 직접 가져오기에 실패하면 wsrv.nl에 전달해 변환합니다. 이미지 복사 후 붙여넣기도 가능합니다.
+                      URL·붙여넣기·파일로 등록함. URL 직접 가져오기에 실패하면 wsrv.nl에 전달해 변환합니다.
                     </p>
                     {defaultIconUrls[req.id]?.startsWith("data:image/webp;base64,") && (
                       <Image
@@ -557,7 +508,7 @@ export default function AdminRequestsPage() {
               ? defaultIconUrls[req.id]
               : null
             const previewSrc = replacementPreview ?? req.default_icon_url
-            const hasIcon = !!(req.default_icon_url?.trim() || defaultIconFiles[req.id] || defaultIconUrls[req.id]?.trim())
+            const hasIcon = !!(req.default_icon_url?.trim() || defaultIconUrls[req.id]?.trim())
             const needsIcon = !req.target_character_id && !hasIcon
             return (
               <Card key={req.id} className="bg-surface border-line">
@@ -582,42 +533,15 @@ export default function AdminRequestsPage() {
                     </div>
                   </div>
                   <div className="flex w-full flex-col gap-2 md:w-auto">
-                    <label className="text-xs text-content-secondary">
-                      아이콘 교체 파일
-                      <Input
-                        type="file"
-                        aria-label={`${req.name} 캐릭터 아이콘 파일`}
-                        accept="image/png,image/jpeg,image/webp"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0]
-                          if (file) {
-                            setDefaultIconFiles((current) => ({ ...current, [req.id]: file }))
-                            setDefaultIconUrls((current) => ({ ...current, [req.id]: "" }))
-                          }
-                        }}
-                        disabled={processingId === req.id || !isOnline}
-                        className="mt-1 border-line bg-surface-2 text-content"
-                      />
-                    </label>
-                    <Input
-                      type="text"
-                      aria-label={`${req.name} 캐릭터 아이콘 URL`}
-                      placeholder="또는 아이콘 URL / 이미지 붙여넣기"
-                      value={defaultIconUrls[req.id]?.startsWith("data:image/webp;base64,")
-                        ? ""
-                        : defaultIconUrls[req.id] ?? ""}
-                      onPaste={(event) => handleGameIconPaste(event, req.id)}
-                      onChange={(event) => {
-                        setDefaultIconUrls((current) => ({ ...current, [req.id]: event.target.value }))
-                        setDefaultIconFiles((current) => {
-                          const next = { ...current }
-                          delete next[req.id]
-                          return next
-                        })
-                      }}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      aria-label={`${req.name} 캐릭터 아이콘 이미지 선택`}
+                      onClick={() => setIconDialogRequest({ id: req.id, name: req.name })}
                       disabled={processingId === req.id || !isOnline}
-                      className="border-line bg-surface-2 text-content truncate"
-                    />
+                    >
+                      {defaultIconUrls[req.id] ? "아이콘 교체 이미지 변경" : "아이콘 교체 이미지 선택"}
+                    </Button>
                     {needsIcon && (
                       <p role="alert" className="text-[11px] text-warning">
                         아이콘이 없는 신규 캐릭터 요청은 아이콘을 지정해야 승인할 수 있음
@@ -719,6 +643,20 @@ export default function AdminRequestsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <ImageSourceDialog<string>
+        open={iconDialogRequest !== null}
+        onOpenChange={(open) => { if (!open) setIconDialogRequest(null) }}
+        title={iconDialogRequest ? `${iconDialogRequest.name} 아이콘 등록` : "아이콘 등록"}
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환함. 승인할 때 반영됨."
+        convert={(file) => convertIconSourceToDataUrl(file)}
+        previewSrc={(dataUrl) => dataUrl}
+        onRegister={async (dataUrl) => {
+          if (iconDialogRequest) setDefaultIconUrls((current) => ({ ...current, [iconDialogRequest.id]: dataUrl }))
+          setError(null)
+          return null
+        }}
+      />
     </div>
   )
 }
