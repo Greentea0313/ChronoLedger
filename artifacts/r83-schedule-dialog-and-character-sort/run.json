@@ -8,9 +8,9 @@
                                 "Step 2 (review): Base..Target review, artifacts, main merge, user real-browser check."
                             ],
     "base_sha":  "25716636ad66affc3871c19d92354488f8298bd9",
-    "target_sha":  null,
+    "target_sha":  "bc33d8365652f87941e79b5fa94a8c85c3493701",
     "branch":  "collab/r83-schedule-dialog-and-character-sort",
     "worktree_path":  ".worktrees/r83-schedule-dialog-and-character-sort",
     "max_iterations":  3,
-    "status":  "in_progress"
+    "status":  "completed"
 }
