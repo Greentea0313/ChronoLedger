@@ -25,7 +25,12 @@ import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isL
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 import { classificationIconKey, createClassificationIconDataUrl, loadClassificationIcons } from "@/lib/classification-icons"
 import { ClassificationOptionIcon } from "@/components/character/classification-option-icon"
-import { DuplicatePickupNameError, registerPickupOnlyCharacter } from "@/lib/pickup-character-registration"
+import {
+  DuplicatePickupNameError,
+  ICON_MIGRATION_PENDING_MESSAGE,
+  isIconRequiredByUnappliedMigration,
+  registerPickupOnlyCharacter,
+} from "@/lib/pickup-character-registration"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import {
   assignAxisKey,
@@ -806,11 +811,8 @@ export default function AdminPage() {
     }
     // Editing a pickup-only character without promoting it changes only name and image (A1 U-05).
     const pickupOnlyEdit = editingCharacter?.is_pickup_only === true && !characterFormPromote
+    // R88: the icon is optional for regular characters too (no icon -> default avatar).
     const hasIconSource = !!characterFormIconUrl.trim()
-    if (!pickupOnlyEdit && !hasIconSource) {
-      setCharacterFormError("캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")
-      return
-    }
     if (isOffline()) {
       setCharacterFormError(OFFLINE_WRITE_MESSAGE)
       return
@@ -844,14 +846,21 @@ export default function AdminPage() {
       const iconUrl = hasIconSource
         ? assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(characterFormIconUrl.trim(), useAiUpscale))
         : null
-      const payload = pickupOnlyEdit
+      const payload: {
+        game_id: string
+        name: string
+        rarity?: string | null
+        attributes?: Record<string, string>
+        default_icon_url?: string | null
+        is_pickup_only?: boolean
+      } = pickupOnlyEdit
         ? { game_id: characterFormGameId, name, ...(iconUrl ? { default_icon_url: iconUrl } : {}) }
         : {
             game_id: characterFormGameId,
             name,
             rarity: characterFormRarity || null,
             attributes,
-            default_icon_url: iconUrl as string,
+            default_icon_url: iconUrl,
             ...(editingCharacter?.is_pickup_only ? { is_pickup_only: false } : {}),
           }
       const result = editingCharacter
@@ -867,7 +876,11 @@ export default function AdminPage() {
       })
       await fetchCharacters()
     } catch (error: unknown) {
-      setCharacterFormError(error instanceof Error ? error.message : "캐릭터 저장에 실패했습니다.")
+      setCharacterFormError(
+        isIconRequiredByUnappliedMigration(error)
+          ? ICON_MIGRATION_PENDING_MESSAGE
+          : error instanceof Error ? error.message : "캐릭터 저장에 실패했습니다.",
+      )
     } finally {
       setIsSubmittingCharacter(false)
       setIsProcessingIcon(false)
@@ -2848,7 +2861,7 @@ export default function AdminPage() {
                     </div>
                   ))}
                   <div>
-                    <label htmlFor="character-form-icon-url" className="mb-1 block text-sm font-medium">{isPickupOnlyEdit && !characterFormPromote ? `${formLabel} 아이콘 (선택)` : `${formLabel} 아이콘 *`}</label>
+                    <label htmlFor="character-form-icon-url" className="mb-1 block text-sm font-medium">{`${formLabel} 아이콘 (선택)`}</label>
                     <div className="flex items-center gap-2">
                       <Button type="button" variant="outline" onClick={() => setIsCharacterIconDialogOpen(true)}>
                         {characterFormIconUrl.trim() ? "이미지 변경" : "이미지 선택"}

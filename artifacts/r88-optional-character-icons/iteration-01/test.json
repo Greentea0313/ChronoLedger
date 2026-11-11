@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "run_id": "r88-optional-character-icons",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "2bee444f7443be1966cf80e62565869c7defe2d9",
+  "target_sha": "f30ae525a86078a86fc793e802d75c6c55bb2a06",
+  "status": "passed",
+  "created_at": "2026-11-11T11:10:00Z",
+  "finished_at": "2026-11-11T11:30:00Z",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check ca696e0 f30ae525a86078a86fc793e802d75c6c55bb2a06", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "node ../../node_modules/typescript/bin/tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "node ../../node_modules/next/dist/bin/next lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (69 files, 841 tests)", "command": "node ../../node_modules/vitest/vitest.mjs run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder Supabase env", "command": "node ../../node_modules/next/dist/bin/next build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "R88 migration on the local Supabase stack (constraint 1 -> 0) and re-run (idempotent)", "command": "psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/migrations/MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TESTS.sql end to end on the local Supabase stack (38 PASS lines, final rollback PASS)", "command": "psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Real-browser check of adding an iconless character and approving an iconless request (requires an admin account and the production migration)", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}

@@ -1241,17 +1241,44 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect(charactersBuilder.delete).not.toHaveBeenCalled()
   })
 
-  it("아이콘 없이 캐릭터를 저장하면 폼 단계에서 막고 DB를 호출하지 않는다", async () => {
+  it("아이콘 없이도 캐릭터를 저장하고 아이콘 필드는 선택 사항으로 표시한다 (R88)", async () => {
     charactersBuilder.insert.mockResolvedValue({ error: null })
     await openCharacterTab()
 
     fireEvent.click(screen.getByRole("button", { name: "캐릭터 추가" }))
     fireEvent.change(screen.getByLabelText("캐릭터 이름 *"), { target: { value: "신규" } })
+    fireEvent.change(screen.getByLabelText("등급 *"), { target: { value: "5★" } })
+    fireEvent.change(screen.getByLabelText("속성 *"), { target: { value: "물" } })
+    expect(screen.getByText("캐릭터 아이콘 (선택)")).toBeTruthy()
+    expect(screen.queryByText("캐릭터 아이콘 *")).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "저장" }))
 
-    expect(await screen.findByText("캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")).toBeTruthy()
-    expect(charactersBuilder.insert).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(charactersBuilder.insert).toHaveBeenCalledWith({
+        game_id: "game-1",
+        name: "신규",
+        rarity: "5★",
+        attributes: { element: "물" },
+        default_icon_url: null,
+      })
+    })
+    expect(screen.queryByText("캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")).toBeNull()
     expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
+  })
+
+  it("R88 마이그레이션 적용 전 DB가 아이콘 없는 캐릭터를 거부하면 업데이트 안내를 보여준다", async () => {
+    charactersBuilder.insert.mockResolvedValue({
+      error: { code: "23514", message: 'new row for relation "game_characters" violates check constraint "chk_game_characters_icon_or_pickup_only"' },
+    })
+    await openCharacterTab()
+
+    fireEvent.click(screen.getByRole("button", { name: "캐릭터 추가" }))
+    fireEvent.change(screen.getByLabelText("캐릭터 이름 *"), { target: { value: "신규" } })
+    fireEvent.change(screen.getByLabelText("등급 *"), { target: { value: "5★" } })
+    fireEvent.change(screen.getByLabelText("속성 *"), { target: { value: "물" } })
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    expect((await screen.findByRole("alert")).textContent).toContain("업데이트 적용 전에는 아이콘이 필요합니다.")
   })
 
   it("아이콘 URL이 있으면 캐릭터를 WebP Data URL·레어도·분류와 함께 등록한다", async () => {

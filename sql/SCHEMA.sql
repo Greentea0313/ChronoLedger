@@ -199,8 +199,7 @@ CREATE TABLE IF NOT EXISTS public.game_characters (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_game_characters_game_name UNIQUE (game_id, name),
-    CONSTRAINT chk_game_characters_icon_valid CHECK (default_icon_url IS NULL OR (length(default_icon_url) <= 150000 AND (default_icon_url LIKE 'data:image/webp;base64,%' OR default_icon_url LIKE 'https://%'))),
-    CONSTRAINT chk_game_characters_icon_or_pickup_only CHECK (default_icon_url IS NOT NULL OR is_pickup_only)
+    CONSTRAINT chk_game_characters_icon_valid CHECK (default_icon_url IS NULL OR (length(default_icon_url) <= 150000 AND (default_icon_url LIKE 'data:image/webp;base64,%' OR default_icon_url LIKE 'https://%')))
 );
 CREATE INDEX IF NOT EXISTS idx_game_characters_game_id ON public.game_characters(game_id);
 
@@ -620,7 +619,6 @@ BEGIN
 
     IF v_request.target_character_id IS NULL THEN
         v_icon_url := coalesce(nullif(btrim(p_default_icon_url), ''), nullif(btrim(v_request.default_icon_url), ''));
-        IF v_icon_url IS NULL THEN RAISE EXCEPTION '캐릭터 아이콘이 필요합니다.'; END IF;
         INSERT INTO public.game_characters(game_id, name, default_icon_url, rarity, attributes, created_by)
         VALUES (v_request.game_id, v_request.name, v_icon_url, v_request.rarity, v_request.attributes, auth.uid())
         RETURNING id INTO v_character_id;

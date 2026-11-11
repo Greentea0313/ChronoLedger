@@ -23,6 +23,20 @@ export interface RegisterPickupCharacterInput {
   useAiUpscale: boolean
 }
 
+/** Shown when a regular character is saved without an icon before the R88 migration is applied (the DB still requires one). */
+export const ICON_MIGRATION_PENDING_MESSAGE = "업데이트 적용 전에는 아이콘이 필요합니다. 아이콘을 등록하거나 DB 업데이트(R88) 적용 후 다시 시도해 주세요."
+
+/**
+ * True when the database rejected an icon-less regular character because the R88 migration is not applied yet:
+ * the old CHECK `chk_game_characters_icon_or_pickup_only` (23514) or the old `approve_character_request` exception.
+ */
+export function isIconRequiredByUnappliedMigration(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false
+  const { code, message } = error as { code?: unknown; message?: unknown }
+  const text = typeof message === "string" ? message : ""
+  return (code === "23514" && text.includes("chk_game_characters_icon_or_pickup_only")) || text.includes("캐릭터 아이콘이 필요합니다")
+}
+
 /** Thrown when the name already exists for the game, before anything is saved. Callers with a selectable list may append guidance. */
 export class DuplicatePickupNameError extends Error {
   constructor() {

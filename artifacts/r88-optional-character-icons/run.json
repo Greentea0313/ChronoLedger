@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r88-optional-character-icons",
+    "created_at":  "2026-11-11T08:54:02.1713101+00:00",
+    "objective":  "Allow regular characters of template games to be registered without an icon (default avatar), across the DB constraint, the character request approval RPC, the admin character form, the request approval screen and the request modal.",
+    "acceptance_criteria":  [
+                                "Step 1 (DB): a re-runnable migration drops chk_game_characters_icon_or_pickup_only (keeping the icon format CHECK) and lets approve_character_request create a character without an icon; review guard_game_character_pickup_only_transition and other icon assumptions; SCHEMA.sql, README (verification query), TESTS.sql (regular character without icon accepted, approval without icon accepted) updated; production not applied.",
+                                "Step 2 (UI): the admin character form (incl. pickup-only promotion), the request approval screen and the request modal treat the icon as optional (no \u0027*\u0027, no required error), characters without an icon show the default avatar; tests updated; tsc, lint, git diff --check and full Vitest pass.",
+                                "Step 3 (review): Base..Target review, artifacts, main merge, migration instructions for the user."
+                            ],
+    "base_sha":  "2bee444f7443be1966cf80e62565869c7defe2d9",
+    "target_sha":  "f30ae525a86078a86fc793e802d75c6c55bb2a06",
+    "branch":  "collab/r88-optional-character-icons",
+    "worktree_path":  ".worktrees/r88-optional-character-icons",
+    "max_iterations":  3,
+    "status":  "completed"
+}
