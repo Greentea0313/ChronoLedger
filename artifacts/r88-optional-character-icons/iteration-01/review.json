@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r88-optional-character-icons",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "2bee444f7443be1966cf80e62565869c7defe2d9",
+  "target_sha": "f30ae525a86078a86fc793e802d75c6c55bb2a06",
+  "status": "clean",
+  "created_at": "2026-11-11T11:30:00Z",
+  "findings": []
+}
