@@ -31,7 +31,37 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r83-schedule-dialog-and-character-sort` **(완료, `main` 병합 `6af6780`, 실브라우저 확인은 사용자 대기)** *(게임별 일정 모달 `기타 일정` 중복 제거 + 캐릭터 기본 정렬을 첫 번째 분류 축 + 가나다순으로 변경)*
+- **활성 Run ID**: `r88-optional-character-icons` *(템플릿 게임 일반 캐릭터도 아이콘 없이 등록 → 기본 아바타 표시)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
+- **Worktree 경로**: `.worktrees/r88-optional-character-icons` (브랜치: `collab/r88-optional-character-icons`, manifest `ca696e0`)
+- **Base SHA**: `2bee444f7443be1966cf80e62565869c7defe2d9`
+- **DB 변경**: 있음(제약 완화·승인 RPC, Opus 승격 조건 ①). 운영 DB 미적용, Step 3 이후 사용자 수동 적용.
+- **배경 (사용자 보고 2026-11-11)**: 템플릿이 있는 게임에서 관리자 `전투원 추가` 시 아이콘 없이 저장하면 `캐릭터 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.`로 막힘. 기본 아바타(`2e6ca54`)가 일반 캐릭터에는 적용되지 않음.
+- **원인 (Claude Opus 확인)**: 화면 검사(`src/app/admin/page.tsx` 약 811행)뿐 아니라 DB 제약 `chk_game_characters_icon_or_pickup_only`(`default_icon_url IS NOT NULL OR is_pickup_only`, R52 설계)와 `approve_character_request`의 `캐릭터 아이콘이 필요합니다.` 검사가 일반 캐릭터의 아이콘을 필수로 강제함. 화면 검사만 풀면 저장 시 DB가 거부함.
+- **사용자 결정 (2026-11-11 질문 카드)**: 아이콘을 **선택 사항으로 변경**함(아이콘 없으면 기본 아바타).
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R88 DB)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql` | - |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (R88 UI)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/app/admin/page.tsx`(+테스트), `src/app/admin/requests/page.tsx`(+테스트), `src/components/game/request-submission-modal.tsx`(+테스트), `src/lib/pickup-character-registration.ts`(+테스트, 필요 시) | - |
+| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 2 커밋) 리뷰(제약·RPC·화면 일관성), 산출물, `main` 병합, 문서 마감, 마이그레이션 수동 적용 안내 | - |
+
+#### 📌 `r88-optional-character-icons` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`GPT Codex` — Maker, DB)**:
+   - 재실행 안전한 마이그레이션으로 `chk_game_characters_icon_or_pickup_only`를 제거함. 아이콘 형식 CHECK(`chk_game_characters_icon_valid`: NULL 또는 WebP Data URL/https, 150,000자)는 유지함.
+   - `approve_character_request`: 새 캐릭터 생성 시 아이콘이 없어도 생성되게 `캐릭터 아이콘이 필요합니다.` 검사를 제거함(기존 캐릭터 수정 경로는 `coalesce`로 기존 아이콘 유지 그대로).
+   - `guard_game_character_pickup_only_transition` 등 일반 캐릭터의 아이콘을 전제로 한 다른 함수·트리거가 있는지 점검하고 필요하면 함께 고침(픽업 전용 → 일반 승격 시 아이콘 요구 여부 포함).
+   - `SCHEMA.sql`·`sql/README.md`(실행 순서·확인 쿼리)·`TESTS.sql`(아이콘 없는 일반 캐릭터 INSERT 허용, 아이콘 없는 요청 승인 허용, 잘못된 형식은 여전히 거부) 반영함. 로컬 Supabase에서 `TESTS.sql` 전체 통과를 확인함(`sql/README.md` C절 절차). 운영 DB 미적용.
+2. **Step 2 (`Claude Sonnet` — Maker, UI)**:
+   - 관리자 캐릭터 폼(픽업 전용 승격 포함), 요청 승인 화면 캐릭터 승인, 요청 모달 캐릭터 요청에서 아이콘을 선택 사항으로 바꿈: 라벨의 `*` 제거, 필수 오류 문구 제거, 아이콘 없이 저장·승인·제출 가능. 아이콘이 없는 캐릭터는 기존 기본 아바타 컴포넌트로 표시됨을 확인함.
+   - 마이그레이션 미적용 DB에서 아이콘 없이 저장하면 DB 오류(`23514` 등)를 알아볼 수 있는 안내로 보여줌(예: `업데이트 적용 전에는 아이콘이 필요합니다.`).
+   - 테스트 갱신·추가, `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
+3. **Step 3 (`Claude Opus` — Reviewer & Orchestrator)**: 리뷰·산출물·병합·문서 마감, 사용자에게 마이그레이션 적용과 실브라우저 확인(아이콘 없이 캐릭터 추가·요청 승인) 안내함.
+
+### 🗂️ 이전 Run 기록 (완료): `r83-schedule-dialog-and-character-sort`
+
+- **Run ID**: `r83-schedule-dialog-and-character-sort` **(완료, `main` 병합 `6af6780`, 실브라우저 확인은 사용자 대기)** *(게임별 일정 모달 `기타 일정` 중복 제거 + 캐릭터 기본 정렬을 첫 번째 분류 축 + 가나다순으로 변경)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11, 예약 `R83` 실행)*
 - **Worktree 경로**: `.worktrees/r83-schedule-dialog-and-character-sort` (브랜치: `collab/r83-schedule-dialog-and-character-sort`, manifest `434f063`)
 - **Base SHA**: `25716636ad66affc3871c19d92354488f8298bd9`
@@ -1024,10 +1054,13 @@
 - **`R84` 기타 건의 요청 창구 (`r84-general-feedback-requests`, DB 변경 → Opus 승격 조건 ①)** — DB **GPT Codex** *(Claude Opus / GitHub Copilot)* → UI **Claude Sonnet** *(GitHub Copilot / Claude Opus)* → 리뷰 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
   - 템플릿·일정·캐릭터 요청과 별개로 자유 형식 건의를 받는 창구임. 신규 테이블(예: `feedback_requests`: 작성자·분류·제목·본문·상태 `OPEN/ANSWERED/CLOSED`·관리자 답변)과 본인 행 조회·작성, 관리자 전체 조회·답변 RLS, 계정 삭제 대기 차단·탈퇴 정리 연결이 필요함.
   - 화면: `+ 추가 요청` 모달에 `기타 건의` 탭, `/admin/requests`에 `건의` 탭(답변·상태 변경), 내 요청 카드에 건의 이력 표시.
-  - 착수 전 결정 필요: 건의 분류 목록(예: 기능 제안·오류 신고·기타), 이미지 첨부 여부, 답변 알림 방식.
+  - **사용자 결정 (2026-11-11 질문 카드)**: 분류 **기능 제안·오류 신고·기타**, 이미지 **첨부 없음**, 답변 알림은 **푸시 알림 설계(`R89`) 후 착수**(게임 일정 알림과 함께 설계). → `R89` 완료 전까지 `R84` 보류함.
 - **`R85` 일정 시간 단위 관리 설계 (기존 `R37` 흡수, 명세 우선)** — 설계 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
   - 검토 결과 요지: 날짜(`start_date`·`end_date`)는 달력·예산 귀속·예정 지출 동기화의 기준이므로 그대로 두고, 표시·알림용 선택 필드(`start_at`·`end_at TIMESTAMPTZ NULL`, `is_time_estimated`)를 추가하는 방식을 우선 후보로 둠. 게임 서버 시간(예: 아시아 서버 UTC+8)과 KST 차이, 점검 후 시작처럼 시각이 불확실한 경우, 날짜와 시각의 일관성 CHECK, 승인 RPC 복사, 관리자·요청 폼 입력, 사이드바·주간 목록·D-n 표시 범위를 명세에서 확정함.
-  - 착수 전 결정 필요: 시각 입력 단위(분/시간), 종료 시각 기본값(예: 03:59·점검 시작), 달력 칸 표시 여부.
+  - **사용자 결정 (2026-11-11 질문 카드)**: 시각 입력 **분 단위**, 종료 시각 미입력 시 **시각 없음(날짜만 표시)**, 시간대 **KST로 입력·표시**, **달력 칸에는 시각 표시 안 함**(선택일 상세·주간 목록·게임별 일정 모달에만 표시). → 결정 완료, 다음 Run으로 등록 가능함.
+- **`R89` 푸시 알림 설계 조사 (문서 전용, 2026-11-11 사용자 결정)** — 조사 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
+  - 목적: 게임 일정 알림(관심 일정 시작·종료 등)과 `R84` 건의 답변 알림을 함께 다룰 푸시 알림 구조를 설계 전에 조사함. 결과에 따라 `R84` 답변 알림 방식을 확정함.
+  - 조사 항목: 웹 푸시(PWA, Service Worker `push`, VAPID, iOS Safari 홈 화면 앱 조건)·데스크톱(Tauri 알림 플러그인) 지원 범위, 서버 없는 구조에서의 발송 주체(Supabase Edge Function + `pg_cron`/DB 웹훅), 구독 정보 저장 테이블·RLS·탈퇴 정리, 알림 종류·사용자 설정(켜기/끄기·시각), 비용·키 관리. 산출물 `docs/push-notification-research.md`.
 - **`R86` 공식 일정 자동 수집(크롤링) 가능성 조사 (문서 전용)** — 조사 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
   - 1차 검토 요지: 앱은 서버 없는 정적 배포라 브라우저에서 직접 수집은 CORS·약관 문제로 불가함. 수집기는 별도 실행 환경(예: Supabase Edge Function + `pg_cron`, 또는 GitHub Actions 예약 작업)이 필요하고, 결과는 공용 일정에 바로 쓰지 않고 `schedule_requests`(대기)로 넣어 관리자 승인을 거치는 반자동 방식이 안전함.
   - 조사 항목: 게임별 공식 출처(공식 사이트 공지·RSS·HoYoLAB 등 커뮤니티 API·공식 X·YouTube)의 이용약관·robots.txt 허용 여부, 구조화 정도(날짜·시각·버전명 추출 난이도), 공지 형식 변경에 따른 유지보수 비용, 키·비밀 관리. 산출물 `docs/schedule-crawling-research.md`.

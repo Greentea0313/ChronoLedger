@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## Run `r88-optional-character-icons` 등록·R84/R85 결정 기록 (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Orchestrator)임.
+- **사용자 보고**: 템플릿 게임에서 아이콘 없이 캐릭터를 추가할 수 없음 → 화면 검사와 DB 제약 `chk_game_characters_icon_or_pickup_only`·`approve_character_request` 검사가 원인임. 사용자 결정으로 아이콘을 선택 사항으로 바꾸는 Run `r88`을 등록함(DB Codex → UI Sonnet → 리뷰 Opus).
+- **R84 결정**: 분류 기능 제안·오류 신고·기타, 첨부 없음, 답변 알림은 푸시 알림 설계 후 착수 → 보류함.
+- **R85 결정**: 분 단위 입력, 종료 시각 미입력 시 날짜만, KST 입력·표시, 달력 칸 미표시 → 등록 가능함.
+- **신규 예약 `R89`**: 푸시 알림 설계 조사(문서 전용).
+- **다음 단계**: `r88` Step 1(`GPT Codex`) `▶ READY`임.
+
 ## Run `r83-schedule-dialog-and-character-sort` 완료 — `main` 병합 `6af6780` (2026-11-11)
 
 - **수행 주체**: Claude Opus (`Gemini 4 Argon` 1순위 대체, Step 2 리뷰·병합)임.
