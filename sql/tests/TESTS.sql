@@ -1311,6 +1311,10 @@ INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r1
 SELECT set_config('chronoledger.r13_character_4_id', :'r13_character_4', true);
 INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_game_id', 'R13 character 5', 'https://example.invalid/c5.webp') RETURNING id AS r13_character_5 \gset
 SELECT set_config('chronoledger.r13_character_5_id', :'r13_character_5', true);
+INSERT INTO public.game_characters(game_id, name, rarity, attributes)
+VALUES (:'r13_game_id', 'R13 iconless character', '4★', '{"element":"물"}')
+RETURNING id AS r13_iconless_character \gset
+SELECT set_config('chronoledger.r13_iconless_character_id', :'r13_iconless_character', true);
 INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_other_game_id', 'R13 other character', 'https://example.invalid/other-char.webp') RETURNING id AS r13_other_character \gset
 SELECT set_config('chronoledger.r13_other_character_id', :'r13_other_character', true);
 INSERT INTO public.game_characters(game_id, name, default_icon_url) VALUES (:'r13_other_game_id', 'R13 other character 2', 'https://example.invalid/other-char-2.webp') RETURNING id AS r13_other_character_2 \gset
@@ -1324,6 +1328,10 @@ SELECT set_config('chronoledger.r13_new_request_id', :'r13_new_request', true);
 INSERT INTO public.character_requests(user_id, game_id, target_character_id, name, rarity, attributes)
 VALUES (:'test_user_id', :'r13_game_id', :'r13_character_1', 'R13 renamed character', '4★', '{"element":"물"}') RETURNING id AS r13_update_request \gset
 SELECT set_config('chronoledger.r13_update_request_id', :'r13_update_request', true);
+INSERT INTO public.character_requests(user_id, game_id, name, rarity, attributes)
+VALUES (:'test_user_id', :'r13_game_id', 'R13 iconless request', '4★', '{"element":"물"}')
+RETURNING id AS r13_iconless_request \gset
+SELECT set_config('chronoledger.r13_iconless_request_id', :'r13_iconless_request', true);
 
 SELECT set_config('request.jwt.claim.sub', :'test_user_id', true);
 SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated')::text, true);
@@ -1429,12 +1437,17 @@ SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id
 SET LOCAL ROLE authenticated;
 SELECT public.approve_character_request(:'r13_new_request'::uuid);
 SELECT public.approve_character_request(:'r13_update_request'::uuid);
+SELECT public.approve_character_request(:'r13_iconless_request'::uuid);
 RESET ROLE;
 DO $$ BEGIN
     IF (SELECT request_status FROM public.character_requests WHERE id = current_setting('chronoledger.r13_new_request_id')::uuid) <> 'APPROVED'
        OR NOT EXISTS (SELECT 1 FROM public.game_characters WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid AND name = 'R13 new request' AND rarity = '5★') THEN RAISE EXCEPTION 'FAIL: admin could not approve new character'; END IF;
     IF (SELECT request_status FROM public.character_requests WHERE id = current_setting('chronoledger.r13_update_request_id')::uuid) <> 'APPROVED'
        OR NOT EXISTS (SELECT 1 FROM public.game_characters WHERE id = current_setting('chronoledger.r13_character_1_id')::uuid AND name = 'R13 renamed character' AND default_icon_url = 'https://example.invalid/c1.webp') THEN RAISE EXCEPTION 'FAIL: admin update did not preserve omitted icon'; END IF;
+    IF (SELECT request_status FROM public.character_requests WHERE id = current_setting('chronoledger.r13_iconless_request_id')::uuid) <> 'APPROVED'
+       OR NOT EXISTS (SELECT 1 FROM public.game_characters WHERE game_id = current_setting('chronoledger.r13_game_id')::uuid AND name = 'R13 iconless request' AND default_icon_url IS NULL) THEN
+        RAISE EXCEPTION 'FAIL: admin could not approve iconless regular character';
+    END IF;
 END $$;
 \echo PASS: admin metadata JWT approves new and existing character requests
 
