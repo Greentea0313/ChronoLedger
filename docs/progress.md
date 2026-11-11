@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## R88 운영 적용 완료·Run `r86-schedule-crawling-research` 등록 (2026-11-11)
+
+- 사용자가 운영 DB에 `MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql`을 적용하고 확인 쿼리 검증을 마침. 일반 캐릭터도 아이콘 없이 등록 가능함.
+- 사용자 지시로 예약 `R86`(공식 일정 자동 수집 가능성 조사, 문서 전용)을 활성 Run으로 등록함(`main`에서 진행, Docker 불필요).
+- **다음 단계**: Step 1(`Claude Opus`, 조사 문서 작성) `▶ READY`임.
+
 ## Run `r88-optional-character-icons` 완료 — `main` 병합 `66d55d8` (2026-11-11)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.

@@ -31,7 +31,33 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r88-optional-character-icons` **(완료, `main` 병합 `66d55d8`, R88 마이그레이션 운영 적용·실브라우저 확인은 사용자 대기)** *(템플릿 게임 일반 캐릭터도 아이콘 없이 등록 → 기본 아바타 표시)*
+- **활성 Run ID**: `r86-schedule-crawling-research` *(공식 일정 자동 수집(크롤링) 가능성 조사, 문서 전용)*
+- **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11, 사용자 지목)*
+- **Worktree 경로**: `main` (문서 전용 조사라 격리 워크트리·`run.json` 없이 `main`에서 진행함. 코드·SQL 변경 없음)
+- **Base SHA**: `0bf461450d1cfb29a99e39909770a1f59dc3657b`
+- **DB 변경**: 없음. 🐳 Docker 불필요.
+- **근거**: 아래 `🗓️ 다음 Run 예약`의 `R86` 항목(사용자 요청 2026-11-11). 사용자가 2026-11-11 활성 Run 등록을 지시함.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Researcher (R86)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `docs/schedule-crawling-research.md`, `docs/to-do.md`(후속 과제 등록 시) | - |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토(근거 출처·결론 타당성·누락 항목), 사용자 결정 사항 정리, 문서 마감 | - |
+
+#### 📌 `r86-schedule-crawling-research` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Opus` — Researcher)**: `docs/schedule-crawling-research.md`(한국어 개조식)를 작성함.
+   - **대상 게임**: 앱에 등록된 게임 중 일정 수요가 큰 게임부터(사용자에게 목록을 받거나, 문서·테스트·화면에서 확인되는 게임 기준). 조사 범위를 문서 앞부분에 명시함.
+   - **게임별 공식 출처**: 공식 사이트 공지·RSS·공식 API/커뮤니티(예: HoYoLAB)·공식 X·YouTube·네이버 라운지 등에서 버전·픽업·이벤트 일정이 어디에 어떤 형식으로 나오는지, 날짜·시각·버전명 추출 난이도, 공지 형식 변경 빈도.
+   - **허용 여부**: 각 출처의 이용약관·`robots.txt`·API 이용 조건(자동 수집 허용/금지, 요청 빈도 제한, 인증 키 필요 여부). 확인한 날짜와 근거 링크를 남기고, 확인하지 못한 항목은 `확인 필요`로 표시함. 약관상 금지된 출처는 대상에서 제외함.
+   - **실행 구조**: 서버 없는 정적 배포에서 가능한 수집기 위치(Supabase Edge Function + `pg_cron`, GitHub Actions 예약 작업 등) 비교: 비용·비밀 키 관리·실패 알림·유지보수.
+   - **데이터 흐름**: 수집 결과를 공용 일정에 바로 쓰지 않고 `schedule_requests`(대기)로 넣어 관리자가 승인하는 반자동 방식을 기준으로, 중복 판정·수정 공지 반영·출처 기록 방법을 제안함.
+   - **결론**: 게임별 "자동 수집 가능 / 반자동(사람 확인) / 수집 불가" 판정과 권장 1차 범위, 다음 Run 후보(구현 단계·DB 변경 여부·Opus 승격 조건)와 사용자 결정이 필요한 항목을 정리함.
+   - 웹 조사 시 사용자 정보(이메일·프로젝트명 등)를 외부 요청에 넣지 않음.
+2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**: 근거·결론 검토, 결정 사항을 사용자에게 질문 카드로 확인, 후속 Run을 예약 목록에 반영, 문서 마감.
+
+### 🗂️ 이전 Run 기록 (완료): `r88-optional-character-icons`
+
+- **Run ID**: `r88-optional-character-icons` **(완료, `main` 병합 `66d55d8`, R88 마이그레이션 운영 적용·확인 쿼리 검증 완료(사용자, 2026-11-11), 실브라우저 확인 대기)** *(템플릿 게임 일반 캐릭터도 아이콘 없이 등록 → 기본 아바타 표시)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
 - **Worktree 경로**: `.worktrees/r88-optional-character-icons` (브랜치: `collab/r88-optional-character-icons`, manifest `ca696e0`)
 - **Base SHA**: `2bee444f7443be1966cf80e62565869c7defe2d9`
@@ -78,7 +104,7 @@
 - **화면 확인**: 관리자 캐릭터 폼은 항상 `(선택)` 표시·필수 검사 제거, 아이콘 없으면 `null` 저장, 기존 캐릭터 수정 시 기존 아이콘 유지. 요청 승인 화면은 경고 대신 "기본 아바타로 표시됨" 안내. 마이그레이션 미적용 DB의 거부(`23514` 제약 이름·구 RPC 문구)는 `업데이트 적용 전에는 아이콘이 필요합니다…` 안내로 보여줌. 지적 없음.
 - **검증**: 워크트리 tsc·lint·diff-check·build 통과, Vitest 69파일/841개 통과함. 🐳 로컬 Supabase에 R88 마이그레이션 적용(제약 1→0)·재실행(안전) 확인, `TESTS.sql` 전체 통과(38개 PASS·최종 rollback PASS). `main` 병합 `66d55d8` 후 tsc·Vitest 159파일/1463개 통과함.
 - **사용자 수동 작업 남음**:
-  1. 운영 DB에 `sql/migrations/MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql` 적용 후 `sql/README.md` R88 확인 쿼리 실행. 적용 전에는 아이콘 없이 저장하면 안내 문구와 함께 막힘.
+  1. ✅ (사용자, 2026-11-11 적용·검증 완료) 운영 DB에 `sql/migrations/MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql` 적용 후 `sql/README.md` R88 확인 쿼리 실행. 적용 전에는 아이콘 없이 저장하면 안내 문구와 함께 막힘.
   2. 실브라우저: 템플릿 게임에서 아이콘 없이 캐릭터 추가 → 기본 아바타 표시, 아이콘 없는 캐릭터 요청 승인.
 
 ### 🗂️ 이전 Run 기록 (완료): `r83-schedule-dialog-and-character-sort`
@@ -1083,7 +1109,7 @@
 - **`R89` 푸시 알림 설계 조사 (문서 전용, 2026-11-11 사용자 결정)** — 조사 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
   - 목적: 게임 일정 알림(관심 일정 시작·종료 등)과 `R84` 건의 답변 알림을 함께 다룰 푸시 알림 구조를 설계 전에 조사함. 결과에 따라 `R84` 답변 알림 방식을 확정함.
   - 조사 항목: 웹 푸시(PWA, Service Worker `push`, VAPID, iOS Safari 홈 화면 앱 조건)·데스크톱(Tauri 알림 플러그인) 지원 범위, 서버 없는 구조에서의 발송 주체(Supabase Edge Function + `pg_cron`/DB 웹훅), 구독 정보 저장 테이블·RLS·탈퇴 정리, 알림 종류·사용자 설정(켜기/끄기·시각), 비용·키 관리. 산출물 `docs/push-notification-research.md`.
-- **`R86` 공식 일정 자동 수집(크롤링) 가능성 조사 (문서 전용)** — 조사 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
+- **`R86` 공식 일정 자동 수집(크롤링) 가능성 조사 (문서 전용)** — ✅ **2026-11-11 활성 Run `r86-schedule-crawling-research`로 등록함** — 조사 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
   - 1차 검토 요지: 앱은 서버 없는 정적 배포라 브라우저에서 직접 수집은 CORS·약관 문제로 불가함. 수집기는 별도 실행 환경(예: Supabase Edge Function + `pg_cron`, 또는 GitHub Actions 예약 작업)이 필요하고, 결과는 공용 일정에 바로 쓰지 않고 `schedule_requests`(대기)로 넣어 관리자 승인을 거치는 반자동 방식이 안전함.
   - 조사 항목: 게임별 공식 출처(공식 사이트 공지·RSS·HoYoLAB 등 커뮤니티 API·공식 X·YouTube)의 이용약관·robots.txt 허용 여부, 구조화 정도(날짜·시각·버전명 추출 난이도), 공지 형식 변경에 따른 유지보수 비용, 키·비밀 관리. 산출물 `docs/schedule-crawling-research.md`.
 

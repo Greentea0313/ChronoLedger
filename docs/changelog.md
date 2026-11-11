@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-11 (R88 운영 적용, Run `r86-schedule-crawling-research` 등록)
+
+- 운영 DB에 `MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql` 적용·확인 쿼리 검증 완료함(사용자).
+- 공식 일정 자동 수집 가능성 조사(`R86`)를 활성 Run으로 등록함(조사 Opus → 검토 Gemini 4 Argon).
+
 ## 2026-11-11 (Run `r88-optional-character-icons` 완료 — `main` 병합 `66d55d8`)
 
 - 템플릿이 있는 게임에서도 캐릭터를 아이콘 없이 추가하거나 아이콘 없는 캐릭터 요청을 승인할 수 있음. 아이콘이 없으면 기본 아바타로 표시함. 운영 DB에는 `MIGRATION_R88_OPTIONAL_CHARACTER_ICONS.sql` 적용이 필요함.
