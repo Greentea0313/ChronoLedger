@@ -921,6 +921,24 @@
 - **다음 단계**: ① R61·R65·R66 완료(`main` 병합 `9962a21`) → ② R62 완료(`main` 병합 `e8d9b41`) → ③ R63 DB+UI → ④ R64 명세 후 구현.
 - **같은 날 `main` 직접 반영 (소규모 UI)**: R67 `46393eb`, R68 `d67921e`, R69 `f99e4fb`, R70 `f93ff31`.
 
+### 🗓️ 다음 Run 예약 (2026-11-11 사용자 요청 5건 등록, `R83`~`R86`)
+
+> **실행 규칙**: 활성 Run `r81`·`r82`가 게임·캐릭터·관리자·달력 화면을 수정 중이라, 파일이 겹칠 수 있는 아래 과제는 두 Run 마감 후 Orchestrator(Gemini 4 Argon, Fallback: Claude Opus)가 워크트리를 만들고 `▶ READY`로 전환함. `R86`은 문서 전용 조사라 사용자가 지목하면 바로 착수 가능함.
+
+- **`R83` 화면 결함 2건 (`r83-schedule-dialog-and-character-sort`, DB 변경 없음)** — Maker **Claude Sonnet** *(GitHub Copilot / Gemini 3.8 Flash)*, 리뷰 **Gemini 4 Argon** *(Claude Opus / GitHub Copilot)*
+  1. **게임별 일정 모달 `기타 일정` 중복 제거**: `src/app/dashboard/games/page.tsx`의 `기타 일정` 영역(약 320행)이 버전에 묶이지 않은 비버전 일정 전체를 다시 그림. 이 모달은 지난 일정을 따로 빼므로 남은 일정은 모두 `진행 중(ON AIR)`·`다음 예정`에 이미 표시됨 → `기타 일정`이 항상 중복됨. 중복이 생기지 않도록 영역을 없애거나 두 영역에 없는 일정만 표시하고, 회귀 테스트를 추가함.
+  2. **캐릭터 기본 정렬 = 첫 번째 분류 축 + 가나다순**: 첫 번째 분류 축(`axes[0]`)의 선택지 순서 → 같은 값이면 이름 가나다순(`localeCompare(..., "ko")`), 첫 번째 축 값이 없거나 템플릿에 없는 값이면 맨 뒤로 보냄. 분류 축이 없는 게임은 이름순. 적용: `/dashboard/characters` 보유·미보유 목록과 프리셋 캐릭터 선택기, 관리자 캐릭터 표(현재 등급→이름순을 변경, 등급 필터 탭은 유지). 즐겨찾기는 사용자 지정 순서를 유지함. 정렬 함수는 `src/lib/character-utils.ts`에 순수 함수로 두고 단위 테스트를 추가함.
+- **`R84` 기타 건의 요청 창구 (`r84-general-feedback-requests`, DB 변경 → Opus 승격 조건 ①)** — DB **GPT Codex** *(Claude Opus / GitHub Copilot)* → UI **Claude Sonnet** *(GitHub Copilot / Claude Opus)* → 리뷰 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
+  - 템플릿·일정·캐릭터 요청과 별개로 자유 형식 건의를 받는 창구임. 신규 테이블(예: `feedback_requests`: 작성자·분류·제목·본문·상태 `OPEN/ANSWERED/CLOSED`·관리자 답변)과 본인 행 조회·작성, 관리자 전체 조회·답변 RLS, 계정 삭제 대기 차단·탈퇴 정리 연결이 필요함.
+  - 화면: `+ 추가 요청` 모달에 `기타 건의` 탭, `/admin/requests`에 `건의` 탭(답변·상태 변경), 내 요청 카드에 건의 이력 표시.
+  - 착수 전 결정 필요: 건의 분류 목록(예: 기능 제안·오류 신고·기타), 이미지 첨부 여부, 답변 알림 방식.
+- **`R85` 일정 시간 단위 관리 설계 (기존 `R37` 흡수, 명세 우선)** — 설계 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
+  - 검토 결과 요지: 날짜(`start_date`·`end_date`)는 달력·예산 귀속·예정 지출 동기화의 기준이므로 그대로 두고, 표시·알림용 선택 필드(`start_at`·`end_at TIMESTAMPTZ NULL`, `is_time_estimated`)를 추가하는 방식을 우선 후보로 둠. 게임 서버 시간(예: 아시아 서버 UTC+8)과 KST 차이, 점검 후 시작처럼 시각이 불확실한 경우, 날짜와 시각의 일관성 CHECK, 승인 RPC 복사, 관리자·요청 폼 입력, 사이드바·주간 목록·D-n 표시 범위를 명세에서 확정함.
+  - 착수 전 결정 필요: 시각 입력 단위(분/시간), 종료 시각 기본값(예: 03:59·점검 시작), 달력 칸 표시 여부.
+- **`R86` 공식 일정 자동 수집(크롤링) 가능성 조사 (문서 전용)** — 조사 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
+  - 1차 검토 요지: 앱은 서버 없는 정적 배포라 브라우저에서 직접 수집은 CORS·약관 문제로 불가함. 수집기는 별도 실행 환경(예: Supabase Edge Function + `pg_cron`, 또는 GitHub Actions 예약 작업)이 필요하고, 결과는 공용 일정에 바로 쓰지 않고 `schedule_requests`(대기)로 넣어 관리자 승인을 거치는 반자동 방식이 안전함.
+  - 조사 항목: 게임별 공식 출처(공식 사이트 공지·RSS·HoYoLAB 등 커뮤니티 API·공식 X·YouTube)의 이용약관·robots.txt 허용 여부, 구조화 정도(날짜·시각·버전명 추출 난이도), 공지 형식 변경에 따른 유지보수 비용, 키·비밀 관리. 산출물 `docs/schedule-crawling-research.md`.
+
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
 > **실행 규칙**: 상태 `📝 AGENDA`는 `"인수인계 문서를 확인해"` 자동 실행 대상이 아니며, 활성 Run이 종료되어도 자동으로 `▶ READY`로 전환하지 않음. **사용자가 명시적으로 이 안건의 착수를 요청할 때만** `▶ READY`(`🔄 IN_PROGRESS`)로 전환하여 수행함. 위 Run과 파일 충돌 없음(문서 전용).
