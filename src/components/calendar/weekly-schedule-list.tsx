@@ -47,7 +47,6 @@ interface WeeklyScheduleListProps {
   /** R35 favourites (omit onToggleFavorite for guests to hide the controls). */
   favoriteScheduleIds?: ReadonlySet<string>
   onToggleFavorite?: (scheduleId: string) => void
-  onAddPlannedExpense?: (scheduleId: string) => void
 }
 
 interface GameScheduleGroup {
@@ -117,7 +116,6 @@ export function WeeklyScheduleList({
   onNextMonth,
   favoriteScheduleIds,
   onToggleFavorite,
-  onAddPlannedExpense,
 }: WeeklyScheduleListProps) {
   const weeks = groupDatesByWeek(year, month, todayDate)
   // Open state is screen-local only: the current week starts open, other weeks collapsed; user toggles override that.
@@ -151,7 +149,6 @@ export function WeeklyScheduleList({
           title={schedule.title}
           favoriteScheduleIds={favoriteScheduleIds}
           onToggleFavorite={onToggleFavorite}
-          onAddPlannedExpense={onAddPlannedExpense}
           className="shrink-0 flex-wrap justify-end"
         />
       </li>

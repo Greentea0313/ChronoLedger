@@ -438,9 +438,8 @@ describe("HeroSidebarContent favourite schedules (R35)", () => {
     expect(screen.queryByRole("button", { name: /관심 일정/ })).toBeNull()
   })
 
-  it("toggles favourites on grouped and single cards and offers + 예정 지출 추가 only for favourites", () => {
+  it("toggles favourites on grouped and single cards without a planned-expense button", () => {
     const onToggleFavorite = vi.fn()
-    const onAddPlannedExpense = vi.fn()
     render(
       <HeroSidebarContent
         {...base}
@@ -449,21 +448,15 @@ describe("HeroSidebarContent favourite schedules (R35)", () => {
         schedules={schedules}
         favoriteScheduleIds={new Set(["b", "c"])}
         onToggleFavorite={onToggleFavorite}
-        onAddPlannedExpense={onAddPlannedExpense}
       />,
     )
 
     expect(screen.getByRole("button", { name: "카프카 픽업 관심 일정 등록" }).getAttribute("aria-pressed")).toBe("false")
     expect(screen.getByRole("button", { name: "블랙 스완 픽업 관심 일정 해제" }).getAttribute("aria-pressed")).toBe("true")
-    expect(screen.getAllByRole("button", { name: /예정 지출 추가$/ }).map((b) => b.getAttribute("aria-label")).sort()).toEqual([
-      "단독 방송 예정 지출 추가",
-      "블랙 스완 픽업 예정 지출 추가",
-    ])
+    expect(screen.queryByRole("button", { name: /예정 지출 추가/ })).toBeNull()
 
     fireEvent.click(screen.getByRole("button", { name: "카프카 픽업 관심 일정 등록" }))
     expect(onToggleFavorite).toHaveBeenCalledWith("a")
-    fireEvent.click(screen.getByRole("button", { name: "단독 방송 예정 지출 추가" }))
-    expect(onAddPlannedExpense).toHaveBeenCalledWith("c")
   })
 })
 

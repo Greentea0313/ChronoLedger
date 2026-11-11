@@ -36,7 +36,6 @@ interface MobileDrawerProps {
   todayDate?: string
   favoriteScheduleIds?: ReadonlySet<string>
   onToggleFavorite?: (scheduleId: string) => void
-  onAddPlannedExpense?: (scheduleId: string) => void
 }
 
 const DRAWER_HISTORY_KEY = "chronoledgerMobileDrawer"
@@ -122,7 +121,6 @@ export function MobileDrawer({
   todayDate,
   favoriteScheduleIds,
   onToggleFavorite,
-  onAddPlannedExpense,
 }: MobileDrawerProps) {
   useDrawerHistory(Boolean(open), onOpenChange)
 
@@ -159,7 +157,6 @@ export function MobileDrawer({
               todayDate={todayDate}
               favoriteScheduleIds={favoriteScheduleIds}
               onToggleFavorite={onToggleFavorite}
-              onAddPlannedExpense={onAddPlannedExpense}
             />
           </div>
         </DrawerContent>

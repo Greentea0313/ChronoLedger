@@ -23,7 +23,6 @@ import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
-import { ExpenseModal, type ExpensePrefill } from "@/components/expense/expense-modal"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getPickupAvatars, PickupAvatars } from "@/components/calendar/pickup-avatars"
 import { Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
@@ -113,7 +112,6 @@ interface FavoriteScheduleControls {
   favoriteScheduleIds?: ReadonlySet<string>
   /** Omit for guests: hides the star toggle, the add-expense action and the 관심 일정만 filter. */
   onToggleFavorite?: (scheduleId: string) => void
-  onAddPlannedExpense?: (scheduleId: string) => void
 }
 
 function ScheduleTree({
@@ -122,7 +120,6 @@ function ScheduleTree({
   pickupCharacters,
   favoriteScheduleIds,
   onToggleFavorite,
-  onAddPlannedExpense,
 }: {
   schedules: GameScheduleRow[]
   expenses: GameExpenseRow[] | null
@@ -187,7 +184,6 @@ function ScheduleTree({
           title={schedule.title}
           favoriteScheduleIds={favoriteScheduleIds}
           onToggleFavorite={onToggleFavorite}
-          onAddPlannedExpense={onAddPlannedExpense}
           className="shrink-0 flex-wrap justify-end"
         />
       </div>
@@ -354,7 +350,6 @@ function ScheduleDialog({
   pickupCharacters,
   favoriteScheduleIds,
   onToggleFavorite,
-  onAddPlannedExpense,
   onlyFavorites,
   onOnlyFavoritesChange,
 }: {
@@ -434,7 +429,6 @@ function ScheduleDialog({
               pickupCharacters={pickupCharacters}
               favoriteScheduleIds={favoriteScheduleIds}
               onToggleFavorite={onToggleFavorite}
-              onAddPlannedExpense={onAddPlannedExpense}
             />
           )}
         </div>
@@ -478,33 +472,14 @@ export default function GamesPage() {
 
   // R35: favourite schedules (own rows via RLS), the 관심 일정만 filter and the favourite -> planned-expense prefill.
   const [onlyFavorites, setOnlyFavorites] = useState(false)
-  const [expensePrefill, setExpensePrefill] = useState<ExpensePrefill | null>(null)
-  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
 
   useEffect(() => {
     if (!userId) setOnlyFavorites(false)
   }, [userId])
 
-  const handleAddPlannedExpenseFromSchedule = (scheduleId: string) => {
-    const schedule = schedules.find((item) => item.id === scheduleId)
-    if (!schedule) return
-    setExpensePrefill({
-      game_id: schedule.game_id,
-      title: schedule.title,
-      target_date: schedule.start_date,
-      start_date: schedule.start_date,
-      end_date: schedule.end_date,
-      schedule_id: schedule.schedule_type === "VERSION" ? schedule.id : undefined,
-    })
-    // Close the schedule dialog first so only one modal traps focus at a time.
-    setIsSheetOpen(false)
-    setIsExpenseModalOpen(true)
-  }
-
   const favoriteControls = {
     favoriteScheduleIds,
     onToggleFavorite: userId ? (id: string) => void toggleFavorite(id) : undefined,
-    onAddPlannedExpense: userId ? handleAddPlannedExpenseFromSchedule : undefined,
     onlyFavorites,
     onOnlyFavoritesChange: userId ? setOnlyFavorites : undefined,
   }
@@ -1120,17 +1095,6 @@ export default function GamesPage() {
         pickupCharacters={pickupCharacters}
         {...favoriteControls}
       />
-      {userId && (
-        <ExpenseModal
-          open={isExpenseModalOpen}
-          onOpenChange={(open) => {
-            setIsExpenseModalOpen(open)
-            if (!open) setExpensePrefill(null)
-          }}
-          prefill={expensePrefill}
-          initialDate={getKstToday()}
-        />
-      )}
       {/* 게임별 상시 메모 작성/수정 중앙 팝업 모달 */}
       <Dialog
         open={editingGameId !== null}

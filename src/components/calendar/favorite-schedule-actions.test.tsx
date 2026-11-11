@@ -8,9 +8,9 @@ describe("FavoriteScheduleActions", () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it("registers a non-favourite and hides the expense action", () => {
+  it("registers a non-favourite", () => {
     const onToggleFavorite = vi.fn()
-    render(<FavoriteScheduleActions scheduleId="s1" title="픽업" favoriteScheduleIds={new Set()} onToggleFavorite={onToggleFavorite} onAddPlannedExpense={vi.fn()} />)
+    render(<FavoriteScheduleActions scheduleId="s1" title="픽업" favoriteScheduleIds={new Set()} onToggleFavorite={onToggleFavorite} />)
 
     const star = screen.getByRole("button", { name: "픽업 관심 일정 등록" })
     expect(star.getAttribute("aria-pressed")).toBe("false")
@@ -19,19 +19,17 @@ describe("FavoriteScheduleActions", () => {
     expect(onToggleFavorite).toHaveBeenCalledWith("s1")
   })
 
-  it("releases a favourite and shows the expense action that does not bubble to parents", () => {
+  it("releases a favourite without bubbling the click to parents", () => {
     const onToggleFavorite = vi.fn()
-    const onAddPlannedExpense = vi.fn()
     const onParentClick = vi.fn()
     render(
       <div onClick={onParentClick}>
-        <FavoriteScheduleActions scheduleId="s1" title="픽업" favoriteScheduleIds={new Set(["s1"])} onToggleFavorite={onToggleFavorite} onAddPlannedExpense={onAddPlannedExpense} />
+        <FavoriteScheduleActions scheduleId="s1" title="픽업" favoriteScheduleIds={new Set(["s1"])} onToggleFavorite={onToggleFavorite} />
       </div>,
     )
 
     expect(screen.getByRole("button", { name: "픽업 관심 일정 해제" }).getAttribute("aria-pressed")).toBe("true")
-    fireEvent.click(screen.getByRole("button", { name: "픽업 예정 지출 추가" }))
-    expect(onAddPlannedExpense).toHaveBeenCalledWith("s1")
+    expect(screen.queryByRole("button", { name: /예정 지출 추가/ })).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "픽업 관심 일정 해제" }))
     expect(onToggleFavorite).toHaveBeenCalledWith("s1")
     expect(onParentClick).not.toHaveBeenCalled()

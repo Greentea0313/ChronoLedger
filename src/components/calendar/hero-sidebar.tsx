@@ -100,7 +100,6 @@ export interface HeroSidebarProps {
   favoriteScheduleIds?: ReadonlySet<string>
   onToggleFavorite?: (scheduleId: string) => void
   /** R35: shown on favourited schedules; opens the planned-expense modal prefilled from the schedule. */
-  onAddPlannedExpense?: (scheduleId: string) => void
 }
 
 export function ScheduleTitleBadges({ title }: { title: string }) {
@@ -144,7 +143,6 @@ export function HeroSidebarContent({
   todayDate,
   favoriteScheduleIds,
   onToggleFavorite,
-  onAddPlannedExpense,
 }: HeroSidebarProps) {
   const today = todayDate ?? getTodayLocalDate()
   const confirmed = confirmedExpense ?? 0
@@ -441,7 +439,6 @@ export function HeroSidebarContent({
                                   title={item.title}
                                   favoriteScheduleIds={favoriteScheduleIds}
                                   onToggleFavorite={onToggleFavorite}
-                                  onAddPlannedExpense={onAddPlannedExpense}
                                   className="shrink-0 flex-wrap justify-end"
                                 />
                               </div>
@@ -475,7 +472,6 @@ export function HeroSidebarContent({
                               title={group.items[0].title}
                               favoriteScheduleIds={favoriteScheduleIds}
                               onToggleFavorite={onToggleFavorite}
-                              onAddPlannedExpense={onAddPlannedExpense}
                               className="shrink-0 flex-wrap justify-end"
                             />
                           </div>
@@ -545,7 +541,6 @@ export function HeroSidebarContent({
                                         title={child.title}
                                         favoriteScheduleIds={favoriteScheduleIds}
                                         onToggleFavorite={onToggleFavorite}
-                                        onAddPlannedExpense={onAddPlannedExpense}
                                         className="shrink-0 flex-wrap justify-end"
                                       />
                                     </div>

@@ -565,20 +565,6 @@ export default function DashboardPage() {
     if (!userId) setOnlyFavorites(false)
   }, [userId])
 
-  const handleAddPlannedExpenseFromSchedule = (scheduleId: string) => {
-    const schedule = schedules.find((item) => item.id === scheduleId)
-    if (!schedule) return
-    setExpensePrefill({
-      game_id: schedule.game_id,
-      title: schedule.title,
-      target_date: schedule.start_date,
-      start_date: schedule.start_date,
-      end_date: schedule.end_date,
-      schedule_id: schedule.schedule_type === "VERSION" ? schedule.id : undefined,
-    })
-    setIsExpenseModalOpen(true)
-  }
-
   const handleRegisterExpense = () => {
     setExpensePrefill(null)
     setIsExpenseModalOpen(true)
@@ -938,7 +924,6 @@ export default function DashboardPage() {
               onSelectExpense={setDetailExpenseId}
               favoriteScheduleIds={favoriteScheduleIds}
               onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
-              onAddPlannedExpense={user ? handleAddPlannedExpenseFromSchedule : undefined}
               onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
               onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}
             />
@@ -1006,7 +991,6 @@ export default function DashboardPage() {
             todayDate={todayDate}
             favoriteScheduleIds={favoriteScheduleIds}
             onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
-            onAddPlannedExpense={user ? handleAddPlannedExpenseFromSchedule : undefined}
           />
         </div>
         <HeroSidebar
@@ -1028,7 +1012,6 @@ export default function DashboardPage() {
           todayDate={todayDate}
           favoriteScheduleIds={favoriteScheduleIds}
           onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
-          onAddPlannedExpense={user ? handleAddPlannedExpenseFromSchedule : undefined}
         />
       </div>
     </div>

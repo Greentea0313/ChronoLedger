@@ -907,8 +907,7 @@ describe("DashboardPage favourite schedules (R35)", () => {
     screen.getAllByRole("button", { name: "일반 콘텐츠 관심 일정 등록" }).forEach((button) => {
       expect(button.getAttribute("aria-pressed")).toBe("false")
     })
-    expect(screen.getAllByRole("button", { name: "관심 픽업 예정 지출 추가" }).length).toBeGreaterThan(0)
-    expect(screen.queryByRole("button", { name: "일반 콘텐츠 예정 지출 추가" })).toBeNull()
+    expect(screen.queryByRole("button", { name: /예정 지출 추가/ })).toBeNull()
   })
 
   it("filters to favourite schedules with the 관심 일정만 toggle", async () => {
@@ -1005,17 +1004,4 @@ describe("DashboardPage favourite schedules (R35)", () => {
     expect(screen.queryByRole("button", { name: /예정 지출 추가/ })).toBeNull()
   })
 
-  it("opens the expense modal prefilled from a favourite schedule", async () => {
-    setup()
-    await renderWeekly()
-    await waitFor(() => expect(screen.getAllByRole("button", { name: "관심 픽업 예정 지출 추가" }).length).toBeGreaterThan(0))
-
-    fireEvent.click(screen.getAllByRole("button", { name: "관심 픽업 예정 지출 추가" })[0])
-
-    const dialog = await screen.findByRole("dialog")
-    await waitFor(() => expect((dialog.querySelector("#expense-title") as HTMLInputElement).value).toBe("관심 픽업"))
-    expect((dialog.querySelector("#expense-category") as HTMLSelectElement).value).toBe("게임")
-    expect((dialog.querySelector("#expense-date") as HTMLInputElement).value).toBe(today)
-    await waitFor(() => expect((dialog.querySelector("#expense-game") as HTMLSelectElement).value).toBe("game-1"))
-  })
 })

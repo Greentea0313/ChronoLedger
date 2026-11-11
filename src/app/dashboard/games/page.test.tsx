@@ -931,7 +931,7 @@ describe("GamesPage", () => {
         })
       }
 
-      it("marks favourites with aria-pressed and offers + 예정 지출 추가 only for them", async () => {
+      it("marks favourites with aria-pressed and has no planned-expense button", async () => {
         const favorites = createFavorites([{ schedule_id: "air-1" }])
         await openSchedules({ expenses: [], favorites })
         await flushAll()
@@ -939,7 +939,7 @@ describe("GamesPage", () => {
         expect(favorites.select).toHaveBeenCalledWith("schedule_id")
         expect(ariaButton("진행 픽업 관심 일정 해제")?.getAttribute("aria-pressed")).toBe("true")
         expect(ariaButton("예정 A 관심 일정 등록")?.getAttribute("aria-pressed")).toBe("false")
-        expect(ariaButton("진행 픽업 예정 지출 추가")).not.toBeNull()
+        expect(ariaButton("진행 픽업 예정 지출 추가")).toBeNull()
         expect(ariaButton("예정 A 예정 지출 추가")).toBeNull()
       })
 
@@ -1003,23 +1003,6 @@ describe("GamesPage", () => {
 
         expect(ariaButton("진행 픽업 관심 일정 등록")).not.toBeNull()
         expect(document.body.textContent).not.toContain("관심 일정을 저장하지 못했습니다.")
-      })
-
-      it("closes the schedule dialog and opens the expense modal prefilled from the favourite schedule", async () => {
-        const favorites = createFavorites([{ schedule_id: "air-1" }])
-        await openSchedules({ expenses: [], favorites })
-        await flushAll()
-
-        await act(async () => {
-          Simulate.click(ariaButton("진행 픽업 예정 지출 추가")!)
-        })
-        await flushAll()
-
-        expect(document.body.textContent).not.toContain("원신 일정")
-        const title = document.body.querySelector("#expense-title") as HTMLInputElement
-        expect(title.value).toBe("진행 픽업")
-        expect((document.body.querySelector("#expense-category") as HTMLSelectElement).value).toBe("게임")
-        expect((document.body.querySelector("#expense-date") as HTMLInputElement).value).toBe("2026-11-05")
       })
 
       it("hides the toggles, the expense action and the filter for guests", async () => {
