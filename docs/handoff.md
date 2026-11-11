@@ -75,7 +75,7 @@
 - **회귀 금지·테스트·허용 파일**: 명세 §5~§7에 확정함. 남은 사용자 결정 없음.
 - **다음 단계**: Step 2(`Claude Sonnet`, 공용 모달 + 사용자 화면 4곳) `▶ READY`임.
 
-### 🚦 병행 활성 Run: `r82-version-grouped-schedules` (r81과 수정 파일이 겹치지 않아 병행 가능)
+### 🗂️ 완료된 병행 Run: `r82-version-grouped-schedules` (2026-11-11 `main` 병합 `2c1f5c5`)
 
 - **Run ID**: `r82-version-grouped-schedules` *(버전 일정이 있는 게임의 픽업·콘텐츠 일정을 버전 아래로 묶어 목록·상세 표시를 간소화)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
@@ -91,7 +91,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 58aa956)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Version Grouping UI)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `src/lib/version-schedule-groups.ts`(+테스트), `src/components/calendar/weekly-schedule-list.tsx`(+테스트), `src/components/calendar/hero-sidebar.tsx`(+테스트), `src/components/calendar/mobile-drawer.test.tsx`(필요 시) | `✅ 58aa956`: 순수 함수 `version-schedule-groups.ts`(+테스트), 주간 목록·선택일 상세 접힘 묶음 적용. tsc·lint·`git diff --check`·Vitest 65파일 801개 통과 (아래 Step 1 완료 기록 참고) |
-| **2** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 1 커밋) 리뷰, 산출물, `main` 병합, 문서 마감, 실브라우저 확인 안내 | Base `7c0a319` ↔ Target `58aa956` |
+| **2** | **`✅ DONE (리뷰 clean, 산출물 SHA: 642849b, main 병합 2c1f5c5)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `7c0a319` ↔ Target `58aa956` 리뷰, 산출물, `main` 병합, 문서 마감 | `✅ clean(P1~P4 0건): 소속 판정(같은 게임·시작일 버전 기간 안·늦게 시작한 버전 우선·방송 제외), 주간 목록 버전 행 접힘 요약, 선택일 상세 카드 묶음·소속 라벨, 변경 금지 영역 유지 확인. 누락된 manifest(run.json)를 이번에 작성. diff-check/tsc/lint 통과, Vitest 65파일·801개 통과, build 통과(자리표시자 env). 병합 후 main 재검증 tsc 통과·Vitest 66파일·802개 통과. 실브라우저 확인은 사용자 몫.` |
 
 #### 📝 `r82-version-grouped-schedules` Step 1 완료 기록 (Claude Sonnet, 2026-11-11)
 
