@@ -345,7 +345,7 @@ describe("CharactersPage", () => {
       expect(container.textContent).toContain("보유 캐릭터 0 / 1명 · 프리셋 0개")
       expect(gameChip("가나게임")?.getAttribute("aria-pressed")).toBe("true")
       expect(gameChip("다라게임")?.getAttribute("aria-pressed")).toBe("false")
-      expect(cardNames()).toEqual(["구캐릭터", "아케론", "라이덴", "칼리"])
+      expect(cardNames()).toEqual(["아케론", "구캐릭터", "라이덴", "칼리"])
       expect(requestButtonLabels(container)).toMatchObject({ mobile: "+ 캐릭터 추가·수정 요청", desktop: "+ 캐릭터 추가·수정 요청" })
     })
 
@@ -389,7 +389,7 @@ describe("CharactersPage", () => {
       db.characters["game-a"] = [...db.characters["game-a"], { ...character("po2", "픽업전용A", null), is_pickup_only: true }]
       await renderPage()
 
-      expect(cardNames()).toEqual(["구캐릭터", "아케론", "라이덴", "칼리"])
+      expect(cardNames()).toEqual(["아케론", "구캐릭터", "라이덴", "칼리"])
       expect(container.textContent).not.toContain("픽업전용A")
       expect(container.textContent).toContain("보유 캐릭터 2 / 4명")
     })
@@ -398,7 +398,7 @@ describe("CharactersPage", () => {
       db.pickupColumnMissing = true
       await renderPage()
 
-      expect(cardNames()).toEqual(["구캐릭터", "아케론", "라이덴", "칼리"])
+      expect(cardNames()).toEqual(["아케론", "구캐릭터", "라이덴", "칼리"])
       expect(container.textContent).toContain("보유 캐릭터 2 / 4명")
       expect(container.textContent).not.toContain("캐릭터 목록을 불러오지 못했습니다")
     })
@@ -502,7 +502,7 @@ describe("CharactersPage", () => {
       db.userCharacters.push({ character_id: "c4", game_id: "game-a", is_owned: true, is_favorite: true, favorite_sort_order: 1, breakthrough_level: 0, custom_icon_path: null })
       await renderPage()
 
-      expect(cardNames()).toEqual(["라이덴", "구캐릭터", "아케론", "칼리"])
+      expect(cardNames()).toEqual(["라이덴", "아케론", "구캐릭터", "칼리"])
       expect(isFavoriteIcon(cardByName("라이덴"))).toBe("true")
       expect(isFavoriteIcon(cardByName("아케론"))).toBe("false")
       expect(cardByName("라이덴").querySelector('[data-testid="character-icon"]')?.className).toContain("ring-amber-400")

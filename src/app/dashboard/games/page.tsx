@@ -233,7 +233,6 @@ function ScheduleTree({
     </div>
     )
   }
-  const grouped = new Set<string>()
   const versionChildren = new Map<string, GameScheduleRow[]>()
   versions.forEach((version) => {
     const children = schedules.filter(
@@ -242,7 +241,6 @@ function ScheduleTree({
         schedule.start_date <= version.end_date &&
         schedule.end_date >= version.start_date,
     )
-    children.forEach((schedule) => grouped.add(schedule.id))
     versionChildren.set(version.id, children)
   })
   return (
@@ -314,12 +312,7 @@ function ScheduleTree({
           </div>
         </section>
       )}
-      {schedules.filter((schedule) => schedule.schedule_type !== "VERSION" && !grouped.has(schedule.id)).length > 0 && (
-        <section>
-          <h3 className="mb-2 text-sm font-bold text-content">기타 일정</h3>
-          <div className="space-y-2">{schedules.filter((schedule) => schedule.schedule_type !== "VERSION" && !grouped.has(schedule.id)).map((schedule) => renderSchedule(schedule))}</div>
-        </section>
-      )}
+      {/* R83: no separate 기타 일정 section. Every non-past schedule already shows in 진행 중 or 다음 예정, so listing the rest again duplicated it. */}
       {pastSchedules.length > 0 && (
         <section aria-label="지난 일정 기록">
           <button

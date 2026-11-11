@@ -181,7 +181,7 @@ export function PresetBoard({ gameId, presets, maxSlots, characters, schema, sta
   const characterById = useMemo(() => new Map(characters.map((character) => [character.id, character])), [characters])
   const placedIds = useMemo(() => new Set(presets.flatMap((preset) => preset.character_ids)), [presets])
   const sections = useMemo(
-    () => buildCharacterSections(filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false), states),
+    () => buildCharacterSections(filterCharacters(characters, filters, schema, (id) => states[id]?.is_owned ?? false), states, schema),
     [characters, filters, schema, states],
   )
   const activePreset = sorted.find((preset) => preset.id === activeId) ?? sorted[0] ?? null

@@ -147,15 +147,31 @@ export const CHARACTER_SECTIONS = [
 ] as const
 
 /**
+ * Default character order (R83): option order of the first classification axis, then name (ko), then id.
+ * A missing or unregistered first-axis value sorts last; a game without axes (or no schema) sorts by name only.
+ */
+export function sortCharactersByClassification<T extends GameCharacter>(characters: readonly T[], schema?: ClassificationSchema | null): T[] {
+  const axis = schema?.axes[0]
+  const axisRank = (character: GameCharacter) => {
+    if (!axis) return 0
+    const index = axis.options.indexOf(character.attributes[axis.key] ?? "")
+    return index < 0 ? Number.MAX_SAFE_INTEGER : index
+  }
+  return [...characters].sort(
+    (a, b) => axisRank(a) - axisRank(b) || a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id),
+  )
+}
+
+/**
  * Builds the favorite / owned / unowned sections for already filtered characters (roster and preset pickers).
- * Non-favorite sections are sorted by name (ko); favorites follow `favorite_sort_order`.
+ * Owned / unowned sections use the default classification order (R83); favorites follow `favorite_sort_order`.
  */
 export function buildCharacterSections(
   characters: readonly GameCharacter[],
   states: Record<string, UserCharacterState | undefined>,
+  schema?: ClassificationSchema | null,
 ): CharacterRosterSections {
-  const entries = [...characters]
-    .sort((a, b) => a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id))
+  const entries = sortCharactersByClassification(characters, schema)
     .map<CharacterRosterEntry>((character) => {
       const state = states[character.id]
       return {
