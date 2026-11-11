@@ -62,6 +62,7 @@
    - URL 가져오기: 기존 `fetchImageFile`(직접 → wsrv.nl 프록시) 재사용, Data URL 문자열도 항상 재인코딩.
    - 회귀 금지 항목(R77 모달 동작, 23514·42501 안내, 20,000자 상한, AI 업스케일, 삭제·복원 버튼)과 Step 2·3 허용 파일 확정. 남은 결정이 있으면 질문 카드로 확인함.
 2. **Step 2 (`Claude Sonnet` — Maker)**: 명세대로 공용 모달과 사용자 화면 4곳 적용, 컴포넌트·화면 테스트 추가, tsc·lint·diff-check·Vitest 전체 통과.
+   - **추가 수용 기준 (2026-11-11 사용자 확인 결함 — 붙여넣기 투명도 손실)**: Windows에서 브라우저 "이미지 복사 → 붙여넣기" 시 클립보드 비트맵에 투명도가 없어 투명 PNG가 검은 배경으로 저장됨(앱 변환 경로는 WebP·PNG만 사용해 투명도를 유지함). 공용 모달의 붙여넣기 처리에서 `clipboardData`의 `text/html`에 `<img src="http(s)://...">`가 있으면 그 원본 주소를 우선 사용해 기존 URL 가져오기(`fetchImageFile`: 직접 → wsrv.nl)로 변환하고, 실패할 때만 비트맵 파일을 사용함. 붙여넣기 안내에 "투명 배경 이미지는 파일 업로드 권장" 문구를 표시하고, `text/html` 우선 사용·실패 시 비트맵 폴백 테스트를 추가함.
 3. **Step 3 (`Claude Sonnet` — Maker)**: 관리자·요청 화면 7곳과 R77 모달을 공용 모달로 교체(동작 동일), 기존 테스트 갱신, tsc·lint·diff-check·Vitest 전체 통과.
 4. **Step 4 (`Claude Opus` — Reviewer & Orchestrator)**: 통합 리뷰·산출물·병합·문서 마감, 사용자에게 각 위치 실브라우저 확인(URL·붙여넣기·파일) 안내.
 
@@ -938,6 +939,14 @@
 - **`R86` 공식 일정 자동 수집(크롤링) 가능성 조사 (문서 전용)** — 조사 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
   - 1차 검토 요지: 앱은 서버 없는 정적 배포라 브라우저에서 직접 수집은 CORS·약관 문제로 불가함. 수집기는 별도 실행 환경(예: Supabase Edge Function + `pg_cron`, 또는 GitHub Actions 예약 작업)이 필요하고, 결과는 공용 일정에 바로 쓰지 않고 `schedule_requests`(대기)로 넣어 관리자 승인을 거치는 반자동 방식이 안전함.
   - 조사 항목: 게임별 공식 출처(공식 사이트 공지·RSS·HoYoLAB 등 커뮤니티 API·공식 X·YouTube)의 이용약관·robots.txt 허용 여부, 구조화 정도(날짜·시각·버전명 추출 난이도), 공지 형식 변경에 따른 유지보수 비용, 키·비밀 관리. 산출물 `docs/schedule-crawling-research.md`.
+
+### 🛠️ `main` 직접 수정 기록: 모바일 대시보드 폭·필터 칩 줄바꿈 (2026-11-11)
+
+- **사유**: 사용자 "바로 수정" 지시에 따른 소규모 UI 결함 수정(`main` 직접 수정 fallback)임. 격리 Run·`run.json`은 만들지 않음.
+- **비교 범위**: Base `a81dd2a434d43bb3a4011fb6e8a87fa02575bed5` ↔ Target `8eaeaf9214c5311b93bec6d20d921530540e7ae3` (`src/app/dashboard/page.tsx`·테스트, `src/components/character/character-filter-bar.tsx`·신규 테스트).
+- **내용**: ① 모바일 대시보드 그리드에 열 규칙이 없어 주차별 리스트의 한 줄 제목 폭만큼 열이 늘어나 화면 전체가 축소되던 문제를 `grid-cols-1`(`minmax(0,1fr)`)·`min-w-0`으로 해소함. ② 캐릭터 필터 한 줄형에서 칩이 라벨 아래로 줄바꿈되던 문제를 라벨 열 고정·칩 전용 줄바꿈 컨테이너로 해소함.
+- **검증**: tsc·lint 통과, Vitest 65파일/784개 통과함(검증 전 루트 `node_modules`에 `@dnd-kit` 미설치 상태라 `npm ci`로 재설치함). 실제 모바일 화면 확인은 사용자 확인 필요함.
+- **이관**: 붙여넣기 투명도 손실 결함은 진행 중인 `r81` Step 2 수용 기준에 추가함.
 
 ### 🧭 병행 검토 안건 (Agenda): 인증 보안 설정 점검 (`R50`, 2026-11-09 등록)
 
