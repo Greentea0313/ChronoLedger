@@ -52,7 +52,7 @@
 | **1** | **`✅ DONE (SHA: 96d4b3d)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R81 Spec)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅ 96d4b3d`: [`R81_Image_Input_Unification_Spec.md`](spec/R81_Image_Input_Unification_Spec.md)(워크트리) 작성. 대상 13곳 확정(사용자 4·관리자·요청 8·R77 1), 공용 모달 API·변환 규격·회귀 금지·테스트·Step 2/3 허용 파일 확정 (아래 Step 1 완료 기록 참고) |
 | **2** | **`✅ DONE (SHA: 77edee9)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Shared Dialog + User Screens)` | 명세 §3·§4·§7 Step 2대로 공용 모달·사용자 화면 4곳(U1~U4) | `✅ 77edee9`: 공용 `image-source.ts`·`image-source-dialog.tsx` 추가, 사용자 화면 U1~U4 교체, 붙여넣기 `text/html` 원본 주소 우선·비트맵 폴백·투명 배경 안내 반영. tsc·lint·diff-check 통과, Vitest 66파일/809개 통과 (미병합, 아래 Step 2 완료 기록 참고) |
 | **3** | **`✅ DONE (SHA: c266232)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Admin + Request Screens)` | 명세 §4·§7 Step 3대로 관리자·요청 화면 8곳(A1~A8)과 R77 모달(A9) 교체 | `✅ c266232`: 관리자 화면 A1~A4·A9, 요청 승인 화면 A5·A6, 요청 모달 A7·A8을 공용 이미지 모달로 교체함. tsc·lint·diff-check 통과, Vitest 66파일/810개 통과 (미병합, 아래 Step 3 완료 기록 참고) |
-| **4** | **`✅ DONE (리뷰: adb8e72 ↔ c266232, 산출물 e4b5d9e, main 병합 3c87917)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 3 커밋) 통합 리뷰, 동적 검증, 산출물, `main` 병합, 문서 마감, 사용자 실브라우저 확인 안내 | `✅` P1~P3 없음, P4 3건 to-do `R84` 이관. tsc·lint·diff-check·build 통과, Vitest 66파일/810개(워크트리)·159파일/1450개(병합 후 `main`) 통과. **실브라우저 확인은 사용자 대기** (아래 Step 4 완료 기록 참고) |
+| **4** | **`✅ DONE (리뷰: adb8e72 ↔ c266232, 산출물 e4b5d9e, main 병합 3c87917)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 3 커밋) 통합 리뷰, 동적 검증, 산출물, `main` 병합, 문서 마감, 사용자 실브라우저 확인 안내 | `✅` P1~P3 없음, P4 3건 to-do `R87` 이관. tsc·lint·diff-check·build 통과, Vitest 66파일/810개(워크트리)·159파일/1450개(병합 후 `main`) 통과. **실브라우저 확인은 사용자 대기** (아래 Step 4 완료 기록 참고) |
 
 #### 📌 `r81-image-input-unification` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -143,7 +143,7 @@
 
 - **리뷰 범위**: Base `adb8e72` ↔ Target `c266232` 통합 정적 리뷰(공용 `image-source.ts`·`image-source-dialog.tsx`, 사용자 화면 U1~U4, 관리자·요청 화면 A1~A9). 산출물 `artifacts/r81-image-input-unification/iteration-01/review.json`·`test.json`(커밋 `e4b5d9e`)임.
 - **결과**: P1~P3 없음. 명세 §3~§5대로 구현됨(Data URL 문자열 재인코딩, 변환 결과 재사용, 오래된 결과 폐기, `convertKey` 재변환, 파일 입력칸 재생성, 저장·업로드 경로와 용량 상한·AI 업스케일·23514/42501 안내 유지). Step 2가 추가한 "붙여넣기 시 원본 주소 우선(투명도 유지)" 동작도 확인함.
-- **P4 지적 3건 (to-do `R84` 이관)**:
+- **P4 지적 3건 (to-do `R87` 이관)**:
   - `R81-REV-001`: URL 입력란에서 포커스가 빠지거나 Enter를 누를 때의 변환은 오프라인 검사 없이 가져오기를 시도함(저장은 차단됨).
   - `R81-REV-002`: 분류 아이콘 등록 실패 후 모달을 닫으면 같은 오류가 템플릿 편집기 아이콘 섹션에 다시 보임.
   - `R81-REV-003`: 모달 안내·설명 문구가 문서용 개조식(`~함`)이라 앱의 다른 화면 문구(`~습니다`)와 어투가 다름(R77에서 이어짐).
