@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r81-image-input-unification",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "adb8e7202e3a5d4e0fadd8c3e89d9fdf4e790f01",
+  "target_sha": "c2662320d7699da59d9aa0195d9a3744ae6ab2e1",
+  "status": "passed",
+  "created_at": "2026-11-11T08:40:00Z",
+  "finished_at": "2026-11-11T09:00:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check adb8e72 c2662320d7699da59d9aa0195d9a3744ae6ab2e1", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "node ../../node_modules/typescript/bin/tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "node ../../node_modules/next/dist/bin/next lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (66 files, 810 tests)", "command": "node ../../node_modules/vitest/vitest.mjs run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder Supabase env", "command": "node ../../node_modules/next/dist/bin/next build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Real-browser check of every image input (URL with direct fetch and wsrv.nl fallback, Windows image copy-paste transparency, file) requires signed-in user and admin accounts", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}

@@ -11,9 +11,9 @@
                                 "Every Maker step passes tsc --noEmit, npm run lint, git diff --check and the full Vitest suite."
                             ],
     "base_sha":  "adb8e7202e3a5d4e0fadd8c3e89d9fdf4e790f01",
-    "target_sha":  null,
+    "target_sha":  "c2662320d7699da59d9aa0195d9a3744ae6ab2e1",
     "branch":  "collab/r81-image-input-unification",
     "worktree_path":  ".worktrees/r81-image-input-unification",
     "max_iterations":  3,
-    "status":  "in_progress"
+    "status":  "completed"
 }
