@@ -3,7 +3,6 @@ import {
   EMPTY_CHARACTER_FILTERS,
   OTHER_FILTER_VALUE,
   filterCharacters,
-  getNameInitial,
   hasOtherAxisValue,
   hasOtherRarity,
   isCharacterSupported,
@@ -71,14 +70,6 @@ describe("normalizeMaxPresetSlots", () => {
     expect(normalizeMaxPresetSlots(0)).toBe(4)
     expect(normalizeMaxPresetSlots(13)).toBe(4)
     expect(normalizeMaxPresetSlots(6)).toBe(6)
-  })
-})
-
-describe("getNameInitial", () => {
-  it("returns the first character or a placeholder", () => {
-    expect(getNameInitial("아케론")).toBe("아")
-    expect(getNameInitial("kali")).toBe("K")
-    expect(getNameInitial("  ")).toBe("?")
   })
 })
 

@@ -204,12 +204,6 @@ export function normalizeCharacterRow(row: {
   }
 }
 
-/** First visible character of a name, used by the initial avatar fallback. */
-export function getNameInitial(name: string): string {
-  const first = Array.from(name.trim())[0]
-  return first ? first.toUpperCase() : "?"
-}
-
 function isRarityUnmapped(character: GameCharacter, schema: ClassificationSchema): boolean {
   return !character.rarity || !schema.rarities.includes(character.rarity)
 }
