@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r83-schedule-dialog-and-character-sort` *(게임별 일정 모달 `기타 일정` 중복 제거 + 캐릭터 기본 정렬을 첫 번째 분류 축 + 가나다순으로 변경)*
+- **활성 Run ID**: `r83-schedule-dialog-and-character-sort` **(완료, `main` 병합 `6af6780`, 실브라우저 확인은 사용자 대기)** *(게임별 일정 모달 `기타 일정` 중복 제거 + 캐릭터 기본 정렬을 첫 번째 분류 축 + 가나다순으로 변경)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11, 예약 `R83` 실행)*
 - **Worktree 경로**: `.worktrees/r83-schedule-dialog-and-character-sort` (브랜치: `collab/r83-schedule-dialog-and-character-sort`, manifest `434f063`)
 - **Base SHA**: `25716636ad66affc3871c19d92354488f8298bd9`
@@ -41,8 +41,8 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Dialog · Character Sort)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/dashboard/games/page.tsx`(+테스트), `src/lib/character-utils.ts`(+테스트), `src/app/admin/page.tsx`(+테스트), `src/app/dashboard/characters/page.test.tsx`·`src/components/character/*.test.tsx`(정렬 기대값 갱신 시) | - |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 1 커밋) 리뷰, 산출물, `main` 병합, 문서 마감, 실브라우저 확인 안내 | - |
+| **1** | **`✅ DONE (SHA: bc33d83)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Gemini 3.8 Flash 2순위 대체)* | `Maker (Schedule Dialog · Character Sort)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/app/dashboard/games/page.tsx`(+테스트), `src/lib/character-utils.ts`(+테스트), `src/app/admin/page.tsx`(+테스트), `src/app/dashboard/characters/page.test.tsx`·`src/components/character/*.test.tsx`(정렬 기대값 갱신 시) | `✅ bc33d83`: `기타 일정` 영역 제거, 캐릭터 기본 정렬을 첫 번째 분류 축 → 가나다 → id로 변경(`sortCharactersByClassification`). tsc·lint·diff-check 통과, Vitest 69파일/835개 통과 (미병합, 아래 Step 1 완료 기록 참고) |
+| **2** | **`✅ DONE (리뷰 clean: 2571663 ↔ bc33d83, 산출물 7c3691f, main 병합 6af6780)`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* — 수행: Claude Opus(1순위 대체) | `Reviewer & Orchestrator` | Base ↔ Target(Step 1 커밋) 리뷰, 산출물, `main` 병합, 문서 마감, 실브라우저 확인 안내 | `✅` 지적 없음. tsc·lint·diff-check·build 통과, Vitest 69파일/835개(워크트리)·159파일/1457개(병합 후 `main`) 통과. **실브라우저 확인은 사용자 대기** (아래 Step 2 완료 기록 참고) |
 
 #### 📌 `r83-schedule-dialog-and-character-sort` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -52,6 +52,24 @@
    - **적용 범위**: `buildCharacterSections`의 보유·미보유 구역(→ 보유 캐릭터 화면, 프리셋 사이드바, 모바일 선택 창), 관리자 캐릭터 표(현재 등급→이름순을 대체, 등급 필터 탭은 유지). **즐겨찾기는 사용자 지정 순서(`favorite_sort_order`) 유지**함.
    - **테스트**: 정렬 함수 단위 테스트(축 순서·동률 이름순·값 없음/미등록 값 맨 뒤·축 없는 게임), 화면 테스트 기대값 갱신. `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
 2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**: 리뷰·산출물·병합·문서 마감, 사용자에게 게임별 일정 모달과 캐릭터 정렬 확인을 안내함.
+
+#### 📝 `r83-schedule-dialog-and-character-sort` Step 1 완료 기록 (Claude Sonnet, 2026-11-11)
+
+- **Target SHA**: `bc33d83` (`collab/r83-schedule-dialog-and-character-sort`, 미병합)임. 변경 파일은 모두 허용 범위 내임(`character-roster.tsx`·`preset-board.tsx`·`preset-character-picker.tsx`는 `buildCharacterSections` 호출에 `schema` 인자만 추가).
+- **기타 일정**: `src/app/dashboard/games/page.tsx`에서 `기타 일정` 영역과 `grouped` 집합을 삭제함. 지난 일정은 따로 빼므로 남은 일정은 모두 `진행 중`(시작 ≤ 오늘) 또는 `다음 예정`(시작 > 오늘)에 이미 나오기 때문에 두 영역에 없는 일정이 존재할 수 없음(영역 재정의 대신 삭제 선택). 버전 아코디언 하위 표시는 변경 없음.
+- **정렬**: `character-utils.ts`에 순수 함수 `sortCharactersByClassification(characters, schema?)` 추가함. 첫 번째 축(`axes[0]`) 선택지 순서 → 이름 `localeCompare(…, "ko")` → id이며, 값 없음·미등록 값은 맨 뒤, 축 없는 게임·schema 없음은 이름순임. `buildCharacterSections(characters, states, schema?)`가 보유·미보유 구역에 적용하고 즐겨찾기는 `favorite_sort_order`를 유지함. 적용 화면: 보유 캐릭터 화면·프리셋 사이드바·모바일 선택 창·관리자 캐릭터 표(기존 등급→이름순 대체, 등급 필터는 유지).
+- **테스트**: `character-utils.test.ts`에 정렬 함수 7건(축 순서·동률 이름순·id 동률·값 없음/미등록 맨 뒤·축 없음·등급 무시·불변) 추가, 게임 화면 테스트에 `기타 일정` 부재·일정 1회 노출 회귀 추가, 캐릭터 화면·관리자 표 정렬 기대값 갱신함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 69파일/835개 통과함. 실브라우저는 미확인(Step 2 사용자 확인).
+- **결정/가정**: 관리자 표 정렬이 등급 순에서 분류 축 순으로 바뀌므로 등급 순 정렬이 필요하면 별도 요청 필요함. 픽업 전용 캐릭터는 분류 값이 없어 표 맨 뒤로 감.
+- **다음 단계**: Step 2(`Gemini 4 Argon`, 대체 Claude Opus, 리뷰·병합·문서 마감) `▶ READY`임.
+
+#### 📝 `r83-schedule-dialog-and-character-sort` Step 2 완료 기록 (Claude Opus — Gemini 4 Argon 1순위 대체, 2026-11-11)
+
+- **리뷰 범위**: Base `2571663` ↔ Target `bc33d83` 정적 리뷰. 산출물 `artifacts/r83-schedule-dialog-and-character-sort/iteration-01/review.json`(`clean`)·`test.json`(커밋 `7c3691f`)임.
+- **확인 내용**: 게임별 일정 모달은 남은 일정(`end_date ≥ 오늘`)을 시작일 기준으로 `진행 중`(시작 ≤ 오늘)·`다음 예정`(시작 > 오늘)으로 빠짐없이 나누므로 `기타 일정`은 항상 중복이었음 → 영역 삭제가 맞음. 버전 아코디언 하위 목록(`versionChildren`)은 그대로 쓰임. 정렬 함수는 명세대로(첫 번째 축 순서 → 가나다 → id, 값 없음·미등록 맨 뒤, 축 없음은 이름순)이고 즐겨찾기 순서는 유지됨. 지적 없음.
+- **검증**: 워크트리 tsc·lint·diff-check·build 통과, Vitest 69파일/835개 통과함. `main` 병합 `6af6780` 후 tsc·Vitest 159파일/1457개 통과함.
+- **알릴 점**: 관리자 캐릭터 표가 등급순에서 첫 번째 분류 축 순으로 바뀜(등급 필터 탭은 유지). 픽업 전용 캐릭터는 분류 값이 없어 표 맨 뒤로 감.
+- **사용자 확인 남음**: 게임별 일정 모달에서 일정이 한 번씩만 보이는지, 보유 캐릭터·프리셋 사이드바·모바일 선택 창·관리자 표의 정렬 순서.
 
 ### 🗂️ 이전 Run 기록 (완료): `r81-image-input-unification`
 
@@ -1000,7 +1018,7 @@
 
 > **실행 규칙**: 활성 Run `r81`·`r82`가 게임·캐릭터·관리자·달력 화면을 수정 중이라, 파일이 겹칠 수 있는 아래 과제는 두 Run 마감 후 Orchestrator(Gemini 4 Argon, Fallback: Claude Opus)가 워크트리를 만들고 `▶ READY`로 전환함. `R86`은 문서 전용 조사라 사용자가 지목하면 바로 착수 가능함.
 
-- **`R83` 화면 결함 2건 (`r83-schedule-dialog-and-character-sort`, DB 변경 없음)** — ✅ **2026-11-11 활성 Run으로 등록함(위 Active Dispatch Table)** — Maker **Claude Sonnet** *(GitHub Copilot / Gemini 3.8 Flash)*, 리뷰 **Gemini 4 Argon** *(Claude Opus / GitHub Copilot)*
+- **`R83` 화면 결함 2건 (`r83-schedule-dialog-and-character-sort`, DB 변경 없음)** — ✅ **2026-11-11 Run으로 실행·`main` 병합 `6af6780` 완료** — Maker **Claude Sonnet** *(GitHub Copilot / Gemini 3.8 Flash)*, 리뷰 **Gemini 4 Argon** *(Claude Opus / GitHub Copilot)*
   1. **게임별 일정 모달 `기타 일정` 중복 제거**: `src/app/dashboard/games/page.tsx`의 `기타 일정` 영역(약 320행)이 버전에 묶이지 않은 비버전 일정 전체를 다시 그림. 이 모달은 지난 일정을 따로 빼므로 남은 일정은 모두 `진행 중(ON AIR)`·`다음 예정`에 이미 표시됨 → `기타 일정`이 항상 중복됨. 중복이 생기지 않도록 영역을 없애거나 두 영역에 없는 일정만 표시하고, 회귀 테스트를 추가함.
   2. **캐릭터 기본 정렬 = 첫 번째 분류 축 + 가나다순**: 첫 번째 분류 축(`axes[0]`)의 선택지 순서 → 같은 값이면 이름 가나다순(`localeCompare(..., "ko")`), 첫 번째 축 값이 없거나 템플릿에 없는 값이면 맨 뒤로 보냄. 분류 축이 없는 게임은 이름순. 적용: `/dashboard/characters` 보유·미보유 목록과 프리셋 캐릭터 선택기, 관리자 캐릭터 표(현재 등급→이름순을 변경, 등급 필터 탭은 유지). 즐겨찾기는 사용자 지정 순서를 유지함. 정렬 함수는 `src/lib/character-utils.ts`에 순수 함수로 두고 단위 테스트를 추가함.
 - **`R84` 기타 건의 요청 창구 (`r84-general-feedback-requests`, DB 변경 → Opus 승격 조건 ①)** — DB **GPT Codex** *(Claude Opus / GitHub Copilot)* → UI **Claude Sonnet** *(GitHub Copilot / Claude Opus)* → 리뷰 **Claude Opus** *(Gemini 4 Argon / GitHub Copilot)*
