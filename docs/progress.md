@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Run `r79-sql-tests-local-run` 완료 — `main` 병합 `b38d65e` (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임.
+- **결과**: `sql/README.md`의 잘못된 `psql` 연결 형식을 `-h/-p/-U/-d` 및 `PGPASSWORD` 방식으로 수정한 Target `270f2c7`을 재리뷰하고 병합함. `R79-REV-001` 해소, 정적 리뷰 clean임.
+- **산출물**: iteration-02 `review.json`·`test.json` 커밋 `50b26ce`임.
+- **검증**: `git diff --check` 통과함. 기존 로컬 실행 38개 블록 PASS·최종 rollback PASS 증거 유지함. Docker 엔진 미실행으로 재실행 및 Python 아티팩트 스키마 검증은 미수행임.
+- **다음 단계**: 예약 과제 `R83`~`R86`은 사용자 우선순위 확인 후 착수함.
+
 ## Run `r81-image-input-unification` 완료 — `main` 병합 `3c87917` (2026-11-11)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 4)임.

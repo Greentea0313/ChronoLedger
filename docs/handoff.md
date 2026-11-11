@@ -150,7 +150,7 @@
 - **검증**: 워크트리 `c266232` 기준 tsc·lint·diff-check·build 통과, Vitest 66파일/810개 통과함. `main` 병합 `3c87917`(충돌 없음) 후 tsc·lint·Vitest 159파일/1450개 통과함.
 - **사용자 확인 남음**: 실브라우저에서 각 위치(게임 화면·게임 추가 모달 아이콘, 보유 캐릭터 아이콘, 프로필 사진, 관리자 새 픽업·픽업 전용·캐릭터·게임·분류 아이콘, 요청 승인·요청 모달)의 URL·붙여넣기·파일 등록, wsrv.nl 대체 경로, Windows 이미지 복사 붙여넣기 투명도.
 
-### 🚦 재개된 Run: `r79-sql-tests-local-run` (r81 완료로 Step 2 재리뷰 `▶ READY`)
+### ✅ 완료된 Run: `r79-sql-tests-local-run` (main 병합 `b38d65e`)
 
 - **Run ID**: `r79-sql-tests-local-run` *(`sql/tests/TESTS.sql` 첫 실제 실행: 로컬 Supabase에서 끝까지 통과시키기)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
@@ -162,7 +162,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: f13087d)`** | **Claude Opus** *(GPT Codex 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (TESTS.sql Local Run)` | `sql/tests/TESTS.sql`, `sql/README.md` | `✅ f13087d`: 첫 실행 30개 블록에서 멈춤 → 테스트 버그 3건 수정 후 38개 블록 전체 PASS·마지막 `ROLLBACK` PASS 확인. 스키마·RPC 버그 없음. README에 로컬 실행 절차 추가 (아래 Step 1 완료 기록 참고) |
-| **2** | **`▶ READY` (재리뷰: R79-REV-001 수정 `270f2c7` 확인 후 병합)** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `a580d1d` ↔ Target `f13087d` 정적 리뷰(수정이 테스트 의도를 약하게 만들지 않았는지), 가능하면 로컬 재실행, `review.json`·`test.json`, `main` 병합, 문서 마감 | `R79-REV-001` 발견: `sql/README.md:61-62`의 `psql ******127.0.0.1:54322/postgres` 명령이 유효하지 않아 문서 절차대로 실행 불가함. 로컬 Docker 재실행 자체는 38개 PASS·최종 rollback PASS. 명령 수정 후 병합 필요함. |
+| **2** | **`✅ DONE (main 병합: b38d65e, 산출물: 50b26ce)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `a580d1d` ↔ Target `270f2c7` 재리뷰, 산출물, main 병합, 문서 마감 | `R79-REV-001` 해소 확인함. `sql/README.md:61-62`를 `-h/-p/-U/-d` 형식으로 수정함. 정적 리뷰 clean, diff-check 통과, 기존 로컬 실행 38개 PASS·최종 rollback PASS 증거 유지함. 이번 세션은 Docker 엔진 미실행으로 재실행 불가함. |
 
 #### 📝 `r79-sql-tests-local-run` Step 1 완료 기록 (Claude Opus, 2026-11-11)
 
@@ -181,6 +181,12 @@
 - **동적 검증**: Docker 컨테이너 `supabase_db_chronoledger-local`에서 `TESTS.sql` 재실행 결과 38개 PASS와 최종 rollback PASS 확인함.
 - **상태**: README 명령 수정 전 `main` 병합 보류함. Maker가 유효한 `psql` URI 또는 `-h/-p/-U/-d` 형식으로 고친 뒤 재리뷰 필요함.
 - **Maker 수정 (Claude Opus, 2026-11-11, `270f2c7`)**: 원래 URI는 `postgresql://postgres:postgres@127.0.0.1:54322/postgres`였고 리뷰 도구가 `사용자:비밀번호@`를 가려 깨진 명령처럼 보였던 것으로 판단함. 오해를 없애려고 `-h 127.0.0.1 -p 54322 -U postgres -d postgres` + `PGPASSWORD` 형식으로 바꾸고, 문서 명령 그대로 재실행해 38개 PASS·최종 rollback PASS 확인함. 재리뷰는 사용자 요청에 따라 Run `r81` 뒤로 미룸.
+
+#### 📝 `r79-sql-tests-local-run` Step 2 재리뷰·마감 기록 (Claude Opus, 2026-11-11)
+
+- **Target SHA**: `270f2c7`, 산출물 커밋 `50b26ce`, `main` 병합 `b38d65e`임.
+- **리뷰**: Base `a580d1d` ↔ Target `270f2c7` 정적 리뷰 clean. `R79-REV-001`의 잘못된 `psql` 연결 형식이 유효한 명시적 인자 형식으로 교체된 것을 확인함.
+- **검증**: `git diff --check` 통과함. 이전 로컬 Supabase 실행에서 38개 블록 PASS·최종 rollback PASS 확인됨. 현재 Docker 엔진 미실행으로 재실행은 차단됨. Python 미설치로 아티팩트 스키마 검증은 미실행함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r80-classification-icon-admin-policy`
 
