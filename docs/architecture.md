@@ -75,4 +75,7 @@ Supabase
 - 웹 호스팅 플랫폼은 **Cloudflare Pages**로 최종 확정되었으며, 이전 Netlify 배포 방식은 완전히 폐기되었다. Next.js 단일 정적 export(`output: 'export'` -> `out/`) 산출물을 Cloudflare Pages에 배포하며(트래픽 무제한, 월 500회 빌드), 불변 캐시/보안 헤더(`public/_headers`) 및 SPA 라우팅(`public/_redirects`)을 통해 호스팅된다.
 - UI 설계는 [UI Design Sheet](spec/ChronoLedger_UI_Design_Sheet.md)를 따른다. 이는 SRS가 정한 동작을 보존하며, `[PROPOSED]`로 표시된 시각/배치 선택은 구현 전에 확정한다. [한국어 HTML 목업](design-previews/design-v1-ko.html)은 단일 대시보드의 정적 시각 참고 자료다.
 - DDL/RPC/RLS는 [SCHEMA.sql](../sql/SCHEMA.sql)(신규 설치용 통합 마스터)에 둔다. `sql/`은 `migrations/`(기존 DB 동기화, 재실행 안전), `seed/`, `tests/`, `archive/`(실행 금지)로 나뉘며 실행 순서와 반영 확인 쿼리는 [sql/README.md](../sql/README.md)를 따른다. 사용자는 전용 테스트 프로젝트에서 rollback-only smoke suite의 최종 PASS 및 fixture 롤백을 확인했다. 이는 전체 SRS 수용 기준 또는 Production 배포 검증을 뜻하지 않는다.
+- Excalidraw 다이어그램 자산(VS Code Excalidraw 확장 또는 [excalidraw.com](https://excalidraw.com)에서 열람 가능):
+  - 데이터베이스 통합 ERD(20개 테이블, `SECURITY DEFINER` RPC 쓰기 경계, 트리거 및 Storage 연동): [chronoledger-erd.excalidraw](diagrams/chronoledger-erd.excalidraw)
+  - 비개발자·자연어 기반 서비스 기능 상호작용 & 목적 지도(6대 영역, 3대 순환 루프): [chronoledger-functional-map.excalidraw](diagrams/chronoledger-functional-map.excalidraw)
 - 계정 삭제 처리는 Supabase의 원자적 RPC(`request_account_deletion`, `get_account_deletion_status`)와 `pg_cron` 스케줄러(`purge_expired_account_deletion_requests`)를 통해 데이터베이스 내부에서 완전히 처리된다.

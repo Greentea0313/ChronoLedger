@@ -1,4 +1,16 @@
 # 프로젝트 진행 현황
+
+## Excalidraw 기반 통합 ERD 및 서비스 기능 상호작용 지도 제작 (2026-11-11)
+
+- **수행 주체**: Gemini 4 Argon임.
+- **통합 ERD (`docs/diagrams/chronoledger-erd.excalidraw`)**:
+  - 5개 논리 영역(① 인증·프로필·감사, ② 게임·버전·캘린더 일정, ③ 결제 원장·예산·환불, ④ 가챠·캐릭터·프리셋·인벤토리, ⑤ 공지·커뮤니티) 기준 핵심 테이블 20개와 Supabase Auth/Storage·pg_cron 인프라 박스를 158개 요소로 시각화함.
+  - FK·RPC·트리거·pg_cron·Storage 경로 경계를 반영하고 검증 스크립트로 텍스트 넘침 0건·요소 겹침 0건·영역 이탈 0건·고유 ID 검증을 통과함.
+- **서비스 기능 상호작용 지도 (`docs/diagrams/chronoledger-functional-map.excalidraw`)**:
+  - 소스코드·DB 용어 대신 자연어 중심 6개 기능 영역(로그인·계정 관리, 게임 일정·버전 캘린더, 과금 장부·예산·환불, 보유 캐릭터·프리셋·재화 기록, 알림·공지·운영 지원, 자동 정리·동기화)과 목적 콜아웃, 10개 상호작용 화살표, 3대 핵심 사용자 흐름 루프를 147개 요소로 구성함.
+  - 검증 스크립트로 넘침·겹침·라벨 충돌 0건 및 고유 ID 검증을 통과함.
+- **아키텍처 문서 연동 (`docs/architecture.md`)**: 두 `.excalidraw` 다이어그램 파일 경로 링크를 추가하고 `markdownlint-cli` 검증을 통과함.
+
 ## r82-version-grouped-schedules 리뷰 및 `main` 병합 (2026-11-11)
 
 - **수행 주체**: Claude Opus (Reviewer & Orchestrator)임.
