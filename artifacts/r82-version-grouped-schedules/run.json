@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "run_id": "r82-version-grouped-schedules",
+  "created_at": "2026-11-11T00:00:00Z",
+  "objective": "Group PICKUP and CONTENTS schedules under the VERSION of the same game whose period contains their start date, in the weekly list and the selected-day detail (collapsed with a summary), without DB changes.",
+  "acceptance_criteria": [
+    "Step 1 (Claude Sonnet): pure helper src/lib/version-schedule-groups.ts (same game, child start date within version period, latest-starting version wins, BROADCAST and other VERSIONs excluded, input order kept, parent label for non-nested children) with tests; weekly list version rows with collapsed summary toggle; selected-day detail nests children inside a visible version card or shows a parent label; calendar cells, BROADCAST, favorites, pickup avatars, rerun badge, expense and memo tabs unchanged; tsc, lint, diff-check and Vitest pass.",
+    "Step 2 (Claude Opus): review, artifacts, main merge, docs closeout and real-browser check guidance."
+  ],
+  "base_sha": "7c0a31901c8fce006bbe3aee2adc10e49338e91b",
+  "target_sha": "58aa95678233ff9dc0c29f0db29560711f42b176",
+  "branch": "collab/r82-version-grouped-schedules",
+  "worktree_path": ".worktrees/r82-version-grouped-schedules",
+  "max_iterations": 3,
+  "status": "completed"
+}
