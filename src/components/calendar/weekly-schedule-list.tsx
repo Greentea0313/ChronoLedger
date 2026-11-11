@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
 import { PickupAvatars, type PickupAvatar } from "@/components/calendar/pickup-avatars"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, groupDatesByWeek } from "@/lib/calendar-utils"
+import { formatChildSummary, splitVersionGroups } from "@/lib/version-schedule-groups"
 import { cn } from "@/lib/utils"
 
 export interface WeeklyScheduleEntry {
@@ -125,6 +126,38 @@ export function WeeklyScheduleList({
   const toggle = (key: string, defaultOpen: boolean) =>
     setOpenOverrides((prev) => ({ ...prev, [key]: !(prev[key] ?? defaultOpen) }))
 
+  const renderRow = (schedule: WeeklyScheduleEntry, weekStart: string, extra?: ReactNode) => {
+    // Schedules carried over from a previous week select this week's first day.
+    const targetDate = schedule.start_date >= weekStart ? schedule.start_date : weekStart
+    return (
+      <li key={schedule.id} className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => onSelectDate(targetDate)}
+          aria-pressed={selectedDate === targetDate}
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
+        >
+          <PickupAvatars avatars={schedule.pickupAvatars} size={20} />
+          <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="sm" />
+          <span className="min-w-0 flex-1 truncate font-medium text-content">{schedule.title}</span>
+          <span className="text-xs text-content-muted">{`${schedule.start_date} ~ ${schedule.end_date}`}</span>
+          <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
+            {getDdayLabel(todayDate, schedule.end_date)}
+          </span>
+        </button>
+        {extra}
+        <FavoriteScheduleActions
+          scheduleId={schedule.id}
+          title={schedule.title}
+          favoriteScheduleIds={favoriteScheduleIds}
+          onToggleFavorite={onToggleFavorite}
+          onAddPlannedExpense={onAddPlannedExpense}
+          className="shrink-0 flex-wrap justify-end"
+        />
+      </li>
+    )
+  }
+
   return (
     <section className="rounded-lg border border-line bg-surface p-3 shadow-card md:p-4" aria-label="주차별 리스트">
       <header className="mb-3 flex items-center justify-between gap-2">
@@ -235,33 +268,34 @@ export function WeeklyScheduleList({
                         </h4>
                         {open && (
                           <ul id={panelId} className="space-y-1.5">
-                            {group.items.map((schedule) => {
-                              // Schedules carried over from a previous week select this week's first day.
-                              const targetDate = schedule.start_date >= week.weekStart ? schedule.start_date : week.weekStart
+                            {splitVersionGroups(group.items).map((entry) => {
+                              if (entry.kind === "single") return renderRow(entry.item, week.weekStart)
+                              const versionKey = `${week.weekStart}|version|${entry.version.id}`
+                              const versionOpen = isOpen(versionKey, false)
+                              const childPanelId = `week-panel-${versionKey}`
+                              const summary = formatChildSummary(entry.children)
                               return (
-                                <li key={schedule.id} className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => onSelectDate(targetDate)}
-                                    aria-pressed={selectedDate === targetDate}
-                                    className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
-                                  >
-                                    <PickupAvatars avatars={schedule.pickupAvatars} size={20} />
-                                    <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="sm" />
-                                    <span className="min-w-0 flex-1 truncate font-medium text-content">{schedule.title}</span>
-                                    <span className="text-xs text-content-muted">{`${schedule.start_date} ~ ${schedule.end_date}`}</span>
-                                    <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
-                                      {getDdayLabel(todayDate, schedule.end_date)}
-                                    </span>
-                                  </button>
-                                  <FavoriteScheduleActions
-                                    scheduleId={schedule.id}
-                                    title={schedule.title}
-                                    favoriteScheduleIds={favoriteScheduleIds}
-                                    onToggleFavorite={onToggleFavorite}
-                                    onAddPlannedExpense={onAddPlannedExpense}
-                                    className="shrink-0 flex-wrap justify-end"
-                                  />
+                                <li key={entry.version.id} data-testid="version-group" className="space-y-1.5">
+                                  {renderRow(entry.version, week.weekStart, entry.children.length > 0 && (
+                                    <button
+                                      type="button"
+                                      data-testid="version-group-toggle"
+                                      aria-expanded={versionOpen}
+                                      aria-controls={childPanelId}
+                                      aria-label={`${entry.version.title} 하위 일정 ${versionOpen ? "접기" : "펼치기"}`}
+                                      onClick={() => toggle(versionKey, false)}
+                                      className="flex shrink-0 items-center gap-1 rounded-md border border-line bg-surface px-1.5 py-1 text-[11px] text-content-secondary hover:border-line-control"
+                                    >
+                                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", !versionOpen && "-rotate-90")} aria-hidden="true" />
+                                      <span>{summary}</span>
+                                      <PickupAvatars avatars={collectGroupAvatars({ ...group, items: entry.children })} size={16} />
+                                    </button>
+                                  ))}
+                                  {versionOpen && entry.children.length > 0 && (
+                                    <ul id={childPanelId} className="ml-4 space-y-1.5 border-l border-line pl-2">
+                                      {entry.children.map((child) => renderRow(child, week.weekStart))}
+                                    </ul>
+                                  )}
                                 </li>
                               )
                             })}

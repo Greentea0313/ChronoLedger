@@ -3,12 +3,13 @@ import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Pencil, Check, X } from "lucide-react"
+import { Pencil, Check, X, ChevronDown } from "lucide-react"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { PickupAvatars, type PickupAvatar } from "@/components/calendar/pickup-avatars"
 import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, getPeriodProgress, getTodayLocalDate } from "@/lib/calendar-utils"
+import { formatChildSummary, getVersionParents } from "@/lib/version-schedule-groups"
 
 const PLATFORM_LABELS: Record<string, string> = {
   GOOGLE_PLAY: "Google",
@@ -153,6 +154,7 @@ export function HeroSidebarContent({
 
   const [selectedDetailTab, setSelectedDetailTab] = useState<"SCHEDULE" | "EXPENSE" | "MEMO">("SCHEDULE")
   const [showAllOngoing, setShowAllOngoing] = useState(false)
+  const [openVersionKeys, setOpenVersionKeys] = useState<ReadonlySet<string>>(() => new Set())
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
   const [isEditingMemo, setIsEditingMemo] = useState(false)
   const currentMemoText = memoContent !== undefined ? memoContent : (memos[0] || "")
@@ -183,8 +185,37 @@ export function HeroSidebarContent({
       return a.end_date.localeCompare(b.end_date)
     })
 
+  // R82: 픽업·콘텐츠는 시작일이 속한 같은 게임 버전 아래로 묶음. 버전 카드가 오늘 목록에 있을 때만 카드 안에 접어 넣고,
+  // 그렇지 않으면 단독 카드로 두되 소속 버전 이름만 작게 표시함.
+  const versionParents = getVersionParents(schedules || [])
+  const visibleVersionIds = new Set(filteredSchedules.filter((s) => s.schedule_type === "VERSION").map((s) => s.id))
+  const nestedChildrenByVersion = new Map<string, HeroScheduleItem[]>()
+  const nestedIds = new Set<string>()
+  filteredSchedules.forEach((s) => {
+    const parent = versionParents.get(s.id)
+    if (!parent || !visibleVersionIds.has(parent.id)) return
+    nestedIds.add(s.id)
+    nestedChildrenByVersion.set(parent.id, [...(nestedChildrenByVersion.get(parent.id) ?? []), s])
+  })
+  const toggleVersionKey = (key: string) =>
+    setOpenVersionKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  const parentLabel = (item: HeroScheduleItem) => {
+    const parent = versionParents.get(item.id)
+    if (!parent || nestedIds.has(item.id)) return null
+    return (
+      <span data-testid="version-parent-label" className="relative z-10 text-[10px] text-content-muted">
+        {`소속: ${parent.title}`}
+      </span>
+    )
+  }
+
   // 같은 게임 + 같은 유형 + 같은 기간의 일정은 하나의 카드로 묶어서 표시 (정렬 순서 유지)
-  const scheduleGroups = filteredSchedules.reduce<HeroScheduleGroup[]>((groups, s) => {
+  const scheduleGroups = filteredSchedules.filter((s) => !nestedIds.has(s.id)).reduce<HeroScheduleGroup[]>((groups, s) => {
     const gameKey = s.gameId ?? s.gameName ?? ""
     const key = `${gameKey}|${s.schedule_type}|${s.is_rerun === true ? "rerun" : "new"}|${s.start_date}|${s.end_date}`
     const existing = groups.find((g) => g.key === key)
@@ -414,6 +445,7 @@ export function HeroSidebarContent({
                                   className="shrink-0 flex-wrap justify-end"
                                 />
                               </div>
+                              {parentLabel(item)}
                               {item.memo && (
                                 <p className="pl-3 text-[11px] text-content-secondary whitespace-pre-wrap">
                                   {item.memo}
@@ -448,6 +480,8 @@ export function HeroSidebarContent({
                             />
                           </div>
 
+                          {parentLabel(group.items[0])}
+
                           {/* Line 4: 메모 (있는 경우) */}
                           {group.items[0].memo && (
                             <p className="relative z-10 text-[11px] text-content-secondary mt-0.5 whitespace-pre-wrap">
@@ -456,6 +490,75 @@ export function HeroSidebarContent({
                           )}
                         </>
                       )}
+
+                      {(() => {
+                        const children = group.items.flatMap((item) => nestedChildrenByVersion.get(item.id) ?? [])
+                        if (children.length === 0) return null
+                        const open = openVersionKeys.has(group.key)
+                        const panelId = `version-children-${group.key}`
+                        return (
+                          <div className="relative z-10 mt-1 space-y-1.5">
+                            <button
+                              type="button"
+                              data-testid="version-children-toggle"
+                              data-vaul-no-drag
+                              aria-expanded={open}
+                              aria-controls={panelId}
+                              onClick={() => toggleVersionKey(group.key)}
+                              className="flex w-full items-center gap-1.5 rounded-md border border-line bg-surface px-2 py-1 text-left text-xs text-content-secondary hover:border-line-control"
+                            >
+                              <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform${open ? "" : " -rotate-90"}`} aria-hidden="true" />
+                              <span>{formatChildSummary(children)}</span>
+                              <PickupAvatars
+                                avatars={children.flatMap((c) => c.pickupAvatars ?? []).filter((a, i, all) => all.findIndex((x) => x.id === a.id) === i)}
+                                size={20}
+                                className="ml-auto"
+                              />
+                            </button>
+                            {open && (
+                              <ul id={panelId} className="space-y-1.5 border-l border-line pl-2">
+                                {children.map((child) => (
+                                  <li key={child.id} data-testid="version-child-card" className="rounded-md border border-line bg-surface p-2 text-sm">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <ScheduleTypeBadge type={child.schedule_type} isRerun={child.is_rerun === true} size="sm" />
+                                      <span className="text-xs text-content-muted">
+                                        {child.start_date === child.end_date ? `${child.start_date} (단일)` : `${child.start_date} ~ ${child.end_date}`}
+                                      </span>
+                                      <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
+                                        {getDdayLabel(today, child.end_date)}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                      <div className="min-w-0 flex-1 font-bold leading-snug text-content">
+                                        <PickupAvatars avatars={child.pickupAvatars} size={28} className="mr-1.5 align-middle" />
+                                        <span className={child.pickupAvatars?.length ? "relative top-0.5" : undefined}>
+                                          {child.is_official === false && (
+                                            <span className="mr-1 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                              [비공식]
+                                            </span>
+                                          )}
+                                          <ScheduleTitleBadges title={child.title} />
+                                        </span>
+                                      </div>
+                                      <FavoriteScheduleActions
+                                        scheduleId={child.id}
+                                        title={child.title}
+                                        favoriteScheduleIds={favoriteScheduleIds}
+                                        onToggleFavorite={onToggleFavorite}
+                                        onAddPlannedExpense={onAddPlannedExpense}
+                                        className="shrink-0 flex-wrap justify-end"
+                                      />
+                                    </div>
+                                    {child.memo && (
+                                      <p className="text-[11px] text-content-secondary whitespace-pre-wrap">{child.memo}</p>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })
