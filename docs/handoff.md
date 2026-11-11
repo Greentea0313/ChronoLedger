@@ -31,7 +31,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r81-image-input-unification` *(이미지 입력 공용 등록 모달 통일: URL·붙여넣기·파일, 캘린더 배경 제외)*
+- **활성 Run ID**: `r81-image-input-unification` **(완료, `main` 병합 `3c87917`, 실브라우저 확인은 사용자 대기)** *(이미지 입력 공용 등록 모달 통일: URL·붙여넣기·파일, 캘린더 배경 제외)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
 - **Worktree 경로**: `.worktrees/r81-image-input-unification` (브랜치: `collab/r81-image-input-unification`, manifest `651dc6a`)
 - **Base SHA**: `adb8e7202e3a5d4e0fadd8c3e89d9fdf4e790f01`
@@ -50,9 +50,9 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 96d4b3d)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Architect (R81 Spec)` | 아래 **Step 1 수용 기준** 수행 완료함. | `✅ 96d4b3d`: [`R81_Image_Input_Unification_Spec.md`](spec/R81_Image_Input_Unification_Spec.md)(워크트리) 작성. 대상 13곳 확정(사용자 4·관리자·요청 8·R77 1), 공용 모달 API·변환 규격·회귀 금지·테스트·Step 2/3 허용 파일 확정 (아래 Step 1 완료 기록 참고) |
-| **2** | **`▶ READY`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Shared Dialog + User Screens)` | 명세 §3·§4·§7 Step 2대로 공용 모달·사용자 화면 4곳(U1~U4) | - |
-| **3** | **`⏳ WAITING`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Admin + Request Screens)` | 명세 §4·§7 Step 3대로 관리자·요청 화면 8곳(A1~A8)과 R77 모달(A9) 교체 | - |
-| **4** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 3 커밋) 통합 리뷰, 동적 검증, 산출물, `main` 병합, 문서 마감, 사용자 실브라우저 확인 안내 | - |
+| **2** | **`✅ DONE (SHA: 77edee9)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Shared Dialog + User Screens)` | 명세 §3·§4·§7 Step 2대로 공용 모달·사용자 화면 4곳(U1~U4) | `✅ 77edee9`: 공용 `image-source.ts`·`image-source-dialog.tsx` 추가, 사용자 화면 U1~U4 교체, 붙여넣기 `text/html` 원본 주소 우선·비트맵 폴백·투명 배경 안내 반영. tsc·lint·diff-check 통과, Vitest 66파일/809개 통과 (미병합, 아래 Step 2 완료 기록 참고) |
+| **3** | **`✅ DONE (SHA: c266232)`** | **Claude Sonnet** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Maker (Admin + Request Screens)` | 명세 §4·§7 Step 3대로 관리자·요청 화면 8곳(A1~A8)과 R77 모달(A9) 교체 | `✅ c266232`: 관리자 화면 A1~A4·A9, 요청 승인 화면 A5·A6, 요청 모달 A7·A8을 공용 이미지 모달로 교체함. tsc·lint·diff-check 통과, Vitest 66파일/810개 통과 (미병합, 아래 Step 3 완료 기록 참고) |
+| **4** | **`✅ DONE (리뷰: adb8e72 ↔ c266232, 산출물 e4b5d9e, main 병합 3c87917)`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base ↔ Target(Step 3 커밋) 통합 리뷰, 동적 검증, 산출물, `main` 병합, 문서 마감, 사용자 실브라우저 확인 안내 | `✅` P1~P3 없음, P4 3건 to-do `R83` 이관. tsc·lint·diff-check·build 통과, Vitest 66파일/810개(워크트리)·159파일/1450개(병합 후 `main`) 통과. **실브라우저 확인은 사용자 대기** (아래 Step 4 완료 기록 참고) |
 
 #### 📌 `r81-image-input-unification` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -74,6 +74,29 @@
 - **화면 연결**: U1·U3·U4는 등록 즉시 Storage 업로드(256 WebP ≤100KiB, U3 `onChangeIcon`은 Blob을 받도록 변경), U2는 Blob을 보관했다가 게임 추가 때 업로드, A1~A8은 Data URL을 폼 상태에 넣고 기존처럼 저장할 때 반영, A9는 기존 upsert 경로·23514/42501 안내 유지.
 - **회귀 금지·테스트·허용 파일**: 명세 §5~§7에 확정함. 남은 사용자 결정 없음.
 - **다음 단계**: Step 2(`Claude Sonnet`, 공용 모달 + 사용자 화면 4곳) `▶ READY`임.
+
+#### 📝 `r81-image-input-unification` Step 2 완료 기록 (Claude Sonnet, 2026-11-11)
+
+- **Target SHA**: `77edee9` (`collab/r81-image-input-unification`, 미병합)임. 변경 13개 파일 모두 명세 §7 허용 범위 내임.
+- **공용 구성**: `src/lib/image-source.ts`(`resolveImageSource`: 파일 그대로·`data:image/` 문자열은 File로 디코딩해 재인코딩·http(s)는 `fetchImageFile` 직접→wsrv.nl, `extractClipboardImageUrl`) + `src/components/ui/image-source-dialog.tsx`(명세 §3.2 API 그대로, 본문을 열릴 때만 마운트해 열 때마다 초기화).
+- **동작**: 파일·붙여넣기는 즉시 변환, 텍스트는 포커스 이동·Enter·등록 시 변환하며 변환 결과를 미리보기와 등록에 재사용함. 오래된 변환 결과 폐기, `convertKey` 변경 시 재변환, 텍스트·파일 교체 시 파일 입력칸 재생성, 오프라인이면 가져오기·저장 없이 안내함, `onRegister` 오류는 모달 안에 표시하고 유지함.
+- **붙여넣기 투명도 손실 대응(추가 수용 기준)**: 클립보드 `text/html`의 `<img src="http(s)://…">`가 있으면 원본 주소를 입력란에 채워 URL 가져오기를 우선 시도하고, 실패할 때만 클립보드 비트맵 파일을 사용함. 모달에 `투명 배경 이미지는 파일 업로드를 권장함` 안내를 표시함.
+- **사용자 화면**: U1 게임 화면(`handleIconUpload`가 Blob을 받아 오류 문구 반환, 성공 알림 유지), U2 게임 추가 모달(Blob 보관 후 게임 추가 때 업로드, `아이콘 선택됨 (변경)`·작은 미리보기·`제거`), U3 보유 캐릭터 설정 창(`onChangeIcon(character, blob): Promise<string|null>`, 서버 저장 실패 시 안내), U4 프로필 사진(`사진 선택/변경` 버튼). 삭제·복원 버튼과 Storage 경로·256 WebP 규격은 변경 없음.
+- **테스트**: `image-source.test.ts` 6건, `image-source-dialog.test.tsx` 14건(파일·붙여넣기·URL blur/등록·원본 주소 우선·비트맵 폴백·오래된 결과 폐기·오류 유지·빈 입력·오프라인·재오픈 초기화·입력칸 재생성·`convertKey`·`extra`), 화면 테스트(게임 화면·게임 추가 모달·캐릭터 화면·프로필)를 다이얼로그 흐름으로 갱신·추가함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 66파일/809개 통과함. 실브라우저(실제 URL 가져오기·wsrv.nl 프록시·Windows 이미지 복사 붙여넣기 투명도)는 미확인이라 Step 4 사용자 확인 대상임.
+- **결정/가정**: U2는 게임 추가 모달 안에서 다이얼로그가 중첩 모달로 열림. 프로필 사진의 5MB 입력 상한 안내는 버튼 아래 문구로 옮김.
+- **다음 단계**: Step 3(`Claude Sonnet`, 관리자·요청 화면 A1~A8 + R77 모달 A9 교체) `▶ READY`임.
+
+#### 📝 `r81-image-input-unification` Step 3 완료 기록 (Claude Sonnet, 2026-11-11)
+
+- **Target SHA**: `c266232` (`collab/r81-image-input-unification`, 미병합)임. 변경 7개 파일 모두 명세 §7 허용 범위 내이며 공용 파일(`image-source.ts`·`image-source-dialog.tsx`)은 수정하지 않았음.
+- **교체 위치**: 관리자 화면 A1 일정 폼 `새 픽업 캐릭터` 이미지·A2 `픽업 전용 캐릭터` 이미지(두 곳이 한 모달·상태 공유)·A3 캐릭터 폼 기본 아이콘·A4 게임 폼 기본 아이콘·A9 분류 아이콘(R77 인라인 모달 삭제), 요청 승인 화면 A5 게임 기본 아이콘·A6 캐릭터 교체 아이콘, 요청 모달 A7 캐릭터 아이콘·A8 제안 캐릭터 이미지.
+- **방식**: 인라인 URL·파일 입력과 붙여넣기 핸들러·파일 상태를 지우고 `이미지 선택/변경` 버튼 + 미리보기로 바꿈. 모달이 변환한 256×256 WebP Data URL을 기존 폼 상태(`…IconUrl`·`newPickupImageSource`·`proposalImageSource`·`defaultIconUrls`)에 넣으므로 저장·승인·제출 경로와 150,000자 검사(`assertIconDataUrlSize`)·AI 업스케일(`extra` 체크박스, 저해상도 감지 시에만 표시)은 그대로임. A4 게임 폼은 명세대로 AI 업스케일 없이 `convertIconSourceToDataUrl`을 씀(이전에는 붙여넣기에만 업스케일 적용).
+- **A9**: 공용 모달 `fetchSize=64`·`createClassificationIconDataUrl`로 변환하고 기존 upsert 경로(`runIconWrite`)가 오류 문구를 반환하게 바꿈(`23514`·42501·기타 `(code: message)` 안내, 선택지별 쓰기 잠금, 삭제 버튼, 미적용 DB 폴백 유지).
+- **테스트 변경**: 관리자·요청 승인·요청 모달 테스트를 공용 모달 흐름으로 갱신함(`fetchImageFile` 모킹, URL은 `fetchImageFile`→변환 함수에 File 전달). 변환 오류·용량 초과는 모달 안 `role="alert"`로 확인하고, 모달 변환 중 등록 버튼 비활성, 요청 모달 캐릭터 아이콘 등록→`default_icon_url` 제출 테스트를 추가함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 66파일/810개 통과함. 실브라우저는 미확인(Step 4 사용자 확인).
+- **결정/가정**: 요청 승인 화면의 `http/https` 주소 검증 코드는 공용 모달이 비-http 텍스트를 이미 거부해 사실상 도달하지 않지만 방어용으로 남김. A1·A2는 같은 `newPickupImageSource`를 공유하므로 모달 한 개로 둠. 요청 승인 화면 입력 라벨(`… 기본 아이콘 URL/파일`)은 버튼 `… 이미지 선택`으로 바뀜.
+- **다음 단계**: Step 4(`Claude Opus`, 통합 리뷰·산출물·병합·문서 마감·사용자 실브라우저 확인 안내) `▶ READY`임.
 
 ### 🗂️ 완료된 병행 Run: `r82-version-grouped-schedules` (2026-11-11 `main` 병합 `2c1f5c5`)
 
@@ -116,7 +139,18 @@
    - **테스트**: 소속 판정(경계일 포함, 겹치는 버전, 다른 게임, 방송 제외, 버전 없는 게임), 주간 목록 접힘·펼침·요약 개수, 상세 카드 묶음과 소속 라벨. `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 전체 통과함.
 2. **Step 2 (`Claude Opus` — Reviewer & Orchestrator)**: 리뷰·산출물·병합·문서 마감, 사용자에게 데스크톱·모바일에서 주간 목록과 선택일 상세 확인을 안내함.
 
-### ⏸️ 보류 중 Run: `r79-sql-tests-local-run` (Step 2 리뷰는 `r81` 이후 진행, 사용자 요청 2026-11-11)
+#### 📝 `r81-image-input-unification` Step 4 완료 기록 (Claude Opus, 2026-11-11)
+
+- **리뷰 범위**: Base `adb8e72` ↔ Target `c266232` 통합 정적 리뷰(공용 `image-source.ts`·`image-source-dialog.tsx`, 사용자 화면 U1~U4, 관리자·요청 화면 A1~A9). 산출물 `artifacts/r81-image-input-unification/iteration-01/review.json`·`test.json`(커밋 `e4b5d9e`)임.
+- **결과**: P1~P3 없음. 명세 §3~§5대로 구현됨(Data URL 문자열 재인코딩, 변환 결과 재사용, 오래된 결과 폐기, `convertKey` 재변환, 파일 입력칸 재생성, 저장·업로드 경로와 용량 상한·AI 업스케일·23514/42501 안내 유지). Step 2가 추가한 "붙여넣기 시 원본 주소 우선(투명도 유지)" 동작도 확인함.
+- **P4 지적 3건 (to-do `R83` 이관)**:
+  - `R81-REV-001`: URL 입력란에서 포커스가 빠지거나 Enter를 누를 때의 변환은 오프라인 검사 없이 가져오기를 시도함(저장은 차단됨).
+  - `R81-REV-002`: 분류 아이콘 등록 실패 후 모달을 닫으면 같은 오류가 템플릿 편집기 아이콘 섹션에 다시 보임.
+  - `R81-REV-003`: 모달 안내·설명 문구가 문서용 개조식(`~함`)이라 앱의 다른 화면 문구(`~습니다`)와 어투가 다름(R77에서 이어짐).
+- **검증**: 워크트리 `c266232` 기준 tsc·lint·diff-check·build 통과, Vitest 66파일/810개 통과함. `main` 병합 `3c87917`(충돌 없음) 후 tsc·lint·Vitest 159파일/1450개 통과함.
+- **사용자 확인 남음**: 실브라우저에서 각 위치(게임 화면·게임 추가 모달 아이콘, 보유 캐릭터 아이콘, 프로필 사진, 관리자 새 픽업·픽업 전용·캐릭터·게임·분류 아이콘, 요청 승인·요청 모달)의 URL·붙여넣기·파일 등록, wsrv.nl 대체 경로, Windows 이미지 복사 붙여넣기 투명도.
+
+### 🚦 재개된 Run: `r79-sql-tests-local-run` (r81 완료로 Step 2 재리뷰 `▶ READY`)
 
 - **Run ID**: `r79-sql-tests-local-run` *(`sql/tests/TESTS.sql` 첫 실제 실행: 로컬 Supabase에서 끝까지 통과시키기)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11)*
@@ -128,7 +162,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: f13087d)`** | **Claude Opus** *(GPT Codex 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (TESTS.sql Local Run)` | `sql/tests/TESTS.sql`, `sql/README.md` | `✅ f13087d`: 첫 실행 30개 블록에서 멈춤 → 테스트 버그 3건 수정 후 38개 블록 전체 PASS·마지막 `ROLLBACK` PASS 확인. 스키마·RPC 버그 없음. README에 로컬 실행 절차 추가 (아래 Step 1 완료 기록 참고) |
-| **2** | **`⏸️ ON_HOLD (R79-REV-001 수정 270f2c7 → 재리뷰는 r81 이후)`** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `a580d1d` ↔ Target `f13087d` 정적 리뷰(수정이 테스트 의도를 약하게 만들지 않았는지), 가능하면 로컬 재실행, `review.json`·`test.json`, `main` 병합, 문서 마감 | `R79-REV-001` 발견: `sql/README.md:61-62`의 `psql ******127.0.0.1:54322/postgres` 명령이 유효하지 않아 문서 절차대로 실행 불가함. 로컬 Docker 재실행 자체는 38개 PASS·최종 rollback PASS. 명령 수정 후 병합 필요함. |
+| **2** | **`▶ READY` (재리뷰: R79-REV-001 수정 `270f2c7` 확인 후 병합)** | **Gemini 4 Argon** *(GitHub Copilot 1순위 대체 / Claude Opus 2순위 대체)* | `Reviewer & Orchestrator` | Base `a580d1d` ↔ Target `f13087d` 정적 리뷰(수정이 테스트 의도를 약하게 만들지 않았는지), 가능하면 로컬 재실행, `review.json`·`test.json`, `main` 병합, 문서 마감 | `R79-REV-001` 발견: `sql/README.md:61-62`의 `psql ******127.0.0.1:54322/postgres` 명령이 유효하지 않아 문서 절차대로 실행 불가함. 로컬 Docker 재실행 자체는 38개 PASS·최종 rollback PASS. 명령 수정 후 병합 필요함. |
 
 #### 📝 `r79-sql-tests-local-run` Step 1 완료 기록 (Claude Opus, 2026-11-11)
 

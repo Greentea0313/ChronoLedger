@@ -1,4 +1,28 @@
 # 프로젝트 진행 현황
+## Run `r81-image-input-unification` 완료 — `main` 병합 `3c87917` (2026-11-11)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 4)임.
+- **결과**: 캘린더 배경을 뺀 모든 이미지 입력(사용자 4곳, 관리자·요청 8곳, 분류 아이콘)이 공용 등록 모달(URL·붙여넣기·파일·미리보기)을 씀. 리뷰 P1~P3 없음, P4 3건은 to-do `R83`으로 이관함.
+- **검증**: 병합 후 `main`에서 tsc·lint·Vitest 159파일/1450개 통과함.
+- **남은 작업 (사용자)**: 각 위치 실브라우저 확인(URL·붙여넣기·파일, wsrv.nl 대체 경로, 투명 이미지 붙여넣기).
+- **다음 단계**: Run `r79` Step 2 재리뷰(`Gemini 4 Argon`) `▶ READY`임.
+
+
+## R81 관리자·요청 화면 이미지 입력 교체 (2026-11-11)
+
+- **수행 주체**: Claude Sonnet (Run `r81-image-input-unification` Step 3)임.
+- **결과**: 워크트리 커밋 `c266232`(미병합). 관리자 화면 A1~A4·A9, 요청 승인 화면 A5·A6, 요청 모달 A7·A8을 공용 이미지 모달(URL·붙여넣기·파일)로 교체함. R77 인라인 모달 삭제. tsc·lint·diff-check 통과, Vitest 66파일/810개 통과함.
+- **미확인**: 실브라우저 동작(URL 가져오기·wsrv.nl·붙여넣기 투명도·AI 업스케일 체크박스).
+- **다음 단계**: Step 4(`Claude Opus`, 통합 리뷰·병합·문서 마감) `▶ READY`임.
+
+
+## R81 공용 이미지 입력 모달·사용자 화면 4곳 구현 (2026-11-11)
+
+- **수행 주체**: Claude Sonnet (Run `r81-image-input-unification` Step 2)임.
+- **결과**: 워크트리 커밋 `77edee9`(미병합). 공용 `image-source.ts`·`image-source-dialog.tsx` 추가, 게임 화면·게임 추가 모달·보유 캐릭터 설정 창·프로필 사진을 URL·붙여넣기·파일 모달로 교체함. 붙여넣기는 `text/html` 원본 주소 우선(투명도 보존), 실패 시 비트맵 폴백함. tsc·lint·diff-check 통과, Vitest 66파일/809개 통과함.
+- **미확인**: 실브라우저 URL 가져오기·wsrv.nl 프록시·Windows 이미지 복사 붙여넣기 투명도.
+- **다음 단계**: Step 3(`Claude Sonnet`, 관리자·요청 화면 + R77 모달 교체) `▶ READY`임.
+
 
 ## Excalidraw 기반 통합 ERD 및 서비스 기능 상호작용 지도 제작 (2026-11-11)
 
