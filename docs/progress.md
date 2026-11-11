@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## 작업 트리 정리 (2026-11-12)
+
+- **수행 주체**: Claude Opus (사용자 요청)임.
+- **미커밋 문서 커밋**: GitHub Copilot이 R86 Step 2 마감 중 남긴 미커밋 문서(handoff·progress·changelog·to-do·조사 문서 결정 반영, 후속 `R90` 등록)를 `2f583ce`로 커밋함.
+- **워크트리 정리**: `.worktrees/` 등록 워크트리 14개(r13-phase13-2~r88)를 `git worktree remove`로 제거함. 모두 미커밋 변경 없었고 `collab/*` 브랜치는 그대로 유지해 커밋 손실 없음(미병합 브랜치: `r13-phase13-1-db-and-r30-icon-resave` 4커밋, `require-main-run-sha` 2커밋, `r82-version-grouped-schedules` manifest 1커밋 — 브랜치로 보존됨).
+- **고아 폴더 7개 삭제**: git 연결이 이미 끊긴 phase5~9·r13-phase13-1·require-main-run-sha 폴더를 브랜치 최신 커밋과 비교해 삭제함. 고유 내용은 phase8 `collab/iterations/iteration-01/review.json`·`test.json` 2개뿐이라 저장소 밖 `C:Usersinhachronoledger-worktree-backup-2026-11-12`에 백업함.
+- **남김**: `.claude/worktrees/`의 앱 세션 워크트리 2개(`handover-docs-review-ddffbe`, `project-feature-review-comparison-2974fa`)는 해당 세션이 열려 있을 수 있어 유지함. 앱 설정 Storage의 `Clean up inactive sessions`(30일 이상 미사용) 또는 세션 보관 후 정리 가능함.
+- **이후 Run**: 새 Run은 `New-CollaborationRun.ps1`로 워크트리를 다시 만들면 됨.
+
 ## Run `r86-schedule-crawling-research` 완료 (2026-11-11)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Gemini 4 Argon 1순위 대체)임.
