@@ -731,7 +731,9 @@
 - [ ] R84. [보류 · `R89` 푸시 알림 설계 후 착수 · 결정: 분류 기능 제안·오류 신고·기타, 첨부 없음 · DB 변경] 기타 건의 요청 창구: 자유 형식 건의 테이블·RLS·탈퇴 정리, `+ 추가 요청` 모달 `기타 건의` 탭, 관리자 `건의` 탭(답변·상태), 내 요청 이력 표시 — 착수 전 분류 목록·첨부·답변 알림 방식 결정 필요 (담당: GPT Codex DB → Claude Sonnet UI → Claude Opus 리뷰)
 - [ ] R85. [결정 완료(2026-11-11): 분 단위·종료 미입력 시 날짜만·KST·달력 칸 미표시] [설계 우선 · `R37` 흡수] 일정 시간 단위 관리: 날짜 기준은 유지하고 표시·알림용 `start_at`·`end_at TIMESTAMPTZ NULL`·시각 예상 여부 추가안 명세화(서버 시간대 차이·점검 후 시작·일관성 CHECK·승인 RPC·폼·표시 범위) — 착수 전 입력 단위·종료 시각 기본값·달력 표시 여부 결정 필요 (담당: Claude Opus 설계)
 - [x] R86. [Run `r86-schedule-crawling-research` 완료(2026-11-11) · 조사 · 문서 전용] 공식 일정 자동 수집 가능성을 검토함. 별도 `schedule_candidates`, Steam 6개+버전 주기 추정, 하루 1회, Supabase Edge Function+`pg_cron`, 구현 전 추가 조사로 결정함. 후속 구현은 R90으로 예약함.
-- [ ] R90. [R86 후속 · R89 푸시 알림 조사와 병행 가능 · DB/RLS·Edge Function 변경 · 🐳 Docker Desktop 필요] `schedule_candidates` 테이블·관리자 RLS·Steam 6개 공지 감지·버전 주기 추정·하루 1회 `pg_cron`·관리자 후보 검토 UI 구현 (담당: GPT Codex DB/Edge Function → Claude Sonnet UI → Claude Opus 리뷰)
+- [ ] R90. [R86 후속 · R89 푸시 알림 조사와 병행 가능 · DB/RLS·Edge Function 변경 · 🐳 Docker Desktop 필요] `schedule_candidates` 테이블·관리자 RLS·Steam 6개 공지 감지·버전 주기 추정·하루 1회 `pg_cron`·관리자 후보 검토 UI 구현 (담당: GPT Codex DB/Edge Function → Claude Sonnet UI → Claude Opus 리뷰) ⚠️ **2026-11-12 재검토 중**: 사용자 판단으로 Steam 대상은 림버스 컴퍼니 1개로 줄이고, HoYoLAB·네이버 라운지는 약관상 자동 수집 금지 확인(조사 문서 10절). 경로 방식·저장 범위·실행 위치 결정 전 착수 보류함.
+  - [ ] R90 착수 전 결정: 네이버 라운지·HoYoLAB 처리 방식(허락 문의 / 알림 받고 링크 붙여넣기 / 허용 경로만 자동화), 미정 게임 공지 채널, 저장 범위, 실행 위치, 새 후보 알림 방식 (`schedule-crawling-research.md` 10.4)
+  - [ ] 네이버 이용약관 원문(`policy.naver.com/rules/service.html`)의 자동 수집 금지 조항 번호·문구 직접 확인 (도구로 열지 못함)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---

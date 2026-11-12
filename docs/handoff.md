@@ -1126,7 +1126,7 @@
   - 1차 검토 요지: 앱은 서버 없는 정적 배포라 브라우저에서 직접 수집은 CORS·약관 문제로 불가함. 수집기는 별도 실행 환경(예: Supabase Edge Function + `pg_cron`, 또는 GitHub Actions 예약 작업)이 필요하고, 결과는 공용 일정에 바로 쓰지 않고 `schedule_requests`(대기)로 넣어 관리자 승인을 거치는 반자동 방식이 안전함.
   - 조사 항목: 게임별 공식 출처(공식 사이트 공지·RSS·HoYoLAB 등 커뮤니티 API·공식 X·YouTube)의 이용약관·robots.txt 허용 여부, 구조화 정도(날짜·시각·버전명 추출 난이도), 공지 형식 변경에 따른 유지보수 비용, 키·비밀 관리. 산출물 `docs/schedule-crawling-research.md`.
   - **검토·결정 완료(2026-11-11)**: 별도 `schedule_candidates` 테이블, Steam 6개 공지 감지+버전 주기 추정, 하루 1회, Supabase Edge Function+`pg_cron`, 미확인 약관·Steam 제공 여부는 구현 전 추가 조사로 확정함.
-- **`R90` 일정 후보 수집 구현 (R86 후속, DB/RLS·Edge Function 변경)** — R89 푸시 알림 조사와 별개로 후속 착수 예정임. `schedule_candidates` 스키마·관리자 RLS·Steam 6개 앱 감지·버전 주기 추정·하루 1회 `pg_cron` 실행·관리자 후보 검토 UI를 구현함. 🐳 로컬 Supabase 검증에 Docker Desktop 필요함.
+- **`R90` 일정 후보 수집 구현 (R86 후속, DB/RLS·Edge Function 변경)** — R89 푸시 알림 조사와 별개로 후속 착수 예정임. `schedule_candidates` 스키마·관리자 RLS·Steam 6개 앱 감지·버전 주기 추정·하루 1회 `pg_cron` 실행·관리자 후보 검토 UI를 구현함. 🐳 로컬 Supabase 검증에 Docker Desktop 필요함. ⚠️ **2026-11-12 재검토 중**: 사용자 판단으로 Steam 대상은 림버스 컴퍼니 1개로 줄이고, HoYoLAB·네이버 라운지는 약관상 자동 수집 금지 확인(조사 문서 10절). 경로 방식·저장 범위·실행 위치 결정 전 착수 보류함.
 
 ### 🛠️ `main` 직접 수정 기록: 모바일 대시보드 폭·필터 칩 줄바꿈 (2026-11-11)
 
