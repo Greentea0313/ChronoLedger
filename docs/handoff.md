@@ -32,7 +32,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r93-income-history-db-and-ui` **(완료, `main` 병합 `a1f17e0`, R93 마이그레이션 운영 적용·실브라우저 확인은 사용자 대기)** *(`R93`: `public.incomes` 수익 내역 테이블·RLS·계정 탈퇴 정리 연동 + 총 자산 원자적 동기화 RPC `record_income`/`delete_income` + `/dashboard/expenses` `[지출 내역 | 수익 내역]` 전환 탭 조회·삭제 UI)*
+- **활성 Run ID**: `r93-income-history-db-and-ui` **(완료, `main` 병합 `a1f17e0`, R93 마이그레이션 운영 적용·확인 쿼리 검증 완료(사용자, 2026-11-16), 실브라우저 확인 대기)** *(`R93`: `public.incomes` 수익 내역 테이블·RLS·계정 탈퇴 정리 연동 + 총 자산 원자적 동기화 RPC `record_income`/`delete_income` + `/dashboard/expenses` `[지출 내역 | 수익 내역]` 전환 탭 조회·삭제 UI)*
 - **Orchestrator**: Gemini 4 Argon *(2026-11-16 등록)*
 - **Worktree 경로**: `.worktrees/r93-income-history-db-and-ui` (브랜치: `collab/r93-income-history-db-and-ui`, manifest `artifacts/r93-income-history-db-and-ui/run.json`)
 - **Base SHA**: `0844387fdffb8a01bb575836df16d57d10355165`
@@ -42,7 +42,7 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 7e8f702)`** | ~~**GPT Codex**~~ ➡️ **Claude Opus** *(1순위 대체로 수행)* | `Maker (R93 DB/RLS/RPC & Types)` | `.worktrees/r93-income-history-db-and-ui`(Base `0844387`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (🐳 로컬 SQL 실행 검증 시 Docker Desktop 필요) | `✅ 7e8f702`: 마이그레이션·SCHEMA·README·TESTS·타입 반영. tsc·lint·Vitest 69파일/848개·diff-check 통과. ⚠️ 로컬 DB 실행 검증은 미실행(이 PC에 Docker·psql 없음, 사용자 지시로 SQL만 작성) → Step 3에서 수행 |
 | **2** | **`✅ DONE (SHA: 7c8883e)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R93 Income History UI & Vitest)` | `.worktrees/r93-income-history-db-and-ui`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/finance/income-modal.tsx`, 신규/보강 `src/components/finance/income-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `docs/to-do.md` | `✅ 7c8883e`: 수익 모달 `record_income` 연동, `[지출 내역 \| 수익 내역]` 탭·조회·삭제 UI. tsc·lint·Vitest 862개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`✅ DONE (리뷰: 0844387 ↔ 7c8883e, 산출물 2d12115, main 병합 a1f17e0)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `✅` P1~P3 없음, P4 2건 to-do `R95` 이관. 🐳 로컬 DB 마이그레이션 2회(멱등)·`TESTS.sql` 39개 PASS, Vitest 862개·병합 후 1484개 통과. **R93 마이그레이션 운영 적용·실브라우저 확인은 사용자 대기** (아래 Step 3 완료 기록 참고) |
+| **3** | **`✅ DONE (리뷰: 0844387 ↔ 7c8883e, 산출물 2d12115, main 병합 a1f17e0)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `✅` P1~P3 없음, P4 2건 to-do `R95` 이관. 🐳 로컬 DB 마이그레이션 2회(멱등)·`TESTS.sql` 39개 PASS, Vitest 862개·병합 후 1484개 통과. **R93 마이그레이션 운영 적용·확인 쿼리 완료(사용자), 실브라우저 확인 대기** (아래 Step 3 완료 기록 참고) |
 
 #### 📝 `r93-income-history-db-and-ui` Step 3 완료 기록 (Claude Opus, 2026-11-16)
 
@@ -53,7 +53,7 @@
 - **P4 2건 (to-do `R95` 이관)**: `R93-REV-001` 수익 삭제 실패 시 RPC 사유(삭제 대기 등) 대신 일반 문구만 표시. `R93-REV-002` 탈퇴 정리 함수를 재정의하는 이전 마이그레이션을 다시 실행하면 `incomes` 삭제 줄이 빠짐(단, `auth.users` CASCADE로 실제 삭제는 됨) → README 경고 추가 권장. **후속 정정(2026-11-16, 사용자 지적)**: README R93 행(확인 쿼리·재실행 경고 포함)이 B표가 아니라 D표(아카이브)에 잘못 들어가 있었음 → B표로 옮김. 재실행 경고는 이미 있어 `R93-REV-002`는 해결됨. 리뷰에서 놓친 부분임.
 - **검증**: 🐳 로컬 Supabase를 초기화하고 `0844387` 스키마 적용 → R93 마이그레이션 2회 적용(멱등) → 권한 확인(`authenticated` INSERT·`anon` SELECT 없음) → `TESTS.sql` 전체 통과(39개 PASS, R93 블록 포함). 워크트리 tsc·lint·diff-check·build 통과, Vitest 69파일/862개 통과. `main` 병합 `a1f17e0` 후 tsc·Vitest 159파일/1484개 통과함.
 - **사용자 수동 작업 남음**:
-  1. 운영 DB에 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql` 적용 후 `sql/README.md` R93 확인 쿼리 실행. 적용 전에는 수익 등록이 기존 방식(자산만 증가)으로 동작하고 수익 내역 탭은 비어 있음.
+  1. ✅ (사용자, 2026-11-16 적용·확인 쿼리 검증 완료) 운영 DB에 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql` 적용 후 `sql/README.md` R93 확인 쿼리 실행. 적용 전에는 수익 등록이 기존 방식(자산만 증가)으로 동작하고 수익 내역 탭은 비어 있음.
   2. 실브라우저: 수익 등록 → 총 자산 증가·수익 내역 표시, 수익 삭제 → 총 자산 감소.
 
 #### 🛑 `r93-income-history-db-and-ui` Step 3 차단 기록(해제됨) (Claude Opus, 2026-11-16)

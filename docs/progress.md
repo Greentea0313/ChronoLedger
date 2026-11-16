@@ -1,4 +1,9 @@
 # 프로젝트 진행 현황
+## R93 마이그레이션 운영 적용 (2026-11-16)
+
+- 사용자가 운영 DB에 `MIGRATION_R93_INCOME_HISTORY.sql`을 적용하고 `sql/README.md` B표 R93 확인 쿼리로 검증을 마침. 수익 등록·삭제가 수익 내역과 총 자산에 함께 반영되는 상태임.
+- **남은 확인 (사용자)**: 실브라우저(수익 등록·삭제와 총 자산 변화).
+
 ## Run `r93-income-history-db-and-ui` 완료 — `main` 병합 `a1f17e0` (2026-11-16)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.
