@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## 게스트 모드 `/dashboard/games` 카드 UI 수정 및 커밋·푸시 (2026-11-16)
+
+- **수행 주체**: Gemini 3.8 Flash 서브에이전트(`flash-ui-worker`, Gemini 4 Hydrogen 위임)임.
+- **결과**: 게스트 모드 게임 카드의 아이콘 크기(`w-14 h-14` 래퍼 누락으로 인한 확대 현상)와 카드 레이아웃(`[아이콘] [게임명]` 상단 + `[일정 보기]` 하단 풀폭 버튼)을 로그인 카드 기준으로 정리하고 테스트를 보강함.
+- **참고 확인**: 로컬 테스트 시 외부 URL 아이콘 3건(`403 Forbidden`)으로 인한 `GameIcon` 기본 아이콘 폴백은 외부 CDN 차단 때문이며, `/admin` `외부 아이콘 일괄 변환`(`wsrv.nl` 프록시 경유) 또는 수동 재저장으로 해소 가능함을 확인함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `src/app/dashboard/games/page.test.tsx`(47개 테스트) 통과 후 `main` 커밋 및 원격 푸시 완료함.
+
 ## `r93` Step 1 DB/RLS/RPC 완료 (2026-11-16)
 
 - **수행 주체**: Claude Opus (GPT Codex 1순위 대체)임.

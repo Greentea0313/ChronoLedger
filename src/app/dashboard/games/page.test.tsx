@@ -642,10 +642,29 @@ describe("GamesPage", () => {
     )
     expect(container.textContent).toContain("게스트 게임")
 
+    // 게스트 카드 레이아웃 및 w-14 h-14 아이콘 래퍼 검증
+    const iconWrapper = container.querySelector(".w-14.h-14")
+    expect(iconWrapper).not.toBeNull()
+    expect(iconWrapper?.className).toContain("overflow-hidden")
+
+    // 게임 이름이 h3.truncate 태그로 렌더링되는지 검증
+    const gameHeading = container.querySelector("h3.truncate")
+    expect(gameHeading?.textContent).toBe("게스트 게임")
+
+    // 풀폭 일정 보기 버튼 검증
     const scheduleBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("일정 보기")
     )
     expect(scheduleBtn).toBeDefined()
+    expect(scheduleBtn?.className).toContain("flex-1")
+
+    // 메모, 순서 이동, 아이콘 커스터마이징, 구독 해제 등 로그인 전용 액션 미노출 검증
+    expect(container.textContent).not.toContain("상시 메모")
+    expect(container.textContent).not.toContain("메모 작성")
+    expect(container.textContent).not.toContain("공용 일정 연동 중")
+    expect(container.querySelector('button[title="아이콘 등록/변경"]')).toBeNull()
+    expect(container.querySelector('button[aria-label*="순서"]')).toBeNull()
+    expect(container.querySelector('button[aria-label*="구독 해제"]')).toBeNull()
 
     await act(async () => {
       Simulate.click(scheduleBtn!)

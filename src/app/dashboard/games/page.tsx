@@ -761,20 +761,39 @@ export default function GamesPage() {
             <CardTitle className="text-lg text-content">전체 게임</CardTitle>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {catalogGames.map((game) => (
-                <div key={game.id} className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface-2 p-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <GameIcon src={game.default_icon_url} alt={game.name} fallbackIcon={<Gamepad2 className="h-6 w-6 text-content-secondary" />} />
-                    <span className="truncate font-semibold text-content">{game.name}</span>
+                <div
+                  key={game.id}
+                  className="flex flex-col justify-between p-4 rounded-lg border border-line bg-surface-2 hover:border-line-control transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-14 h-14 rounded-lg border border-line bg-surface-3 flex items-center justify-center overflow-hidden shrink-0">
+                      <GameIcon
+                        src={game.default_icon_url}
+                        alt={game.name}
+                        fallbackIcon={<Gamepad2 className="w-7 h-7 text-content-secondary" />}
+                        priority
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-content text-base truncate">{game.name}</h3>
+                    </div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => {
-                    setSelectedGame({ id: game.id, name: game.name })
-                    setIsSheetOpen(true)
-                  }}>
-                    <Calendar className="mr-1 h-3.5 w-3.5 text-primary" />
-                    일정 보기
-                  </Button>
+                  <div className="mt-4 pt-3 border-t border-line flex items-center">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 text-xs border-line-control hover:bg-surface-3 text-content"
+                      onClick={() => {
+                        setSelectedGame({ id: game.id, name: game.name })
+                        setIsSheetOpen(true)
+                      }}
+                    >
+                      <Calendar className="mr-1 h-3.5 w-3.5 text-primary" />
+                      일정 보기
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
