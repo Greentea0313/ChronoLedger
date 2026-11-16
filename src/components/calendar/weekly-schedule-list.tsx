@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { useState } from "react"
+import { ChevronDown, ChevronLeft, ChevronRight, Gamepad2 } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import { DefaultAvatar } from "@/components/character/default-avatar"
 import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
-import { PickupAvatars, type PickupAvatar } from "@/components/calendar/pickup-avatars"
+import type { PickupAvatar } from "@/components/calendar/pickup-avatars"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, groupDatesByWeek } from "@/lib/calendar-utils"
-import { formatChildSummary, splitVersionGroups } from "@/lib/version-schedule-groups"
 import { cn } from "@/lib/utils"
 
 export interface WeeklyScheduleEntry {
@@ -49,58 +49,87 @@ interface WeeklyScheduleListProps {
   onToggleFavorite?: (scheduleId: string) => void
 }
 
-interface GameScheduleGroup {
-  key: string
-  name: string
-  iconUrl?: string
-  items: WeeklyScheduleEntry[]
-}
+type TypeFilter = "ALL" | WeeklyScheduleEntry["schedule_type"]
+type PickupFilter = "ALL" | "NEW" | "RERUN" | "ONGOING"
 
-const OTHER_GROUP_KEY = "__other__"
-const OTHER_GROUP_NAME = "기타"
+const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
+  { value: "ALL", label: "전체" },
+  { value: "PICKUP", label: "픽업" },
+  { value: "VERSION", label: "버전" },
+  { value: "CONTENTS", label: "콘텐츠" },
+  { value: "BROADCAST", label: "방송" },
+]
+
+const PICKUP_FILTERS: { value: PickupFilter; label: string }[] = [
+  { value: "ALL", label: "전체" },
+  { value: "NEW", label: "신규" },
+  { value: "RERUN", label: "복각" },
+  { value: "ONGOING", label: "진행 중" },
+]
+
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"]
 
 function shortDate(date: string): string {
   return date.slice(5).replace("-", ".")
 }
 
-/** Groups a week's schedules by game (name asc); schedules without a game go last under `기타`. */
-function groupSchedulesByGame(schedules: WeeklyScheduleEntry[]): GameScheduleGroup[] {
-  const groups: GameScheduleGroup[] = []
-  const byKey = new Map<string, GameScheduleGroup>()
-  schedules.forEach((schedule) => {
-    const key = schedule.gameId ?? OTHER_GROUP_KEY
-    let group = byKey.get(key)
-    if (!group) {
-      group = {
-        key,
-        name: schedule.gameId ? (schedule.gameName ?? "게임") : OTHER_GROUP_NAME,
-        iconUrl: schedule.gameId ? schedule.iconUrl : undefined,
-        items: [],
-      }
-      byKey.set(key, group)
-      groups.push(group)
-    }
-    group.items.push(schedule)
-  })
-  return groups.sort((a, b) => {
-    if (a.key === OTHER_GROUP_KEY) return 1
-    if (b.key === OTHER_GROUP_KEY) return -1
-    return a.name.localeCompare(b.name, "ko")
-  })
+function slashDate(date: string): string {
+  return date.slice(5).replace("-", "/")
 }
 
-/** Distinct pickup avatars of a group in schedule order (shown in the collapsed header). */
-function collectGroupAvatars(group: GameScheduleGroup): PickupAvatar[] {
-  const seen = new Set<string>()
-  const avatars: PickupAvatar[] = []
-  group.items.forEach((item) => {
-    item.pickupAvatars?.forEach((avatar) => {
-      if (seen.has(avatar.id)) return
-      seen.add(avatar.id)
-      avatars.push(avatar)
-    })
-  })
-  return avatars
+function dateWithWeekday(date: string): string {
+  const day = new Date(`${date}T00:00:00Z`).getUTCDay()
+  return `${slashDate(date)}(${WEEKDAYS[day]})`
+}
+
+function matchesFilters(schedule: WeeklyScheduleEntry, typeFilter: TypeFilter, pickupFilter: PickupFilter, todayDate: string): boolean {
+  if (typeFilter !== "ALL" && schedule.schedule_type !== typeFilter) return false
+  if (typeFilter !== "PICKUP" || pickupFilter === "ALL") return true
+  if (pickupFilter === "NEW") return schedule.is_rerun !== true
+  if (pickupFilter === "RERUN") return schedule.is_rerun === true
+  return schedule.start_date <= todayDate && todayDate <= schedule.end_date
+}
+
+function chipClass(active: boolean): string {
+  return cn(
+    "rounded-full border px-2.5 py-1 text-xs font-semibold",
+    active ? "border-primary bg-primary/15 text-primary" : "border-line bg-surface text-content-secondary hover:border-line-control",
+  )
+}
+
+/** Square avatar: first pickup character (with a small game icon badge) for PICKUP rows, the game icon otherwise. */
+function ScheduleAvatar({ schedule }: { schedule: WeeklyScheduleEntry }) {
+  const pickup = schedule.schedule_type === "PICKUP" ? schedule.pickupAvatars?.[0] : undefined
+  const gameIcon = schedule.iconUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={schedule.iconUrl} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+  ) : (
+    <Gamepad2 className="h-1/2 w-1/2 text-content-secondary" aria-hidden="true" />
+  )
+  return (
+    <span data-testid="schedule-avatar" className="relative h-11 w-11 shrink-0">
+      <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-md border border-line bg-surface-2">
+        {pickup ? (
+          pickup.iconUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={pickup.iconUrl} alt={pickup.name} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+          ) : (
+            <DefaultAvatar />
+          )
+        ) : (
+          gameIcon
+        )}
+      </span>
+      {pickup && (
+        <span
+          data-testid="game-icon-badge"
+          className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center overflow-hidden rounded-md border border-surface bg-surface-2"
+        >
+          {gameIcon}
+        </span>
+      )}
+    </span>
+  )
 }
 
 export function WeeklyScheduleList({
@@ -120,40 +149,16 @@ export function WeeklyScheduleList({
   const weeks = groupDatesByWeek(year, month, todayDate)
   // Open state is screen-local only: the current week starts open, other weeks collapsed; user toggles override that.
   const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({})
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL")
+  const [pickupFilter, setPickupFilter] = useState<PickupFilter>("ALL")
   const isOpen = (key: string, defaultOpen: boolean) => openOverrides[key] ?? defaultOpen
   const toggle = (key: string, defaultOpen: boolean) =>
     setOpenOverrides((prev) => ({ ...prev, [key]: !(prev[key] ?? defaultOpen) }))
 
-  const renderRow = (schedule: WeeklyScheduleEntry, weekStart: string, extra?: ReactNode) => {
-    // Schedules carried over from a previous week select this week's first day.
-    const targetDate = schedule.start_date >= weekStart ? schedule.start_date : weekStart
-    return (
-      <li key={schedule.id} className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => onSelectDate(targetDate)}
-          aria-pressed={selectedDate === targetDate}
-          className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
-        >
-          <PickupAvatars avatars={schedule.pickupAvatars} size={20} />
-          <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="sm" />
-          <span className="min-w-0 flex-1 truncate font-medium text-content">{schedule.title}</span>
-          <span className="text-xs text-content-muted">{`${schedule.start_date} ~ ${schedule.end_date}`}</span>
-          <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
-            {getDdayLabel(todayDate, schedule.end_date)}
-          </span>
-        </button>
-        {extra}
-        <FavoriteScheduleActions
-          scheduleId={schedule.id}
-          title={schedule.title}
-          favoriteScheduleIds={favoriteScheduleIds}
-          onToggleFavorite={onToggleFavorite}
-          className="shrink-0 flex-wrap justify-end"
-        />
-      </li>
-    )
-  }
+  // R91: schedules that already ended (end date before today, KST) never appear in the weekly list.
+  const visibleSchedules = schedules.filter(
+    (s) => s.end_date >= todayDate && matchesFilters(s, typeFilter, pickupFilter, todayDate),
+  )
 
   return (
     <section className="rounded-lg border border-line bg-surface p-3 shadow-card md:p-4" aria-label="주차별 리스트">
@@ -179,12 +184,56 @@ export function WeeklyScheduleList({
         </div>
       </header>
 
+      <div className="mb-3 space-y-2" data-testid="schedule-filters">
+        <div role="group" aria-label="일정 유형 필터" className="flex flex-wrap gap-1.5">
+          {TYPE_FILTERS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={typeFilter === option.value}
+              onClick={() => {
+                setTypeFilter(option.value)
+                setPickupFilter("ALL")
+              }}
+              className={chipClass(typeFilter === option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        {typeFilter === "PICKUP" && (
+          <div role="group" aria-label="픽업 하위 필터" className="flex flex-wrap gap-1.5">
+            {PICKUP_FILTERS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={pickupFilter === option.value}
+                onClick={() => setPickupFilter(option.value)}
+                className={chipClass(pickupFilter === option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="space-y-3">
         {weeks.map((week, index) => {
-          const weekSchedules = schedules
+          // Each schedule is placed at its start date, or at the week's first day when it carried over from a previous week.
+          const rows = visibleSchedules
             .filter((s) => s.start_date <= week.weekEnd && s.end_date >= week.weekStart)
-            .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.end_date.localeCompare(b.end_date))
-          const gameGroups = groupSchedulesByGame(weekSchedules)
+            .map((schedule) => {
+              const carried = schedule.start_date < week.weekStart
+              return { schedule, carried, displayDate: carried ? week.weekStart : schedule.start_date }
+            })
+            .sort(
+              (a, b) =>
+                a.displayDate.localeCompare(b.displayDate) ||
+                Number(b.carried) - Number(a.carried) ||
+                a.schedule.end_date.localeCompare(b.schedule.end_date) ||
+                a.schedule.title.localeCompare(b.schedule.title, "ko"),
+            )
           const weekExpenses = (expenses ?? [])
             .filter((e) => e.date >= week.weekStart && e.date <= week.weekEnd)
             .sort((a, b) => a.date.localeCompare(b.date))
@@ -219,88 +268,84 @@ export function WeeklyScheduleList({
                     className="flex items-center gap-2 rounded-md text-left text-sm font-semibold text-content hover:text-primary"
                   >
                     <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", !weekOpen && "-rotate-90")} aria-hidden="true" />
-                    {`${index + 1}주차 · ${shortDate(week.weekStart)} ~ ${shortDate(week.weekEnd)}`}
+                    {`${month}월 ${index + 1}주차`}
                     {week.isCurrentWeek && (
                       <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">이번 주</span>
                     )}
                   </button>
                 </h3>
-                {expenses !== null && (
-                  <p data-testid="week-subtotal" className="text-xs text-content-secondary">
-                    {`예정 ${planned.toLocaleString()}원 · 확정 ${confirmed.toLocaleString()}원`}
-                  </p>
-                )}
+                <div className="flex flex-wrap items-center gap-x-3 text-xs text-content-secondary">
+                  <span data-testid="week-range">{`${slashDate(week.weekStart)}~${slashDate(week.weekEnd)}`}</span>
+                  {expenses !== null && (
+                    <p data-testid="week-subtotal">{`예정 ${planned.toLocaleString()}원 · 확정 ${confirmed.toLocaleString()}원`}</p>
+                  )}
+                </div>
               </div>
 
-              {!weekOpen ? null : weekSchedules.length === 0 && weekExpenses.length === 0 ? (
+              {!weekOpen ? null : rows.length === 0 && weekExpenses.length === 0 ? (
                 <div id={weekPanelId}>
-                  <EmptyState message="이 주에는 일정이 없습니다." />
+                  <EmptyState message={typeFilter === "ALL" ? "이 주에는 일정이 없습니다." : "선택한 필터에 맞는 일정이 없습니다."} />
                 </div>
               ) : (
                 <div id={weekPanelId} className="space-y-3">
-                  {gameGroups.map((group) => {
-                    const groupKey = `${week.weekStart}|game|${group.key}`
-                    const open = isOpen(groupKey, defaultOpen)
-                    const panelId = `week-panel-${groupKey}`
-                    return (
-                      <section key={group.key} data-testid="game-group" aria-label={`${group.name} 일정`} className="space-y-1.5">
-                        <h4>
-                          <button
-                            type="button"
-                            data-testid="game-group-header"
-                            aria-expanded={open}
-                            aria-controls={panelId}
-                            onClick={() => toggle(groupKey, defaultOpen)}
-                            className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-xs font-semibold text-content-secondary hover:bg-surface"
-                          >
-                            <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", !open && "-rotate-90")} aria-hidden="true" />
-                            {group.iconUrl && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={group.iconUrl} alt="" className="h-5 w-5 rounded object-cover" />
-                            )}
-                            <span className="truncate">{group.name}</span>
-                            <span className="shrink-0 font-normal text-content-muted">{`${group.items.length}건`}</span>
-                            <PickupAvatars avatars={collectGroupAvatars(group)} size={20} className="ml-auto" />
-                          </button>
-                        </h4>
-                        {open && (
-                          <ul id={panelId} className="space-y-1.5">
-                            {splitVersionGroups(group.items).map((entry) => {
-                              if (entry.kind === "single") return renderRow(entry.item, week.weekStart)
-                              const versionKey = `${week.weekStart}|version|${entry.version.id}`
-                              const versionOpen = isOpen(versionKey, false)
-                              const childPanelId = `week-panel-${versionKey}`
-                              const summary = formatChildSummary(entry.children)
-                              return (
-                                <li key={entry.version.id} data-testid="version-group" className="space-y-1.5">
-                                  {renderRow(entry.version, week.weekStart, entry.children.length > 0 && (
-                                    <button
-                                      type="button"
-                                      data-testid="version-group-toggle"
-                                      aria-expanded={versionOpen}
-                                      aria-controls={childPanelId}
-                                      aria-label={`${entry.version.title} 하위 일정 ${versionOpen ? "접기" : "펼치기"}`}
-                                      onClick={() => toggle(versionKey, false)}
-                                      className="flex shrink-0 items-center gap-1 rounded-md border border-line bg-surface px-1.5 py-1 text-[11px] text-content-secondary hover:border-line-control"
-                                    >
-                                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", !versionOpen && "-rotate-90")} aria-hidden="true" />
-                                      <span>{summary}</span>
-                                      <PickupAvatars avatars={collectGroupAvatars({ ...group, items: entry.children })} size={16} />
-                                    </button>
-                                  ))}
-                                  {versionOpen && entry.children.length > 0 && (
-                                    <ul id={childPanelId} className="ml-4 space-y-1.5 border-l border-line pl-2">
-                                      {entry.children.map((child) => renderRow(child, week.weekStart))}
-                                    </ul>
+                  {rows.length > 0 && (
+                    <ul data-testid="schedule-timeline" className="space-y-1.5">
+                      {rows.map(({ schedule, carried, displayDate }, rowIndex) => {
+                        const showDate = rowIndex === 0 || rows[rowIndex - 1].displayDate !== displayDate
+                        const isToday = displayDate === todayDate
+                        // Carried-over schedules select this week's first day.
+                        return (
+                          <li key={schedule.id} data-testid="timeline-row" className="flex items-center gap-2">
+                            <div className="w-[68px] shrink-0 text-xs">
+                              {showDate && (
+                                <>
+                                  <p data-testid="timeline-date" className="font-semibold text-content">{dateWithWeekday(displayDate)}</p>
+                                  {isToday && (
+                                    <span data-testid="today-badge" className="mt-0.5 inline-block rounded bg-primary px-1 py-0.5 text-[10px] font-bold text-primary-foreground">
+                                      TODAY
+                                    </span>
                                   )}
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        )}
-                      </section>
-                    )
-                  })}
+                                </>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => onSelectDate(displayDate)}
+                              aria-pressed={selectedDate === displayDate}
+                              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md border border-line bg-surface px-2.5 py-2 text-left text-sm hover:border-line-control"
+                            >
+                              <ScheduleAvatar schedule={schedule} />
+                              <span className="min-w-0 flex-1">
+                                <span className="flex flex-wrap items-center gap-1.5">
+                                  <span className="min-w-0 truncate font-bold text-content">{schedule.title}</span>
+                                  <ScheduleTypeBadge type={schedule.schedule_type} isRerun={schedule.is_rerun === true} size="sm" />
+                                  {carried && (
+                                    <span data-testid="ongoing-chip" className="rounded border border-line px-1 py-0.5 text-[10px] font-semibold text-content-secondary">
+                                      진행 중
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-content-muted">
+                                  <span>{schedule.gameName ?? "기타"}</span>
+                                  <span>{`${shortDate(schedule.start_date)} ~ ${shortDate(schedule.end_date)}`}</span>
+                                  <span data-testid="dday-badge" className="font-bold text-content">
+                                    {getDdayLabel(todayDate, schedule.end_date)}
+                                  </span>
+                                </span>
+                              </span>
+                            </button>
+                            <FavoriteScheduleActions
+                              scheduleId={schedule.id}
+                              title={schedule.title}
+                              favoriteScheduleIds={favoriteScheduleIds}
+                              onToggleFavorite={onToggleFavorite}
+                              className="shrink-0 flex-wrap justify-end"
+                            />
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
 
                   {expenses !== null && weekExpenses.length > 0 && (
                     <section data-testid="expense-section" aria-label="지출" className="space-y-1.5">

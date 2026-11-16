@@ -1,0 +1,19 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r91-r94-weekly-timeline-and-template-delete",
+    "created_at":  "2026-11-16T02:01:06.6126315+00:00",
+    "objective":  "Hide ended schedules and rebuild the weekly schedule list as a date-ordered timeline with type filters (R91, R94), and add an admin character template delete/reset action (R92).",
+    "acceptance_criteria":  [
+                                "WeeklyScheduleList hides schedules whose end_date is before today (KST) and keeps schedules ending today.",
+                                "Weekly list has a filter bar (All, Pickup with All/New/Rerun/Ongoing sub-chips, Version, Contents, Broadcast).",
+                                "Each week card shows a date-ordered timeline with date column, TODAY badge, avatar with game badge, title with type badge, game name, period, D-n, and favorite toggle; weekly expense section is kept.",
+                                "Admin character tab offers a template delete action that warns about N regular characters, deletes them, resets classification_schema to empty defaults, and keeps pickup-only characters.",
+                                "tsc, lint, and Vitest pass with tests covering the new behavior."
+                            ],
+    "base_sha":  "2b66cdad86701677fc9166f0d0855b5b9a618185",
+    "target_sha":  "0d8a5b8dab8e973665625c693cb8f88f036d8774",
+    "branch":  "collab/r91-r94-weekly-timeline-and-template-delete",
+    "worktree_path":  ".worktrees/r91-r94-weekly-timeline-and-template-delete",
+    "max_iterations":  3,
+    "status":  "completed"
+}

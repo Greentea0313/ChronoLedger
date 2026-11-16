@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatChildSummary, getVersionParents, splitVersionGroups, type VersionGroupable } from "./version-schedule-groups"
+import { formatChildSummary, getVersionParents, type VersionGroupable } from "./version-schedule-groups"
 
 function item(id: string, type: VersionGroupable["schedule_type"], start: string, end: string, gameId: string | null = "g1"): VersionGroupable {
   return { id, title: `T-${id}`, schedule_type: type, start_date: start, end_date: end, gameId }
@@ -37,28 +37,6 @@ describe("getVersionParents", () => {
 
   it("ignores games without a version", () => {
     expect(getVersionParents([item("a", "PICKUP", "2026-11-02", "2026-11-05")]).size).toBe(0)
-  })
-})
-
-describe("splitVersionGroups", () => {
-  it("nests children under their version in input order and keeps other entries in place", () => {
-    const a = item("a", "PICKUP", "2026-11-02", "2026-11-05")
-    const bc = item("bc", "BROADCAST", "2026-11-03", "2026-11-03")
-    const c = item("c", "CONTENTS", "2026-11-04", "2026-11-08")
-    const entries = splitVersionGroups([v32, a, bc, c])
-    expect(entries.map((e) => e.kind)).toEqual(["version", "single"])
-    expect(entries[0]).toMatchObject({ kind: "version", version: v32, children: [a, c] })
-    expect(entries[1]).toMatchObject({ kind: "single", item: bc })
-  })
-
-  it("keeps a child single with its parent label when the version is not in the visible list", () => {
-    const a = item("a", "PICKUP", "2026-11-02", "2026-11-05")
-    const entries = splitVersionGroups([a], [v32, a])
-    expect(entries).toEqual([{ kind: "single", item: a, parent: { id: "v32", title: "T-v32" } }])
-  })
-
-  it("shows a version without children as an empty group", () => {
-    expect(splitVersionGroups([v32])).toEqual([{ kind: "version", version: v32, children: [] }])
   })
 })
 

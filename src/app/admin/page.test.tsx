@@ -1366,6 +1366,122 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       expect(screen.getAllByRole("button", { name: "캐릭터 추가" })).toHaveLength(1)
     })
 
+    describe("캐릭터 템플릿 삭제 (R92)", () => {
+      const pickupOnly = { id: "po-1", game_id: "game-1", name: "픽업 전용", rarity: null, attributes: {}, default_icon_url: null, is_pickup_only: true }
+      const regular = mockCharacters.map((character) => ({ ...character, is_pickup_only: false }))
+      const openDialog = async (characters: unknown[], games: unknown[] = [schemaGame]) => {
+        await openCharacterTabWith(games, characters)
+        selectGame("game-1")
+        fireEvent.click(await screen.findByRole("button", { name: "템플릿 삭제" }))
+        return screen.getByRole("heading", { name: "캐릭터 템플릿 삭제 확인" }).closest("[role=dialog]") as HTMLElement
+      }
+      const confirm = (dialog: HTMLElement) => fireEvent.click(within(dialog).getByRole("button", { name: "삭제" }))
+      const mockRosterDelete = (result: { error: { code?: string; message: string } | null }) => {
+        charactersBuilder.delete.mockReturnValue(charactersBuilder)
+        // .delete().eq("game_id").eq("is_pickup_only") - the last eq resolves.
+        charactersBuilder.eq.mockReturnValueOnce(charactersBuilder).mockResolvedValueOnce(result)
+      }
+      const defaultTemplate = { classification_schema: { rarities: [], axes: [] }, max_preset_slots: 4, max_breakthrough: 6 }
+
+      it("템플릿이 있는 게임에만 템플릿 삭제 버튼을 보여준다", async () => {
+        await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
+        selectGame("game-1")
+        expect(screen.getByRole("button", { name: "템플릿 삭제" })).toBeTruthy()
+        selectGame("game-2")
+        await screen.findByText("신규게임의 캐릭터 테이블이 아직 생성되지 않았습니다.")
+        expect(screen.queryByRole("button", { name: "템플릿 삭제" })).toBeNull()
+      })
+
+      it("정식 캐릭터 수를 경고하고 확인 전에는 아무것도 쓰지 않는다", async () => {
+        const dialog = await openDialog([...regular, pickupOnly])
+        expect(within(dialog).getByTestId("template-delete-warning").textContent).toContain("정식 캐릭터 3명")
+        expect(within(dialog).getByTestId("template-delete-warning").textContent).toContain("등록된 픽업 일정과 대기 중 일정 요청에서도 해당 캐릭터가 빠집니다")
+        expect(within(dialog).getByTestId("template-delete-warning").textContent).toContain("픽업 전용 캐릭터는 유지")
+        expect(charactersBuilder.delete).not.toHaveBeenCalled()
+        expect(gamesBuilder.update).not.toHaveBeenCalled()
+
+        fireEvent.click(within(dialog).getByRole("button", { name: "취소" }))
+        await waitFor(() => expect(screen.queryByRole("heading", { name: "캐릭터 템플릿 삭제 확인" })).toBeNull())
+        expect(charactersBuilder.delete).not.toHaveBeenCalled()
+        expect(gamesBuilder.update).not.toHaveBeenCalled()
+      })
+
+      it("확인하면 정식 캐릭터만 먼저 삭제한 뒤 템플릿을 기본값으로 초기화한다", async () => {
+        mockRosterDelete({ error: null })
+        const dialog = await openDialog([...regular, pickupOnly])
+        confirm(dialog)
+
+        await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalledWith(defaultTemplate))
+        expect(charactersBuilder.eq).toHaveBeenNthCalledWith(1, "game_id", "game-1")
+        expect(charactersBuilder.eq).toHaveBeenNthCalledWith(2, "is_pickup_only", false)
+        expect(gamesBuilder.eq).toHaveBeenCalledWith("id", "game-1")
+        expect(charactersBuilder.delete.mock.invocationCallOrder[0]).toBeLessThan(gamesBuilder.update.mock.invocationCallOrder[0])
+        await waitFor(() => expect(screen.queryByRole("heading", { name: "캐릭터 템플릿 삭제 확인" })).toBeNull())
+        expect(await screen.findByText("'원신' 캐릭터 템플릿을 삭제했습니다.")).toBeTruthy()
+      })
+
+      it("정식 캐릭터가 화면상 0명이어도 안전하게 정식 캐릭터 삭제를 시도한 뒤 템플릿을 초기화한다", async () => {
+        mockRosterDelete({ error: null })
+        const dialog = await openDialog([pickupOnly])
+        expect(within(dialog).getByTestId("template-delete-note")).toBeTruthy()
+        confirm(dialog)
+
+        await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalledWith(defaultTemplate))
+        expect(charactersBuilder.delete).toHaveBeenCalled()
+        expect(charactersBuilder.eq).toHaveBeenNthCalledWith(1, "game_id", "game-1")
+        expect(charactersBuilder.eq).toHaveBeenNthCalledWith(2, "is_pickup_only", false)
+      })
+
+      it("정식 캐릭터 삭제가 실패하면 오류를 보여주고 템플릿은 건드리지 않으며 다시 시도할 수 있다", async () => {
+        mockRosterDelete({ error: { message: "denied" } })
+        const dialog = await openDialog(regular)
+        confirm(dialog)
+
+        expect((await within(dialog).findByTestId("template-delete-error")).textContent).toContain("정식 캐릭터 삭제에 실패했습니다: denied")
+        expect(gamesBuilder.update).not.toHaveBeenCalled()
+
+        mockRosterDelete({ error: null })
+        confirm(dialog)
+        await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalledWith(defaultTemplate))
+      })
+
+      it("템플릿 초기화가 실패하면 안내 오류를 보여주고 다이얼로그를 유지한다", async () => {
+        mockRosterDelete({ error: null })
+        gamesBuilder.eq.mockResolvedValue({ error: { message: "boom" } })
+        const dialog = await openDialog(regular)
+        confirm(dialog)
+
+        expect((await within(dialog).findByTestId("template-delete-error")).textContent).toContain("템플릿 초기화에 실패했습니다")
+        expect(screen.getByRole("heading", { name: "캐릭터 템플릿 삭제 확인" })).toBeTruthy()
+      })
+
+      it("is_pickup_only 컬럼이 없는 DB에서는 필터 없이 게임의 캐릭터를 삭제한다", async () => {
+        charactersBuilder.delete.mockReturnValue(charactersBuilder)
+        charactersBuilder.eq
+          .mockReturnValueOnce(charactersBuilder)
+          .mockResolvedValueOnce({ error: { code: "42703", message: "column does not exist" } })
+          .mockResolvedValueOnce({ error: null })
+        const dialog = await openDialog(regular)
+        confirm(dialog)
+
+        await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalledWith(defaultTemplate))
+        expect(charactersBuilder.delete).toHaveBeenCalledTimes(2)
+      })
+
+      it("오프라인에서는 쓰기 없이 오프라인 안내를 보여준다", async () => {
+        const dialog = await openDialog(regular)
+        Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+        try {
+          confirm(dialog)
+          expect((await within(dialog).findByTestId("template-delete-error")).textContent).toContain("오프라인")
+          expect(charactersBuilder.delete).not.toHaveBeenCalled()
+          expect(gamesBuilder.update).not.toHaveBeenCalled()
+        } finally {
+          Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+        }
+      })
+    })
+
     describe("캐릭터 탭 게임 필터 (R65)", () => {
       const secondGame = {
         id: "game-3",

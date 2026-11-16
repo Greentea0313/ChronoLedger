@@ -33,6 +33,7 @@ import {
 } from "@/lib/pickup-character-registration"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import {
+  DEFAULT_MAX_BREAKTHROUGH,
   assignAxisKey,
   isCharacterTemplateActive,
   normalizeClassificationSchema,
@@ -204,6 +205,10 @@ export default function AdminPage() {
   const [gameFormWarning, setGameFormWarning] = useState<string | null>(null)
   const [deletingCharacter, setDeletingCharacter] = useState<CharacterItem | null>(null)
   const [isDeletingCharacter, setIsDeletingCharacter] = useState(false)
+  // R92: game whose character template is being deleted (confirm dialog), with its own busy/error state.
+  const [deletingTemplateGame, setDeletingTemplateGame] = useState<GameOption | null>(null)
+  const [isDeletingTemplate, setIsDeletingTemplate] = useState(false)
+  const [templateDeleteError, setTemplateDeleteError] = useState<string | null>(null)
   // R64 classification option icons: `available` is false when the table is not migrated (feature hidden).
   const [classificationIcons, setClassificationIcons] = useState<{ gameId: string; available: boolean; icons: Map<string, string> } | null>(null)
   const [pendingIconKeys, setPendingIconKeys] = useState<string[]>([])
@@ -924,6 +929,50 @@ export default function AdminPage() {
       await fetchCharacters()
     }
     setDeletingCharacter(null)
+  }
+
+  // R92: delete the regular roster (pickup-only characters stay), then reset the template to the empty default.
+  // Two writes without a transaction: a failure after the first leaves an empty roster with the old template, and the
+  // same action can simply be run again (the roster delete is then a no-op).
+  const handleDeleteTemplate = async () => {
+    const game = deletingTemplateGame
+    if (!game || isDeletingTemplate) return
+    if (isOffline()) {
+      setTemplateDeleteError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
+    setIsDeletingTemplate(true)
+    setTemplateDeleteError(null)
+    try {
+      // Always issue the roster delete even when the client list shows 0, in case another session added characters.
+      let deleted = await supabase.from("game_characters").delete().eq("game_id", game.id).eq("is_pickup_only", false)
+      // Not migrated yet (D-08): every character is a regular roster character.
+      if (deleted.error && (deleted.error.code === "42703" || deleted.error.code === "PGRST204")) {
+        deleted = await supabase.from("game_characters").delete().eq("game_id", game.id)
+      }
+      if (deleted.error) {
+        setTemplateDeleteError("정식 캐릭터 삭제에 실패했습니다: " + deleted.error.message)
+        return
+      }
+      const { error } = await supabase
+        .from("games")
+        .update({ classification_schema: { rarities: [], axes: [] }, max_preset_slots: DEFAULT_MAX_PRESET_SLOTS, max_breakthrough: DEFAULT_MAX_BREAKTHROUGH })
+        .eq("id", game.id)
+      if (error) {
+        setTemplateDeleteError("정식 캐릭터는 삭제했지만 템플릿 초기화에 실패했습니다. 다시 시도해 주세요: " + error.message)
+        await fetchCharacters()
+        return
+      }
+      setMessage({ type: "success", text: `'${game.name}' 캐릭터 템플릿을 삭제했습니다.` })
+      setDeletingTemplateGame(null)
+      await fetchCharacters()
+      void fetchGames()
+      void refreshClassificationIcons(game.id)
+    } catch (cause) {
+      setTemplateDeleteError(cause instanceof Error ? cause.message : "템플릿 삭제 중 오류가 발생했습니다.")
+    } finally {
+      setIsDeletingTemplate(false)
+    }
   }
 
   // games_classification_schema_check (23514): show a template-specific hint instead of the raw database message.
@@ -1822,6 +1871,16 @@ export default function AdminPage() {
               {selectedCharacterGame && isSelectedTemplateActive && (
                 <>
                   <Button variant="outline" onClick={() => handleOpenTemplate(selectedCharacterGame)}>템플릿 설정 수정</Button>
+                  <Button
+                    variant="outline"
+                    className="border-danger/40 text-danger hover:bg-danger/10"
+                    onClick={() => {
+                      setTemplateDeleteError(null)
+                      setDeletingTemplateGame(selectedCharacterGame)
+                    }}
+                  >
+                    템플릿 삭제
+                  </Button>
                   <Button onClick={() => handleOpenAddCharacter(selectedCharacterGame.id)}>
                     <Plus className="mr-1 h-4 w-4" />{selectedCharacterLabel} 추가
                   </Button>
@@ -2763,6 +2822,40 @@ export default function AdminPage() {
             <Button type="button" variant="outline" disabled={isSavingNewPickup} onClick={handleClosePickupOnlyDialog}>취소</Button>
             <Button type="button" disabled={isSavingNewPickup || isProcessingIcon} onClick={() => void handleRegisterPickupOnlyCharacter()}>
               {isSavingNewPickup ? "등록 중..." : "등록"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={deletingTemplateGame !== null} onOpenChange={(open) => !open && !isDeletingTemplate && setDeletingTemplateGame(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>캐릭터 템플릿 삭제 확인</DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              템플릿(명칭·등급·분류 기준)을 비우고 기본 슬롯 4·돌파 6으로 되돌립니다. 복구할 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          {deletingTemplateGame && (() => {
+            const rosterCount = rosterCountOf(deletingTemplateGame.id)
+            return (
+              <div className="space-y-2 text-sm text-content-secondary">
+                <p>
+                  <strong className="font-medium text-content">&apos;{deletingTemplateGame.name}&apos;</strong> 캐릭터 템플릿을 정말 삭제하시겠습니까?
+                </p>
+                {rosterCount > 0 ? (
+                  <p role="alert" data-testid="template-delete-warning" className="rounded-md border border-danger/40 bg-danger/10 p-2 text-danger">
+                    {`정식 캐릭터 ${rosterCount}명(사용자 보유 체크·프리셋 포함)도 함께 삭제되며, 등록된 픽업 일정과 대기 중 일정 요청에서도 해당 캐릭터가 빠집니다. 픽업 전용 캐릭터는 유지됩니다.`}
+                  </p>
+                ) : (
+                  <p data-testid="template-delete-note">등록된 정식 캐릭터가 없어 템플릿 설정만 초기화됩니다. 픽업 전용 캐릭터는 유지됩니다.</p>
+                )}
+              </div>
+            )
+          })()}
+          {templateDeleteError && <p role="alert" data-testid="template-delete-error" className="text-xs text-danger">{templateDeleteError}</p>}
+          <DialogFooter className="gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setDeletingTemplateGame(null)} disabled={isDeletingTemplate}>취소</Button>
+            <Button type="button" variant="destructive" onClick={() => void handleDeleteTemplate()} disabled={isDeletingTemplate}>
+              {isDeletingTemplate ? "삭제 중..." : "삭제"}
             </Button>
           </DialogFooter>
         </DialogContent>
