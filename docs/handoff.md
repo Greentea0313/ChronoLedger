@@ -58,17 +58,30 @@
 
 ---
 
-### 🗓️ 신규 요구사항 검토 및 다음 Run 예약 (`R91` ~ `R94`, 2026-11-16 사용자 요청)
+### 🗓️ 신규 요구사항 검토 및 다음 Run 예약 (`R91` ~ `R94`, 2026-11-16 사용자 결정 확정)
 
-- **`R91` (주차별 리스트 종료 일정 제외)**:
-  - **내용**: `WeeklyScheduleList`(`src/components/calendar/weekly-schedule-list.tsx`)에 표시되는 일정도 `end_date < todayDate`인 경우(이번 주에 포함되더라도 이미 종료일이 지난 일정 및 과거 주차의 종료 일정) 표시에서 제외함.
-- **`R92` (프리셋/템플릿 삭제 버튼 추가 — 대상 확인 중)**:
-  - **현황**: 조합 프리셋 카드(`PresetBoardCard`)와 정기 구독 템플릿 카드에는 우상단/하단 휴지통 아이콘 삭제 버튼이 있으나, **관리자 캐릭터 템플릿(`games.classification_schema`)**에는 생성 후 `[템플릿 설정 수정]`만 있고 **템플릿 삭제(초기화) 버튼이 없음**. 사용자의 의도가 ① 관리자 캐릭터 템플릿 삭제/초기화 버튼인지, ② 캐릭터 조합 프리셋 화면의 삭제 UI 개선인지 확인 후 즉시 반영함.
-- **`R93` (수익 내역 DB 테이블 신설 및 조회·취소 UI 추가)**:
-  - **원인**: 현재 `IncomeModal`(`src/components/finance/income-modal.tsx`)은 수익 유형·항목명·입금 금액·입금일을 입력받지만 `set_user_finance_settings` RPC로 `user_finances.total_asset`만 증액하고 **개별 수익 레코드를 저장하는 DB 테이블이 없어** 저장 후 내역을 조회하거나 잘못 입력한 수익을 취소/삭제할 경로가 없음.
-  - **구현 방향**: `public.incomes` 테이블(RLS, 계정 탈퇴 `purge` 연동) 및 자산 증감 원자적 RPC(`record_income`, `delete_income`)를 신설하고, `/dashboard/expenses`에서 수익 내역 목록 조회 및 삭제(자산 차감 복원)를 지원함 (금전·자산·RLS/RPC 변경 → Opus 승격 조건 ①).
-- **`R94` (주차별 리스트 첨부 이미지 스타일 전면 개편, `R91` 통합 가능)**:
-  - **내용**: 첨부 레퍼런스 이미지(픽업지지 스타일)와 같이 `WeeklyScheduleList`를 기존의 `게임별 아코디언 그룹` 대신 **주차 카드 내부 날짜순(`MM/DD(요일)` + `TODAY` 배지 좌측 열) 타임라인 행 구조**(중앙: 캐릭터 아바타 + 우하단 게임 아이콘 배지 오버레이 + 굵은 일정 제목 + 하단 게임명, 우측: 관심 일정 토글 버튼, 상단: 일정 유형/상태 필터 탭)로 정리함. 세부 표시 범위(비픽업 일정 표시 방식·진행 중 일정 배치 기준) 확인 후 착수함.
+- **`R91` & `R94` 통합 Run 예약 (`r91-r94-weekly-timeline-and-template-delete`, DB 변경 없음 — 담당: `Claude Sonnet`, 리뷰: `Gemini 4 Argon` / `Claude Opus`)**:
+  1. **`R91` (주차별 리스트 종료 일정 제외)**:
+     - `WeeklyScheduleList`(`src/components/calendar/weekly-schedule-list.tsx`)에서 `s.end_date < todayDate`인 일정은 주차 내 포함 여부와 무관하게 표시 대상에서 제외함.
+  2. **`R94` (주차별 리스트 첨부 이미지 스타일 타임라인 전면 개편 — 사용자 결정 완료)**:
+     - 상단에 일정 필터 바(**`전체` | `픽업`(하위 칩: `전체`·`신규`·`복각`·`진행 중`) | `버전` | `콘텐츠` | `방송`**)를 배치함.
+     - 기존의 `게임별 아코디언 그룹` 및 버전 하위 중첩 대신, 각 주차 카드(`11월 3주차` + `이번 주` 배지, 우측 `MM/DD~MM/DD` 및 주간 지출 소계) 내부를 **날짜순(`MM/DD(요일)` + 오늘이면 `TODAY` 배지, 좌측 고정 열) 타임라인 리스트**로 통합 표시함:
+       - 같은 날짜에 시작하는 일정이 여러 개면 첫 행에만 날짜(`MM/DD(요일)`)를 표시하거나 날짜 그룹으로 묶어 가독성을 높임(이전 주에서 이어져 이번 주에 진행 중인 일정은 주차 시작일 또는 `진행 중` 표시).
+       - **중앙 영역**: 좌측에 정사각 아바타(픽업 일정은 첫 픽업 캐릭터 아바타 + **우하단 작은 원형/둥근사각 게임 아이콘 배지 오버레이**, 비픽업 일정은 게임 아이콘 아바타)를 두고, 우측 상단에 **굵은 일정 제목 + 유형/복각 배지(`ScheduleTypeBadge`)**, 우측 하단에 **게임명 + 기간(`MM.DD ~ MM.DD`)·`D-n`**을 배치함.
+       - **우측 영역**: 관심 일정 토글 버튼(`FavoriteScheduleActions`)을 우측 끝에 배치함.
+       - 주차 카드 하단의 `지출` 접기/펼치기 섹션은 기존대로 유지함.
+  3. **`R92` (관리자 캐릭터 템플릿 삭제/초기화 버튼 추가 — 사용자 결정 완료)**:
+     - 관리자 `/admin` `캐릭터 관리` 탭(상단 `[템플릿 설정 수정]` 옆 또는 템플릿 설정 모달 하단)에 **`[템플릿 삭제]`** 버튼 및 확인 다이얼로그를 추가함.
+     - 삭제 확인 시 해당 게임의 `classification_schema`를 `{"rarities": [], "axes": []}`(및 기본 슬롯 4·돌파 6)으로 초기화함(`trg_cleanup_game_classification_icons`에 의해 분류 아이콘 자동 정리).
+     - 해당 게임에 정식 캐릭터(`is_pickup_only = false`)가 1명 이상 등록되어 있는 경우, 확인 다이얼로그에서 정식 캐릭터 N명(사용자 보유 체크·프리셋 포함)도 함께 삭제됨(픽업 전용 캐릭터는 유지됨)을 경고하고 확인 시 정식 캐릭터 삭제 후 템플릿을 초기화하여 `isCharacterTemplateActive === false` 상태로 정확히 되돌림.
+- **`R93` Run 예약 (`r93-income-history-db-and-ui`, DB/RLS/RPC 변경 → Opus 승격 조건 ① — Step 1 DB: `GPT Codex` / `Claude Opus`, Step 2 UI: `Claude Sonnet`, Step 3 리뷰: `Claude Opus`)**:
+  - **배경**: 현재 `IncomeModal`(`src/components/finance/income-modal.tsx`)은 `set_user_finance_settings`로 `user_finances.total_asset`만 증액하고 수익 레코드를 저장하지 않아 조회·취소 경로가 없음.
+  - **Step 1 (DB/RLS/RPC)**:
+    - `public.incomes` 테이블 신설(`id`, `user_id`, `category` CHECK `('급여','용돈','상여금','금융수익','기타')`, `title`, `amount BIGINT CHECK (amount > 0)`, `income_date DATE`, `memo TEXT`, `created_at`), 본인 전용 RLS, 계정 삭제 대기 차단 정책·트리거, `purge_expired_account_deletion_requests` 연동.
+    - 원자적 RPC `record_income(p_category, p_title, p_amount, p_income_date, p_memo)`(수익 행 INSERT + `user_finances.total_asset` 증액) 및 `delete_income(p_income_id)`(본인 수익 행 DELETE + `user_finances.total_asset`에서 해당 금액 차감 복원) 추가, `sql/SCHEMA.sql`·`sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`·`sql/README.md`·`sql/tests/TESTS.sql`·`src/types/database.types.ts` 반영.
+  - **Step 2 (UI — 사용자 결정 완료)**:
+    - `IncomeModal`이 `record_income` RPC를 호출하도록 변경함(미적용 DB에서는 기존 `set_user_finance_settings` 폴백 및 마이그레이션 안내).
+    - `/dashboard/expenses` 내 **`전체 지출 내역` 카드 헤더에 `[지출 내역 | 수익 내역]` 전환 탭**을 두고, `수익 내역` 선택 시 등록된 수익 목록(입금일, 수익 유형 배지, 항목명, `+금액`, `[삭제]` 버튼 — 클릭 시 확인 후 `delete_income` 호출 및 총 자산 차감 복원)과 페이지네이션을 표시함.
 
 ### 🗂️ 이전 Run 기록 (완료): `r86-schedule-crawling-research`
 

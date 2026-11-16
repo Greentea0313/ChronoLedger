@@ -735,10 +735,10 @@
   - [x] Gemini 4 Argon 1차 기술·약관 실측 검토서 [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) 작성 완료 (2026-11-16, HTTP 200 SSR `tr.ub-content` 파싱 확인, `robots.txt` `Allow: /` 및 2026-10-07 약관 제11조·제16조 대조, 작성자 식별정보/본문 미수집 완화 설계)
   - [ ] Claude Opus 2차 검증 (`docs/dcinside-schedule-crawling-review.md` §5 5개 항목 검증 및 §6 작성)
   - [x] 네이버 이용약관 원문(`policy.naver.com/rules/service.html`)의 자동 수집 금지 문구 확인 (2026-11-12 사용자 제공 본문: 사전 허락 없는 자동 수단 게시물 수집 금지, 예외 없음)
-- [ ] R91. [신규 요구사항 · 2026-11-16 사용자 요청 · `R94`와 통합 수행 가능] 주차별 리스트(`WeeklyScheduleList`)에 표시되는 일정도 `end_date < todayDate`인 경우 표시에서 제외함 (DB 변경 없음, 담당: Claude Sonnet)
-- [ ] R92. [신규 요구사항 · 2026-11-16 사용자 요청 · 대상 확인 중] 프리셋/템플릿 삭제 버튼 추가 (관리자 캐릭터 템플릿 삭제/초기화 버튼 vs 캐릭터 조합 프리셋 삭제 UI 확인 후 반영, 담당: Claude Sonnet)
-- [ ] R93. [신규 요구사항 · 2026-11-16 사용자 요청 · DB/RPC 변경 → Opus 승격 조건 ①] 수익 내역(`incomes`) 테이블·원장 동기화 RPC(`record_income`, `delete_income`) 신설 및 `/dashboard/expenses` 수익 내역 조회·삭제 UI 추가 (현재 `IncomeModal`이 `user_finances.total_asset`만 증액하고 수익 내역을 저장하지 않아 조회 경로가 없는 문제 해결, 담당: GPT Codex DB → Claude Sonnet UI → Claude Opus 리뷰)
-- [ ] R94. [신규 요구사항 · 2026-11-16 사용자 요청 · 상세 구상 확인 중] 주차별 리스트(`WeeklyScheduleList`)를 첨부 레퍼런스 이미지(픽업지지 스타일: 상단 유형/상태 필터, 주차 카드 내 좌측 `MM/DD(요일)` + `TODAY` 열, 캐릭터 아바타 + 우하단 게임 아이콘 배지 오버레이 + 굵은 제목 + 하단 게임명, 우측 관심 일정 토글) 구조로 개편 (DB 변경 없음, 담당: Claude Sonnet → Gemini 4 Argon / Claude Opus 리뷰)
+- [ ] R91. [신규 요구사항 · 2026-11-16 확정 · 차기 Run `r91-r94-weekly-timeline-and-template-delete`] 주차별 리스트(`WeeklyScheduleList`)에 표시되는 일정도 `end_date < todayDate`인 경우 표시에서 제외함 (DB 변경 없음, 담당: Claude Sonnet)
+- [ ] R92. [신규 요구사항 · 2026-11-16 확정 · 차기 Run `r91-r94-weekly-timeline-and-template-delete`] 관리자 캐릭터 관리(`/admin`)에 게임별 '캐릭터 템플릿(명칭·등급·분류 기준)' 삭제/초기화 버튼 및 확인 다이얼로그 추가(`classification_schema`를 빈 배열 기본값으로 초기화, 정식 캐릭터 존재 시 함께 삭제 경고·정리 후 미생성 상태로 복귀, 픽업 전용 캐릭터는 유지, DB 변경 없음, 담당: Claude Sonnet)
+- [ ] R93. [신규 요구사항 · 2026-11-16 확정 · 차기 Run `r93-income-history-db-and-ui` · DB/RPC 변경 → Opus 승격 조건 ①] `public.incomes` 테이블(RLS·탈퇴 정리)·원장 동기화 RPC(`record_income`, `delete_income`) 신설 및 `/dashboard/expenses` 내 '전체 지출 내역' 카드에 `[지출 내역 | 수익 내역]` 전환 탭을 추가해 수익 목록 조회 및 삭제(총 자산 자동 차감 복원) 지원 (담당: GPT Codex DB → Claude Sonnet UI → Claude Opus 리뷰)
+- [ ] R94. [신규 요구사항 · 2026-11-16 확정 · 차기 Run `r91-r94-weekly-timeline-and-template-delete`] 주차별 리스트(`WeeklyScheduleList`)를 첨부 레퍼런스 이미지 스타일로 전면 개편: 상단 `[전체 | 픽업(신규·복각·진행 중) | 버전 | 콘텐츠 | 방송]` 필터 바 + 주차 카드 내 좌측 `MM/DD(요일)`(`TODAY` 배지) 날짜 열 + 캐릭터/게임 아바타(우하단 게임 아이콘 배지 오버레이) + 굵은 제목 + 하단 게임명·기간 + 우측 관심 일정 버튼 타임라인 행 구조로 통합 표시(주간 지출 섹션은 주차 하단 유지, DB 변경 없음, 담당: Claude Sonnet → Gemini 4 Argon / Claude Opus 리뷰)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---
