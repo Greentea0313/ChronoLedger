@@ -35,7 +35,7 @@
 - **활성 Run ID**: `r91-r94-weekly-timeline-and-template-delete` *(`R91` 주차별 리스트 종료 일정 제외 + `R94` 주차별 리스트 타임라인 개편 + `R92` 관리자 캐릭터 템플릿 삭제)*
 - **Orchestrator**: Claude Opus *(Gemini 4 Argon 1순위 대체, 2026-11-16 사용자 지시로 등록)*
 - **Worktree 경로**: `.worktrees/r91-r94-weekly-timeline-and-template-delete` (브랜치: `collab/r91-r94-weekly-timeline-and-template-delete`, manifest `artifacts/r91-r94-weekly-timeline-and-template-delete/run.json`)
-- **Base SHA**: 워크트리 생성 후 기록 예정
+- **Base SHA**: `2b66cdad86701677fc9166f0d0855b5b9a618185` (manifest 커밋 `8368561`)
 - **DB 변경**: 없음. 🐳 Docker 불필요.
 - **범위 제외**: `R93`(수익 내역, DB/RPC)은 별도 Run 예약 유지. `R90`은 잠정 보류.
 
