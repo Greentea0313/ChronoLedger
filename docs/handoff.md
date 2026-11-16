@@ -41,8 +41,18 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 7e8f702)`** | ~~**GPT Codex**~~ ➡️ **Claude Opus** *(1순위 대체로 수행)* | `Maker (R93 DB/RLS/RPC & Types)` | `.worktrees/r93-income-history-db-and-ui`(Base `0844387`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (🐳 로컬 SQL 실행 검증 시 Docker Desktop 필요) | `✅ 7e8f702`: 마이그레이션·SCHEMA·README·TESTS·타입 반영. tsc·lint·Vitest 69파일/848개·diff-check 통과. ⚠️ 로컬 DB 실행 검증은 미실행(이 PC에 Docker·psql 없음, 사용자 지시로 SQL만 작성) → Step 3에서 수행 |
-| **2** | **`▶ READY`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R93 Income History UI & Vitest)` | `.worktrees/r93-income-history-db-and-ui`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/finance/income-modal.tsx`, 신규/보강 `src/components/finance/income-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `docs/to-do.md` | `▶ Step 1 완료(7e8f702). Claude Sonnet 착수 대기` |
-| **3** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `⏳ Step 2 완료 후 진행` |
+| **2** | **`✅ DONE (SHA: 7c8883e)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R93 Income History UI & Vitest)` | `.worktrees/r93-income-history-db-and-ui`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/finance/income-modal.tsx`, 신규/보강 `src/components/finance/income-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `docs/to-do.md` | `✅ 7c8883e`: 수익 모달 `record_income` 연동, `[지출 내역 \| 수익 내역]` 탭·조회·삭제 UI. tsc·lint·Vitest 862개 통과 (아래 Step 2 완료 기록 참고) |
+| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `▶ Step 2 완료(7c8883e). Base 0844387 ↔ Target 7c8883e` |
+
+#### 📝 `r93-income-history-db-and-ui` Step 2 완료 기록 (Claude Sonnet, 2026-11-16)
+
+- **Target SHA**: `7c8883e` (워크트리 브랜치 `collab/r93-income-history-db-and-ui`, 미병합)임. 변경 파일: `income-modal.tsx`·`income-modal.test.tsx`, `dashboard/expenses/page.tsx`·`page.test.tsx`뿐임(SQL·타입 변경 없음).
+- **수익 모달**: 제출 시 `record_income`(`p_category`, 앞뒤 공백 제거한 `p_title`, `p_amount`, `p_income_date`(없으면 KST 오늘), `p_memo: null`)을 먼저 호출함. 함수 부재(`PGRST202`/`42883`)일 때만 기존 `set_user_finance_settings`(실패 시 직접 `update`) 경로로 폴백하고, 그 외 오류는 폴백 없이 "수익을 등록하지 못했습니다" 오류를 보여줌(이중 반영 방지).
+- **소비 페이지**: `incomes`를 `income_date DESC, created_at DESC`로 조회하고 테이블 미적용(`42P01`/`PGRST205`)은 빈 목록으로 폴백함. 전체 지출 내역 카드 헤더 맨 위에 `[지출 내역 | 수익 내역]` 전환 버튼(`aria-pressed`, 기본 지출)을 둠. 수익 내역은 건수·총 수익 안내, 데스크톱 표·모바일 카드, 10건 단위 페이지 이동, 항목별 `삭제` → 확인 다이얼로그(자산 차감 금액 안내) → `delete_income` RPC → 목록 재조회(`isOffline()` 가드, 실패 시 다이얼로그에 오류 유지)임. 0건이면 지정한 EmptyState를 보여줌. 수익 등록 완료 시에도 목록을 다시 불러옴.
+- **유지**: 지출 내역 뷰(취소 숨기기·과거 기록·표/카드·페이지네이션)는 그대로이고, 지출 뷰에서는 수익 코드가 렌더되지 않음.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`(CRLF 경고만), Vitest 69파일 862개 통과함(모달 5개·소비 페이지 10개 테스트 추가·갱신). 실브라우저·실DB 확인은 하지 않음(Step 1 SQL도 로컬 DB 미실행 상태임).
+- **가정**: 수익 페이지 이동은 이전/다음 버튼 방식임(지출 쪽 번호 버튼은 만들지 않음). 총 자산 표시는 이 페이지에 없어 삭제 후 별도 갱신은 하지 않음.
+- **다음 단계**: Step 3(`Claude Opus`, 통합 리뷰·로컬 DB 검증·병합·운영 마이그레이션 안내) `▶ READY`임.
 
 #### 📝 `r93-income-history-db-and-ui` Step 1 완료 기록 (Claude Opus — GPT Codex 1순위 대체, 2026-11-16)
 
