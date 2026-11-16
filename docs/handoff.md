@@ -32,19 +32,23 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r91-r94-weekly-timeline-and-template-delete` *(`R91` 주차별 리스트 종료 일정 제외 + `R94` 주차별 리스트 타임라인 개편 + `R92` 관리자 캐릭터 템플릿 삭제)*
-- **Orchestrator**: Claude Opus *(Gemini 4 Argon 1순위 대체, 2026-11-16 사용자 지시로 등록)*
-- **Worktree 경로**: `.worktrees/r91-r94-weekly-timeline-and-template-delete` (브랜치: `collab/r91-r94-weekly-timeline-and-template-delete`, manifest `artifacts/r91-r94-weekly-timeline-and-template-delete/run.json`)
-- **Base SHA**: `2b66cdad86701677fc9166f0d0855b5b9a618185` (manifest 커밋 `8368561`)
+- **현재 활성 Run 없음** *(다음 예약 Run: `r93-income-history-db-and-ui` — `R93` 수익 내역 저장·조회·삭제, DB/RLS/RPC 변경 → Opus 승격 조건 ①)*
+
+### 🗂️ 이전 Run 기록 (완료): `r91-r94-weekly-timeline-and-template-delete`
+
+- **Run ID**: `r91-r94-weekly-timeline-and-template-delete` **(완료, `main` 병합 `703362e`, 워크트리 정리 완료, 실브라우저 확인 대기)** *(`R91` 주차별 리스트 종료 일정 제외 + `R94` 주차별 리스트 타임라인 개편 + `R92` 관리자 캐릭터 템플릿 삭제)*
+- **Orchestrator**: Claude Opus *(등록)* → Gemini 4 Hydrogen *(Step 4 마감, Gemini 4 Argon 1순위 대체)*
+- **Worktree 경로**: `.worktrees/r91-r94-weekly-timeline-and-template-delete` (브랜치: `collab/r91-r94-weekly-timeline-and-template-delete`, manifest `artifacts/r91-r94-weekly-timeline-and-template-delete/run.json`, 워크트리 제거 완료)
+- **Base SHA**: `2b66cdad86701677fc9166f0d0855b5b9a618185` / **최종 Target SHA**: `0d8a5b8dab8e973665625c693cb8f88f036d8774` / **병합 커밋**: `703362e`
 - **DB 변경**: 없음. 🐳 Docker 불필요.
 - **범위 제외**: `R93`(수익 내역, DB/RPC)은 별도 Run 예약 유지. `R90`은 잠정 보류.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: e79e86b)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R91 + R94 주차별 타임라인)` | 아래 Step 1 수용 기준. 허용 파일: `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, 필요 시 `src/components/calendar/` 내 신규 하위 컴포넌트·테스트, `src/app/dashboard/page.tsx`(props 연결만) | `✅ e79e86b`: 주간 목록 타임라인 개편·종료 일정 제외·필터 바. tsc·lint·Vitest 839개 통과 (아래 Step 1 완료 기록 참고) |
-| **2** | **`✅ DONE (SHA: 8628d5d)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R92 템플릿 삭제)` | 아래 Step 2 수용 기준. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, 필요 시 `src/components/` 내 관리자 템플릿 관련 컴포넌트·테스트 | `✅ 8628d5d`: 템플릿 삭제 버튼·확인 다이얼로그·정식 캐릭터 삭제 후 초기화. tsc·lint·Vitest 847개 통과 (아래 Step 2 완료 기록 참고) |
+| **1** | **`✅ DONE (SHA: e79e86b)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R91 + R94 주차별 타임라인)` | 아래 Step 1 수용 기준. 허용 파일: `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, 필요 시 `src/components/calendar/` 내 신규 하위 컴포넌트·테스트, `src/app/dashboard/page.tsx`(props 연결만) | `✅ e79e86b`: 주간 목록 타임라인 개편·종료 일정 제외·필터 바. tsc·lint·Vitest 839개 통과 |
+| **2** | **`✅ DONE (SHA: 8628d5d)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R92 템플릿 삭제)` | 아래 Step 2 수용 기준. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, 필요 시 `src/components/` 내 관리자 템플릿 관련 컴포넌트·테스트 | `✅ 8628d5d`: 템플릿 삭제 버튼·확인 다이얼로그·정식 캐릭터 삭제 후 초기화. tsc·lint·Vitest 847개 통과 |
 | **3** | **`✅ DONE (SHA: 75e2520)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer (Run 통합 리뷰)` | Base ↔ Step 2 Target 정적 리뷰, `artifacts/r91-r94-weekly-timeline-and-template-delete/iteration-01/review.json`·`test.json` 작성·검증 | `✅` Base `2b66cda` ↔ Target `8628d5d` 리뷰 `findings`(P3 1·P4 3), P1·P2 없음. tsc·lint·Vitest 69파일/847개·build 통과 |
-| **4** | **`▶ READY`** | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Orchestrator (마감)` | 지적 반영 여부 판단, `main` 병합(사용자 승인 후), `docs/` 마감, 사용자 실브라우저 확인 안내 | 병합 SHA 기록 |
+| **4** | **`✅ DONE (SHA: 703362e)`** | **Gemini 4 Hydrogen** *(Gemini 4 Argon 1순위 대체)* | `Orchestrator (iteration-02 반영·마감)` | 지적 4건 반영(`0d8a5b8`), iteration-02 산출물(`7151136`), `main` 병합(`703362e`), `docs/` 마감, 워크트리 정리 | `✅ 703362e`: 지적 4건 반영 및 `review.json`(`clean`)·`test.json`(`passed`) 검증 완료. tsc·lint·Vitest 69파일/844개·build 통과 |
 
 #### 📝 `r91-r94-weekly-timeline-and-template-delete` Step 1 완료 기록 (Claude Sonnet, 2026-11-16)
 

@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## `r91-r94` iteration-02 반영·`main` 병합 및 마감 완료 (2026-11-16)
+
+- **수행 주체**: Gemini 4 Hydrogen (Gemini 4 Argon 1순위 대체)임.
+- **결과**: 사용자 승인에 따라 Step 3 지적 4건(`R92-REV-001` 픽업 일정·대기 요청 영향 경고 추가, `R92-REV-002` 정식 캐릭터 삭제 호출 무조건 실행, `R94-REV-001` 필터 빈 주간 문구 구분, `R94-REV-002` 미사용 `splitVersionGroups`·테스트 삭제)을 반영해 커밋(`0d8a5b8`)하고, `iteration-02` 산출물(`review.json` `clean`, `test.json` `passed`) 스키마 검증 후 `main`에 병합(`703362e`) 및 워크트리를 정리함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`, Vitest 69파일 844개 테스트, `npm run build` 통과함(워크트리에 `.env.local`이 없어 빌드는 임시 공개 Supabase env로 검증).
+- **남은 확인**: 데스크톱·모바일(375px) 주차별 타임라인 배치 및 `/admin` 템플릿 삭제 실브라우저 확인 대기 중임.
+
 ## `r91-r94` Step 3 통합 리뷰 완료 (2026-11-16)
 
 - **수행 주체**: Claude Opus임.

@@ -1,5 +1,14 @@
 # 변경 이력
 
+## 2026-11-16 (Run `r91-r94-weekly-timeline-and-template-delete` 완료 — `main` 병합 `703362e`)
+
+- Step 3 리뷰 지적 4건을 iteration-02(`0d8a5b8`)로 반영하고 `main`에 병합함(`703362e`, `R91`·`R92`·`R94`).
+  - `R92-REV-001`: `/admin` 템플릿 삭제 경고 문구에 등록된 픽업 일정·대기 중 일정 요청에서도 해당 캐릭터가 빠진다는 안내를 추가함.
+  - `R92-REV-002`: 템플릿 삭제 시 클라이언트 목록 수와 무관하게 `game_characters` 정식 캐릭터 삭제 요청을 항상 실행하도록 보강함.
+  - `R94-REV-001`: 주차별 리스트에서 유형 필터 적용 중 일정이 없을 때 `"선택한 필터에 맞는 일정이 없습니다."`로 구분 표시함.
+  - `R94-REV-002`: 미사용 상태였던 `splitVersionGroups` 함수·`VersionGroupEntry` 타입·관련 테스트를 제거함.
+- `iteration-02/review.json`(`clean`)·`test.json`(`passed`)·`run.json`(`completed`) 스키마 검증 완료 및 워크트리를 정리함.
+
 ## 2026-11-16 (`r91-r94` Step 3: 통합 리뷰 `75e2520`)
 
 - Step 1·2 변경을 통합 리뷰하고 `review.json`(지적 4건, P1·P2 없음)·`test.json`(tsc·lint·Vitest·build 통과)을 작성함. 병합 전(Step 4 대기)임.
