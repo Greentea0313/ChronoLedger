@@ -41,10 +41,20 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R91 + R94 주차별 타임라인)` | 아래 Step 1 수용 기준. 허용 파일: `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, 필요 시 `src/components/calendar/` 내 신규 하위 컴포넌트·테스트, `src/app/dashboard/page.tsx`(props 연결만) | 워크트리 커밋 후 `✅ DONE (SHA: …)` 기록 |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R92 템플릿 삭제)` | 아래 Step 2 수용 기준. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, 필요 시 `src/components/` 내 관리자 템플릿 관련 컴포넌트·테스트 | 워크트리 커밋 후 `✅ DONE (SHA: …)` 기록 |
+| **1** | **`✅ DONE (SHA: e79e86b)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R91 + R94 주차별 타임라인)` | 아래 Step 1 수용 기준. 허용 파일: `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, 필요 시 `src/components/calendar/` 내 신규 하위 컴포넌트·테스트, `src/app/dashboard/page.tsx`(props 연결만) | `✅ e79e86b`: 주간 목록 타임라인 개편·종료 일정 제외·필터 바. tsc·lint·Vitest 839개 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R92 템플릿 삭제)` | 아래 Step 2 수용 기준. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, 필요 시 `src/components/` 내 관리자 템플릿 관련 컴포넌트·테스트 | 워크트리 커밋 후 `✅ DONE (SHA: …)` 기록 |
 | **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer (Run 통합 리뷰)` | Base ↔ Step 2 Target 정적 리뷰, `artifacts/r91-r94-weekly-timeline-and-template-delete/iteration-01/review.json`·`test.json` 작성·검증 | 리뷰 결과 기록 |
 | **4** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Orchestrator (마감)` | 지적 반영 여부 판단, `main` 병합(사용자 승인 후), `docs/` 마감, 사용자 실브라우저 확인 안내 | 병합 SHA 기록 |
+
+#### 📝 `r91-r94-weekly-timeline-and-template-delete` Step 1 완료 기록 (Claude Sonnet, 2026-11-16)
+
+- **Target SHA**: `e79e86b` (워크트리 브랜치 `collab/r91-r94-weekly-timeline-and-template-delete`, 미병합)임. 변경 파일은 `weekly-schedule-list.tsx`와 그 테스트 2개뿐임(`dashboard/page.tsx` 변경 없음).
+- **R91**: `end_date < todayDate` 일정은 모든 주차에서 제외, 오늘 끝나는 일정은 표시함.
+- **R94**: 상단 필터 바(`전체·픽업·버전·콘텐츠·방송`, 픽업 선택 시 `전체·신규·복각·진행 중` 하위 칩, 유형을 바꾸면 하위 칩 초기화). 주차 카드 헤더는 `N월 M주차`+`이번 주`+`MM/DD~MM/DD`+주간 지출 소계이고 기존 주차 접기(R70)·지출 섹션은 유지함.
+- **타임라인 행**: 날짜 열 `MM/DD(요일)`은 같은 날짜의 첫 행에만, 오늘이면 `TODAY` 배지. 이전 주에서 이어지는 일정은 주차 시작일에 `진행 중` 칩. 아바타는 픽업이면 첫 픽업 캐릭터(아이콘 없으면 기본 아바타)+우하단 게임 아이콘 배지, 그 외는 게임 아이콘(없으면 `Gamepad2`). 제목·유형 배지, 게임명·`MM.DD ~ MM.DD`·`D-n`, 우측 관심 일정 버튼.
+- **제거됨**: 게임별 아코디언, 버전 하위 중첩(R82 주간 목록 부분). 선택일 상세(`hero-sidebar`)의 버전 묶음은 그대로임. 이 때문에 `splitVersionGroups`·`collectGroupAvatars` 쓰임이 없어졌고 `splitVersionGroups`는 테스트와 함께 코드만 남아 있음(삭제 여부는 Step 3·4에서 결정 필요).
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`(CRLF 경고만), Vitest 69파일 839개 통과함. 실브라우저 확인은 하지 않음.
+- **가정**: `M주차`는 달력 격자의 주 순서(해당 월 첫 주=1주차)임. 필터 상태는 화면 안에서만 유지하고 저장하지 않음.
 
 #### 📌 `r91-r94-weekly-timeline-and-template-delete` 단계별 수용 기준 (Acceptance Criteria)
 
