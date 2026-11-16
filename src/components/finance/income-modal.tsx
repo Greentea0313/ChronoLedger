@@ -23,6 +23,11 @@ interface IncomeModalProps {
   onCompleted?: () => void
 }
 
+/** PostgREST `PGRST202` / Postgres `42883`: the RPC does not exist (R93 migration not applied). */
+function isMissingFunctionError(error: { code?: string }): boolean {
+  return error.code === "PGRST202" || error.code === "42883"
+}
+
 const INCOME_CATEGORIES = ["급여", "용돈", "상여금", "금융수익", "기타"] as const
 
 const selectClassName =
@@ -91,22 +96,31 @@ export function IncomeModal({ open, onOpenChange, onCompleted }: IncomeModalProp
 
     setIsSubmitting(true)
     try {
-      const newTotalAsset = currentAsset + incomeAmount
-
-      // set_user_finance_settings RPC로 자산 갱신
-      const { error: rpcError } = await supabase.rpc("set_user_finance_settings", {
-        p_total_asset: newTotalAsset,
-        p_default_budget: defaultBudget,
+      // R93: one atomic RPC records the income row and raises total_asset.
+      const { error: recordError } = await supabase.rpc("record_income", {
+        p_category: category,
+        p_title: title.trim(),
+        p_amount: incomeAmount,
+        p_income_date: incomeDate || getKstToday(),
+        p_memo: null,
       })
 
-      if (rpcError) {
-        // RPC 오류 시 직접 update 시도
-        const { error: updateError } = await supabase
-          .from("user_finances")
-          .update({ total_asset: newTotalAsset })
-          .eq("user_id", user.id)
-        if (updateError) {
-          throw new Error(rpcError.message || updateError.message)
+      if (recordError) {
+        // Only a missing function (migration not applied yet) falls back to the old asset-only update.
+        if (!isMissingFunctionError(recordError)) throw new Error(recordError.message)
+        const newTotalAsset = currentAsset + incomeAmount
+        const { error: rpcError } = await supabase.rpc("set_user_finance_settings", {
+          p_total_asset: newTotalAsset,
+          p_default_budget: defaultBudget,
+        })
+        if (rpcError) {
+          const { error: updateError } = await supabase
+            .from("user_finances")
+            .update({ total_asset: newTotalAsset })
+            .eq("user_id", user.id)
+          if (updateError) {
+            throw new Error(rpcError.message || updateError.message)
+          }
         }
       }
 

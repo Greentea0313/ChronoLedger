@@ -83,6 +83,12 @@
 --   R35-02 DB fixture 역할         일정 삭제 시 관심 일정 ON DELETE CASCADE, 계정 purge 함수 정리 포함.
 --   R35-03 authenticated / A       계정 삭제 대기 사용자 관심 일정 등록/조회/삭제 차단.
 --   R35-04 anon                   관심 일정 SELECT/INSERT -> insufficient_privilege.
+--   R93-01 authenticated / B       record_income -> 수익 행 생성·total_asset 증액, 잘못된 유형/0 이하 금액/빈 항목명 거부,
+--                                  직접 INSERT/UPDATE/DELETE 거부, 타인 수익 은닉·delete_income 거부,
+--                                  delete_income -> 행 삭제·total_asset 차감 복원, 같은 행 재삭제 거부.
+--   R93-02 authenticated / A       계정 삭제 대기 사용자 record_income/delete_income 거부, 수익 조회 0행.
+--   R93-03 DB fixture 역할         사용자 A 수익·자산 불변, 계정 purge 함수 incomes 정리 포함, 차단 트리거 존재.
+--   R93-04 anon                   수익 SELECT, record_income/delete_income 실행 -> insufficient_privilege.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -1936,6 +1942,180 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R35 favorite schedules owner CRUD, duplicate/cross-user/UPDATE denial, cascade, purge, pending-deletion and anon boundary
+
+-- R93: income history is owner-read-only, written only through record_income/delete_income,
+-- which keep user_finances.total_asset in sync; pending-deletion users and anon are blocked.
+-- User A still has a PENDING account deletion request here, so user B is the regular owner.
+RESET ROLE;
+-- auth.uid() must not be user A while the fixture role inserts A's row (pending-deletion trigger).
+SELECT set_config('request.jwt.claim.sub', :'other_user_id', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'other_user_id', 'role', 'authenticated')::text, true);
+INSERT INTO public.incomes(user_id, category, title, amount, income_date)
+VALUES (:'test_user_id'::uuid, '기타', 'R93 user A income', 5000, CURRENT_DATE)
+RETURNING id AS r93_a_income_id \gset
+SELECT set_config('chronoledger.r93_a_income_id', :'r93_a_income_id', true);
+SELECT total_asset AS r93_a_asset FROM public.user_finances WHERE user_id = :'test_user_id'::uuid \gset
+SELECT set_config('chronoledger.r93_a_asset', :'r93_a_asset', true);
+
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_user UUID := auth.uid();
+    v_other_income UUID := current_setting('chronoledger.r93_a_income_id')::uuid;
+    v_before BIGINT;
+    v_after BIGINT;
+    v_income_id UUID;
+BEGIN
+    IF v_user IS DISTINCT FROM current_setting('chronoledger.other_user_id')::uuid THEN
+        RAISE EXCEPTION 'FAIL: R93 JWT did not resolve user B';
+    END IF;
+    SELECT total_asset INTO v_before FROM public.user_finances WHERE user_id = v_user;
+
+    v_income_id := public.record_income('급여', '  R93 salary  ', 30000, CURRENT_DATE, 'R93 memo');
+    IF NOT EXISTS (
+        SELECT 1 FROM public.incomes
+        WHERE id = v_income_id AND user_id = v_user AND category = '급여' AND title = 'R93 salary'
+          AND amount = 30000 AND income_date = CURRENT_DATE AND memo = 'R93 memo'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R93 record_income did not store the trimmed income row';
+    END IF;
+    SELECT total_asset INTO v_after FROM public.user_finances WHERE user_id = v_user;
+    IF v_after <> v_before + 30000 THEN
+        RAISE EXCEPTION 'FAIL: R93 record_income did not raise total_asset (before %, after %)', v_before, v_after;
+    END IF;
+
+    BEGIN
+        PERFORM public.record_income('부업', 'R93 bad category', 1000, CURRENT_DATE);
+        RAISE EXCEPTION 'FAIL: R93 invalid category was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' OR SQLERRM NOT LIKE '수익 유형%' THEN RAISE; END IF;
+    END;
+    BEGIN
+        PERFORM public.record_income('기타', 'R93 zero amount', 0, CURRENT_DATE);
+        RAISE EXCEPTION 'FAIL: R93 zero amount was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' OR SQLERRM NOT LIKE '수익 금액%' THEN RAISE; END IF;
+    END;
+    BEGIN
+        PERFORM public.record_income('기타', 'R93 negative amount', -1, CURRENT_DATE);
+        RAISE EXCEPTION 'FAIL: R93 negative amount was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' OR SQLERRM NOT LIKE '수익 금액%' THEN RAISE; END IF;
+    END;
+    BEGIN
+        PERFORM public.record_income('기타', '   ', 1000, CURRENT_DATE);
+        RAISE EXCEPTION 'FAIL: R93 blank title was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' OR SQLERRM NOT LIKE '수익 항목명%' THEN RAISE; END IF;
+    END;
+    IF (SELECT total_asset FROM public.user_finances WHERE user_id = v_user) <> v_before + 30000
+       OR (SELECT count(*) FROM public.incomes) <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R93 rejected record_income calls changed data or RLS exposed another user income';
+    END IF;
+
+    BEGIN
+        INSERT INTO public.incomes(user_id, category, title, amount, income_date)
+        VALUES (v_user, '기타', 'R93 direct insert', 1000, CURRENT_DATE);
+        RAISE EXCEPTION 'FAIL: R93 direct INSERT was not denied';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        UPDATE public.incomes SET amount = 1 WHERE id = v_income_id;
+        RAISE EXCEPTION 'FAIL: R93 direct UPDATE was not denied';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        DELETE FROM public.incomes WHERE id = v_income_id;
+        RAISE EXCEPTION 'FAIL: R93 direct DELETE was not denied';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    BEGIN
+        PERFORM public.delete_income(v_other_income);
+        RAISE EXCEPTION 'FAIL: R93 user B deleted user A income';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' OR SQLERRM NOT LIKE '삭제할 수 있는%' THEN RAISE; END IF;
+    END;
+
+    PERFORM public.delete_income(v_income_id);
+    IF EXISTS (SELECT 1 FROM public.incomes WHERE id = v_income_id) THEN
+        RAISE EXCEPTION 'FAIL: R93 delete_income did not delete the row';
+    END IF;
+    SELECT total_asset INTO v_after FROM public.user_finances WHERE user_id = v_user;
+    IF v_after <> v_before THEN
+        RAISE EXCEPTION 'FAIL: R93 delete_income did not restore total_asset (before %, after %)', v_before, v_after;
+    END IF;
+    BEGIN
+        PERFORM public.delete_income(v_income_id);
+        RAISE EXCEPTION 'FAIL: R93 second delete_income of the same row was accepted';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' OR SQLERRM NOT LIKE '삭제할 수 있는%' THEN RAISE; END IF;
+    END;
+    IF (SELECT total_asset FROM public.user_finances WHERE user_id = v_user) <> v_before THEN
+        RAISE EXCEPTION 'FAIL: R93 rejected delete_income changed total_asset';
+    END IF;
+END $$;
+RESET ROLE;
+
+-- Pending-deletion user A cannot record, delete or read incomes.
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'test_user_id', 'role', 'authenticated')::text, true);
+SELECT set_config('request.jwt.claim.sub', :'test_user_id', true);
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+    BEGIN
+        PERFORM public.record_income('기타', 'R93 pending user', 1000, CURRENT_DATE);
+        RAISE EXCEPTION 'FAIL: R93 pending user recorded an income';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' OR SQLERRM NOT LIKE '계정 삭제가 진행 중%' THEN RAISE; END IF;
+    END;
+    BEGIN
+        PERFORM public.delete_income(current_setting('chronoledger.r93_a_income_id')::uuid);
+        RAISE EXCEPTION 'FAIL: R93 pending user deleted an income';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' OR SQLERRM NOT LIKE '계정 삭제가 진행 중%' THEN RAISE; END IF;
+    END;
+    IF EXISTS (SELECT 1 FROM public.incomes) THEN
+        RAISE EXCEPTION 'FAIL: R93 pending user could read incomes';
+    END IF;
+END $$;
+RESET ROLE;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.incomes WHERE id = current_setting('chronoledger.r93_a_income_id')::uuid) THEN
+        RAISE EXCEPTION 'FAIL: R93 user A income was removed';
+    END IF;
+    IF (SELECT total_asset FROM public.user_finances WHERE user_id = current_setting('chronoledger.test_user_id')::uuid)
+       <> current_setting('chronoledger.r93_a_asset')::bigint THEN
+        RAISE EXCEPTION 'FAIL: R93 user A total_asset changed';
+    END IF;
+    IF position('public.incomes' IN pg_get_functiondef('public.purge_expired_account_deletion_requests(integer)'::regprocedure)) = 0 THEN
+        RAISE EXCEPTION 'FAIL: R93 account purge does not delete incomes';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'block_pending_account_deletion_incomes' AND tgrelid = 'public.incomes'::regclass) THEN
+        RAISE EXCEPTION 'FAIL: R93 pending-deletion trigger is missing on incomes';
+    END IF;
+END $$;
+
+SET LOCAL ROLE anon;
+DO $$ BEGIN
+    BEGIN
+        PERFORM 1 FROM public.incomes LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R93 anon read incomes';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.record_income('기타', 'R93 anon', 1000, CURRENT_DATE);
+        RAISE EXCEPTION 'FAIL: R93 anon executed record_income';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.delete_income(current_setting('chronoledger.r93_a_income_id')::uuid);
+        RAISE EXCEPTION 'FAIL: R93 anon executed delete_income';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R93 income RPCs keep total_asset in sync, validate input, deny direct writes, isolate users, block pending deletion and anon
 
 -- User A's PENDING account deletion request (R13-07) is only needed up to R35; later blocks write as user A.
 DELETE FROM public.account_deletion_requests WHERE user_id = :'test_user_id'::uuid AND status_token_hash = repeat('a', 64);

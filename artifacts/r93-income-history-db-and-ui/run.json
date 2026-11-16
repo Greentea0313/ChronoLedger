@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r93-income-history-db-and-ui",
+    "created_at":  "2026-11-16T04:47:07.5157015+00:00",
+    "objective":  "R93: Add public.incomes table, atomic record_income/delete_income RPCs, RLS/account-deletion integration, and income history tab \u0026 deletion UI in /dashboard/expenses",
+    "acceptance_criteria":  [
+                                "Step 1 (DB/RLS/RPC/Types): Create idempotent sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql and sync sql/SCHEMA.sql with public.incomes table, owner SELECT RLS, pending-account-deletion guard, purge_expired_account_deletion_requests integration, and atomic SECURITY DEFINER RPCs record_income and delete_income; add sql/README.md verification queries, sql/tests/TESTS.sql R93 scenarios, and src/types/database.types.ts types.",
+                                "Step 2 (UI \u0026 Vitest): Update IncomeModal to call record_income RPC (with unmigrated DB fallback to set_user_finance_settings), add [지출 내역 | 수익 내역] toggle tab in /dashboard/expenses card header with income table/mobile cards, pagination, and confirmation dialog + delete_income RPC deletion that restores total_asset, plus unit tests in income-modal.test.tsx and expenses/page.test.tsx.",
+                                "Step 3 (Review \u0026 Closeout): Static code review (review.json, test.json), local PostgreSQL/Supabase migration \u0026 TESTS.sql verification, and merge into main."
+                            ],
+    "base_sha":  "0844387fdffb8a01bb575836df16d57d10355165",
+    "target_sha":  "7c8883ef309055009705c26c4bcf9f2acd359509",
+    "branch":  "collab/r93-income-history-db-and-ui",
+    "worktree_path":  ".worktrees/r93-income-history-db-and-ui",
+    "max_iterations":  3,
+    "status":  "completed"
+}

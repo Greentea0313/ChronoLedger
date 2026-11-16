@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "run_id": "r93-income-history-db-and-ui",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "0844387fdffb8a01bb575836df16d57d10355165",
+  "target_sha": "7c8883ef309055009705c26c4bcf9f2acd359509",
+  "status": "passed",
+  "created_at": "2026-11-16T07:00:00Z",
+  "finished_at": "2026-11-16T07:30:00Z",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Git whitespace check of Base..Target diff", "command": "git diff --check 0844387 7c8883ef309055009705c26c4bcf9f2acd359509", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "node ../../node_modules/typescript/bin/tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "node ../../node_modules/next/dist/bin/next lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (69 files, 862 tests)", "command": "node ../../node_modules/vitest/vitest.mjs run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder Supabase env", "command": "node ../../node_modules/next/dist/bin/next build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Local Supabase reset, base SCHEMA.sql at 0844387, R93 migration applied twice (idempotent), incomes privileges checked", "command": "psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TESTS.sql end to end on the local Supabase stack (39 PASS lines incl. R93 block, final rollback PASS)", "command": "psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Real-browser check of recording and deleting incomes (requires a signed-in account and the production migration)", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}

@@ -1094,3 +1094,155 @@ describe("ExpensesPage", () => {
     expect(within(summary).getByText("누적 충전형 3,000 원 (1건)")).toBeTruthy()
   })
 });
+
+describe("ExpensesPage 수익 내역 (R93)", () => {
+  const incomeRow = (n: number) => ({
+    id: `inc-${n}`,
+    category: n % 2 ? "급여" : "용돈",
+    title: `수익 ${n}`,
+    amount: 1000 * n,
+    income_date: `2026-10-${String(30 - n).padStart(2, "0")}`,
+    memo: null,
+    created_at: `2026-10-${String(30 - n).padStart(2, "0")}T00:00:00Z`,
+  })
+
+  function setup(incomes: unknown[] | { error: { code?: string; message: string } }) {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const incomesBuilder = createExpenseQueryBuilder([])
+    const result = Array.isArray(incomes) ? { data: incomes, error: null } : { data: null, error: incomes.error }
+    // The second order() call (created_at) ends the chain, so resolve the whole builder with the result.
+    const resolved = Promise.resolve(result)
+    incomesBuilder.then = resolved.then.bind(resolved) as typeof incomesBuilder.then
+    incomesBuilder.catch = resolved.catch.bind(resolved) as typeof incomesBuilder.catch
+    from.mockImplementation((table: string) => (table === "incomes" ? incomesBuilder : createExpenseQueryBuilder([])))
+    rpc.mockReset()
+    rpc.mockResolvedValue({ data: null, error: null })
+    return incomesBuilder
+  }
+
+  const openIncomes = async () => {
+    render(<ExpensesPage />)
+    const toggle = await screen.findByRole("button", { name: "수익 내역" })
+    fireEvent.click(toggle)
+    return toggle
+  }
+
+  it("기본은 지출 내역이고 수익 내역 버튼으로 전환하며 aria-pressed가 따라간다", async () => {
+    setup([incomeRow(1)])
+    render(<ExpensesPage />)
+
+    const expensesToggle = await screen.findByRole("button", { name: "지출 내역" })
+    const incomesToggle = screen.getByRole("button", { name: "수익 내역" })
+    expect(expensesToggle.getAttribute("aria-pressed")).toBe("true")
+    expect(screen.getByRole("button", { name: /과거 기록/ })).toBeTruthy()
+
+    fireEvent.click(incomesToggle)
+    expect(incomesToggle.getAttribute("aria-pressed")).toBe("true")
+    expect(expensesToggle.getAttribute("aria-pressed")).toBe("false")
+    expect(screen.queryByRole("button", { name: /과거 기록/ })).toBeNull()
+    expect(screen.queryByText("취소 내역 숨기기")).toBeNull()
+
+    fireEvent.click(expensesToggle)
+    expect(screen.getByRole("button", { name: /과거 기록/ })).toBeTruthy()
+  })
+
+  it("로그인 사용자의 수익을 입금일·생성일 내림차순으로 조회하고 건수·합계·행을 보여준다", async () => {
+    const builder = setup([incomeRow(1), incomeRow(2)])
+    await openIncomes()
+
+    expect(await screen.findByTestId("income-summary")).toBeTruthy()
+    await waitFor(() => expect(screen.getByTestId("income-summary").textContent).toBe("등록된 수익 2건 · 총 수익 +3,000 원"))
+    expect(from).toHaveBeenCalledWith("incomes")
+    expect(builder.select).toHaveBeenCalledWith("id, category, title, amount, income_date, memo, created_at")
+    expect(builder.eq).toHaveBeenCalledWith("user_id", "user-123")
+    expect(builder.order).toHaveBeenNthCalledWith(1, "income_date", { ascending: false })
+    expect(builder.order).toHaveBeenNthCalledWith(2, "created_at", { ascending: false })
+
+    const rows = screen.getAllByTestId("income-row")
+    expect(rows).toHaveLength(2)
+    expect(within(rows[0]).getByText("수익 1")).toBeTruthy()
+    expect(within(rows[0]).getByText("+1,000 원")).toBeTruthy()
+    expect(within(rows[0]).getByText("급여")).toBeTruthy()
+    expect(within(rows[0]).getByText("2026-10-29")).toBeTruthy()
+    expect(screen.getAllByTestId("income-card")).toHaveLength(2)
+  })
+
+  it("수익이 없으면 안내 EmptyState를 보여준다", async () => {
+    setup([])
+    await openIncomes()
+    expect(await screen.findByText("등록된 수익 내역이 없습니다.")).toBeTruthy()
+    expect(screen.getByText("우측 상단 '+ 수익 추가' 버튼으로 새 수익을 등록해 보세요.")).toBeTruthy()
+  })
+
+  it.each(["42P01", "PGRST205"])("incomes 테이블이 없는 DB(%s)에서는 오류 없이 빈 상태로 폴백한다", async (code) => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    setup({ error: { code, message: "missing" } })
+    await openIncomes()
+    expect(await screen.findByText("등록된 수익 내역이 없습니다.")).toBeTruthy()
+    expect(spy).not.toHaveBeenCalledWith("수익 내역을 불러오지 못했습니다:", expect.anything())
+    spy.mockRestore()
+  })
+
+  it("10건을 넘으면 10건 단위로 페이지를 나눈다", async () => {
+    setup(Array.from({ length: 12 }, (_, i) => incomeRow(i + 1)))
+    await openIncomes()
+
+    await waitFor(() => expect(screen.getAllByTestId("income-row")).toHaveLength(10))
+    expect(screen.getByTestId("income-pagination-info").textContent).toContain("총 12건 중 1 - 10건 표시")
+    fireEvent.click(screen.getByRole("button", { name: "수익 다음 페이지" }))
+    expect(screen.getAllByTestId("income-row")).toHaveLength(2)
+    expect(screen.getByTestId("income-pagination-info").textContent).toContain("11 - 12건 표시")
+  })
+
+  it("삭제는 확인 다이얼로그를 거쳐 delete_income RPC를 호출하고 목록을 다시 불러온다", async () => {
+    const builder = setup([incomeRow(1), incomeRow(2)])
+    await openIncomes()
+    const row = (await screen.findAllByTestId("income-row"))[0]
+    const loadsBefore = builder.select.mock.calls.length
+
+    fireEvent.click(within(row).getByRole("button", { name: "수익 1 삭제" }))
+    const dialog = screen.getByRole("dialog")
+    expect(within(dialog).getByText("'수익 1' 수익 내역을 삭제하시겠습니까? 삭제 시 총 자산에서 1,000원이 차감됩니다.")).toBeTruthy()
+    expect(rpc).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "삭제" }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("delete_income", { p_income_id: "inc-1" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    expect(builder.select.mock.calls.length).toBeGreaterThan(loadsBefore)
+  })
+
+  it("삭제 확인에서 취소하면 RPC를 호출하지 않는다", async () => {
+    setup([incomeRow(1)])
+    await openIncomes()
+    fireEvent.click(within((await screen.findAllByTestId("income-row"))[0]).getByRole("button", { name: "수익 1 삭제" }))
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "취소" }))
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it("삭제 RPC가 실패하면 오류를 보여주고 다이얼로그를 유지한다", async () => {
+    setup([incomeRow(1)])
+    await openIncomes()
+    rpc.mockResolvedValue({ data: null, error: { message: "denied" } })
+    fireEvent.click(within((await screen.findAllByTestId("income-row"))[0]).getByRole("button", { name: "수익 1 삭제" }))
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제" }))
+
+    expect((await within(screen.getByRole("dialog")).findByRole("alert")).textContent).toContain("삭제하지 못했습니다")
+    expect(screen.getAllByTestId("income-row")).toHaveLength(1)
+  })
+
+  it("오프라인에서는 삭제 RPC를 호출하지 않고 오프라인 안내를 보여준다", async () => {
+    setup([incomeRow(1)])
+    await openIncomes()
+    fireEvent.click(within((await screen.findAllByTestId("income-row"))[0]).getByRole("button", { name: "수익 1 삭제" }))
+    Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+    try {
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제" }))
+      expect((await within(screen.getByRole("dialog")).findByRole("alert")).textContent).toContain("오프라인")
+      expect(rpc).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+    }
+  })
+})

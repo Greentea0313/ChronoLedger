@@ -16,7 +16,7 @@ import { addDays, ensureMonthlySubscriptionExpenses, type SubscriptionCycleType 
 import { getKstToday } from "@/lib/dashboard-date"
 import { GameIcon } from "@/components/ui/game-icon"
 import { ExpensesPageSkeleton } from "@/components/ui/page-skeletons"
-import { isOffline } from "@/lib/offline-guard"
+import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 import { ChevronLeft, ChevronRight, Trash2, History } from "lucide-react"
 
 import { preloadImages } from "@/lib/icon-preload"
@@ -25,6 +25,23 @@ import { IncomeModal } from "@/components/finance/income-modal"
 import { formatAmountAxisTick, getGameTooltipLabel } from "@/lib/chart-format"
 
 const EXPENSES_PER_PAGE = 10
+const INCOMES_PER_PAGE = 10
+
+interface IncomeRow {
+  id: string
+  category: string
+  title: string
+  amount: number
+  income_date: string
+  memo: string | null
+  created_at: string
+}
+
+/** `incomes` not migrated yet (R93): behave as an empty income history instead of failing the page. */
+function isMissingIncomesTable(error: { code?: string } | null | undefined): boolean {
+  const code = error?.code ?? ""
+  return code === "42P01" || code === "PGRST205"
+}
 const SUBSCRIPTIONS_PER_PAGE = 12
 
 function getPaginationRange(current: number, total: number): (number | "...")[] {
@@ -175,6 +192,13 @@ export default function ExpensesPage() {
   // 모달 제어 상태
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
+  // R93: the history card switches between expenses and incomes.
+  const [historyView, setHistoryView] = useState<"expenses" | "incomes">("expenses")
+  const [incomes, setIncomes] = useState<IncomeRow[]>([])
+  const [incomePage, setIncomePage] = useState(1)
+  const [deletingIncome, setDeletingIncome] = useState<IncomeRow | null>(null)
+  const [isDeletingIncome, setIsDeletingIncome] = useState(false)
+  const [incomeDeleteError, setIncomeDeleteError] = useState<string | null>(null)
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<SubscriptionTemplateRow | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<SubscriptionTemplateRow | null>(null)
@@ -258,6 +282,31 @@ export default function ExpensesPage() {
     hasLoadedInitialRef.current = true
     setIsLoading(false)
   }, [userId, loadCustomIconsForGameIds])
+
+  const loadIncomes = useCallback(async () => {
+    if (!userId) return
+    try {
+      const { data, error } = await supabase
+        .from("incomes")
+        .select("id, category, title, amount, income_date, memo, created_at")
+        .eq("user_id", userId)
+        .order("income_date", { ascending: false })
+        .order("created_at", { ascending: false })
+      if (error) {
+        if (!isMissingIncomesTable(error)) console.error("수익 내역을 불러오지 못했습니다:", error)
+        setIncomes([])
+        return
+      }
+      setIncomes(((data ?? []) as unknown as IncomeRow[]).map((row) => ({ ...row, amount: Number(row.amount) })))
+    } catch (cause) {
+      console.error("수익 내역을 불러오지 못했습니다:", cause)
+      setIncomes([])
+    }
+  }, [userId])
+
+  useEffect(() => {
+    void loadIncomes()
+  }, [loadIncomes])
 
   const loadSubscriptions = useCallback(async () => {
     if (!userId) return
@@ -603,6 +652,41 @@ export default function ExpensesPage() {
       setCurrentPage(totalExpensePages)
     }
   }, [currentPage, totalExpensePages])
+
+  const totalIncomePages = Math.max(1, Math.ceil(incomes.length / INCOMES_PER_PAGE))
+  const totalIncomeAmount = useMemo(() => incomes.reduce((sum, income) => sum + income.amount, 0), [incomes])
+
+  useEffect(() => {
+    if (incomePage > totalIncomePages) setIncomePage(totalIncomePages)
+  }, [incomePage, totalIncomePages])
+
+  const paginatedIncomes = useMemo(() => {
+    const start = (incomePage - 1) * INCOMES_PER_PAGE
+    return incomes.slice(start, start + INCOMES_PER_PAGE)
+  }, [incomes, incomePage])
+
+  const handleDeleteIncome = async () => {
+    if (!deletingIncome || isDeletingIncome) return
+    if (isOffline()) {
+      setIncomeDeleteError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
+    setIsDeletingIncome(true)
+    setIncomeDeleteError(null)
+    try {
+      const { error } = await supabase.rpc("delete_income", { p_income_id: deletingIncome.id })
+      if (error) {
+        setIncomeDeleteError("수익 내역을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+        return
+      }
+      setDeletingIncome(null)
+      await loadIncomes()
+    } catch {
+      setIncomeDeleteError("수익 내역을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+    } finally {
+      setIsDeletingIncome(false)
+    }
+  }
 
   const paginatedExpenses = useMemo(() => {
     const start = (currentPage - 1) * EXPENSES_PER_PAGE
@@ -1306,6 +1390,30 @@ export default function ExpensesPage() {
           {/* 전체 지출 내역 목록 영역 */}
           <Card className="flex flex-col">
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
+              <div role="group" aria-label="내역 구분" className="flex basis-full gap-1.5">
+                {([["expenses", "지출 내역"], ["incomes", "수익 내역"]] as const).map(([value, label]) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    size="sm"
+                    variant={historyView === value ? "default" : "outline"}
+                    aria-pressed={historyView === value}
+                    onClick={() => setHistoryView(value)}
+                    className="h-8 px-3 text-xs"
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+              {historyView === "incomes" && (
+                <div>
+                  <CardTitle>수익 내역</CardTitle>
+                  <p data-testid="income-summary" className="text-xs text-content-secondary mt-1">
+                    {`등록된 수익 ${incomes.length.toLocaleString()}건 · 총 수익 +${totalIncomeAmount.toLocaleString()} 원`}
+                  </p>
+                </div>
+              )}
+              {historyView === "expenses" && (<>
               <div>
                 <CardTitle>{showPastExpenses ? "과거 지출 기록" : "전체 지출 내역"}</CardTitle>
                 <p className="text-xs text-content-secondary mt-1">
@@ -1334,7 +1442,120 @@ export default function ExpensesPage() {
                   {showPastExpenses ? "최근 내역 보기" : `과거 기록 (${pastExpenses.length})`}
                 </Button>
               </div>
+              </>)}
             </CardHeader>
+            {historyView === "incomes" ? (
+            <CardContent className="pt-4">
+              {incomes.length === 0 ? (
+                <EmptyState
+                  message="등록된 수익 내역이 없습니다."
+                  hint="우측 상단 '+ 수익 추가' 버튼으로 새 수익을 등록해 보세요."
+                />
+              ) : (
+                <>
+                  <div className="hidden md:block overflow-x-auto">
+                    <table data-testid="income-table" className="w-full text-left text-sm">
+                      <thead className="border-b border-line text-xs text-content-muted">
+                        <tr>
+                          <th className="pb-3 font-medium">입금일</th>
+                          <th className="pb-3 font-medium">항목명</th>
+                          <th className="pb-3 font-medium">수익 유형</th>
+                          <th className="pb-3 font-medium text-right">입금 금액</th>
+                          <th className="pb-3 font-medium text-right">액션</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-line">
+                        {paginatedIncomes.map((income) => (
+                          <tr key={income.id} data-testid="income-row">
+                            <td className="py-3 text-content-secondary">{income.income_date}</td>
+                            <td className="py-3 font-medium">{income.title}</td>
+                            <td className="py-3">
+                              <span className="rounded border border-line bg-surface-2 px-1.5 py-0.5 text-xs text-content-secondary">{income.category}</span>
+                            </td>
+                            <td className="py-3 text-right font-semibold text-success">{`+${income.amount.toLocaleString()} 원`}</td>
+                            <td className="py-3 text-right">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                aria-label={`${income.title} 삭제`}
+                                onClick={() => {
+                                  setIncomeDeleteError(null)
+                                  setDeletingIncome(income)
+                                }}
+                                className="h-8 px-2 text-xs text-danger"
+                              >
+                                삭제
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="md:hidden space-y-2">
+                    {paginatedIncomes.map((income) => (
+                      <div key={income.id} data-testid="income-card" className="flex items-center justify-between gap-2 rounded-md border border-line bg-surface-2 p-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{income.title}</p>
+                          <p className="text-xs text-content-muted">{`${income.income_date} · ${income.category}`}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="font-semibold text-success">{`+${income.amount.toLocaleString()} 원`}</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            aria-label={`${income.title} 삭제`}
+                            onClick={() => {
+                              setIncomeDeleteError(null)
+                              setDeletingIncome(income)
+                            }}
+                            className="h-8 px-2 text-xs text-danger"
+                          >
+                            삭제
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-line text-xs text-content-secondary">
+                    <div data-testid="income-pagination-info">
+                      총 <span className="font-semibold text-content">{incomes.length.toLocaleString()}</span>건 중{" "}
+                      <span className="font-semibold text-content">
+                        {(incomePage - 1) * INCOMES_PER_PAGE + 1} - {Math.min(incomePage * INCOMES_PER_PAGE, incomes.length)}
+                      </span>
+                      건 표시 (페이지 <span className="font-semibold text-content">{incomePage}</span> / {totalIncomePages})
+                    </div>
+                    {totalIncomePages > 1 && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIncomePage((p) => Math.max(1, p - 1))}
+                          disabled={incomePage === 1}
+                          aria-label="수익 이전 페이지"
+                          className="h-8 px-2 text-xs"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIncomePage((p) => Math.min(totalIncomePages, p + 1))}
+                          disabled={incomePage === totalIncomePages}
+                          aria-label="수익 다음 페이지"
+                          className="h-8 px-2 text-xs"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+            ) : (
             <CardContent className="pt-4">
               {displayedExpenses.length === 0 ? (
                 <EmptyState
@@ -1649,6 +1870,7 @@ export default function ExpensesPage() {
                 </>
               )}
             </CardContent>
+            )}
           </Card>
         </TabsContent>
 
@@ -1928,8 +2150,30 @@ export default function ExpensesPage() {
         onOpenChange={setIsIncomeModalOpen}
         onCompleted={() => {
           void loadExpenses()
+          void loadIncomes()
         }}
       />
+
+      {/* R93: 수익 내역 삭제 확인 */}
+      <Dialog open={deletingIncome !== null} onOpenChange={(open) => !open && !isDeletingIncome && setDeletingIncome(null)}>
+        <DialogContent className="max-w-md border-line bg-surface text-content">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-danger">수익 내역 삭제</DialogTitle>
+            <DialogDescription className="text-sm text-content-secondary">
+              {deletingIncome
+                ? `'${deletingIncome.title}' 수익 내역을 삭제하시겠습니까? 삭제 시 총 자산에서 ${deletingIncome.amount.toLocaleString()}원이 차감됩니다.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {incomeDeleteError && <p role="alert" className="text-xs text-danger">{incomeDeleteError}</p>}
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={() => setDeletingIncome(null)} disabled={isDeletingIncome}>취소</Button>
+            <Button type="button" variant="destructive" onClick={() => void handleDeleteIncome()} disabled={isDeletingIncome}>
+              {isDeletingIncome ? "삭제 중..." : "삭제"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 결제 상세/수정/취소 모달 */}
       <ExpenseDetailModal
