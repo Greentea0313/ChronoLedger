@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+## Run `r93-income-history-db-and-ui` 완료 — `main` 병합 `a1f17e0` (2026-11-16)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.
+- **경과**: Step 1·2 브랜치가 다른 PC에만 있어 한때 `🛑 BLOCKED` 처리함 → 사용자가 브랜치를 push해 해제함.
+- **결과**: 수익 내역 테이블(`incomes`)과 원자적 RPC(`record_income`·`delete_income`)로 수익 기록과 총 자산을 함께 관리함. 지출 화면에 수익 내역 탭(조회·삭제) 추가. 리뷰 P1~P3 없음, P4 2건은 to-do `R95`.
+- **검증**: 🐳 로컬 DB에서 마이그레이션 2회 적용·`TESTS.sql` 전체 통과, 병합 후 `main` Vitest 1484개 통과함.
+- **남은 작업 (사용자)**: 운영 DB에 `MIGRATION_R93_INCOME_HISTORY.sql` 적용·확인 쿼리, 실브라우저 확인.
+
 ## 게스트 모드 `/dashboard/games` 카드 UI 수정 및 커밋·푸시 (2026-11-16)
 
 - **수행 주체**: Gemini 3.8 Flash 서브에이전트(`flash-ui-worker`, Gemini 4 Hydrogen 위임)임.

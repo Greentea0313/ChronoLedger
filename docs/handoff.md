@@ -32,7 +32,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r93-income-history-db-and-ui` *(`R93`: `public.incomes` 수익 내역 테이블·RLS·계정 탈퇴 정리 연동 + 총 자산 원자적 동기화 RPC `record_income`/`delete_income` + `/dashboard/expenses` `[지출 내역 | 수익 내역]` 전환 탭 조회·삭제 UI)*
+- **활성 Run ID**: `r93-income-history-db-and-ui` **(완료, `main` 병합 `a1f17e0`, R93 마이그레이션 운영 적용·실브라우저 확인은 사용자 대기)** *(`R93`: `public.incomes` 수익 내역 테이블·RLS·계정 탈퇴 정리 연동 + 총 자산 원자적 동기화 RPC `record_income`/`delete_income` + `/dashboard/expenses` `[지출 내역 | 수익 내역]` 전환 탭 조회·삭제 UI)*
 - **Orchestrator**: Gemini 4 Argon *(2026-11-16 등록)*
 - **Worktree 경로**: `.worktrees/r93-income-history-db-and-ui` (브랜치: `collab/r93-income-history-db-and-ui`, manifest `artifacts/r93-income-history-db-and-ui/run.json`)
 - **Base SHA**: `0844387fdffb8a01bb575836df16d57d10355165`
@@ -42,9 +42,21 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 7e8f702)`** | ~~**GPT Codex**~~ ➡️ **Claude Opus** *(1순위 대체로 수행)* | `Maker (R93 DB/RLS/RPC & Types)` | `.worktrees/r93-income-history-db-and-ui`(Base `0844387`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (🐳 로컬 SQL 실행 검증 시 Docker Desktop 필요) | `✅ 7e8f702`: 마이그레이션·SCHEMA·README·TESTS·타입 반영. tsc·lint·Vitest 69파일/848개·diff-check 통과. ⚠️ 로컬 DB 실행 검증은 미실행(이 PC에 Docker·psql 없음, 사용자 지시로 SQL만 작성) → Step 3에서 수행 |
 | **2** | **`✅ DONE (SHA: 7c8883e)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R93 Income History UI & Vitest)` | `.worktrees/r93-income-history-db-and-ui`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/finance/income-modal.tsx`, 신규/보강 `src/components/finance/income-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `docs/to-do.md` | `✅ 7c8883e`: 수익 모달 `record_income` 연동, `[지출 내역 \| 수익 내역]` 탭·조회·삭제 UI. tsc·lint·Vitest 862개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`🛑 BLOCKED (2026-11-16: r93 브랜치·커밋 부재)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `▶ Step 2 완료(7c8883e). Base 0844387 ↔ Target 7c8883e` |
+| **3** | **`✅ DONE (리뷰: 0844387 ↔ 7c8883e, 산출물 2d12115, main 병합 a1f17e0)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `✅` P1~P3 없음, P4 2건 to-do `R95` 이관. 🐳 로컬 DB 마이그레이션 2회(멱등)·`TESTS.sql` 39개 PASS, Vitest 862개·병합 후 1484개 통과. **R93 마이그레이션 운영 적용·실브라우저 확인은 사용자 대기** (아래 Step 3 완료 기록 참고) |
 
-#### 🛑 `r93-income-history-db-and-ui` Step 3 차단 기록 (Claude Opus, 2026-11-16)
+#### 📝 `r93-income-history-db-and-ui` Step 3 완료 기록 (Claude Opus, 2026-11-16)
+
+- **차단 해제**: 사용자가 작업 PC에서 `collab/r93-income-history-db-and-ui`를 push함 → 이 PC에서 fetch 후 워크트리를 다시 만들어 진행함.
+- **리뷰 범위**: Base `0844387` ↔ Target `7c8883e`. 산출물 `artifacts/r93-income-history-db-and-ui/iteration-01/review.json`·`test.json`(커밋 `2d12115`)임. Step 1은 다른 세션의 Claude Opus가 작성해 같은 모델 리뷰라는 독립성 한계가 있음.
+- **SQL·RLS 확인**: `incomes`는 `authenticated` SELECT만 허용(본인 행 정책), 쓰기 권한 없음, 계정 삭제 대기 차단 정책·트리거 적용. `record_income`·`delete_income`은 `SECURITY DEFINER`·`search_path` 고정·`auth.uid()` 본인 확인·입력 검증 후 수익 행과 `total_asset`을 한 트랜잭션에서 함께 바꾸고, `anon` 실행 권한 회수. 재정의한 탈퇴 정리 함수는 기존 본문과 동일하고 `incomes` 삭제 한 줄만 추가됨. `total_asset`은 원래 음수 허용이라 삭제 시 오류 없음. P1~P3 없음.
+- **화면 확인**: 수익 모달은 `record_income` 우선, 함수 부재(`PGRST202`·`42883`)일 때만 기존 자산 갱신으로 대체해 이중 반영이 없음. 수익 내역 탭은 오프라인 가드 후 `delete_income` 호출·목록 재조회, 테이블 미적용 시 빈 목록 처리.
+- **P4 2건 (to-do `R95` 이관)**: `R93-REV-001` 수익 삭제 실패 시 RPC 사유(삭제 대기 등) 대신 일반 문구만 표시. `R93-REV-002` 탈퇴 정리 함수를 재정의하는 이전 마이그레이션을 다시 실행하면 `incomes` 삭제 줄이 빠짐(단, `auth.users` CASCADE로 실제 삭제는 됨) → README 경고 추가 권장.
+- **검증**: 🐳 로컬 Supabase를 초기화하고 `0844387` 스키마 적용 → R93 마이그레이션 2회 적용(멱등) → 권한 확인(`authenticated` INSERT·`anon` SELECT 없음) → `TESTS.sql` 전체 통과(39개 PASS, R93 블록 포함). 워크트리 tsc·lint·diff-check·build 통과, Vitest 69파일/862개 통과. `main` 병합 `a1f17e0` 후 tsc·Vitest 159파일/1484개 통과함.
+- **사용자 수동 작업 남음**:
+  1. 운영 DB에 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql` 적용 후 `sql/README.md` R93 확인 쿼리 실행. 적용 전에는 수익 등록이 기존 방식(자산만 증가)으로 동작하고 수익 내역 탭은 비어 있음.
+  2. 실브라우저: 수익 등록 → 총 자산 증가·수익 내역 표시, 수익 삭제 → 총 자산 감소.
+
+#### 🛑 `r93-income-history-db-and-ui` Step 3 차단 기록(해제됨) (Claude Opus, 2026-11-16)
 
 - **원인**: Step 1 `7e8f702`·Step 2 `7c8883e` 커밋과 브랜치 `collab/r93-income-history-db-and-ui`가 이 PC 저장소와 원격(`origin`) 어디에도 없음(`git cat-file`·`git ls-remote --heads`로 확인). `.worktrees/r93-income-history-db-and-ui`도 없음. Step 1 기록의 "이 PC에 Docker·psql 없음" 문구로 보아 다른 PC에서 작업 후 브랜치를 push하지 않은 것으로 판단함(문서 커밋만 반영됨).
 - **해제 방법**: 작업한 PC에서 `git push origin collab/r93-income-history-db-and-ui` 후 이 PC에서 `git fetch` → Step 3을 `▶ READY`로 되돌려 리뷰 진행함. 리뷰에는 🐳 Docker Desktop 필요(2026-11-16 이 PC 엔진 실행 확인).
