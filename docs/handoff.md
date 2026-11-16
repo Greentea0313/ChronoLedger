@@ -42,8 +42,8 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: e79e86b)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R91 + R94 주차별 타임라인)` | 아래 Step 1 수용 기준. 허용 파일: `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, 필요 시 `src/components/calendar/` 내 신규 하위 컴포넌트·테스트, `src/app/dashboard/page.tsx`(props 연결만) | `✅ e79e86b`: 주간 목록 타임라인 개편·종료 일정 제외·필터 바. tsc·lint·Vitest 839개 통과 (아래 Step 1 완료 기록 참고) |
-| **2** | **`▶ READY`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R92 템플릿 삭제)` | 아래 Step 2 수용 기준. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, 필요 시 `src/components/` 내 관리자 템플릿 관련 컴포넌트·테스트 | 워크트리 커밋 후 `✅ DONE (SHA: …)` 기록 |
-| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer (Run 통합 리뷰)` | Base ↔ Step 2 Target 정적 리뷰, `artifacts/r91-r94-weekly-timeline-and-template-delete/iteration-01/review.json`·`test.json` 작성·검증 | 리뷰 결과 기록 |
+| **2** | **`✅ DONE (SHA: 8628d5d)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R92 템플릿 삭제)` | 아래 Step 2 수용 기준. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, 필요 시 `src/components/` 내 관리자 템플릿 관련 컴포넌트·테스트 | `✅ 8628d5d`: 템플릿 삭제 버튼·확인 다이얼로그·정식 캐릭터 삭제 후 초기화. tsc·lint·Vitest 847개 통과 (아래 Step 2 완료 기록 참고) |
+| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer (Run 통합 리뷰)` | Base ↔ Step 2 Target 정적 리뷰, `artifacts/r91-r94-weekly-timeline-and-template-delete/iteration-01/review.json`·`test.json` 작성·검증 | Base `2b66cda` ↔ Target `8628d5d` (Step 1 `e79e86b` 포함) · 리뷰 결과 기록 |
 | **4** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Orchestrator (마감)` | 지적 반영 여부 판단, `main` 병합(사용자 승인 후), `docs/` 마감, 사용자 실브라우저 확인 안내 | 병합 SHA 기록 |
 
 #### 📝 `r91-r94-weekly-timeline-and-template-delete` Step 1 완료 기록 (Claude Sonnet, 2026-11-16)
@@ -55,6 +55,15 @@
 - **제거됨**: 게임별 아코디언, 버전 하위 중첩(R82 주간 목록 부분). 선택일 상세(`hero-sidebar`)의 버전 묶음은 그대로임. 이 때문에 `splitVersionGroups`·`collectGroupAvatars` 쓰임이 없어졌고 `splitVersionGroups`는 테스트와 함께 코드만 남아 있음(삭제 여부는 Step 3·4에서 결정 필요).
 - **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`(CRLF 경고만), Vitest 69파일 839개 통과함. 실브라우저 확인은 하지 않음.
 - **가정**: `M주차`는 달력 격자의 주 순서(해당 월 첫 주=1주차)임. 필터 상태는 화면 안에서만 유지하고 저장하지 않음.
+
+#### 📝 `r91-r94-weekly-timeline-and-template-delete` Step 2 완료 기록 (Claude Sonnet, 2026-11-16)
+
+- **Target SHA**: `8628d5d` (워크트리 브랜치 `collab/r91-r94-weekly-timeline-and-template-delete`, 미병합)임. 변경 파일은 `src/app/admin/page.tsx`와 `page.test.tsx`뿐임. DB·SQL·RPC 변경 없음(Opus 승격 조건 ① 해당 없음으로 판단).
+- **UI**: `/admin` 캐릭터 관리 탭에서 템플릿이 활성인 게임에만 `템플릿 설정 수정` 옆에 `템플릿 삭제` 버튼을 둠. 확인 다이얼로그는 정식 캐릭터 N명(사용자 보유 체크·프리셋 포함) 삭제 경고(0명이면 템플릿만 초기화한다는 안내)와 픽업 전용 유지 문구를 보여줌.
+- **동작**: 정식 캐릭터(`is_pickup_only = false`)를 `game_id` 기준으로 먼저 삭제한 뒤 `games`를 `classification_schema = {rarities: [], axes: []}`, 슬롯 4, 돌파 6으로 갱신함. 완료 후 `isCharacterTemplateActive === false`가 되어 `캐릭터 템플릿 생성` 안내로 돌아감. 분류 아이콘은 기존 `trg_cleanup_game_classification_icons` 트리거가 정리하고 화면 아이콘 상태도 다시 불러옴. 프리셋 정리는 기존 `trg_cleanup_deleted_game_character_presets`, 보유 체크는 `ON DELETE CASCADE`가 처리함.
+- **실패·재시도**: 캐릭터 삭제 실패 시 오류 표시·템플릿 미변경, 템플릿 초기화 실패 시 "정식 캐릭터는 삭제했지만 초기화에 실패" 안내 후 다이얼로그 유지임. 같은 버튼으로 재시도 가능(캐릭터 삭제는 0건이면 건너뜀). 두 쓰기는 트랜잭션이 아니라서 중간 실패 시 `정식 캐릭터 0명 + 기존 템플릿` 상태가 될 수 있음(관리자 전용 `FOR ALL` RLS로 클라이언트 두 호출이 허용됨을 SCHEMA.sql에서 확인함).
+- **미적용 DB 폴백**: `is_pickup_only` 컬럼이 없으면(`42703`/`PGRST204`) 필터 없이 게임의 캐릭터를 삭제함. 쓰기는 `isOffline()` 가드함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`(CRLF 경고만), Vitest 69파일 847개 통과함(템플릿 삭제 테스트 8개 추가). 실브라우저·실DB 확인은 하지 않음.
 
 #### 📌 `r91-r94-weekly-timeline-and-template-delete` 단계별 수용 기준 (Acceptance Criteria)
 
