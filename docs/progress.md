@@ -7,7 +7,8 @@
 - **대체 규칙**: Fable 불가·쿼터 소진 시 Opus가 수행하고 `Fable 미수행` 표시, 재검증 대기 여부는 사용자가 결정함.
 - **반영 파일**: `CLAUDE.md`, `AGENTS.md`, `.agents/rules/collaboration.md`·`handoff.md`, `.agents/skills/handoff`·`chronoledger-orchestrator` SKILL, `.github/copilot-instructions.md`, `docs/collaboration-guide.md`, `docs/architecture.md`.
 - **확정(2026-11-16)**: 사용자가 승격 조건을 그대로 확정하고, 버전 표기 없이 `Fable`로만 부르도록 지시함(모델 ID 표기도 제거).
-- **확인 필요**: 사용자 구독 플랜에서 Fable 사용 가능 여부와 쿼터.
+- **Pro 플랜 제공 조건 확인(2026-11-16, Claude 고객지원 문서 기준)**: Pro는 Fable이 주간 사용 한도에 포함되지 않고 사용량 크레딧(API 요금, Fable 5.2 기준 입력 100만 토큰당 $8·출력 $40)으로 과금됨. Claude Code에서도 같은 규칙이고 v2.1.321 이상 필요함. 출시 이벤트로 2026-11-09~11-16 23:59 PT(한국 시각 11-17 16:59)까지만 주간 한도의 최대 50%와 한도 초기화 1회가 포함됨. Max·Ultra·Team Premium 좌석은 주간 한도의 최대 50%까지 추가 비용 없이 포함됨.
+- **후속 검토**: 이벤트 종료 후 Pro에서 Fable 승격은 유료 크레딧 사용이라 배정 전 사용자 승인 규칙 추가 여부 결정 필요.
 
 ## 6대 AI 협업 모델 체제 확장 (`Gemini 4 Hydrogen` 추가, 2026-11-16)
 
