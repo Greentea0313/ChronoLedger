@@ -1,4 +1,16 @@
 # 프로젝트 진행 현황
+## 디시인사이드 공지/공식 탭 수집 1차 검토(`R90`) 및 신규 요구사항 4건(`R91`~`R94`) 검토·등록 (2026-11-16)
+
+- **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`)임.
+- **디시인사이드 갤러리 공식 탭 수집 검토 (`docs/dcinside-schedule-crawling-review.md`)**:
+  - 예시 링크(`https://gall.dcinside.com/mgallery/board/lists/?id=endfield&sort_type=N&search_head=10&page=1`) 실측 결과 HTTP 200 SSR HTML로 응답하며, `tr.ub-content.us-post`에서 글 번호(`data-no`), 말머리(`gall_subject`), 제목·원문 링크(`gall_tit`), 초 단위 KST 시각(`gall_date[title]`)을 Headless 브라우저 없이 추출 가능함을 확인함.
+  - `gall.dcinside.com/robots.txt`는 `User-agent: * / Allow: /`(일부 비게임 갤러리만 Disallow)이나, 이용약관(2026-10-07 시행) 제11조 제3항 제13호 및 제16조 제1항은 사전 서면 동의 없는 크롤링을 금지함. 이에 따라 작성자 정보(`gall_writer`)·본문을 수집하지 않고 목록 1페이지 메타데이터만 관리자 전용 `schedule_candidates`에 저장하는 완화 설계와 **Claude Opus 2차 검증 체크리스트(5개 항목)**를 문서화하고 활성 Run `r90-dcinside-crawling-opus-review` Step 2(`Claude Opus`)를 `▶ READY`로 등록함.
+- **신규 요구사항 4건 코드베이스 대조 및 등록 (`R91`~`R94`)**:
+  - `R91`: `WeeklyScheduleList`에서 `end_date < todayDate` 일정 제외.
+  - `R92`: 프리셋/템플릿 삭제 버튼 추가 (관리자 캐릭터 템플릿 삭제/초기화 vs 조합 프리셋 삭제 확인).
+  - `R93`: `IncomeModal`이 `user_finances.total_asset`만 증액하고 수익 기록을 DB에 남기지 않는 구조적 누락을 확인하고, `public.incomes` 테이블·원장 동기화 RPC 및 `/dashboard/expenses` 수익 내역 조회·삭제 UI 과제로 등록함.
+  - `R94`: 첨부 이미지(픽업지지 스타일)와 같이 주차별 리스트를 날짜순(`MM/DD(요일)` + `TODAY`) 타임라인 행 및 캐릭터 아바타(우하단 게임 아이콘 배지 오버레이) 레이아웃으로 개편하는 과제를 등록함.
+
 ## R86 후속 검토: 수집 경로·약관 확인 (2026-11-12)
 
 - **수행 주체**: Claude Opus (사용자 요청)임. 문서 전용, 코드·DB 변경 없음.

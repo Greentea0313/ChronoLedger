@@ -731,9 +731,14 @@
 - [ ] R84. [보류 · `R89` 푸시 알림 설계 후 착수 · 결정: 분류 기능 제안·오류 신고·기타, 첨부 없음 · DB 변경] 기타 건의 요청 창구: 자유 형식 건의 테이블·RLS·탈퇴 정리, `+ 추가 요청` 모달 `기타 건의` 탭, 관리자 `건의` 탭(답변·상태), 내 요청 이력 표시 — 착수 전 분류 목록·첨부·답변 알림 방식 결정 필요 (담당: GPT Codex DB → Claude Sonnet UI → Claude Opus 리뷰)
 - [ ] R85. [결정 완료(2026-11-11): 분 단위·종료 미입력 시 날짜만·KST·달력 칸 미표시] [설계 우선 · `R37` 흡수] 일정 시간 단위 관리: 날짜 기준은 유지하고 표시·알림용 `start_at`·`end_at TIMESTAMPTZ NULL`·시각 예상 여부 추가안 명세화(서버 시간대 차이·점검 후 시작·일관성 CHECK·승인 RPC·폼·표시 범위) — 착수 전 입력 단위·종료 시각 기본값·달력 표시 여부 결정 필요 (담당: Claude Opus 설계)
 - [x] R86. [Run `r86-schedule-crawling-research` 완료(2026-11-11) · 조사 · 문서 전용] 공식 일정 자동 수집 가능성을 검토함. 별도 `schedule_candidates`, Steam 6개+버전 주기 추정, 하루 1회, Supabase Edge Function+`pg_cron`, 구현 전 추가 조사로 결정함. 후속 구현은 R90으로 예약함.
-- [ ] R90. [R86 후속 · R89 푸시 알림 조사와 병행 가능 · DB/RLS·Edge Function 변경 · 🐳 Docker Desktop 필요] `schedule_candidates` 테이블·관리자 RLS·Steam 6개 공지 감지·버전 주기 추정·하루 1회 `pg_cron`·관리자 후보 검토 UI 구현 (담당: GPT Codex DB/Edge Function → Claude Sonnet UI → Claude Opus 리뷰) ⚠️ **2026-11-12 재검토 중**: 사용자 판단으로 Steam 대상은 림버스 컴퍼니 1개로 줄이고, HoYoLAB·네이버 라운지는 약관상 자동 수집 금지 확인(조사 문서 10절). 경로 방식·저장 범위·실행 위치 결정 전 착수 보류함.
-  - [ ] R90 착수 전 결정: 네이버 라운지·HoYoLAB 처리 방식(허락 문의 / 알림 받고 링크 붙여넣기 / 허용 경로만 자동화), 미정 게임 공지 채널, 저장 범위, 실행 위치, 새 후보 알림 방식 (`schedule-crawling-research.md` 10.4)
+- [ ] R90. [활성 Run (`r90-dcinside-crawling-opus-review`) Step 2 **Claude Opus** `▶ READY` · DB/RLS·Edge Function 변경 예정] 디시인사이드 게임별 갤러리 공식 탭(`gall.dcinside.com/.../board/lists/?id=...&search_head=...`) 기반 일정 후보 반자동 수집(`schedule_candidates`) 및 관리자 후보 검토 UI 구현:
+  - [x] Gemini 4 Argon 1차 기술·약관 실측 검토서 [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) 작성 완료 (2026-11-16, HTTP 200 SSR `tr.ub-content` 파싱 확인, `robots.txt` `Allow: /` 및 2026-10-07 약관 제11조·제16조 대조, 작성자 식별정보/본문 미수집 완화 설계)
+  - [ ] Claude Opus 2차 검증 (`docs/dcinside-schedule-crawling-review.md` §5 5개 항목 검증 및 §6 작성)
   - [x] 네이버 이용약관 원문(`policy.naver.com/rules/service.html`)의 자동 수집 금지 문구 확인 (2026-11-12 사용자 제공 본문: 사전 허락 없는 자동 수단 게시물 수집 금지, 예외 없음)
+- [ ] R91. [신규 요구사항 · 2026-11-16 사용자 요청 · `R94`와 통합 수행 가능] 주차별 리스트(`WeeklyScheduleList`)에 표시되는 일정도 `end_date < todayDate`인 경우 표시에서 제외함 (DB 변경 없음, 담당: Claude Sonnet)
+- [ ] R92. [신규 요구사항 · 2026-11-16 사용자 요청 · 대상 확인 중] 프리셋/템플릿 삭제 버튼 추가 (관리자 캐릭터 템플릿 삭제/초기화 버튼 vs 캐릭터 조합 프리셋 삭제 UI 확인 후 반영, 담당: Claude Sonnet)
+- [ ] R93. [신규 요구사항 · 2026-11-16 사용자 요청 · DB/RPC 변경 → Opus 승격 조건 ①] 수익 내역(`incomes`) 테이블·원장 동기화 RPC(`record_income`, `delete_income`) 신설 및 `/dashboard/expenses` 수익 내역 조회·삭제 UI 추가 (현재 `IncomeModal`이 `user_finances.total_asset`만 증액하고 수익 내역을 저장하지 않아 조회 경로가 없는 문제 해결, 담당: GPT Codex DB → Claude Sonnet UI → Claude Opus 리뷰)
+- [ ] R94. [신규 요구사항 · 2026-11-16 사용자 요청 · 상세 구상 확인 중] 주차별 리스트(`WeeklyScheduleList`)를 첨부 레퍼런스 이미지(픽업지지 스타일: 상단 유형/상태 필터, 주차 카드 내 좌측 `MM/DD(요일)` + `TODAY` 열, 캐릭터 아바타 + 우하단 게임 아이콘 배지 오버레이 + 굵은 제목 + 하단 게임명, 우측 관심 일정 토글) 구조로 개편 (DB 변경 없음, 담당: Claude Sonnet → Gemini 4 Argon / Claude Opus 리뷰)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---

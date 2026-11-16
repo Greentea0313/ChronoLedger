@@ -31,7 +31,48 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: 없음 *(R86 조사 마감, 다음 착수 후보 R89·R90)*
+- **활성 Run ID**: `r90-dcinside-crawling-opus-review` *(`R90` 선행 · 디시인사이드 게임별 갤러리 공지/공식 탭 기반 일정 후보 반자동 수집 1차 검토 완료 및 **Claude Opus 2차 검증**)*
+- **Orchestrator**: Gemini 4 Argon *(2026-11-16 등록)*
+- **Worktree 경로**: `main` (문서 전용 2차 검증 단계이므로 격리 워크트리·`run.json` 없이 `main`에서 수행함. 코드·SQL 변경 없음)
+- **DB 변경**: 없음. 🐳 Docker 불필요.
+- **1차 검토 산출물**: [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) (Gemini 4 Argon 작성, [`docs/schedule-crawling-research.md`](schedule-crawling-research.md) §11 연계)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (2026-11-16)`** | **Gemini 4 Argon** *(Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Orchestrator & Architect (1차 검토)` | 디시인사이드 갤러리 공식 탭(`gall.dcinside.com/mgallery/board/lists/...`) SSR 응답·DOM 파싱 실측, `robots.txt` 및 이용약관(제11조·제16조) 대조, 위험 완화·아키텍처 초안 작성 | `✅` [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) 생성 및 Opus 2차 검증 항목 5건(§5) 명시 완료 |
+| **2** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer & Architect (2차 검증)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `docs/dcinside-schedule-crawling-review.md`, `docs/schedule-crawling-research.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md` | `▶ 1차 검토 문서 작성 완료. Claude Opus 2차 검증 대기` |
+
+#### 📌 `r90-dcinside-crawling-opus-review` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Gemini 4 Argon` — 1차 기술·약관 검토 문서 작성, 완료)**:
+   - 예시 링크(`https://gall.dcinside.com/mgallery/board/lists/?id=endfield&sort_type=N&search_head=10&page=1`) HTTP 응답 및 `tr.ub-content` DOM 필드(`data-no`, `gall_subject`, `gall_tit`, `gall_date[title]`) 파싱 실측.
+   - `gall.dcinside.com/robots.txt`(`User-agent: * / Allow: /`) 및 디시인사이드 이용약관(2026-10-07 시행 제11조 제3항 제13호·제16조) 원문 대조, 개인정보(`gall_writer`)·본문 미수집 및 관리자 비공개 후보함(`schedule_candidates`) 기반 리스크 완화 설계 정리.
+   - [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) 작성.
+2. **Step 2 (`Claude Opus` — 2차 심층 검증 및 R90 구현 명세 보완)**:
+   - [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) §5의 5대 검증 항목을 독립적으로 2차 검증하고 문서 하단에 **`## 6. Claude Opus 2차 검증 의견`** 섹션을 추가함:
+     - ① 약관·법적 리스크 수용 가능성 및 보호 조건(작성자 식별정보 완전 배제, 목록 1페이지 메타데이터 한정, 일반 사용자 비노출) 충분성 재점검
+     - ② Supabase Edge Function(클라우드 데이터센터 IP) 출구 차단 리스크 및 실행 구조(관리자 수동 트리거 + Edge Function vs 관리자 로컬 스크립트 폴백) 판정
+     - ③ 정식(`/board/lists/`)·마이너(`/mgallery/board/lists/`)·미니(`/mini/board/lists/`) 갤러리 간 HTML DOM 차이 및 예외 케이스 점검
+     - ④ `games.crawl_source_url` SSRF 방어 화이트리스트 정규식 및 파라미터 정규화 규칙 확정
+     - ⑤ 후보함(`schedule_candidates`) 노이즈 제어 UX(웹툰·단순 공지 일괄 제외 등) 및 `R90` 단계별 구현 수용 기준 확정
+
+---
+
+### 🗓️ 신규 요구사항 검토 및 다음 Run 예약 (`R91` ~ `R94`, 2026-11-16 사용자 요청)
+
+- **`R91` (주차별 리스트 종료 일정 제외)**:
+  - **내용**: `WeeklyScheduleList`(`src/components/calendar/weekly-schedule-list.tsx`)에 표시되는 일정도 `end_date < todayDate`인 경우(이번 주에 포함되더라도 이미 종료일이 지난 일정 및 과거 주차의 종료 일정) 표시에서 제외함.
+- **`R92` (프리셋/템플릿 삭제 버튼 추가 — 대상 확인 중)**:
+  - **현황**: 조합 프리셋 카드(`PresetBoardCard`)와 정기 구독 템플릿 카드에는 우상단/하단 휴지통 아이콘 삭제 버튼이 있으나, **관리자 캐릭터 템플릿(`games.classification_schema`)**에는 생성 후 `[템플릿 설정 수정]`만 있고 **템플릿 삭제(초기화) 버튼이 없음**. 사용자의 의도가 ① 관리자 캐릭터 템플릿 삭제/초기화 버튼인지, ② 캐릭터 조합 프리셋 화면의 삭제 UI 개선인지 확인 후 즉시 반영함.
+- **`R93` (수익 내역 DB 테이블 신설 및 조회·취소 UI 추가)**:
+  - **원인**: 현재 `IncomeModal`(`src/components/finance/income-modal.tsx`)은 수익 유형·항목명·입금 금액·입금일을 입력받지만 `set_user_finance_settings` RPC로 `user_finances.total_asset`만 증액하고 **개별 수익 레코드를 저장하는 DB 테이블이 없어** 저장 후 내역을 조회하거나 잘못 입력한 수익을 취소/삭제할 경로가 없음.
+  - **구현 방향**: `public.incomes` 테이블(RLS, 계정 탈퇴 `purge` 연동) 및 자산 증감 원자적 RPC(`record_income`, `delete_income`)를 신설하고, `/dashboard/expenses`에서 수익 내역 목록 조회 및 삭제(자산 차감 복원)를 지원함 (금전·자산·RLS/RPC 변경 → Opus 승격 조건 ①).
+- **`R94` (주차별 리스트 첨부 이미지 스타일 전면 개편, `R91` 통합 가능)**:
+  - **내용**: 첨부 레퍼런스 이미지(픽업지지 스타일)와 같이 `WeeklyScheduleList`를 기존의 `게임별 아코디언 그룹` 대신 **주차 카드 내부 날짜순(`MM/DD(요일)` + `TODAY` 배지 좌측 열) 타임라인 행 구조**(중앙: 캐릭터 아바타 + 우하단 게임 아이콘 배지 오버레이 + 굵은 일정 제목 + 하단 게임명, 우측: 관심 일정 토글 버튼, 상단: 일정 유형/상태 필터 탭)로 정리함. 세부 표시 범위(비픽업 일정 표시 방식·진행 중 일정 배치 기준) 확인 후 착수함.
+
+### 🗂️ 이전 Run 기록 (완료): `r86-schedule-crawling-research`
+
+- **Run ID**: `r86-schedule-crawling-research` *(공식 일정 자동 수집 가능성 1차 조사)*
 - **Orchestrator**: Gemini 4 Argon *(등록: Claude Opus 1순위 대체, 2026-11-11, 사용자 지목)*
 - **Worktree 경로**: `main` (문서 전용 조사라 격리 워크트리·`run.json` 없이 `main`에서 진행함. 코드·SQL 변경 없음)
 - **Base SHA**: `0bf461450d1cfb29a99e39909770a1f59dc3657b`

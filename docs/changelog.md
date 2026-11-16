@@ -1,4 +1,9 @@
 # 변경 이력
+## 2026-11-16 (디시인사이드 공식 탭 수집 1차 검토서 생성 및 `R91`~`R94` 신규 과제 등록)
+
+- 디시인사이드 게임별 갤러리 공지/공식 탭 크롤링 가능성 실측 및 약관 대조 검토서 [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md)를 작성하고, Claude Opus 2차 검증 Run(`r90-dcinside-crawling-opus-review` Step 2 `▶ READY`)을 `docs/handoff.md`에 등록함.
+- 사용자 신규 요구사항 4건(`R91` 주차별 리스트 `end_date < today` 제외, `R92` 프리셋/템플릿 삭제 버튼, `R93` 수익 내역 저장·조회 경로 추가, `R94` 주차별 리스트 타임라인 UI 개편)을 검토하여 `docs/to-do.md` 및 `docs/handoff.md`에 등록함.
+
 ## 2026-11-12 (R86 후속 검토)
 
 - 일정 수집 조사 문서에 10절(사용자 요구사항, HoYoLAB·네이버 약관 확인 결과, pickupgg.com 비교 관찰, 대안·결정 필요 사항)을 추가함.
