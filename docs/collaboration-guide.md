@@ -1,6 +1,6 @@
 # ChronoLedger AI 협업 종합 가이드 (AI Collaboration Guide)
 
-이 문서는 ChronoLedger 프로젝트의 6대 AI 모델(Gemini 4 Argon, Gemini 4 Hydrogen, GPT Codex, Claude [Sonnet / Opus / Fable], GitHub Copilot, Gemini 3.8 Flash) 협업 파이프라인, 격리 Worktree 기반 개발 워크플로우, 그리고 비상 인계 규약의 단일 진실 공급원(SSOT) 가이드임.
+이 문서는 ChronoLedger 프로젝트의 6대 AI 모델(Gemini 4 Argon, Gemini 4 Hydrogen, GPT Codex, Claude [Claude Pro: Sonnet / Opus], GitHub Copilot, Gemini 3.8 Flash) 협업 파이프라인, 격리 Worktree 기반 개발 워크플로우, 그리고 비상 인계 규약의 단일 진실 공급원(SSOT) 가이드임.
 
 ---
 
@@ -11,13 +11,13 @@
 | **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Gemini 4 Hydrogen** / **Claude Opus** | **GitHub Copilot** |
 | **Gemini 4 Hydrogen** | `Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer` | 일반·복합 기능 및 UI 컴포넌트(`src/app/`, `src/components/`, `src/lib/`) 구현, Vitest 단위/통합 테스트, 정적 리뷰(`review.json`)·오케스트레이션 보조; Argon·Claude Sonnet·GPT Codex의 1순위급 대체 모델 | **Claude Sonnet / Opus** | **GitHub Copilot** |
 | **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜 계산(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude Opus** / **Gemini 4 Hydrogen** | **GitHub Copilot** |
-| **Claude (Sonnet / Opus / Fable)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Hydrogen** / **Gemini 4 Argon** | **GitHub Copilot** |
+| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Hydrogen** / **Gemini 4 Argon** | **GitHub Copilot** |
 | **GitHub Copilot** | `Maker (General) & Fallback Hub` | 일반 기능, 라우팅 및 UI 컴포넌트(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 4 Hydrogen** / **Gemini 3.8 Flash** | **GPT Codex** |
 | **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 마크업, Argon 직속 고속 코드베이스 탐색 서브에이전트, `docs/` 문서 동기화 보조 | **Gemini 4 Hydrogen** | **GitHub Copilot** |
 
-### Claude Sonnet / Opus / Fable 3단계 운용 기준 (토큰 최적화)
+### Claude Pro Sonnet / Opus 2단계 운용 기준 (토큰 최적화)
 
-**`Claude Sonnet`**·**`Claude Opus`**·**`Claude Fable`**를 3단계로 나누어 운용함. 기본 작업은 Sonnet으로 수행해 쿼터 소진을 줄이고, 심층 판단이 필요한 작업만 Opus로, 최고 위험 판단만 Fable로 승격함.
+사용자의 Claude Pro 구독을 효율적으로 활용하기 위해 **`Claude Sonnet`**과 **`Claude Opus`**를 2단계로 나누어 운용합니다. 기본 작업은 Sonnet으로 수행하여 쿼터 소진을 최소화하고, 심층 판단이 필요한 고난도 작업에 한해 Opus로 승격합니다.
 
 1. **Claude Sonnet (기본 Maker · 쿼터 절약)**:
    - 명시적 수용 기준과 대상 파일이 지정된 UI 인터랙션 및 상태 연결 (아코디언, 모달, 필터, 토글, 드로어 등).
@@ -37,18 +37,6 @@
      - ② **브라우저 생명주기 및 비동기 동시성 예외 케이스**: 페이지 전환, 뒤로가기, 타이머, 경쟁 상태 등 미세 타이밍 제어.
      - ③ **3개 이상 모듈에 걸친 구조 변경 또는 오픈 아키텍처 설계 판단**: 모듈 간 경계 재정의, 전역 상태 아키텍처 변경 등.
      - ④ **Run 단위 통합 리뷰**: 전체 워크트리 변경분에 대한 종합 정적 검증(`review.json`).
-4. **Claude Fable (최상위 승격 · 예외적 사용)**:
-   - 실수 시 운영 금전·원장 데이터 훼손이나 되돌리기 어려운 구조 확정으로 이어지는 최고 위험 판단·감사·리뷰의 최종 권한임.
-   - Fable은 결정·설계·리뷰만 맡고, 후속 구현은 Fable 조건이 계속 해당하지 않는 한 Opus·Sonnet으로 돌려보냄.
-5. **Fable 승격 4대 조건 (Assign Fable, Opus 조건보다 엄격한 부분집합)**:
-   - Opus 작업 중 아래 조건이 발견되면 `⚠️ HANDOVER_NEEDED`로 Fable에 인계함.
-     - Ⓕ① **금전 경로 핵심 변경**: 결제·환불·잔액 조정·예산 귀속 경로의 `SECURITY DEFINER` RPC·트리거 신규 작성 또는 시그니처 변경, RLS 정책 재설계, 기존 금전 행을 다시 쓰는 운영 마이그레이션.
-     - Ⓕ② **Opus 이후 에스컬레이션**: Opus 리뷰 2회 반복 후에도 blocker/high 지적 미해결, 또는 Opus와 다른 모델 검증 결과가 충돌해 결론이 나지 않음.
-     - Ⓕ③ **되돌리기 어려운 전역 구조 결정**: 서버 런타임 도입, 인증·세션 흐름 변경, 데이터 모델 재구성, 협업 규칙 전면 재설계(부분 수정 제외).
-     - Ⓕ④ **Ⓕ① 해당 Run의 최종 통합 리뷰**: `main` 병합 또는 운영 적용 직전.
-6. **Fable 쿼터 대체**:
-   - Fable을 쓸 수 없거나 쿼터가 소진되면 Claude Opus가 대신 수행하고 단계 행에 `Fable 미수행`을 표시함.
-   - 병합·운영 적용 전 Fable 재검증을 기다릴지는 사용자가 결정함.
 
 ---
 

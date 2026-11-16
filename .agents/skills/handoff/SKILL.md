@@ -15,7 +15,7 @@ When the user enters a new feature request or fix to the Chief Orchestrator (**G
 1. Analyze requirements and existing code, establish clear **Acceptance Criteria**, and design structured subtasks (Maker $\to$ Reviewer $\to$ Orchestrator closeout). If isolated execution is needed, run `scripts/collaboration/New-CollaborationRun.ps1` to create `.worktrees/<run_id>`.
 2. **Gemini 3.8 Flash Domain (UI/Tailwind styling, badge/modal/drawer markup, fast codebase search, docs sync)**:
    - Inside Antigravity, immediately delegate by invoking an internal subagent (`define_subagent` with `enable_write_tools: true` for file edits, and `invoke_subagent` with `Model: "flash"` — explicitly designated tier).
-3. **Dispatch Queue Model Domain (Gemini 4 Hydrogen features/UI/tests & review assistance, GPT Codex core logic & tests, Claude Sonnet / Opus / Fable static review & complex refactoring, GitHub Copilot general features)**:
+3. **Dispatch Queue Model Domain (Gemini 4 Hydrogen features/UI/tests & review assistance, GPT Codex core logic & tests, Claude Sonnet / Opus static review & complex refactoring, GitHub Copilot general features)**:
    - Update **`## 🎯 Active AI Collaboration Dispatch Queue`** at the top of the root `docs/handoff.md`, assigning the primary model and fallback chain for each step, and setting Step 1 to **`▶ READY`**.
    - Summarize the queue for the user, instruct which model to switch to and prompt with **`"인수인계 문서를 확인해"`**, and end the turn.
 
@@ -45,11 +45,11 @@ When the Orchestrator breaks down tasks into the Dispatch Queue, use this role d
 | **Gemini 4 Argon** *(Chief)* | `Orchestrator & Architect` | Requirements breakdown, acceptance criteria, worktree/dispatch queue allocation, architecture decisions, final verification, docs closeout | **Gemini 4 Hydrogen** / **Claude Opus** | **GitHub Copilot** |
 | **Gemini 4 Hydrogen** | `Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer` | Standard & composite features/UI (`src/app/`, `src/components/`, `src/lib/`), Vitest unit/integration tests, static code review (`review.json`) & orchestration assistance; primary 1st-tier fallback for Argon, Claude Sonnet, and GPT Codex | **Claude Sonnet / Opus** | **GitHub Copilot** |
 | **GPT Codex** | `Maker (Core) & Test` | Ledger/payment/refund formulas (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase RPC/SQL, Vitest unit tests | **Claude Opus** / **Gemini 4 Hydrogen** | **GitHub Copilot** |
-| **Claude (Sonnet / Opus / Fable)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA static code review (`review.json`), security/RLS/ledger integrity verification, multi-component state & interaction refactoring | **Gemini 4 Hydrogen** / **Gemini 4 Argon** | **GitHub Copilot** |
+| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA static code review (`review.json`), security/RLS/ledger integrity verification, multi-component state & interaction refactoring | **Gemini 4 Hydrogen** / **Gemini 4 Argon** | **GitHub Copilot** |
 | **GitHub Copilot** | `Maker (General) & Fallback Hub` | Standard features, routing, and UI components (`src/app/`, `src/components/`); universal backup when other models exhaust token quota | **Gemini 4 Hydrogen** / **Gemini 3.8 Flash** | **GPT Codex** |
 | **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind styling, badge/modal/drawer markup, high-speed codebase search subagent under Argon, `docs/` sync assistance | **Gemini 4 Hydrogen** | **GitHub Copilot** |
 
-> Claude tasks must follow the **Sonnet / Opus / Fable 3-Tier Operating Criteria** in [`.agents/rules/collaboration.md`](../../rules/collaboration.md) (default to Sonnet, promote to Opus when one of the 4 Opus conditions applies, and to Fable only when one of the 4 Fable conditions applies).
+> Claude tasks must follow the **Sonnet / Opus 2-Tier Operating Criteria** in [`.agents/rules/collaboration.md`](../../rules/collaboration.md) (default to Sonnet, promote to Opus when one of the 4 conditions applies).
 
 ## 3. Limited Context or Token Budget (Emergency Handover)
 
