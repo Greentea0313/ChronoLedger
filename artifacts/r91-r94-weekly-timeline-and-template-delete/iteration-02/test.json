@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "run_id": "r91-r94-weekly-timeline-and-template-delete",
+  "iteration": 2,
+  "agent": "Gemini 4 Hydrogen",
+  "role": "dynamic-test",
+  "base_sha": "2b66cdad86701677fc9166f0d0855b5b9a618185",
+  "target_sha": "0d8a5b8dab8e973665625c693cb8f88f036d8774",
+  "status": "passed",
+  "created_at": "2026-11-16T02:55:00Z",
+  "finished_at": "2026-11-16T02:55:00Z",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint static check", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest unit test suite (69 files, 844 tests)", "command": "npx vitest run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build (with dummy public Supabase env in worktree)", "command": "npm run build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Real-browser check of the weekly timeline (desktop and mobile) and admin template delete (requires a signed-in admin account)", "command": "npm run dev", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}
