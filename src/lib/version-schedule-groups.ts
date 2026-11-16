@@ -12,10 +12,6 @@ export interface VersionParent {
   title: string
 }
 
-export type VersionGroupEntry<T extends VersionGroupable> =
-  | { kind: "version"; version: T; children: T[] }
-  | { kind: "single"; item: T; parent?: VersionParent }
-
 function isChildType(type: VersionGroupable["schedule_type"]): boolean {
   return type === "PICKUP" || type === "CONTENTS"
 }
@@ -38,42 +34,6 @@ export function getVersionParents<T extends VersionGroupable>(items: readonly T[
     if (best) parents.set(item.id, { id: (best as T).id, title: (best as T).title })
   })
   return parents
-}
-
-/**
- * Splits already filtered/sorted `items` into version groups and single entries, keeping the input order
- * (a group sits where its version appears). A child is nested only when its parent version is also in `items`;
- * otherwise it stays single and carries its parent label. `lookup` is the wider list used to find parents.
- */
-export function splitVersionGroups<T extends VersionGroupable>(
-  items: readonly T[],
-  lookup: readonly T[] = items,
-): VersionGroupEntry<T>[] {
-  const parents = getVersionParents(lookup)
-  const presentIds = new Set(items.map((item) => item.id))
-  const entries: VersionGroupEntry<T>[] = []
-  const groupByVersionId = new Map<string, Extract<VersionGroupEntry<T>, { kind: "version" }>>()
-
-  items.forEach((item) => {
-    if (item.schedule_type !== "VERSION") return
-    const group = { kind: "version" as const, version: item, children: [] as T[] }
-    groupByVersionId.set(item.id, group)
-  })
-
-  items.forEach((item) => {
-    if (item.schedule_type === "VERSION") {
-      const group = groupByVersionId.get(item.id)
-      if (group) entries.push(group)
-      return
-    }
-    const parent = parents.get(item.id)
-    if (parent && presentIds.has(parent.id)) {
-      groupByVersionId.get(parent.id)?.children.push(item)
-      return
-    }
-    entries.push({ kind: "single", item, parent })
-  })
-  return entries
 }
 
 export function countChildTypes(children: readonly VersionGroupable[]): { pickup: number; contents: number } {

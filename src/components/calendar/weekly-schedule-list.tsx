@@ -284,7 +284,7 @@ export function WeeklyScheduleList({
 
               {!weekOpen ? null : rows.length === 0 && weekExpenses.length === 0 ? (
                 <div id={weekPanelId}>
-                  <EmptyState message="이 주에는 일정이 없습니다." />
+                  <EmptyState message={typeFilter === "ALL" ? "이 주에는 일정이 없습니다." : "선택한 필터에 맞는 일정이 없습니다."} />
                 </div>
               ) : (
                 <div id={weekPanelId} className="space-y-3">

@@ -63,9 +63,11 @@ describe("WeeklyScheduleList week card (R94)", () => {
     expect(within(currentWeek()).getByText("이번 주")).toBeTruthy()
   })
 
-  it("uses a neutral empty message for weeks without items", () => {
+  it("uses a neutral empty message for weeks without items and distinguishes filtered empty weeks", () => {
     renderList({ schedules: [], expenses: [] })
     expect(screen.getAllByText("이 주에는 일정이 없습니다.").length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole("button", { name: "방송" }))
+    expect(screen.getAllByText("선택한 필터에 맞는 일정이 없습니다.").length).toBeGreaterThan(0)
   })
 })
 

@@ -1395,6 +1395,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       it("정식 캐릭터 수를 경고하고 확인 전에는 아무것도 쓰지 않는다", async () => {
         const dialog = await openDialog([...regular, pickupOnly])
         expect(within(dialog).getByTestId("template-delete-warning").textContent).toContain("정식 캐릭터 3명")
+        expect(within(dialog).getByTestId("template-delete-warning").textContent).toContain("등록된 픽업 일정과 대기 중 일정 요청에서도 해당 캐릭터가 빠집니다")
         expect(within(dialog).getByTestId("template-delete-warning").textContent).toContain("픽업 전용 캐릭터는 유지")
         expect(charactersBuilder.delete).not.toHaveBeenCalled()
         expect(gamesBuilder.update).not.toHaveBeenCalled()
@@ -1419,13 +1420,16 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         expect(await screen.findByText("'원신' 캐릭터 템플릿을 삭제했습니다.")).toBeTruthy()
       })
 
-      it("정식 캐릭터가 없으면 캐릭터 삭제 없이 템플릿만 초기화한다", async () => {
+      it("정식 캐릭터가 화면상 0명이어도 안전하게 정식 캐릭터 삭제를 시도한 뒤 템플릿을 초기화한다", async () => {
+        mockRosterDelete({ error: null })
         const dialog = await openDialog([pickupOnly])
         expect(within(dialog).getByTestId("template-delete-note")).toBeTruthy()
         confirm(dialog)
 
         await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalledWith(defaultTemplate))
-        expect(charactersBuilder.delete).not.toHaveBeenCalled()
+        expect(charactersBuilder.delete).toHaveBeenCalled()
+        expect(charactersBuilder.eq).toHaveBeenNthCalledWith(1, "game_id", "game-1")
+        expect(charactersBuilder.eq).toHaveBeenNthCalledWith(2, "is_pickup_only", false)
       })
 
       it("정식 캐릭터 삭제가 실패하면 오류를 보여주고 템플릿은 건드리지 않으며 다시 시도할 수 있다", async () => {

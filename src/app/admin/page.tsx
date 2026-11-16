@@ -944,16 +944,15 @@ export default function AdminPage() {
     setIsDeletingTemplate(true)
     setTemplateDeleteError(null)
     try {
-      if (rosterCountOf(game.id) > 0) {
-        let deleted = await supabase.from("game_characters").delete().eq("game_id", game.id).eq("is_pickup_only", false)
-        // Not migrated yet (D-08): every character is a regular roster character.
-        if (deleted.error && (deleted.error.code === "42703" || deleted.error.code === "PGRST204")) {
-          deleted = await supabase.from("game_characters").delete().eq("game_id", game.id)
-        }
-        if (deleted.error) {
-          setTemplateDeleteError("정식 캐릭터 삭제에 실패했습니다: " + deleted.error.message)
-          return
-        }
+      // Always issue the roster delete even when the client list shows 0, in case another session added characters.
+      let deleted = await supabase.from("game_characters").delete().eq("game_id", game.id).eq("is_pickup_only", false)
+      // Not migrated yet (D-08): every character is a regular roster character.
+      if (deleted.error && (deleted.error.code === "42703" || deleted.error.code === "PGRST204")) {
+        deleted = await supabase.from("game_characters").delete().eq("game_id", game.id)
+      }
+      if (deleted.error) {
+        setTemplateDeleteError("정식 캐릭터 삭제에 실패했습니다: " + deleted.error.message)
+        return
       }
       const { error } = await supabase
         .from("games")
@@ -2844,7 +2843,7 @@ export default function AdminPage() {
                 </p>
                 {rosterCount > 0 ? (
                   <p role="alert" data-testid="template-delete-warning" className="rounded-md border border-danger/40 bg-danger/10 p-2 text-danger">
-                    {`정식 캐릭터 ${rosterCount}명(사용자 보유 체크·프리셋 포함)도 함께 삭제됩니다. 픽업 전용 캐릭터는 유지됩니다.`}
+                    {`정식 캐릭터 ${rosterCount}명(사용자 보유 체크·프리셋 포함)도 함께 삭제되며, 등록된 픽업 일정과 대기 중 일정 요청에서도 해당 캐릭터가 빠집니다. 픽업 전용 캐릭터는 유지됩니다.`}
                   </p>
                 ) : (
                   <p data-testid="template-delete-note">등록된 정식 캐릭터가 없어 템플릿 설정만 초기화됩니다. 픽업 전용 캐릭터는 유지됩니다.</p>
