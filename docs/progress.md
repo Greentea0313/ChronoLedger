@@ -1,4 +1,13 @@
 # 프로젝트 진행 현황
+## Run `r93-income-history-db-and-ui` (`R93` 수익 내역 DB/RPC 및 조회·삭제 UI) 등록 및 활성화 (2026-11-16)
+
+- **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`)임.
+- **배경**: 직전 Run `r91-r94-weekly-timeline-and-template-delete`(`R91`·`R92`·`R94`) 및 후속 UI 개선(`0844387`)이 마감됨에 따라, 다음 예약 과제인 **`R93` (수익 내역 저장·조회·삭제)** 격리 워크트리 `.worktrees/r93-income-history-db-and-ui`(브랜치 `collab/r93-income-history-db-and-ui`, Base `0844387`)를 생성하고 Dispatch Queue에 등록함.
+- **단계 구성**:
+  - **Step 1 (`▶ READY` — GPT Codex, 1순위 대체: Claude Opus / Gemini 4 Hydrogen)**: `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql` 및 `sql/SCHEMA.sql`에 `public.incomes` 테이블(본인 `SELECT` RLS, 계정 삭제 대기 차단, `purge_expired_account_deletion_requests` 연동)과 총 자산 동기화 원자적 `SECURITY DEFINER` RPC 2종(`record_income`, `delete_income`), `sql/README.md` 확인 쿼리, `sql/tests/TESTS.sql` R93 시나리오, `src/types/database.types.ts` 타입을 구현함.
+  - **Step 2 (`⏳ WAITING` — Claude Sonnet / Gemini 4 Hydrogen)**: `IncomeModal`의 `record_income` RPC 연동(미적용 DB 폴백 포함) 및 `/dashboard/expenses` 내 `[지출 내역 | 수익 내역]` 전환 탭·목록·삭제 확인 다이얼로그(`delete_income`) 및 Vitest 테스트를 구현함.
+  - **Step 3 (`⏳ WAITING` — Claude Opus)**: 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 검증 및 `main` 병합 마감.
+
 ## 캘린더 배지 색상·주간 필터·관리자 캐릭터 페이지네이션 UI 개선 완료 (2026-11-16)
 
 - **수행 주체**: Gemini 3.8 Flash 서브에이전트(`flash-ui-worker`, Gemini 4 Hydrogen 위임)임.

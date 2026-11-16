@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-16 (Run `r93-income-history-db-and-ui` 등록 및 활성화 — `R93` 수익 내역 DB/RPC·조회/삭제 UI)
+
+- `New-CollaborationRun.ps1`로 격리 워크트리 `.worktrees/r93-income-history-db-and-ui`(브랜치 `collab/r93-income-history-db-and-ui`, Base `0844387`)를 생성하고 `docs/handoff.md` Active Dispatch Table에 Step 1(`GPT Codex` `▶ READY`, 대체 `Claude Opus` / `Gemini 4 Hydrogen`) → Step 2(`Claude Sonnet` / `Gemini 4 Hydrogen`) → Step 3(`Claude Opus` 리뷰)을 등록함.
+
 ## 2026-11-16 (캘린더 색상 통일·주간 필터 기본값·관리자 캐릭터 페이지네이션 UI 개선)
 
 - `BROADCAST` 색상을 `#FF4A42`로 통일하고, 우측 사이드바·주간 목록 배지(`VERSION`·`PICKUP`) 색상을 캘린더 타일(`ScheduleBanner`) 기준으로 일치시킴.

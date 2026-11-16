@@ -32,7 +32,71 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **현재 활성 Run 없음** *(다음 예약 Run: `r93-income-history-db-and-ui` — `R93` 수익 내역 저장·조회·삭제, DB/RLS/RPC 변경 → Opus 승격 조건 ①)*
+- **활성 Run ID**: `r93-income-history-db-and-ui` *(`R93`: `public.incomes` 수익 내역 테이블·RLS·계정 탈퇴 정리 연동 + 총 자산 원자적 동기화 RPC `record_income`/`delete_income` + `/dashboard/expenses` `[지출 내역 | 수익 내역]` 전환 탭 조회·삭제 UI)*
+- **Orchestrator**: Gemini 4 Argon *(2026-11-16 등록)*
+- **Worktree 경로**: `.worktrees/r93-income-history-db-and-ui` (브랜치: `collab/r93-income-history-db-and-ui`, manifest `artifacts/r93-income-history-db-and-ui/run.json`)
+- **Base SHA**: `0844387fdffb8a01bb575836df16d57d10355165`
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`, `sql/SCHEMA.sql` — 금전·자산·RLS·`SECURITY DEFINER` RPC 변경 → Opus 승격 조건 ① 해당). 🐳 로컬 `TESTS.sql` 실행 검증에 Docker Desktop(로컬 Supabase) 또는 로컬 PostgreSQL 필요(Docker 엔진 미실행 시 `.agents/rules/handoff.md` §5에 따라 기다리지 않고 즉시 사용자에게 안내).
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus / Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (R93 DB/RLS/RPC & Types)` | `.worktrees/r93-income-history-db-and-ui`(Base `0844387`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (🐳 로컬 SQL 실행 검증 시 Docker Desktop 필요) | `▶ 워크트리 생성 완료. GPT Codex 착수 대기 (또는 Claude Opus / Gemini 4 Hydrogen 1순위 대체)` |
+| **2** | `⏳ WAITING` | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R93 Income History UI & Vitest)` | `.worktrees/r93-income-history-db-and-ui`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/finance/income-modal.tsx`, 신규/보강 `src/components/finance/income-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `docs/to-do.md` | `⏳ Step 1 완료 후 진행` |
+| **3** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `⏳ Step 2 완료 후 진행` |
+
+#### 📌 `r93-income-history-db-and-ui` 배경 및 단계별 수용 기준 (Acceptance Criteria)
+
+- **배경 (사용자 요청·결정 확정, 2026-11-16)**:
+  - 현재 `IncomeModal`(`src/components/finance/income-modal.tsx`)은 수익 유형(`급여`, `용돈`, `상여금`, `금융수익`, `기타`)·항목명·입금 금액·입금일을 입력받지만 `set_user_finance_settings` RPC로 `user_finances.total_asset`만 증액하고 개별 수익 레코드를 저장하지 않아, 등록한 수익 내역을 확인하거나 오입력한 수익을 삭제(총 자산 차감 복원)할 경로가 없음.
+- **단계별 수용 기준**:
+  1. **Step 1 (`GPT Codex` — `R93` DB 스키마·RLS·탈퇴 정리·원자적 RPC·타입 & SQL 테스트)**:
+     - `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql` 신규 작성(재실행 멱등 보장) 및 `sql/SCHEMA.sql` 동기화:
+       - **`public.incomes` 테이블 생성**:
+         - `id UUID PRIMARY KEY DEFAULT uuid_generate_v4()`
+         - `user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE`
+         - `category VARCHAR(50) NOT NULL CHECK (category IN ('급여', '용돈', '상여금', '금융수익', '기타'))`
+         - `title VARCHAR(150) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 100)`
+         - `amount BIGINT NOT NULL CHECK (amount > 0)`
+         - `income_date DATE NOT NULL`
+         - `memo TEXT`
+         - `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+         - 인덱스: `idx_incomes_user_date ON public.incomes(user_id, income_date DESC, created_at DESC)`
+       - **RLS 및 권한 경계 (원장 무결성 보장)**:
+         - `ALTER TABLE public.incomes ENABLE ROW LEVEL SECURITY;`
+         - `REVOKE ALL ON public.incomes FROM PUBLIC, anon, authenticated;`
+         - `GRANT SELECT ON public.incomes TO authenticated;` *(총 자산 `user_finances.total_asset`과의 불일치를 원천 차단하기 위해 클라이언트 직접 `INSERT`/`UPDATE`/`DELETE` 권한은 부여하지 않고, 아래 `SECURITY DEFINER` RPC로만 등록·삭제를 수행함)*
+         - 본인 조회 정책: `"Read own incomes" ON public.incomes FOR SELECT TO authenticated USING (auth.uid() = user_id);`
+         - 계정 삭제 대기 사용자 차단: `RESTRICTIVE` 정책 `"Block account deletion users from incomes"` 및 `BEFORE INSERT OR UPDATE OR DELETE` 트리거 `block_pending_account_deletion_incomes`(`public.block_pending_account_data_mutations()`) 연결 (`SCHEMA.sql`의 루프 목록에도 `'incomes'` 포함).
+         - 계정 탈퇴 영구 정리 연동: `public.purge_expired_account_deletion_requests(INTEGER)` 함수 내 개인 데이터 삭제 목록에 `DELETE FROM public.incomes WHERE user_id = v_req.user_id;` 추가(기존 `user_favorite_schedules`·`user_character_presets` 등 모든 삭제문 유지 필수).
+       - **원자적 `SECURITY DEFINER` RPC 2종 (`SET search_path = public`)**:
+         - **`public.record_income(p_category VARCHAR(50), p_title VARCHAR(150), p_amount BIGINT, p_income_date DATE, p_memo TEXT DEFAULT NULL) RETURNS UUID`**:
+           - `auth.uid()` 검증(미인증 시 `'인증되지 않은 사용자입니다.'`) 및 `public.account_deletion_is_pending(auth.uid())` 검증(대기 중이면 `'계정 삭제가 진행 중이므로 개인 데이터를 변경할 수 없습니다.'`).
+           - 입력 검증: `p_category IN ('급여', '용돈', '상여금', '금융수익', '기타')`, `p_title IS NOT NULL AND length(btrim(p_title)) BETWEEN 1 AND 100`, `p_amount IS NOT NULL AND p_amount > 0`, `p_income_date IS NOT NULL`.
+           - `public.incomes`에 행을 `INSERT`하고, 같은 트랜잭션에서 `public.user_finances`의 `total_asset`을 `+ p_amount`만큼 원자적으로 증액(`INSERT INTO public.user_finances(user_id, total_asset, default_budget, updated_at) VALUES (v_user_id, p_amount, 0, NOW()) ON CONFLICT (user_id) DO UPDATE SET total_asset = public.user_finances.total_asset + EXCLUDED.total_asset, updated_at = NOW()`)한 뒤 생성된 `id`를 반환함.
+           - `REVOKE ALL ON FUNCTION public.record_income(VARCHAR, VARCHAR, BIGINT, DATE, TEXT) FROM PUBLIC, anon; GRANT EXECUTE ON FUNCTION public.record_income(VARCHAR, VARCHAR, BIGINT, DATE, TEXT) TO authenticated;`
+         - **`public.delete_income(p_income_id UUID) RETURNS VOID`**:
+           - `auth.uid()` 및 계정 삭제 대기 여부 검증.
+           - `SELECT * INTO v_income FROM public.incomes WHERE id = p_income_id AND user_id = v_user_id FOR UPDATE;`로 본인 소유 수익 행을 잠금 조회하고, 없으면 `'삭제할 수 있는 본인 소유의 수익 내역이 아닙니다.'` 예외 발생.
+           - `DELETE FROM public.incomes WHERE id = p_income_id AND user_id = v_user_id;` 수행 후, 같은 트랜잭션에서 `UPDATE public.user_finances SET total_asset = total_asset - v_income.amount, updated_at = NOW() WHERE user_id = v_user_id;`로 총 자산을 차감 복원함.
+           - `REVOKE ALL ON FUNCTION public.delete_income(UUID) FROM PUBLIC, anon; GRANT EXECUTE ON FUNCTION public.delete_income(UUID) TO authenticated;`
+     - `sql/README.md` B표에 `MIGRATION_R93_INCOME_HISTORY.sql` 행 및 확인 쿼리(테이블·RLS 정책·권한 `anon_select=false, auth_select=true, auth_insert=false`·RPC 2종·`purge_expired_account_deletion_requests` 연동 확인) 추가.
+     - `sql/tests/TESTS.sql`에 R93 스모크 테스트 블록 추가 (`record_income` 호출 시 `incomes` 행 생성 및 `user_finances.total_asset` 증액, 잘못된 카테고리/0 이하 금액 거부, `delete_income` 호출 시 행 삭제 및 `total_asset` 차감 복원, 타 사용자 `SELECT` 0행 및 `delete_income` 거부, `authenticated` 직접 `INSERT`/`DELETE` 거부, `anon` 접근 거부, 계정 삭제 대기 사용자 `record_income`/`delete_income` 거부) 및 로컬 DB 실행 검증.
+     - `src/types/database.types.ts`에 `incomes` 테이블(`Row`, `Insert`, `Update`, `Relationships`) 및 `record_income`·`delete_income` RPC 타입 반영 후 `npx tsc --noEmit` 통과 확인.
+  2. **Step 2 (`Claude Sonnet` / `Gemini 4 Hydrogen` — `R93` 수익 내역 UI·삭제 연동 & Vitest 테스트)**:
+     - **`src/components/finance/income-modal.tsx`**:
+       - 수익 등록 시 `supabase.rpc("record_income", { p_category: category, p_title: title.trim(), p_amount: incomeAmount, p_income_date: incomeDate || getKstToday(), p_memo: null })`를 우선 호출하도록 변경함.
+       - 운영 DB에 아직 R93 마이그레이션이 적용되지 않아 함수 부재 오류(`PGRST202` 또는 `42883`)가 반환될 때만 기존 `set_user_finance_settings` 경로로 폴백하여 자산 증액이 중단되지 않게 함.
+     - **`src/app/dashboard/expenses/page.tsx`**:
+       - 로그인 사용자의 `incomes` 목록(`id, category, title, amount, income_date, memo, created_at`, `income_date DESC, created_at DESC` 정렬)을 조회함. 테이블 미적용(`42P01`/`PGRST205`) 오류 시 빈 배열로 비차단 폴백함.
+       - 하단 내역 카드(`전체 지출 내역`) 헤더에 **`[지출 내역 | 수익 내역]`** 전환 탭(또는 버튼 그룹, 기본값 `지출 내역`)을 배치함:
+         - `지출 내역` 선택 시: 기존 `취소 내역 숨기기` 체크박스, `과거 기록` 토글, 지출 데스크톱 표/모바일 카드 및 페이지네이션을 그대로 표시함.
+         - `수익 내역` 선택 시:
+           - 등록된 수익 건수 및 총 수익 합계 안내, 데스크톱 표(`입금일`, `항목명`, `수익 유형`, `입금 금액 (+N 원)`, `액션`) 및 모바일 카드 뷰, 10건 단위 페이지네이션을 표시함.
+           - 각 수익 항목에 **`[삭제]`** 버튼을 두고 클릭 시 확인 다이얼로그(`"'{title}' 수익 내역을 삭제하시겠습니까? 삭제 시 총 자산에서 {amount}원이 차감됩니다."`)를 거쳐 `supabase.rpc("delete_income", { p_income_id })`를 호출함(`isOffline()` 가드 포함). 삭제 완료 후 수익 목록을 갱신함.
+           - 수익 내역이 0건이면 `EmptyState`(`message="등록된 수익 내역이 없습니다."`, `hint="우측 상단 '+ 수익 추가' 버튼으로 새 수익을 등록해 보세요."`)를 표시함.
+     - **단위 테스트**: `src/components/finance/income-modal.test.tsx`(신규, `record_income` 호출·미적용 DB `PGRST202` 폴백·유효성 검증) 및 `src/app/dashboard/expenses/page.test.tsx`(`[지출 내역 | 수익 내역]` 탭 전환, 수익 목록 표시, 수익 삭제 확인 다이얼로그 및 `delete_income` 호출, 테이블 미적용 `42P01` 폴백) 추가. `npx tsc --noEmit`, `npm run lint`, `git diff --check`, `npx vitest run --dir src` 통과 후 워크트리에 커밋함.
+  3. **Step 3 (`Claude Opus` — 통합 정적 리뷰 및 마감)**:
+     - Base `0844387` ↔ Step 2 Target SHA 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 전체 통과 확인, `main` 병합, 운영 DB 마이그레이션 체크리스트 등록 및 `docs/` 마감.
 
 ### 🗂️ 이전 Run 기록 (완료): `r91-r94-weekly-timeline-and-template-delete`
 
