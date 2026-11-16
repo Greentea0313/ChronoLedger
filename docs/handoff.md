@@ -40,9 +40,20 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus / Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (R93 DB/RLS/RPC & Types)` | `.worktrees/r93-income-history-db-and-ui`(Base `0844387`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (🐳 로컬 SQL 실행 검증 시 Docker Desktop 필요) | `▶ 워크트리 생성 완료. GPT Codex 착수 대기 (또는 Claude Opus / Gemini 4 Hydrogen 1순위 대체)` |
-| **2** | `⏳ WAITING` | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R93 Income History UI & Vitest)` | `.worktrees/r93-income-history-db-and-ui`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/finance/income-modal.tsx`, 신규/보강 `src/components/finance/income-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `docs/to-do.md` | `⏳ Step 1 완료 후 진행` |
+| **1** | **`✅ DONE (SHA: 7e8f702)`** | ~~**GPT Codex**~~ ➡️ **Claude Opus** *(1순위 대체로 수행)* | `Maker (R93 DB/RLS/RPC & Types)` | `.worktrees/r93-income-history-db-and-ui`(Base `0844387`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (🐳 로컬 SQL 실행 검증 시 Docker Desktop 필요) | `✅ 7e8f702`: 마이그레이션·SCHEMA·README·TESTS·타입 반영. tsc·lint·Vitest 69파일/848개·diff-check 통과. ⚠️ 로컬 DB 실행 검증은 미실행(이 PC에 Docker·psql 없음, 사용자 지시로 SQL만 작성) → Step 3에서 수행 |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R93 Income History UI & Vitest)` | `.worktrees/r93-income-history-db-and-ui`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/finance/income-modal.tsx`, 신규/보강 `src/components/finance/income-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `docs/to-do.md` | `▶ Step 1 완료(7e8f702). Claude Sonnet 착수 대기` |
 | **3** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `⏳ Step 2 완료 후 진행` |
+
+#### 📝 `r93-income-history-db-and-ui` Step 1 완료 기록 (Claude Opus — GPT Codex 1순위 대체, 2026-11-16)
+
+- **Target SHA**: `7e8f702` (워크트리 브랜치 `collab/r93-income-history-db-and-ui`, 미병합)임. 변경 파일: 신규 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`.
+- **테이블·권한**: `public.incomes`를 수용 기준 컬럼·CHECK·인덱스대로 만듦. `authenticated`는 `SELECT`만 있고 직접 쓰기 권한 없음(쓰기는 RPC 전용), `anon` 권한 없음. 본인 조회 정책 + 계정 삭제 대기 차단 RESTRICTIVE 정책·트리거. `SCHEMA.sql`은 공통 차단 루프 2곳에 `'incomes'`를 넣고 테이블은 `user_finances` 바로 뒤에 둠.
+- **RPC**: `record_income`(검증 → 행 INSERT(항목명 앞뒤 공백 제거) → `total_asset` 증액, 새 id 반환), `delete_income`(본인 행 `FOR UPDATE` 조회 → DELETE → `total_asset` 차감). 둘 다 `SECURITY DEFINER`, `search_path = public`, 미인증·계정 삭제 대기 거부, `anon` 실행 권한 회수.
+- **탈퇴 정리**: `purge_expired_account_deletion_requests`에 `DELETE FROM public.incomes` 추가(마이그레이션은 SCHEMA 본문 그대로 재정의). README에 "구버전 purge 본문 마이그레이션을 다시 돌렸다면 이 파일 재실행" 주의 기록함.
+- **TESTS.sql**: R35 블록 뒤(사용자 A가 계정 삭제 대기 상태인 구간)에 R93 블록 추가. 사용자 B 등록·자산 증액·입력 거부 4종·직접 INSERT/UPDATE/DELETE 거부·타인 행 은닉·타인 삭제 거부·삭제 후 자산 복원·재삭제 거부, 사용자 A(삭제 대기) 등록·삭제 거부·조회 0행, purge 연동·트리거 존재, `anon` 조회·RPC 거부를 확인함.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check` 통과, Vitest 69파일/848개 통과함. **로컬 DB 실행은 하지 않음**(이 PC에 Docker Desktop·psql·Supabase CLI 없음, 사용자 지시로 SQL만 작성). 🐳 Step 3에서 마이그레이션 2회 적용·`TESTS.sql` 전체 실행 필요함.
+- **가정**: `delete_income`은 `user_finances` 행이 있다고 보고 `UPDATE`만 함(가입 트리거가 항상 만들고 탈퇴 정리 때만 지워짐). 메모 길이 상한은 수용 기준에 없어 두지 않음.
+- **다음 단계**: Step 2(`Claude Sonnet`, 대체 Gemini 4 Hydrogen / GitHub Copilot) `▶ READY`임.
 
 #### 📌 `r93-income-history-db-and-ui` 배경 및 단계별 수용 기준 (Acceptance Criteria)
 

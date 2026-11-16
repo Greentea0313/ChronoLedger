@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-16 (`r93` Step 1: 수익 내역 DB/RPC `7e8f702`)
+
+- 수익 내역 테이블 `incomes`와 원자 RPC `record_income`(수익 추가 + 총 자산 증액)·`delete_income`(본인 수익 삭제 + 총 자산 차감)을 추가함. 직접 쓰기 권한은 주지 않음. 계정 삭제 대기 차단·탈퇴 정리에 연결함.
+- `SCHEMA.sql`·`sql/README.md` 확인 쿼리·`TESTS.sql` R93 블록·`database.types.ts`를 반영함. 로컬 DB 실행 검증 전·병합 전임.
+
 ## 2026-11-16 (Run `r93-income-history-db-and-ui` 등록 및 활성화 — `R93` 수익 내역 DB/RPC·조회/삭제 UI)
 
 - `New-CollaborationRun.ps1`로 격리 워크트리 `.worktrees/r93-income-history-db-and-ui`(브랜치 `collab/r93-income-history-db-and-ui`, Base `0844387`)를 생성하고 `docs/handoff.md` Active Dispatch Table에 Step 1(`GPT Codex` `▶ READY`, 대체 `Claude Opus` / `Gemini 4 Hydrogen`) → Step 2(`Claude Sonnet` / `Gemini 4 Hydrogen`) → Step 3(`Claude Opus` 리뷰)을 등록함.

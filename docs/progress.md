@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## `r93` Step 1 DB/RLS/RPC 완료 (2026-11-16)
+
+- **수행 주체**: Claude Opus (GPT Codex 1순위 대체)임.
+- **결과**: `public.incomes`(본인 조회 전용·RPC 전용 쓰기·삭제 대기 차단·탈퇴 정리), `record_income`·`delete_income` 원자 RPC, `SCHEMA.sql`·README·`TESTS.sql`·타입 반영. 워크트리 커밋 `7e8f702`.
+- **검증**: tsc·lint·Vitest 69파일/848개·diff-check 통과. 로컬 DB 실행은 미실행(이 PC에 Docker·psql 없음, 사용자 지시로 SQL만 작성).
+- **다음 단계**: Step 2(`Claude Sonnet`) `▶ READY`. 🐳 Step 3에서 로컬 DB 검증 필요.
+
 ## Run `r93-income-history-db-and-ui` (`R93` 수익 내역 DB/RPC 및 조회·삭제 UI) 등록 및 활성화 (2026-11-16)
 
 - **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`)임.
