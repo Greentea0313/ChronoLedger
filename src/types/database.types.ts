@@ -169,6 +169,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"incomes": {
+                  Row: {
+                    "amount": number,"category": string,"created_at": string,"id": string,"income_date": string,"memo": string | null,"title": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"category": string,"created_at"?: string,"id"?: string,"income_date": string,"memo"?: string | null,"title": string,"user_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"category"?: string,"created_at"?: string,"id"?: string,"income_date"?: string,"memo"?: string | null,"title"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+
+                  ]
                 },"personal_memos": {
                   Row: {
                     "content": string,"created_at": string | null,"id": string,"memo_date": string,"user_id": string
@@ -404,6 +418,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"delete_income":
+{ Args: { "p_income_id": string }; Returns: undefined
+                           },
 "delete_subscription_template":
 { Args: { "p_template_id": string }; Returns: undefined
                            },
@@ -418,6 +435,9 @@ isOneToOne: false
                            },
 "purge_expired_account_deletion_requests":
 { Args: { "p_limit"?: number }; Returns: number
+                           },
+"record_income":
+{ Args: { "p_amount": number,"p_category": string,"p_income_date": string,"p_memo"?: string | null,"p_title": string }; Returns: string
                            },
 "refund_expense_payment":
 { Args: { "p_expense_id": string }; Returns: undefined

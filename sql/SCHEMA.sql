@@ -15,6 +15,19 @@ CREATE TABLE public.user_finances (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 1-1. 유저별 수익 내역 (R93). 쓰기는 record_income/delete_income RPC로만 하여 total_asset과 함께 바뀜.
+CREATE TABLE public.incomes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    category VARCHAR(50) NOT NULL CHECK (category IN ('급여', '용돈', '상여금', '금융수익', '기타')),
+    title VARCHAR(150) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 100),
+    amount BIGINT NOT NULL CHECK (amount > 0),
+    income_date DATE NOT NULL,
+    memo TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_incomes_user_date ON public.incomes(user_id, income_date DESC, created_at DESC);
+
 -- 신규 가입 시 기본 재정 및 스토어 지갑을 무음 생성한다.
 CREATE OR REPLACE FUNCTION public.handle_new_user_setup()
 RETURNS TRIGGER AS $$
@@ -1419,7 +1432,8 @@ BEGIN
     FOREACH v_table IN ARRAY ARRAY[
         'user_finances', 'monthly_budgets', 'game_requests', 'user_games',
         'schedule_requests', 'character_requests', 'user_characters', 'user_character_presets',
-        'personal_memos', 'subscription_templates', 'store_wallets', 'expenses', 'store_point_transactions'
+        'personal_memos', 'subscription_templates', 'store_wallets', 'expenses', 'store_point_transactions',
+        'incomes'
     ] LOOP
         EXECUTE format(
             'CREATE POLICY %I ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING (NOT public.account_deletion_is_pending(auth.uid())) WITH CHECK (NOT public.account_deletion_is_pending(auth.uid()))',
@@ -1493,6 +1507,7 @@ BEGIN
             DELETE FROM public.game_requests WHERE user_id = v_req.user_id;
             DELETE FROM public.store_point_transactions WHERE user_id = v_req.user_id;
             DELETE FROM public.expenses WHERE user_id = v_req.user_id;
+            DELETE FROM public.incomes WHERE user_id = v_req.user_id;
             DELETE FROM public.subscription_templates WHERE user_id = v_req.user_id;
             DELETE FROM public.personal_memos WHERE user_id = v_req.user_id;
             DELETE FROM public.user_favorite_schedules WHERE user_id = v_req.user_id;
@@ -1638,7 +1653,8 @@ BEGIN
     FOREACH v_table IN ARRAY ARRAY[
         'user_finances', 'monthly_budgets', 'game_requests', 'user_games',
         'schedule_requests', 'character_requests', 'user_characters', 'user_character_presets',
-        'personal_memos', 'subscription_templates', 'store_wallets', 'expenses', 'store_point_transactions'
+        'personal_memos', 'subscription_templates', 'store_wallets', 'expenses', 'store_point_transactions',
+        'incomes'
     ] LOOP
         EXECUTE format(
             'CREATE TRIGGER %I BEFORE INSERT OR UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.block_pending_account_data_mutations()',
@@ -1720,6 +1736,15 @@ DROP TRIGGER IF EXISTS block_pending_account_deletion_user_favorite_schedules ON
 CREATE TRIGGER block_pending_account_deletion_user_favorite_schedules
     BEFORE INSERT OR UPDATE OR DELETE ON public.user_favorite_schedules
     FOR EACH ROW EXECUTE FUNCTION public.block_pending_account_data_mutations();
+
+-- R93 수익 내역: 본인 행만 조회, 직접 쓰기 권한 없음(RPC 전용), anon 차단.
+-- 계정 삭제 대기 사용자 차단 정책·트리거는 위 공통 루프 목록('incomes')에서 생성됨.
+ALTER TABLE public.incomes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.incomes FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.incomes TO authenticated;
+DROP POLICY IF EXISTS "Read own incomes" ON public.incomes;
+CREATE POLICY "Read own incomes" ON public.incomes FOR SELECT TO authenticated
+    USING (auth.uid() = user_id);
 
 -- 3. 지갑 설정 변경 RPC (등급 및 적립률)
 CREATE OR REPLACE FUNCTION public.update_store_wallet_settings(
@@ -1822,6 +1847,78 @@ BEGIN
     SET total_asset = EXCLUDED.total_asset,
         default_budget = EXCLUDED.default_budget,
         updated_at = NOW();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- R93 수익 등록 RPC: 수익 행 INSERT와 total_asset 증액을 한 트랜잭션에서 처리
+CREATE OR REPLACE FUNCTION public.record_income(
+    p_category VARCHAR(50),
+    p_title VARCHAR(150),
+    p_amount BIGINT,
+    p_income_date DATE,
+    p_memo TEXT DEFAULT NULL
+) RETURNS UUID AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_income_id UUID;
+BEGIN
+    IF v_user_id IS NULL THEN RAISE EXCEPTION '인증되지 않은 사용자입니다.'; END IF;
+    IF public.account_deletion_is_pending(v_user_id) THEN
+        RAISE EXCEPTION '계정 삭제가 진행 중이므로 개인 데이터를 변경할 수 없습니다.';
+    END IF;
+    IF p_category IS NULL OR p_category NOT IN ('급여', '용돈', '상여금', '금융수익', '기타') THEN
+        RAISE EXCEPTION '수익 유형이 올바르지 않습니다.';
+    END IF;
+    IF p_title IS NULL OR length(btrim(p_title)) NOT BETWEEN 1 AND 100 THEN
+        RAISE EXCEPTION '수익 항목명은 1자 이상 100자 이하로 입력해야 합니다.';
+    END IF;
+    IF p_amount IS NULL OR p_amount <= 0 THEN
+        RAISE EXCEPTION '수익 금액은 0보다 커야 합니다.';
+    END IF;
+    IF p_income_date IS NULL THEN
+        RAISE EXCEPTION '입금일을 입력해야 합니다.';
+    END IF;
+
+    INSERT INTO public.incomes(user_id, category, title, amount, income_date, memo)
+    VALUES (v_user_id, p_category, btrim(p_title), p_amount, p_income_date, p_memo)
+    RETURNING id INTO v_income_id;
+
+    INSERT INTO public.user_finances(user_id, total_asset, default_budget, updated_at)
+    VALUES (v_user_id, p_amount, 0, NOW())
+    ON CONFLICT (user_id) DO UPDATE
+    SET total_asset = public.user_finances.total_asset + EXCLUDED.total_asset,
+        updated_at = NOW();
+
+    RETURN v_income_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- R93 수익 삭제 RPC: 본인 수익 행 DELETE와 total_asset 차감 복원을 한 트랜잭션에서 처리
+CREATE OR REPLACE FUNCTION public.delete_income(p_income_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_income public.incomes%ROWTYPE;
+BEGIN
+    IF v_user_id IS NULL THEN RAISE EXCEPTION '인증되지 않은 사용자입니다.'; END IF;
+    IF public.account_deletion_is_pending(v_user_id) THEN
+        RAISE EXCEPTION '계정 삭제가 진행 중이므로 개인 데이터를 변경할 수 없습니다.';
+    END IF;
+
+    SELECT * INTO v_income
+    FROM public.incomes
+    WHERE id = p_income_id AND user_id = v_user_id
+    FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION '삭제할 수 있는 본인 소유의 수익 내역이 아닙니다.';
+    END IF;
+
+    DELETE FROM public.incomes WHERE id = p_income_id AND user_id = v_user_id;
+
+    UPDATE public.user_finances
+    SET total_asset = total_asset - v_income.amount,
+        updated_at = NOW()
+    WHERE user_id = v_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -2206,6 +2303,8 @@ REVOKE ALL ON FUNCTION public.restore_cancelled_expense(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.update_store_wallet_settings(VARCHAR, VARCHAR, NUMERIC) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.adjust_wallet_balance(VARCHAR, BIGINT, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.set_user_finance_settings(BIGINT, BIGINT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.record_income(VARCHAR, VARCHAR, BIGINT, DATE, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.delete_income(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.approve_schedule_request(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.reject_schedule_request(UUID, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.approve_game_request(UUID, TEXT) FROM PUBLIC, anon;
@@ -2220,6 +2319,8 @@ GRANT EXECUTE ON FUNCTION public.restore_cancelled_expense(UUID) TO authenticate
 GRANT EXECUTE ON FUNCTION public.update_store_wallet_settings(VARCHAR, VARCHAR, NUMERIC) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.adjust_wallet_balance(VARCHAR, BIGINT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.set_user_finance_settings(BIGINT, BIGINT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.record_income(VARCHAR, VARCHAR, BIGINT, DATE, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_income(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.approve_schedule_request(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reject_schedule_request(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.approve_game_request(UUID, TEXT) TO authenticated;
