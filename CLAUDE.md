@@ -5,7 +5,7 @@
 When starting a Claude Code session, load and adhere to the following rule files:
 
 - @.agents/rules/language.md — [.agents/rules/language.md](.agents/rules/language.md) (Korean language communication rule: 답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것)
-- @.agents/rules/collaboration.md — [.agents/rules/collaboration.md](.agents/rules/collaboration.md) (5-model AI collaboration roles, hybrid delegation & emergency handover)
+- @.agents/rules/collaboration.md — [.agents/rules/collaboration.md](.agents/rules/collaboration.md) (6-model AI collaboration roles, hybrid delegation & emergency handover)
 - @.agents/rules/handoff.md — [.agents/rules/handoff.md](.agents/rules/handoff.md) (`"인수인계 문서를 확인해"` auto-execution & docs sync)
 - @.agents/rules/agent_rules.md — [.agents/rules/agent_rules.md](.agents/rules/agent_rules.md) (Core coding behavior guidelines)
 - @.agents/rules/document_location.md — [.agents/rules/document_location.md](.agents/rules/document_location.md) (Document location & taxonomy)
@@ -18,20 +18,20 @@ When starting a Claude Code session, load and adhere to the following rule files
 
 ## 2. Claude Core Roles (Role & Fallback)
 
-Within the ChronoLedger 5-model AI collaboration architecture, the roles of Claude (Claude Pro: Sonnet / Opus) are defined as follows:
+Within the ChronoLedger 6-model AI collaboration architecture (`Gemini 4 Argon`, `Gemini 4 Hydrogen`, `GPT Codex`, `Claude Sonnet / Opus`, `GitHub Copilot`, `Gemini 3.8 Flash`), the roles of Claude (Claude Pro: Sonnet / Opus) are defined as follows:
 
 - **Claude Pro Sonnet / Opus 2-Tier Operating Criteria (Token Optimization)**:
   - Operate both **`Claude Sonnet`** and **`Claude Opus`** from the user's Claude Pro subscription. Default to Sonnet, promoting to Opus only when one of the promotion conditions below applies to minimize quota consumption.
   - **Claude Sonnet (Default Maker · Quota Saver)**: UI interactions and state wiring with explicit acceptance criteria and target files (accordions, modals, filters, toggles), page/component edits following existing patterns, Vitest unit test authoring/expansion, low-risk standard static reviews, and `docs/` synchronization.
-  - **Claude Opus (Deep Specialist · On Demand)**: High-complexity composite state and browser lifecycle control (History API, async race conditions), architectural refactoring and rule/collaboration design, deep security/RLS/`SECURITY DEFINER` RPC/ledger integrity auditing, Base $\leftrightarrow$ Target SHA integrated static review (`review.json`), Fallback 1 for `Gemini 4 Argon` and `GPT Codex`.
+  - **Claude Opus (Deep Specialist · On Demand)**: High-complexity composite state and browser lifecycle control (History API, async race conditions), architectural refactoring and rule/collaboration design, deep security/RLS/`SECURITY DEFINER` RPC/ledger integrity auditing, Base $\leftrightarrow$ Target SHA integrated static review (`review.json`), Fallback 1 for `Gemini 4 Argon`, `Gemini 4 Hydrogen`, and `GPT Codex`.
   - **Opus Promotion Conditions** (Assign Opus if any condition is met): ① Modifications to money, ledger, points, RLS, or SQL/RPC, ② Browser lifecycle and async concurrency edge cases, ③ Restructuring across 3+ modules or open architectural design decisions, ④ Run-level integrated reviews. If Sonnet discovers any of these conditions during work, hand over to Opus via `⚠️ HANDOVER_NEEDED`.
 - **Primary Role: `Reviewer & Maker (Complex)`**
   - **Static Code Review**: Perform read-only static code reviews comparing Base SHA $\leftrightarrow$ Target SHA, producing structured `review.json` matching `artifacts/schemas/review.schema.json`.
   - **Security & Integrity Auditing**: Audit Supabase RLS policies, SQL triggers, ledger integrity, auth boundaries, and transaction safety.
   - **Complex Refactoring & Interaction**: Implement complex multi-component state management, async data pipelines, accordion/drawer interactions, and system refactoring.
 - **Fallback Role: Primary Fallback Model (Fallback 1)**
-  - When **Gemini 4 Argon** (`Orchestrator & Architect`) exhausts tokens: Claude Opus succeeds as Fallback 1 for orchestration and architecture decisions.
-  - When **GPT Codex** (`Maker - Core & Test`) exhausts tokens: Claude Opus succeeds for ledger/payment/RPC logic, and Claude Sonnet succeeds for unit tests and standard implementation.
+  - When **Gemini 4 Argon** (`Orchestrator & Architect`) exhausts tokens: **Gemini 4 Hydrogen** or **Claude Opus** succeeds as Fallback 1 for orchestration and architecture decisions.
+  - When **Gemini 4 Hydrogen** or **GPT Codex** exhausts tokens: Claude Opus succeeds for ledger/payment/RPC logic and integrated reviews, and Claude Sonnet (or Gemini 4 Hydrogen) succeeds for UI/feature implementation and unit tests.
 
 ## 3. "인수인계 문서를 확인해" Auto-Execution Protocol
 

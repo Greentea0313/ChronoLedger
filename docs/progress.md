@@ -1,4 +1,14 @@
 # 프로젝트 진행 현황
+## 6대 AI 협업 모델 체제 확장 (`Gemini 4 Hydrogen` 추가, 2026-11-16)
+
+- **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`)임.
+- **배경 및 결정**: 사용자 요청 및 결정에 따라 기존 5대 모델 체제에 **`Gemini 4 Hydrogen`**을 추가하여 **6대 AI 모델 협업 체제**로 확장함.
+- **`Gemini 4 Hydrogen` 역할 및 대체 체인**:
+  - **기본 역할**: `Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer`
+  - **담당 도메인**: 일반·복합 기능 및 UI 컴포넌트(`src/app/`, `src/components/`, `src/lib/`) 구현, Vitest 단위/통합 테스트, 정적 리뷰(`review.json`)·오케스트레이션 보조.
+  - **대체(Fallback) 배치**: 주간 쿼터인 `Gemini 4 Argon`, `Claude Sonnet`, `GPT Codex`, `GitHub Copilot`, `Gemini 3.8 Flash`의 1순위급 대체 모델로 배치하고, `Gemini 4 Hydrogen` 자체의 대체 체인은 1순위 `Claude Sonnet / Opus`, 2순위 `GitHub Copilot`으로 설정함.
+- **반영 파일**: `AGENTS.md`, `CLAUDE.md`, `.agents/rules/collaboration.md`, `.agents/rules/handoff.md`, `.agents/skills/handoff/SKILL.md`, `.agents/skills/chronoledger-orchestrator/SKILL.md`, `.github/copilot-instructions.md`, `docs/collaboration-guide.md`, `docs/handoff.md`.
+
 ## 디시인사이드 공지/공식 탭 수집 1차 검토(`R90`) 및 신규 요구사항 4건(`R91`~`R94`) 검토·등록 (2026-11-16)
 
 - **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`)임.

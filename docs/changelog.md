@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-16 (6대 AI 협업 모델 체제 확장 — `Gemini 4 Hydrogen` 추가)
+
+- 협업 모델 매트릭스에 **`Gemini 4 Hydrogen`**(`Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer`)을 추가해 6대 AI 모델 체제로 확장하고, `Gemini 4 Argon`·`Claude Sonnet`·`GPT Codex`·`GitHub Copilot`·`Gemini 3.8 Flash`의 1순위급 대체(Fallback 1) 모델로 연결함 (`AGENTS.md`, `CLAUDE.md`, `.agents/rules/*`, `.agents/skills/*`, `.github/copilot-instructions.md`, `docs/collaboration-guide.md`, `docs/handoff.md`).
+
 ## 2026-11-16 (디시인사이드 공식 탭 수집 1차 검토서 생성 및 `R91`~`R94` 신규 과제 등록)
 
 - 디시인사이드 게임별 갤러리 공지/공식 탭 크롤링 가능성 실측 및 약관 대조 검토서 [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md)를 작성하고, Claude Opus 2차 검증 Run(`r90-dcinside-crawling-opus-review` Step 2 `▶ READY`)을 `docs/handoff.md`에 등록함.

@@ -27,17 +27,18 @@ When the user enters **`"인수인계 문서를 확인해"`** (or any request to
    - If an unresolvable blocker is encountered, mark status as `🛑 BLOCKED` and report to the user.
 5. **Report Results**: Clearly report completed work, verification evidence, and the **next AI model (and fallbacks)** to invoke.
 
-## 2. 5-Model Role Distribution & Fallback Matrix
+## 2. 6-Model Role Distribution & Fallback Matrix
 
 When the Orchestrator breaks down tasks into the Dispatch Queue, use this role distribution and fallback chain. Always specify **`Primary Model (Fallback: 1st / 2nd)`** in the table:
 
 | Primary Model / Agent | Pipeline Role | ChronoLedger Domain Ownership | **Fallback 1** | **Fallback 2** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Argon** *(Chief)* | `Orchestrator & Architect` | Requirements breakdown, acceptance criteria, worktree/dispatch queue allocation, architecture decisions, final verification, docs closeout | **Claude Opus** | **GitHub Copilot** |
-| **GPT Codex** | `Maker (Core) & Test` | Ledger/payment/refund formulas (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase RPC/SQL, Vitest unit tests | **Claude Opus** | **GitHub Copilot** |
-| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA static code review (`review.json`), security/RLS/ledger integrity verification, multi-component state & interaction refactoring | **Gemini 4 Argon** | **GitHub Copilot** |
-| **GitHub Copilot** | `Maker (General) & Fallback Hub` | Standard features, routing, and UI components (`src/app/`, `src/components/`); universal backup when other models exhaust token quota | **Gemini 3.8 Flash** | **GPT Codex** |
-| **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind styling, badge/modal/drawer markup, high-speed codebase search subagent under Argon, `docs/` sync assistance | **GitHub Copilot** | **Gemini 4 Argon** |
+| **Gemini 4 Argon** *(Chief)* | `Orchestrator & Architect` | Requirements breakdown, acceptance criteria, worktree/dispatch queue allocation, architecture decisions, final verification, docs closeout | **Gemini 4 Hydrogen** / **Claude Opus** | **GitHub Copilot** |
+| **Gemini 4 Hydrogen** | `Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer` | Standard & composite features/UI (`src/app/`, `src/components/`, `src/lib/`), Vitest unit/integration tests, static code review (`review.json`) & orchestration assistance; primary 1st-tier fallback for Argon, Claude Sonnet, and GPT Codex | **Claude Sonnet / Opus** | **GitHub Copilot** |
+| **GPT Codex** | `Maker (Core) & Test` | Ledger/payment/refund formulas (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase RPC/SQL, Vitest unit tests | **Claude Opus** / **Gemini 4 Hydrogen** | **GitHub Copilot** |
+| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA static code review (`review.json`), security/RLS/ledger integrity verification, multi-component state & interaction refactoring | **Gemini 4 Hydrogen** / **Gemini 4 Argon** | **GitHub Copilot** |
+| **GitHub Copilot** | `Maker (General) & Fallback Hub` | Standard features, routing, and UI components (`src/app/`, `src/components/`); universal backup when other models exhaust token quota | **Gemini 4 Hydrogen** / **Gemini 3.8 Flash** | **GPT Codex** |
+| **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind styling, badge/modal/drawer markup, high-speed codebase search subagent under Argon, `docs/` sync assistance | **Gemini 4 Hydrogen** | **GitHub Copilot** |
 
 > Claude tasks must follow the **Sonnet / Opus 2-Tier Operating Criteria** in [`.agents/rules/collaboration.md`](collaboration.md) (default to Sonnet, promote to Opus when one of the 4 conditions applies).
 

@@ -1,18 +1,19 @@
 # ChronoLedger AI 협업 종합 가이드 (AI Collaboration Guide)
 
-이 문서는 ChronoLedger 프로젝트의 5대 AI 모델(Gemini 4 Argon, GPT Codex, Claude [Claude Pro: Sonnet / Opus], GitHub Copilot, Gemini 3.8 Flash) 협업 파이프라인, 격리 Worktree 기반 개발 워크플로우, 그리고 비상 인계 규약의 단일 진실 공급원(SSOT) 가이드입니다.
+이 문서는 ChronoLedger 프로젝트의 6대 AI 모델(Gemini 4 Argon, Gemini 4 Hydrogen, GPT Codex, Claude [Claude Pro: Sonnet / Opus], GitHub Copilot, Gemini 3.8 Flash) 협업 파이프라인, 격리 Worktree 기반 개발 워크플로우, 그리고 비상 인계 규약의 단일 진실 공급원(SSOT) 가이드임.
 
 ---
 
-## 1. 5대 AI 모델 역할 분배 및 Fallback 매트릭스
+## 1. 6대 AI 모델 역할 분배 및 Fallback 매트릭스
 
 | 주력 모델 / 에이전트 | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Claude Opus** | **GitHub Copilot** |
-| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜 계산(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude Opus** | **GitHub Copilot** |
-| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Argon** | **GitHub Copilot** |
-| **GitHub Copilot** | `Maker (General) & Fallback Hub` | 일반 기능, 라우팅 및 UI 컴포넌트(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 3.8 Flash** | **GPT Codex** |
-| **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 마크업, Argon 직속 고속 코드베이스 탐색 서브에이전트, `docs/` 문서 동기화 보조 | **GitHub Copilot** | **Gemini 4 Argon** |
+| **Gemini 4 Argon** *(주축)* | `Orchestrator & Architect` | 요구사항 분해, 수용 기준 수립, Worktree 생성(`New-CollaborationRun.ps1`), Dispatch Queue 할당, 최종 검수 및 문서 마감 | **Gemini 4 Hydrogen** / **Claude Opus** | **GitHub Copilot** |
+| **Gemini 4 Hydrogen** | `Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer` | 일반·복합 기능 및 UI 컴포넌트(`src/app/`, `src/components/`, `src/lib/`) 구현, Vitest 단위/통합 테스트, 정적 리뷰(`review.json`)·오케스트레이션 보조; Argon·Claude Sonnet·GPT Codex의 1순위급 대체 모델 | **Claude Sonnet / Opus** | **GitHub Copilot** |
+| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜 계산(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Claude Opus** / **Gemini 4 Hydrogen** | **GitHub Copilot** |
+| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Hydrogen** / **Gemini 4 Argon** | **GitHub Copilot** |
+| **GitHub Copilot** | `Maker (General) & Fallback Hub` | 일반 기능, 라우팅 및 UI 컴포넌트(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 4 Hydrogen** / **Gemini 3.8 Flash** | **GPT Codex** |
+| **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind 스타일링, 배지/모달/드로어 마크업, Argon 직속 고속 코드베이스 탐색 서브에이전트, `docs/` 문서 동기화 보조 | **Gemini 4 Hydrogen** | **GitHub Copilot** |
 
 ### Claude Pro Sonnet / Opus 2단계 운용 기준 (토큰 최적화)
 

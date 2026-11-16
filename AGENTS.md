@@ -9,7 +9,7 @@ All agents must read and follow this `AGENTS.md` before starting project work, i
 All agents must consult the following rule files and skill guidelines before starting work:
 
 - [.agents/rules/language.md](.agents/rules/language.md) — Always communicate with the user in Korean (including `ask_question`); write all responses and documentation in Korean itemized style (~함, ~임).
-- [.agents/rules/collaboration.md](.agents/rules/collaboration.md) — 5-model AI role distribution, hybrid delegation, and emergency handover rules.
+- [.agents/rules/collaboration.md](.agents/rules/collaboration.md) — 6-model AI role distribution, hybrid delegation, and emergency handover rules.
 - [.agents/rules/handoff.md](.agents/rules/handoff.md) — `"인수인계 문서를 확인해"` dispatch trigger protocol and documentation update rules.
 - [.agents/rules/agent_rules.md](.agents/rules/agent_rules.md) — Think before coding, simplicity first, and surgical changes.
 - [.agents/rules/document_location.md](.agents/rules/document_location.md) — Store all project docs in `docs/`, not temporary session directories.
@@ -18,15 +18,16 @@ All agents must consult the following rule files and skill guidelines before sta
 - [.agents/skills/chronoledger-reviewer/SKILL.md](.agents/skills/chronoledger-reviewer/SKILL.md) — Read-only static code review and `review.json` generation.
 - [.agents/skills/handoff/SKILL.md](.agents/skills/handoff/SKILL.md) — Multi-agent handoff and Active Dispatch Queue execution skill.
 
-## 2. 5-Model Role Distribution & Fallback Matrix
+## 2. 6-Model Role Distribution & Fallback Matrix
 
 | Primary Model / Agent | Pipeline Role | ChronoLedger Domain Ownership | **Fallback 1** | **Fallback 2** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Argon** *(Chief)* | `Orchestrator & Architect` | Requirements breakdown, acceptance criteria, worktree creation, dispatch queue allocation, final verification, docs closeout | **Claude Opus** | **GitHub Copilot** |
-| **GPT Codex** | `Maker (Core) & Test` | Ledger/payment/refund formulas (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase SQL/RPC, Vitest unit tests | **Claude Opus** | **GitHub Copilot** |
-| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA static code review (`review.json`), security/RLS/ledger integrity verification, multi-component state & interaction refactoring | **Gemini 4 Argon** | **GitHub Copilot** |
-| **GitHub Copilot** | `Maker (General) & Fallback Hub` | Standard features, routing, and UI components (`src/app/`, `src/components/`); universal backup when other models exhaust token quota | **Gemini 3.8 Flash** | **GPT Codex** |
-| **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind styling, badge/modal/drawer markup, high-speed codebase search subagent under Argon, `docs/` sync assistance | **GitHub Copilot** | **Gemini 4 Argon** |
+| **Gemini 4 Argon** *(Chief)* | `Orchestrator & Architect` | Requirements breakdown, acceptance criteria, worktree creation, dispatch queue allocation, final verification, docs closeout | **Gemini 4 Hydrogen** / **Claude Opus** | **GitHub Copilot** |
+| **Gemini 4 Hydrogen** | `Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer` | Standard & composite features/UI (`src/app/`, `src/components/`, `src/lib/`), Vitest unit/integration tests, static review (`review.json`) & orchestration assistance; primary quota-saving partner for Argon, Claude Sonnet, and GPT Codex | **Claude Sonnet / Opus** | **GitHub Copilot** |
+| **GPT Codex** | `Maker (Core) & Test` | Ledger/payment/refund formulas (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase SQL/RPC, Vitest unit tests | **Claude Opus** / **Gemini 4 Hydrogen** | **GitHub Copilot** |
+| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA static code review (`review.json`), security/RLS/ledger integrity verification, multi-component state & interaction refactoring | **Gemini 4 Hydrogen** / **Gemini 4 Argon** | **GitHub Copilot** |
+| **GitHub Copilot** | `Maker (General) & Fallback Hub` | Standard features, routing, and UI components (`src/app/`, `src/components/`); universal backup when other models exhaust token quota | **Gemini 4 Hydrogen** / **Gemini 3.8 Flash** | **GPT Codex** |
+| **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind styling, badge/modal/drawer markup, high-speed codebase search subagent under Argon, `docs/` sync assistance | **Gemini 4 Hydrogen** | **GitHub Copilot** |
 
 > **Claude Pro Sonnet / Opus 2-Tier Operating Criteria (Token Optimization)**:
 >
