@@ -50,7 +50,7 @@
 - **리뷰 범위**: Base `0844387` ↔ Target `7c8883e`. 산출물 `artifacts/r93-income-history-db-and-ui/iteration-01/review.json`·`test.json`(커밋 `2d12115`)임. Step 1은 다른 세션의 Claude Opus가 작성해 같은 모델 리뷰라는 독립성 한계가 있음.
 - **SQL·RLS 확인**: `incomes`는 `authenticated` SELECT만 허용(본인 행 정책), 쓰기 권한 없음, 계정 삭제 대기 차단 정책·트리거 적용. `record_income`·`delete_income`은 `SECURITY DEFINER`·`search_path` 고정·`auth.uid()` 본인 확인·입력 검증 후 수익 행과 `total_asset`을 한 트랜잭션에서 함께 바꾸고, `anon` 실행 권한 회수. 재정의한 탈퇴 정리 함수는 기존 본문과 동일하고 `incomes` 삭제 한 줄만 추가됨. `total_asset`은 원래 음수 허용이라 삭제 시 오류 없음. P1~P3 없음.
 - **화면 확인**: 수익 모달은 `record_income` 우선, 함수 부재(`PGRST202`·`42883`)일 때만 기존 자산 갱신으로 대체해 이중 반영이 없음. 수익 내역 탭은 오프라인 가드 후 `delete_income` 호출·목록 재조회, 테이블 미적용 시 빈 목록 처리.
-- **P4 2건 (to-do `R95` 이관)**: `R93-REV-001` 수익 삭제 실패 시 RPC 사유(삭제 대기 등) 대신 일반 문구만 표시. `R93-REV-002` 탈퇴 정리 함수를 재정의하는 이전 마이그레이션을 다시 실행하면 `incomes` 삭제 줄이 빠짐(단, `auth.users` CASCADE로 실제 삭제는 됨) → README 경고 추가 권장.
+- **P4 2건 (to-do `R95` 이관)**: `R93-REV-001` 수익 삭제 실패 시 RPC 사유(삭제 대기 등) 대신 일반 문구만 표시. `R93-REV-002` 탈퇴 정리 함수를 재정의하는 이전 마이그레이션을 다시 실행하면 `incomes` 삭제 줄이 빠짐(단, `auth.users` CASCADE로 실제 삭제는 됨) → README 경고 추가 권장. **후속 정정(2026-11-16, 사용자 지적)**: README R93 행(확인 쿼리·재실행 경고 포함)이 B표가 아니라 D표(아카이브)에 잘못 들어가 있었음 → B표로 옮김. 재실행 경고는 이미 있어 `R93-REV-002`는 해결됨. 리뷰에서 놓친 부분임.
 - **검증**: 🐳 로컬 Supabase를 초기화하고 `0844387` 스키마 적용 → R93 마이그레이션 2회 적용(멱등) → 권한 확인(`authenticated` INSERT·`anon` SELECT 없음) → `TESTS.sql` 전체 통과(39개 PASS, R93 블록 포함). 워크트리 tsc·lint·diff-check·build 통과, Vitest 69파일/862개 통과. `main` 병합 `a1f17e0` 후 tsc·Vitest 159파일/1484개 통과함.
 - **사용자 수동 작업 남음**:
   1. 운영 DB에 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql` 적용 후 `sql/README.md` R93 확인 쿼리 실행. 적용 전에는 수익 등록이 기존 방식(자산만 증가)으로 동작하고 수익 내역 탭은 비어 있음.
