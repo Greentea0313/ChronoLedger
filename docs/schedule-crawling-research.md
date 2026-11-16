@@ -161,3 +161,4 @@
 - **배경**: 사용자가 아카라이브 대신 **디시인사이드(`gall.dcinside.com`) 게임별 갤러리의 공지/공식 정보 말머리 탭 링크**(예: `https://gall.dcinside.com/mgallery/board/lists/?id=endfield&sort_type=N&search_head=10&page=1`)를 게임별로 설정하여 후보함(`schedule_candidates`)에 반자동 수집하는 방안을 제안함.
 - **1차 실측 및 약관 검토 문서**: [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md)에 상세 기술 실측(HTTP 200 SSR 응답, `tr.ub-content` DOM 파싱, `robots.txt` `Allow: /` 및 2026-10-07 시행 이용약관 제11조·제16조 원문 대조, 개인정보/본문 미수집 완화 설계, Edge Function 데이터센터 IP 차단 리스크)과 **Claude Opus 2차 검증 체크리스트(5개 항목)**를 작성함.
 - **다음 단계**: Claude Opus가 [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) §5 항목을 2차 검증한 뒤 R90 구현 범위를 최종 확정함.
+- **2차 검증 결과 (2026-11-16, Claude Opus)**: 검토서 §6 참고. 디시인사이드 자동 수집은 약관 제16조①로 3절의 네이버·HoYoLAB과 같은 등급이라 **제외 권장**함. 대안은 게임별 공지 탭 바로가기 + 관리자 링크 붙여넣기(경로 A)임. R90은 2026-11-16 사용자 지시로 잠정 보류함.

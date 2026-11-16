@@ -1,4 +1,13 @@
 # 변경 이력
+## 2026-11-16 (R90 보류 · `R91` 통합 Run 등록)
+
+- R90을 잠정 보류로 바꾸고, `r91-r94-weekly-timeline-and-template-delete`(R91·R94·R92)를 활성 Run으로 등록함. Step 1~4 담당·수용 기준을 `docs/handoff.md`에 기록함.
+
+## 2026-11-16 (`R90` 디시인사이드 수집 2차 검증)
+
+- 검토서 `docs/dcinside-schedule-crawling-review.md`에 §6(Claude Opus 2차 검증 의견)을 추가함. 자동 수집 제외 권장, 경로 A 대안, SSRF 방어용 구조화 값 저장 규칙, 후보함 UX, R90 수용 기준 확정안을 담음.
+- `docs/schedule-crawling-research.md` §11에 2차 검증 결과 연계를 추가함.
+
 ## 2026-11-16 (6대 AI 협업 모델 체제 확장 — `Gemini 4 Hydrogen` 추가)
 
 - 협업 모델 매트릭스에 **`Gemini 4 Hydrogen`**(`Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer`)을 추가해 6대 AI 모델 체제로 확장하고, `Gemini 4 Argon`·`Claude Sonnet`·`GPT Codex`·`GitHub Copilot`·`Gemini 3.8 Flash`의 1순위급 대체(Fallback 1) 모델로 연결함 (`AGENTS.md`, `CLAUDE.md`, `.agents/rules/*`, `.agents/skills/*`, `.github/copilot-instructions.md`, `docs/collaboration-guide.md`, `docs/handoff.md`).

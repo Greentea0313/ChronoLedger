@@ -158,3 +158,105 @@ Claude Opus는 본 문서를 바탕으로 아래 5가지 쟁점을 2차 검증�
    - 관리자가 `games.crawl_source_url`에 임의 URL을 넣을 때 내부망/메타데이터 서버 호출(SSRF)이나 오픈 리다이렉트가 발생하지 않도록 하는 URL 화이트리스트·쿼리 파라미터 정규화 규칙 검토.
 5. **후보함(`schedule_candidates`) UX 및 노이즈 제어**:
    - 웹툰·굿즈·단순 공지 등 일정과 무관한 공식정보 글을 관리자가 빠르게 걸러내기 위한 UI/필터(일괄 제외, 제목 키워드 하이라이트 등) 요구사항 보완.
+
+---
+
+## 6. Claude Opus 2차 검증 의견 (2026-11-16)
+
+- **작성**: Claude Opus (`Reviewer & Architect`, Run `r90-dcinside-crawling-opus-review` Step 2). 문서 전용 검증임. 코드·DB 변경 없음. 법률 자문이 아님.
+- **검증 방법**: 본 문서 §1~§5와 [`schedule-crawling-research.md`](schedule-crawling-research.md) §3·§10의 판정 기준을 대조함. 디시인사이드에 직접 요청을 보내지 않음(6.0 사유). 따라서 ②·③의 실측 항목은 **미검증**으로 남김.
+
+### 6.0 결론 요약
+
+- **판정: 디시인사이드 자동 수집(서버·스크립트가 목록 페이지를 대신 받아 파싱)은 R90 범위에서 제외 권장함.**
+  - 약관 제16조 제1항이 "사전 서면 동의 없이 어떤 형태로든 어떤 목적으로든" 크롤링을 금지하고, 제11조 제3항 제13호가 자동화된 수단의 콘텐츠 수집을 금지함. R86에서 네이버 라운지·HoYoLAB을 제외한 기준(목적·규모 예외 없는 자동 수집 금지)과 같은 등급임. 디시인사이드만 허용하면 판정 기준이 어긋남.
+  - 1차 실측이 일반 브라우저 `User-Agent`·`Referer`를 넣어야 응답을 받았다는 점(§2.1)은 봇 식별을 피하는 방식이라 위험을 더 키움. 네이버 약관 검토 때 "어뷰징 방지 조치 무력화"를 별도 금지 사유로 본 것과 같은 성격임.
+  - `robots.txt`가 `ClaudeBot`·`anthropic-ai` 등을 `Disallow: /`로 막고 있어, 본 검증에서도 직접 요청을 보내지 않음.
+- **대안(권장, 경로 A): "갤러리 바로가기 + 링크 붙여넣기" 수동 보조 방식.** 앱은 디시인사이드에 요청을 보내지 않고, 관리자가 브라우저로 공지 탭을 열어 읽은 뒤 필요한 글 링크만 후보함에 붙여 넣음. 사람이 읽는 일반 이용이라 약관과 충돌하지 않음. R86 §10.4 대안 2와 같은 구조임.
+- **사용자가 위험을 알고도 자동 수집을 채택하는 경우(경로 B)**: 6.2~6.4의 조건을 **전부** 만족하는 경우에만 별도 Run으로 진행함. 기본 R90 수용 기준(6.6)에는 넣지 않음.
+
+### 6.1 ① 약관·법적 리스크 재점검
+
+| 비교 항목 | 네이버 게임 라운지 | HoYoLAB | 디시인사이드 |
+| :--- | :--- | :--- | :--- |
+| 자동 수집 금지 조항 | 있음(사전 허락 없는 자동 수단 게시물 수집 금지) | 있음(제7조 c항 사전 서면 허락 없는 scraping 금지) | 있음(제11조③13호, 제16조①) |
+| 목적·규모 예외 | 없음 | 없음 | 없음("어떤 목적으로든") |
+| `robots.txt` | 확인 못함 | `/genshin`만 금지 | `*`에 `Allow: /` |
+| 판정 | 제외(R86) | 제외(R86) | **제외 권장(본 검증)** |
+
+- **`robots.txt` `Allow: /`의 의미**: 제16조 제1항 앞 문장("robots.txt에 적용한 일부 사이트에만 크롤링을 허용")을 근거로 허용 여지를 주장할 수는 있으나, 같은 항 뒷문장이 사전 서면 동의 없는 크롤링을 명시적으로 금지함. 해석이 갈리면 금지 쪽으로 읽는 것이 안전함. `robots.txt`는 검색엔진 색인용 기술 신호이고 계약상 허락으로 보기 어려움.
+- **1차 완화 조건(§3.3)의 충분성**:
+  - 작성자 정보 배제: 필요 조건이나 충분하지 않음. 제11조③13호는 "콘텐츠를 비롯한 기타 정보"가 대상이고, 글 제목 자체가 이용자가 쓴 콘텐츠임.
+  - 목록 1페이지·메타데이터 한정: 규모를 줄일 뿐 금지 대상에서 빠지지 않음.
+  - 일반 사용자 비노출: 공개·재배포 위험(저작권·부정경쟁)은 줄이나 수집 행위 자체의 약관 위반은 그대로임.
+- **실제 분쟁 가능성**: 관리자 1인이 게임당 하루 1회 이하로 받는 규모라 낮음. 다만 약관 위반 여부는 규모와 무관하고, 차단·서비스 IP 차단이 생기면 앱 운영자가 감당함.
+
+### 6.2 ② Edge Function 출구 IP 차단 위험과 실행 구조
+
+- **실측 여부**: 미검증. 확인하려면 사용자 Supabase 프로젝트에 시험용 함수를 배포해 1회 호출해야 하며, 경로 B 채택 시 그 Run의 첫 단계로 수행함.
+- **판단 근거**:
+  - Supabase Edge Function은 해외 클라우드 리전에서 실행되고 출구 IP가 고정되지 않음. 국내 커뮤니티는 해외·데이터센터 대역을 막거나 캡차를 띄우는 경우가 많아, 200이 아니거나 빈 목록이 오는 경우를 전제로 설계해야 함.
+  - 출구 IP가 바뀌므로 "차단 시 다른 IP로 재시도"는 차단 회피에 해당함. 하지 않음.
+- **실행 구조 판정**:
+  - 옵션 A(`pg_cron` 무인 실행): **채택 안 함.** 사람 확인 없이 정기 요청이 나가 위험·차단 가능성이 가장 큼.
+  - 옵션 B(관리자 버튼 + Edge Function 단발 호출): 경로 B 채택 시 1순위. 출구 IP 차단이 확인되면 우회하지 않고 옵션 C로 넘어감.
+  - 옵션 C(관리자 PC 스크립트): 폴백. **서비스 역할 키를 PC에 두지 않음.** 스크립트는 관리자 계정 세션 JWT로 관리자 전용 `SECURITY DEFINER` RPC(예: `admin_upsert_schedule_candidates`)만 호출함. RPC가 JWT `app_metadata.role = 'admin'`을 확인하고 입력 길이·형식을 다시 검사함.
+- **경로 A(권장)에서는 해당 없음**: 앱이 디시인사이드에 요청하지 않으므로 출구 IP 문제가 생기지 않음.
+
+### 6.3 ③ 정식·마이너·미니 갤러리 DOM 차이
+
+- **실측 여부**: 미검증(6.0 사유). 1차 실측은 마이너 갤러리 1곳(`endfield`)뿐이라, 정식·미니 갤러리가 같은 구조라는 근거가 문서에 없음.
+- **경로 B 채택 시 파서 방어 규칙(실측 전 고정)**:
+  1. 행 선택: `tr.ub-content` 중 `data-no`가 숫자 문자열인 행만 사용함. 광고·설문 행 제외.
+  2. 고정 공지 행: 목록 맨 위 고정 공지(`gall_num`이 숫자가 아닌 행)는 말머리 필터와 무관하게 매번 나올 수 있음. `UNIQUE`로 중복은 막히고, 재적재 시 상태를 되돌리지 않음(6.5).
+  3. 링크: 첫 `a[href]`가 설정한 갤러리 종류와 같은 접두어(`/board/view/`·`/mgallery/board/view/`·`/mini/board/view/`)로 시작할 때만 사용함. 절대 주소로 바꿀 때 호스트를 `https://gall.dcinside.com`으로 고정함.
+  4. 작성 시각: `td.gall_date[title]`이 `^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$`일 때만 KST(`+09:00`)로 저장하고, 아니면 `NULL`(후보는 만듦).
+  5. 제목: 태그 제거·엔티티 해제·공백 정리 후 300자에서 자름. 작성자 칸(`gall_writer`)은 읽지 않음.
+  6. 실패 판정: HTTP 200 외, 3xx, 파싱 행 0개는 "성공·0건"이 아니라 **오류**로 기록하고 관리자 화면에 표시함(구조 변경·차단을 조용히 놓치지 않기 위함).
+- **모바일 페이지(`m.dcinside.com`)**: DOM·경로 규칙이 달라 지원하지 않음. PC 주소만 허용함.
+- **구현 전 필수 실측**: 정식·마이너·미니 각 1곳 이상 목록 응답을 저장해 파서 테스트 고정 데이터로 쓰고, 위 규칙을 Vitest로 검증함.
+
+### 6.4 ④ SSRF 방어와 입력 정규화
+
+- **1차 정규식 검토**: `^https://gall\.dcinside\.com/(?:mgallery/|mini/)?board/lists/\?id=[a-z0-9_]+`는 호스트 직후 `/`를 요구하므로 `@`·다른 호스트로 바꾸는 시도는 막힘. 다만 끝 고정(`$`)이 없어 임의 쿼리·조각이 붙고, 저장 문자열을 그대로 요청에 쓰면 매개변수 조작 여지가 남음.
+- **확정 규칙: URL 문자열을 저장하지 않고 구조화된 값만 저장함.**
+  - `games.community_gallery_kind TEXT NULL CHECK (community_gallery_kind IN ('board','mgallery','mini'))`
+  - `games.community_gallery_id TEXT NULL CHECK (community_gallery_id ~ '^[a-z0-9_]{1,50}$')`
+  - `games.community_notice_head INTEGER NULL CHECK (community_notice_head BETWEEN 0 AND 9999)`
+  - `kind`·`id`는 함께 `NULL`이거나 함께 값이 있어야 함(CHECK). `head`는 `id`가 있을 때만 허용함.
+  - 주소는 코드가 고정 틀로 만듦: `https://gall.dcinside.com/{'' | 'mgallery/' | 'mini/'}board/lists/?id={id}[&search_head={head}]`. `page`·`sort_type` 등 다른 매개변수는 받지 않음.
+  - 관리자 입력 화면은 붙여 넣은 주소를 `URL` 파서로 읽어 호스트(`gall.dcinside.com` 정확히 일치, `https`만)·경로·`id`·`search_head`만 뽑아 위 세 값으로 바꾸고, 형식이 다르면 저장을 막음. 원래 문자열은 버림.
+- **경로 B 요청 시 추가 조건**: `redirect: 'manual'`(3xx는 오류, 따라가지 않음), 시간 제한 10초, 응답 1MiB 상한, `content-type`이 `text/html`일 때만 파싱, 게임 간 2초 이상 간격, 1회 호출당 게임 수 상한(예: 20).
+- **경로 A(권장)에서**: 앱은 요청하지 않고 `<a target="_blank" rel="noopener noreferrer">` 링크만 만듦. 같은 구조화 값을 쓰므로 `javascript:` 등 임의 주소가 들어갈 수 없음.
+- **후보 원문 링크(`schedule_candidates.source_url`)**: 붙여 넣은 글 주소도 `https://gall.dcinside.com/(board|mgallery/board|mini/board)/view/?id=..&no=<숫자>` 형식만 받고, `id`·`no`만 남겨 다시 만듦. `external_id`는 `{gallery_id}:{no}`로 정규화해 중복을 막음. Steam 후보는 Steam `gid` 규칙을 따로 둠.
+
+### 6.5 ⑤ 후보함 노이즈 제어 UX
+
+- **목록 화면(`/admin` `후보` 탭)**:
+  - 상태 탭 `새 후보(NEW)` | `등록됨(CONVERTED)` | `제외됨(DISMISSED)`, 기본 `NEW`. 관리자 탭 배지에 `NEW` 개수 표시.
+  - 게임 필터, 출처 필터(`STEAM`·`ESTIMATE`·`MANUAL_LINK`), 게시 시각 내림차순 정렬.
+  - 행마다 체크박스, `[선택 제외]`로 일괄 `DISMISSED`. `제외됨` 탭에서 `[되돌리기]`로 `NEW` 복원.
+  - 제목 키워드 강조: 일정 신호어(`업데이트`·`점검`·`픽업`·`버전`·`이벤트`·`방송`·`패치`) 강조, 잡음어(`웹툰`·`만화`·`굿즈`·`쿠폰`·`당첨`·`제N화`) 흐리게 표시. **자동 제외는 하지 않음**(잘못 제외하면 관리자가 못 봄).
+  - 게임별 `[공지 탭 열기]` 버튼(6.4 구조화 값으로 만든 주소, 새 탭).
+- **후보 추가(경로 A)**: `[링크로 후보 추가]` 모달에서 게임 선택, 글 주소 붙여넣기(6.4 검증), 제목 직접 입력(필수), 게시일 입력(선택). 앱은 주소를 열어 제목을 가져오지 않음.
+- **일정 등록 연결**: 후보 행 `[일정 등록]` → 기존 관리자 일정 모달을 게임·제목·시작일(게시일 KST 날짜, 없으면 빈 값) 프리필로 열고 원문을 새 탭으로 염. 일정 저장 성공 시 후보를 `CONVERTED`·`schedule_id` 연결로 바꿈. 저장 취소 시 후보 상태 유지.
+- **재수집 시 상태 보존**: 자동 출처(Steam 등)가 같은 `external_id`를 다시 받으면 `DISMISSED`·`CONVERTED`를 `NEW`로 되돌리지 않음. R86 §6 "수정 공지 반영"은 제목이 바뀐 경우에만 `NEW`로 되돌리는 것으로 한정함.
+
+### 6.6 R90 단계별 수용 기준 (확정안, 사용자 승인 필요)
+
+- **범위**: 경로 A(디시인사이드 자동 수집 없음) + Steam 공지 감지(R86 §10.1 사용자 판단: 림버스 컴퍼니만) + 버전 주기 추정. DB·RLS·Edge Function 변경이라 Opus 승격 조건 ①에 해당함. 🐳 로컬 검증에 Docker Desktop 필요.
+- **Step 1 (DB/RLS/RPC — GPT Codex / Claude Opus)**:
+  1. `public.schedule_candidates` 신설: §4.2 초안 기준, `source_type`은 `('STEAM','ESTIMATE','MANUAL_LINK')`(`'DCINSIDE'` 제외), `source_url` 형식 CHECK, `UNIQUE (game_id, source_type, external_id)`, `status` 기본 `'NEW'`, `updated_at` 추가.
+  2. RLS: 관리자만 `SELECT/INSERT/UPDATE/DELETE`. 판정식은 기존 관리자 정책과 동일하게 씀(JWT `app_metadata.role` 기준). `anon`·일반 `authenticated`는 0건.
+  3. `games`에 6.4 구조화 세 컬럼·CHECK와 버전 주기용 `version_cycle_days SMALLINT NULL CHECK (version_cycle_days BETWEEN 7 AND 120)` 추가.
+  4. 관리자 전용 RPC `convert_schedule_candidate`(후보→일정 연결)·`set_schedule_candidates_status`(일괄 제외·복원). 상태 전이는 `NEW↔DISMISSED`, `NEW→CONVERTED`만 허용함.
+  5. `sql/migrations/MIGRATION_R90_SCHEDULE_CANDIDATES.sql`·`sql/SCHEMA.sql`·`sql/README.md`·`sql/tests/TESTS.sql`(일반 사용자 차단·중복 차단·상태 전이)·`src/types/database.types.ts` 반영. 미적용 DB에서는 관리자 화면이 오류 안내로 대체됨.
+- **Step 2 (Edge Function — GPT Codex / Claude Opus)**: Steam `ISteamNews/GetNewsForApp`(`feedname = steam_community_announcements`만)로 후보 적재, 버전 주기 추정 후보 생성. `pg_cron` 하루 1회 + 관리자 `[지금 확인]` 버튼. 실패는 관리자 화면 표시. 6.4 요청 조건(시간 제한·크기 상한·리다이렉트 금지)을 Steam 호출에도 적용함.
+- **Step 3 (관리자 UI — Claude Sonnet / Gemini 4 Hydrogen)**: 6.5 전 항목, 게임 설정의 갤러리 주소 붙여넣기 입력(6.4 변환)·버전 주기 입력. 쓰기 핸들러 `isOffline()` 가드. Vitest: 주소 변환·검증(정상 3종, 다른 호스트, `@` 포함, `javascript:`, 추가 매개변수), 일괄 제외·되돌리기, 일정 등록 성공·취소 시 후보 상태.
+- **Step 4 (통합 리뷰 — Claude Opus)**: Base↔Target `review.json`, RLS·RPC 권한, 6.4 검증 우회 가능성.
+- **경로 B 채택 시**: R90과 분리한 후속 Run으로 등록함. 첫 단계는 정식·마이너·미니 실측과 Edge Function 출구 IP 1회 시험이며, 200·정상 파싱이 아니면 중단함. 6.2~6.4 조건 전부와 `User-Agent` 위장 금지(앱 식별 문자열 사용)를 수용 기준에 넣음. 위장 없이 차단되면 그대로 포기함.
+
+### 6.7 사용자 결정 필요
+
+1. 디시인사이드 처리: **경로 A(바로가기 + 링크 붙여넣기, 권장)** / 경로 B(위험 수용 후 별도 Run)
+2. 6.6 R90 범위(Steam 림버스 + 버전 주기 추정 + 링크 붙여넣기 후보함) 확정 여부

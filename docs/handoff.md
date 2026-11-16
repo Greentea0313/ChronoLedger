@@ -32,7 +32,43 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r90-dcinside-crawling-opus-review` *(`R90` 선행 · 디시인사이드 게임별 갤러리 공지/공식 탭 기반 일정 후보 반자동 수집 1차 검토 완료 및 **Claude Opus 2차 검증**)*
+- **활성 Run ID**: `r91-r94-weekly-timeline-and-template-delete` *(`R91` 주차별 리스트 종료 일정 제외 + `R94` 주차별 리스트 타임라인 개편 + `R92` 관리자 캐릭터 템플릿 삭제)*
+- **Orchestrator**: Claude Opus *(Gemini 4 Argon 1순위 대체, 2026-11-16 사용자 지시로 등록)*
+- **Worktree 경로**: `.worktrees/r91-r94-weekly-timeline-and-template-delete` (브랜치: `collab/r91-r94-weekly-timeline-and-template-delete`, manifest `artifacts/r91-r94-weekly-timeline-and-template-delete/run.json`)
+- **Base SHA**: 워크트리 생성 후 기록 예정
+- **DB 변경**: 없음. 🐳 Docker 불필요.
+- **범위 제외**: `R93`(수익 내역, DB/RPC)은 별도 Run 예약 유지. `R90`은 잠정 보류.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R91 + R94 주차별 타임라인)` | 아래 Step 1 수용 기준. 허용 파일: `src/components/calendar/weekly-schedule-list.tsx`, `src/components/calendar/weekly-schedule-list.test.tsx`, 필요 시 `src/components/calendar/` 내 신규 하위 컴포넌트·테스트, `src/app/dashboard/page.tsx`(props 연결만) | 워크트리 커밋 후 `✅ DONE (SHA: …)` 기록 |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R92 템플릿 삭제)` | 아래 Step 2 수용 기준. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, 필요 시 `src/components/` 내 관리자 템플릿 관련 컴포넌트·테스트 | 워크트리 커밋 후 `✅ DONE (SHA: …)` 기록 |
+| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Reviewer (Run 통합 리뷰)` | Base ↔ Step 2 Target 정적 리뷰, `artifacts/r91-r94-weekly-timeline-and-template-delete/iteration-01/review.json`·`test.json` 작성·검증 | 리뷰 결과 기록 |
+| **4** | **`⏳ WAITING`** | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체 / GitHub Copilot 2순위 대체)* | `Orchestrator (마감)` | 지적 반영 여부 판단, `main` 병합(사용자 승인 후), `docs/` 마감, 사용자 실브라우저 확인 안내 | 병합 SHA 기록 |
+
+#### 📌 `r91-r94-weekly-timeline-and-template-delete` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Sonnet` — R91 + R94)**:
+   - **R91**: `WeeklyScheduleList`에서 `end_date < todayDate`(KST 기준)인 일정은 주차 포함 여부와 무관하게 표시하지 않음. 오늘 끝나는 일정(`end_date === todayDate`)은 표시함.
+   - **R94 필터 바**: 상단에 `전체` | `픽업` | `버전` | `콘텐츠` | `방송` 칩 배치(`schedule_type` `PICKUP`·`VERSION`·`CONTENTS`·`BROADCAST` 대응). `픽업` 선택 시 하위 칩 `전체`·`신규`(`is_rerun = false`)·`복각`(`is_rerun = true`)·`진행 중`(`start_date <= today <= end_date`) 표시. 기본값 `전체`.
+   - **R94 주차 카드**: 헤더에 `N월 M주차` + 이번 주면 `이번 주` 배지, 우측 `MM/DD~MM/DD`와 주간 지출 소계. 기존 게임별 아코디언·버전 하위 중첩은 제거하고 날짜순 타임라인 행으로 통합함.
+   - **R94 타임라인 행**: 좌측 날짜 열 `MM/DD(요일)`(오늘이면 `TODAY` 배지, 같은 날짜의 연속 행은 첫 행에만 표시). 이전 주부터 이어지는 일정은 주차 시작일 위치에 `진행 중` 표시. 중앙에 정사각 아바타(픽업: 첫 픽업 캐릭터 아바타 + 우하단 게임 아이콘 배지, 그 외: 게임 아이콘), 굵은 제목 + `ScheduleTypeBadge`, 아래 줄에 게임명 + `MM.DD ~ MM.DD` + `D-n`. 우측 끝 `FavoriteScheduleActions`.
+   - 주차 카드 하단 `지출` 접기/펼치기 섹션은 기존 동작 유지. 아이콘이 없을 때 기존 대체 표시 유지. 색상은 시맨틱 토큰만 사용.
+   - Vitest: 종료 일정 제외(어제 종료 제외·오늘 종료 표시), 필터·픽업 하위 칩, 날짜 열 첫 행 표시·`TODAY`, 이어지는 일정 `진행 중`, 즐겨찾기 버튼·지출 섹션 유지. tsc·lint·Vitest 통과 후 워크트리에 커밋함.
+2. **Step 2 (`Claude Sonnet` — R92)**:
+   - `/admin` `캐릭터 관리` 탭에서 템플릿이 있는 게임에 `[템플릿 삭제]` 버튼과 확인 다이얼로그 추가.
+   - 확인 시 `classification_schema`를 `{"rarities": [], "axes": []}`와 기본 슬롯 4·돌파 6으로 초기화함. 정식 캐릭터(`is_pickup_only = false`)가 있으면 다이얼로그에 "정식 캐릭터 N명(사용자 보유 체크·프리셋 포함)도 함께 삭제되며 픽업 전용 캐릭터는 유지됨"을 경고하고, 확인 시 정식 캐릭터를 먼저 삭제한 뒤 템플릿을 초기화함. 완료 후 `isCharacterTemplateActive === false` 상태가 됨.
+   - 중간 실패 시(캐릭터 삭제 성공·템플릿 초기화 실패 등) 오류를 표시하고 다시 시도할 수 있어야 함. 쓰기 핸들러는 `isOffline()` 가드.
+   - 클라이언트 여러 호출로 원자성을 보장할 수 없거나 RLS·cascade 동작이 기대와 다르면 임의로 SQL/RPC를 만들지 말고 `⚠️ HANDOVER_NEEDED`로 Claude Opus에 인계함(Opus 승격 조건 ①).
+   - Vitest: 버튼 노출 조건, 정식 캐릭터 0명/N명 다이얼로그 문구, 삭제 순서와 초기화 값, 실패 시 오류 표시, 픽업 전용 유지. tsc·lint·Vitest 통과 후 워크트리에 커밋함.
+3. **Step 3 (`Claude Opus` — 통합 리뷰)**: Base ↔ Target 정적 리뷰, 산출물 스키마 검증, tsc·lint·Vitest·build 재확인.
+4. **Step 4 (`Gemini 4 Argon` — 마감)**: 병합·문서 마감, 데스크톱·모바일 주차별 리스트와 템플릿 삭제 실브라우저 확인 안내.
+
+### ⏸️ 보류 Run 기록: `r90-dcinside-crawling-opus-review` (2026-11-16 사용자 지시로 잠정 보류)
+
+- **보류 사유**: 사용자 지시로 R90 전체를 잠정 보류함. **사용자가 직접 호출하기 전까지 활성 Run으로 되돌리거나 재개를 추천하지 않음.**
+- **보류 시점 상태**: Step 1·2 검토 완료. §6.7 결정(경로 A/B, R90 범위)은 미결정 상태로 둠.
+- **Run ID**: `r90-dcinside-crawling-opus-review` *(디시인사이드 게임별 갤러리 공지/공식 탭 기반 일정 후보 반자동 수집 검토)*
 - **Orchestrator**: Gemini 4 Argon *(2026-11-16 등록)*
 - **Worktree 경로**: `main` (문서 전용 2차 검증 단계이므로 격리 워크트리·`run.json` 없이 `main`에서 수행함. 코드·SQL 변경 없음)
 - **DB 변경**: 없음. 🐳 Docker 불필요.
@@ -41,7 +77,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (2026-11-16)`** | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체)* | `Orchestrator & Architect (1차 검토)` | 디시인사이드 갤러리 공식 탭(`gall.dcinside.com/mgallery/board/lists/...`) SSR 응답·DOM 파싱 실측, `robots.txt` 및 이용약관(제11조·제16조) 대조, 위험 완화·아키텍처 초안 작성 | `✅` [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) 생성 및 Opus 2차 검증 항목 5건(§5) 명시 완료 |
-| **2** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Architect (2차 검증)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `docs/dcinside-schedule-crawling-review.md`, `docs/schedule-crawling-research.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md` | `▶ 1차 검토 문서 작성 완료. Claude Opus 2차 검증 대기` |
+| **2** | **`✅ DONE (2026-11-16)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Architect (2차 검증)` | 아래 **Step 2 수용 기준** 수행. 허용 파일: `docs/dcinside-schedule-crawling-review.md`, `docs/schedule-crawling-research.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md`, `docs/changelog.md` | `✅` 검토서 §6 추가. 디시인사이드 자동 수집 제외 권장(약관 제16조① 금지, R86 네이버·HoYoLAB 기준과 동일), 대안 "갤러리 바로가기 + 링크 붙여넣기"(경로 A), URL 대신 구조화 값 저장(SSRF 차단), 후보함 UX, R90 Step 1~4 수용 기준 확정안 작성. ②·③ 실측은 미검증. **R90 잠정 보류(사용자 지시)** |
 
 #### 📌 `r90-dcinside-crawling-opus-review` 단계별 수용 기준 (Acceptance Criteria)
 
@@ -57,11 +93,20 @@
      - ④ `games.crawl_source_url` SSRF 방어 화이트리스트 정규식 및 파라미터 정규화 규칙 확정
      - ⑤ 후보함(`schedule_candidates`) 노이즈 제어 UX(웹툰·단순 공지 일괄 제외 등) 및 `R90` 단계별 구현 수용 기준 확정
 
+#### 📝 Step 2 완료 기록 (Claude Opus, 2026-11-16)
+
+- **결과**: [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) §6 추가함. 문서 전용, 코드·DB 변경 없음.
+- **판정**: 디시인사이드 자동 수집은 R90 범위에서 제외 권장함. 약관 제16조①이 목적·규모 예외 없이 동의 없는 크롤링을 금지해 R86의 네이버·HoYoLAB 제외 기준과 같은 등급임. 1차 실측의 브라우저 `User-Agent` 위장도 위험 요인임.
+- **권장 대안(경로 A)**: 게임별 갤러리 공지 탭 바로가기 + 관리자가 글 링크를 후보함에 붙여 넣는 방식. 앱은 디시인사이드에 요청하지 않음.
+- **보안 확정안**: URL 문자열 대신 `community_gallery_kind`·`community_gallery_id`·`community_notice_head` 구조화 값 저장, 주소는 코드가 고정 틀로 생성.
+- **미검증**: ② Edge Function 출구 IP 차단, ③ 정식·미니 갤러리 DOM. 디시인사이드에 직접 요청하지 않아 실측 안 함. 경로 B 채택 시 후속 Run 첫 단계로 실측함.
+- **다음**: R90 잠정 보류(2026-11-16 사용자 지시). 사용자가 직접 호출할 때만 재개함.
+
 ---
 
 ### 🗓️ 신규 요구사항 검토 및 다음 Run 예약 (`R91` ~ `R94`, 2026-11-16 사용자 결정 확정)
 
-- **`R91` & `R94` 통합 Run 예약 (`r91-r94-weekly-timeline-and-template-delete`, DB 변경 없음 — 담당: `Claude Sonnet` / `Gemini 4 Hydrogen`, 리뷰: `Gemini 4 Argon` / `Claude Opus`)**:
+- **`R91` & `R94` 통합 Run (2026-11-16 활성 Run으로 등록됨, 위 할당표 참고) (`r91-r94-weekly-timeline-and-template-delete`, DB 변경 없음 — 담당: `Claude Sonnet` / `Gemini 4 Hydrogen`, 리뷰: `Gemini 4 Argon` / `Claude Opus`)**:
   1. **`R91` (주차별 리스트 종료 일정 제외)**:
      - `WeeklyScheduleList`(`src/components/calendar/weekly-schedule-list.tsx`)에서 `s.end_date < todayDate`인 일정은 주차 내 포함 여부와 무관하게 표시 대상에서 제외함.
   2. **`R94` (주차별 리스트 첨부 이미지 스타일 타임라인 전면 개편 — 사용자 결정 완료)**:

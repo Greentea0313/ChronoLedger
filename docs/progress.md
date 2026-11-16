@@ -1,4 +1,18 @@
 # 프로젝트 진행 현황
+## R90 잠정 보류 및 `R91` 통합 Run 등록 (2026-11-16)
+
+- **수행 주체**: Claude Opus (Gemini 4 Argon 1순위 대체, 사용자 지시)임.
+- **R90**: 사용자 지시로 잠정 보류함. 사용자가 직접 호출할 때만 재개함.
+- **활성 Run**: `r91-r94-weekly-timeline-and-template-delete`(R91·R94·R92, DB 변경 없음) 등록함. 워크트리 `.worktrees/r91-r94-weekly-timeline-and-template-delete`, Step 1(`Claude Sonnet`, R91+R94) `▶ READY`임.
+- **다음 단계**: Claude Sonnet으로 전환 후 `"인수인계 문서를 확인해"` 입력.
+
+## 디시인사이드 수집 2차 검증(`R90` Step 2) 완료 (2026-11-16)
+
+- **수행 주체**: Claude Opus임. 문서 전용, 코드·DB 변경 없음.
+- **결과**: `docs/dcinside-schedule-crawling-review.md` §6 추가함. 자동 수집은 약관 제16조①로 R86 네이버·HoYoLAB과 같은 등급이라 제외 권장, 대안으로 갤러리 바로가기 + 링크 붙여넣기(경로 A) 제시함. URL 대신 구조화 값 저장, 후보함 UX, R90 Step 1~4 수용 기준 확정안 작성함.
+- **미검증**: Edge Function 출구 IP 차단, 정식·미니 갤러리 DOM(직접 요청 안 함).
+- **다음 단계**: R90은 사용자 지시로 잠정 보류함(사용자가 직접 호출할 때만 재개). 활성 Run은 R91 통합 Run으로 넘김.
+
 ## 6대 AI 협업 모델 체제 확장 (`Gemini 4 Hydrogen` 추가, 2026-11-16)
 
 - **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`)임.
