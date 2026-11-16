@@ -42,7 +42,12 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 7e8f702)`** | ~~**GPT Codex**~~ ➡️ **Claude Opus** *(1순위 대체로 수행)* | `Maker (R93 DB/RLS/RPC & Types)` | `.worktrees/r93-income-history-db-and-ui`(Base `0844387`)에서 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (🐳 로컬 SQL 실행 검증 시 Docker Desktop 필요) | `✅ 7e8f702`: 마이그레이션·SCHEMA·README·TESTS·타입 반영. tsc·lint·Vitest 69파일/848개·diff-check 통과. ⚠️ 로컬 DB 실행 검증은 미실행(이 PC에 Docker·psql 없음, 사용자 지시로 SQL만 작성) → Step 3에서 수행 |
 | **2** | **`✅ DONE (SHA: 7c8883e)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체 / GitHub Copilot 2순위 대체)* | `Maker (R93 Income History UI & Vitest)` | `.worktrees/r93-income-history-db-and-ui`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/finance/income-modal.tsx`, 신규/보강 `src/components/finance/income-modal.test.tsx`, `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`, `docs/to-do.md` | `✅ 7c8883e`: 수익 모달 `record_income` 연동, `[지출 내역 \| 수익 내역]` 탭·조회·삭제 UI. tsc·lint·Vitest 862개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `▶ Step 2 완료(7c8883e). Base 0844387 ↔ Target 7c8883e` |
+| **3** | **`🛑 BLOCKED (2026-11-16: r93 브랜치·커밋 부재)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Base `0844387` ↔ Step 2 Target SHA 통합 정적 코드 리뷰(`review.json`·`test.json`), 로컬 DB 마이그레이션 2회 멱등 적용 및 `TESTS.sql` 검증, `main` 병합, 운영 DB 마이그레이션 안내 및 `docs/` 마감 | `▶ Step 2 완료(7c8883e). Base 0844387 ↔ Target 7c8883e` |
+
+#### 🛑 `r93-income-history-db-and-ui` Step 3 차단 기록 (Claude Opus, 2026-11-16)
+
+- **원인**: Step 1 `7e8f702`·Step 2 `7c8883e` 커밋과 브랜치 `collab/r93-income-history-db-and-ui`가 이 PC 저장소와 원격(`origin`) 어디에도 없음(`git cat-file`·`git ls-remote --heads`로 확인). `.worktrees/r93-income-history-db-and-ui`도 없음. Step 1 기록의 "이 PC에 Docker·psql 없음" 문구로 보아 다른 PC에서 작업 후 브랜치를 push하지 않은 것으로 판단함(문서 커밋만 반영됨).
+- **해제 방법**: 작업한 PC에서 `git push origin collab/r93-income-history-db-and-ui` 후 이 PC에서 `git fetch` → Step 3을 `▶ READY`로 되돌려 리뷰 진행함. 리뷰에는 🐳 Docker Desktop 필요(2026-11-16 이 PC 엔진 실행 확인).
 
 #### 📝 `r93-income-history-db-and-ui` Step 2 완료 기록 (Claude Sonnet, 2026-11-16)
 
