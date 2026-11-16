@@ -1,7 +1,7 @@
 # 변경 이력
 ## 2026-11-16 (Claude 3단계 승격 체계)
 
-- Claude 운용 기준을 Sonnet / Opus 2단계에서 Sonnet / Opus / Fable 5.2 3단계로 바꾸고, Fable 승격 4대 조건과 쿼터 대체 규칙을 규칙·스킬·가이드 문서에 추가함.
+- Claude 운용 기준을 Sonnet / Opus 2단계에서 Sonnet / Opus / Fable 3단계로 바꾸고, Fable 승격 4대 조건과 쿼터 대체 규칙을 규칙·스킬·가이드 문서에 추가함. 사용자 확정 후 버전 표기(5.2)와 모델 ID를 빼고 `Fable`로만 표기함.
 
 ## 2026-11-16 (6대 AI 협업 모델 체제 확장 — `Gemini 4 Hydrogen` 추가)
 

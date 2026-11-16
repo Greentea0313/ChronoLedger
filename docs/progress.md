@@ -1,12 +1,13 @@
 # 프로젝트 진행 현황
-## Claude 3단계 승격 체계 도입: Fable 5.2 (2026-11-16)
+## Claude 3단계 승격 체계 도입: Fable (2026-11-16)
 
 - **수행 주체**: Claude Opus (사용자 요청)임. 규칙 문서 전용, 코드 변경 없음.
-- **내용**: Claude 계열 최상위 승격 모델로 `Claude Fable 5.2`(`claude-fable-5-2`)를 추가해 Sonnet → Opus → Fable 3단계로 바꿈.
+- **내용**: Claude 계열 최상위 승격 모델로 `Claude Fable`을 추가해 Sonnet → Opus → Fable 3단계로 바꿈.
 - **Fable 승격 조건(Opus 조건의 엄격한 부분집합)**: Ⓕ① 금전 경로 `SECURITY DEFINER` RPC·트리거 신규/시그니처 변경·RLS 재설계·금전 행 재작성 운영 마이그레이션, Ⓕ② Opus 2회 반복 후 blocker/high 미해결 또는 모델 간 검증 충돌, Ⓕ③ 되돌리기 어려운 전역 구조 결정, Ⓕ④ Ⓕ① 해당 Run의 병합·운영 적용 직전 최종 리뷰.
 - **대체 규칙**: Fable 불가·쿼터 소진 시 Opus가 수행하고 `Fable 미수행` 표시, 재검증 대기 여부는 사용자가 결정함.
 - **반영 파일**: `CLAUDE.md`, `AGENTS.md`, `.agents/rules/collaboration.md`·`handoff.md`, `.agents/skills/handoff`·`chronoledger-orchestrator` SKILL, `.github/copilot-instructions.md`, `docs/collaboration-guide.md`, `docs/architecture.md`.
-- **확인 필요**: 사용자 구독 플랜에서 Fable 5.2 사용 가능 여부와 쿼터.
+- **확정(2026-11-16)**: 사용자가 승격 조건을 그대로 확정하고, 버전 표기 없이 `Fable`로만 부르도록 지시함(모델 ID 표기도 제거).
+- **확인 필요**: 사용자 구독 플랜에서 Fable 사용 가능 여부와 쿼터.
 
 ## 6대 AI 협업 모델 체제 확장 (`Gemini 4 Hydrogen` 추가, 2026-11-16)
 

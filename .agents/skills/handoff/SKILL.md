@@ -49,7 +49,7 @@ When the Orchestrator breaks down tasks into the Dispatch Queue, use this role d
 | **GitHub Copilot** | `Maker (General) & Fallback Hub` | Standard features, routing, and UI components (`src/app/`, `src/components/`); universal backup when other models exhaust token quota | **Gemini 4 Hydrogen** / **Gemini 3.8 Flash** | **GPT Codex** |
 | **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind styling, badge/modal/drawer markup, high-speed codebase search subagent under Argon, `docs/` sync assistance | **Gemini 4 Hydrogen** | **GitHub Copilot** |
 
-> Claude tasks must follow the **Sonnet / Opus / Fable 3-Tier Operating Criteria** in [`.agents/rules/collaboration.md`](../../rules/collaboration.md) (default to Sonnet, promote to Opus when one of the 4 Opus conditions applies, and to Fable 5.2 only when one of the 4 Fable conditions applies).
+> Claude tasks must follow the **Sonnet / Opus / Fable 3-Tier Operating Criteria** in [`.agents/rules/collaboration.md`](../../rules/collaboration.md) (default to Sonnet, promote to Opus when one of the 4 Opus conditions applies, and to Fable only when one of the 4 Fable conditions applies).
 
 ## 3. Limited Context or Token Budget (Emergency Handover)
 
