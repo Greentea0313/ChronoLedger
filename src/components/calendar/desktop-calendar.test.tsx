@@ -59,6 +59,7 @@ describe("DesktopCalendar", () => {
 
     expect(screen.getByText("BROADCAST")).toBeTruthy()
     expect(screen.getByTitle("특별방송 일정 있음")).toBeTruthy()
+    expect(screen.getByTestId("mobile-dot-broadcast").className).toContain("bg-[#FF4A42]")
   })
 
   it("renders multiple banners strictly in order [VERSION], [PICKUP], [CONTENTS]", () => {

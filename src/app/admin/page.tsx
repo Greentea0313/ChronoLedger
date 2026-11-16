@@ -63,6 +63,7 @@ import {
 const SCHEDULES_PER_PAGE = 10
 const GAMES_PER_PAGE = 10
 const PAST_SCHEDULES_PER_PAGE = 8
+const CHARACTER_PAGE_SIZE = 20
 
 function getPaginationRange(current: number, total: number): (number | "...")[] {
   if (total <= 7) {
@@ -162,6 +163,7 @@ export default function AdminPage() {
   const [characterGameFilter, setCharacterGameFilter] = useState("")
   const [characterSearchQuery, setCharacterSearchQuery] = useState("")
   const [characterRarityFilter, setCharacterRarityFilter] = useState("")
+  const [currentCharacterPage, setCurrentCharacterPage] = useState(1)
   const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false)
   const [editingCharacter, setEditingCharacter] = useState<CharacterItem | null>(null)
   const [characterFormGameId, setCharacterFormGameId] = useState("")
@@ -1225,6 +1227,12 @@ export default function AdminPage() {
   const selectedCharacterLabel = getCharacterLabel(selectedSchema)
   // R83: the admin table uses the same default order as the user screens (first classification axis, then name).
   const tableCharacters = sortCharactersByClassification(filteredCharacters, selectedSchema)
+  const totalCharacters = tableCharacters.length
+  const totalCharacterPages = Math.max(1, Math.ceil(totalCharacters / CHARACTER_PAGE_SIZE))
+  const safeCharacterPage = Math.min(currentCharacterPage, totalCharacterPages)
+  const characterStartIndex = (safeCharacterPage - 1) * CHARACTER_PAGE_SIZE
+  const characterEndIndex = Math.min(characterStartIndex + CHARACTER_PAGE_SIZE, totalCharacters)
+  const paginatedCharacters = tableCharacters.slice(characterStartIndex, characterEndIndex)
 
   // Pickup avatar source of the schedule form: characters of the chosen game (mode A) or direct image (mode B).
   const pickupGameCharacters = characters.filter((character) => character.game_id === gameId)
@@ -1834,6 +1842,7 @@ export default function AdminPage() {
               onChange={(event) => {
                 setCharacterGameFilter(event.target.value)
                 setCharacterRarityFilter("")
+                setCurrentCharacterPage(1)
               }}
               aria-label="캐릭터 게임 필터"
             >
@@ -1842,7 +1851,10 @@ export default function AdminPage() {
             <select
               className="h-9 rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content"
               value={activeRarityFilter}
-              onChange={(event) => setCharacterRarityFilter(event.target.value)}
+              onChange={(event) => {
+                setCharacterRarityFilter(event.target.value)
+                setCurrentCharacterPage(1)
+              }}
               aria-label="캐릭터 레어도 필터"
             >
               <option value="">모든 레어도</option>
@@ -1853,7 +1865,10 @@ export default function AdminPage() {
             <select
               className="h-9 rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content"
               value={characterKindFilter}
-              onChange={(event) => setCharacterKindFilter(event.target.value as "" | "roster" | "pickup")}
+              onChange={(event) => {
+                setCharacterKindFilter(event.target.value as "" | "roster" | "pickup")
+                setCurrentCharacterPage(1)
+              }}
               aria-label="캐릭터 구분 필터"
             >
               <option value="">전체 구분</option>
@@ -1862,29 +1877,19 @@ export default function AdminPage() {
             </select>
             <Input
               value={characterSearchQuery}
-              onChange={(event) => setCharacterSearchQuery(event.target.value)}
+              onChange={(event) => {
+                setCharacterSearchQuery(event.target.value)
+                setCurrentCharacterPage(1)
+              }}
               placeholder="검색"
               aria-label="캐릭터 이름 검색"
               className="h-9 bg-surface-2"
             />
             <div className="flex gap-2 sm:ml-auto">
               {selectedCharacterGame && isSelectedTemplateActive && (
-                <>
-                  <Button variant="outline" onClick={() => handleOpenTemplate(selectedCharacterGame)}>템플릿 설정 수정</Button>
-                  <Button
-                    variant="outline"
-                    className="border-danger/40 text-danger hover:bg-danger/10"
-                    onClick={() => {
-                      setTemplateDeleteError(null)
-                      setDeletingTemplateGame(selectedCharacterGame)
-                    }}
-                  >
-                    템플릿 삭제
-                  </Button>
-                  <Button onClick={() => handleOpenAddCharacter(selectedCharacterGame.id)}>
-                    <Plus className="mr-1 h-4 w-4" />{selectedCharacterLabel} 추가
-                  </Button>
-                </>
+                <Button onClick={() => handleOpenAddCharacter(selectedCharacterGame.id)}>
+                  <Plus className="mr-1 h-4 w-4" />{selectedCharacterLabel} 추가
+                </Button>
               )}
               {/* R66: a game without a template can still get pickup-only characters, in the same spot as the regular add button. */}
               {selectedCharacterGame && !isSelectedTemplateActive && (
@@ -1936,7 +1941,27 @@ export default function AdminPage() {
             </>
           ) : (
             <Card>
-              <CardHeader><CardTitle className="text-base">{`${selectedCharacterLabel} 카탈로그`}</CardTitle></CardHeader>
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between space-y-0">
+                <CardTitle className="text-base">{`${selectedCharacterLabel} 카탈로그`}</CardTitle>
+                {selectedCharacterGame && isSelectedTemplateActive && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleOpenTemplate(selectedCharacterGame)}>
+                      템플릿 설정 수정
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-danger/40 text-danger hover:bg-danger/10"
+                      onClick={() => {
+                        setTemplateDeleteError(null)
+                        setDeletingTemplateGame(selectedCharacterGame)
+                      }}
+                    >
+                      템플릿 삭제
+                    </Button>
+                  </div>
+                )}
+              </CardHeader>
               <CardContent className="space-y-2">
                 {(selectedSchema?.rarities.length ?? 0) === 0 && (
                   <p role="status" className="rounded border border-warning/30 bg-warning/15 p-3 text-xs text-warning">
@@ -1958,7 +1983,7 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {tableCharacters.map((character) => (
+                        {paginatedCharacters.map((character) => (
                           <tr key={character.id} className="border-b border-line/60">
                             <td className="py-2 pr-2">
                               <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-line">
@@ -1992,6 +2017,71 @@ export default function AdminPage() {
                     </table>
                   </div>
                 ) : null}
+
+                {totalCharacters > 0 && selectedSchema && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-line mt-2">
+                    <p className="text-xs text-content-secondary">
+                      전체 {totalCharacters}개 {selectedCharacterLabel} 중{" "}
+                      <span className="font-semibold text-content">
+                        {characterStartIndex + 1}-{characterEndIndex}개
+                      </span>{" "}
+                      표시 ({safeCharacterPage} / {totalCharacterPages} 페이지)
+                    </p>
+                    {totalCharacterPages > 1 && (
+                      <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 max-w-full">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCurrentCharacterPage((p) => Math.max(1, p - 1))}
+                          disabled={safeCharacterPage === 1}
+                          aria-label="이전 페이지"
+                          className="h-7 sm:h-8 px-1.5 sm:px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span className="ml-1">이전</span>
+                        </Button>
+
+                        <div className="flex flex-wrap items-center justify-center gap-1">
+                          {getPaginationRange(safeCharacterPage, totalCharacterPages).map((p, idx) =>
+                            p === "..." ? (
+                              <span key={`character-ellipsis-${idx}`} className="px-1.5 py-1 text-content-muted select-none">
+                                ...
+                              </span>
+                            ) : (
+                              <Button
+                                key={`character-page-${p}`}
+                                size="sm"
+                                variant={p === safeCharacterPage ? "default" : "outline"}
+                                onClick={() => setCurrentCharacterPage(p as number)}
+                                aria-label={`${p} 페이지로 이동`}
+                                aria-current={p === safeCharacterPage ? "page" : undefined}
+                                className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs ${
+                                  p === safeCharacterPage
+                                    ? "bg-primary text-primary-foreground font-semibold hover:bg-primary-hover"
+                                    : "bg-surface border-line-control text-content hover:bg-surface-2"
+                                }`}
+                              >
+                                {p}
+                              </Button>
+                            ),
+                          )}
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCurrentCharacterPage((p) => Math.min(totalCharacterPages, p + 1))}
+                          disabled={safeCharacterPage === totalCharacterPages}
+                          aria-label="다음 페이지"
+                          className="h-7 sm:h-8 px-1.5 sm:px-2 text-xs border-line-control hover:bg-surface-2 disabled:opacity-40"
+                        >
+                          <span className="mr-1">다음</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

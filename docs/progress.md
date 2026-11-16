@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## 캘린더 배지 색상·주간 필터·관리자 캐릭터 페이지네이션 UI 개선 완료 (2026-11-16)
+
+- **수행 주체**: Gemini 3.8 Flash 서브에이전트(`flash-ui-worker`, Gemini 4 Hydrogen 위임)임.
+- **결과**: `BROADCAST` 색상 `#FF4A42` 통일, 캘린더 타일 기준 `VERSION`·`PICKUP` 색상 일치, 주간 목록 기본 `픽업(신규)` 및 `NEW`/`RERUN` `start_date` 기준 필터링, `/admin` 캐릭터 20개 페이지네이션 및 템플릿 버튼 위치 이동을 구현함.
+- **검증**: `tsc --noEmit`, `npm run lint`, 수정 대상 Vitest 4개 파일(140개 테스트) 통과 및 사용자 실브라우저 확인 완료 후 `main`에 커밋함.
+
 ## `r91-r94` iteration-02 반영·`main` 병합 및 마감 완료 (2026-11-16)
 
 - **수행 주체**: Gemini 4 Hydrogen (Gemini 4 Argon 1순위 대체)임.

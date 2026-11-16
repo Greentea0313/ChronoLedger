@@ -9,7 +9,7 @@ export function ScheduleBanner({ type }: ScheduleBannerProps) {
       : type === "PICKUP"
         ? "border-primary/50 bg-primary/15 text-primary"
         : type === "BROADCAST"
-          ? "border-info/50 bg-info/15 text-info"
+          ? "border-[#FF4A42]/50 bg-[#FF4A42]/15 text-[#FF4A42]"
           : "border-purple-500/40 bg-purple-500/15 text-purple-700 dark:text-purple-300"
 
   return (

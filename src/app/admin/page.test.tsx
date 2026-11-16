@@ -1354,6 +1354,66 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       expect(Array.from(table.querySelectorAll("th")).map((th) => th.textContent)).toEqual(["아이콘", "캐릭터 이름", "등급", "속성", "관리"])
     })
 
+    it("템플릿 설정 수정과 템플릿 삭제 버튼은 카탈로그 카드 헤더 내부에 배치된다", async () => {
+      await openCharacterTabWith([labeledGame], labeledCharacters)
+      selectGame("game-1")
+
+      const catalogTitle = await screen.findByText("공명자 카탈로그")
+      const cardHeader = catalogTitle.closest("div")
+      expect(cardHeader).toBeTruthy()
+      expect(within(cardHeader!).getByRole("button", { name: "템플릿 설정 수정" })).toBeTruthy()
+      expect(within(cardHeader!).getByRole("button", { name: "템플릿 삭제" })).toBeTruthy()
+    })
+
+    it("캐릭터 목록을 20개 단위로 페이지네이션하고 이전/다음 페이지 이동 및 범위 안내를 제공한다", async () => {
+      const manyCharacters = Array.from({ length: 25 }, (_, idx) => ({
+        id: `char-${idx + 1}`,
+        game_id: "game-1",
+        name: `캐릭터_${String(idx + 1).padStart(2, "0")}`,
+        rarity: "5성",
+        attributes: { element: "기류", weapon: "직검" },
+        default_icon_url: "data:image/webp;base64,icon",
+        is_pickup_only: false,
+      }))
+
+      await openCharacterTabWith([labeledGame], manyCharacters)
+      selectGame("game-1")
+
+      const table = await screen.findByTestId("character-table")
+      let rows = table.querySelectorAll("tbody tr")
+      expect(rows).toHaveLength(20)
+      expect(screen.getByText("캐릭터_01")).toBeTruthy()
+      expect(screen.getByText("캐릭터_20")).toBeTruthy()
+      expect(screen.queryByText("캐릭터_21")).toBeNull()
+
+      expect(screen.getByText(/전체 25개 공명자 중/)).toBeTruthy()
+      expect(screen.getByText("1-20개")).toBeTruthy()
+      expect(screen.getByText(/1 \/ 2 페이지/)).toBeTruthy()
+
+      const nextButton = screen.getByRole("button", { name: "다음 페이지" })
+      expect(nextButton).toBeTruthy()
+      fireEvent.click(nextButton)
+
+      rows = table.querySelectorAll("tbody tr")
+      expect(rows).toHaveLength(5)
+      expect(screen.queryByText("캐릭터_01")).toBeNull()
+      expect(screen.getByText("캐릭터_21")).toBeTruthy()
+      expect(screen.getByText("캐릭터_25")).toBeTruthy()
+      expect(screen.getByText("21-25개")).toBeTruthy()
+      expect(screen.getByText(/2 \/ 2 페이지/)).toBeTruthy()
+
+      const prevButton = screen.getByRole("button", { name: "이전 페이지" })
+      fireEvent.click(prevButton)
+      rows = table.querySelectorAll("tbody tr")
+      expect(rows).toHaveLength(20)
+      expect(screen.getByText("캐릭터_01")).toBeTruthy()
+
+      fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }))
+      expect(screen.getByText("21-25개")).toBeTruthy()
+      fireEvent.change(screen.getByLabelText("캐릭터 이름 검색"), { target: { value: "캐릭터" } })
+      expect(screen.getByText("1-20개")).toBeTruthy()
+    })
+
     it("템플릿이 없고 캐릭터도 없는 게임은 안내 카드와 캐릭터 템플릿 생성 버튼만 보여준다", async () => {
       await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
       selectGame("game-2")

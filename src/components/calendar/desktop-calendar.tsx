@@ -271,7 +271,7 @@ export function DesktopCalendar({
                     />
                   )}
                   {hasBroadcast && (
-                    <span data-testid="mobile-dot-broadcast" className={`h-1.5 w-1.5 rounded-full bg-info shrink-0 ${hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""}`} title="특별방송 일정 있음" />
+                    <span data-testid="mobile-dot-broadcast" className={`h-1.5 w-1.5 rounded-full bg-[#FF4A42] shrink-0 ${hasCustomBg ? "ring-1 ring-background/60 shadow-sm" : ""}`} title="특별방송 일정 있음" />
                   )}
                   {day.hasMemo && (
                     <span

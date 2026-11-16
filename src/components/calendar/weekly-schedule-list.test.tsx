@@ -65,6 +65,7 @@ describe("WeeklyScheduleList week card (R94)", () => {
 
   it("uses a neutral empty message for weeks without items and distinguishes filtered empty weeks", () => {
     renderList({ schedules: [], expenses: [] })
+    fireEvent.click(filterChip("전체"))
     expect(screen.getAllByText("이 주에는 일정이 없습니다.").length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole("button", { name: "방송" }))
     expect(screen.getAllByText("선택한 필터에 맞는 일정이 없습니다.").length).toBeGreaterThan(0)
@@ -77,6 +78,7 @@ describe("WeeklyScheduleList ended schedules (R91)", () => {
 
   it("hides schedules that ended before today in every week, but keeps one that ends today", () => {
     renderList({ schedules: [ended, endsToday] })
+    fireEvent.click(filterChip("전체"))
     otherWeeks().forEach(openWeek)
     expect(screen.queryByText("어제 종료")).toBeNull()
     expect(screen.getAllByText("오늘 종료").length).toBeGreaterThan(0)
@@ -92,6 +94,7 @@ describe("WeeklyScheduleList timeline rows (R94)", () => {
         { id: "s4", title: "다음 날 방송", schedule_type: "BROADCAST", start_date: "2026-11-10", end_date: "2026-11-10", gameId: "g1", gameName: "게임 가" },
       ],
     })
+    fireEvent.click(filterChip("전체"))
     const rows = within(currentWeek()).getAllByTestId("timeline-row")
     expect(rows).toHaveLength(3)
     expect(within(rows[0]).getByTestId("timeline-date").textContent).toBe("11/09(월)")
@@ -112,6 +115,7 @@ describe("WeeklyScheduleList timeline rows (R94)", () => {
 
   it("marks schedules carried over from a previous week with 진행 중 at the week's first day", () => {
     const props = renderList({ selectedDate: "2026-11-08" })
+    fireEvent.click(filterChip("전체"))
     const week = within(currentWeek())
     const carried = week.getAllByTestId("timeline-row").find((item) => item.textContent?.includes("버전 1.0")) as HTMLElement
 
@@ -128,6 +132,7 @@ describe("WeeklyScheduleList timeline rows (R94)", () => {
 
   it("lists a multi-week schedule in every week it overlaps once the weeks are expanded", () => {
     renderList()
+    fireEvent.click(filterChip("전체"))
     otherWeeks().forEach(openWeek)
     expect(screen.getAllByText("버전 1.0").length).toBeGreaterThan(3)
   })
@@ -158,6 +163,7 @@ describe("WeeklyScheduleList timeline rows (R94)", () => {
         { id: "c", title: "콘텐츠", schedule_type: "CONTENTS", start_date: "2026-11-09", end_date: "2026-11-20", gameId: "g1", gameName: "게임 가", iconUrl: "data:image/webp;base64,game1" },
       ],
     })
+    fireEvent.click(filterChip("전체"))
     const avatarBox = within(currentWeek()).getByTestId("schedule-avatar")
     expect(avatarBox.querySelector("img")?.getAttribute("src")).toContain("game1")
     expect(within(avatarBox).queryByTestId("game-icon-badge")).toBeNull()
@@ -167,6 +173,7 @@ describe("WeeklyScheduleList timeline rows (R94)", () => {
     renderList({
       schedules: [{ id: "x", title: "게임 없음", schedule_type: "BROADCAST", start_date: "2026-11-09", end_date: "2026-11-09", gameName: null }],
     })
+    fireEvent.click(filterChip("전체"))
     expect(within(currentWeek()).getByText("기타")).toBeTruthy()
   })
 
@@ -174,6 +181,7 @@ describe("WeeklyScheduleList timeline rows (R94)", () => {
     renderList({
       schedules: [{ id: "b", title: "특별 방송", schedule_type: "BROADCAST", is_rerun: false, start_date: "2026-11-10", end_date: "2026-11-10", gameName: "게임" }],
     })
+    fireEvent.click(filterChip("전체"))
     expect(screen.getByText("특별방송")).toBeTruthy()
   })
 })
@@ -189,8 +197,14 @@ describe("WeeklyScheduleList filters (R94)", () => {
   ]
   const titles = () => within(currentWeek()).queryAllByTestId("timeline-row").map((row) => row.textContent ?? "")
 
-  it("defaults to 전체 and filters by type with aria-pressed chips", () => {
+  it("defaults to 픽업(신규) and filters by type with aria-pressed chips", () => {
     renderList({ schedules: mixed })
+    expect(filterChip("픽업").getAttribute("aria-pressed")).toBe("true")
+    const sub = within(screen.getByRole("group", { name: "픽업 하위 필터" }))
+    expect(sub.getByRole("button", { name: "신규" }).getAttribute("aria-pressed")).toBe("true")
+    expect(titles()).toHaveLength(2)
+
+    fireEvent.click(filterChip("전체"))
     expect(filterChip("전체").getAttribute("aria-pressed")).toBe("true")
     expect(titles()).toHaveLength(6)
     expect(screen.queryByRole("group", { name: "픽업 하위 필터" })).toBeNull()
@@ -237,6 +251,69 @@ describe("WeeklyScheduleList filters (R94)", () => {
     expect(titles()).toHaveLength(6)
     fireEvent.click(filterChip("픽업"))
     expect(within(screen.getByRole("group", { name: "픽업 하위 필터" })).getByRole("button", { name: "전체" }).getAttribute("aria-pressed")).toBe("true")
+  })
+
+  it("filters NEW and RERUN pickups strictly by start_date, excluding carried-over schedules from previous weeks", () => {
+    // Current week: 2026-11-08 ~ 2026-11-14 (today: 2026-11-09)
+    const carriedNew: WeeklyScheduleEntry = {
+      id: "c-new",
+      title: "지난 주 시작 신규 픽업",
+      schedule_type: "PICKUP",
+      is_rerun: false,
+      start_date: "2026-11-05",
+      end_date: "2026-11-12",
+      gameName: "게임 가",
+    }
+    const currentNew: WeeklyScheduleEntry = {
+      id: "cur-new",
+      title: "이번 주 시작 신규 픽업",
+      schedule_type: "PICKUP",
+      is_rerun: false,
+      start_date: "2026-11-09",
+      end_date: "2026-11-15",
+      gameName: "게임 가",
+    }
+    const carriedRerun: WeeklyScheduleEntry = {
+      id: "c-rerun",
+      title: "지난 주 시작 복각 픽업",
+      schedule_type: "PICKUP",
+      is_rerun: true,
+      start_date: "2026-11-06",
+      end_date: "2026-11-13",
+      gameName: "게임 가",
+    }
+    const currentRerun: WeeklyScheduleEntry = {
+      id: "cur-rerun",
+      title: "이번 주 시작 복각 픽업",
+      schedule_type: "PICKUP",
+      is_rerun: true,
+      start_date: "2026-11-10",
+      end_date: "2026-11-16",
+      gameName: "게임 가",
+    }
+
+    renderList({ schedules: [carriedNew, currentNew, carriedRerun, currentRerun] })
+    // Default is PICKUP + NEW: carriedNew should be excluded from current week, only currentNew shown
+    expect(titles()).toEqual(expect.arrayContaining([expect.stringContaining("이번 주 시작 신규 픽업")]))
+    expect(titles().some((t) => t.includes("지난 주 시작 신규 픽업"))).toBe(false)
+    expect(titles()).toHaveLength(1)
+
+    // Switch to RERUN: carriedRerun excluded, only currentRerun shown
+    const sub = within(screen.getByRole("group", { name: "픽업 하위 필터" }))
+    fireEvent.click(sub.getByRole("button", { name: "복각" }))
+    expect(titles()).toEqual(expect.arrayContaining([expect.stringContaining("이번 주 시작 복각 픽업")]))
+    expect(titles().some((t) => t.includes("지난 주 시작 복각 픽업"))).toBe(false)
+    expect(titles()).toHaveLength(1)
+
+    // Switch to ONGOING: both carried and current are included if today (11-09) is within range
+    fireEvent.click(sub.getByRole("button", { name: "진행 중" }))
+    expect(titles().some((t) => t.includes("지난 주 시작 신규 픽업"))).toBe(true)
+    expect(titles().some((t) => t.includes("이번 주 시작 신규 픽업"))).toBe(true)
+    expect(titles().some((t) => t.includes("지난 주 시작 복각 픽업"))).toBe(true)
+
+    // Switch to ALL: all 4 are shown in current week
+    fireEvent.click(sub.getByRole("button", { name: "전체" }))
+    expect(titles()).toHaveLength(4)
   })
 })
 
@@ -304,6 +381,7 @@ describe("WeeklyScheduleList favourite schedules (R35)", () => {
   it("renders aria-pressed star toggles and calls back without selecting the date", () => {
     const onToggleFavorite = vi.fn()
     const props = renderList({ favoriteScheduleIds: new Set(["s1"]), onToggleFavorite })
+    fireEvent.click(filterChip("전체"))
     const week = within(currentWeek())
 
     expect(week.getByRole("button", { name: "픽업 A 관심 일정 해제" }).getAttribute("aria-pressed")).toBe("true")

@@ -44,4 +44,15 @@ describe("ScheduleTypeBadge", () => {
     rerender(<ScheduleTypeBadge type="VERSION" size="md" />)
     expect(screen.getByTestId("schedule-type-badge").className).toContain("text-xs")
   })
+
+  it("applies the unified palettes aligned with calendar tiles", () => {
+    const { rerender } = render(<ScheduleTypeBadge type="VERSION" />)
+    expect(screen.getByTestId("schedule-type-badge").className).toContain("bg-success/15 text-success")
+    rerender(<ScheduleTypeBadge type="PICKUP" />)
+    expect(screen.getByTestId("schedule-type-badge").className).toContain("bg-primary/15 text-primary")
+    rerender(<ScheduleTypeBadge type="BROADCAST" />)
+    expect(screen.getByTestId("schedule-type-badge").className).toContain("bg-[#FF4A42]/15 text-[#FF4A42]")
+    rerender(<ScheduleTypeBadge type="CONTENTS" />)
+    expect(screen.getByTestId("schedule-type-badge").className).toContain("bg-purple-500/15")
+  })
 })

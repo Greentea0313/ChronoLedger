@@ -19,9 +19,9 @@ const LABELS: Record<ScheduleType, string> = {
 }
 
 const PALETTES: Record<ScheduleType, string> = {
-  VERSION: "bg-primary/20 text-primary border-primary/30",
-  PICKUP: "bg-warning/20 text-warning border-warning/30",
-  BROADCAST: "bg-info/15 text-info border-info/30",
+  VERSION: "bg-success/15 text-success border-success/30",
+  PICKUP: "bg-primary/15 text-primary border-primary/30",
+  BROADCAST: "bg-[#FF4A42]/15 text-[#FF4A42] border-[#FF4A42]/30",
   CONTENTS: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
 }
 

@@ -149,8 +149,8 @@ export function WeeklyScheduleList({
   const weeks = groupDatesByWeek(year, month, todayDate)
   // Open state is screen-local only: the current week starts open, other weeks collapsed; user toggles override that.
   const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({})
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL")
-  const [pickupFilter, setPickupFilter] = useState<PickupFilter>("ALL")
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("PICKUP")
+  const [pickupFilter, setPickupFilter] = useState<PickupFilter>("NEW")
   const isOpen = (key: string, defaultOpen: boolean) => openOverrides[key] ?? defaultOpen
   const toggle = (key: string, defaultOpen: boolean) =>
     setOpenOverrides((prev) => ({ ...prev, [key]: !(prev[key] ?? defaultOpen) }))
@@ -221,8 +221,15 @@ export function WeeklyScheduleList({
       <div className="space-y-3">
         {weeks.map((week, index) => {
           // Each schedule is placed at its start date, or at the week's first day when it carried over from a previous week.
+          // For PICKUP with NEW or RERUN, only schedules starting within this week are shown (carried-over schedules excluded).
+          const isPickupStartOnly = typeFilter === "PICKUP" && (pickupFilter === "NEW" || pickupFilter === "RERUN")
           const rows = visibleSchedules
-            .filter((s) => s.start_date <= week.weekEnd && s.end_date >= week.weekStart)
+            .filter((s) => {
+              if (isPickupStartOnly) {
+                return s.start_date >= week.weekStart && s.start_date <= week.weekEnd
+              }
+              return s.start_date <= week.weekEnd && s.end_date >= week.weekStart
+            })
             .map((schedule) => {
               const carried = schedule.start_date < week.weekStart
               return { schedule, carried, displayDate: carried ? week.weekStart : schedule.start_date }
