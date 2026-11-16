@@ -1090,23 +1090,31 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect(screen.getByRole("heading", { name: "게임 정보 수정" })).toBeTruthy()
   }
 
+  async function openTemplateEditModal() {
+    render(<AdminPage />)
+    fireEvent.click(await screen.findByRole("tab", { name: /캐릭터 관리/ }))
+    fireEvent.change(await screen.findByLabelText("캐릭터 게임 필터"), { target: { value: "game-1" } })
+    fireEvent.click(await screen.findByRole("button", { name: "템플릿 설정 수정" }))
+    expect(screen.getByRole("heading", { name: "원신 캐릭터 템플릿 수정" })).toBeTruthy()
+  }
+
   async function openCharacterTab() {
     render(<AdminPage />)
     fireEvent.click(await screen.findByRole("tab", { name: /캐릭터 관리/ }))
     expect(await screen.findByText("알리스")).toBeTruthy()
   }
 
-  it("게임 수정 모달이 슬롯·레어도·분류 축을 불러오고 변경값을 classification_schema로 저장한다", async () => {
-    await openGameEditModal()
+  it("템플릿 수정 모달이 슬롯·레어도·분류 축을 불러오고 변경값을 classification_schema로 저장한다", async () => {
+    await openTemplateEditModal()
 
     expect((screen.getByLabelText("최대 프리셋 슬롯") as HTMLInputElement).value).toBe("4")
-    expect((screen.getByLabelText("레어도 목록") as HTMLInputElement).value).toBe("5★, 4★")
+    expect((screen.getByLabelText("등급 목록 (최고 등급부터) *") as HTMLInputElement).value).toBe("5★, 4★")
     // The internal axis key is no longer editable (R57): it stays hidden and is preserved on save.
     expect(screen.queryByLabelText("분류 축 1 키")).toBeNull()
     expect((screen.getByLabelText("분류 축 1 옵션") as HTMLInputElement).value).toBe("불, 물")
 
     fireEvent.change(screen.getByLabelText("최대 프리셋 슬롯"), { target: { value: "6" } })
-    fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★, 4★, 3★" } })
+    fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), { target: { value: "5★, 4★, 3★" } })
     fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "불, 물, 바람" } })
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
@@ -1121,8 +1129,8 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     })
   })
 
-  it("게임 수정 모달이 최대 돌파 단계를 불러오고 저장하며 범위를 벗어나면 저장하지 않는다", async () => {
-    await openGameEditModal()
+  it("템플릿 수정 모달이 최대 돌파 단계를 불러오고 저장하며 범위를 벗어나면 저장하지 않는다", async () => {
+    await openTemplateEditModal()
 
     expect((screen.getByLabelText("최대 돌파 단계") as HTMLInputElement).value).toBe("5")
 
@@ -1138,9 +1146,9 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
   })
 
   it("레어도가 10개를 초과하면 저장하지 않는다", async () => {
-    await openGameEditModal()
+    await openTemplateEditModal()
 
-    fireEvent.change(screen.getByLabelText("레어도 목록"), {
+    fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), {
       target: { value: "1★, 2★, 3★, 4★, 5★, 6★, 7★, 8★, 9★, 10★, 11★" },
     })
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
@@ -1150,7 +1158,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
   })
 
   it("분류 축 이름을 입력해도 입력란이 다시 마운트되지 않는다 (안정적인 행 key)", async () => {
-    await openGameEditModal()
+    await openTemplateEditModal()
 
     const nameInput = screen.getByLabelText("분류 축 1 이름") as HTMLInputElement
     fireEvent.change(nameInput, { target: { value: "원소" } })
@@ -1163,9 +1171,9 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
   })
 
   it("기존 캐릭터가 쓰는 레어도·분류 옵션을 제거하면 사용 인원 경고를 보이고 재확인 후 저장한다 (§7.3.4)", async () => {
-    await openGameEditModal()
+    await openTemplateEditModal()
 
-    fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★" } })
+    fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), { target: { value: "5★" } })
     fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "불" } })
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
@@ -1186,9 +1194,9 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
   })
 
   it("사용 중이지 않은 옵션만 변경하면 경고 없이 바로 저장한다", async () => {
-    await openGameEditModal()
+    await openTemplateEditModal()
 
-    fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★, 4★, 3★" } })
+    fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), { target: { value: "5★, 4★, 3★" } })
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
     await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalled())
@@ -1765,12 +1773,13 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       expect(screen.queryByRole("heading", { name: /캐릭터 추가/ })).toBeNull()
     })
 
-    it("기존 character_label은 게임 수정 시 그대로 불러오고 유지한다", async () => {
+    it("기존 character_label은 템플릿 수정 시 그대로 불러오고 유지한다", async () => {
       gamesBuilder.update.mockReturnValue(gamesBuilder)
       gamesBuilder.order.mockResolvedValue({ data: [labeledGame], error: null })
       render(<AdminPage />)
-      fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
-      fireEvent.click(await screen.findByRole("button", { name: "게임 수정: 원신" }))
+      fireEvent.click(await screen.findByRole("tab", { name: /캐릭터 관리/ }))
+      fireEvent.change(await screen.findByLabelText("캐릭터 게임 필터"), { target: { value: "game-1" } })
+      fireEvent.click(await screen.findByRole("button", { name: "템플릿 설정 수정" }))
 
       expect((screen.getByLabelText("캐릭터 시스템 명칭") as HTMLInputElement).value).toBe("공명자")
       fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
@@ -1854,13 +1863,13 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       })
 
       it("중복 등급·중복 선택지·선택지 21개를 항목별 오류로 막는다", async () => {
-        await openGameEditModal()
+        await openTemplateEditModal()
 
-        fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★, 4★, 5★" } })
+        fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), { target: { value: "5★, 4★, 5★" } })
         fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
         expect(await screen.findByText("등급 '5★'이(가) 중복되었습니다.")).toBeTruthy()
 
-        fireEvent.change(screen.getByLabelText("레어도 목록"), { target: { value: "5★, 4★" } })
+        fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), { target: { value: "5★, 4★" } })
         fireEvent.change(screen.getByLabelText("분류 축 1 옵션"), { target: { value: "불, 물, 불" } })
         fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
         expect(await screen.findByText("분류 기준 1(속성)의 선택지 '불'이(가) 중복되었습니다.")).toBeTruthy()
@@ -1872,7 +1881,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       })
 
       it("분류 기준 이름이 비어 있으면 저장하지 않는다", async () => {
-        await openGameEditModal()
+        await openTemplateEditModal()
         fireEvent.change(screen.getByLabelText("분류 축 1 이름"), { target: { value: "  " } })
         fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
@@ -1894,8 +1903,9 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         }
         gamesBuilder.order.mockResolvedValue({ data: [twoAxisGame], error: null })
         render(<AdminPage />)
-        fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
-        fireEvent.click(await screen.findByRole("button", { name: "게임 수정: 원신" }))
+        fireEvent.click(await screen.findByRole("tab", { name: /캐릭터 관리/ }))
+        fireEvent.change(await screen.findByLabelText("캐릭터 게임 필터"), { target: { value: "game-1" } })
+        fireEvent.click(await screen.findByRole("button", { name: "템플릿 설정 수정" }))
 
         // Delete axis 1 (class1), keep axis 2 (class2), add a new one: it must take class1, not a second class2.
         fireEvent.click(screen.getAllByRole("button", { name: "삭제" }).find((button) => button.closest(".grid")) as HTMLElement)
@@ -1912,12 +1922,28 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         ])
       })
 
-      it("템플릿 흐름이 아닌 일반 게임 수정 모달은 기존 문구를 유지한다", async () => {
+      it("템플릿 흐름이 아닌 일반 게임 수정 모달은 이름과 아이콘만 표시하고 템플릿 필드는 숨긴다", async () => {
         await openGameEditModal()
 
         expect(screen.getByRole("heading", { name: "게임 정보 수정" })).toBeTruthy()
         expect(screen.getByText("게임 명칭 및 기본 대표 아이콘 URL을 변경합니다.")).toBeTruthy()
-        expect(screen.getByLabelText("레어도 목록")).toBeTruthy()
+        expect(screen.getByLabelText("게임 이름 *")).toBeTruthy()
+        expect(screen.getByText("기본 아이콘")).toBeTruthy()
+        expect(screen.queryByLabelText("캐릭터 시스템 명칭")).toBeNull()
+        expect(screen.queryByLabelText("최대 프리셋 슬롯")).toBeNull()
+        expect(screen.queryByLabelText("최대 돌파 단계")).toBeNull()
+        expect(screen.queryByLabelText("레어도 목록")).toBeNull()
+        expect(screen.queryByText("분류 기준 (최대 2개)")).toBeNull()
+
+        fireEvent.change(screen.getByLabelText("게임 이름 *"), { target: { value: "원신 리뉴얼" } })
+        fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+        await waitFor(() => {
+          expect(gamesBuilder.update).toHaveBeenCalledWith({
+            name: "원신 리뉴얼",
+            default_icon_url: "data:image/webp;base64,converted",
+          })
+        })
       })
 
       it("템플릿 모달의 제목은 기존 템플릿이 있으면 수정, 없으면 생성이며 설명을 바꾼다", async () => {
@@ -1937,7 +1963,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       ])("DB 템플릿 CHECK 위반(%s)은 원문 대신 형식 안내를 보여준다", async (_label, error) => {
         gamesBuilder.update.mockReturnValue(gamesBuilder)
         gamesBuilder.eq.mockResolvedValue({ error })
-        await openGameEditModal()
+        await openTemplateEditModal()
         fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
         expect(await screen.findByText("캐릭터 템플릿 형식이 올바르지 않습니다(등급·분류 기준 개수와 길이를 확인해 주세요).")).toBeTruthy()
@@ -1947,7 +1973,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       it("다른 CHECK 제약 위반은 원문을 그대로 보여준다", async () => {
         gamesBuilder.update.mockReturnValue(gamesBuilder)
         gamesBuilder.eq.mockResolvedValue({ error: { code: "23514", message: 'violates check constraint "games_max_breakthrough_check"' } })
-        await openGameEditModal()
+        await openTemplateEditModal()
         fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
         expect(await screen.findByText(/games_max_breakthrough_check/)).toBeTruthy()
@@ -1955,7 +1981,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     })
 
     it("분류 기준은 최대 2개까지만 추가할 수 있다", async () => {
-      await openGameEditModal()
+      await openTemplateEditModal()
       fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
       fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
 
@@ -1965,7 +1991,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     })
 
     it("캐릭터 시스템 명칭이 20자를 넘으면 저장하지 않는다", async () => {
-      await openGameEditModal()
+      await openTemplateEditModal()
       fireEvent.change(screen.getByLabelText("캐릭터 시스템 명칭"), { target: { value: "가".repeat(21) } })
       fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 

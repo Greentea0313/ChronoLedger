@@ -997,50 +997,61 @@ export default function AdminPage() {
       setGameFormError("게임 이름을 입력해주세요.")
       return
     }
-    const maxPresetSlots = Number(gameFormMaxPresetSlots)
-    if (!Number.isInteger(maxPresetSlots) || maxPresetSlots < 1 || maxPresetSlots > 12) {
-      setGameFormError("프리셋 슬롯 수는 1~12 사이의 정수여야 합니다.")
-      return
-    }
-    const maxBreakthrough = Number(gameFormMaxBreakthrough)
-    if (gameFormMaxBreakthrough.trim() === "" || !Number.isInteger(maxBreakthrough) || maxBreakthrough < 0 || maxBreakthrough > 12) {
-      setGameFormError("최대 돌파 단계는 0~12 사이의 정수여야 합니다.")
-      return
-    }
-    const characterLabel = gameFormCharacterLabel.trim()
-    const rarities = splitCommaList(gameFormRarities)
-    // Axis keys are managed automatically (kept for existing axes, class1/class2 for new ones); the user never types them.
-    const axes: ClassificationAxis[] = gameFormAxes.map((axis) => ({
-      key: axis.key,
-      label: axis.label.trim(),
-      options: splitCommaList(axis.options),
-    }))
-    // Same limits as the DB is_valid_classification_schema; the template flow additionally needs at least one rank.
-    const templateError = validateClassificationTemplate(
-      { characterLabel, rarities, axes },
-      { requireRarities: templateFlowGameId !== null && editingGame?.id === templateFlowGameId },
-    )
-    if (templateError) {
-      setGameFormError(templateError)
-      return
-    }
-    const classificationSchema = { ...(characterLabel ? { character_label: characterLabel } : {}), rarities, axes }
-    if (editingGame) {
-      const removedUsage = describeRemovedOptionUsage(editingGame, rarities, axes)
-      if (removedUsage.length > 0) {
-        const warning = `제거되는 분류 값을 사용 중인 캐릭터가 있음: ${removedUsage.join(", ")}. 해당 캐릭터의 값은 그대로 남으며 로스터에서 '기타'로 표시됨. 계속하려면 [수정 저장]을 다시 누름.`
-        if (acknowledgedRemovalWarning !== warning) {
-          setGameFormError(null)
-          setGameFormWarning(warning)
-          setAcknowledgedRemovalWarning(warning)
-          return
+    // The template flow edits only template columns of an existing game; its name and icon are left untouched
+    // (seed games keep relative /assets/... icons that the URL check below would reject).
+    const isTemplateSave = !!editingGame && templateFlowGameId === editingGame.id
+    const isGameInfoEdit = !!editingGame && !isTemplateSave
+
+    let maxPresetSlots = DEFAULT_MAX_PRESET_SLOTS
+    let maxBreakthrough = DEFAULT_MAX_BREAKTHROUGH
+    let characterLabel = ""
+    let rarities: string[] = []
+    let axes: ClassificationAxis[] = []
+    let classificationSchema: ClassificationSchema = { rarities: [], axes: [] }
+
+    if (!isGameInfoEdit) {
+      maxPresetSlots = Number(gameFormMaxPresetSlots)
+      if (!Number.isInteger(maxPresetSlots) || maxPresetSlots < 1 || maxPresetSlots > 12) {
+        setGameFormError("프리셋 슬롯 수는 1~12 사이의 정수여야 합니다.")
+        return
+      }
+      maxBreakthrough = Number(gameFormMaxBreakthrough)
+      if (gameFormMaxBreakthrough.trim() === "" || !Number.isInteger(maxBreakthrough) || maxBreakthrough < 0 || maxBreakthrough > 12) {
+        setGameFormError("최대 돌파 단계는 0~12 사이의 정수여야 합니다.")
+        return
+      }
+      characterLabel = gameFormCharacterLabel.trim()
+      rarities = splitCommaList(gameFormRarities)
+      // Axis keys are managed automatically (kept for existing axes, class1/class2 for new ones); the user never types them.
+      axes = gameFormAxes.map((axis) => ({
+        key: axis.key,
+        label: axis.label.trim(),
+        options: splitCommaList(axis.options),
+      }))
+      // Same limits as the DB is_valid_classification_schema; the template flow additionally needs at least one rank.
+      const templateError = validateClassificationTemplate(
+        { characterLabel, rarities, axes },
+        { requireRarities: isTemplateSave },
+      )
+      if (templateError) {
+        setGameFormError(templateError)
+        return
+      }
+      classificationSchema = { ...(characterLabel ? { character_label: characterLabel } : {}), rarities, axes }
+      if (editingGame) {
+        const removedUsage = describeRemovedOptionUsage(editingGame, rarities, axes)
+        if (removedUsage.length > 0) {
+          const warning = `제거되는 분류 값을 사용 중인 캐릭터가 있음: ${removedUsage.join(", ")}. 해당 캐릭터의 값은 그대로 남으며 로스터에서 '기타'로 표시됨. 계속하려면 [수정 저장]을 다시 누름.`
+          if (acknowledgedRemovalWarning !== warning) {
+            setGameFormError(null)
+            setGameFormWarning(warning)
+            setAcknowledgedRemovalWarning(warning)
+            return
+          }
         }
       }
     }
     setGameFormWarning(null)
-    // The template flow edits only template columns of an existing game; its name and icon are left untouched
-    // (seed games keep relative /assets/... icons that the URL check below would reject).
-    const isTemplateSave = !!editingGame && templateFlowGameId === editingGame.id
     if (!isTemplateSave && !trimmedIconUrl) {
       setGameFormError("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해주세요.")
       return
@@ -1074,15 +1085,20 @@ export default function AdminPage() {
     }
 
     if (editingGame) {
-      // 게임 수정 (템플릿 흐름은 템플릿 컬럼만 갱신)
-      const templateColumns = {
-        max_preset_slots: maxPresetSlots,
-        max_breakthrough: maxBreakthrough,
-        classification_schema: classificationSchema,
-      }
+      // 게임 수정 (게임 정보 수정은 이름·아이콘만, 템플릿 흐름은 템플릿 컬럼만 갱신)
+      const updatePayload = isTemplateSave
+        ? {
+            max_preset_slots: maxPresetSlots,
+            max_breakthrough: maxBreakthrough,
+            classification_schema: classificationSchema,
+          }
+        : {
+            name: trimmedName,
+            default_icon_url: defaultIconUrl,
+          }
       const { error } = await supabase
         .from("games")
-        .update(isTemplateSave ? templateColumns : { name: trimmedName, default_icon_url: defaultIconUrl, ...templateColumns })
+        .update(updatePayload)
         .eq("id", editingGame.id)
 
       setIsSubmittingGame(false)
@@ -2653,6 +2669,8 @@ export default function AdminPage() {
             </>
             )}
 
+            {(isTemplateFlow || !editingGame) && (
+            <>
             <div>
               <label htmlFor="game-form-character-label" className="block text-sm font-medium mb-1">캐릭터 시스템 명칭</label>
               <Input
@@ -2690,6 +2708,8 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+            </>
+            )}
 
             {editorIconSet && editorIconAxes.length >= 1 && (
               <section aria-label="분류 아이콘" className="space-y-2" data-testid="classification-icon-editor">
