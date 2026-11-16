@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r93-income-history-db-and-ui",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "0844387fdffb8a01bb575836df16d57d10355165",
+  "target_sha": "7c8883ef309055009705c26c4bcf9f2acd359509",
+  "status": "findings",
+  "created_at": "2026-11-16T07:30:00Z",
+  "findings": [
+    {
+      "id": "R93-REV-001",
+      "severity": "P4",
+      "file": "src/app/dashboard/expenses/page.tsx",
+      "line": 679,
+      "evidence": "Every delete_income failure (including the pending-account-deletion and not-own-income messages raised by the RPC) is shown as the same generic text.",
+      "impact": "A user whose account deletion is pending, or who hits a stale row, cannot tell why the delete failed.",
+      "recommendation": "Show the RPC error message (or map the known messages) instead of a fixed sentence."
+    },
+    {
+      "id": "R93-REV-002",
+      "severity": "P4",
+      "file": "sql/migrations/MIGRATION_R93_INCOME_HISTORY.sql",
+      "line": 118,
+      "evidence": "The migration redefines the whole purge_expired_account_deletion_requests body. Older migrations that also redefine it (MIGRATION_PG_CRON, R13, R35) would drop the incomes line if re-run later.",
+      "impact": "Low: incomes.user_id references auth.users ON DELETE CASCADE, and the purge deletes auth.users, so incomes are still removed.",
+      "recommendation": "Add the usual README warning that re-running an older purge-defining migration requires re-running R93 (as done for R35)."
+    }
+  ]
+}
