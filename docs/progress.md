@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-18 (`r89-push-notification-research` Step 2 — Gemini 4 Argon)**: `docs/push-notification-research.md` 검토 및 사용자 결정 6건 확정(1차 `R84` 건의 창구+앱 내 알림함 30일 보관 → 2차 `R39` 일일 알림 3종 KST 09:00 → 3차 `R96` Web Push → 4차 `R97` Tauri 실행 중 OS 알림). 후속 Run 예약 등록 및 `r89` 마감 완료(활성 Run 없음).
 - **2026-11-18 (`r89` Step 1 — Claude Opus)**: 푸시 알림 설계 조사 문서 `docs/push-notification-research.md` 작성. 앱 내 알림함 → 일일 알림 → 웹 푸시 순서 권장, Tauri 웹 푸시 미지원 판정. Step 2(Gemini 4 Argon) `▶ READY`.
 ## Run `r89-push-notification-research` (`R89` 푸시 알림 설계 조사) 활성화 (2026-11-18)
 

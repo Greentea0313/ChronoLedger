@@ -184,27 +184,28 @@ pg_cron 일일 스캔 함수   ─┐
 - 공용 기기: `endpoint` 소유자 교체 + 로그아웃 시 구독 해제.
 - Edge Function 로그에 `endpoint`·키를 그대로 남기지 않음.
 
-## 8. 단계별 구현 Run 분할안
+## 8. 단계별 구현 Run 분할안 (2026-11-18 확정)
 
 | 순서 | Run (가칭) | 범위 | DB | 담당(안) |
 | :---: | :--- | :--- | :---: | :--- |
-| 1 | `r84-feedback-and-inbox` | `R84` 기타 건의 창구 + `notifications` 테이블·앱 내 알림함(벨 아이콘) + 관리자 답변·요청 승인/반려 시 알림 행 생성 | 있음 | DB GPT Codex / Claude Opus → UI Claude Sonnet → 리뷰 Claude Opus |
-| 2 | `r39-daily-notifications` | `notification_settings` + `pg_cron` 일일 생성(관심 일정·예정 지출) + 설정 화면 알림 카드(토글) | 있음 | DB GPT Codex / Claude Opus → UI Claude Sonnet → 리뷰 Claude Opus |
-| 3 | `r89-web-push` | VAPID·`push_subscriptions`·Edge Function `send-notifications`·`pg_net` 웹훅·SW `push` 핸들러·로그아웃 구독 해제·iOS 안내 | 있음 | Claude Opus(설계·Edge Function) → Claude Sonnet(UI) → 리뷰 Claude Opus |
-| 4 | (선택) `tauri-notifications` | Tauri `plugin-notification` + 실행 중 새 알림 OS 표시 | 없음 | Claude Sonnet / GitHub Copilot |
+| 1 | `r84-feedback-and-inbox` (`R84`) | `R84` 기타 건의 창구(`feedback_requests`) + `public.notifications` 테이블·앱 내 알림함(상단 벨 아이콘·읽음 처리 RPC·30일 보관 `pg_cron` 정리) + 관리자 건의 답변·요청 승인/반려 시 알림 행 원자적 생성 | 있음 | DB GPT Codex / Claude Opus → UI Claude Sonnet / Gemini 4 Hydrogen → 리뷰 Claude Opus |
+| 2 | `r39-daily-notifications` (`R39`) | `public.notification_settings` + `pg_cron` 일일 생성(KST 09:00, 관심 일정 시작 당일 `FAVORITE_START`·종료 1일 전 `FAVORITE_END_D1`·예정 지출 결제 예정일 1일 전 `EXPENSE_D1` 3종) + 설정 화면 알림 카드(토글) | 있음 | DB GPT Codex / Claude Opus → UI Claude Sonnet / Gemini 4 Hydrogen → 리뷰 Claude Opus |
+| 3 | `r96-web-push` (`R96`) | VAPID·`public.push_subscriptions`·Edge Function `send-notifications`·`pg_net` 웹훅·SW `push`/`notificationclick` 핸들러·로그아웃 구독 해제·iOS 홈 화면 추가 안내 | 있음 | Claude Opus(설계·Edge Function) → Claude Sonnet / Gemini 4 Hydrogen(UI) → 리뷰 Claude Opus |
+| 4 | `r97-tauri-notifications` (`R97`) | Tauri `@tauri-apps/plugin-notification` 연동 + 데스크톱 앱 실행 중 새 알림 OS 네이티브 표시 | 없음 | Claude Sonnet / Gemini 4 Hydrogen / GitHub Copilot |
 
-- 1·2단계만으로 모든 환경에서 앱 내 알림이 동작함. 3단계가 앱 밖 알림을 추가함.
+- 1·2단계만으로 모든 환경에서 앱 내 알림이 동작함. 3단계가 앱 밖 웹 푸시를, 4단계가 Tauri 데스크톱 실행 중 OS 알림을 추가함.
 - 각 DB 단계는 🐳 로컬 Supabase 검증 필요(Docker Desktop).
+- 2단계(`R39`) 예정 지출(`PLANNED`) 알림 기준일은 `expenses.target_date`를 사용함(`R56` 이후 버전 패스 예정 지출도 `target_date = end_date`로 유지되므로 단일 컬럼으로 일관됨).
 - 3단계 첫 작업: 웹 푸시 라이브러리 선택·실제 발송 시험(Android Chrome, Windows Chrome, iOS 홈 화면 웹 앱), WebView2 실측.
 
-## 9. 사용자 결정 필요 항목
+## 9. 사용자 결정 확정 항목 (2026-11-18 Step 2 질문 카드 확정)
 
-1. **도입 순서**: 앱 내 알림함 먼저(권장, 8절 1→2→3) / 웹 푸시까지 한 번에.
-2. **`R84` 답변 알림**: 앱 내 알림만으로 먼저 출시(권장) / 웹 푸시 완성 후 출시.
-3. **알림 종류와 시점**: 관심 일정 시작 당일·종료 D-1, 예정 지출 D-1 — 이 3종으로 시작할지, 추가할 종류(예: 예정 지출 당일, 관심 일정 시작 D-1).
-4. **일일 발송 시각**: KST 09:00(권장) / 다른 시각.
-5. **Windows 데스크톱 앱**: 앱 내 알림만(권장) / 실행 중 OS 알림(`plugin-notification`)까지.
-6. **알림 보관 기간**: 90일(권장) / 다른 기간.
+1. **도입 순서**: **단계별 분리 도입 확정** — 1차(`R84` 기타 건의 창구 + 앱 내 알림함) → 2차(`R39` 관심 일정·예정 지출 일일 알림) → 3차(`R96` Web Push 외부 발송) → 4차(`R97` Windows Tauri 실행 중 OS 네이티브 알림).
+2. **`R84` 답변 알림**: **앱 내 알림함만으로 1차 먼저 출시** 확정.
+3. **일일 정기 알림(`R39`) 종류와 시점**: **3종 확정** — ① 관심 일정 시작 당일(`FAVORITE_START`), ② 관심 일정 종료 1일 전(`FAVORITE_END_D1`), ③ 예정 지출 결제 예정일 1일 전(`EXPENSE_D1`). (건의 답변 `FEEDBACK_ANSWERED` 및 요청 승인·반려 `REQUEST_APPROVED`·`REQUEST_REJECTED`는 1차부터 기본 포함).
+4. **일일 발송 시각**: **KST 09:00 (`0 0 * * *` UTC)** 확정.
+5. **Windows 데스크톱 앱(Tauri)**: 앱 내 알림함 + **앱 실행 중 OS 네이티브 알림(`@tauri-apps/plugin-notification`)까지 포함**(4차 `R97`) 확정.
+6. **알림 보관 기간**: **30일** (경과한 `notifications` 행은 `pg_cron`으로 자동 정리) 확정.
 
 ## 10. 근거 링크 (확인일 2026-11-18)
 

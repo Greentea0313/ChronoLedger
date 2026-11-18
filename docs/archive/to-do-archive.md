@@ -3,6 +3,8 @@
 - `docs/to-do.md`에서 옮긴 완료 구간과 완료 항목임(2026-11-18 분리). 새로 옮기는 항목은 이 머리말 바로 아래(맨 위)에 넣음.
 - 평소 작업에서는 읽지 않음.
 
+- [x] R89. [Run `r89-push-notification-research` 완료(2026-11-18) · 문서 전용 · 산출물 [`docs/push-notification-research.md`](../push-notification-research.md)] 푸시 알림 설계 조사: 웹 푸시(PWA)·iOS·Tauri 알림 지원 범위, Supabase Edge Function + `pg_cron`/`pg_net` 발송 구조, 구독·설정·알림함 테이블 및 RLS/로그아웃·탈퇴 정리 설계 완료. 사용자 결정(2026-11-18): 1차(`R84` 건의 창구 + 앱 내 알림함, 30일 보관) → 2차(`R39` 일일 알림 3종, KST 09:00) → 3차(`R96` Web Push) → 4차(`R97` Tauri 실행 중 OS 알림) 단계별 분리 진행 확정.
+
 ### Phase 1. Web/PWA 환경 및 테스트 기반
 
 - [x] 1.1 Next.js 14+ (App Router) 정적 export 프로젝트 초기화
