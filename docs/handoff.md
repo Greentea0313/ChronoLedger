@@ -33,7 +33,7 @@
 
 | 도구 | 버전 | 프로젝트 Skill 지원 | Skill 폴더 경로 | 세션 시작 시 자동으로 읽은 지침 | 근거(문서 링크·설정 위치) | 확인일 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Claude Code | 데스크톱 앱 | 지원 (새 세션에서 Skill 목록 인식 확인 필요) | `.claude/skills/` | `CLAUDE.md` + `@` import 규칙 3개 | `.claude/skills/<name>/SKILL.md` 규약 | 2026-11-18 |
+| Claude Code | 데스크톱 앱 | 지원 (Skill 6개 모두 세션 Skill 목록에 인식됨) | `.claude/skills/` | `CLAUDE.md` + `@` import 규칙 3개 | 세션 사용 가능 Skill 목록에서 6개 확인 | 2026-11-18 |
 | GitHub Copilot | | | | | | |
 | GPT Codex | | | | | | |
 | Gemini (Argon/Hydrogen/Flash) | | | | | | |
