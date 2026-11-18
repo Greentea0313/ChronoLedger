@@ -7,7 +7,36 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** (2026-11-18 기준)
+- **활성 Run ID**: `r89-push-notification-research` *(`R89` · `R39` 연계: 웹 푸시(PWA)·Tauri 데스크톱 알림 지원 범위, 서버리스 발송 구조, 구독 저장·RLS, 게임 일정·예정 지출 알림 및 `R84` 건의 답변 알림 통합 설계 조사)*
+- **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
+- **Worktree 경로**: `main` (문서 전용 조사이므로 격리 워크트리·`run.json` 없이 `main`에서 수행함. 코드·SQL 변경 없음)
+- **Base SHA**: `d5b9b74312fe271b8e5f38c04a21023efbc156fb`
+- **DB 변경**: 없음. 🐳 Docker 불필요.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Researcher & Architect (R89)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `docs/push-notification-research.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `▶ R89 활성화 완료. Claude Opus 착수 대기` |
+| **2** | `⏳ WAITING` | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토, 사용자 결정 사항을 질문 카드로 확인, `R84` 및 알림 구현 후속 Run 예약 반영, `docs/` 마감 | `⏳ Step 1 완료 후 진행` |
+
+#### 📌 `r89-push-notification-research` 단계별 수용 기준 (Acceptance Criteria)
+
+1. **Step 1 (`Claude Opus` — Researcher & Architect)**: 신규 [`docs/push-notification-research.md`](push-notification-research.md)(한국어 개조식 `~함`, `~임`)를 작성함.
+   - **① 플랫폼별 푸시·로컬 알림 지원 범위 및 제약**:
+     - **Web / Android PWA**: Web Push API(`PushManager.subscribe`), VAPID 키(RFC 8292), 현행 `public/sw.js`에 `push`·`notificationclick` 이벤트 핸들러 결합 시 앱 셸/Supabase 캐시(`CLEAR_CACHES` 등)와의 공존 구조.
+     - **iOS / iPadOS PWA**: iOS 16.4+ 홈 화면 추가(`display: standalone`) 필수 조건, 사용자 제스처(`Notification.requestPermission()`) 요구사항, 백그라운드 제약.
+     - **Windows 데스크톱 (Tauri v2)**: WebView2 내 Web Push 지원 여부 vs `@tauri-apps/plugin-notification` 기반 OS 네이티브 알림(앱 실행 중/백그라운드 동작 범위) 비교.
+     - **앱 내 알림함(In-App Notification / Badge) 대안**: 푸시 권한을 거부하거나 미지원 환경인 사용자를 위한 앱 내 알림(예: 상단 벨 아이콘 / 내 요청 카드 배지) 병행 여부 비교.
+   - **② 서버 없는 정적 배포(`output: 'export'`)에서의 발송 아키텍처**:
+     - **Supabase Edge Function + `pg_cron` (정기 알림)**: 게임 관심 일정(`user_favorite_schedules`) 시작·종료 D-1/당일 알림, 예정 지출(`expenses` `status = 'PLANNED'`) 결제 예정일 알림(`R39`)을 하루 1회 지정 시각(KST)에 스캔·발송하는 구조.
+     - **이벤트 기반 즉시/준실시간 알림 (`R84` 건의 답변 알림 및 요청 승인/반려 알림)**: 관리자가 `R84` 기타 건의에 답변하거나 일정/캐릭터/게임 요청을 승인·반려할 때 발송하는 방식 비교(관리자 승인/답변 후 Edge Function 호출 vs DB Webhook/`pg_net` vs 앱 내 상태 배지).
+     - VAPID 개인키 보관 위치(Edge Function Secrets), 발송 실패·만료 구독(`404`/`410 Gone`) 자동 정리, 무료 플랜 한도·비용 분석.
+   - **③ DB 스키마·RLS·계정 탈퇴 정리 초안**:
+     - 푸시 구독 테이블(예: `public.push_subscriptions`: `user_id`, `endpoint`, `p256dh`, `auth`, 기기 식별/활성 여부) 및 사용자별 알림 설정(예: 관심 일정 알림 ON/OFF, 예정 지출 알림 ON/OFF, 건의·요청 답변 알림 ON/OFF) 저장 구조.
+     - 본인 행 전용 RLS 정책, 로그아웃 시 현재 기기 `endpoint` 구독 해제(공용 기기에서 타 계정 알림 노출 방지), 계정 삭제 대기 차단(`block_pending_account_data_mutations`) 및 `purge_expired_account_deletion_requests` 영구 삭제 연동.
+   - **④ 결론 및 사용자 결정 항목 정리**:
+     - `R84`(기타 건의 창구) 답변 알림의 권장 방식(1단계 앱 내 알림 배지 우선 vs Web Push 동시 도입), `R39`(일정·예정 지출 알림)와의 단계별 구현 순서(Run 분할안), 사용자 결정이 필요한 항목을 명확히 정리함.
+2. **Step 2 (`Gemini 4 Argon` — Reviewer & Orchestrator)**:
+   - [`docs/push-notification-research.md`](push-notification-research.md)의 기술 근거·보안 경계(공용 기기 로그아웃 시 구독 분리, VAPID 키 격리, RLS)를 검토하고, 사용자 결정 항목을 질문 카드로 확인한 뒤 `R84` 및 푸시 알림 구현 Run을 예약 목록에 반영하고 마감함.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -19,8 +48,7 @@
 
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
-| `R89` | 다음 Run 예약 | 푸시 알림 설계 조사(문서 전용, Claude Opus) | `docs/to-do.md` R89, 보관 문서 「다음 Run 예약 (`R83`~`R86`)」 절 |
-| `R84` | 보류 | 기타 건의 창구(DB 변경). `R89` 후 착수 | `docs/to-do.md` R84, 보관 문서 같은 절 |
+| `R84` | 보류 | 기타 건의 창구(DB 변경). 활성 Run `R89` 완료 후 착수 | `docs/to-do.md` R84, 보관 문서 「다음 Run 예약 (`R83`~`R86`)」 절 |
 | `R85` | 결정 완료·설계 우선 | 일정 시간 단위 표시(분 단위·KST) | `docs/to-do.md` R85, 보관 문서 같은 절 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |

@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## Run `r89-push-notification-research` (`R89` 푸시 알림 설계 조사) 활성화 (2026-11-18)
+
+- **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`, 사용자 지시)임.
+- **내용**: 예약 과제 `R89`(웹 푸시 PWA·iOS·Tauri v2 알림 지원 범위, Supabase Edge Function + `pg_cron`/이벤트 발송 구조, 구독·설정 테이블 및 RLS/로그아웃·탈퇴 정리, `R39` 일정·예정 지출 알림 및 `R84` 건의 답변 알림 통합 설계 조사)를 활성 Run `r89-push-notification-research`(문서 전용, Base `d5b9b74`)로 등록하고 Step 1(`Claude Opus`)을 `▶ READY`로 전환함.
+- **다음 단계**: `Claude Opus`가 `docs/push-notification-research.md`를 작성한 뒤 Step 2(`Gemini 4 Argon`)에서 사용자 결정을 확인하고 `R84` 착수로 연결함.
+
 - **2026-11-18 (`skill-support-check` Step 4 — Claude Opus)**: Antigravity 결과 반영(사본 불필요), `agent_rules.md`·`document_location.md`에 `trigger: always_on` 추가, `AGENTS.md` 도구별 Skill 안내 갱신. Run 마감, 활성 Run 없음.
 - **2026-11-18 (`skill-support-check` Step 3 — Gemini 4 Argon)**: Google Antigravity IDE에서 `.agents/skills/*/SKILL.md` 6개 원본이 별도 사본 없이 `<skills>`에 자동 인식(Progressive Disclosure)되고, `<user_rules>`에는 `AGENTS.md`와 YAML frontmatter `trigger: always_on`이 있는 `.agents/rules/collaboration.md`·`language.md`만 상시 주입됨(`agent_rules.md`·`document_location.md`·`handoff.md`는 frontmatter 부재로 미주입)을 확인해 `docs/handoff.md` 결과 표에 기록함.
 
