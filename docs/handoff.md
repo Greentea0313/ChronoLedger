@@ -7,7 +7,53 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(2026-11-18 `r89-push-notification-research` 마감 완료. 다음 착수 후보: `R84` 1차 건의 창구 + 앱 내 알림함 또는 `R85` 일정 시간 단위 설계)*
+- **Run ID**: `r84-feedback-and-inbox` *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
+- **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
+- **Worktree 경로**: `.worktrees/r84-feedback-and-inbox` (브랜치: `collab/r84-feedback-and-inbox`, 매니페스트: `artifacts/r84-feedback-and-inbox/run.json`)
+- **Base SHA**: `ac71676bb8f4e0e737d97c26e21f35d7507296a1`
+- **Target SHA**: *(Step 1·Step 2 완료 후 기록)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`). 🐳 **Docker Desktop 필요** (Step 1 또는 Step 3에서 로컬 Supabase 2회 멱등 적용 및 `TESTS.sql` 실행).
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **GPT Codex** *(Claude Opus / Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (DB/RLS/RPC & Types)` | 🐳 **Docker Desktop 필요**. 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 (`▶ READY`) |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/components/game/user-requests-card.tsx`, `src/app/dashboard/games/page.test.tsx`(또는 `src/components/game/user-requests-card.test.tsx`), `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/layout/topbar.tsx`, 신규 `src/components/layout/notification-bell.tsx` 및 테스트 파일, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | Step 1 대기 |
+| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | Step 2 대기 |
+
+#### 📋 `r84-feedback-and-inbox` Step 1 수용 기준 (GPT Codex — DB/RLS/RPC & Types)
+
+1. **`public.feedback_requests` 테이블·제약·RLS·탈퇴 연동**:
+   - 컬럼: `id UUID PRIMARY KEY DEFAULT uuid_generate_v4()`, `user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE`, `category VARCHAR(30) NOT NULL CHECK (category IN ('기능 제안', '오류 신고', '기타'))`, `title VARCHAR(100) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 100)`, `content TEXT NOT NULL CHECK (length(btrim(content)) BETWEEN 1 AND 2000)`, `request_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (request_status IN ('PENDING', 'ANSWERED', 'CLOSED'))`, `admin_answer TEXT CHECK (admin_answer IS NULL OR length(btrim(admin_answer)) <= 2000)`, `answered_at TIMESTAMPTZ`, `answered_by UUID REFERENCES auth.users(id) ON DELETE SET NULL`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`, `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`.
+   - 인덱스: `idx_feedback_requests_status(request_status)`, `idx_feedback_requests_user_id(user_id, created_at DESC)`.
+   - 권한·RLS: `REVOKE ALL ON public.feedback_requests FROM PUBLIC, anon, authenticated; GRANT SELECT, INSERT ON public.feedback_requests TO authenticated;` (일반 사용자 직접 `UPDATE`/`DELETE` 원천 차단). 본인 조회 정책(`auth.uid() = user_id`), 본인 등록 정책(`auth.uid() = user_id AND request_status = 'PENDING' AND admin_answer IS NULL AND answered_at IS NULL AND answered_by IS NULL`), 관리자 전체 조회/관리 정책(`(auth.jwt() -> 'app_metadata' ->> 'role') = 'admin' OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')`).
+   - 계정 삭제 대기 사용자 차단 RESTRICTIVE 정책(`Block account deletion users from feedback_requests`)·트리거(`block_pending_account_deletion_feedback_requests`) 적용 및 `purge_expired_account_deletion_requests`에 `DELETE FROM public.feedback_requests WHERE user_id = v_req.user_id;` 추가.
+2. **`public.notifications` 테이블·제약·RLS·30일 보관 `pg_cron` 정리**:
+   - 컬럼 ([`docs/push-notification-research.md`](push-notification-research.md) §5.3·§9 기준): `id UUID PRIMARY KEY DEFAULT uuid_generate_v4()`, `user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE`, `kind VARCHAR(40) NOT NULL CHECK (kind IN ('FAVORITE_START', 'FAVORITE_END_D1', 'EXPENSE_D1', 'REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED'))`, `title VARCHAR(120) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 120)`, `body VARCHAR(300) NOT NULL CHECK (length(btrim(body)) BETWEEN 1 AND 300)`, `link_path TEXT NOT NULL CHECK (link_path ~ '^/' AND link_path !~ '^//' AND length(link_path) <= 200)`(같은 출처 상대 경로만 허용), `source_id UUID`, `scheduled_for DATE`, `push_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (push_status IN ('PENDING', 'SENT', 'SKIPPED', 'FAILED'))`, `push_attempts SMALLINT NOT NULL DEFAULT 0 CHECK (push_attempts >= 0)`, `pushed_at TIMESTAMPTZ`, `read_at TIMESTAMPTZ`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`.
+   - 인덱스: `idx_notifications_user_created(user_id, created_at DESC)`, `idx_notifications_user_unread(user_id, created_at DESC) WHERE read_at IS NULL`, 일일 알림 중복 방지 부분 고유 인덱스 `uq_notifications_daily_source(user_id, kind, source_id, scheduled_for) WHERE scheduled_for IS NOT NULL`.
+   - 권한·RLS: `REVOKE ALL ON public.notifications FROM PUBLIC, anon, authenticated; GRANT SELECT ON public.notifications TO authenticated;` (클라이언트 직접 쓰기 원천 차단, 본인 행 `SELECT`만 허용). 계정 삭제 대기 사용자 차단 RESTRICTIVE 정책·트리거 및 `purge_expired_account_deletion_requests` 내 `DELETE FROM public.notifications WHERE user_id = v_req.user_id;` 추가.
+   - 30일 보관 정리: `public.purge_expired_notifications()` (`RETURNS INTEGER`, `SECURITY DEFINER SET search_path = public`, `service_role`만 실행 허용)에서 `created_at < NOW() - INTERVAL '30 days'` 행 삭제 후 건수 반환. `pg_cron` 잡 `chronoledger-notifications-purge`(`15 0 * * *` 매일 00:15 UTC) 멱등 등록.
+3. **알림 읽음 처리·건의 답변 RPC 및 기존 승인/반려 RPC 알림 생성 연동**:
+   - `public.mark_notifications_read(p_notification_ids UUID[] DEFAULT NULL)` (`RETURNS INTEGER`, `SECURITY DEFINER SET search_path = public`, `authenticated` 실행 허용): `auth.uid()` 및 계정 삭제 대기 여부를 확인한 뒤, `p_notification_ids IS NULL`이면 본인의 미읽음(`read_at IS NULL`) 알림 전체를, 배열이 주어지면 해당 ID 중 본인 미읽음 알림만 `read_at = NOW()`로 갱신하고 갱신 행 수를 반환함.
+   - `public.answer_feedback_request(p_request_id UUID, p_admin_answer TEXT DEFAULT NULL, p_status VARCHAR DEFAULT 'ANSWERED')` (`RETURNS VOID`, `SECURITY DEFINER SET search_path = public`, `authenticated` 실행 허용): 관리자 권한 확인, `p_status IN ('ANSWERED', 'CLOSED')` 검증(`ANSWERED`일 때 `btrim(coalesce(p_admin_answer, ''))` 1~2,000자 필수), 대상 행 `FOR UPDATE` 갱신(`request_status`, `admin_answer`, `answered_at = NOW()`, `answered_by = auth.uid()`, `updated_at = NOW()`)과 동시에 작성자(`v_request.user_id`) 앞으로 `public.notifications` 행(`kind = 'FEEDBACK_ANSWERED'`, 민감 원문 제외한 안내 제목·본문, `link_path = '/dashboard/games'`, `source_id = v_request.id`)을 원자적으로 생성함.
+   - 기존 6개 요청 승인/반려 RPC(`approve_game_request`, `reject_game_request`, `approve_schedule_request`, `reject_schedule_request`, `approve_character_request`, `reject_character_request`) 내부에서 요청자(`user_id`) 앞으로 `REQUEST_APPROVED` 또는 `REQUEST_REJECTED` 알림 행(`link_path = '/dashboard/games'`, `source_id = 요청 id`, 반려 사유 원문 미포함)을 같은 트랜잭션에서 INSERT함.
+4. **동기화 및 검증**:
+   - `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`(멱등), `sql/SCHEMA.sql`, `sql/README.md`(B표 `R84` 확인 쿼리), `sql/tests/TESTS.sql`(`R84` 스모크 블록), `src/types/database.types.ts` 동기화.
+   - 로컬 Supabase DB 2회 적용 및 `TESTS.sql` 통과, `npx tsc --noEmit`, `npm run lint`, `npm test -- --run` 통과 후 `.worktrees/r84-feedback-and-inbox`에 커밋하고 Step 2를 `▶ READY`로 전환함.
+
+#### 📋 `r84-feedback-and-inbox` Step 2 수용 기준 (Claude Sonnet — UI & Vitest)
+
+1. **통합 요청 모달(`request-submission-modal.tsx`) 확장**:
+   - `RequestKind`에 `"feedback"`(`기타 건의`) 추가. 건의 분류(`기능 제안`·`오류 신고`·`기타`), 제목(1~100자), 내용(1~2,000자, 이미지 첨부 없음) 입력 및 `feedback_requests` 등록 구현.
+   - 모달 내 `내 요청 내역` 탭에서도 본인의 `feedback_requests` 내역(분류, 제목, 상태 배지 `검토 대기`/`답변 완료`/`종료`, 관리자 답변 `admin_answer`)을 조회·표시함(미적용 DB `42P01`/`PGRST205` 시 빈 배열 폴백).
+2. **내 요청 현황 카드(`user-requests-card.tsx`) 확장**:
+   - `feedback_requests`를 함께 조회해 표시하고 필터 탭에 `건의` 추가(`전체` / `일정` / `게임` / `건의`). 분류 배지, 상태 배지, 본문 요약, 관리자 답변(`admin_answer`)을 표시함.
+3. **관리자 요청 대기열(`/admin/requests/page.tsx`) 확장**:
+   - `기타 건의 대기열`(`PENDING` 상태 `feedback_requests`) 섹션/탭을 추가하고, 관리자가 답변(`admin_answer`)을 입력해 `answer_feedback_request` RPC로 답변 등록(`ANSWERED`) 또는 종료 처리(`CLOSED`)할 수 있게 함.
+4. **상단바 앱 내 알림함(`topbar.tsx` / `notification-bell.tsx`) 구현**:
+   - 로그인 사용자(비게스트) 상단바 우측에 벨 아이콘과 미읽음(`read_at IS NULL`) 배지를 표시함.
+   - 팝오버/드로어에서 최근 알림 목록(최대 30건, 미읽음 강조), `[모두 읽음]` 버튼(`mark_notifications_read()`), 개별 알림 클릭 시 읽음 처리(`mark_notifications_read([id])`) 후 `link_path`(`^/` 상대 경로 검증)로 이동을 지원함(미적용 DB `42P01`/`PGRST205` 및 오프라인 시 우아한 빈 상태 폴백).
+5. **테스트 및 검증**:
+   - 위 4개 영역 단위 테스트(Vitest) 추가 및 `npx tsc --noEmit`, `npm run lint`, `npm test -- --run`, `git diff --check` 통과 후 워크트리 커밋, `Target SHA` 기록 및 Step 3(`Claude Opus`) `▶ READY` 전환.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -19,7 +65,6 @@
 
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
-| `R84` | **결정 완료 · 1차 Run 예약** (`r84-feedback-and-inbox`) | 기타 건의 창구(`feedback_requests`: 기능 제안·오류 신고·기타, 첨부 없음) + `public.notifications` 테이블(30일 보관 `pg_cron`)·앱 내 알림함(상단 벨 아이콘·읽음 처리) + 건의 답변·요청 승인/반려 시 알림 행 생성 (DB 변경, 🐳 Docker 필요) | `docs/to-do.md` R84, [`docs/push-notification-research.md`](push-notification-research.md) §5·§8·§9 |
 | `R85` | 결정 완료 · 설계 우선 | 일정 시간 단위 표시(분 단위·종료 미입력 시 날짜만·KST·달력 칸 미표시) | `docs/to-do.md` R85, 보관 문서 「다음 Run 예약 (`R83`~`R86`)」 절 |
 | `R39` | 결정 완료 · 2차 Run 예약 (`r39-daily-notifications`) | `R84` 완료 후 착수. `notification_settings` + `pg_cron` 일일 알림(KST 09:00, 관심 일정 시작 당일·종료 D-1·예정 지출 결제일 D-1 3종) + 설정 화면 알림 토글 (DB 변경, 🐳 Docker 필요) | `docs/to-do.md` R39, [`docs/push-notification-research.md`](push-notification-research.md) §4.2·§5.2·§8·§9 |
 | `R96` | 결정 완료 · 3차 Run 예약 (`r96-web-push`) | `R39` 완료 후 착수. VAPID·`push_subscriptions`·Edge Function `send-notifications`·`pg_net` 웹훅·SW `push` 핸들러·로그아웃 구독 해제·iOS 홈 화면 안내 (DB·Edge Function 변경, 🐳 Docker 필요) | `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §3·§4·§5.1·§8 |
