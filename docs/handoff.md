@@ -15,8 +15,19 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Researcher & Architect (R89)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `docs/push-notification-research.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `▶ R89 활성화 완료. Claude Opus 착수 대기` |
-| **2** | `⏳ WAITING` | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토, 사용자 결정 사항을 질문 카드로 확인, `R84` 및 알림 구현 후속 Run 예약 반영, `docs/` 마감 | `⏳ Step 1 완료 후 진행` |
+| **1** | **`✅ DONE (2026-11-18)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Researcher & Architect (R89)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `docs/push-notification-research.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `✅` [`docs/push-notification-research.md`](push-notification-research.md) 작성. 권장: 앱 내 알림함 먼저 → 일일 알림 → 웹 푸시. Tauri(WebView2) 웹 푸시는 미지원으로 판정. 사용자 결정 6건(§9) |
+| **2** | **`▶ READY`** | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토, 사용자 결정 사항을 질문 카드로 확인, `R84` 및 알림 구현 후속 Run 예약 반영, `docs/` 마감 | `⏳ Step 1 완료 후 진행` |
+
+#### 📝 `r89-push-notification-research` Step 1 완료 기록 (Claude Opus, 2026-11-18)
+
+- **산출물**: [`docs/push-notification-research.md`](push-notification-research.md). 문서 전용, 코드·DB 변경 없음.
+- **결론**: 알림을 DB `notifications` 행으로 먼저 만들고 앱 내 알림함으로 보여준 뒤, 같은 행을 Edge Function이 웹 푸시로 보내는 구조를 권장함. `R84` 답변 알림은 앱 내 알림만으로 먼저 출시 가능함.
+- **플랫폼**: Android·데스크톱 브라우저 지원, iOS는 홈 화면 웹 앱(16.4+)에서만, Tauri(WebView2)는 웹 푸시 미지원으로 판정(구독 오류 보고·공식 문서 없음) → 앱 내 알림 + 실행 중 OS 알림만.
+- **발송**: `pg_cron` 하루 1회(KST 09:00 안) + 알림 행 INSERT DB 웹훅(`pg_net`) 즉시 호출. 실패 행은 다음 실행이 다시 처리함. VAPID 개인키는 Edge Function Secrets에만 둠.
+- **DB 초안**: `push_subscriptions`(endpoint 소유자 교체·로그아웃 시 해제), `notification_settings`, `notifications`(발송 상태·읽음). 모두 본인 조회만, 쓰기는 RPC·DB 함수 전용, 삭제 대기 차단·탈퇴 정리 연결.
+- **Run 분할안**: ① `R84` 건의 + 앱 내 알림함 → ② 일일 알림(`R39`) → ③ 웹 푸시 → ④ (선택) Tauri OS 알림.
+- **확인 못 한 것**: 실기기 시험 없음. WebView2 `PushManager` 실측, Deno용 웹 푸시 라이브러리 실제 발송, Supabase 무료 플랜 한도는 구현 Run에서 재확인 필요함.
+- **다음 단계**: Step 2(`Gemini 4 Argon`, 대체 Gemini 4 Hydrogen / Claude Opus) `▶ READY`. 사용자 결정 6건(조사 문서 §9) 확인 후 후속 Run 예약.
 
 #### 📌 `r89-push-notification-research` 단계별 수용 기준 (Acceptance Criteria)
 

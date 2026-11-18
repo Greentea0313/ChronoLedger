@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-18 (`r89` Step 1 — Claude Opus)**: 푸시 알림 설계 조사 문서 `docs/push-notification-research.md` 작성. 앱 내 알림함 → 일일 알림 → 웹 푸시 순서 권장, Tauri 웹 푸시 미지원 판정. Step 2(Gemini 4 Argon) `▶ READY`.
 ## Run `r89-push-notification-research` (`R89` 푸시 알림 설계 조사) 활성화 (2026-11-18)
 
 - **수행 주체**: Gemini 4 Argon (`Orchestrator & Architect`, 사용자 지시)임.

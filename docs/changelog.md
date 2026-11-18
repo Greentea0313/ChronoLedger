@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-18 (`R89` 푸시 알림 설계 조사)
+
+- 플랫폼별 알림 지원 범위, 서버 없는 발송 구조, 알림 DB·RLS 초안, 단계별 구현 Run 분할안을 담은 `docs/push-notification-research.md`를 추가함.
+
 ## 2026-11-18 (`skill-support-check` 마감)
 
 - Antigravity가 `.agents/skills/`를 바로 읽는 것을 확인해 별도 사본 없이 운용함. Antigravity 상시 규칙에 `agent_rules.md`·`document_location.md`가 들어가도록 frontmatter를 추가함.
