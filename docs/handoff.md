@@ -11,14 +11,25 @@
 - **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
 - **Worktree 경로**: `.worktrees/r84-feedback-and-inbox` (브랜치: `collab/r84-feedback-and-inbox`, 매니페스트: `artifacts/r84-feedback-and-inbox/run.json`)
 - **Base SHA**: `ac71676bb8f4e0e737d97c26e21f35d7507296a1`
-- **Target SHA**: *(Step 1·Step 2 완료 후 기록)*
+- **Target SHA**: `d7eef7a` *(Step 2 완료 기준, 미병합)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`). 🐳 **Docker Desktop 필요** (Step 1 또는 Step 3에서 로컬 Supabase 2회 멱등 적용 및 `TESTS.sql` 실행).
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 0b93975)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Hydrogen** *(1순위 대체로 수행)* | `Maker (DB/RLS/RPC & Types)` | 🐳 **Docker Desktop 필요**. 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 0b93975`: `feedback_requests`·`notifications`·30일 정리 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·6개 요청 RPC 알림 연동·`TESTS.sql`·타입 반영. tsc·lint·Vitest 69파일/862개·diff-check 통과. ⚠️ Docker 미설치 PC로 로컬 DB 실행 미수행(사용자 지시로 Step 3 이관) |
-| **2** | **`▶ READY`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/components/game/user-requests-card.tsx`, `src/app/dashboard/games/page.test.tsx`(또는 `src/components/game/user-requests-card.test.tsx`), `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/layout/topbar.tsx`, 신규 `src/components/layout/notification-bell.tsx` 및 테스트 파일, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 (`▶ READY`) |
-| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | Step 2 대기 |
+| **2** | **`✅ DONE (SHA: d7eef7a)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/components/game/user-requests-card.tsx`, `src/app/dashboard/games/page.test.tsx`(또는 `src/components/game/user-requests-card.test.tsx`), `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/layout/topbar.tsx`, 신규 `src/components/layout/notification-bell.tsx` 및 테스트 파일, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ d7eef7a`: 건의 모달·내 요청 카드·관리자 건의 대기열·상단바 알림 벨. tsc·lint·Vitest 892개 통과 (아래 Step 2 완료 기록 참고) |
+| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | `▶ Step 2 완료(d7eef7a). Base ac71676 ↔ Target d7eef7a` |
+
+#### 📝 `r84-feedback-and-inbox` Step 2 완료 기록 (Claude Sonnet, 2026-11-18)
+
+- **Target SHA**: `d7eef7a` (워크트리 브랜치 `collab/r84-feedback-and-inbox`, 미병합)임. SQL·타입 변경 없음. 변경 파일: `request-submission-modal.tsx`·테스트, `user-requests-card.tsx`·테스트, `admin/requests/page.tsx`·테스트, `layout/topbar.tsx`·테스트, 신규 `layout/notification-bell.tsx`·테스트임.
+- **통합 요청 모달**: 요청 종류에 `기타 건의` 추가(분류 `기능 제안·오류 신고·기타`, 제목 1~100자, 내용 1~2,000자, 첨부 없음). `feedback_requests`에 `user_id·category·title·content`만 insert함(상태·답변 컬럼은 RLS 조건상 보내지 않음). `내 요청` 탭에 건의 목록(분류, 상태 `검토 대기/답변 완료/종료`, 관리자 답변)을 추가함. 테이블 미적용(`42P01`/`PGRST205`)은 내역 빈 목록, 제출 시에는 "R84 마이그레이션 미적용" 안내임.
+- **내 요청 현황 카드**: 건의를 함께 조회·표시하고 필터 `건의 (n)` 추가함(기존 `게임 요청`·`일정 요청` 라벨은 유지). 테이블 미적용은 빈 목록, 그 외 오류는 기존 로드 오류 문구임.
+- **관리자 요청 대기열**: `건의 (n)` 탭과 `기타 건의 대기열`(PENDING, 오래된 순) 추가. 항목별 답변 입력(최대 2,000자)과 `답변 등록`(답변 필수, `ANSWERED`)·`종료 처리`(답변 선택, `CLOSED`)가 `answer_feedback_request` RPC만 호출하고 직접 쓰기 폴백은 없음. 성공 시 대기열에서 제거, 실패 시 오류 표시·항목 유지, `isOffline()` 가드함. 건의 조회 실패·테이블 미적용은 건의 탭만 비우고 다른 대기열은 막지 않음.
+- **알림함**: 로그인 사용자(비게스트)에게만 상단바 우측에 벨(`NotificationBell`)과 미읽음 배지(10건 이상 `9+`)를 표시함. 팝오버는 최근 30건(미읽음 강조·시각), `모두 읽음`(`mark_notifications_read(null)`), 항목 클릭 시 `mark_notifications_read([id])` 후 `link_path`가 `^/`(`//` 제외)일 때만 `router.push`함. 오프라인이면 읽음 처리를 막고 안내, 미적용 DB는 빈 상태("새 알림이 없습니다.")로 폴백함. 새 알림은 마운트·벨 열기 시에만 다시 불러오고 자동 폴링·Realtime은 쓰지 않음.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`(CRLF 경고만), Vitest 70파일 892개 통과함(알림 벨 11개·건의 모달 5개·카드 4개·관리자 6개 등 추가). 실브라우저·실DB 확인은 하지 않음(Step 1 SQL 로컬 실행도 Step 3 확인 대상).
+- **가정·남은 점**: 요청 승인/반려·답변 알림 행은 Step 1 RPC가 만든다고 보고 UI는 읽기·읽음 처리만 함. 건의 답변 직후 알림이 사용자 벨에 보이려면 벨을 다시 열거나 새로고침해야 함(실시간 갱신 미구현). `splitVersionGroups` 같은 미사용 코드는 이번 범위가 아님.
+- **다음 단계**: Step 3(`Claude Opus`, Base `ac71676` ↔ Target `d7eef7a` 통합 리뷰·로컬 DB 2회 적용·병합) `▶ READY`임.
 
 #### 📋 `r84-feedback-and-inbox` Step 1 수용 기준 (GPT Codex — DB/RLS/RPC & Types)
 
