@@ -1,60 +1,30 @@
 # ChronoLedger Multi-Agent Instructions
 
-This document provides shared guidelines for general coding agents (such as GPT Codex, OpenCode, and GitHub Copilot) entering the ChronoLedger repository.
+Shared guidelines for coding agents (GPT Codex, GitHub Copilot, Gemini, OpenCode, …) working in this repository.
 
-All agents must read and follow this `AGENTS.md` before starting project work, in addition to the applicable rules and skills listed below.
+## 1. Always Read (short)
 
-## 1. Core Rule & Skill References
+- [.agents/rules/language.md](.agents/rules/language.md) — Always answer the user in Korean itemized style (~함, ~임), including questions and summaries.
+- [.agents/rules/agent_rules.md](.agents/rules/agent_rules.md) — Think before coding, simplicity first, surgical changes.
+- [.agents/rules/document_location.md](.agents/rules/document_location.md) — Project docs live in `docs/`; finished records in `docs/archive/`.
 
-All agents must consult the following rule files and skill guidelines before starting work:
+## 2. Read Only When Needed (skills)
 
-- [.agents/rules/language.md](.agents/rules/language.md) — Always communicate with the user in Korean (including `ask_question`); write all responses and documentation in Korean itemized style (~함, ~임).
-- [.agents/rules/collaboration.md](.agents/rules/collaboration.md) — 6-model AI role distribution, hybrid delegation, and emergency handover rules.
-- [.agents/rules/handoff.md](.agents/rules/handoff.md) — `"인수인계 문서를 확인해"` dispatch trigger protocol and documentation update rules.
-- [.agents/rules/agent_rules.md](.agents/rules/agent_rules.md) — Think before coding, simplicity first, and surgical changes.
-- [.agents/rules/document_location.md](.agents/rules/document_location.md) — Store all project docs in `docs/`, not temporary session directories.
-- [.agents/skills/chronoledger-orchestrator/SKILL.md](.agents/skills/chronoledger-orchestrator/SKILL.md) — Orchestrator workflow and isolated worktree coordination.
-- [.agents/skills/chronoledger-maker/SKILL.md](.agents/skills/chronoledger-maker/SKILL.md) — Implementation Maker guidelines and worktree boundaries.
-- [.agents/skills/chronoledger-reviewer/SKILL.md](.agents/skills/chronoledger-reviewer/SKILL.md) — Read-only static code review and `review.json` generation.
-- [.agents/skills/handoff/SKILL.md](.agents/skills/handoff/SKILL.md) — Multi-agent handoff and Active Dispatch Queue execution skill.
+Do **not** read these up front. Open a skill only when its situation applies; each one is self-contained.
 
-## 2. 6-Model Role Distribution & Fallback Matrix
+| Situation | Read |
+| :--- | :--- |
+| The user says **`"인수인계 문서를 확인해"`** or asks to check the handoff document | [.agents/skills/handoff/SKILL.md](.agents/skills/handoff/SKILL.md) |
+| Your queue row is Maker | [.agents/skills/chronoledger-maker/SKILL.md](.agents/skills/chronoledger-maker/SKILL.md) |
+| Your queue row is Reviewer | [.agents/skills/chronoledger-reviewer/SKILL.md](.agents/skills/chronoledger-reviewer/SKILL.md) |
+| You register, route or close out a Run | [.agents/skills/chronoledger-orchestrator/SKILL.md](.agents/skills/chronoledger-orchestrator/SKILL.md) |
+| Any `sql/`, RLS, trigger or RPC change | [.agents/skills/chronoledger-sql-migration/SKILL.md](.agents/skills/chronoledger-sql-migration/SKILL.md) |
+| After finishing a step: update `docs/` | [.agents/skills/chronoledger-docs-closeout/SKILL.md](.agents/skills/chronoledger-docs-closeout/SKILL.md) |
+| Choosing a model or fallback | [.agents/rules/collaboration.md](.agents/rules/collaboration.md) |
 
-| Primary Model / Agent | Pipeline Role | ChronoLedger Domain Ownership | **Fallback 1** | **Fallback 2** |
-| :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Argon** *(Chief)* | `Orchestrator & Architect` | Requirements breakdown, acceptance criteria, worktree creation, dispatch queue allocation, final verification, docs closeout | **Gemini 4 Hydrogen** / **Claude Opus** | **GitHub Copilot** |
-| **Gemini 4 Hydrogen** | `Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer` | Standard & composite features/UI (`src/app/`, `src/components/`, `src/lib/`), Vitest unit/integration tests, static review (`review.json`) & orchestration assistance; primary quota-saving partner for Argon, Claude Sonnet, and GPT Codex | **Claude Sonnet / Opus** | **GitHub Copilot** |
-| **GPT Codex** | `Maker (Core) & Test` | Ledger/payment/refund formulas (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase SQL/RPC, Vitest unit tests | **Claude Opus** / **Gemini 4 Hydrogen** | **GitHub Copilot** |
-| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA static code review (`review.json`), security/RLS/ledger integrity verification, multi-component state & interaction refactoring | **Gemini 4 Hydrogen** / **Gemini 4 Argon** | **GitHub Copilot** |
-| **GitHub Copilot** | `Maker (General) & Fallback Hub` | Standard features, routing, and UI components (`src/app/`, `src/components/`); universal backup when other models exhaust token quota | **Gemini 4 Hydrogen** / **Gemini 3.8 Flash** | **GPT Codex** |
-| **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind styling, badge/modal/drawer markup, high-speed codebase search subagent under Argon, `docs/` sync assistance | **Gemini 4 Hydrogen** | **GitHub Copilot** |
+If your tool supports project skills natively, the same files may also be installed in its own skill folder by `scripts/collaboration/Sync-Skills.ps1` (currently only `.claude/skills`).
 
-> **Claude Pro Sonnet / Opus 2-Tier Operating Criteria (Token Optimization)**:
->
-> - Operate both **`Claude Sonnet`** and **`Claude Opus`** from the user's Claude Pro subscription. Default to Sonnet, promoting to Opus only when one of the promotion conditions below applies to minimize quota consumption.
-> - **Claude Sonnet (Default Maker · Quota Saver)**: UI interactions and state wiring with explicit acceptance criteria and target files (accordions, modals, filters, toggles), page/component edits following existing patterns, Vitest unit test authoring/expansion, low-risk standard static reviews, and `docs/` synchronization.
-> - **Claude Opus (Deep Specialist · On Demand)**: High-complexity composite state and browser lifecycle control (History API, async race conditions), architectural refactoring and rule/collaboration design, deep security/RLS/`SECURITY DEFINER` RPC/ledger integrity auditing, Base $\leftrightarrow$ Target SHA integrated static review (`review.json`), Fallback 1 for `Gemini 4 Argon` and `GPT Codex`.
-> - **Opus Promotion Conditions** (Assign Opus if any condition is met): ① Modifications to money, ledger, points, RLS, or SQL/RPC, ② Browser lifecycle and async concurrency edge cases, ③ Restructuring across 3+ modules or open architectural design decisions, ④ Run-level integrated reviews. If Sonnet discovers any of these conditions during work, hand over to Opus via `⚠️ HANDOVER_NEEDED`.
-
-## 3. "인수인계 문서를 확인해" 5-Step Execution Protocol
-
-When the user enters **`"인수인계 문서를 확인해"`** (or any request to check handoff documentation), the agent must immediately execute this 5-step protocol without asking clarifying questions:
-
-1. **Scan Dispatch Queue**: Read `## 🎯 Active AI Collaboration Dispatch Queue` at the top of the root `docs/handoff.md`.
-2. **Identify Target Task & Auto-Recover Hard Cutoffs**:
-   - If a task has status `⚠️ HANDOVER_NEEDED` (1st priority), pick it first and resume unfinished work from `### 📌 중단 체크포인트 (Handover Checkpoint)`.
-   - Otherwise, select the task with status `▶ READY` (2nd priority).
-   - If a previous model stopped abruptly due to API limits without updating status, inspect `git status --short` and `git diff` in the target workspace to preserve and understand uncommitted changes before continuing.
-3. **Respect Workspace & File Boundaries**:
-   - Work strictly within the designated workspace (root or `.worktrees/<run_id>`) and allowed file scope to satisfy the Acceptance Criteria.
-4. **Baton Touch (State Transition)**:
-   - Upon completion, update own row to `✅ DONE (SHA: <commit_sha>)` and advance the next step to `▶ READY`.
-   - If token/context budget runs low before completion, set status to `⚠️ HANDOVER_NEEDED`, record checkpoint details, and guide the user to the designated fallback model.
-5. **Report Results & Documentation Sync**:
-   - Update `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, and `docs/to-do.md`, and report the next model to invoke.
-   - **Language & Tone**: All user-facing responses and project management documentation (`docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md`) must be written in Korean itemized style (한국어 개조식: `~함`, `~임`). Machine collaboration artifacts (`artifacts/**`), English specifications (`docs/spec/SRS.md`), code comments, and commit messages maintain standard English.
-
-## 4. Key Project Documents & Code Paths
+## 3. Key Project Documents & Code Paths
 
 - **Specifications & Requirements Authorities**:
   - `docs/spec/SRS.md` (Software Requirements Specification, top-level functional authority)
@@ -71,8 +41,9 @@ When the user enters **`"인수인계 문서를 확인해"`** (or any request to
   - `docs/changelog.md` (Detailed change history)
   - `docs/architecture.md` (System architecture & module structure)
   - `docs/known-pitfalls.md` (Known pitfalls & troubleshooting notes)
+  - `docs/archive/*-archive.md` (Finished run records and old log entries; read only when a task points to them)
 - **Collaboration Artifacts & Verification Scripts**:
   - `artifacts/schemas/review.schema.json` (Code review JSON schema)
   - `artifacts/schemas/test.schema.json` (Test result JSON schema)
   - `scripts/collaboration/New-CollaborationRun.ps1` (Isolated worktree creation script)
-  - `scripts/collaboration/validate_collaboration_artifact.py` (Artifact schema validation script)
+  - `scripts/collaboration/validate_collaboration_artifact.py --artifact <json> --schema <schema>` (Artifact schema validation script)

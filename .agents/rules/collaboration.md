@@ -33,13 +33,7 @@ description: Enforces ChronoLedger 5-model AI collaboration roles, fallback chai
    - **Dispatch Queue Assignment (`Gemini 4 Hydrogen`, `GPT Codex`, `Claude Sonnet / Opus`, `GitHub Copilot`)**:
      - For feature/UI/test implementation, static review assistance, or sub-orchestration (**Gemini 4 Hydrogen**), core ledger/payment/subscription logic and Vitest tests (**GPT Codex**), static code review (`review.json`), security/RLS verification, and complex refactoring (**Claude Sonnet / Opus** following the 2-tier criteria), or general feature implementation (**GitHub Copilot**), Argon registers the task in `## 🎯 Active AI Collaboration Dispatch Queue` at the top of `docs/handoff.md` with status **`▶ READY`** (after running `New-CollaborationRun.ps1` if isolated execution is needed). Argon then ends the turn immediately and instructs the user to switch to the assigned model and input **`"인수인계 문서를 확인해"`**.
 
-## 3. "인수인계 문서를 확인해" Auto-Execution & Emergency Handover Protocol
+## 3. Handoff Execution & Emergency Handover
 
-1. **Automatic Execution**: When the user inputs **`"인수인계 문서를 확인해"`** (or any variation requesting handoff check), immediately inspect `## 🎯 Active AI Collaboration Dispatch Queue` at the top of `docs/handoff.md` and execute the active task with status **`⚠️ HANDOVER_NEEDED`** (1st priority) or **`▶ READY`** (2nd priority) without asking clarifying questions.
-2. **Hard Cutoff Auto-Recovery**: If a previous model was terminated abruptly by quota/context limits without updating the status (`▶ READY` or `🔄 IN_PROGRESS`), the replacement model must inspect `git status --short` and `git diff` in the target workspace (`.worktrees/<run_id>` or `main`) to identify and preserve uncommitted changes before continuing the remaining acceptance criteria.
-3. **Emergency Handover on Token Exhaustion (`⚠️ HANDOVER_NEEDED`)**:
-   - If remaining tokens or context budget are insufficient to safely finish the task, safely save all current file edits, update the task status in `docs/handoff.md` Dispatch Table to **`⚠️ HANDOVER_NEEDED`**, and update `Assigned Model` to **`~~Current Model~~ ➡️ [Fallback Model]`**.
-   - Record **① Completed files/tasks, ② Remaining concrete tasks, ③ Decisions/assumptions, ④ Tests executed** in `### 📌 중단 체크포인트 (Handover Checkpoint)`, then instruct the user to switch to the replacement model and input `"인수인계 문서를 확인해"`.
-4. **Post-Completion Documentation Sync & Communication Style**:
-   - After meaningful development work, update `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md` (and `docs/architecture.md` if system structure changed).
-   - **답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것**: 모든 사용자 응답, 진행/인수인계 보고, 프로젝트 운영 문서는 한국어 개조식 종결어미(`~함`, `~임`, `~됨` 등)로 간결하게 작성함 (기계 판독용 아티팩트 `artifacts/**`, 영문 명세서, 커밋 메시지는 기존 영문 규격 유지).
+- The `"인수인계 문서를 확인해"` procedure, hard-cutoff recovery, Docker precheck and emergency handover checkpoint are defined only in the handoff skill (`.agents/skills/handoff/SKILL.md`).
+- Document updates after each step follow `.agents/skills/chronoledger-docs-closeout/SKILL.md`.

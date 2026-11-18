@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## 지침 토큰 절감: 운영 문서 보관 분리·Skill 분리 (2026-11-18)
+
+- **수행 주체**: Claude Opus (사용자 지시)임.
+- **보관 분리**: `docs/handoff.md` 3,295줄 → 활성 큐·체크포인트·예약 요약·직전 Run만 남김. 끝난 Run·2026-11-10 이전 기록은 `docs/archive/{handoff,progress,changelog,to-do}-archive.md`로 옮김(커밋 `9bcb9d6`).
+- **Skill 분리**: `.agents/skills/`에 handoff·orchestrator·maker·reviewer 정리, docs-closeout·sql-migration 신설. Claude용 사본 `.claude/skills/`와 동기화 스크립트 `Sync-Skills.ps1` 추가. `CLAUDE.md`·`AGENTS.md`·`copilot-instructions.md`는 "필요할 때만 읽기" 안내로 줄이고 중복 표·절차 제거함.
+- **다음 단계**: 활성 Run `skill-support-check` Step 1(GitHub Copilot) `▶ READY`. Claude Skill 인식은 새 세션에서 확인 필요.
+
 ## R93 마이그레이션 운영 적용 (2026-11-16)
 
 - 사용자가 운영 DB에 `MIGRATION_R93_INCOME_HISTORY.sql`을 적용하고 `sql/README.md` B표 R93 확인 쿼리로 검증을 마침. 수익 등록·삭제가 수익 내역과 총 자산에 함께 반영되는 상태임.

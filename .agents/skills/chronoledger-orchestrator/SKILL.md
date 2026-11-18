@@ -1,13 +1,13 @@
 ---
 name: chronoledger-orchestrator
-description: Coordinate an isolated ChronoLedger Maker and Reviewer run with minimal user interruptions.
+description: Plan, register and close out a ChronoLedger collaboration Run (acceptance criteria, isolated worktree, Dispatch Queue rows with model and fallback assignment, review routing, merge and docs closeout). Use when your queue row's role is Orchestrator or the user asks to register a new Run.
 ---
 
 # ChronoLedger Orchestrator
 
 You coordinate one ChronoLedger collaboration run. In VS Code, automatic custom-agent delegation requires the Local harness with Run Subagent enabled. Use only the Maker and Reviewer agents listed in this profile; do not nest additional agents.
 
-Read `.github/copilot-instructions.md`, `.agents/rules/collaboration.md`, `.agents/rules/handoff.md`, `.agents/rules/agent_rules.md`, the relevant approved product documents, and the collaboration schemas before acting. Follow the user's request and project authorities. Do not edit product implementation files yourself; the Maker owns implementation. You may create/update the run manifest and sanitized collaboration artifacts for this run.
+Read `.agents/rules/collaboration.md`, `.agents/rules/agent_rules.md`, the relevant approved product documents, and the collaboration schemas before acting. Follow the user's request and project authorities. Do not edit product implementation files yourself; the Maker owns implementation. You may create/update the run manifest and sanitized collaboration artifacts for this run.
 
 ## Workflow
 
@@ -42,19 +42,11 @@ Gemini is an optional external reviewer, not an automatic default. Its API sends
 
 Continue without asking when the request is clear, the repository is clean, all steps remain within scope, and the checks are safe. Ask one focused question only when blocked by a decision the approved documents do not settle, a destructive or externally visible action, explicit Gemini data-transfer consent, an unresolvable high-severity finding, or a choice to accept/merge the result. State what is blocked, why the choice matters, and the smallest options. Do not ask the user to choose Maker or Reviewer; route those roles yourself.
 
-## Multi-Model Dispatch Queue & 6-AI Role Routing (Strict Hybrid Delegation)
+## Dispatch Queue registration (multi-model)
 
-When operating as the Chief Orchestrator (**Gemini 4 Argon**) across multi-model sessions (`Gemini 4 Argon`, `Gemini 4 Hydrogen`, `GPT Codex`, `Claude Sonnet / Opus`, `GitHub Copilot`, `Gemini 3.8 Flash`), **never directly edit product source files (`src/**`) yourself**. Instead, enforce the **Hybrid Delegation Protocol** and maintain the **`## 🎯 Active AI Collaboration Dispatch Queue`** at the top of the root `docs/handoff.md`:
-
-1. **Internal Subagent Immediate Delegation (`Gemini 3.8 Flash` $\to$ `Model: "flash"`)**:
-   - For tasks owned by **Gemini 3.8 Flash** (Tailwind CSS styling, badge/modal/drawer UI markup, fast codebase research, and `docs/` sync), invoke an internal subagent immediately via `define_subagent` (`enable_write_tools: true` when editing files) and `invoke_subagent` with `Model: "flash"` (explicitly specified by the user).
-2. **Dispatch Queue Assignment (`Gemini 4 Hydrogen`, `GPT Codex`, `Claude Sonnet / Opus`, `GitHub Copilot`)**:
-   - **Worktree First, Queue Second**: When using `scripts/collaboration/New-CollaborationRun.ps1`, run the script first while the root working tree is clean so `.worktrees/<run_id>` is created cleanly. Immediately afterward, populate the Dispatch Queue in the root `docs/handoff.md` specifying `.worktrees/<run_id>` (or `main`, following "Main-worktree fallback runs") as the target workspace.
-   - **Role Assignment & Fallback Specification**: Assign each step to the optimal model and always list its Fallback chain (`Primary Model (Fallback: 1st / 2nd)`) in the table, mark the first step as `▶ READY`, stop immediately, and instruct the user to switch to the assigned model and enter `"인수인계 문서를 확인해"`:
-     - **Gemini 4 Argon (Orchestrator & Architect)**: Task decomposition, acceptance criteria, worktree setup, final verification, and `docs/` closeout. *(Fallback: Gemini 4 Hydrogen / Claude Opus / GitHub Copilot)*
-     - **Gemini 4 Hydrogen (Maker - Feature·UI·Test & Sub-Orchestrator/Reviewer)**: Standard & composite features/UI (`src/app/`, `src/components/`, `src/lib/`), Vitest unit/integration tests, static code review (`review.json`) & orchestration assistance; primary 1st-tier fallback & quota-saving partner for Argon, Claude Sonnet, and GPT Codex. *(Fallback: Claude Sonnet / Opus / GitHub Copilot)*
-     - **GPT Codex (Maker - Core & Test)**: Ledger/payment/refund math (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase SQL/RPC, and Vitest unit tests. *(Fallback: Claude Opus / Gemini 4 Hydrogen / GitHub Copilot)*
-     - **Claude Sonnet / Opus (Reviewer & Maker - Complex)**: Static code review (`review.json`) comparing Base SHA $\leftrightarrow$ Target SHA, security/RLS/ledger integrity auditing, and complex multi-component state refactoring. Assign **Claude Sonnet** by default (spec'd UI interactions, pattern-following page/component edits, Vitest tests, low-risk reviews, `docs/` sync) and **Claude Opus** only when a promotion condition in `.agents/rules/collaboration.md` applies (money/ledger/points/RLS/SQL/RPC, browser lifecycle or async concurrency, 3+ module restructuring or open design decisions, run-level integrated review). *(Fallback: Gemini 4 Hydrogen / Gemini 4 Argon / GitHub Copilot)*
-     - **GitHub Copilot (Maker - General & Fallback Hub)**: Standard workspace features (`src/app/`, `src/components/`) and primary all-rounder backup when any other model exhausts its token budget. *(Fallback: Gemini 4 Hydrogen / Gemini 3.8 Flash / GPT Codex)*
-     - **Gemini 3.8 Flash (Maker - Fast UI & Subagent)**: Tailwind CSS styling, badges/modals/drawers UI markup, fast codebase research via `invoke_subagent`, and documentation formatting. *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)*
-3. **Single Active Pointer (`▶ READY`)**: Mark only the current executable step as `▶ READY` (or `⚠️ HANDOVER_NEEDED` on token exhaustion) and subsequent dependent steps as `⏳ WAITING`, ensuring any model triggered by `"인수인계 문서를 확인해"` unambiguously picks up the right task.
+- The 6-model roles, fallback chains, Sonnet/Opus criteria and the Argon no-direct-implementation rule live only in `.agents/rules/collaboration.md`; read it when assigning models.
+- **Intake**: unless the user says to implement directly, the Chief Orchestrator (Gemini 4 Argon) does not edit `src/**`. Derive acceptance criteria, create the worktree first (`New-CollaborationRun.ps1` on a clean tree), then write the Run block in the root `docs/handoff.md` under `### 🚦 현재 활성 Run 및 과제 할당표`.
+- Each row lists `Primary Model (Fallback: 1st / 2nd)`, allowed files and acceptance criteria. Mark `🐳 Docker Desktop 필요` on rows that need local Supabase.
+- **Single active pointer**: only the current executable step is `▶ READY`; dependent steps are `⏳ WAITING`. Reservations and agenda items go to the reservation summary table and are never auto-started.
+- After registering, summarize the queue, tell the user which model to switch to and to enter `"인수인계 문서를 확인해"`, and end the turn.
+- **Run closeout**: after merge, move the previous finished Run record to `docs/archive/handoff-archive.md` and keep only the new one as "직전 완료 Run" (`chronoledger-docs-closeout` §2).

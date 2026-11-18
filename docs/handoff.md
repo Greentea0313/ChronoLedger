@@ -7,7 +7,36 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** (2026-11-18 기준)
+- **활성 Run ID**: `skill-support-check` *(도구별 프로젝트 Skill 지원 확인 · 지침 Skill 분리 후속)*
+- **Orchestrator**: Claude Opus *(Gemini 4 Argon 1순위 대체, 2026-11-18 사용자 지시로 등록)*
+- **Worktree 경로**: `main` (문서 전용 확인이라 격리 워크트리·`run.json` 없음. 코드·SQL 변경 금지)
+- **DB 변경**: 없음. 🐳 Docker 불필요.
+- **배경**: 지침을 `.agents/skills/`(원본) Skill로 나누고 Claude용 사본 `.claude/skills/`를 `scripts/collaboration/Sync-Skills.ps1`로 만듦. 다른 도구는 Skill 지원 경로가 확인되지 않아 `AGENTS.md` §2 "필요할 때만 읽기" 안내만 둠.
+- **확인 단계는 대체 모델이 대신할 수 없음**: 해당 도구에서만 확인 가능함. 도구를 쓸 수 없으면 행을 `🛑 BLOCKED (사유)`로 두고 다음 행을 `▶ READY`로 바꿈.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **GitHub Copilot** *(대체 불가 — 사용 불가 시 BLOCKED 후 다음 행)* | `Tool Check` | 아래 공통 수용 기준 수행. 허용 파일: `docs/handoff.md`(아래 결과 표 해당 행·자기 단계 행), `docs/progress.md`(한 줄) | 결과 표 기록 후 `✅ DONE (날짜)` |
+| **2** | `⏳ WAITING` | **GPT Codex** *(대체 불가 — 사용 불가 시 BLOCKED 후 다음 행)* | `Tool Check` | 1번과 같음 | 결과 표 기록 후 `✅ DONE (날짜)` |
+| **3** | `⏳ WAITING` | **Gemini 4 Argon** *(같은 Gemini 도구의 Gemini 4 Hydrogen 대체 가능)* | `Tool Check` | 1번과 같음. 추가로 이 도구가 `.agents/rules/`·`.agents/skills/`를 자동으로 읽는지 확인 | 결과 표 기록 후 `✅ DONE (날짜)` |
+| **4** | `⏳ WAITING` | **Claude Opus** *(Gemini 4 Argon 1순위 대체 / GitHub Copilot 2순위 대체)* | `Orchestrator (반영)` | 결과 표 기준으로 지원 확인된 도구 경로를 `Sync-Skills.ps1`의 `$Targets`에 추가·동기화, 해당 도구 상시 지침(`AGENTS.md`·`.github/copilot-instructions.md` 등) 정리, `docs/` 마감 | 커밋 SHA 기록 |
+
+#### 📌 `skill-support-check` 공통 수용 기준 (Step 1~3)
+
+1. 지금 쓰는 도구 이름과 버전을 적음.
+2. 그 도구가 저장소 안의 프로젝트 Skill(`SKILL.md` 형식, 필요할 때만 본문을 읽는 방식)을 지원하는지 공식 문서·도구 설정으로 확인함. 지원하면 프로젝트 Skill 폴더 경로를 적음. 확인하지 못하면 `미확인`으로 적고 추측하지 않음.
+3. 이 세션 시작 때 자동으로 읽힌 지침 파일(`AGENTS.md`, `.github/copilot-instructions.md`, `GEMINI.md`, `.agents/**` 등)을 적음.
+4. 아래 결과 표의 자기 행을 채우고 자기 단계 행을 `✅ DONE (날짜)`, 다음 행을 `▶ READY`로 바꿈. `docs/progress.md` 맨 위에 한 줄 기록함.
+5. `src/**`·`sql/**`·`.agents/**`·`scripts/**`는 수정하지 않음. 답과 문서는 한국어 개조식(~함, ~임)으로 씀.
+
+#### 📋 도구별 Skill 지원 확인 결과
+
+| 도구 | 버전 | 프로젝트 Skill 지원 | Skill 폴더 경로 | 세션 시작 시 자동으로 읽은 지침 | 근거(문서 링크·설정 위치) | 확인일 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Claude Code | 데스크톱 앱 | 지원 (새 세션에서 Skill 목록 인식 확인 필요) | `.claude/skills/` | `CLAUDE.md` + `@` import 규칙 3개 | `.claude/skills/<name>/SKILL.md` 규약 | 2026-11-18 |
+| GitHub Copilot | | | | | | |
+| GPT Codex | | | | | | |
+| Gemini (Argon/Hydrogen/Flash) | | | | | | |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -27,7 +56,6 @@
 | `R39`·`R40`·`R75`·`R87`·`R95` | 후속 · 우선 낮음 | 리뷰 P4 이관·후속 설계 | `docs/to-do.md` 해당 항목 |
 
 ### 🗂️ 직전 완료 Run 기록: `r93-income-history-db-and-ui`
-
 
 - **Run ID**: `r93-income-history-db-and-ui` **(완료, `main` 병합 `a1f17e0`, R93 마이그레이션 운영 적용·확인 쿼리 검증 완료(사용자, 2026-11-16), 실브라우저 확인 대기)** *(`R93`: `public.incomes` 수익 내역 테이블·RLS·계정 탈퇴 정리 연동 + 총 자산 원자적 동기화 RPC `record_income`/`delete_income` + `/dashboard/expenses` `[지출 내역 | 수익 내역]` 전환 탭 조회·삭제 UI)*
 - **Orchestrator**: Gemini 4 Argon *(2026-11-16 등록)*

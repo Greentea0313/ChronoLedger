@@ -1,93 +1,34 @@
 ---
 name: handoff
-description: Keep project handoff documentation up to date after development work and execute assigned tasks from the Active AI Collaboration Dispatch Queue when asked to check the handoff document ("인수인계 문서를 확인해"). Use in coding agents such as Antigravity, Gemini, Codex, Claude, GitHub Copilot, OpenCode, or similar tools.
+description: Execute the active ChronoLedger Dispatch Queue task when the user says "인수인계 문서를 확인해" (or asks to check the handoff document), and write an emergency handover checkpoint when token or context budget runs low. Use in any coding agent working in this repository.
 license: MIT
 ---
 
-# Handoff Documentation & Multi-Agent Dispatch Protocol
+# ChronoLedger Handoff Protocol
 
-After each meaningful development session, update the relevant documentation in `docs/`. In addition, `docs/handoff.md` serves as the active blackboard (Dispatch Queue) for multi-model collaboration.
+`docs/handoff.md` is the shared blackboard for multi-model work. Its top section `## 🎯 Active AI Collaboration Dispatch Queue` holds the active Run, the handover checkpoint, a reservation summary and the latest finished Run. Finished Run records live in `docs/archive/handoff-archive.md`; read that file only when a task points to one of its sections.
 
-## 0. Orchestrator Intake & Hybrid Delegation on New Requests (Gemini 4 Argon)
+## 1. "인수인계 문서를 확인해" trigger
 
-When the user enters a new feature request or fix to the Chief Orchestrator (**Gemini 4 Argon**), unless the user explicitly instructs to *"implement it directly"*, Argon never directly modifies product source code (`src/**`) and executes the following **Hybrid Delegation Protocol**:
+Run these steps immediately, without clarifying questions:
 
-1. Analyze requirements and existing code, establish clear **Acceptance Criteria**, and design structured subtasks (Maker $\to$ Reviewer $\to$ Orchestrator closeout). If isolated execution is needed, run `scripts/collaboration/New-CollaborationRun.ps1` to create `.worktrees/<run_id>`.
-2. **Gemini 3.8 Flash Domain (UI/Tailwind styling, badge/modal/drawer markup, fast codebase search, docs sync)**:
-   - Inside Antigravity, immediately delegate by invoking an internal subagent (`define_subagent` with `enable_write_tools: true` for file edits, and `invoke_subagent` with `Model: "flash"` — explicitly designated tier).
-3. **Dispatch Queue Model Domain (Gemini 4 Hydrogen features/UI/tests & review assistance, GPT Codex core logic & tests, Claude Sonnet / Opus static review & complex refactoring, GitHub Copilot general features)**:
-   - Update **`## 🎯 Active AI Collaboration Dispatch Queue`** at the top of the root `docs/handoff.md`, assigning the primary model and fallback chain for each step, and setting Step 1 to **`▶ READY`**.
-   - Summarize the queue for the user, instruct which model to switch to and prompt with **`"인수인계 문서를 확인해"`**, and end the turn.
+1. **Read the queue**: read only the top of the root `docs/handoff.md` (it is short by design).
+2. **Pick the task**: `⚠️ HANDOVER_NEEDED` first (resume from `### 📌 중단 체크포인트`, skip finished parts), otherwise the single `▶ READY` row. Rows in the reservation summary (`📝 AGENDA`, 보류, 예약) are never auto-started.
+3. **Hard-cutoff recovery**: if a previous model stopped without updating status (row still `▶ READY` or `🔄 IN_PROGRESS`), run `git status --short` and `git diff` in the target workspace (`.worktrees/<run_id>` or `main`) and preserve its uncommitted changes before continuing.
+4. **Load the role skill** for the row: Maker → `chronoledger-maker`, Reviewer → `chronoledger-reviewer`, Orchestrator → `chronoledger-orchestrator`. For SQL/RPC/RLS work also load `chronoledger-sql-migration`.
+5. **Respect scope**: work only in the row's worktree and allowed files, against its acceptance criteria. Edits, tests and commits happen inside `.worktrees/<run_id>`; queue updates go to the root `docs/handoff.md`.
+6. **Baton touch**: when done (Maker: after the commit), set your row to `✅ DONE (SHA: <sha>)` and the next `⏳ WAITING` row to `▶ READY`. On an unresolvable blocker set `🛑 BLOCKED` and report.
+7. **Close out docs** with the `chronoledger-docs-closeout` skill, then report: what was done, verification evidence, and the next model (with fallbacks) to call with `"인수인계 문서를 확인해"`.
 
-## 1. "인수인계 문서를 확인해" (Handoff Dispatch Trigger Protocol)
+## 2. Docker Desktop precheck
 
-When the user enters **`"인수인계 문서를 확인해"`** (or any request to check handoff documentation), the agent must immediately execute this **5-step protocol** without asking clarifying questions:
+For tasks that need local Supabase (marked `🐳`), run `docker version` before starting. If the engine is not running or Docker is missing, stop immediately and tell the user "Docker Desktop을 켜고 `Engine running` 확인 필요" instead of doing other work while waiting.
 
-1. **Scan Dispatch Queue**: Read `## 🎯 Active AI Collaboration Dispatch Queue` at the top of the root `docs/handoff.md`.
-2. **Identify Target Task (Priority Order)**:
-   - **1st Priority (`⚠️ HANDOVER_NEEDED`)**: Pick this first if a previous model handed over work due to token/context exhaustion. Read `### 📌 중단 체크포인트 (Handover Checkpoint)` below the queue, skip finished parts, and resume remaining work.
-   - **2nd Priority (`▶ READY`)**: Select the current pending active task.
-   - **Hard Cutoff Auto-Recovery**: If a prior model ended abruptly due to API quota/token limits without updating status to `⚠️ HANDOVER_NEEDED` (leaving it as `▶ READY` or `🔄 IN_PROGRESS`), the replacement fallback model must immediately inspect `git status --short` and `git diff` in the target workspace (`.worktrees/<run_id>` or `main`) to identify and preserve uncommitted changes before completing remaining criteria.
-3. **Respect Workspace & Scope**:
-   - Strictly follow the assigned `Worktree Path` (`.worktrees/<run_id>` or `main`), `Allowed Files`, and `Acceptance Criteria` for the assigned role (Maker / Reviewer / Orchestrator).
-   - For isolated worktrees created by `New-CollaborationRun.ps1`, perform edits, tests, and commits inside `.worktrees/<run_id>`, while recording queue updates in the root `docs/handoff.md`.
-4. **Baton Touch (State Transition)**:
-   - Upon completing the task (and creating git commit for Maker), update own row in the root `docs/handoff.md` to `✅ DONE (SHA: <commit_sha>)` and advance the next step from `⏳ WAITING` to `▶ READY`.
-   - If an unresolvable blocker is encountered, mark status as `🛑 BLOCKED` and report to the user.
-5. **Report Results**: Clearly report completed work, verification evidence, and the **next AI model (and fallbacks)** to invoke.
+## 3. Emergency handover (token/context budget)
 
-## 2. 6-Model Role Distribution & Fallback Matrix
-
-When the Orchestrator breaks down tasks into the Dispatch Queue, use this role distribution and fallback chain. Always specify **`Primary Model (Fallback: 1st / 2nd)`** in the table:
-
-| Primary Model / Agent | Pipeline Role | ChronoLedger Domain Ownership | **Fallback 1** | **Fallback 2** |
-| :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Argon** *(Chief)* | `Orchestrator & Architect` | Requirements breakdown, acceptance criteria, worktree/dispatch queue allocation, architecture decisions, final verification, docs closeout | **Gemini 4 Hydrogen** / **Claude Opus** | **GitHub Copilot** |
-| **Gemini 4 Hydrogen** | `Maker (Feature·UI·Test) & Sub-Orchestrator/Reviewer` | Standard & composite features/UI (`src/app/`, `src/components/`, `src/lib/`), Vitest unit/integration tests, static code review (`review.json`) & orchestration assistance; primary 1st-tier fallback for Argon, Claude Sonnet, and GPT Codex | **Claude Sonnet / Opus** | **GitHub Copilot** |
-| **GPT Codex** | `Maker (Core) & Test` | Ledger/payment/refund formulas (`payment-calculations.ts`), subscription/date sync (`subscription-sync.ts`), Supabase RPC/SQL, Vitest unit tests | **Claude Opus** / **Gemini 4 Hydrogen** | **GitHub Copilot** |
-| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA static code review (`review.json`), security/RLS/ledger integrity verification, multi-component state & interaction refactoring | **Gemini 4 Hydrogen** / **Gemini 4 Argon** | **GitHub Copilot** |
-| **GitHub Copilot** | `Maker (General) & Fallback Hub` | Standard features, routing, and UI components (`src/app/`, `src/components/`); universal backup when other models exhaust token quota | **Gemini 4 Hydrogen** / **Gemini 3.8 Flash** | **GPT Codex** |
-| **Gemini 3.8 Flash** | `Maker (Fast UI) & Subagent` | Tailwind styling, badge/modal/drawer markup, high-speed codebase search subagent under Argon, `docs/` sync assistance | **Gemini 4 Hydrogen** | **GitHub Copilot** |
-
-> Claude tasks must follow the **Sonnet / Opus 2-Tier Operating Criteria** in [`.agents/rules/collaboration.md`](../../rules/collaboration.md) (default to Sonnet, promote to Opus when one of the 4 conditions applies).
-
-## 3. Limited Context or Token Budget (Emergency Handover)
-
-- Keep track of whether the remaining context or token budget is likely to be insufficient to finish the requested work reliably. Do not claim an exact remaining amount unless the environment provides it.
-- If completion is at risk, tell the user promptly before running out of context. Save current file edits safely, then update the task row in `docs/handoff.md` Dispatch Queue:
-  1. Set status to **`⚠️ HANDOVER_NEEDED`**.
-  2. Update `Assigned Model` to `~~Current Model~~ ➡️ [Fallback Model]`.
-  3. Record **① Completed work (modified files/functions), ② Remaining concrete tasks, ③ Decisions/assumptions, ④ Tests executed** in `### 📌 중단 체크포인트 (Handover Checkpoint)` and `docs/progress.md`.
-- Save current project-file edits and preserve unfinished work. Do not leave the user with only a chat summary when a durable project checkpoint can be written.
-- In the final response, instruct the user: *"토큰/컨텍스트 한도로 체크포인트 남김. **[대체 모델명]**으로 전환 후 `'인수인계 문서를 확인해'` 입력 필요."*
-
-## 4. Required Updates
-
-- Update `docs/progress.md` after every meaningful session with current project state, work completed, active or blocked work, and next concrete steps. Keep it concise and current.
-- Update `docs/architecture.md` when files, folders, modules, responsibilities, or project structure change.
-- Update `docs/handoff.md` with what was done, why it was done, current state, and recommended next steps (and update the top Dispatch Queue state).
-- Update `docs/changelog.md` when behavior, features, fixes, refactors, or documentation meaningfully changed.
-- Update `docs/to-do.md` by marking completed work and adding remaining tasks as clear, actionable items.
-- Update `docs/known-pitfalls.md` when a repeated failure pattern, fragile behavior, blocker, or useful workaround is discovered.
-
-## 5. Rules
-
-- **답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것**: 모든 대화 응답과 `docs/` 내 운영 문서(인수인계/진행상황/변경이력 등)는 한국어 개조식 종결어미(`~함`, `~임`, `~됨` 등)로 명확하고 간결하게 작성함 (기계 판독용 아티팩트 `artifacts/**`, 영문 명세서, 커밋 메시지는 기존 영문 규격 유지).
-- Keep entries concise, factual, and useful for the next AI agent or developer.
-- Preserve the existing format of each documentation file.
-- Do not rewrite entire documents unless the current content is outdated or misleading.
-- Do not claim work is complete unless it was actually completed.
-- If something is uncertain, mark it as needing verification.
-- Avoid duplicate information across files unless each file needs different context.
-
-## 6. Completion Summary
-
-Before finishing, report:
-
-- Current project state, Dispatch Queue status, and checkpoint location (if handover checkpoint was needed).
-- Which next AI model should be invoked with `"인수인계 문서를 확인해"` (if steps remain in queue).
-- Which documentation files were updated.
-- What major changes were recorded.
-- What remaining tasks were added.
-- What pitfalls or blockers were documented.
-- Which expected files were not updated, and why.
+- Track whether the remaining budget is likely to be enough; never claim an exact remaining amount.
+- If completion is at risk, tell the user early, save all file edits, then in `docs/handoff.md`:
+  1. set the row to `⚠️ HANDOVER_NEEDED`;
+  2. change the assigned model to `~~Current Model~~ ➡️ [Fallback Model]` (fallback chain: `.agents/rules/collaboration.md` §1);
+  3. under `### 📌 중단 체크포인트 (Handover Checkpoint)` record ① completed files/tasks, ② remaining concrete tasks, ③ decisions/assumptions, ④ tests run.
+- Final message: "토큰/컨텍스트 한도로 체크포인트 남김. **[대체 모델명]**으로 전환 후 `'인수인계 문서를 확인해'` 입력 필요."

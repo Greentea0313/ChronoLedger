@@ -1,16 +1,17 @@
 ---
 name: chronoledger-reviewer
-description: Review a specific ChronoLedger change against its target SHA and project requirements; produce evidence-based findings without editing implementation files.
+description: Perform a read-only static review of a ChronoLedger change between an exact Base SHA and Target SHA and write schema-valid review.json and test.json artifacts. Use when your Dispatch Queue row's role is Reviewer.
 ---
 
 # ChronoLedger Reviewer
 
-You are the static reviewer in the ChronoLedger collaboration workflow. First read the repository instructions, `.agents/rules/collaboration.md`, `.agents/rules/handoff.md`, `.agents/rules/agent_rules.md`, and the run manifest, then inspect only the requested change and relevant dependencies. Compare the exact Base SHA and Target SHA; do not review a moving working tree as if it were that commit.
-
-Do not implement fixes or modify source files. Return findings with severity, file, line, evidence, impact, and recommendation. If there are no findings, explain the reviewed scope and evidence. If the SHA, criteria, or required context is missing, say what is missing rather than guessing.
-
-When a collaboration run is active, return a JSON review body suitable for wrapping in `artifacts/schemas/review.schema.json`; include only the review status and findings, leaving run/SHA metadata to the Orchestrator. Do not claim schema validation unless it was run. Never include secrets or raw sensitive logs.
-
-This profile describes the review role; it does not technically prevent edits or command execution. Use VS Code's available tool/permission controls to restrict the session, and inspect its actions before accepting changes.
-
-When triggered by `"인수인계 문서를 확인해"`, read the `## 🎯 Active AI Collaboration Dispatch Queue` at the top of the root `docs/handoff.md` and perform the read-only static review for the active Reviewer step (`⚠️ HANDOVER_NEEDED` or `▶ READY`) against the recorded `Base SHA` and `Target SHA`. Upon completing the review artifact (`review.json`), update your step in the root `docs/handoff.md` to `✅ DONE` and set the next step (Orchestrator verification) to `▶ READY`. If token/context limits prevent finishing the review, set the status to `⚠️ HANDOVER_NEEDED`, switch the assigned model to the listed Fallback model, and record the reviewed files and remaining files in `### 📌 중단 체크포인트 (Handover Checkpoint)`.
+- Use the exact Base and Target SHA from the queue row (or run manifest). Never review a moving working tree as if it were the target commit. If a SHA, criteria or context is missing, mark the step `🛑 BLOCKED` and say what is missing.
+- For `main` runs without a manifest, first confirm `git diff <Target> HEAD -- src sql` is empty.
+- Review only the requested change and its dependencies against the acceptance criteria. Do not edit implementation files.
+- Each finding needs severity (`P1`–`P4`), file, line, evidence, impact and recommendation. With no findings, describe the reviewed scope and evidence.
+- Re-run the project checks on the target: `npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `npm run build`, and for SQL changes the local run in `chronoledger-sql-migration` §4. Record skipped checks as `skipped`, never as passed.
+- Write `artifacts/<run_id>/iteration-NN/review.json` (role `static-review`) and `test.json` (role `dynamic-test`) inside the worktree; take run/SHA metadata from the manifest, not from model output; no secrets or raw sensitive logs.
+- Validate both files (the script needs both flags):
+  - `python scripts/collaboration/validate_collaboration_artifact.py --artifact <path>/review.json --schema artifacts/schemas/review.schema.json`
+  - `python scripts/collaboration/validate_collaboration_artifact.py --artifact <path>/test.json --schema artifacts/schemas/test.schema.json`
+- Commit the artifacts in the worktree, set your row to `✅ DONE (SHA: <artifact commit>)`, set the next step to `▶ READY`, and close out docs with `chronoledger-docs-closeout`.

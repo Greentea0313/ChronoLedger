@@ -1,4 +1,11 @@
 # 변경 이력
+
+## 2026-11-18 (지침 토큰 절감)
+
+- 운영 문서 4종의 끝난 Run·2026-11-10 이전 기록을 `docs/archive/*-archive.md`로 옮김.
+- 지침을 Skill 6개(`handoff`·`chronoledger-orchestrator`·`-maker`·`-reviewer`·`-sql-migration`·`-docs-closeout`)로 나누고 Claude용 `.claude/skills/` 사본과 `scripts/collaboration/Sync-Skills.ps1`을 추가함. 6대 모델 표·Sonnet/Opus 기준은 `collaboration.md`에만 둠.
+- 단계 마감 문서 규칙을 바꿈: 상세 기록은 handoff에만, progress는 짧게, changelog는 `main` 반영 때만 씀.
+- `CLAUDE.md`·`AGENTS.md`의 검증 스크립트 사용법을 `--artifact`·`--schema` 형식으로 고침.
 ## 2026-11-16 (R93 마이그레이션 운영 적용)
 
 - 운영 DB에 `MIGRATION_R93_INCOME_HISTORY.sql` 적용·확인 쿼리 검증 완료함(사용자). 수익 내역 기능이 운영에서 활성화됨.

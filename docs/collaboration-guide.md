@@ -1,5 +1,7 @@
 # ChronoLedger AI 협업 종합 가이드 (AI Collaboration Guide)
 
+> **2026-11-18 기준 안내**: 에이전트가 따르는 규칙의 기준은 `.agents/rules/collaboration.md`(모델 역할·대체 체인)와 `.agents/skills/*/SKILL.md`(역할별 절차)임. 이 문서는 사람이 읽는 개요이며, 내용이 다르면 규칙·Skill 쪽을 따름.
+
 이 문서는 ChronoLedger 프로젝트의 6대 AI 모델(Gemini 4 Argon, Gemini 4 Hydrogen, GPT Codex, Claude [Claude Pro: Sonnet / Opus], GitHub Copilot, Gemini 3.8 Flash) 협업 파이프라인, 격리 Worktree 기반 개발 워크플로우, 그리고 비상 인계 규약의 단일 진실 공급원(SSOT) 가이드임.
 
 ---
