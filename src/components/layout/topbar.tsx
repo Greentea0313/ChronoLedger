@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { downloadProfileAvatar, PROFILE_AVATAR_CHANGED_EVENT } from "@/lib/storage-upload"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { NotificationBell } from "@/components/layout/notification-bell"
 
 export const TOPBAR_NAV_ITEMS = [
   { href: "/dashboard", label: "홈" },
@@ -146,6 +147,7 @@ export function Topbar({ onLogout, isLoggingOut, logoutError }: TopbarProps) {
 
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle className="rounded-[9px] bg-surface-2" />
+          {!isGuest && userId && <NotificationBell userId={userId} />}
           {isGuest && (
             <>
               <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">

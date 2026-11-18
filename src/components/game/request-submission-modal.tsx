@@ -56,11 +56,30 @@ type ScheduleRequest = {
   request_status: "PENDING" | "APPROVED" | "REJECTED"
   admin_memo: string | null
 }
-type RequestKind = "game" | "schedule" | "character"
+type FeedbackCategory = "기능 제안" | "오류 신고" | "기타"
+type FeedbackRequest = {
+  id: string
+  category: FeedbackCategory
+  title: string
+  content: string
+  request_status: "PENDING" | "ANSWERED" | "CLOSED"
+  admin_answer: string | null
+}
+type RequestKind = "game" | "schedule" | "character" | "feedback"
 type RequestMode = "ADD" | "EDIT"
 
 const selectClassName = "h-10 w-full rounded-md border border-line-control bg-surface-2 px-3 text-sm text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
 const statusLabels = { PENDING: "검토 대기", APPROVED: "승인", REJECTED: "반려" }
+const feedbackStatusLabels = { PENDING: "검토 대기", ANSWERED: "답변 완료", CLOSED: "종료" }
+const FEEDBACK_CATEGORIES: FeedbackCategory[] = ["기능 제안", "오류 신고", "기타"]
+const FEEDBACK_TITLE_MAX = 100
+const FEEDBACK_CONTENT_MAX = 2000
+
+/** `feedback_requests` not migrated yet (R84): behave as an empty list instead of failing the history tab. */
+function isMissingFeedbackTable(error: { code?: string } | null | undefined): boolean {
+  const code = error?.code ?? ""
+  return code === "42P01" || code === "PGRST205"
+}
 
 export function RequestSubmissionModal({
   triggerText = "+ 추가 요청",
@@ -82,6 +101,10 @@ export function RequestSubmissionModal({
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [gameRequests, setGameRequests] = useState<GameRequest[]>([])
   const [scheduleRequests, setScheduleRequests] = useState<ScheduleRequest[]>([])
+  const [feedbackRequests, setFeedbackRequests] = useState<FeedbackRequest[]>([])
+  const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>("기능 제안")
+  const [feedbackTitle, setFeedbackTitle] = useState("")
+  const [feedbackContent, setFeedbackContent] = useState("")
   const [catalogLoading, setCatalogLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [catalogError, setCatalogError] = useState<string | null>(null)
@@ -282,6 +305,7 @@ export function RequestSubmissionModal({
   const loadRequests = useCallback(async () => {
     setGameRequests([])
     setScheduleRequests([])
+    setFeedbackRequests([])
     setHistoryError(null)
     if (!user) {
       setHistoryLoading(false)
@@ -290,12 +314,19 @@ export function RequestSubmissionModal({
     }
     setHistoryLoading(true)
     try {
-      const [gamesResult, schedulesResult] = await Promise.all([
+      const [gamesResult, schedulesResult, feedbackResult] = await Promise.all([
         supabase.from("game_requests").select("id, name, memo, request_status, admin_memo")
           .eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("schedule_requests").select("*")
           .eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("feedback_requests").select("id, category, title, content, request_status, admin_answer")
+          .eq("user_id", user.id).order("created_at", { ascending: false }),
       ])
+      if (feedbackResult.error) {
+        if (!isMissingFeedbackTable(feedbackResult.error)) setHistoryError("내 건의를 불러오지 못했습니다.")
+      } else {
+        setFeedbackRequests((feedbackResult.data ?? []) as FeedbackRequest[])
+      }
       if (gamesResult.error) setHistoryError("내 게임 요청을 불러오지 못했습니다.")
       else setGameRequests(gamesResult.data ?? [])
       if (schedulesResult.error) setHistoryError("내 일정 요청을 불러오지 못했습니다.")
@@ -346,6 +377,10 @@ export function RequestSubmissionModal({
     }
     const validationError = requestKind === "game"
       ? validateGameRequest(name)
+      : requestKind === "feedback"
+        ? (!feedbackTitle.trim() || feedbackTitle.trim().length > FEEDBACK_TITLE_MAX ? `건의 제목을 1~${FEEDBACK_TITLE_MAX}자로 입력해 주세요.`
+          : !feedbackContent.trim() || feedbackContent.trim().length > FEEDBACK_CONTENT_MAX ? `건의 내용을 1~${FEEDBACK_CONTENT_MAX.toLocaleString()}자로 입력해 주세요.`
+          : null)
       : requestKind === "schedule"
         ? validateScheduleRequest({ requestMode, gameId, targetScheduleId, title, scheduleType, isRerun, startDate, endDate })
         : (!gameId ? "게임을 선택해 주세요."
@@ -389,6 +424,13 @@ export function RequestSubmissionModal({
     try {
       const result = requestKind === "game"
         ? await supabase.from("game_requests").insert({ user_id: user.id, name: name.trim(), memo: null })
+        : requestKind === "feedback"
+        ? await supabase.from("feedback_requests").insert({
+            user_id: user.id,
+            category: feedbackCategory,
+            title: feedbackTitle.trim(),
+            content: feedbackContent.trim(),
+          })
         : requestKind === "schedule"
         ? await supabase.from("schedule_requests").insert({
             user_id: user.id,
@@ -414,6 +456,12 @@ export function RequestSubmissionModal({
             memo: characterMemo.trim() || null,
           })
       if (result.error) {
+        if (requestKind === "feedback") {
+          setSubmitError(isMissingFeedbackTable(result.error)
+            ? "R84 마이그레이션이 적용되지 않았습니다. 관리자에게 DB 마이그레이션 적용을 요청해 주세요."
+            : "건의를 저장하지 못했습니다. 입력값과 로그인 상태를 확인한 뒤 다시 시도해 주세요.")
+          return
+        }
         const migrationError = result.error.code === "42703" || result.error.code === "PGRST204" || result.error.code === "23514"
         const pickupViolation = Object.keys(pickupPayload).length > 0 && (migrationError || (result.error.message ?? "").includes("픽업 캐릭터"))
         setSubmitError(pickupViolation
@@ -426,6 +474,10 @@ export function RequestSubmissionModal({
       setSuccessMessage("요청을 제출했습니다. 관리자 검토 후 처리됩니다.")
       if (requestKind === "game") {
         setName("")
+      } else if (requestKind === "feedback") {
+        setFeedbackCategory("기능 제안")
+        setFeedbackTitle("")
+        setFeedbackContent("")
       } else if (requestKind === "schedule") {
         setTargetScheduleId("")
         setTitle("")
@@ -494,6 +546,7 @@ export function RequestSubmissionModal({
                   <option value="game">게임 요청</option>
                   <option value="schedule">일정 요청</option>
                   <option value="character">캐릭터 요청</option>
+                  <option value="feedback">기타 건의</option>
                 </select>
               </div>
               {requestKind === "game" ? (
@@ -511,6 +564,40 @@ export function RequestSubmissionModal({
                     관리자가 확인 후 공용 게임 카탈로그에 등록합니다.
                   </p>
                 </div>
+              ) : requestKind === "feedback" ? (
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="feedback-category" className="text-sm font-medium text-content">건의 분류</label>
+                    <select id="feedback-category" className={selectClassName} value={feedbackCategory} onChange={(event) => setFeedbackCategory(event.target.value as FeedbackCategory)}>
+                      {FEEDBACK_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="feedback-title" className="text-sm font-medium text-content">건의 제목</label>
+                    <Input
+                      id="feedback-title"
+                      placeholder="건의 제목을 입력해 주세요"
+                      value={feedbackTitle}
+                      maxLength={FEEDBACK_TITLE_MAX}
+                      onChange={(event) => setFeedbackTitle(event.target.value)}
+                      className="border-line-control bg-surface-2 text-content"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="feedback-content" className="text-sm font-medium text-content">건의 내용</label>
+                    <Textarea
+                      id="feedback-content"
+                      placeholder="건의하거나 신고할 내용을 자세히 적어 주세요."
+                      value={feedbackContent}
+                      maxLength={FEEDBACK_CONTENT_MAX}
+                      onChange={(event) => setFeedbackContent(event.target.value)}
+                      onKeyDown={(event) => insertTabOnKeyDown(event, setFeedbackContent)}
+                      className="min-h-[140px] border-line-control bg-surface-2 text-content"
+                    />
+                    <p className="text-right text-xs text-content-muted">{`${feedbackContent.length} / ${FEEDBACK_CONTENT_MAX.toLocaleString()}자`}</p>
+                  </div>
+                  <p className="text-xs text-content-secondary">관리자가 확인한 뒤 답변하면 알림함과 내 요청 내역에서 확인할 수 있습니다.</p>
+                </>
               ) : requestKind === "character" ? (
                 <>
                   <div className="space-y-2">
@@ -805,7 +892,7 @@ export function RequestSubmissionModal({
           <TabsContent value="history" className="space-y-4">
             {historyLoading && <p role="status" className="text-sm text-content-secondary">내 요청을 불러오는 중입니다.</p>}
             {historyError && <p role="alert" className="text-sm text-danger">{historyError}</p>}
-            {!historyLoading && !historyError && gameRequests.length === 0 && scheduleRequests.length === 0 && (
+            {!historyLoading && !historyError && gameRequests.length === 0 && scheduleRequests.length === 0 && feedbackRequests.length === 0 && (
               <p className="text-center text-sm text-content-secondary py-6">제출한 요청이 없습니다.</p>
             )}
             {gameRequests.map((request) => (
@@ -829,6 +916,18 @@ export function RequestSubmissionModal({
                 </p>
                 {request.memo && <p className="text-sm text-content-muted">{request.memo}</p>}
                 {request.admin_memo && <p className="text-sm text-content-muted">관리자 메모: {request.admin_memo}</p>}
+              </section>
+            ))}
+            {feedbackRequests.map((request) => (
+              <section key={request.id} data-testid="feedback-history-item" className="space-y-1 rounded-md border border-line bg-surface-2 p-3">
+                <div className="flex justify-between gap-3">
+                  <h3 className="font-medium text-content">{`건의 · ${request.category}: ${request.title}`}</h3>
+                  <span className="shrink-0 text-sm text-content-secondary">{feedbackStatusLabels[request.request_status]}</span>
+                </div>
+                <p className="whitespace-pre-wrap text-sm text-content-secondary">{request.content}</p>
+                {request.admin_answer && (
+                  <p className="whitespace-pre-wrap rounded bg-surface-3 p-2 text-sm text-content-muted">{`관리자 답변: ${request.admin_answer}`}</p>
+                )}
               </section>
             ))}
           </TabsContent>

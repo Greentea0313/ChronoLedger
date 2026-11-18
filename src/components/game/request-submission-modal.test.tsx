@@ -4,12 +4,14 @@ import { Simulate } from "react-dom/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { RequestSubmissionModal } from "./request-submission-modal"
 
-const { from, useAuth, insertGame, insertSchedule, insertCharacter } = vi.hoisted(() => ({
+const { from, useAuth, insertGame, insertSchedule, insertCharacter, insertFeedback, feedbackResult } = vi.hoisted(() => ({
   from: vi.fn(),
   useAuth: vi.fn(),
   insertGame: vi.fn(),
   insertSchedule: vi.fn(),
   insertCharacter: vi.fn(),
+  insertFeedback: vi.fn(),
+  feedbackResult: { current: { data: [] as unknown[], error: null as { code?: string; message: string } | null } },
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
@@ -66,6 +68,11 @@ function createQuery(table: string) {
   const query = { select: vi.fn(), order: vi.fn(), eq: vi.fn(), insert: vi.fn() }
   query.select.mockReturnValue(query)
   query.eq.mockReturnValue(query)
+  if (table === "feedback_requests") {
+    query.order.mockResolvedValue(feedbackResult.current)
+    query.insert = insertFeedback
+    return query
+  }
   query.order.mockResolvedValue({
     data: table === "games" ? games : table === "game_schedules" ? schedules : table === "game_characters" ? characters : [],
     error: null,
@@ -93,6 +100,8 @@ describe("RequestSubmissionModal", () => {
     insertGame.mockResolvedValue({ error: null })
     insertSchedule.mockResolvedValue({ error: null })
     insertCharacter.mockResolvedValue({ error: null })
+    insertFeedback.mockResolvedValue({ error: null })
+    feedbackResult.current = { data: [], error: null }
     from.mockImplementation((table: string) => createQuery(table))  })
 
   afterEach(async () => {
@@ -782,6 +791,104 @@ describe("RequestSubmissionModal", () => {
       await submit()
 
       expect(document.body.textContent).toContain("R52 마이그레이션이 적용되지 않았거나 픽업 캐릭터 조건")
+    })
+  })
+
+  describe("기타 건의 (R84)", () => {
+    const selectKind = async () => {
+      await openModal()
+      await change("#request-kind", "feedback")
+    }
+
+    it("offers 기타 건의 and submits category, title and content for the authenticated user", async () => {
+      await selectKind()
+      expect(Array.from(document.body.querySelectorAll("#request-kind option")).map((option) => option.textContent)).toContain("기타 건의")
+      await change("#feedback-category", "오류 신고")
+      await change("#feedback-title", " 달력이 안 열림 ")
+      await change("#feedback-content", " 모바일에서 달력이 열리지 않습니다. ")
+      await submit()
+
+      expect(insertFeedback).toHaveBeenCalledWith({
+        user_id: "authenticated-user",
+        category: "오류 신고",
+        title: "달력이 안 열림",
+        content: "모바일에서 달력이 열리지 않습니다.",
+      })
+      expect(document.body.textContent).toContain("요청을 제출했습니다.")
+      expect((document.body.querySelector("#feedback-title") as HTMLInputElement).value).toBe("")
+      expect((document.body.querySelector("#feedback-category") as HTMLSelectElement).value).toBe("기능 제안")
+    })
+
+    it("rejects an empty title or empty content before inserting", async () => {
+      await selectKind()
+      await change("#feedback-content", "내용")
+      await submit()
+      expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("건의 제목")
+
+      await change("#feedback-title", "제목")
+      await change("#feedback-content", "   ")
+      await submit()
+      expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("건의 내용")
+      expect(insertFeedback).not.toHaveBeenCalled()
+    })
+
+    it("limits the title to 100 and the content to 2000 characters", async () => {
+      await selectKind()
+      expect((document.body.querySelector("#feedback-title") as HTMLInputElement).maxLength).toBe(100)
+      expect((document.body.querySelector("#feedback-content") as HTMLTextAreaElement).maxLength).toBe(2000)
+    })
+
+    it("shows the migration hint when the table is missing and a generic error otherwise", async () => {
+      await selectKind()
+      await change("#feedback-title", "제목")
+      await change("#feedback-content", "내용")
+      insertFeedback.mockResolvedValueOnce({ error: { code: "42P01", message: "missing" } })
+      await submit()
+      expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("R84 마이그레이션")
+
+      insertFeedback.mockResolvedValueOnce({ error: { message: "RLS denied" } })
+      await submit()
+      expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("건의를 저장하지 못했습니다.")
+    })
+
+    it("shows the user's feedback in the 내 요청 tab with status and the admin answer", async () => {
+      feedbackResult.current = {
+        data: [
+          { id: "f1", category: "기능 제안", title: "다크 모드", content: "다크 모드가 필요함", request_status: "ANSWERED", admin_answer: "다음 버전에 반영함" },
+          { id: "f2", category: "기타", title: "문의", content: "대기 중 건의", request_status: "PENDING", admin_answer: null },
+          { id: "f3", category: "오류 신고", title: "종료 건", content: "중복 신고", request_status: "CLOSED", admin_answer: null },
+        ],
+        error: null,
+      }
+      await openModal()
+      const historyTab = Array.from(document.body.querySelectorAll('[role="tab"]')).find((tab) => tab.textContent === "내 요청") as HTMLElement
+      await act(async () => {
+        Simulate.mouseDown(historyTab, { button: 0, ctrlKey: false })
+        Simulate.click(historyTab)
+      })
+
+      const items = Array.from(document.body.querySelectorAll('[data-testid="feedback-history-item"]'))
+      expect(items).toHaveLength(3)
+      expect(items[0].textContent).toContain("건의 · 기능 제안: 다크 모드")
+      expect(items[0].textContent).toContain("답변 완료")
+      expect(items[0].textContent).toContain("관리자 답변: 다음 버전에 반영함")
+      expect(items[1].textContent).toContain("검토 대기")
+      expect(items[1].textContent).not.toContain("관리자 답변")
+      expect(items[2].textContent).toContain("종료")
+      expect(document.body.textContent).not.toContain("제출한 요청이 없습니다.")
+    })
+
+    it("treats a missing feedback table as an empty history without an error", async () => {
+      feedbackResult.current = { data: [], error: { code: "PGRST205", message: "missing" } }
+      await openModal()
+      const historyTab = Array.from(document.body.querySelectorAll('[role="tab"]')).find((tab) => tab.textContent === "내 요청") as HTMLElement
+      await act(async () => {
+        Simulate.mouseDown(historyTab, { button: 0, ctrlKey: false })
+        Simulate.click(historyTab)
+      })
+
+      expect(document.body.querySelector('[role="alert"]')).toBeNull()
+      expect(document.body.textContent).toContain("제출한 요청이 없습니다.")
     })
   })
 

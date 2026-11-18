@@ -32,6 +32,22 @@ interface ScheduleRequestItem {
   games: { name: string } | null
 }
 
+interface FeedbackRequestItem {
+  id: string
+  category: "기능 제안" | "오류 신고" | "기타"
+  title: string
+  content: string
+  request_status: "PENDING" | "ANSWERED" | "CLOSED"
+  admin_answer: string | null
+  created_at: string
+}
+
+/** `feedback_requests` not migrated yet (R84): behave as an empty list instead of failing the card. */
+function isMissingFeedbackTable(error: { code?: string } | null | undefined): boolean {
+  const code = error?.code ?? ""
+  return code === "42P01" || code === "PGRST205"
+}
+
 const SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN = "id, game_id, target_schedule_id, title, schedule_type, start_date, end_date, memo, request_status, admin_memo, created_at, games(name)"
 const SCHEDULE_REQUEST_COLUMNS = SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN.replace("schedule_type, ", "schedule_type, is_rerun, ")
 
@@ -62,13 +78,26 @@ const statusText = {
   REJECTED: "반려됨",
 }
 
+const feedbackStatusStyles = {
+  PENDING: statusBadgeStyles.PENDING,
+  ANSWERED: statusBadgeStyles.APPROVED,
+  CLOSED: "bg-surface-3 text-content-secondary border-line",
+}
+
+const feedbackStatusText = {
+  PENDING: "검토 대기",
+  ANSWERED: "답변 완료",
+  CLOSED: "종료",
+}
+
 export function UserRequestsCard() {
   const { user } = useAuth()
   const [gameRequests, setGameRequests] = useState<GameRequestItem[]>([])
   const [scheduleRequests, setScheduleRequests] = useState<ScheduleRequestItem[]>([])
+  const [feedbackRequests, setFeedbackRequests] = useState<FeedbackRequestItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<"ALL" | "GAME" | "SCHEDULE">("ALL")
+  const [filter, setFilter] = useState<"ALL" | "GAME" | "SCHEDULE" | "FEEDBACK">("ALL")
 
   const userId = user?.id
   const loadRequests = useCallback(async () => {
@@ -77,20 +106,26 @@ export function UserRequestsCard() {
     setError(null)
 
     try {
-      const [gRes, sRes] = await Promise.all([
+      const [gRes, sRes, fRes] = await Promise.all([
         supabase
           .from("game_requests")
           .select("id, name, memo, request_status, admin_memo, created_at")
           .eq("user_id", userId)
           .order("created_at", { ascending: false }),
         fetchScheduleRequests(userId),
+        supabase
+          .from("feedback_requests")
+          .select("id, category, title, content, request_status, admin_answer, created_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false }),
       ])
 
-      if (gRes.error || sRes.error) {
+      if (gRes.error || sRes.error || (fRes.error && !isMissingFeedbackTable(fRes.error))) {
         setError("요청 내역을 불러오지 못했습니다.")
       } else {
         setGameRequests((gRes.data as unknown as GameRequestItem[]) || [])
         setScheduleRequests((sRes.data as unknown as ScheduleRequestItem[]) || [])
+        setFeedbackRequests(fRes.error ? [] : ((fRes.data as unknown as FeedbackRequestItem[]) || []))
       }
     } catch {
       setError("요청 내역을 불러오는 중 오류가 발생했습니다.")
@@ -103,7 +138,7 @@ export function UserRequestsCard() {
     void loadRequests()
   }, [loadRequests])
 
-  const totalCount = gameRequests.length + scheduleRequests.length
+  const totalCount = gameRequests.length + scheduleRequests.length + feedbackRequests.length
 
   return (
     <Card className="border-line bg-surface text-content">
@@ -111,7 +146,7 @@ export function UserRequestsCard() {
         <div>
           <CardTitle className="text-lg font-bold text-content">내 요청 내역</CardTitle>
           <p className="text-xs text-content-secondary mt-1">
-            관리자에게 제안한 게임 및 일정 추가/수정 요청의 처리 상태입니다.
+            관리자에게 제안한 게임·일정 추가/수정 요청과 건의의 처리 상태입니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -153,6 +188,14 @@ export function UserRequestsCard() {
             className={`text-xs h-7 ${filter === "SCHEDULE" ? "bg-primary text-primary-foreground" : "border-line text-content"}`}
           >
             일정 요청 ({scheduleRequests.length})
+          </Button>
+          <Button
+            size="sm"
+            variant={filter === "FEEDBACK" ? "default" : "outline"}
+            onClick={() => setFilter("FEEDBACK")}
+            className={`text-xs h-7 ${filter === "FEEDBACK" ? "bg-primary text-primary-foreground" : "border-line text-content"}`}
+          >
+            건의 ({feedbackRequests.length})
           </Button>
         </div>
 
@@ -246,6 +289,46 @@ export function UserRequestsCard() {
                     <div className="p-2.5 rounded bg-surface-3 border border-line text-xs space-y-1">
                       <span className="font-semibold text-content block">관리자 피드백:</span>
                       <p className="text-content-secondary whitespace-pre-wrap">{req.admin_memo}</p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1 text-[11px] text-content-muted">
+                    <Clock className="w-3 h-3" />
+                    <span>요청일: {new Date(req.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+
+            {/* 기타 건의 목록 */}
+            {(filter === "ALL" || filter === "FEEDBACK") &&
+              feedbackRequests.map((req) => (
+                <div
+                  key={req.id}
+                  data-testid="feedback-request-item"
+                  className="p-3.5 rounded-lg border border-line bg-surface-2 space-y-2 text-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded bg-warning/10 text-warning border border-warning/20">
+                        {req.category}
+                      </span>
+                      <h4 className="font-semibold text-content text-base">{req.title}</h4>
+                    </div>
+                    <span
+                      className={`shrink-0 whitespace-nowrap text-xs font-medium px-2 py-0.5 rounded border ${
+                        feedbackStatusStyles[req.request_status]
+                      }`}
+                    >
+                      {feedbackStatusText[req.request_status]}
+                    </span>
+                  </div>
+
+                  <p className="line-clamp-3 whitespace-pre-wrap text-xs text-content-secondary">{req.content}</p>
+
+                  {req.admin_answer && (
+                    <div className="p-2.5 rounded bg-surface-3 border border-line text-xs space-y-1">
+                      <span className="font-semibold text-content block">관리자 답변:</span>
+                      <p className="text-content-secondary whitespace-pre-wrap">{req.admin_answer}</p>
                     </div>
                   )}
 

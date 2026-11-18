@@ -9,6 +9,7 @@ import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react"
 import { convertIconSourceToDataUrl } from "@/lib/image-resizer"
@@ -55,6 +56,23 @@ type CharacterRequest = {
   games?: { name: string } | null
 }
 
+type FeedbackRequest = {
+  id: string
+  category: string
+  title: string
+  content: string
+  request_status: string
+  created_at: string
+}
+
+const FEEDBACK_ANSWER_MAX = 2000
+
+/** `feedback_requests` not migrated yet (R84): behave as an empty queue instead of failing the whole page. */
+function isMissingFeedbackTable(error: { code?: string } | null | undefined): boolean {
+  const code = error?.code ?? ""
+  return code === "42P01" || code === "PGRST205"
+}
+
 // Fallback (approve RPC missing) copy of the pickup characters; only PICKUP requests carry them and only when present.
 function getPickupFallbackFields(request: ScheduleRequest) {
   if (request.schedule_type !== "PICKUP") return {}
@@ -84,6 +102,8 @@ export default function AdminRequestsPage() {
   const [gameRequests, setGameRequests] = useState<GameRequest[]>([])
   const [scheduleRequests, setScheduleRequests] = useState<ScheduleRequest[]>([])
   const [characterRequests, setCharacterRequests] = useState<CharacterRequest[]>([])
+  const [feedbackRequests, setFeedbackRequests] = useState<FeedbackRequest[]>([])
+  const [feedbackAnswers, setFeedbackAnswers] = useState<Record<string, string>>({})
   const [isDataLoading, setIsDataLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -135,6 +155,24 @@ export default function AdminRequestsPage() {
         })) as unknown as ScheduleRequest[],
       )
 
+      // R84: the feedback queue is optional; a missing table or load failure leaves it empty and never blocks the other queues.
+      try {
+        const { data: fData, error: fError } = await supabase
+          .from("feedback_requests")
+          .select("id, category, title, content, request_status, created_at")
+          .eq("request_status", "PENDING")
+          .order("created_at", { ascending: true })
+        if (fError) {
+          if (!isMissingFeedbackTable(fError)) console.error("건의 대기열을 불러오지 못했습니다:", fError)
+          setFeedbackRequests([])
+        } else {
+          setFeedbackRequests((fData ?? []) as FeedbackRequest[])
+        }
+      } catch (feedbackCause) {
+        console.error("건의 대기열을 불러오지 못했습니다:", feedbackCause)
+        setFeedbackRequests([])
+      }
+
       // Pickup avatars are decoration: look up only the referenced characters and never block the list on failure (NR-10).
       const pickupIds = Array.from(new Set((sData ?? []).flatMap((request) => request.pickup_character_ids ?? [])))
       if (pickupIds.length > 0) {
@@ -171,6 +209,46 @@ export default function AdminRequestsPage() {
       void fetchRequests()
     }
   }, [authLoading, fetchRequests, isAdmin, replace, user])
+
+  // R84: answer (ANSWERED, answer required) or close (CLOSED, answer optional) a feedback request through the RPC only.
+  const processFeedback = async (id: string, status: "ANSWERED" | "CLOSED") => {
+    if (isOffline()) {
+      setError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
+    const answer = (feedbackAnswers[id] ?? "").trim()
+    if (status === "ANSWERED" && !answer) {
+      setError("답변 내용을 입력해 주세요.")
+      return
+    }
+    if (answer.length > FEEDBACK_ANSWER_MAX) {
+      setError(`답변은 ${FEEDBACK_ANSWER_MAX.toLocaleString()}자 이내로 입력해 주세요.`)
+      return
+    }
+    setProcessingId(id)
+    setError(null)
+    setSuccessMessage(null)
+    try {
+      const { error: rpcError } = await supabase.rpc("answer_feedback_request", {
+        p_request_id: id,
+        p_admin_answer: answer || null,
+        p_status: status,
+      })
+      if (rpcError) throw rpcError
+      setFeedbackRequests((prev) => prev.filter((request) => request.id !== id))
+      setFeedbackAnswers((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      setSuccessMessage(status === "ANSWERED" ? "건의에 답변했습니다." : "건의를 종료 처리했습니다.")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : (err as { message?: string } | null)?.message ?? "알 수 없는 오류"
+      setError(`건의 처리 중 오류가 발생했습니다: ${message}`)
+    } finally {
+      setProcessingId(null)
+    }
+  }
 
   // 승인/반려 공통 처리 함수
   const processRequest = async (
@@ -424,7 +502,7 @@ export default function AdminRequestsPage() {
       )}
 
       <Tabs defaultValue="games" className="w-full">
-        <TabsList className="mb-6 flex w-full justify-start overflow-x-auto bg-surface-2 md:grid md:grid-cols-3">
+        <TabsList className="mb-6 flex w-full justify-start overflow-x-auto bg-surface-2 md:grid md:grid-cols-4">
           <TabsTrigger value="games" className="shrink-0 whitespace-nowrap data-[state=active]:bg-surface-3 data-[state=active]:text-content">
             게임 요청 ({gameRequests.length})
           </TabsTrigger>
@@ -433,6 +511,9 @@ export default function AdminRequestsPage() {
           </TabsTrigger>
           <TabsTrigger value="characters" className="shrink-0 whitespace-nowrap data-[state=active]:bg-surface-3 data-[state=active]:text-content">
             캐릭터 요청 ({characterRequests.length})
+          </TabsTrigger>
+          <TabsTrigger value="feedback" className="shrink-0 whitespace-nowrap data-[state=active]:bg-surface-3 data-[state=active]:text-content">
+            건의 ({feedbackRequests.length})
           </TabsTrigger>
         </TabsList>
 
@@ -643,6 +724,66 @@ export default function AdminRequestsPage() {
               </Card>
             ))
           )}
+        </TabsContent>
+
+        <TabsContent value="feedback" className="space-y-6">
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-content">
+              기타 건의 대기열 ({feedbackRequests.length})
+            </h3>
+            {feedbackRequests.length === 0 ? (
+              <p className="text-content-secondary text-center py-8 bg-surface-2/50 rounded-lg">대기 중인 건의가 없습니다.</p>
+            ) : (
+              feedbackRequests.map((req) => {
+                const answer = feedbackAnswers[req.id] ?? ""
+                const busy = processingId === req.id
+                return (
+                  <Card key={req.id} data-testid="feedback-request-card" className="bg-surface border-line">
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">{req.category}</span>
+                        <h4 className="font-semibold text-content">{req.title}</h4>
+                        <span className="ml-auto text-xs text-content-muted">{new Date(req.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <p className="whitespace-pre-wrap text-sm text-content-secondary">{req.content}</p>
+                      <div className="space-y-1">
+                        <label htmlFor={`feedback-answer-${req.id}`} className="text-xs font-medium text-content">관리자 답변</label>
+                        <Textarea
+                          id={`feedback-answer-${req.id}`}
+                          value={answer}
+                          maxLength={FEEDBACK_ANSWER_MAX}
+                          placeholder="사용자에게 전달할 답변을 입력해 주세요."
+                          onChange={(event) => setFeedbackAnswers((prev) => ({ ...prev, [req.id]: event.target.value }))}
+                          className="min-h-[90px] border-line-control bg-surface-2 text-content"
+                        />
+                        <p className="text-right text-xs text-content-muted">{`${answer.length} / ${FEEDBACK_ANSWER_MAX.toLocaleString()}자`}</p>
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <Button
+                          variant="outline"
+                          className="border-success/60 text-success hover:bg-success/15"
+                          onClick={() => void processFeedback(req.id, "ANSWERED")}
+                          disabled={busy || !isOnline}
+                        >
+                          {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+                          답변 등록
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="border-line-control text-content-secondary hover:bg-surface-2"
+                          onClick={() => void processFeedback(req.id, "CLOSED")}
+                          disabled={busy || !isOnline}
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          종료 처리
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
