@@ -1,3 +1,8 @@
+---
+trigger: always_on
+description: Core coding behavior for ChronoLedger (think before coding, simplicity first, surgical changes, verifiable goals).
+---
+
 # agent_rules.md
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.

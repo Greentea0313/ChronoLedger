@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-18 (`skill-support-check` 마감)
+
+- Antigravity가 `.agents/skills/`를 바로 읽는 것을 확인해 별도 사본 없이 운용함. Antigravity 상시 규칙에 `agent_rules.md`·`document_location.md`가 들어가도록 frontmatter를 추가함.
+
 ## 2026-11-18 (지침 토큰 절감)
 
 - 운영 문서 4종의 끝난 Run·2026-11-10 이전 기록을 `docs/archive/*-archive.md`로 옮김.

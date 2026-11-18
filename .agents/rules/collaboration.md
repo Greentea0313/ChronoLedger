@@ -1,6 +1,6 @@
 ---
 trigger: always_on
-description: Enforces ChronoLedger 5-model AI collaboration roles, fallback chains, Active Dispatch Queue execution on "인수인계 문서를 확인해", and token-exhaustion emergency handover across all sessions.
+description: ChronoLedger 6-model AI collaboration roles, fallback chains, Claude Sonnet/Opus criteria and the Gemini 4 Argon no-direct-implementation rule. The handoff procedure itself is in .agents/skills/handoff/SKILL.md.
 ---
 
 # ChronoLedger 6-Model AI Collaboration & Emergency Handover Rules

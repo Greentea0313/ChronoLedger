@@ -2,6 +2,7 @@
 param(
     # Tool-specific skill folders to keep in sync with the single source .agents/skills.
     # Add a folder here only after that tool's project-skill path has been confirmed.
+    # Google Antigravity reads .agents/skills directly, so it needs no copy (skill-support-check, 2026-11-18).
     [string[]]$Targets = @('.claude/skills'),
 
     # Only compare; exit 1 when any copy differs from the source.

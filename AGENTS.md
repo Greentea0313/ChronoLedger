@@ -22,7 +22,7 @@ Do **not** read these up front. Open a skill only when its situation applies; ea
 | After finishing a step: update `docs/` | [.agents/skills/chronoledger-docs-closeout/SKILL.md](.agents/skills/chronoledger-docs-closeout/SKILL.md) |
 | Choosing a model or fallback | [.agents/rules/collaboration.md](.agents/rules/collaboration.md) |
 
-If your tool supports project skills natively, the same files may also be installed in its own skill folder by `scripts/collaboration/Sync-Skills.ps1` (currently only `.claude/skills`).
+Tools with native project-skill support load these on demand: Google Antigravity reads `.agents/skills/` directly; Claude Code reads the copy in `.claude/skills/` (kept in sync by `scripts/collaboration/Sync-Skills.ps1`). GitHub Copilot and GPT Codex support is unconfirmed, so open the files above manually when their situation applies.
 
 ## 3. Key Project Documents & Code Paths
 

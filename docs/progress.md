@@ -1,4 +1,7 @@
 # 프로젝트 진행 현황
+- **2026-11-18 (`skill-support-check` Step 4 — Claude Opus)**: Antigravity 결과 반영(사본 불필요), `agent_rules.md`·`document_location.md`에 `trigger: always_on` 추가, `AGENTS.md` 도구별 Skill 안내 갱신. Run 마감, 활성 Run 없음.
+- **2026-11-18 (`skill-support-check` Step 3 — Gemini 4 Argon)**: Google Antigravity IDE에서 `.agents/skills/*/SKILL.md` 6개 원본이 별도 사본 없이 `<skills>`에 자동 인식(Progressive Disclosure)되고, `<user_rules>`에는 `AGENTS.md`와 YAML frontmatter `trigger: always_on`이 있는 `.agents/rules/collaboration.md`·`language.md`만 상시 주입됨(`agent_rules.md`·`document_location.md`·`handoff.md`는 frontmatter 부재로 미주입)을 확인해 `docs/handoff.md` 결과 표에 기록함.
+
 ## 지침 토큰 절감: 운영 문서 보관 분리·Skill 분리 (2026-11-18)
 
 - **수행 주체**: Claude Opus (사용자 지시)임.
