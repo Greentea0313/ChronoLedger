@@ -28,6 +28,46 @@ CREATE TABLE public.incomes (
 );
 CREATE INDEX idx_incomes_user_date ON public.incomes(user_id, income_date DESC, created_at DESC);
 
+-- 1-2. 기타 건의 요청 (R84). 일반 사용자는 PENDING 등록·본인 조회만 가능하며 답변/상태 변경은 관리자/RPC로 처리.
+CREATE TABLE public.feedback_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    category VARCHAR(30) NOT NULL CHECK (category IN ('기능 제안', '오류 신고', '기타')),
+    title VARCHAR(100) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 100),
+    content TEXT NOT NULL CHECK (length(btrim(content)) BETWEEN 1 AND 2000),
+    request_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (request_status IN ('PENDING', 'ANSWERED', 'CLOSED')),
+    admin_answer TEXT CHECK (admin_answer IS NULL OR length(btrim(admin_answer)) <= 2000),
+    answered_at TIMESTAMPTZ,
+    answered_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_feedback_requests_status ON public.feedback_requests(request_status);
+CREATE INDEX idx_feedback_requests_user_id ON public.feedback_requests(user_id, created_at DESC);
+
+-- 1-3. 앱 내 알림함 (R84). 클라이언트 직접 쓰기 금지(RPC·DB 함수 전용), 본인 조회만 허용.
+CREATE TABLE public.notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    kind VARCHAR(40) NOT NULL CHECK (
+        kind IN ('FAVORITE_START', 'FAVORITE_END_D1', 'EXPENSE_D1', 'REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED')
+    ),
+    title VARCHAR(120) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 120),
+    body VARCHAR(300) NOT NULL CHECK (length(btrim(body)) BETWEEN 1 AND 300),
+    link_path TEXT NOT NULL CHECK (link_path ~ '^/' AND link_path !~ '^//' AND length(link_path) <= 200),
+    source_id UUID,
+    scheduled_for DATE,
+    push_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (push_status IN ('PENDING', 'SENT', 'SKIPPED', 'FAILED')),
+    push_attempts SMALLINT NOT NULL DEFAULT 0 CHECK (push_attempts >= 0),
+    pushed_at TIMESTAMPTZ,
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_notifications_user_created ON public.notifications(user_id, created_at DESC);
+CREATE INDEX idx_notifications_user_unread ON public.notifications(user_id, created_at DESC) WHERE read_at IS NULL;
+CREATE UNIQUE INDEX uq_notifications_daily_source
+    ON public.notifications(user_id, kind, source_id, scheduled_for) WHERE scheduled_for IS NOT NULL;
+
 -- 신규 가입 시 기본 재정 및 스토어 지갑을 무음 생성한다.
 CREATE OR REPLACE FUNCTION public.handle_new_user_setup()
 RETURNS TRIGGER AS $$
@@ -648,13 +688,25 @@ BEGIN
     END IF;
     UPDATE public.character_requests SET request_status = 'APPROVED', approved_character_id = v_character_id
     WHERE id = p_request_id;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id)
+    VALUES (
+        v_request.user_id,
+        'REQUEST_APPROVED',
+        '캐릭터 요청이 승인되었습니다',
+        '요청하신 캐릭터가 반영되었습니다. 내 요청 현황에서 확인하세요.',
+        '/dashboard/games',
+        v_request.id
+    );
     RETURN v_character_id;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.reject_character_request(p_request_id UUID, p_admin_memo TEXT DEFAULT NULL)
 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_is_admin BOOLEAN;
+DECLARE
+    v_is_admin BOOLEAN;
+    v_user_id UUID;
 BEGIN
     v_is_admin := ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
         OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin');
@@ -662,8 +714,19 @@ BEGIN
         RAISE EXCEPTION '관리자 권한이 필요합니다.' USING ERRCODE = 'insufficient_privilege';
     END IF;
     UPDATE public.character_requests SET request_status = 'REJECTED', admin_memo = p_admin_memo
-    WHERE id = p_request_id AND request_status = 'PENDING';
+    WHERE id = p_request_id AND request_status = 'PENDING'
+    RETURNING user_id INTO v_user_id;
     IF NOT FOUND THEN RAISE EXCEPTION '반려할 캐릭터 요청이 아닙니다.'; END IF;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id)
+    VALUES (
+        v_user_id,
+        'REQUEST_REJECTED',
+        '캐릭터 요청이 반려되었습니다',
+        '요청하신 캐릭터가 반려되었습니다. 내 요청 현황에서 확인하세요.',
+        '/dashboard/games',
+        p_request_id
+    );
 END;
 $$;
 REVOKE ALL ON FUNCTION public.approve_character_request(UUID, TEXT) FROM PUBLIC, anon;
@@ -1433,7 +1496,7 @@ BEGIN
         'user_finances', 'monthly_budgets', 'game_requests', 'user_games',
         'schedule_requests', 'character_requests', 'user_characters', 'user_character_presets',
         'personal_memos', 'subscription_templates', 'store_wallets', 'expenses', 'store_point_transactions',
-        'incomes'
+        'incomes', 'feedback_requests', 'notifications'
     ] LOOP
         EXECUTE format(
             'CREATE POLICY %I ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING (NOT public.account_deletion_is_pending(auth.uid())) WITH CHECK (NOT public.account_deletion_is_pending(auth.uid()))',
@@ -1503,6 +1566,8 @@ BEGIN
             WHERE bucket_id = 'user-icons'
               AND (name LIKE v_req.user_id || '/%' OR (path_tokens IS NOT NULL AND path_tokens[1] = v_req.user_id::text));
 
+            DELETE FROM public.notifications WHERE user_id = v_req.user_id;
+            DELETE FROM public.feedback_requests WHERE user_id = v_req.user_id;
             DELETE FROM public.schedule_requests WHERE user_id = v_req.user_id;
             DELETE FROM public.game_requests WHERE user_id = v_req.user_id;
             DELETE FROM public.store_point_transactions WHERE user_id = v_req.user_id;
@@ -1654,7 +1719,7 @@ BEGIN
         'user_finances', 'monthly_budgets', 'game_requests', 'user_games',
         'schedule_requests', 'character_requests', 'user_characters', 'user_character_presets',
         'personal_memos', 'subscription_templates', 'store_wallets', 'expenses', 'store_point_transactions',
-        'incomes'
+        'incomes', 'feedback_requests', 'notifications'
     ] LOOP
         EXECUTE format(
             'CREATE TRIGGER %I BEFORE INSERT OR UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.block_pending_account_data_mutations()',
@@ -1745,6 +1810,148 @@ GRANT SELECT ON public.incomes TO authenticated;
 DROP POLICY IF EXISTS "Read own incomes" ON public.incomes;
 CREATE POLICY "Read own incomes" ON public.incomes FOR SELECT TO authenticated
     USING (auth.uid() = user_id);
+
+-- R84 기타 건의 요청: 본인 조회/PENDING 등록, 관리자 전체 조회/관리, 직접 UPDATE/DELETE 차단.
+ALTER TABLE public.feedback_requests ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.feedback_requests FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT ON public.feedback_requests TO authenticated;
+DROP POLICY IF EXISTS "Read own feedback requests" ON public.feedback_requests;
+CREATE POLICY "Read own feedback requests" ON public.feedback_requests FOR SELECT TO authenticated
+    USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Create own feedback requests" ON public.feedback_requests;
+CREATE POLICY "Create own feedback requests" ON public.feedback_requests FOR INSERT TO authenticated
+    WITH CHECK (
+        auth.uid() = user_id
+        AND request_status = 'PENDING'
+        AND admin_answer IS NULL
+        AND answered_at IS NULL
+        AND answered_by IS NULL
+    );
+DROP POLICY IF EXISTS "Admins manage all feedback requests" ON public.feedback_requests;
+CREATE POLICY "Admins manage all feedback requests" ON public.feedback_requests FOR ALL TO authenticated
+    USING (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')
+    )
+    WITH CHECK (
+        (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+        OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')
+    );
+
+-- R84 앱 내 알림함: 본인 조회만 허용, 직접 쓰기 권한 없음(RPC·DB 함수 전용), anon 차단.
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.notifications FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.notifications TO authenticated;
+DROP POLICY IF EXISTS "Read own notifications" ON public.notifications;
+CREATE POLICY "Read own notifications" ON public.notifications FOR SELECT TO authenticated
+    USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.purge_expired_notifications()
+RETURNS INTEGER AS $$
+DECLARE
+    v_deleted_count INTEGER := 0;
+BEGIN
+    DELETE FROM public.notifications
+    WHERE created_at < NOW() - INTERVAL '30 days';
+    GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
+    RETURN v_deleted_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.purge_expired_notifications() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.purge_expired_notifications() TO service_role;
+
+CREATE OR REPLACE FUNCTION public.mark_notifications_read(p_notification_ids UUID[] DEFAULT NULL)
+RETURNS INTEGER AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_updated_count INTEGER := 0;
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION '로그인이 필요합니다.' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    IF public.account_deletion_is_pending(v_user_id) THEN
+        RAISE EXCEPTION '계정 삭제 대기 중에는 알림 상태를 변경할 수 없습니다.' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+
+    IF p_notification_ids IS NULL THEN
+        UPDATE public.notifications
+        SET read_at = NOW()
+        WHERE user_id = v_user_id AND read_at IS NULL;
+    ELSE
+        UPDATE public.notifications
+        SET read_at = NOW()
+        WHERE user_id = v_user_id
+          AND read_at IS NULL
+          AND id = ANY(p_notification_ids);
+    END IF;
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+    RETURN v_updated_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.mark_notifications_read(UUID[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.mark_notifications_read(UUID[]) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.answer_feedback_request(
+    p_request_id UUID,
+    p_admin_answer TEXT DEFAULT NULL,
+    p_status VARCHAR DEFAULT 'ANSWERED'
+)
+RETURNS VOID AS $$
+DECLARE
+    v_is_admin BOOLEAN;
+    v_request public.feedback_requests%ROWTYPE;
+    v_trimmed_answer TEXT;
+BEGIN
+    v_is_admin := ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+        OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin');
+    IF NOT coalesce(v_is_admin, false) THEN
+        RAISE EXCEPTION '관리자 권한이 필요합니다.' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+
+    IF p_status NOT IN ('ANSWERED', 'CLOSED') THEN
+        RAISE EXCEPTION '허용되지 않은 건의 상태입니다.';
+    END IF;
+
+    v_trimmed_answer := nullif(btrim(coalesce(p_admin_answer, '')), '');
+    IF p_status = 'ANSWERED' AND v_trimmed_answer IS NULL THEN
+        RAISE EXCEPTION '답변 내용을 입력해 주세요.';
+    END IF;
+    IF v_trimmed_answer IS NOT NULL AND length(v_trimmed_answer) > 2000 THEN
+        RAISE EXCEPTION '답변 내용은 2000자 이하여야 합니다.';
+    END IF;
+
+    SELECT * INTO v_request FROM public.feedback_requests WHERE id = p_request_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION '대상 건의 요청을 찾을 수 없습니다.';
+    END IF;
+
+    UPDATE public.feedback_requests
+    SET request_status = p_status,
+        admin_answer = coalesce(v_trimmed_answer, admin_answer),
+        answered_at = NOW(),
+        answered_by = auth.uid(),
+        updated_at = NOW()
+    WHERE id = p_request_id;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id)
+    VALUES (
+        v_request.user_id,
+        'FEEDBACK_ANSWERED',
+        '건의에 답변이 등록되었습니다',
+        CASE
+            WHEN p_status = 'CLOSED' THEN '등록하신 건의가 검토 종료되었습니다. 내 요청 현황에서 확인하세요.'
+            ELSE '등록하신 건의에 관리자 답변이 등록되었습니다. 내 요청 현황에서 확인하세요.'
+        END,
+        '/dashboard/games',
+        v_request.id
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.answer_feedback_request(UUID, TEXT, VARCHAR) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.answer_feedback_request(UUID, TEXT, VARCHAR) TO authenticated;
 
 -- 3. 지갑 설정 변경 RPC (등급 및 적립률)
 CREATE OR REPLACE FUNCTION public.update_store_wallet_settings(
@@ -2014,6 +2221,16 @@ BEGIN
         IF NOT FOUND THEN RAISE EXCEPTION '요청 대상 일정이 없거나 게임이 일치하지 않습니다.'; END IF;
     END IF;
     UPDATE public.schedule_requests SET request_status = 'APPROVED' WHERE id = p_request_id;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id)
+    VALUES (
+        v_request.user_id,
+        'REQUEST_APPROVED',
+        '일정 요청이 승인되었습니다',
+        '요청하신 일정이 반영되었습니다. 내 요청 현황에서 확인하세요.',
+        '/dashboard/games',
+        v_request.id
+    );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -2021,6 +2238,7 @@ CREATE OR REPLACE FUNCTION public.reject_schedule_request(p_request_id UUID, p_a
 RETURNS VOID AS $$
 DECLARE
     v_is_admin BOOLEAN;
+    v_user_id UUID;
 BEGIN
     v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
         OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
@@ -2029,8 +2247,19 @@ BEGIN
     END IF;
 
     UPDATE public.schedule_requests SET request_status = 'REJECTED', admin_memo = p_admin_memo
-    WHERE id = p_request_id AND request_status = 'PENDING';
+    WHERE id = p_request_id AND request_status = 'PENDING'
+    RETURNING user_id INTO v_user_id;
     IF NOT FOUND THEN RAISE EXCEPTION '반려할 일정 요청이 아닙니다.'; END IF;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id)
+    VALUES (
+        v_user_id,
+        'REQUEST_REJECTED',
+        '일정 요청이 반려되었습니다',
+        '요청하신 일정이 반려되었습니다. 내 요청 현황에서 확인하세요.',
+        '/dashboard/games',
+        p_request_id
+    );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -2059,6 +2288,16 @@ BEGIN
     RETURNING id INTO v_game_id;
     UPDATE public.game_requests SET request_status = 'APPROVED', approved_game_id = v_game_id
     WHERE id = p_request_id;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id)
+    VALUES (
+        v_request.user_id,
+        'REQUEST_APPROVED',
+        '게임 요청이 승인되었습니다',
+        '요청하신 게임이 카탈로그에 등록되었습니다. 내 요청 현황에서 확인하세요.',
+        '/dashboard/games',
+        v_request.id
+    );
     RETURN v_game_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -2067,6 +2306,7 @@ CREATE OR REPLACE FUNCTION public.reject_game_request(p_request_id UUID, p_admin
 RETURNS VOID AS $$
 DECLARE
     v_is_admin BOOLEAN;
+    v_user_id UUID;
 BEGIN
     v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
         OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
@@ -2075,8 +2315,19 @@ BEGIN
     END IF;
 
     UPDATE public.game_requests SET request_status = 'REJECTED', admin_memo = p_admin_memo
-    WHERE id = p_request_id AND request_status = 'PENDING';
+    WHERE id = p_request_id AND request_status = 'PENDING'
+    RETURNING user_id INTO v_user_id;
     IF NOT FOUND THEN RAISE EXCEPTION '반려할 게임 요청이 아닙니다.'; END IF;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id)
+    VALUES (
+        v_user_id,
+        'REQUEST_REJECTED',
+        '게임 요청이 반려되었습니다',
+        '요청하신 게임이 반려되었습니다. 내 요청 현황에서 확인하세요.',
+        '/dashboard/games',
+        p_request_id
+    );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -2343,6 +2594,16 @@ BEGIN
         'chronoledger-account-purge',
         '*/5 * * * *',
         'SELECT public.purge_expired_account_deletion_requests(10);'
+    );
+
+    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'chronoledger-notifications-purge') THEN
+        PERFORM cron.unschedule('chronoledger-notifications-purge');
+    END IF;
+
+    PERFORM cron.schedule(
+        'chronoledger-notifications-purge',
+        '15 0 * * *',
+        'SELECT public.purge_expired_notifications();'
     );
 END;
 $$;

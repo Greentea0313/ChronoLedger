@@ -73,6 +73,30 @@ isOneToOne: false
                     { foreignKeyName: "character_requests_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] },
                     { foreignKeyName: "character_requests_target_character_id_fkey"; columns: ["target_character_id"]; isOneToOne: false; referencedRelation: "game_characters"; referencedColumns: ["id"] }
                   ]
+                },"feedback_requests": {
+                  Row: {
+                    "admin_answer": string | null,"answered_at": string | null,"answered_by": string | null,"category": "기능 제안" | "오류 신고" | "기타","content": string,"created_at": string,"id": string,"request_status": "PENDING" | "ANSWERED" | "CLOSED","title": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "admin_answer"?: string | null,"answered_at"?: string | null,"answered_by"?: string | null,"category": "기능 제안" | "오류 신고" | "기타","content": string,"created_at"?: string,"id"?: string,"request_status"?: "PENDING" | "ANSWERED" | "CLOSED","title": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "admin_answer"?: string | null,"answered_at"?: string | null,"answered_by"?: string | null,"category"?: "기능 제안" | "오류 신고" | "기타","content"?: string,"created_at"?: string,"id"?: string,"request_status"?: "PENDING" | "ANSWERED" | "CLOSED","title"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: []
+                },"notifications": {
+                  Row: {
+                    "body": string,"created_at": string,"id": string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts": number,"push_status": "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at": string | null,"read_at": string | null,"scheduled_for": string | null,"source_id": string | null,"title": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"created_at"?: string,"id"?: string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title": string,"user_id": string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"id"?: string,"kind"?: "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title"?: string,"user_id"?: string
+                  }
+                  Relationships: []
                 },"game_characters": {
                   Row: {
                     "attributes": Json,"created_at": string,"created_by": string | null,"default_icon_url": string | null,"game_id": string,"id": string,"is_pickup_only": boolean,"name": string,"rarity": string | null,"updated_at": string
@@ -383,6 +407,9 @@ isOneToOne: false
 "admin_create_game":
 { Args: { "p_default_icon_url": string,"p_name": string }; Returns: string
                            },
+"answer_feedback_request":
+{ Args: { "p_admin_answer"?: string | null,"p_request_id": string,"p_status"?: string }; Returns: undefined
+                           },
 "approve_game_request":
 { Args: { "p_default_icon_url": string,"p_request_id": string }; Returns: string
                            },
@@ -429,6 +456,12 @@ isOneToOne: false
                            },
 "get_account_deletion_status":
 { Args: { "p_status_token": string }; Returns: Json
+                           },
+"mark_notifications_read":
+{ Args: { "p_notification_ids"?: string[] | null }; Returns: number
+                           },
+"purge_expired_notifications":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "process_expense_payment":
 { Args: { "p_custom_earned_points"?: number | null,"p_deduct_asset": boolean,"p_discount_amount": number,"p_expense_id": string,"p_memo"?: string | null,"p_original_price": number,"p_payment_date": string,"p_payment_method": string,"p_point_discount_amount": number,"p_point_platform": string | null,"p_used_points": number }; Returns: undefined
