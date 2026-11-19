@@ -13,7 +13,7 @@
 - **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
 - **Worktree 경로**: `.worktrees/r84-feedback-and-inbox` (브랜치: `collab/r84-feedback-and-inbox`, 매니페스트: `artifacts/r84-feedback-and-inbox/run.json`)
 - **Base SHA**: `ac71676bb8f4e0e737d97c26e21f35d7507296a1`
-- **Target SHA**: `d7eef7a177addb64952eb80a2fa18111278dce00` *(Step 2 완료 기준, 미병합)*
+- **Target SHA**: `0f8e188a295b2643d76f43a59de296d0e94375b7` *(iteration-02 Maker 수정 기준, 미병합. iteration-01 리뷰 대상은 `d7eef7a177addb64952eb80a2fa18111278dce00`)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`). 🐳 **Docker Desktop 필요**. `⚠️ LOCAL_DB_DEFERRED` (Step 1 로컬 DB 미실행 → Step 3에서 2회 멱등 적용·`TESTS.sql` 통과 전 병합 금지).
 - **원격 브랜치**: `origin/collab/r84-feedback-and-inbox` 없음(미push). 다른 PC에서 Step 3 진행 시 이 PC에서 사용자가 push 필요.
 
@@ -21,7 +21,15 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 0b93975)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Hydrogen** *(1순위 대체로 수행)* | `Maker (DB/RLS/RPC & Types)` | 🐳 **Docker Desktop 필요**. 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 0b93975`: `feedback_requests`·`notifications`·30일 정리 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·6개 요청 RPC 알림 연동·`TESTS.sql`·타입 반영. tsc·lint·Vitest 69파일/862개·diff-check 통과. ⚠️ Docker 미설치 PC로 로컬 DB 실행 미수행(사용자 지시로 Step 3 이관) |
 | **2** | **`✅ DONE (SHA: d7eef7a)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/components/game/user-requests-card.tsx`, `src/app/dashboard/games/page.test.tsx`(또는 `src/components/game/user-requests-card.test.tsx`), `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/layout/topbar.tsx`, 신규 `src/components/layout/notification-bell.tsx` 및 테스트 파일, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ d7eef7a`: 건의 모달·내 요청 카드·관리자 건의 대기열·상단바 알림 벨. tsc·lint·Vitest 892개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`🛑 BLOCKED (로컬 DB 검증 대기)`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 🐳 **Docker Desktop 필요**. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | `🛑` iteration-01 리뷰·테스트 아티팩트 커밋 `0429417`(워크트리). 발견 P3 2건·P4 3건, tsc·lint·Vitest 892개·build 통과, 로컬 DB 미실행(이 PC Docker 미설치)으로 병합 보류. 아래 Step 3 리뷰 기록 참고 |
+| **3** | **`🛑 BLOCKED (로컬 DB 검증 대기)`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 🐳 **Docker Desktop 필요**. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | `🛑` iteration-02 Maker 수정 `0f8e188`(P3 2건·P4 3건 반영) 완료, Docker PC에서 iteration-02 리뷰·로컬 DB 실행 후 병합 필요. iteration-01 아티팩트 `0429417`(워크트리). 발견 P3 2건·P4 3건, tsc·lint·Vitest 892개·build 통과, 로컬 DB 미실행(이 PC Docker 미설치)으로 병합 보류. 아래 Step 3 리뷰 기록 참고 |
+
+#### 📝 `r84-feedback-and-inbox` iteration-02 Maker 기록 (Claude Opus, 2026-11-19)
+
+- **Target SHA**: `0f8e188a295b2643d76f43a59de296d0e94375b7`(워크트리, 미push). 변경: 마이그레이션·`SCHEMA.sql`·`TESTS.sql`·`sql/README.md`·`notification-bell.tsx`·테스트임.
+- **수정**: `answer_feedback_request`가 `PENDING`이 아니면 예외(덮어쓰기·중복 알림 방지), `CLOSED` 알림 제목 분리, `TESTS.sql`에 재답변 거부·`approve/reject_game_request` 요청자 알림 1건·관리자 메모 미포함 검사 추가, README 재실행 경고에 R33·R52·UNOFFICIAL 추가, 알림 시각 KST 표시.
+- **검증**: tsc·lint·Vitest 70파일 893개·`git diff --check` 통과. 마이그레이션과 `SCHEMA.sql`의 `answer_feedback_request` 본문 일치 확인함. 로컬 DB 실행은 **미실행**(`⚠️ LOCAL_DB_DEFERRED`, Docker 미설치).
+- **원격 브랜치**: push 안 함.
+- **다음**: Docker PC에서 Reviewer(Claude Opus)가 iteration-02(`Base ac71676` ↔ `Target 0f8e188`) 리뷰·로컬 DB 2회 적용·`TESTS.sql` 통과 기록 후 병합함.
 
 #### 📝 `r84-feedback-and-inbox` Step 3 리뷰 기록 (Claude Opus, 2026-11-19, iteration-01)
 
