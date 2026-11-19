@@ -20,7 +20,7 @@ This specification defines **R13**: enabling ChronoLedger users to track owned c
    - Regular users can submit requests to add or update characters (via `RequestSubmissionModal`), which administrators approve or reject in `/admin/requests` using atomic `SECURITY DEFINER` RPCs—matching the existing `games` / `game_schedules` workflow.
 2. **Character Icon Pipeline (Identical to Game Icon Management)**:
    - **Master Default Icon (`game_characters.default_icon_url`)**: Stored as a 256×256 WebP Data URL (`data:image/webp;base64,...`) or validated static asset path, converted on upload/URL registration just like `games.default_icon_url`.
-   - **User Custom Icon (`user_characters.custom_icon_path`)**: Users can upload a custom icon per character (stored in the private `user-icons` Supabase Storage bucket under `{user_id}/characters/{character_id}.webp`), resolved via signed URL caching/preload with automatic fallback to `game_characters.default_icon_url` and `GameIcon` fallback.
+   - **User Custom Icon (`user_characters.custom_icon_path`)**: Users can upload a custom icon per character (stored in the private `user-icons` Supabase Storage bucket under `{user_id}/characters/{character_id}.webp`), resolved via Object URL caching/preload with automatic fallback to `game_characters.default_icon_url` and `GameIcon` fallback.
 3. **Per-Game Classification & Rarity Optimization**:
    - Subculture games use different terminology and axes for character classification (e.g., *Genshin*: Rarity `5★/4★` + `원소` + `무기`; *Honkai: Star Rail*: `5★/4★` + `속성` + `운명의 길`; *Arknights*: `6★~1★` + `직군` + `세부직군`; *Nikke*: `SSR/SR/R` + `버스트(I/II/III)` + `코드/무기`).
    - Each game (`public.games`) defines its own **Rarity options** and up to **3 classification axes** (`classification_schema` JSONB). Each character (`public.game_characters`) stores its `rarity` and key-value `attributes` JSONB matching the parent game's schema, enabling fast, zero-join client filtering and sorting in both the roster tab and preset builder.
@@ -313,7 +313,7 @@ This section records the outcome of the §6 checklist. It is normative: Phase 13
 ### 7.2 Storage Compatibility (Checklist 2)
 
 - **Verdict**: Compatible without a new bucket. Verified in `sql/SCHEMA.sql`: the `user-icons` policies check `(storage.foldername(name))[1] = auth.uid()::text`, and the purge deletes `name LIKE user_id || '/%'`; both cover `{user_id}/characters/{character_id}.webp`.
-- **Required code change**: `src/lib/storage-upload.ts` hard-codes `${userId}/${gameId}.webp` and caches by `${userId}/${gameId}`. Phase 13.3 must add character-specific helpers (upload, download with signed URL cache, delete) keyed by the full object path so game and character caches cannot collide.
+- **Required code change**: `src/lib/storage-upload.ts` hard-codes `${userId}/${gameId}.webp` and caches by `${userId}/${gameId}`. Phase 13.3 must add character-specific helpers (upload, download with Object URL cache, delete) keyed by the full object path so game and character caches cannot collide.
 - **Orphaned files**: When an admin deletes a character, `user_characters` rows cascade but Storage objects are not removed by SQL. Accepted: files remain private, are overwritten on re-upload, and are removed at account deletion. The client deletes the object when a user resets a custom icon.
 
 ### 7.3 Edge Cases (Checklist 4)

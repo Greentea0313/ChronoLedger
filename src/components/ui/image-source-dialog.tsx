@@ -185,11 +185,13 @@ function ImageSourceDialogBody<T>({
           value={text}
           onChange={(event) => handleTextChange(event.target.value)}
           onPaste={handlePaste}
-          onBlur={() => { if (sourceRef.current?.input.kind === "text" && !valueRef.current && !isConverting) void convertCurrent() }}
+          onBlur={() => {
+            if (!isOffline() && sourceRef.current?.input.kind === "text" && !valueRef.current && !isConverting) void convertCurrent()
+          }}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return
             event.preventDefault()
-            if (sourceRef.current?.input.kind === "text") void convertCurrent()
+            if (!isOffline() && sourceRef.current?.input.kind === "text") void convertCurrent()
           }}
           placeholder="https://... 또는 이미지 붙여넣기"
         />
@@ -205,7 +207,7 @@ function ImageSourceDialogBody<T>({
             selectFile(file)
           }}
         />
-        <p className="text-[11px] text-content-muted">투명 배경 이미지는 파일 업로드를 권장함. 붙여넣기는 원본 주소가 있으면 주소로 가져옴.</p>
+        <p className="text-[11px] text-content-muted">투명 배경 이미지는 파일 업로드를 권장합니다. 붙여넣기는 원본 주소가 있으면 주소로 가져옵니다.</p>
         {extra}
         {isConverting && <p role="status" className="text-xs text-content-muted">이미지 변환 중...</p>}
         {value && (

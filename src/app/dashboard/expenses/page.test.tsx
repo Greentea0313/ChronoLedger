@@ -1228,7 +1228,7 @@ describe("ExpensesPage 수익 내역 (R93)", () => {
     fireEvent.click(within((await screen.findAllByTestId("income-row"))[0]).getByRole("button", { name: "수익 1 삭제" }))
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제" }))
 
-    expect((await within(screen.getByRole("dialog")).findByRole("alert")).textContent).toContain("삭제하지 못했습니다")
+    expect((await within(screen.getByRole("dialog")).findByRole("alert")).textContent).toContain("삭제하지 못했습니다: denied")
     expect(screen.getAllByTestId("income-row")).toHaveLength(1)
   })
 

@@ -1165,7 +1165,7 @@ export default function GamesPage() {
         open={iconDialogGame !== null}
         onOpenChange={(open) => { if (!open) setIconDialogGame(null) }}
         title={iconDialogGame ? `${iconDialogGame.name} 아이콘 등록` : "게임 아이콘 등록"}
-        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환해 저장함."
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환해 저장합니다."
         convert={(file) => resizeImageToWebP(file)}
         previewSrc={(blob) => URL.createObjectURL(blob)}
         onRegister={(blob) => (iconDialogGame ? handleIconUpload(iconDialogGame.id, blob) : Promise.resolve("게임을 선택해 주세요."))}

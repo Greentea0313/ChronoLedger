@@ -217,6 +217,7 @@ export default function AdminPage() {
   const [iconError, setIconError] = useState<string | null>(null)
   // R77/R81: target option of the shared image dialog (64x64 WebP classification icon).
   const [iconDialog, setIconDialog] = useState<{ axisKey: string; axisLabel: string; option: string } | null>(null)
+  const [iconRefreshTick, setIconRefreshTick] = useState(0)
 
   useEffect(() => {
     setIsAiUpscaleVisible(isDesktopAiUpscaleAvailable())
@@ -423,11 +424,6 @@ export default function AdminPage() {
   const activeCharacterGameId = games.some((game) => game.id === characterGameFilter) ? characterGameFilter : (games[0]?.id ?? "")
   const iconTargetGameId = templateFlowGameId !== null && editingGame?.id === templateFlowGameId ? editingGame.id : activeCharacterGameId
 
-  const refreshClassificationIcons = useCallback(async (targetGameId: string) => {
-    const set = await loadClassificationIcons(targetGameId)
-    setClassificationIcons({ gameId: targetGameId, ...set })
-  }, [])
-
   useEffect(() => {
     if (role !== "admin" || !iconTargetGameId) return
     let cancelled = false
@@ -437,7 +433,7 @@ export default function AdminPage() {
     return () => {
       cancelled = true
     }
-  }, [role, iconTargetGameId])
+  }, [role, iconTargetGameId, iconRefreshTick])
 
   if (authLoading) return <div className="p-6">불러오는 중...</div>
   if (!user || role !== "admin") {
@@ -771,13 +767,15 @@ export default function AdminPage() {
 
   const handleDeleteClassificationIcon = (axisKey: string, option: string) =>
     runIconWrite(axisKey, option, "분류 아이콘을 삭제하지 못했습니다.", async (targetGameId) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("game_classification_icons")
         .delete()
         .eq("game_id", targetGameId)
         .eq("axis_key", axisKey)
         .eq("option_value", option)
+        .select("axis_key")
       if (error) return iconWriteErrorText("분류 아이콘을 삭제하지 못했습니다.", error)
+      if (!data || data.length === 0) return "삭제할 분류 아이콘을 찾지 못했습니다."
       patchClassificationIcon(targetGameId, axisKey, option, null)
       setMessage({ type: "success", text: `'${option}' 분류 아이콘을 삭제했습니다.` })
       return null
@@ -969,7 +967,7 @@ export default function AdminPage() {
       setDeletingTemplateGame(null)
       await fetchCharacters()
       void fetchGames()
-      void refreshClassificationIcons(game.id)
+      setIconRefreshTick((prev) => prev + 1)
     } catch (cause) {
       setTemplateDeleteError(cause instanceof Error ? cause.message : "템플릿 삭제 중 오류가 발생했습니다.")
     } finally {
@@ -1113,8 +1111,8 @@ export default function AdminPage() {
         })
         setIsGameModalOpen(false)
         const continueWithFirstCharacter = templateFlowGameId === editingGame.id && rarities.length >= 1
-        // The cleanup trigger may have deleted icons of removed/renamed options: reload this game's icons.
-        if (isTemplateSave) void refreshClassificationIcons(editingGame.id)
+        // The cleanup trigger may have deleted icons of removed/renamed options: reload this game's icons via effect.
+        if (isTemplateSave) setIconRefreshTick((prev) => prev + 1)
         setTemplateFlowGameId(null)
         if (continueWithFirstCharacter) {
           // Reflect the new template locally so the first character form already uses it.
@@ -2855,9 +2853,14 @@ export default function AdminPage() {
       />
       <ImageSourceDialog<string>
         open={iconDialog !== null}
-        onOpenChange={(open) => { if (!open) setIconDialog(null) }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIconDialog(null)
+            setIconError(null)
+          }
+        }}
         title={iconDialog ? `${iconDialog.axisLabel} · ${iconDialog.option} 아이콘 등록` : "분류 아이콘 등록"}
-        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 64×64 WebP로 변환해 저장함."
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 64×64 WebP로 변환해 저장합니다."
         fetchSize={64}
         convert={createClassificationIconDataUrl}
         previewSrc={(dataUrl) => dataUrl}

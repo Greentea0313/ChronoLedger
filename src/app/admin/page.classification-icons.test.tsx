@@ -56,14 +56,17 @@ describe("AdminPage - 분류 옵션 아이콘 (R64)", () => {
   let iconRows: Array<Record<string, string>>
   let iconSelectError: { code?: string; message: string } | null
   let iconWriteError: { code?: string; message: string } | null
+  let iconDeleteData: Array<Record<string, string>> | null = null
   let iconCalls: Array<{ op: IconOp; args: unknown[]; filters: Array<[string, unknown]> }>
 
   function createIconQuery() {
     let op: IconOp = "select"
+    let hasSelect = false
     const filters: Array<[string, unknown]> = []
     const query: Record<string, unknown> = {}
     query.select = vi.fn((...args: unknown[]) => {
-      iconCalls.push({ op: "select", args, filters })
+      hasSelect = true
+      if (op === "select") iconCalls.push({ op: "select", args, filters })
       return query
     })
     query.upsert = vi.fn((...args: unknown[]) => {
@@ -81,9 +84,12 @@ describe("AdminPage - 분류 옵션 아이콘 (R64)", () => {
       return query
     })
     query.then = (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) => {
+      const deleteRows = iconDeleteData ?? [{ axis_key: "element" }]
       const result = op === "select"
         ? { data: iconSelectError ? null : iconRows, error: iconSelectError }
-        : { data: null, error: iconWriteError }
+        : op === "delete" && hasSelect
+          ? { data: iconWriteError ? null : deleteRows, error: iconWriteError }
+          : { data: null, error: iconWriteError }
       return Promise.resolve(result).then(resolve, reject)
     }
     return query
@@ -213,6 +219,19 @@ describe("AdminPage - 분류 옵션 아이콘 (R64)", () => {
     await waitFor(() => expect(within(editor).queryByTestId("classification-option-icon")).toBeNull())
     expect(within(editor).queryByRole("button", { name: "속성 불 아이콘 삭제" })).toBeNull()
     expect(await screen.findByText("'불' 분류 아이콘을 삭제했습니다.")).toBeTruthy()
+  })
+
+  it("삭제 대상 행이 0건이면 실패 오류를 표시하고 미리보기를 유지한다 (R75)", async () => {
+    iconDeleteData = []
+    try {
+      const editor = await openTemplateEditorWithIcons()
+      fireEvent.click(within(editor).getByRole("button", { name: "속성 불 아이콘 삭제" }))
+
+      expect((await within(editor).findByRole("alert")).textContent).toContain("삭제할 분류 아이콘을 찾지 못했습니다.")
+      expect(within(editor).getByTestId("classification-option-icon")).toBeTruthy()
+    } finally {
+      iconDeleteData = null
+    }
   })
 
   it("오프라인이면 쓰기 없이 오프라인 안내를 보여준다", async () => {

@@ -105,7 +105,7 @@ export function ProfileAvatarCard() {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         title="프로필 사진 등록"
-        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환해 저장함."
+        description="이미지 URL, 붙여넣기, 파일 중 하나로 등록하면 256×256 WebP로 변환해 저장합니다."
         convert={(file) => resizeImageToWebP(file)}
         previewSrc={(blob) => URL.createObjectURL(blob)}
         onRegister={handleRegister}

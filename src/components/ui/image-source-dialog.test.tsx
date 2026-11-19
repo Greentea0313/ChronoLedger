@@ -132,7 +132,21 @@ describe("ImageSourceDialog", () => {
 
   it("shows the transparency hint", () => {
     render(<Harness convert={async () => "x"} onRegister={vi.fn(async () => null)} />)
-    expect(screen.getByText(/투명 배경 이미지는 파일 업로드를 권장함/)).toBeTruthy()
+    expect(screen.getByText(/투명 배경 이미지는 파일 업로드를 권장합니다/)).toBeTruthy()
+  })
+
+  it("skips URL conversion on blur and Enter while offline", () => {
+    const convert = vi.fn(async () => "data:converted/x")
+    Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+    try {
+      render(<Harness convert={convert} onRegister={vi.fn(async () => null)} />)
+      fireEvent.change(textInput(), { target: { value: "https://cdn.example.com/icon.png" } })
+      fireEvent.blur(textInput())
+      fireEvent.keyDown(textInput(), { key: "Enter" })
+      expect(convert).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+    }
   })
 
   it("drops the result of an older source", async () => {

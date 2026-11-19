@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-19 (UI·코드 후속 개선 5건: `R95`·`R87`·`R75②③`·`13.2-F2`·`13.2-F3`)
+
+- **`R95`**: 수익 내역 삭제(`delete_income`) 실패 시 RPC 오류 사유(`error.message`)를 다이얼로그에 함께 표시함.
+- **`R87`**: `ImageSourceDialog`에서 오프라인 시 URL `blur`/`Enter` 변환을 건너뛰고, 관리자 분류 아이콘 모달 닫기 시 `iconError`를 초기화하며, 이미지 등록 모달 설명·안내 문구 어투(`~합니다`)를 통일함.
+- **`R75` ②·③**: 관리자 분류 아이콘 삭제 시 `.delete().select("axis_key")`로 0행이면 실패 오류를 표시하고, 템플릿 저장·삭제 후 아이콘 재조회를 취소 가능한 effect(`iconRefreshTick`)로 통합함.
+- **`13.2-F2`·`F3`**: `docs/spec/R13_Character_Roster_and_Preset_Spec.md` §2.4·§7.2의 `signed URL` 표현을 `Object URL`로 보정하고, `vitest.config.ts` exclude에 `.claude/worktrees/**`를 추가함.
+
 ## 2026-11-19 (`R85` 일정 시간 단위 상세 설계)
 
 - 일정 시각 컬럼·일관성 제약·표시/종료 판정 규칙·입력 폼·게임별 서버 초기화 시각 검토를 담은 `docs/r85-schedule-time-design.md`를 추가함.

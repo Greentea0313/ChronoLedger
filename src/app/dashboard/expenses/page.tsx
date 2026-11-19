@@ -676,7 +676,9 @@ export default function ExpensesPage() {
     try {
       const { error } = await supabase.rpc("delete_income", { p_income_id: deletingIncome.id })
       if (error) {
-        setIncomeDeleteError("수익 내역을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+        setIncomeDeleteError(
+          error.message ? `수익 내역을 삭제하지 못했습니다: ${error.message}` : "수익 내역을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        )
         return
       }
       setDeletingIncome(null)
