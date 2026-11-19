@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## Run `r84-feedback-and-inbox` Step 3 iteration-02 리뷰 (2026-11-19)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임. 🐳 Docker 켜진 PC에서 원격 브랜치로 워크트리를 복원해 진행함.
+- **결과**: iteration-01 지적 5건 반영 확인. 로컬 DB에 R84 마이그레이션 2회 적용은 성공했으나 `TESTS.sql`이 R84 블록 테스트 코드 문제 4건(`R84-REV-06`~`09`, 모두 P2)으로 실패함. 진단 사본으로 4건을 고치면 전체 통과함을 확인함.
+- **결정**: 병합하지 않음. Maker iteration-03(`TESTS.sql`만 수정, GPT Codex → Claude Opus / Gemini 4 Neon 대체) `▶ READY`, 그 뒤 Step 3 재리뷰·병합.
+
 - **2026-11-19 (`r84-feedback-and-inbox` iteration-02 Maker — Claude Opus)**: 리뷰 P3 2건·P4 3건 수정, 워크트리 `0f8e188`(tsc·lint·Vitest 893개 통과, 로컬 DB 미실행). Docker PC에서 iteration-02 리뷰·로컬 DB 검증 후 병합 필요, 브랜치 미push.
 - **2026-11-19 (`r84-feedback-and-inbox` Step 3 리뷰 — Claude Opus)**: Base `ac71676` ↔ Target `d7eef7a` 정적 리뷰·테스트 아티팩트 커밋 `0429417`(워크트리). P3 2건(`answer_feedback_request` PENDING 확인 없음, 승인/반려 알림 TESTS 누락)·P4 3건. tsc·lint·Vitest 892개·build 통과, 로컬 DB 미실행(Docker 미설치)으로 `🛑 BLOCKED (로컬 DB 검증 대기)`, 병합 보류.
 - **2026-11-19 (`pipeline-collab-6-items-opus-review` Step 1 — Claude Opus)**: 6대 개선안 2차 검토서 §4 작성, 6건 채택(범위 검사 확대·`sql/` diff 기준 로컬 DB 병합 게이트·티어별 인계·워크트리 복원·위임 금지 범위 보완). 스킬 6종·Copilot 지침·`New-CollaborationRun.ps1` 반영, Run 마감. 다음: `r84-feedback-and-inbox` Step 3(`Claude Opus`, 🐳) `▶ READY`. 현재 PC Docker 미설치·r84 브랜치 미push 상태임.

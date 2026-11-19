@@ -7,7 +7,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-#### 1) 차단 중 Run: `r84-feedback-and-inbox` *(Step 3 `🛑 BLOCKED (로컬 DB 검증 대기)` — 리뷰 완료, 병합 보류)*
+#### 1) 활성 Run: `r84-feedback-and-inbox` *(Step 3 iteration-02 리뷰 완료(2026-11-19, 로컬 `TESTS.sql` 실패 → Maker iteration-03 `▶ READY`), 이전 표기: Step 3 `🛑 BLOCKED (로컬 DB 검증 대기)` — 리뷰 완료, 병합 보류)*
 
 - **Run ID**: `r84-feedback-and-inbox` *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
 - **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
@@ -21,7 +21,22 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 0b93975)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Hydrogen** *(1순위 대체로 수행)* | `Maker (DB/RLS/RPC & Types)` | 🐳 **Docker Desktop 필요**. 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 0b93975`: `feedback_requests`·`notifications`·30일 정리 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·6개 요청 RPC 알림 연동·`TESTS.sql`·타입 반영. tsc·lint·Vitest 69파일/862개·diff-check 통과. ⚠️ Docker 미설치 PC로 로컬 DB 실행 미수행(사용자 지시로 Step 3 이관) |
 | **2** | **`✅ DONE (SHA: d7eef7a)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/components/game/user-requests-card.tsx`, `src/app/dashboard/games/page.test.tsx`(또는 `src/components/game/user-requests-card.test.tsx`), `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/layout/topbar.tsx`, 신규 `src/components/layout/notification-bell.tsx` 및 테스트 파일, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ d7eef7a`: 건의 모달·내 요청 카드·관리자 건의 대기열·상단바 알림 벨. tsc·lint·Vitest 892개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`🛑 BLOCKED (로컬 DB 검증 대기)`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 🐳 **Docker Desktop 필요**. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | `🛑` iteration-02 Maker 수정 `0f8e188`(P3 2건·P4 3건 반영) 완료, Docker PC에서 iteration-02 리뷰·로컬 DB 실행 후 병합 필요. iteration-01 아티팩트 `0429417`(워크트리). 발견 P3 2건·P4 3건, tsc·lint·Vitest 892개·build 통과, 로컬 DB 미실행(이 PC Docker 미설치)으로 병합 보류. 아래 Step 3 리뷰 기록 참고 |
+| **3a** | **`▶ READY`** | **GPT Codex** *(Claude Opus / Gemini 4 Neon 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (iteration-03: TESTS.sql R84 fixes)` | 🐳 **Docker Desktop 필요**. `.worktrees/r84-feedback-and-inbox`에서 아래 iteration-02 리뷰 기록의 `R84-REV-06`~`09`(모두 `sql/tests/TESTS.sql` 테스트 코드 문제) 수정. 허용 파일: `sql/tests/TESTS.sql`만. 로컬 Supabase(`sql/README.md` C절)에서 Base 스키마 + R84 마이그레이션 2회 적용 후 `TESTS.sql` 끝까지 통과(마지막 rollback PASS) 확인·커밋·push 후 Step 3 재리뷰를 `▶ READY`로 전환 | - |
+| **3** | **`⏳ WAITING (iteration-03 후 재리뷰·병합)`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 🐳 **Docker Desktop 필요**. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | `🛑` iteration-02 Maker 수정 `0f8e188`(P3 2건·P4 3건 반영) 완료, Docker PC에서 iteration-02 리뷰·로컬 DB 실행 후 병합 필요. iteration-01 아티팩트 `0429417`(워크트리). 발견 P3 2건·P4 3건, tsc·lint·Vitest 892개·build 통과, 로컬 DB 미실행(이 PC Docker 미설치)으로 병합 보류. 아래 Step 3 리뷰 기록 참고 |
+
+#### 📝 `r84-feedback-and-inbox` Step 3 iteration-02 리뷰 기록 (Claude Opus, 2026-11-19)
+
+- **범위**: Base `ac71676` ↔ Target `0f8e188`. 이 PC에 워크트리가 없어 handoff Skill §1 5단계로 원격 브랜치에서 복원함. 범위 검사(조상·`Target..HEAD`의 `src`·`sql` 변경 없음) 통과. 산출물 `artifacts/r84-feedback-and-inbox/iteration-02/review.json`·`test.json`, `run.json` `target_sha` 갱신(커밋 `eb6379c`, 원격 브랜치 push 완료).
+- **iteration-01 지적 반영 확인**: P3 2건(`answer_feedback_request` PENDING 가드, 승인/반려 알림 `TESTS.sql` 검사)·P4 3건(`CLOSED` 제목, README 경고, KST 시각 표시) 모두 반영됨. 마이그레이션과 `SCHEMA.sql` 본문 일치.
+- **🐳 로컬 DB**: 로컬 Supabase 초기화 → Base `SCHEMA.sql`(`ac71676`) → R84 마이그레이션 **1·2회차 모두 성공(멱등)** → 테이블·권한(`authenticated` 직접 INSERT/UPDATE·`anon` 조회 불가)·`pg_cron` 잡(`chronoledger-notifications-purge`) 확인. **`TESTS.sql`은 R84 블록에서 실패**(35개 PASS 후 중단).
+- **지적 (모두 P2, 테스트 코드 문제 — 마이그레이션·RPC 결함 아님)**:
+  - `R84-REV-06`: R93 블록이 `request.jwt.claim.sub`를 사용자 A로 남겨 두고 A는 삭제 대기 상태라, R84 블록 첫 fixture INSERT(약 2127행)와 30일 정리 블록(약 2299행)이 삭제 대기 트리거에 막힘 → 두 곳 앞에서 `claim.sub`·`claims`를 `''`로 초기화(known-pitfalls 40).
+  - `R84-REV-07`: iteration-02에서 추가한 게임 요청 승인/반려로 사용자 B 알림이 2건 더 생겨 `mark_notifications_read(NULL)`가 2를 반환함(정상) → 남은 알림을 먼저 읽음 처리한 뒤 0을 확인하도록 기대값 수정(약 2208행).
+  - `R84-REV-08`: 삭제 대기 사용자 건의 INSERT는 RLS보다 BEFORE 트리거의 `raise_exception`이 먼저 나므로 `raise_exception`도 받도록 수정(약 2283행).
+  - `R84-REV-09`: `DO $$` 본문 안에서 psql 변수 `:'other_user_id'` 사용 → `current_setting('chronoledger.other_user_id')::uuid`로 수정(약 2307행).
+- **진단 결과**: 저장소는 건드리지 않고 컨테이너 임시 사본에 위 4가지를 넣어 실행하면 `TESTS.sql` **전체 통과(40개 PASS, R84 블록 포함, 마지막 rollback PASS)**함 → 수정 방향 확인됨.
+- **앱 검사**: tsc·lint·`git diff --check`·build 통과, Vitest 70파일/893개 통과함. 공식 산출물 검증 스크립트는 `jsonschema` 미설치로 미실행, Node 부분 검증기로 스키마 형식만 확인함.
+- **결정**: 리뷰어 규칙(로컬 DB에서 `sql/` 결함 발견 시 Maker 반복)에 따라 **병합하지 않음**. Maker iteration-03(`sql/tests/TESTS.sql`만 수정) 후 Step 3 재리뷰에서 로컬 DB 통과를 확인하고 병합함.
 
 #### 📝 `r84-feedback-and-inbox` iteration-02 Maker 기록 (Claude Opus, 2026-11-19)
 
