@@ -6,6 +6,26 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 이전 Run 기록 (완료): `pipeline-collab-6-items-opus-review`
+
+- **Run ID**: `pipeline-collab-6-items-opus-review` **(완료, 2026-11-19)** *(AI 협업 파이프라인 6대 병목·모순 Opus 2차 검토 및 스킬 반영)*
+- **Orchestrator**: Gemini 4 Argon *(2026-11-19 사용자 지시로 등록)*
+- **Worktree 경로**: `main` (협업 문서·스킬 개정, 제품 코드·DB 변경 없음)
+- **Base SHA**: `7c0ff3cbb73a8eee636d95cb98bccd7882d8cc8e`
+
+| 순서 | 상태 | 담당 모델 | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (2026-11-19)`** | **Claude Opus** | `Reviewer & Architect (Pipeline Audit)` | [`docs/pipeline-collaboration-review.md`](../pipeline-collaboration-review.md) §4 작성, 6건 채택(보완 포함), 스킬 6종·Copilot 지침·`New-CollaborationRun.ps1` 반영 |
+
+#### 📝 `pipeline-collab-6-items-opus-review` Step 1 완료 기록 (Claude Opus, 2026-11-19)
+
+- **P1-1**: Reviewer가 `run.json` `target_sha`를 채워 아티팩트와 한 커밋에 넣음. 범위 검사(`merge-base --is-ancestor`·`git diff <Target> HEAD -- src sql`)를 워크트리 Run까지 확대함.
+- **P1-2**: Maker·SQL 스킬·Copilot 지침에 티어별 인계(Sonnet→Opus, Hydrogen→Neon 또는 Argon/Opus) 반영함.
+- **P2-1·P2-2**: handoff §1 5단계 워크트리 복원 추가. Docker 미설치/엔진 꺼짐 분기, `⚠️ LOCAL_DB_DEFERRED` 표기, `sql/` diff 기준 병합 게이트 추가함.
+- **P2-3·P3-1**: 수용 기준 포인터+8줄 원칙, 서브에이전트 위임 허용·금지 범위 명시함.
+- **검증**: `Sync-Skills.ps1 -Check` 일치, PS1 구문 검사 오류 0건, `git diff --check` 통과. 제품 코드 변경 없어 tsc·Vitest 미실행.
+- **남은 점**: 검증기 `--manifest` 교차 검사는 후속 후보(미등록).
+
 ### 🗂️ 이전 Run 기록 (완료): `r89-push-notification-research`
 
 - **Run ID**: `r89-push-notification-research` **(완료, 2026-11-18)** *(`R89` · `R39` 연계: 웹 푸시(PWA)·Tauri 데스크톱 알림 지원 범위, 서버리스 발송 구조, 구독 저장·RLS, 게임 일정·예정 지출 알림 및 `R84` 건의 답변 알림 통합 설계 조사)*

@@ -18,8 +18,9 @@ Supabase
 ├── Auth: 이메일 및 Google OAuth
 ├── PostgreSQL: RLS 격리, 원자적 RPC, 일정 동기화 트리거
 ├── Storage: 소유자 전용 비공개 커스텀 아이콘
-└── pg_cron & 원자적 RPC (계정 삭제 전용 내부 스케줄러):
-    ├── purge_expired_account_deletion_requests: 5분 주기 자동 정리
+└── pg_cron & 원자적 RPC (내부 스케줄러):
+    ├── purge_expired_account_deletion_requests: 5분 주기 계정 탈퇴 자동 정리
+    ├── purge_expired_notifications: 매일 00:15 UTC 30일 경과 알림 자동 정리 (R84)
     └── request_account_deletion, get_account_deletion_status: SECURITY DEFINER RPC
 ```
 
@@ -27,7 +28,8 @@ Supabase
 
 - 클라이언트는 Supabase SDK를 통해 데이터 조회와 허용된 사용자 요청을 수행한다. 비밀 키를 포함하지 않는다.
 - PostgreSQL RLS는 개인 데이터 소유권을 강제한다. 관리자 권한은 JWT `app_metadata.role=admin`을 기준으로 하며 값은 Supabase 관리 콘솔/서버에서만 부여한다.
-- 공용 `games` 카탈로그와 `game_schedules`는 인증 사용자가 읽는다. 직접 변경은 관리자만 가능하다. 사용자 제안은 `game_requests` 및 `schedule_requests`에 저장하고 관리자 승인 RPC로 반영한다.
+- 공용 `games` 카탈로그와 `game_schedules`는 인증 사용자가 읽는다. 직접 변경은 관리자만 가능하다. 사용자 제안은 `game_requests`·`schedule_requests`·`character_requests`·`feedback_requests`(기타 건의, 본인 조회·`PENDING` 등록만 허용)에 저장하고 관리자 승인·반려·답변 RPC(`answer_feedback_request` 등)로 반영한다.
+- `public.notifications`는 본인 `SELECT`만 허용하며 직접 쓰기를 원천 차단함. 알림 행은 관리자 승인·반려·건의 답변 RPC 내부에서 같은 트랜잭션으로 생성하고, 읽음 처리는 `mark_notifications_read` `SECURITY DEFINER` RPC만 허용함(R84).
 - 자산·포인트 원장·지갑 설정·확정 지출은 전용 `SECURITY DEFINER` RPC 경로에서 검증 및 원자적으로 변경한다. 함수 실행 권한은 `authenticated`로 제한한다.
 - `VERSION`/`PICKUP` 일정의 날짜 변경 트리거는 관련 예정 지출만 동기화한다. 확정 회계 기록은 수정하지 않는다.
 
@@ -41,9 +43,10 @@ Supabase
 - `src/components/calendar/desktop-calendar.tsx`: 6주 월간 그리드와 타일 렌더링(배너/아이콘/메모 도트 전용, 금액 미표시).
 - `src/components/calendar/hero-sidebar.tsx`, `mobile-drawer.tsx`: 선택일 상세, 예산 진행률, 포인트 요약을 데스크톱/모바일 각각의 레이아웃으로 표시한다.
 - `src/components/expense/`: 예정 지출 입력, 결제/환불 RPC 호출, 예산 요약 및 만료 예정 지출 흐름.
-- `src/components/game/`: 공용 카탈로그 선택 및 게임 요청, 일정 추가·수정 제안 제출, 개인 아이콘 업로드/표시.
+- `src/components/game/`: 공용 카탈로그 선택 및 게임 요청, 일정·캐릭터 추가/수정 제안, 기타 건의(`feedback_requests`) 제출 및 내 요청 현황 조회, 개인 아이콘 업로드/표시.
+- `src/components/layout/notification-bell.tsx`: 로그인 사용자 상단바 앱 내 알림함(최근 30건·미읽음 배지·KST 시각·`mark_notifications_read` RPC·상대 경로 이동, R84).
 - `src/lib/schedule-preferences.ts`: `users.show_unofficial_schedules` 설정 조회·저장 및 마이그레이션 미적용 상태 처리. 공식 여부는 `game_schedules.is_official`/`schedule_requests.is_official`로 관리하며, 사용자 설정에 따라 일정 화면에서 비공식 일정을 필터링한다.
-- `src/app/admin/requests/`: 관리자 전용 게임/일정 요청 조회 및 승인·반려 화면. DB 변경은 승인된 RPC 경로를 사용한다.
+- `src/app/admin/requests/`: 관리자 전용 게임/일정/캐릭터 요청 승인·반려 및 기타 건의 대기열 답변/종료(`answer_feedback_request`) 화면. DB 변경은 승인된 RPC 경로를 사용한다.
 - `src/lib/`: 단일 Supabase client(브라우저 PKCE/Tauri implicit 런타임 설정 및 callback URL 자동 감지 비활성화), 인증 상태, KST 날짜 범위·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
 - `src/lib/pickup-character-registration.ts`: 픽업 전용 캐릭터(`is_pickup_only = true`) 등록 공용 함수 `registerPickupOnlyCharacter`. 관리자 일정 폼의 `[+ 새 픽업 캐릭터]`와 캐릭터 탭(템플릿 없는 게임)의 `[+ 캐릭터 추가]`가 함께 사용함(R66). 프리셋 탭(R76, R62 작업 공간·편집 창 대체): `src/components/character/preset-board.tsx`(`@dnd-kit` `DndContext`, 900px 이상 캐릭터 사이드바 + 전체 프리셋 카드 그리드, 900px 미만은 `preset-character-picker.tsx` 하단 선택 창), `preset-board-card.tsx`(카드·슬롯 정렬, 제목·메모 인라인 편집). `src/lib/preset-board.ts`: 드래그 id·드롭 판정·저장 페이로드 순수 함수. `src/lib/use-preset-board.ts`: 단일 FIFO 쓰기 큐 즉시 저장(낙관적 갱신, 실패 시 재조회, `update_character_preset_slots`·`reorder_character_presets` RPC, 미적용 폴백). `src/lib/use-board-sensors.ts`: 마우스 6px·터치 200ms·키보드 센서(입력란·`data-no-dnd` 제외), 프리셋 보드·즐겨찾기 정렬 공용. `src/lib/use-media-query.ts`: `matchMedia` 기반 `useMediaQuery`(미지원·SSR은 false). `character-roster.tsx`와 프리셋 보드 사이드바·선택 창은 `buildCharacterSections`로 즐겨찾기/보유/미보유 3구역을 표시하고, 즐겨찾기 순서는 dnd-kit 카드 전체 드래그로 바꾸고 `reorder_favorite_characters` RPC로 저장함(컬럼·RPC 미적용 DB에서는 이름순 폴백, R63).
 - `src/lib/calendar-utils.ts`: 캘린더 그리드와 말일 보정 날짜 계산. `src/lib/subscription-sync.ts`: 월간 구독 Lazy Generation과 중복 충돌 무시 upsert 경계.

@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+
+## Run `r84-feedback-and-inbox` 완료 — `main` 병합 `660c3fc` (2026-11-19)
+
+- **수행 주체**: Gemini 4 Neon (`Reviewer & Orchestrator`, Claude Opus 1순위 대체·독립 리뷰)임.
+- **결과**: Base `ac71676` ↔ Target `71824a2` 통합 정적 리뷰 **clean**(지적 0건, 산출물 `2cebdf5`). 🐳 로컬 DB 업그레이드(마이그레이션 2회 멱등)·신규 `SCHEMA.sql` 모두 `TESTS.sql` 40개 PASS 확인 후 `main` 병합(`660c3fc`), 병합 후 `tsc`·`lint`·Vitest 70파일/895개 통과함.
+- **남은 작업 (사용자)**: 운영 DB에 `MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 수동 적용·확인 쿼리 검증, 실브라우저 확인, 필요 시 `main` push·워크트리 정리. 활성 Run 없음.
+
 ## Run `r84-feedback-and-inbox` Maker iteration-03 완료 (2026-11-19)
 
 - **수행 주체**: Claude Opus (GPT Codex 1순위 대체)임.
