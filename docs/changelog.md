@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-19 (Gemini 4 다단계 운용 및 `Hydrogen` $\to$ `Neon` / `Argon` 승격 기준 수립)
+
+- Gemini 계열 기본 모델을 **`Gemini 4 Hydrogen`**(단기 리셋 쿼터, 기본 Maker·Orchestrator·표준 Reviewer)으로 전환하고, **`Gemini 4 Neon`**(1차 승격: 복합 상태/생명주기·코어 수식/SQL/RPC Maker 및 다단계 Run Orchestrator; Orchestrator 호출 시 `src/**` 직접 수정 제한)과 **`Gemini 4 Argon`**(2차 최상위 승격: 주간 쿼터 보호, 오픈 아키텍처/명세·보안/원장 감사·Run 통합 리뷰 전용, `src/**` 직접 구현 금지) 승격 조건을 `.agents/rules/collaboration.md`, `docs/collaboration-guide.md`, `CLAUDE.md`, `chronoledger-orchestrator` Skill에 반영함.
+
 ## 2026-11-18 (`R89` 푸시 알림 설계 조사)
 
 - 플랫폼별 알림 지원 범위, 서버 없는 발송 구조, 알림 DB·RLS 초안, 단계별 구현 Run 분할안을 담은 `docs/push-notification-research.md`를 추가함.

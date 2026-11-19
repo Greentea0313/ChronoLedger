@@ -44,8 +44,8 @@ Continue without asking when the request is clear, the repository is clean, all 
 
 ## Dispatch Queue registration (multi-model)
 
-- The 6-model roles, fallback chains, Sonnet/Opus criteria and the Argon no-direct-implementation rule live only in `.agents/rules/collaboration.md`; read it when assigning models.
-- **Intake**: unless the user says to implement directly, the Chief Orchestrator (Gemini 4 Argon) does not edit `src/**`. Derive acceptance criteria, create the worktree first (`New-CollaborationRun.ps1` on a clean tree), then write the Run block in the root `docs/handoff.md` under `### 🚦 현재 활성 Run 및 과제 할당표`.
+- The 7-model roles, fallback chains, Gemini (`Hydrogen` default $\to$ `Neon` / `Argon` promotion) and Claude (`Sonnet` default $\to$ `Opus` promotion) criteria, and role-scoped `src/**` implementation boundaries live only in `.agents/rules/collaboration.md`; read it when assigning models.
+- **Intake**: `Gemini 4 Argon` never edits `src/**`, and `Gemini 4 Neon` / `Hydrogen` do not edit `src/**` while executing an `Orchestrator` role/profile (`Neon` and `Hydrogen` edit `src/**` only when assigned to a `Maker` row). Derive acceptance criteria, create the worktree first (`New-CollaborationRun.ps1` on a clean tree), then write the Run block in the root `docs/handoff.md` under `### 🚦 현재 활성 Run 및 과제 할당표`.
 - Each row lists `Primary Model (Fallback: 1st / 2nd)`, allowed files and acceptance criteria. Mark `🐳 Docker Desktop 필요` on rows that need local Supabase.
 - **Single active pointer**: only the current executable step is `▶ READY`; dependent steps are `⏳ WAITING`. Reservations and agenda items go to the reservation summary table and are never auto-started.
 - After registering, summarize the queue, tell the user which model to switch to and to enter `"인수인계 문서를 확인해"`, and end the turn.
