@@ -6,7 +6,7 @@
 - **관리자 건의 대기열**: `/admin/requests`에 `건의` 탭을 추가해 `answer_feedback_request` RPC로 답변 등록(`ANSWERED`)·종료 처리(`CLOSED`)를 원자적으로 처리함(직접 쓰기 폴백 없음).
 - **앱 내 알림함**: 로그인 사용자 상단바에 알림 벨(`NotificationBell`)·미읽음 배지(10건 이상 `9+`)·최근 30건 목록·KST 시각·개별/전체 읽음(`mark_notifications_read`)·상대 경로 이동을 추가함.
 - **DB·RLS·자동 정리**: `public.feedback_requests`·`public.notifications` 테이블, 엄격한 RLS·계정 삭제 대기 차단·탈퇴 정리, 30일 보관 `pg_cron`(`chronoledger-notifications-purge`), 기존 6개 요청 승인/반려 RPC 및 건의 답변 RPC의 원자적 알림 생성을 반영함.
-- **운영 반영 안내**: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 수동 적용 및 `sql/README.md` B표 R84 확인 쿼리 실행이 필요함(미적용 DB는 빈 목록/빈 알림함 폴백).
+- **운영 반영**: 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 수동 적용 및 `sql/README.md` B표 R84 확인 쿼리 검증 완료(사용자, 2026-11-19).
 
 ## 2026-11-19 (Run `r84-feedback-and-inbox` iteration-03 — `71824a2`, 미병합)
 

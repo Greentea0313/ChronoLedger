@@ -7,7 +7,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(2026-11-19 `r84-feedback-and-inbox` 완료·`main` 병합 `660c3fc`. 운영 DB `MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 수동 적용·확인 쿼리 및 실브라우저 확인 대기. 다음 착수 후보: `R39` 일일 알림, `R85` 일정 시간 단위, `R97` Tauri 알림)*
+- **활성 Run 없음** *(2026-11-19 `r84-feedback-and-inbox` 완료·`main` 병합 `660c3fc`. 운영 DB `MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 수동 적용·확인 쿼리 검증 완료(사용자, 2026-11-19), 실브라우저 확인 대기. 다음 착수 후보: `R39` 일일 알림, `R85` 일정 시간 단위, `R97` Tauri 알림)*
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -29,7 +29,7 @@
 
 ### 🗂️ 직전 완료 Run 기록: `r84-feedback-and-inbox`
 
-- **Run ID**: `r84-feedback-and-inbox` **(완료, `main` 병합 `660c3fc`, 2026-11-19 · 운영 DB 수동 마이그레이션·실브라우저 확인 대기)** *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
+- **Run ID**: `r84-feedback-and-inbox` **(완료, `main` 병합 `660c3fc`, 2026-11-19 · 운영 DB 수동 마이그레이션·확인 쿼리 완료(사용자, 2026-11-19), 실브라우저 확인 대기)** *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
 - **설계 기준**: [`docs/push-notification-research.md`](push-notification-research.md) §5.3·§8·§9 (`feedback_requests`·`notifications`·30일 보관 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·기존 6개 요청 승인/반려 RPC 알림 연동 + 건의 모달/내 요청 카드/관리자 대기열/상단바 알림 벨 UI)
 - **Orchestrator**: Gemini 4 Argon *(2026-11-18 등록)* · 마감 병합: Gemini 4 Neon *(2026-11-19)*
 - **Worktree 경로**: `.worktrees/r84-feedback-and-inbox` (브랜치: `collab/r84-feedback-and-inbox`, 매니페스트: `artifacts/r84-feedback-and-inbox/run.json`, 미삭제·원격 미push)
@@ -52,8 +52,8 @@
 - **산출물**: `artifacts/r84-feedback-and-inbox/iteration-03/review.json`·`test.json`, `run.json`(`target_sha` 갱신·`status: completed`) 워크트리 커밋 `2cebdf5`. 이 PC에 Python `jsonschema`가 없어 공식 검증 스크립트 대신 Node로 스키마 전체 규칙·SHA 일치를 검증함.
 - **검증 (워크트리 Target `71824a2`)**: `git diff --check`·`tsc --noEmit`·`next lint`·Vitest 70파일/893개·`next build`(16개 정적 페이지, 플레이스홀더 env) 모두 통과함. 🐳 로컬 Supabase 초기화 후 ① Base `SCHEMA.sql`(`ac71676`) + R84 마이그레이션 **1·2회 멱등 적용** + `README.md` R84 확인 쿼리(RLS·권한·RPC 3종·`pg_cron` 잡) + `TESTS.sql` **40개 PASS·롤백 PASS**, ② 신규 Target `SCHEMA.sql` 직접 적용 + `TESTS.sql` **40개 PASS·롤백 PASS** 모두 통과함. 실브라우저 확인은 `skipped`.
 - **병합·후속 검증**: `main`에 충돌 없이 병합(`660c3fc`, 23개 파일 변경). 병합 후 `main` 기준 `tsc --noEmit`·`next lint`·Vitest **70파일/895개** 통과함. 원격 `push` 및 워크트리/브랜치 삭제는 수행하지 않음(사용자 결정 대기).
-- **사용자 수동 작업 남음**:
-  1. 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 적용 후 `sql/README.md` B표 R84 확인 쿼리 검증.
+- **사용자 수동 작업**:
+  1. ✅ (사용자, 2026-11-19 적용·확인 쿼리 검증 완료) 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 적용 후 `sql/README.md` B표 R84 확인 쿼리 검증.
   2. 실브라우저에서 건의 등록·내 요청 내역·관리자 답변/종료·상단바 알림 벨(배지·읽음·이동) 확인.
 
 #### 📝 `r84-feedback-and-inbox` 이전 단계 요약 (Step 1~iteration-03 Maker)
