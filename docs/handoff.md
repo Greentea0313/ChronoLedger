@@ -7,6 +7,21 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
+#### 1) 우선 실행 과제: `pipeline-collab-6-items-opus-review` *(AI 협업 파이프라인 6대 병목·모순 Opus 2차 검토 및 스킬 반영)*
+
+- **Run ID**: `pipeline-collab-6-items-opus-review` *(`P1-1` `run.json` `target_sha` 갱신 주체 모순, `P1-2` 하위 스킬 내 `Hydrogen` $\to$ `Neon`/`Argon` 승격 규칙 통일, `P2-1` 다중 PC 워크트리 복원, `P2-2` Docker 미설치 PC의 Step 3 로컬 DB 검증 이관 표준화, `P2-3` `handoff.md` 수용 기준 슬림화, `P3-1` `Hydrogen`·`Neon`의 `Flash` 서브에이전트 활용)*
+- **Orchestrator**: Gemini 4 Argon *(2026-11-19 사용자 지시로 등록)*
+- **Worktree 경로**: `main` (협업 문서·스킬 검토 및 개정이므로 격리 워크트리 없이 `main`에서 수행함. 제품 코드·DB 변경 없음, 🐳 Docker 불필요)
+- **Base SHA**: `7c0ff3cbb73a8eee636d95cb98bccd7882d8cc8e`
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen 2순위 대체)* | `Reviewer & Architect (Pipeline Audit)` | [`docs/pipeline-collaboration-review.md`](pipeline-collaboration-review.md) §2~§3의 6가지 문제 현상(`P1-1`~`P3-1`)과 개선안을 비판적으로 2차 검토해 문서 내 `## 4. Claude Opus 2차 검증 결과 및 확정안`을 작성하고, 확정된 개선안을 스킬·스크립트에 반영(`Sync-Skills.ps1` 실행 포함)한 뒤 커밋하고 아래 `r84-feedback-and-inbox` Step 3를 `▶ READY`로 복원함. 허용 파일: `docs/pipeline-collaboration-review.md`, `.agents/skills/*/SKILL.md`, `.claude/skills/*/SKILL.md`, `.github/copilot-instructions.md`, `scripts/collaboration/New-CollaborationRun.ps1`, `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md` | 대기 중 (`▶ READY`) |
+
+---
+
+#### 2) 병합 대기 중 기능 Run: `r84-feedback-and-inbox` *(위 `pipeline-collab-6-items-opus-review` 완료 직후 Step 3 `▶ READY` 전환)*
+
 - **Run ID**: `r84-feedback-and-inbox` *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
 - **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
 - **Worktree 경로**: `.worktrees/r84-feedback-and-inbox` (브랜치: `collab/r84-feedback-and-inbox`, 매니페스트: `artifacts/r84-feedback-and-inbox/run.json`)
@@ -18,7 +33,7 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 0b93975)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Hydrogen** *(1순위 대체로 수행)* | `Maker (DB/RLS/RPC & Types)` | 🐳 **Docker Desktop 필요**. 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 0b93975`: `feedback_requests`·`notifications`·30일 정리 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·6개 요청 RPC 알림 연동·`TESTS.sql`·타입 반영. tsc·lint·Vitest 69파일/862개·diff-check 통과. ⚠️ Docker 미설치 PC로 로컬 DB 실행 미수행(사용자 지시로 Step 3 이관) |
 | **2** | **`✅ DONE (SHA: d7eef7a)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/components/game/user-requests-card.tsx`, `src/app/dashboard/games/page.test.tsx`(또는 `src/components/game/user-requests-card.test.tsx`), `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/layout/topbar.tsx`, 신규 `src/components/layout/notification-bell.tsx` 및 테스트 파일, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ d7eef7a`: 건의 모달·내 요청 카드·관리자 건의 대기열·상단바 알림 벨. tsc·lint·Vitest 892개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | `▶ Step 2 완료(d7eef7a). Base ac71676 ↔ Target d7eef7a` |
+| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 위 `pipeline-collab-6-items-opus-review` 완료 즉시 `▶ READY` 전환. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | `⏳ 위 파이프라인 6대 개선안 Opus 검토 완료 직후 진행 (Base ac71676 ↔ Target d7eef7a)` |
 
 #### 📝 `r84-feedback-and-inbox` Step 2 완료 기록 (Claude Sonnet, 2026-11-18)
 
