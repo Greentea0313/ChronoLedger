@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "r84-feedback-and-inbox",
+  "iteration": 3,
+  "agent": "Gemini 4 Neon",
+  "role": "dynamic-test",
+  "base_sha": "ac71676bb8f4e0e737d97c26e21f35d7507296a1",
+  "target_sha": "71824a21d01c7a115b9554186d46153032cf9fb4",
+  "status": "passed",
+  "created_at": "2026-11-19T14:39:50Z",
+  "finished_at": "2026-11-19T14:42:54Z",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Git whitespace check of Base..Target diff",
+      "command": "git diff --check ac71676bb8f4e0e737d97c26e21f35d7507296a1 71824a21d01c7a115b9554186d46153032cf9fb4",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck",
+      "command": "node ../../node_modules/typescript/bin/tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint static check",
+      "command": "node ../../node_modules/next/dist/bin/next lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest unit test suite (70 files, 893 tests)",
+      "command": "node ../../node_modules/vitest/vitest.mjs run",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Static export build with placeholder Supabase env (16 static pages)",
+      "command": "node ../../node_modules/next/dist/bin/next build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Local Supabase reset, base SCHEMA.sql at ac71676, R84 migration applied twice (idempotent), README RLS/grants/RPC/pg_cron checks passed",
+      "command": "docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/r84.sql (x2)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TESTS.sql end to end on upgraded local Supabase (40 PASS incl. R84 block, final rollback PASS)",
+      "command": "docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Fresh target SCHEMA.sql install and TESTS.sql end to end on local Supabase (40 PASS, final rollback PASS)",
+      "command": "docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/target_schema.sql && -f /tmp/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Real-browser check of feedback submission, admin answer and notification inbox (requires accounts and production migration)",
+      "command": "npm run dev",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": null
+    }
+  ]
+}
