@@ -29,10 +29,22 @@ export function isSafeLinkPath(path: string): boolean {
   return /^\/(?!\/)/.test(path)
 }
 
-function formatCreatedAt(value: string): string {
+const KST_PARTS_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+})
+
+/** Shown in KST like the rest of the app, regardless of the device time zone. */
+export function formatCreatedAt(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ""
-  return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
+  const parts = KST_PARTS_FORMAT.formatToParts(date)
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? ""
+  return `${part("month")}/${part("day")} ${part("hour")}:${part("minute")}`
 }
 
 /** In-app inbox: bell with an unread badge and a popover of the latest 30 notifications of the signed-in user. */

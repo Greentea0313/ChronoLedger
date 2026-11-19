@@ -177,8 +177,8 @@ BEGIN
     END IF;
 
     SELECT * INTO v_request FROM public.feedback_requests WHERE id = p_request_id FOR UPDATE;
-    IF NOT FOUND THEN
-        RAISE EXCEPTION '대상 건의 요청을 찾을 수 없습니다.';
+    IF NOT FOUND OR v_request.request_status <> 'PENDING' THEN
+        RAISE EXCEPTION '검토 대기 중인 건의 요청이 아닙니다.';
     END IF;
 
     UPDATE public.feedback_requests
@@ -193,7 +193,7 @@ BEGIN
     VALUES (
         v_request.user_id,
         'FEEDBACK_ANSWERED',
-        '건의에 답변이 등록되었습니다',
+        CASE WHEN p_status = 'CLOSED' THEN '건의 검토가 종료되었습니다' ELSE '건의에 답변이 등록되었습니다' END,
         CASE
             WHEN p_status = 'CLOSED' THEN '등록하신 건의가 검토 종료되었습니다. 내 요청 현황에서 확인하세요.'
             ELSE '등록하신 건의에 관리자 답변이 등록되었습니다. 내 요청 현황에서 확인하세요.'

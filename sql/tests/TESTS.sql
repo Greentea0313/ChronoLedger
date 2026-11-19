@@ -90,7 +90,8 @@
 --   R93-03 DB fixture 역할         사용자 A 수익·자산 불변, 계정 purge 함수 incomes 정리 포함, 차단 트리거 존재.
 --   R93-04 anon                   수익 SELECT, record_income/delete_income 실행 -> insufficient_privilege.
 --   R84-01 authenticated / B       feedback_requests PENDING 등록·직접 UPDATE/DELETE 거부·타인 행 은닉,
---                                  일반 사용자 answer_feedback_request 거부, 관리자 답변·알림 생성,
+--                                  일반 사용자 answer_feedback_request 거부, 관리자 답변·알림 생성·재답변 거부,
+--                                  approve/reject_game_request 요청자 알림 1건(관리자 메모 미포함),
 --                                  mark_notifications_read 단건/전체 읽음 및 link_path 검증.
 --   R84-02 authenticated / A       계정 삭제 대기 사용자 건의 등록·알림 읽음 거부, 조회 차단.
 --   R84-03 DB fixture 역할         purge_expired_notifications 30일 초과 삭제, 탈퇴 purge 연동·차단 트리거.
@@ -2132,6 +2133,18 @@ WITH inserted_fb AS (
 )
 SELECT set_config('chronoledger.r84_a_fb_id', id::text, true) FROM inserted_fb;
 
+WITH inserted_gr AS (
+    INSERT INTO public.game_requests(user_id, name, memo)
+    VALUES
+        (:'other_user_id'::uuid, 'R84 approve game ' || :'other_user_id', 'r84'),
+        (:'other_user_id'::uuid, 'R84 reject game ' || :'other_user_id', 'r84')
+    RETURNING id, name
+)
+SELECT set_config(
+    CASE WHEN name LIKE 'R84 approve%' THEN 'chronoledger.r84_approve_gr_id' ELSE 'chronoledger.r84_reject_gr_id' END,
+    id::text, true
+) FROM inserted_gr;
+
 INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id, created_at)
 VALUES
     (:'test_user_id'::uuid, 'FEEDBACK_ANSWERED', 'R84 old', 'old body', '/dashboard/games', NULL, NOW() - INTERVAL '31 days'),
@@ -2223,6 +2236,34 @@ BEGIN
           AND read_at IS NULL
     ) THEN
         RAISE EXCEPTION 'FAIL: R84 answer_feedback_request did not create notification';
+    END IF;
+
+    BEGIN
+        PERFORM public.answer_feedback_request(v_fb_id, 'second answer', 'ANSWERED');
+        RAISE EXCEPTION 'FAIL: R84 answer_feedback_request accepted a non-PENDING feedback';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+    IF (SELECT count(*) FROM public.notifications WHERE kind = 'FEEDBACK_ANSWERED' AND source_id = v_fb_id) <> 1
+       OR NOT EXISTS (SELECT 1 FROM public.feedback_requests WHERE id = v_fb_id AND admin_answer = '관리자 답변 완료') THEN
+        RAISE EXCEPTION 'FAIL: R84 second answer changed the feedback or added a notification';
+    END IF;
+
+    -- Existing request RPCs create exactly one requester notification without the admin memo.
+    PERFORM public.approve_game_request(current_setting('chronoledger.r84_approve_gr_id')::uuid, 'https://example.com/r84-icon.webp');
+    PERFORM public.reject_game_request(current_setting('chronoledger.r84_reject_gr_id')::uuid, 'R84 secret admin memo');
+    IF (SELECT count(*) FROM public.notifications
+        WHERE user_id = current_setting('chronoledger.other_user_id')::uuid
+          AND kind = 'REQUEST_APPROVED'
+          AND source_id = current_setting('chronoledger.r84_approve_gr_id')::uuid) <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R84 approve_game_request did not create exactly one REQUEST_APPROVED notification';
+    END IF;
+    IF (SELECT count(*) FROM public.notifications
+        WHERE user_id = current_setting('chronoledger.other_user_id')::uuid
+          AND kind = 'REQUEST_REJECTED'
+          AND source_id = current_setting('chronoledger.r84_reject_gr_id')::uuid
+          AND position('R84 secret admin memo' IN title || body) = 0) <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R84 reject_game_request notification missing or leaked admin memo';
     END IF;
 END $$;
 RESET ROLE;

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { NotificationBell, isSafeLinkPath } from "./notification-bell"
+import { NotificationBell, formatCreatedAt, isSafeLinkPath } from "./notification-bell"
 
 const { from, rpc, push } = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), push: vi.fn() }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from, rpc } }))
@@ -38,6 +38,13 @@ describe("isSafeLinkPath", () => {
     expect(isSafeLinkPath("//evil.example")).toBe(false)
     expect(isSafeLinkPath("https://evil.example")).toBe(false)
     expect(isSafeLinkPath("dashboard")).toBe(false)
+  })
+})
+
+describe("formatCreatedAt", () => {
+  it("formats in KST regardless of the device time zone", () => {
+    expect(formatCreatedAt("2026-11-18T15:05:00Z")).toBe("11/19 00:05")
+    expect(formatCreatedAt("not-a-date")).toBe("")
   })
 })
 
