@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "run_id": "r84-feedback-and-inbox",
+  "iteration": 2,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "ac71676bb8f4e0e737d97c26e21f35d7507296a1",
+  "target_sha": "0f8e188a295b2643d76f43a59de296d0e94375b7",
+  "status": "findings",
+  "created_at": "2026-11-19T06:00:00Z",
+  "findings": [
+    {
+      "id": "R84-REV-06",
+      "severity": "P2",
+      "file": "sql/tests/TESTS.sql",
+      "line": 2127,
+      "evidence": "On a local Supabase (base SCHEMA.sql at ac71676 + the R84 migration applied twice, both exit 0) TESTS.sql stops at the first R84 fixture insert with '계정 삭제가 진행 중이므로 개인 데이터를 변경할 수 없습니다.'. The R93 block leaves request.jwt.claim.sub on user A, who stays pending-deletion until the cleanup line after these blocks, so the pending-deletion trigger (auth.uid() = user_id) rejects the fixture insert of user A's feedback. The same cause stops the 30-day purge block at line 2299 (purge_expired_notifications deletes user A rows while auth.uid() is user A).",
+      "impact": "The SQL smoke suite aborts inside the R84 block, so none of the R84 checks (or later blocks) actually run; the local DB merge gate cannot pass.",
+      "recommendation": "Reset request.jwt.claim.sub and request.jwt.claims to '' before the R84 block and before the fixture purge block (known-pitfalls #40). A diagnostic run with this and the three fixes below passed end to end (40 PASS incl. R84, final rollback PASS)."
+    },
+    {
+      "id": "R84-REV-07",
+      "severity": "P2",
+      "file": "sql/tests/TESTS.sql",
+      "line": 2208,
+      "evidence": "After marking one of user B's notifications read, the test expects mark_notifications_read(NULL) to return 0, but iteration-02 added approve/reject game request checks that give user B two more unread notifications earlier in the block, so the RPC correctly returns 2.",
+      "impact": "False failure of a correct RPC; the suite aborts here once REV-06 is fixed.",
+      "recommendation": "Call mark_notifications_read(NULL) once to clear the remaining rows, then assert that a second call returns 0 (or assert the remaining unread count)."
+    },
+    {
+      "id": "R84-REV-08",
+      "severity": "P2",
+      "file": "sql/tests/TESTS.sql",
+      "line": 2283,
+      "evidence": "The pending-deletion insert check catches only insufficient_privilege, but the BEFORE trigger block_pending_account_data_mutations raises raise_exception before the RESTRICTIVE RLS check runs.",
+      "impact": "The correct block is reported as a failure; the suite aborts here.",
+      "recommendation": "Also catch raise_exception and re-raise only messages starting with 'FAIL:' (as in the R13 pending-deletion block)."
+    },
+    {
+      "id": "R84-REV-09",
+      "severity": "P2",
+      "file": "sql/tests/TESTS.sql",
+      "line": 2307,
+      "evidence": "The link_path CHECK test uses the psql variable :'other_user_id' inside a dollar-quoted DO body, where psql does not substitute variables, causing 'syntax error at or near \":\"'.",
+      "impact": "The fixture block cannot run; the link_path and purge assertions never execute.",
+      "recommendation": "Use current_setting('chronoledger.other_user_id')::uuid inside the DO body."
+    }
+  ]
+}
