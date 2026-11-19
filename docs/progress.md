@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## Run `r84-feedback-and-inbox` Maker iteration-03 완료 (2026-11-19)
+
+- **수행 주체**: Claude Opus (GPT Codex 1순위 대체)임.
+- **결과**: `TESTS.sql` R84 블록 테스트 코드 4건(`R84-REV-06`~`09`)을 고쳐 워크트리 커밋 `71824a2`(미병합·미push). 🐳 로컬 DB에서 마이그레이션 2회 적용과 `TESTS.sql` 전체(40개 PASS) 통과함.
+- **다음 단계**: Step 3 재리뷰·병합 `▶ READY`(다른 모델 권장, 🐳 Docker 필요).
+
 ## Run `r84-feedback-and-inbox` Step 3 iteration-02 리뷰 (2026-11-19)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`)임. 🐳 Docker 켜진 PC에서 원격 브랜치로 워크트리를 복원해 진행함.
