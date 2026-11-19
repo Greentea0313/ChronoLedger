@@ -127,6 +127,7 @@ describe("AdminRequestsPage", () => {
   let gameQuery: ReturnType<typeof createQueryBuilder>
   let scheduleQuery: ReturnType<typeof createQueryBuilder>
   let characterQuery: ReturnType<typeof createQueryBuilder>
+  let feedbackQuery: ReturnType<typeof createQueryBuilder>
   let container: HTMLDivElement
   let root: Root
 
@@ -138,6 +139,7 @@ describe("AdminRequestsPage", () => {
     gameQuery = createQueryBuilder({ data: gameRequests, error: null })
     scheduleQuery = createQueryBuilder({ data: scheduleRequests, error: null })
     characterQuery = createQueryBuilder({ data: characterRequests, error: null })
+    feedbackQuery = createQueryBuilder({ data: [], error: null })
     useAuth.mockReturnValue({
       user: { id: "admin-1", app_metadata: { role: "admin" } },
       isLoading: false,
@@ -148,7 +150,9 @@ describe("AdminRequestsPage", () => {
         ? gameQuery
         : table === "character_requests"
           ? characterQuery
-          : scheduleQuery,
+          : table === "feedback_requests"
+            ? feedbackQuery
+            : scheduleQuery,
     )
     rpc.mockResolvedValue({ error: null })
   })
@@ -426,7 +430,8 @@ describe("AdminRequestsPage", () => {
         table === "game_requests" ? gameQuery
           : table === "character_requests" ? characterQuery
             : table === "game_characters" ? lookup
-              : scheduleQuery,
+              : table === "feedback_requests" ? feedbackQuery
+                : scheduleQuery,
       )
       return lookup
     }
@@ -523,13 +528,13 @@ describe("AdminRequestsPage", () => {
       expect(container.textContent).toContain("캐릭터 요청 대기열 (3)")
     })
 
-    it("keeps the three tabs on one scrollable non-wrapping row on small screens (U-01)", async () => {
+    it("keeps the four tabs on one scrollable non-wrapping row on small screens (U-01)", async () => {
       mockQueries({ schedules: [] })
       await renderPage()
 
       expect(container.querySelector('[role="tablist"]')?.className).toContain("overflow-x-auto")
       const tabs = Array.from(container.querySelectorAll('[role="tab"]'))
-      expect(tabs).toHaveLength(3)
+      expect(tabs).toHaveLength(4)
       expect(tabs.every((tab) => tab.className.includes("shrink-0") && tab.className.includes("whitespace-nowrap"))).toBe(true)
     })
 
@@ -650,5 +655,125 @@ describe("AdminRequestsPage", () => {
     })
     expect(gameQuery.eq).toHaveBeenCalledWith("id", "game-request-1")
     expect(container.textContent).toContain("게임 추가 요청을 반려했습니다.")
+  })
+
+  describe("기타 건의 대기열 (R84)", () => {
+    const feedbackRows = [
+      { id: "fb-1", category: "기능 제안", title: "다크 모드", content: "다크 모드가 필요함", request_status: "PENDING", created_at: "2026-11-17T00:00:00.000Z" },
+      { id: "fb-2", category: "오류 신고", title: "달력 오류", content: "모바일에서 안 열림", request_status: "PENDING", created_at: "2026-11-18T00:00:00.000Z" },
+    ]
+
+    async function openFeedbackTab(rows: unknown[] = feedbackRows) {
+      feedbackQuery = createQueryBuilder({ data: rows, error: null })
+      await renderPage()
+      const tab = Array.from(container.querySelectorAll('[role="tab"]')).find((element) => element.textContent?.includes("건의"))
+      if (!tab) throw new Error("Expected the feedback tab.")
+      await act(async () => {
+        Simulate.mouseDown(tab, { button: 0, ctrlKey: false })
+      })
+    }
+
+    async function typeAnswer(id: string, value: string) {
+      const textarea = container.querySelector(`#feedback-answer-${id}`) as HTMLTextAreaElement
+      await act(async () => {
+        textarea.value = value
+        Simulate.change(textarea)
+      })
+    }
+
+    const buttonIn = (card: Element, text: string) =>
+      Array.from(card.querySelectorAll("button")).find((button) => button.textContent?.includes(text)) as HTMLButtonElement
+
+    it("loads only PENDING feedback in creation order and shows each request with its count tab", async () => {
+      await openFeedbackTab()
+
+      expect(feedbackQuery.eq).toHaveBeenCalledWith("request_status", "PENDING")
+      expect(feedbackQuery.order).toHaveBeenCalledWith("created_at", { ascending: true })
+      const tab = Array.from(container.querySelectorAll('[role="tab"]')).find((element) => element.textContent?.includes("건의"))
+      expect(tab?.textContent).toContain("건의 (2)")
+      const cards = Array.from(container.querySelectorAll('[data-testid="feedback-request-card"]'))
+      expect(cards).toHaveLength(2)
+      expect(cards[0].textContent).toContain("기능 제안")
+      expect(cards[0].textContent).toContain("다크 모드가 필요함")
+    })
+
+    it("answers a request through answer_feedback_request with status ANSWERED and removes it from the queue", async () => {
+      await openFeedbackTab()
+      await typeAnswer("fb-1", "  다음 버전에 반영함  ")
+      const card = container.querySelectorAll('[data-testid="feedback-request-card"]')[0]
+      await act(async () => {
+        buttonIn(card, "답변 등록").click()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(rpc).toHaveBeenCalledWith("answer_feedback_request", { p_request_id: "fb-1", p_admin_answer: "다음 버전에 반영함", p_status: "ANSWERED" })
+      expect(container.textContent).toContain("건의에 답변했습니다.")
+      expect(container.querySelectorAll('[data-testid="feedback-request-card"]')).toHaveLength(1)
+    })
+
+    it("requires an answer to answer but allows closing without one", async () => {
+      await openFeedbackTab()
+      const card = container.querySelectorAll('[data-testid="feedback-request-card"]')[0]
+      await act(async () => {
+        buttonIn(card, "답변 등록").click()
+        await Promise.resolve()
+      })
+      expect(container.textContent).toContain("답변 내용을 입력해 주세요.")
+      expect(rpc).not.toHaveBeenCalled()
+
+      await act(async () => {
+        buttonIn(card, "종료 처리").click()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+      expect(rpc).toHaveBeenCalledWith("answer_feedback_request", { p_request_id: "fb-1", p_admin_answer: null, p_status: "CLOSED" })
+      expect(container.textContent).toContain("건의를 종료 처리했습니다.")
+    })
+
+    it("keeps the request and shows the error when the RPC fails", async () => {
+      rpc.mockResolvedValue({ error: { message: "forbidden" } })
+      await openFeedbackTab()
+      await typeAnswer("fb-1", "답변")
+      const card = container.querySelectorAll('[data-testid="feedback-request-card"]')[0]
+      await act(async () => {
+        buttonIn(card, "답변 등록").click()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(container.textContent).toContain("건의 처리 중 오류가 발생했습니다: forbidden")
+      expect(container.querySelectorAll('[data-testid="feedback-request-card"]')).toHaveLength(2)
+    })
+
+    it("blocks the write while offline", async () => {
+      await openFeedbackTab()
+      await typeAnswer("fb-1", "답변")
+      Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+      try {
+        const card = container.querySelectorAll('[data-testid="feedback-request-card"]')[0]
+        await act(async () => {
+          buttonIn(card, "답변 등록").click()
+          await Promise.resolve()
+        })
+        expect(rpc).not.toHaveBeenCalled()
+      } finally {
+        Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+      }
+    })
+
+    it("treats a missing feedback table as an empty queue without blocking the other queues", async () => {
+      feedbackQuery = createQueryBuilder({ data: [], error: null })
+      feedbackQuery.order.mockResolvedValue({ data: null, error: { code: "42P01", message: "missing" } })
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+      await renderPage()
+
+      expect(container.textContent).toContain("Sample RPG")
+      expect(container.textContent).not.toContain("데이터를 불러오는 중 오류가 발생했습니다")
+      const tab = Array.from(container.querySelectorAll('[role="tab"]')).find((element) => element.textContent?.includes("건의"))
+      expect(tab?.textContent).toContain("건의 (0)")
+      expect(spy).not.toHaveBeenCalled()
+      spy.mockRestore()
+    })
   })
 })

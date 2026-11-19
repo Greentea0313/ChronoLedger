@@ -1,0 +1,18 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r84-feedback-and-inbox",
+    "created_at":  "2026-11-18T03:08:57.8917278+00:00",
+    "objective":  "Implement R84 general feedback requests (feedback_requests) and 1st-stage in-app notification inbox (notifications table, 30-day pg_cron purge, atomic notification creation on request approval/rejection and feedback answer, and topbar notification bell UI)",
+    "acceptance_criteria":  [
+                                "Create idempotent migration sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql, sync sql/SCHEMA.sql, sql/README.md, sql/tests/TESTS.sql, and src/types/database.types.ts",
+                                "Define public.feedback_requests (category IN (\u0027기능 제안\u0027, \u0027오류 신고\u0027, \u0027기타\u0027), title 1..100, content 1..2000, status IN (\u0027PENDING\u0027, \u0027ANSWERED\u0027, \u0027CLOSED\u0027), admin_answer, answered_at, answered_by) and public.notifications (kind IN (\u0027FAVORITE_START\u0027, \u0027FAVORITE_END_D1\u0027, \u0027EXPENSE_D1\u0027, \u0027REQUEST_APPROVED\u0027, \u0027REQUEST_REJECTED\u0027, \u0027FEEDBACK_ANSWERED\u0027), title, body, link_path ~ \u0027^/\u0027, source_id, scheduled_for, push_status, push_attempts, pushed_at, read_at) with strict RLS, account deletion guards/purge, and 30-day pg_cron cleanup",
+                                "Create SECURITY DEFINER RPCs answer_feedback_request and mark_notifications_read, and atomically insert notifications inside approve/reject game/schedule/character request RPCs and answer_feedback_request without leaking sensitive text",
+                                "Implement UI and Vitest coverage for feedback submission/history in request-submission-modal.tsx, feedback list/filter in user-requests-card.tsx, feedback admin queue in /admin/requests, and topbar notification bell inbox in topbar.tsx"
+                            ],
+    "base_sha":  "ac71676bb8f4e0e737d97c26e21f35d7507296a1",
+    "target_sha":  "71824a21d01c7a115b9554186d46153032cf9fb4",
+    "branch":  "collab/r84-feedback-and-inbox",
+    "worktree_path":  ".worktrees/r84-feedback-and-inbox",
+    "max_iterations":  3,
+    "status":  "completed"
+}

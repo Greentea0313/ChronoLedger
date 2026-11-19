@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r84-feedback-and-inbox",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "ac71676bb8f4e0e737d97c26e21f35d7507296a1",
+  "target_sha": "d7eef7a177addb64952eb80a2fa18111278dce00",
+  "status": "blocked",
+  "created_at": "2026-11-19T00:00:00+09:00",
+  "finished_at": "2026-11-19T00:30:00+09:00",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "TypeScript type check", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest (70 files, 892 tests)", "command": "npx vitest run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Static export build with placeholder local Supabase env (worktree has no .env.local)", "command": "npm run build", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Whitespace check Base..Target", "command": "git diff --check ac71676 d7eef7a", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Local Supabase: apply MIGRATION_R84 twice and run sql/tests/TESTS.sql (Docker CLI not installed on this PC)", "command": "docker exec supabase_db_chronoledger-local psql -X -v ON_ERROR_STOP=1 -f /tmp/TESTS.sql", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}

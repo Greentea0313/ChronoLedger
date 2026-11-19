@@ -89,6 +89,13 @@
 --   R93-02 authenticated / A       계정 삭제 대기 사용자 record_income/delete_income 거부, 수익 조회 0행.
 --   R93-03 DB fixture 역할         사용자 A 수익·자산 불변, 계정 purge 함수 incomes 정리 포함, 차단 트리거 존재.
 --   R93-04 anon                   수익 SELECT, record_income/delete_income 실행 -> insufficient_privilege.
+--   R84-01 authenticated / B       feedback_requests PENDING 등록·직접 UPDATE/DELETE 거부·타인 행 은닉,
+--                                  일반 사용자 answer_feedback_request 거부, 관리자 답변·알림 생성·재답변 거부,
+--                                  approve/reject_game_request 요청자 알림 1건(관리자 메모 미포함),
+--                                  mark_notifications_read 단건/전체 읽음 및 link_path 검증.
+--   R84-02 authenticated / A       계정 삭제 대기 사용자 건의 등록·알림 읽음 거부, 조회 차단.
+--   R84-03 DB fixture 역할         purge_expired_notifications 30일 초과 삭제, 탈퇴 purge 연동·차단 트리거.
+--   R84-04 anon                   feedback_requests/notifications/RPC 접근 -> insufficient_privilege.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -2116,6 +2123,237 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R93 income RPCs keep total_asset in sync, validate input, deny direct writes, isolate users, block pending deletion and anon
+
+-- The fixture role must not act as user A here: user A is pending deletion until the cleanup line below,
+-- and the pending-deletion trigger blocks writes to user A rows while auth.uid() is user A (known-pitfalls #40).
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+-- R84: feedback_requests and notifications (owner isolation, admin answer + atomic notification,
+-- read RPC, 30-day purge, pending deletion block, and anon denial).
+WITH inserted_fb AS (
+    INSERT INTO public.feedback_requests(user_id, category, title, content)
+    VALUES (:'test_user_id'::uuid, '기타', 'R84 user A feedback', 'user A content')
+    RETURNING id
+)
+SELECT set_config('chronoledger.r84_a_fb_id', id::text, true) FROM inserted_fb;
+
+WITH inserted_gr AS (
+    INSERT INTO public.game_requests(user_id, name, memo)
+    VALUES
+        (:'other_user_id'::uuid, 'R84 approve game ' || :'other_user_id', 'r84'),
+        (:'other_user_id'::uuid, 'R84 reject game ' || :'other_user_id', 'r84')
+    RETURNING id, name
+)
+SELECT set_config(
+    CASE WHEN name LIKE 'R84 approve%' THEN 'chronoledger.r84_approve_gr_id' ELSE 'chronoledger.r84_reject_gr_id' END,
+    id::text, true
+) FROM inserted_gr;
+
+INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id, created_at)
+VALUES
+    (:'test_user_id'::uuid, 'FEEDBACK_ANSWERED', 'R84 old', 'old body', '/dashboard/games', NULL, NOW() - INTERVAL '31 days'),
+    (:'other_user_id'::uuid, 'REQUEST_APPROVED', 'R84 fresh', 'fresh body', '/dashboard/games', NULL, NOW());
+
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_user UUID := auth.uid();
+    v_fb_id UUID;
+    v_other_fb_id UUID := current_setting('chronoledger.r84_a_fb_id')::uuid;
+    v_read_count INTEGER;
+    v_nt_id UUID;
+BEGIN
+    INSERT INTO public.feedback_requests(user_id, category, title, content)
+    VALUES (v_user, '기능 제안', 'R84 user B feedback', 'B content')
+    RETURNING id INTO v_fb_id;
+    PERFORM set_config('chronoledger.r84_b_fb_id', v_fb_id::text, true);
+
+    IF EXISTS (SELECT 1 FROM public.feedback_requests WHERE id = v_other_fb_id) THEN
+        RAISE EXCEPTION 'FAIL: R84 RLS exposed another user feedback';
+    END IF;
+
+    BEGIN
+        UPDATE public.feedback_requests SET title = 'tamper' WHERE id = v_fb_id;
+        RAISE EXCEPTION 'FAIL: R84 direct UPDATE on feedback_requests succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    BEGIN
+        DELETE FROM public.feedback_requests WHERE id = v_fb_id;
+        RAISE EXCEPTION 'FAIL: R84 direct DELETE on feedback_requests succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+        VALUES (v_user, 'FEEDBACK_ANSWERED', 'bad', 'bad', '/dashboard');
+        RAISE EXCEPTION 'FAIL: R84 direct INSERT on notifications succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    BEGIN
+        PERFORM public.answer_feedback_request(v_fb_id, 'unauthorized answer', 'ANSWERED');
+        RAISE EXCEPTION 'FAIL: R84 non-admin executed answer_feedback_request';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    SELECT id INTO v_nt_id FROM public.notifications WHERE user_id = v_user LIMIT 1;
+    v_read_count := public.mark_notifications_read(ARRAY[v_nt_id]);
+    IF v_read_count <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R84 mark_notifications_read single expected 1, got %', v_read_count;
+    END IF;
+    -- User B also holds the approve/reject notifications created above: clear them, then a repeat call reads nothing.
+    PERFORM public.mark_notifications_read(NULL);
+    v_read_count := public.mark_notifications_read(NULL);
+    IF v_read_count <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R84 second mark_notifications_read expected 0, got %', v_read_count;
+    END IF;
+END $$;
+RESET ROLE;
+
+-- Admin answer creates FEEDBACK_ANSWERED notification atomically for feedback owner.
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'admin'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_fb_id UUID := current_setting('chronoledger.r84_b_fb_id')::uuid;
+BEGIN
+    PERFORM public.answer_feedback_request(v_fb_id, '관리자 답변 완료', 'ANSWERED');
+    IF NOT EXISTS (
+        SELECT 1 FROM public.feedback_requests
+        WHERE id = v_fb_id AND request_status = 'ANSWERED' AND admin_answer = '관리자 답변 완료'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R84 answer_feedback_request did not update feedback row';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE user_id = current_setting('chronoledger.other_user_id')::uuid
+          AND kind = 'FEEDBACK_ANSWERED'
+          AND source_id = v_fb_id
+          AND read_at IS NULL
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R84 answer_feedback_request did not create notification';
+    END IF;
+
+    BEGIN
+        PERFORM public.answer_feedback_request(v_fb_id, 'second answer', 'ANSWERED');
+        RAISE EXCEPTION 'FAIL: R84 answer_feedback_request accepted a non-PENDING feedback';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+    IF (SELECT count(*) FROM public.notifications WHERE kind = 'FEEDBACK_ANSWERED' AND source_id = v_fb_id) <> 1
+       OR NOT EXISTS (SELECT 1 FROM public.feedback_requests WHERE id = v_fb_id AND admin_answer = '관리자 답변 완료') THEN
+        RAISE EXCEPTION 'FAIL: R84 second answer changed the feedback or added a notification';
+    END IF;
+
+    -- Existing request RPCs create exactly one requester notification without the admin memo.
+    PERFORM public.approve_game_request(current_setting('chronoledger.r84_approve_gr_id')::uuid, 'https://example.com/r84-icon.webp');
+    PERFORM public.reject_game_request(current_setting('chronoledger.r84_reject_gr_id')::uuid, 'R84 secret admin memo');
+    IF (SELECT count(*) FROM public.notifications
+        WHERE user_id = current_setting('chronoledger.other_user_id')::uuid
+          AND kind = 'REQUEST_APPROVED'
+          AND source_id = current_setting('chronoledger.r84_approve_gr_id')::uuid) <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R84 approve_game_request did not create exactly one REQUEST_APPROVED notification';
+    END IF;
+    IF (SELECT count(*) FROM public.notifications
+        WHERE user_id = current_setting('chronoledger.other_user_id')::uuid
+          AND kind = 'REQUEST_REJECTED'
+          AND source_id = current_setting('chronoledger.r84_reject_gr_id')::uuid
+          AND position('R84 secret admin memo' IN title || body) = 0) <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R84 reject_game_request notification missing or leaked admin memo';
+    END IF;
+END $$;
+RESET ROLE;
+
+-- Pending-deletion user A cannot submit feedback or mark notifications read.
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', :'test_user_id'::text, 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    BEGIN
+        INSERT INTO public.feedback_requests(user_id, category, title, content)
+        VALUES (auth.uid(), '기타', 'pending user', 'blocked');
+        RAISE EXCEPTION 'FAIL: R84 pending user inserted feedback';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+
+    BEGIN
+        PERFORM public.mark_notifications_read(NULL);
+        RAISE EXCEPTION 'FAIL: R84 pending user executed mark_notifications_read';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    IF EXISTS (SELECT 1 FROM public.notifications) THEN
+        RAISE EXCEPTION 'FAIL: R84 pending user could read notifications';
+    END IF;
+END $$;
+RESET ROLE;
+
+-- The fixture role must not act as user A here: user A is pending deletion until the cleanup line below,
+-- and the pending-deletion trigger blocks writes to user A rows while auth.uid() is user A (known-pitfalls #40).
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+-- DB fixture role checks 30-day purge, account purge linkage, and link_path check.
+DO $$
+DECLARE
+    v_purged INTEGER;
+    v_purge_def TEXT := pg_get_functiondef('public.purge_expired_account_deletion_requests(integer)'::regprocedure);
+BEGIN
+    BEGIN
+        INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+        VALUES (current_setting('chronoledger.other_user_id')::uuid, 'FEEDBACK_ANSWERED', 'bad link', 'body', 'https://evil.example');
+        RAISE EXCEPTION 'FAIL: R84 external link_path was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    v_purged := public.purge_expired_notifications();
+    IF v_purged < 1 THEN
+        RAISE EXCEPTION 'FAIL: R84 purge_expired_notifications deleted % rows', v_purged;
+    END IF;
+    IF position('public.feedback_requests' IN v_purge_def) = 0 OR position('public.notifications' IN v_purge_def) = 0 THEN
+        RAISE EXCEPTION 'FAIL: R84 account purge function missing feedback_requests or notifications cleanup';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'block_pending_account_deletion_feedback_requests')
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'block_pending_account_deletion_notifications') THEN
+        RAISE EXCEPTION 'FAIL: R84 pending-deletion trigger missing';
+    END IF;
+END $$;
+
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM 1 FROM public.feedback_requests LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R84 anon read feedback_requests';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM 1 FROM public.notifications LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R84 anon read notifications';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.mark_notifications_read(NULL);
+        RAISE EXCEPTION 'FAIL: R84 anon executed mark_notifications_read';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R84 feedback_requests, notifications, answer/read RPCs, 30-day purge, pending-deletion and anon checks
 
 -- User A's PENDING account deletion request (R13-07) is only needed up to R35; later blocks write as user A.
 DELETE FROM public.account_deletion_requests WHERE user_id = :'test_user_id'::uuid AND status_token_hash = repeat('a', 64);
