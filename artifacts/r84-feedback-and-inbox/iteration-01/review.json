@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "run_id": "r84-feedback-and-inbox",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "ac71676bb8f4e0e737d97c26e21f35d7507296a1",
+  "target_sha": "d7eef7a177addb64952eb80a2fa18111278dce00",
+  "status": "findings",
+  "created_at": "2026-11-19T00:00:00+09:00",
+  "findings": [
+    {
+      "id": "R84-REV-01",
+      "severity": "P3",
+      "file": "sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql",
+      "line": 179,
+      "evidence": "answer_feedback_request locks the row with SELECT ... FOR UPDATE but never checks v_request.request_status = 'PENDING'; the UPDATE and the FEEDBACK_ANSWERED INSERT run for ANSWERED/CLOSED rows too. The same body is in sql/SCHEMA.sql.",
+      "impact": "Two admins answering the same feedback (or a retried call) overwrite the first answer and create a second notification for the user. The other six request RPCs reject non-PENDING rows, so this RPC is inconsistent with them.",
+      "recommendation": "Raise an exception when v_request.request_status <> 'PENDING' (as approve_*_request does), mirror it in SCHEMA.sql and add a TESTS.sql check that a second answer fails without a second notification."
+    },
+    {
+      "id": "R84-REV-02",
+      "severity": "P3",
+      "file": "sql/tests/TESTS.sql",
+      "line": 2126,
+      "evidence": "The R84 smoke block covers feedback RLS, answer_feedback_request, mark_notifications_read, purge and anon access, but no call to approve_/reject_ game/schedule/character_request checks that a REQUEST_APPROVED/REQUEST_REJECTED notification row is created for the requester (the only REQUEST_APPROVED rows are fixture inserts).",
+      "impact": "Acceptance criterion 3 (atomic notification inside the six existing RPCs) is verified only by reading code; a regression in any of the six rewritten RPC bodies would not be caught by the local DB run.",
+      "recommendation": "Add at least one approve and one reject case (for example game_requests) that asserts exactly one notification with the expected kind, user_id and source_id, and that the reject body does not contain admin_memo."
+    },
+    {
+      "id": "R84-REV-03",
+      "severity": "P4",
+      "file": "sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql",
+      "line": 196,
+      "evidence": "The notification title is always '건의에 답변이 등록되었습니다', also for p_status = 'CLOSED' where the answer may be empty; only the body changes.",
+      "impact": "A user whose feedback was closed without an answer sees a title saying an answer was registered.",
+      "recommendation": "Use a CLOSED-specific title (for example '건의 검토가 종료되었습니다') in both the migration and SCHEMA.sql."
+    },
+    {
+      "id": "R84-REV-04",
+      "severity": "P4",
+      "file": "sql/README.md",
+      "line": 54,
+      "evidence": "The R84 row warns only about re-running older purge migrations. MIGRATION_R33_SCHEDULE_RERUN_AND_BROADCAST.sql, MIGRATION_R52_CHARACTER_TEMPLATE_AND_PICKUP_AVATAR.sql and MIGRATION_UNOFFICIAL_SCHEDULES.sql also redefine approve/reject request RPCs without the notification INSERT.",
+      "impact": "Re-applying one of those files later silently removes request approval/rejection notifications.",
+      "recommendation": "Extend the warning to name the migrations that redefine the six request RPCs."
+    },
+    {
+      "id": "R84-REV-05",
+      "severity": "P4",
+      "file": "src/components/layout/notification-bell.tsx",
+      "line": 35,
+      "evidence": "formatCreatedAt uses Date#getMonth/getDate/getHours, i.e. the device time zone, while the app shows dates in KST (calendar-utils.ts, dashboard-date.ts).",
+      "impact": "On a device outside KST the inbox time differs from the rest of the app.",
+      "recommendation": "Format with the existing KST helpers or Intl.DateTimeFormat with timeZone 'Asia/Seoul'."
+    }
+  ]
+}

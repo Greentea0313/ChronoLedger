@@ -10,7 +10,7 @@
                                 "Implement UI and Vitest coverage for feedback submission/history in request-submission-modal.tsx, feedback list/filter in user-requests-card.tsx, feedback admin queue in /admin/requests, and topbar notification bell inbox in topbar.tsx"
                             ],
     "base_sha":  "ac71676bb8f4e0e737d97c26e21f35d7507296a1",
-    "target_sha":  null,
+    "target_sha":  "d7eef7a177addb64952eb80a2fa18111278dce00",
     "branch":  "collab/r84-feedback-and-inbox",
     "worktree_path":  ".worktrees/r84-feedback-and-inbox",
     "max_iterations":  3,
