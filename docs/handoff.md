@@ -7,7 +7,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-#### 1) 우선 실행 과제: `r84-feedback-and-inbox` *(Step 3 통합 리뷰·병합 `▶ READY`)*
+#### 1) 차단 중 Run: `r84-feedback-and-inbox` *(Step 3 `🛑 BLOCKED (로컬 DB 검증 대기)` — 리뷰 완료, 병합 보류)*
 
 - **Run ID**: `r84-feedback-and-inbox` *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
 - **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
@@ -21,7 +21,15 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 0b93975)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Hydrogen** *(1순위 대체로 수행)* | `Maker (DB/RLS/RPC & Types)` | 🐳 **Docker Desktop 필요**. 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 0b93975`: `feedback_requests`·`notifications`·30일 정리 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·6개 요청 RPC 알림 연동·`TESTS.sql`·타입 반영. tsc·lint·Vitest 69파일/862개·diff-check 통과. ⚠️ Docker 미설치 PC로 로컬 DB 실행 미수행(사용자 지시로 Step 3 이관) |
 | **2** | **`✅ DONE (SHA: d7eef7a)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/components/game/user-requests-card.tsx`, `src/app/dashboard/games/page.test.tsx`(또는 `src/components/game/user-requests-card.test.tsx`), `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/layout/topbar.tsx`, 신규 `src/components/layout/notification-bell.tsx` 및 테스트 파일, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ d7eef7a`: 건의 모달·내 요청 카드·관리자 건의 대기열·상단바 알림 벨. tsc·lint·Vitest 892개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 🐳 **Docker Desktop 필요**. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | 대기 중 (`▶ READY`). `run.json` `target_sha` 갱신·로컬 DB 병합 게이트는 `chronoledger-reviewer` 스킬 기준. Docker 없는 PC면 리뷰 산출물만 쓰고 `🛑 BLOCKED (로컬 DB 검증 대기)` |
+| **3** | **`🛑 BLOCKED (로컬 DB 검증 대기)`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 🐳 **Docker Desktop 필요**. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | `🛑` iteration-01 리뷰·테스트 아티팩트 커밋 `0429417`(워크트리). 발견 P3 2건·P4 3건, tsc·lint·Vitest 892개·build 통과, 로컬 DB 미실행(이 PC Docker 미설치)으로 병합 보류. 아래 Step 3 리뷰 기록 참고 |
+
+#### 📝 `r84-feedback-and-inbox` Step 3 리뷰 기록 (Claude Opus, 2026-11-19, iteration-01)
+
+- **범위**: Base `ac71676` ↔ Target `d7eef7a177addb64952eb80a2fa18111278dce00`. 범위 검사(조상 확인·`Target..HEAD`의 `src`·`sql` 변경 없음) 통과함. `run.json` `target_sha` 갱신, `review.json`·`test.json` 스키마 검증 통과 후 아티팩트 커밋 `0429417`(미push).
+- **SQL 대조**: 기존 6개 요청 RPC·탈퇴 purge 본문이 Base `SCHEMA.sql` 대비 알림 INSERT·정리 2줄 외 변경 없음, 마이그레이션과 Target `SCHEMA.sql` 본문 일치함. 삭제 대기 트리거는 `auth.uid() = user_id`일 때만 막아 관리자 승인·답변 시 알림 생성을 막지 않음.
+- **발견**: P3 ① `answer_feedback_request`에 `PENDING` 확인 없음 → 중복 답변 시 답변 덮어쓰기·알림 2건. P3 ② `TESTS.sql`이 6개 승인/반려 RPC의 알림 생성을 검사하지 않음. P4 ③ `CLOSED`도 제목이 "답변이 등록되었습니다" ④ README 경고에 승인/반려 RPC를 재정의하는 구버전 마이그레이션(R33·R52·UNOFFICIAL) 누락 ⑤ 알림 시각이 KST가 아닌 기기 시간대.
+- **검사**: tsc·lint·Vitest 70파일 892개 통과, build는 워크트리에 `.env.local`이 없어 더미 로컬 값으로 통과, `git diff --check` 통과. 로컬 Supabase 2회 적용·`TESTS.sql`은 **미실행**(`skipped`).
+- **다음 단계(권장)**: iteration-02 Maker(SQL이므로 Claude Opus 또는 Gemini 4 Neon / GPT Codex)가 P3 2건(가능하면 P4 포함) 수정 후, Docker 있는 PC에서 Reviewer가 로컬 DB 2회 적용·`TESTS.sql` 통과를 기록하고 병합. 다른 PC로 옮기려면 사용자가 `collab/r84-feedback-and-inbox` push 필요.
 
 #### 📝 `r84-feedback-and-inbox` Step 2 완료 기록 (Claude Sonnet, 2026-11-18)
 
