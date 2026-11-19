@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-19 (AI 협업 파이프라인 6대 개선안 반영)
+
+- Reviewer가 `run.json` `target_sha`를 아티팩트 커밋에서 갱신하고, 워크트리 Run도 `Target..HEAD` 범위 검사를 하도록 Reviewer·Orchestrator Skill과 `New-CollaborationRun.ps1` 안내 문구를 정리함.
+- Maker·SQL Skill·Copilot 지침의 인계 규칙을 Claude(`Sonnet`→`Opus`)·Gemini(`Hydrogen`→`Neon`/`Argon`) 티어 체계와 일치시킴.
+- handoff Skill에 다중 PC 워크트리 복원 절차와 Docker 미설치/엔진 꺼짐 분기를 추가하고, `sql/` 변경 Run은 로컬 DB 통과 기록 없이는 `main`에 병합하지 않는 게이트를 둠.
+- Orchestrator·docs-closeout Skill에 수용 기준 간결화(설계 문서 포인터 + 8줄)와 서브에이전트 위임 허용·금지 범위를 추가함. 상세: `docs/pipeline-collaboration-review.md` §4.
+
 ## 2026-11-19 (UI·코드 후속 개선 5건: `R95`·`R87`·`R75②③`·`13.2-F2`·`13.2-F3`)
 
 - **`R95`**: 수익 내역 삭제(`delete_income`) 실패 시 RPC 오류 사유(`error.message`)를 다이얼로그에 함께 표시함.

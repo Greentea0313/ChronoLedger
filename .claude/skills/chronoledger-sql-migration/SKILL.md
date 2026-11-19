@@ -5,7 +5,7 @@ description: Write or review a ChronoLedger Supabase schema change (table, RLS p
 
 # ChronoLedger SQL Migration
 
-Any change to money, ledger, points, RLS or SQL/RPC is an Opus promotion condition (`.agents/rules/collaboration.md`). Never touch the production database; migrations are applied by the user in the Supabase SQL Editor.
+Any change to money, ledger, points, RLS or SQL/RPC is a promotion condition (`.agents/rules/collaboration.md` §1): Claude works as Opus; Gemini implements as Neon (or GPT Codex) and uses Argon only for pre-design or audit, never for `sql/**` edits; Hydrogen, Sonnet, Copilot and Flash hand over. Never touch the production database; migrations are applied by the user in the Supabase SQL Editor.
 
 ## 1. Files to change together
 
@@ -34,10 +34,12 @@ Any change to money, ledger, points, RLS or SQL/RPC is an Opus promotion conditi
 
 ## 4. Local run (🐳 Docker Desktop required)
 
-- Run `docker version` first; if Docker is missing or the engine is stopped, stop and ask the user to start Docker Desktop.
+- Check Docker first (PowerShell: `Get-Command docker -ErrorAction SilentlyContinue`; bash: `command -v docker`), then `docker version`:
+  - **CLI found but the Server part fails (engine stopped)**: stop and ask the user to start Docker Desktop.
+  - **No Docker CLI on this PC**: a Maker finishes every other file and check, commits, and records `⚠️ LOCAL_DB_DEFERRED` (`chronoledger-maker`); a Reviewer applies the local DB merge gate (`chronoledger-reviewer`). Never skip the local run silently.
 - Start the local stack outside the repository as described in `sql/README.md` section C (`npx supabase@2.120.0 init/start --workdir <folder>`, `project_id = chronoledger-local`).
 - A host `psql` is not required: copy files into the DB container and run them there, which also avoids PowerShell encoding issues:
   - `docker cp sql/SCHEMA.sql supabase_db_chronoledger-local:/tmp/SCHEMA.sql`
   - `docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/SCHEMA.sql`
 - Apply the migration twice to prove it is re-runnable, then run `sql/tests/TESTS.sql` the same way and confirm the final rollback `PASS`.
-- If the local run was not possible, record it as not run in the handoff record; do not claim the SQL was executed.
+- If the local run was not possible, record it as not run in the handoff record; do not claim the SQL was executed. A Run with `sql/` changes is never merged into `main` without a recorded local pass.

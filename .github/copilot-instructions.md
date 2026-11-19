@@ -11,5 +11,5 @@
 - For a review role, report evidence, file and line, impact, and recommendation in `artifacts/schemas/review.schema.json` format; do not modify implementation files. A role description is not a technical permission boundary, so the user must select restrictive tools/permissions and inspect proposed changes.
 - After meaningful work, update `docs/` as described in `.agents/skills/chronoledger-docs-closeout/SKILL.md`.
 - When the user says `"인수인계 문서를 확인해"` (or asks to check the handoff document), follow `.agents/skills/handoff/SKILL.md`.
-- Model roles, fallback chains and the Gemini 4 Argon no-direct-implementation rule: `.agents/rules/collaboration.md` (read when assigning models).
+- Model roles, fallback chains, promotion rules (Claude Sonnet → Opus; Gemini 4 Hydrogen → Neon for complex/core/SQL implementation, or Argon / Claude Opus for open design, security and ledger audits) and the `src/**` boundaries (Argon never edits it; Neon and Hydrogen only in Maker rows): `.agents/rules/collaboration.md` (read when assigning models or handing over).
 - **Communication & Documentation Style**: Always communicate with the user in Korean. **답과 문서는 한국어 개조식(~함, ~임)으로 쓸 것** (details: `.agents/rules/language.md`).

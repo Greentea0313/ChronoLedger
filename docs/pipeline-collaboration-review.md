@@ -124,3 +124,32 @@
    - Claude Code / Antigravity / GPT Codex / GitHub Copilot 간 협업에서 위 6가지 외에 Opus 관점에서 추가로 개선해야 할 파이프라인 병목이 있다면 함께 제시할 것.
 6. **반영 및 배턴 터치**:
    - 본 문서 `## 4.` 작성과 함께 합의된 스킬/지침 파일(`.agents/skills/*/SKILL.md`, `.github/copilot-instructions.md`, `scripts/collaboration/New-CollaborationRun.ps1` 및 `Sync-Skills.ps1`)을 즉시 수정·커밋하고, `docs/handoff.md`에서 본 검토 과제를 완료 처리한 뒤 대기 중인 `r84-feedback-and-inbox` Step 3를 다시 `▶ READY`로 전환(또는 사용자 결정이 필요한 항목이 있으면 보고)할 것.
+
+---
+
+## 4. Claude Opus 2차 검증 결과 및 확정안
+
+- **검증 주체·일자**: Claude Opus, 2026-11-19. Base `7c0ff3c` 기준 스킬 6종·`collaboration.md`·`New-CollaborationRun.ps1`·`validate_collaboration_artifact.py`·`run.schema.json`·r84 워크트리 상태를 직접 대조함.
+- **총평**: 6건 모두 실제 모순·병목으로 확인함. 1차 개선안 방향은 채택하되, 아래 보완점(★)을 더해 반영함.
+
+### 4.1 항목별 판정
+
+| ID | 판정 | 확정안 요지 (★ = 1차안 대비 보완) |
+| :--- | :--- | :--- |
+| `P1-1` | 채택·보완 | Maker는 `run.json`을 건드리지 않고 40자 Target SHA를 `handoff.md` 행·Run 헤더에만 기록함. Reviewer가 `run.json` `target_sha`를 채워 `review.json`·`test.json`과 한 커밋에 넣음. ★ 범위 검사를 `main` Run 전용에서 워크트리 Run까지 확대(`merge-base --is-ancestor <Target> HEAD` + `git diff <Target> HEAD -- src sql` 비어 있음). ★ 검증기는 스키마만 보고 SHA 교차 검증을 하지 않으므로, Reviewer가 `run_id`·`base_sha`·`target_sha`를 매니페스트에서 복사·대조함을 명시. ★ 짧은 SHA(`d7eef7a`)는 `git rev-parse`로 40자 해석 |
+| `P1-2` | 채택·보완 | Maker·SQL 스킬·Copilot 지침을 `collaboration.md` §1 승격 체계와 일치시킴. ★ "본인 티어 기준으로 인계"로 정리(Sonnet→Opus, Hydrogen→Neon(구현·디버깅) 또는 Argon/Opus(설계·보안·원장 판단), Copilot/Flash→Neon/Opus). ★ 승격 티어(Opus·Neon Maker·GPT Codex)에 배정된 행은 인계 없이 계속함을 명시해 무한 인계 방지. ★ Argon은 `sql/**` 직접 수정 금지(사전 설계·감사만) |
+| `P2-1` | 채택·보완 | `handoff` 스킬에 §1 5단계 "워크트리 복원" 추가(`git fetch` → `git worktree add --track -b …` 또는 깨끗한 워크트리 `pull --ff-only`). ★ reset·force·덮어쓰기 금지, 미커밋 변경·비 fast-forward는 `🛑 BLOCKED`. ★ 근본 원인은 원격 push 누락이나, push는 외부 공개 동작이라 자동 push는 넣지 않음. Maker 기록에 `원격 브랜치: push함 / 안 함`을 남기고 다른 PC 진행 시 사용자 승인 요청 |
+| `P2-2` | 채택·보완 | 판별: `Get-Command docker -ErrorAction SilentlyContinue`(bash `command -v docker`) 없음 = 미설치, 있으나 `docker version` Server 실패 = 엔진 꺼짐. 미설치 PC의 Maker는 나머지 검증·커밋 후 `⚠️ LOCAL_DB_DEFERRED` 기록. ★ **병합 게이트를 표기 유무가 아닌 `git diff --name-only <Base> <Target> -- sql` 결과로 판정**: 표기 누락에도 미검증 SQL이 병합되지 않음. ★ `test.json`에 2회 적용·`TESTS.sql` 통과가 기록되어야만 병합, Docker 없으면 리뷰 산출물만 쓰고 `🛑 BLOCKED (로컬 DB 검증 대기)`. ★ 로컬 실행에서 SQL 결함 발견 시 Reviewer가 고치지 않고 Maker 반복으로 되돌림 |
+| `P2-3` | 채택·보완 | Orchestrator 스킬에 "수용 기준 간결화" 추가: 설계 문서 절 포인터 + Step당 핵심 검증 8줄 이내, `run.json`은 Step당 1줄, 완료 기록 약 8줄. ★ Reviewer 스킬에 "행이 가리키는 설계 문서 절을 수용 기준으로 읽음"을 추가해 누락 방지. ★ 아카이브 이관 시 장문 수용 기준은 포인터·1~3줄 요약으로 대체(docs-closeout) |
+| `P3-1` | 채택·범위 축소 | Maker·docs-closeout 스킬에 1줄씩 추가. 위임 허용: 읽기 전용 다중 파일 탐색, 단순 마크업·스타일 초안, 아카이브 잘라 붙이기. ★ **위임 금지**: SQL/RPC/RLS, 금액·날짜·포인트 로직, 커밋, 큐 상태 변경, 리뷰 판정·`test.json` 결과 기록. ★ 위임 결과는 메인 세션이 diff로 직접 확인 |
+
+### 4.2 추가 발견 사항
+
+1. **[현재 Run 영향] `r84` 브랜치 원격 미push**: `origin/collab/r84-feedback-and-inbox`가 없음. 현재 PC(Docker 미설치)에서만 Step 3 가능하나, 이 PC에서는 새 병합 게이트상 병합 불가함. Docker 있는 PC로 옮기려면 사용자가 이 PC에서 `git -C .worktrees/r84-feedback-and-inbox push -u origin collab/r84-feedback-and-inbox` 실행 필요.
+2. **`New-CollaborationRun.ps1` iteration README 문구**: 확정 절차(Maker는 `handoff.md`에 기록, Reviewer가 `run.json` 갱신)로 수정함.
+3. **남은 개선 후보(미반영, 필요 시 별도 Run)**: `validate_collaboration_artifact.py`에 `--manifest` 옵션을 추가해 `run_id`·`base_sha`·`target_sha` 일치를 자동 검사하면 P1-1 수동 대조를 없앨 수 있음. 이번 허용 파일 범위 밖이라 반영하지 않음.
+
+### 4.3 반영 파일
+
+- `.agents/skills/{handoff,chronoledger-maker,chronoledger-reviewer,chronoledger-orchestrator,chronoledger-sql-migration,chronoledger-docs-closeout}/SKILL.md` 및 `Sync-Skills.ps1`로 `.claude/skills/` 사본 동기화(`-Check` 일치 확인).
+- `.github/copilot-instructions.md` 14행, `scripts/collaboration/New-CollaborationRun.ps1` iteration README 문구(PowerShell 구문 검사 오류 0건).

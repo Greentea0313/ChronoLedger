@@ -7,33 +7,21 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-#### 1) 우선 실행 과제: `pipeline-collab-6-items-opus-review` *(AI 협업 파이프라인 6대 병목·모순 Opus 2차 검토 및 스킬 반영)*
-
-- **Run ID**: `pipeline-collab-6-items-opus-review` *(`P1-1` `run.json` `target_sha` 갱신 주체 모순, `P1-2` 하위 스킬 내 `Hydrogen` $\to$ `Neon`/`Argon` 승격 규칙 통일, `P2-1` 다중 PC 워크트리 복원, `P2-2` Docker 미설치 PC의 Step 3 로컬 DB 검증 이관 표준화, `P2-3` `handoff.md` 수용 기준 슬림화, `P3-1` `Hydrogen`·`Neon`의 `Flash` 서브에이전트 활용)*
-- **Orchestrator**: Gemini 4 Argon *(2026-11-19 사용자 지시로 등록)*
-- **Worktree 경로**: `main` (협업 문서·스킬 검토 및 개정이므로 격리 워크트리 없이 `main`에서 수행함. 제품 코드·DB 변경 없음, 🐳 Docker 불필요)
-- **Base SHA**: `7c0ff3cbb73a8eee636d95cb98bccd7882d8cc8e`
-
-| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
-| :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen 2순위 대체)* | `Reviewer & Architect (Pipeline Audit)` | [`docs/pipeline-collaboration-review.md`](pipeline-collaboration-review.md) §2~§3의 6가지 문제 현상(`P1-1`~`P3-1`)과 개선안을 비판적으로 2차 검토해 문서 내 `## 4. Claude Opus 2차 검증 결과 및 확정안`을 작성하고, 확정된 개선안을 스킬·스크립트에 반영(`Sync-Skills.ps1` 실행 포함)한 뒤 커밋하고 아래 `r84-feedback-and-inbox` Step 3를 `▶ READY`로 복원함. 허용 파일: `docs/pipeline-collaboration-review.md`, `.agents/skills/*/SKILL.md`, `.claude/skills/*/SKILL.md`, `.github/copilot-instructions.md`, `scripts/collaboration/New-CollaborationRun.ps1`, `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md` | 대기 중 (`▶ READY`) |
-
----
-
-#### 2) 병합 대기 중 기능 Run: `r84-feedback-and-inbox` *(위 `pipeline-collab-6-items-opus-review` 완료 직후 Step 3 `▶ READY` 전환)*
+#### 1) 우선 실행 과제: `r84-feedback-and-inbox` *(Step 3 통합 리뷰·병합 `▶ READY`)*
 
 - **Run ID**: `r84-feedback-and-inbox` *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
 - **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
 - **Worktree 경로**: `.worktrees/r84-feedback-and-inbox` (브랜치: `collab/r84-feedback-and-inbox`, 매니페스트: `artifacts/r84-feedback-and-inbox/run.json`)
 - **Base SHA**: `ac71676bb8f4e0e737d97c26e21f35d7507296a1`
-- **Target SHA**: `d7eef7a` *(Step 2 완료 기준, 미병합)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`). 🐳 **Docker Desktop 필요** (Step 1 또는 Step 3에서 로컬 Supabase 2회 멱등 적용 및 `TESTS.sql` 실행).
+- **Target SHA**: `d7eef7a177addb64952eb80a2fa18111278dce00` *(Step 2 완료 기준, 미병합)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`). 🐳 **Docker Desktop 필요**. `⚠️ LOCAL_DB_DEFERRED` (Step 1 로컬 DB 미실행 → Step 3에서 2회 멱등 적용·`TESTS.sql` 통과 전 병합 금지).
+- **원격 브랜치**: `origin/collab/r84-feedback-and-inbox` 없음(미push). 다른 PC에서 Step 3 진행 시 이 PC에서 사용자가 push 필요.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 0b93975)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Hydrogen** *(1순위 대체로 수행)* | `Maker (DB/RLS/RPC & Types)` | 🐳 **Docker Desktop 필요**. 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 0b93975`: `feedback_requests`·`notifications`·30일 정리 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·6개 요청 RPC 알림 연동·`TESTS.sql`·타입 반영. tsc·lint·Vitest 69파일/862개·diff-check 통과. ⚠️ Docker 미설치 PC로 로컬 DB 실행 미수행(사용자 지시로 Step 3 이관) |
 | **2** | **`✅ DONE (SHA: d7eef7a)`** | **Claude Sonnet** *(Gemini 4 Hydrogen 1순위 대체, GitHub Copilot 2순위 대체)* | `Maker (UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx`, `src/components/game/user-requests-card.tsx`, `src/app/dashboard/games/page.test.tsx`(또는 `src/components/game/user-requests-card.test.tsx`), `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/layout/topbar.tsx`, 신규 `src/components/layout/notification-bell.tsx` 및 테스트 파일, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ d7eef7a`: 건의 모달·내 요청 카드·관리자 건의 대기열·상단바 알림 벨. tsc·lint·Vitest 892개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`⏳ WAITING`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 위 `pipeline-collab-6-items-opus-review` 완료 즉시 `▶ READY` 전환. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | `⏳ 위 파이프라인 6대 개선안 Opus 검토 완료 직후 진행 (Base ac71676 ↔ Target d7eef7a)` |
+| **3** | **`▶ READY`** | **Claude Opus** *(Gemini 4 Argon / Gemini 4 Neon 1순위 대체, Gemini 4 Hydrogen / GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 🐳 **Docker Desktop 필요**. Base(`ac71676bb8f4e0e737d97c26e21f35d7507296a1`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·테스트(`test.json`) 검증 및 `main` 병합·문서 마감 | 대기 중 (`▶ READY`). `run.json` `target_sha` 갱신·로컬 DB 병합 게이트는 `chronoledger-reviewer` 스킬 기준. Docker 없는 PC면 리뷰 산출물만 쓰고 `🛑 BLOCKED (로컬 DB 검증 대기)` |
 
 #### 📝 `r84-feedback-and-inbox` Step 2 완료 기록 (Claude Sonnet, 2026-11-18)
 
@@ -99,32 +87,22 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75`·`R87`·`R95` | 후속 · 우선 낮음 | 리뷰 P4 이관·후속 설계 | `docs/to-do.md` 해당 항목 |
 
-### 🗂️ 직전 완료 Run 기록: `r89-push-notification-research`
+### 🗂️ 직전 완료 Run 기록: `pipeline-collab-6-items-opus-review`
 
-- **Run ID**: `r89-push-notification-research` **(완료, 2026-11-18)** *(`R89` · `R39` 연계: 웹 푸시(PWA)·Tauri 데스크톱 알림 지원 범위, 서버리스 발송 구조, 구독 저장·RLS, 게임 일정·예정 지출 알림 및 `R84` 건의 답변 알림 통합 설계 조사)*
-- **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
-- **Worktree 경로**: `main` (문서 전용 조사이므로 격리 워크트리·`run.json` 없이 `main`에서 수행함. 코드·SQL 변경 없음)
-- **Base SHA**: `d5b9b74312fe271b8e5f38c04a21023efbc156fb`
-- **DB 변경**: 없음. 🐳 Docker 불필요.
+- **Run ID**: `pipeline-collab-6-items-opus-review` **(완료, 2026-11-19)** *(AI 협업 파이프라인 6대 병목·모순 Opus 2차 검토 및 스킬 반영)*
+- **Orchestrator**: Gemini 4 Argon *(2026-11-19 사용자 지시로 등록)*
+- **Worktree 경로**: `main` (협업 문서·스킬 개정, 제품 코드·DB 변경 없음)
+- **Base SHA**: `7c0ff3cbb73a8eee636d95cb98bccd7882d8cc8e`
 
-| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
-| :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (2026-11-18)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Researcher & Architect (R89)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `docs/push-notification-research.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `✅` [`docs/push-notification-research.md`](push-notification-research.md) 작성. 권장: 앱 내 알림함 먼저 → 일일 알림 → 웹 푸시. Tauri(WebView2) 웹 푸시는 미지원으로 판정. 사용자 결정 6건(§9) |
-| **2** | **`✅ DONE (2026-11-18)`** | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토, 사용자 결정 사항을 질문 카드로 확인, `R84` 및 알림 구현 후속 Run 예약 반영, `docs/` 마감 | `✅` 기술·보안 경계 검토 완료, 질문 카드 6건 확정(1차 `R84`+알림함 30일 보관 → 2차 `R39` 일일 3종 KST 09:00 → 3차 `R96` Web Push → 4차 `R97` Tauri OS 알림), 예약 목록 갱신 및 마감 |
+| 순서 | 상태 | 담당 모델 | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (2026-11-19)`** | **Claude Opus** | `Reviewer & Architect (Pipeline Audit)` | [`docs/pipeline-collaboration-review.md`](pipeline-collaboration-review.md) §4 작성, 6건 채택(보완 포함), 스킬 6종·Copilot 지침·`New-CollaborationRun.ps1` 반영 |
 
-#### 📝 `r89-push-notification-research` Step 1 완료 기록 (Claude Opus, 2026-11-18)
+#### 📝 `pipeline-collab-6-items-opus-review` Step 1 완료 기록 (Claude Opus, 2026-11-19)
 
-- **산출물**: [`docs/push-notification-research.md`](push-notification-research.md). 문서 전용, 코드·DB 변경 없음.
-- **결론**: 알림을 DB `notifications` 행으로 먼저 만들고 앱 내 알림함으로 보여준 뒤, 같은 행을 Edge Function이 웹 푸시로 보내는 구조를 권장함. `R84` 답변 알림은 앱 내 알림만으로 먼저 출시 가능함.
-- **플랫폼**: Android·데스크톱 브라우저 지원, iOS는 홈 화면 웹 앱(16.4+)에서만, Tauri(WebView2)는 웹 푸시 미지원으로 판정(구독 오류 보고·공식 문서 없음) → 앱 내 알림 + 실행 중 OS 알림만.
-- **발송**: `pg_cron` 하루 1회(KST 09:00 안) + 알림 행 INSERT DB 웹훅(`pg_net`) 즉시 호출. 실패 행은 다음 실행이 다시 처리함. VAPID 개인키는 Edge Function Secrets에만 둠.
-- **DB 초안**: `push_subscriptions`(endpoint 소유자 교체·로그아웃 시 해제), `notification_settings`, `notifications`(발송 상태·읽음). 모두 본인 조회만, 쓰기는 RPC·DB 함수 전용, 삭제 대기 차단·탈퇴 정리 연결.
-
-#### 📝 `r89-push-notification-research` Step 2 완료 기록 (Gemini 4 Argon, 2026-11-18)
-
-- **검토 결과**: `notifications` 테이블 기반 Outbox 구조, 클라이언트 직접 쓰기 차단(DB 함수·RPC 전용 생성/읽음 처리), 공용 기기 `endpoint` 소유자 교체 및 로그아웃 시 구독 해제, `link_path` 상대 경로(`^/`) 강제, 잠금 화면 민감 정보 배제 설계가 모두 기존 보안·RLS 원칙과 부합함을 확인함. `R39` 예정 지출 알림 기준일은 `expenses.target_date`로 명시함.
-- **사용자 결정 확정 (2026-11-18 질문 카드)**:
-  1. **단계별 도입 순서**: 1차 `R84`(기타 건의 창구 + 앱 내 알림함) → 2차 `R39`(관심 일정·예정 지출 일일 알림) → 3차 `R96`(Web Push 외부 발송) → 4차 `R97`(Tauri 실행 중 OS 네이티브 알림).
-  2. **일일 알림(`R39`) 종류**: 관심 일정 시작 당일(`FAVORITE_START`), 관심 일정 종료 1일 전(`FAVORITE_END_D1`), 예정 지출 결제 예정일 1일 전(`EXPENSE_D1`) 3종(건의 답변·요청 승인/반려 알림은 1차 기본 포함).
-  3. **발송 시각·보관 기간·Tauri 범위**: KST 09:00(`0 0 * * *` UTC) 발송, 알림 보관 기간 **30일**(`pg_cron` 자동 정리), Windows Tauri는 앱 내 알림함 + 실행 중 OS 네이티브 알림(`@tauri-apps/plugin-notification`)까지 포함.
-- **후속 조치**: `docs/push-notification-research.md` §8·§9에 확정안 반영, `docs/to-do.md` 및 본 문서 예약 요약표에 `R84`·`R39`·`R96`·`R97` 등록, 완료된 `R89` 및 직전 Run `skill-support-check` 기록을 `docs/archive/`로 이관함.
+- **P1-1**: Reviewer가 `run.json` `target_sha`를 채워 아티팩트와 한 커밋에 넣음. 범위 검사(`merge-base --is-ancestor`·`git diff <Target> HEAD -- src sql`)를 워크트리 Run까지 확대함.
+- **P1-2**: Maker·SQL 스킬·Copilot 지침에 티어별 인계(Sonnet→Opus, Hydrogen→Neon 또는 Argon/Opus) 반영함.
+- **P2-1·P2-2**: handoff §1 5단계 워크트리 복원 추가. Docker 미설치/엔진 꺼짐 분기, `⚠️ LOCAL_DB_DEFERRED` 표기, `sql/` diff 기준 병합 게이트 추가함.
+- **P2-3·P3-1**: 수용 기준 포인터+8줄 원칙, 서브에이전트 위임 허용·금지 범위 명시함.
+- **검증**: `Sync-Skills.ps1 -Check` 일치, PS1 구문 검사 오류 0건, `git diff --check` 통과. 제품 코드 변경 없어 tsc·Vitest 미실행.
+- **남은 점**: `r84` 브랜치 미push, 현재 PC Docker 미설치. 검증기 `--manifest` 교차 검사는 후속 후보(미등록).

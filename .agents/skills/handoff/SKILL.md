@@ -16,13 +16,17 @@ Run these steps immediately, without clarifying questions:
 2. **Pick the task**: `⚠️ HANDOVER_NEEDED` first (resume from `### 📌 중단 체크포인트`, skip finished parts), otherwise the single `▶ READY` row. Rows in the reservation summary (`📝 AGENDA`, 보류, 예약) are never auto-started.
 3. **Hard-cutoff recovery**: if a previous model stopped without updating status (row still `▶ READY` or `🔄 IN_PROGRESS`), run `git status --short` and `git diff` in the target workspace (`.worktrees/<run_id>` or `main`) and preserve its uncommitted changes before continuing.
 4. **Load the role skill** for the row: Maker → `chronoledger-maker`, Reviewer → `chronoledger-reviewer`, Orchestrator → `chronoledger-orchestrator`. For SQL/RPC/RLS work also load `chronoledger-sql-migration`.
-5. **Respect scope**: work only in the row's worktree and allowed files, against its acceptance criteria. Edits, tests and commits happen inside `.worktrees/<run_id>`; queue updates go to the root `docs/handoff.md`.
-6. **Baton touch**: when done (Maker: after the commit), set your row to `✅ DONE (SHA: <sha>)` and the next `⏳ WAITING` row to `▶ READY`. On an unresolvable blocker set `🛑 BLOCKED` and report.
-7. **Close out docs** with the `chronoledger-docs-closeout` skill, then report: what was done, verification evidence, and the next model (with fallbacks) to call with `"인수인계 문서를 확인해"`.
+5. **Restore the workspace** (multi-PC): if `.worktrees/<run_id>` or the recorded Target SHA is missing locally, run `git fetch origin collab/<run_id>` before blocking. If the remote branch exists, recreate the worktree with `git worktree add --track -b collab/<run_id> .worktrees/<run_id> origin/collab/<run_id>` (when the local branch is missing too), or update an existing clean worktree with `git -C .worktrees/<run_id> pull --ff-only`. Never reset, force or overwrite local changes; a dirty worktree or a non-fast-forward pull is `🛑 BLOCKED`. If the remote branch or Target SHA is still missing, set `🛑 BLOCKED` and ask the user to run `git -C .worktrees/<run_id> push -u origin collab/<run_id>` on the previous PC.
+6. **Respect scope**: work only in the row's worktree and allowed files, against its acceptance criteria. Edits, tests and commits happen inside `.worktrees/<run_id>`; queue updates go to the root `docs/handoff.md`.
+7. **Baton touch**: when done (Maker: after the commit), set your row to `✅ DONE (SHA: <sha>)` and the next `⏳ WAITING` row to `▶ READY`. On an unresolvable blocker set `🛑 BLOCKED` and report.
+8. **Close out docs** with the `chronoledger-docs-closeout` skill, then report: what was done, verification evidence, and the next model (with fallbacks) to call with `"인수인계 문서를 확인해"`.
 
 ## 2. Docker Desktop precheck
 
-For tasks that need local Supabase (marked `🐳`), run `docker version` before starting. If the engine is not running or Docker is missing, stop immediately and tell the user "Docker Desktop을 켜고 `Engine running` 확인 필요" instead of doing other work while waiting.
+For tasks that need local Supabase (marked `🐳`), check Docker before starting (`chronoledger-sql-migration` §4):
+
+- **Docker installed, engine stopped** (`docker version` has no Server part): stop immediately and tell the user "Docker Desktop을 켜고 `Engine running` 확인 필요" instead of doing other work while waiting.
+- **No Docker CLI on this PC**: a Maker continues without the local DB run and records `⚠️ LOCAL_DB_DEFERRED`; a Reviewer writes the artifacts but does not merge (`🛑 BLOCKED (로컬 DB 검증 대기)`). Tell the user that the remaining step needs a PC with Docker.
 
 ## 3. Emergency handover (token/context budget)
 

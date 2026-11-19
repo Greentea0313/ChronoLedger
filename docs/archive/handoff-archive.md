@@ -6,6 +6,36 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 이전 Run 기록 (완료): `r89-push-notification-research`
+
+- **Run ID**: `r89-push-notification-research` **(완료, 2026-11-18)** *(`R89` · `R39` 연계: 웹 푸시(PWA)·Tauri 데스크톱 알림 지원 범위, 서버리스 발송 구조, 구독 저장·RLS, 게임 일정·예정 지출 알림 및 `R84` 건의 답변 알림 통합 설계 조사)*
+- **Orchestrator**: Gemini 4 Argon *(2026-11-18 사용자 지시로 활성화)*
+- **Worktree 경로**: `main` (문서 전용 조사이므로 격리 워크트리·`run.json` 없이 `main`에서 수행함. 코드·SQL 변경 없음)
+- **Base SHA**: `d5b9b74312fe271b8e5f38c04a21023efbc156fb`
+- **DB 변경**: 없음. 🐳 Docker 불필요.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (2026-11-18)`** | **Claude Opus** *(Gemini 4 Hydrogen / Gemini 4 Argon 1순위 대체, GitHub Copilot 2순위 대체)* | `Researcher & Architect (R89)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: 신규 `docs/push-notification-research.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `✅` [`docs/push-notification-research.md`](push-notification-research.md) 작성. 권장: 앱 내 알림함 먼저 → 일일 알림 → 웹 푸시. Tauri(WebView2) 웹 푸시는 미지원으로 판정. 사용자 결정 6건(§9) |
+| **2** | **`✅ DONE (2026-11-18)`** | **Gemini 4 Argon** *(Gemini 4 Hydrogen / Claude Opus 1순위 대체, GitHub Copilot 2순위 대체)* | `Reviewer & Orchestrator` | 조사 문서 검토, 사용자 결정 사항을 질문 카드로 확인, `R84` 및 알림 구현 후속 Run 예약 반영, `docs/` 마감 | `✅` 기술·보안 경계 검토 완료, 질문 카드 6건 확정(1차 `R84`+알림함 30일 보관 → 2차 `R39` 일일 3종 KST 09:00 → 3차 `R96` Web Push → 4차 `R97` Tauri OS 알림), 예약 목록 갱신 및 마감 |
+
+#### 📝 `r89-push-notification-research` Step 1 완료 기록 (Claude Opus, 2026-11-18)
+
+- **산출물**: [`docs/push-notification-research.md`](push-notification-research.md). 문서 전용, 코드·DB 변경 없음.
+- **결론**: 알림을 DB `notifications` 행으로 먼저 만들고 앱 내 알림함으로 보여준 뒤, 같은 행을 Edge Function이 웹 푸시로 보내는 구조를 권장함. `R84` 답변 알림은 앱 내 알림만으로 먼저 출시 가능함.
+- **플랫폼**: Android·데스크톱 브라우저 지원, iOS는 홈 화면 웹 앱(16.4+)에서만, Tauri(WebView2)는 웹 푸시 미지원으로 판정(구독 오류 보고·공식 문서 없음) → 앱 내 알림 + 실행 중 OS 알림만.
+- **발송**: `pg_cron` 하루 1회(KST 09:00 안) + 알림 행 INSERT DB 웹훅(`pg_net`) 즉시 호출. 실패 행은 다음 실행이 다시 처리함. VAPID 개인키는 Edge Function Secrets에만 둠.
+- **DB 초안**: `push_subscriptions`(endpoint 소유자 교체·로그아웃 시 해제), `notification_settings`, `notifications`(발송 상태·읽음). 모두 본인 조회만, 쓰기는 RPC·DB 함수 전용, 삭제 대기 차단·탈퇴 정리 연결.
+
+#### 📝 `r89-push-notification-research` Step 2 완료 기록 (Gemini 4 Argon, 2026-11-18)
+
+- **검토 결과**: `notifications` 테이블 기반 Outbox 구조, 클라이언트 직접 쓰기 차단(DB 함수·RPC 전용 생성/읽음 처리), 공용 기기 `endpoint` 소유자 교체 및 로그아웃 시 구독 해제, `link_path` 상대 경로(`^/`) 강제, 잠금 화면 민감 정보 배제 설계가 모두 기존 보안·RLS 원칙과 부합함을 확인함. `R39` 예정 지출 알림 기준일은 `expenses.target_date`로 명시함.
+- **사용자 결정 확정 (2026-11-18 질문 카드)**:
+  1. **단계별 도입 순서**: 1차 `R84`(기타 건의 창구 + 앱 내 알림함) → 2차 `R39`(관심 일정·예정 지출 일일 알림) → 3차 `R96`(Web Push 외부 발송) → 4차 `R97`(Tauri 실행 중 OS 네이티브 알림).
+  2. **일일 알림(`R39`) 종류**: 관심 일정 시작 당일(`FAVORITE_START`), 관심 일정 종료 1일 전(`FAVORITE_END_D1`), 예정 지출 결제 예정일 1일 전(`EXPENSE_D1`) 3종(건의 답변·요청 승인/반려 알림은 1차 기본 포함).
+  3. **발송 시각·보관 기간·Tauri 범위**: KST 09:00(`0 0 * * *` UTC) 발송, 알림 보관 기간 **30일**(`pg_cron` 자동 정리), Windows Tauri는 앱 내 알림함 + 실행 중 OS 네이티브 알림(`@tauri-apps/plugin-notification`)까지 포함.
+- **후속 조치**: `docs/push-notification-research.md` §8·§9에 확정안 반영, `docs/to-do.md` 및 본 문서 예약 요약표에 `R84`·`R39`·`R96`·`R97` 등록, 완료된 `R89` 및 직전 Run `skill-support-check` 기록을 `docs/archive/`로 이관함.
+
 ### 🗂️ 이전 Run 기록 (완료): `skill-support-check`
 
 - **Run ID**: `skill-support-check` **(완료, 2026-11-18)** *(도구별 프로젝트 Skill 지원 확인 · 지침 Skill 분리 후속)*
