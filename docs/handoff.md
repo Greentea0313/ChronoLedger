@@ -15,7 +15,7 @@
 - **Base SHA**: `ac71676bb8f4e0e737d97c26e21f35d7507296a1`
 - **Target SHA**: `0f8e188a295b2643d76f43a59de296d0e94375b7` *(iteration-02 Maker 수정 기준, 미병합. iteration-01 리뷰 대상은 `d7eef7a177addb64952eb80a2fa18111278dce00`)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`). 🐳 **Docker Desktop 필요**. `⚠️ LOCAL_DB_DEFERRED` (Step 1 로컬 DB 미실행 → Step 3에서 2회 멱등 적용·`TESTS.sql` 통과 전 병합 금지).
-- **원격 브랜치**: `origin/collab/r84-feedback-and-inbox` 없음(미push). 다른 PC에서 Step 3 진행 시 이 PC에서 사용자가 push 필요.
+- **원격 브랜치**: `origin/collab/r84-feedback-and-inbox` push 완료(2026-11-19, `0f8e188`). 다른 PC는 handoff Skill §1 5단계로 워크트리 복원.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
@@ -28,7 +28,7 @@
 - **Target SHA**: `0f8e188a295b2643d76f43a59de296d0e94375b7`(워크트리, 미push). 변경: 마이그레이션·`SCHEMA.sql`·`TESTS.sql`·`sql/README.md`·`notification-bell.tsx`·테스트임.
 - **수정**: `answer_feedback_request`가 `PENDING`이 아니면 예외(덮어쓰기·중복 알림 방지), `CLOSED` 알림 제목 분리, `TESTS.sql`에 재답변 거부·`approve/reject_game_request` 요청자 알림 1건·관리자 메모 미포함 검사 추가, README 재실행 경고에 R33·R52·UNOFFICIAL 추가, 알림 시각 KST 표시.
 - **검증**: tsc·lint·Vitest 70파일 893개·`git diff --check` 통과. 마이그레이션과 `SCHEMA.sql`의 `answer_feedback_request` 본문 일치 확인함. 로컬 DB 실행은 **미실행**(`⚠️ LOCAL_DB_DEFERRED`, Docker 미설치).
-- **원격 브랜치**: push 안 함.
+- **원격 브랜치**: push 완료(2026-11-19).
 - **다음**: Docker PC에서 Reviewer(Claude Opus)가 iteration-02(`Base ac71676` ↔ `Target 0f8e188`) 리뷰·로컬 DB 2회 적용·`TESTS.sql` 통과 기록 후 병합함.
 
 #### 📝 `r84-feedback-and-inbox` Step 3 리뷰 기록 (Claude Opus, 2026-11-19, iteration-01)
