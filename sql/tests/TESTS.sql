@@ -2124,6 +2124,10 @@ END $$;
 RESET ROLE;
 \echo PASS: R93 income RPCs keep total_asset in sync, validate input, deny direct writes, isolate users, block pending deletion and anon
 
+-- The fixture role must not act as user A here: user A is pending deletion until the cleanup line below,
+-- and the pending-deletion trigger blocks writes to user A rows while auth.uid() is user A (known-pitfalls #40).
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
 -- R84: feedback_requests and notifications (owner isolation, admin answer + atomic notification,
 -- read RPC, 30-day purge, pending deletion block, and anon denial).
 WITH inserted_fb AS (
@@ -2203,6 +2207,8 @@ BEGIN
     IF v_read_count <> 1 THEN
         RAISE EXCEPTION 'FAIL: R84 mark_notifications_read single expected 1, got %', v_read_count;
     END IF;
+    -- User B also holds the approve/reject notifications created above: clear them, then a repeat call reads nothing.
+    PERFORM public.mark_notifications_read(NULL);
     v_read_count := public.mark_notifications_read(NULL);
     IF v_read_count <> 0 THEN
         RAISE EXCEPTION 'FAIL: R84 second mark_notifications_read expected 0, got %', v_read_count;
@@ -2282,6 +2288,7 @@ BEGIN
         VALUES (auth.uid(), '기타', 'pending user', 'blocked');
         RAISE EXCEPTION 'FAIL: R84 pending user inserted feedback';
     EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
     END;
 
     BEGIN
@@ -2296,6 +2303,10 @@ BEGIN
 END $$;
 RESET ROLE;
 
+-- The fixture role must not act as user A here: user A is pending deletion until the cleanup line below,
+-- and the pending-deletion trigger blocks writes to user A rows while auth.uid() is user A (known-pitfalls #40).
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
 -- DB fixture role checks 30-day purge, account purge linkage, and link_path check.
 DO $$
 DECLARE
@@ -2304,7 +2315,7 @@ DECLARE
 BEGIN
     BEGIN
         INSERT INTO public.notifications(user_id, kind, title, body, link_path)
-        VALUES (:'other_user_id'::uuid, 'FEEDBACK_ANSWERED', 'bad link', 'body', 'https://evil.example');
+        VALUES (current_setting('chronoledger.other_user_id')::uuid, 'FEEDBACK_ANSWERED', 'bad link', 'body', 'https://evil.example');
         RAISE EXCEPTION 'FAIL: R84 external link_path was accepted';
     EXCEPTION WHEN check_violation THEN NULL;
     END;
