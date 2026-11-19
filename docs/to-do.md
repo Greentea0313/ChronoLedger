@@ -233,6 +233,7 @@
 ### 사용자 추가 검토 확정 과제 (2026-11-09 완료 · Run `r13-4-breakthrough-guest-and-schedule-tree` 병합 `ce4bed2`)
 
 - [ ] R50. [보안 검토 안건 · `📝 AGENDA` (`auth-security-settings-review`, 사용자 별도 요청 시에만 `▶ READY` 전환)] 인증 보안 설정 점검: 클라이언트 인증 흐름·키 관리·RLS/`SECURITY DEFINER` 권한 경계 읽기 전용 점검, Supabase 대시보드 Auth 설정 체크리스트(사용자 확인용) 작성, 문자열 컬럼 암호화 미도입 권장 근거 기록 → `docs/auth-security-review.md` (담당: Claude Opus, Fallback: Gemini 4 Argon / GitHub Copilot, 코드 수정은 별도 R 항목으로 분리)
+
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)
 
 > 근거: [`docs/competitive-analysis-pickupgg.md`](competitive-analysis-pickupgg.md). 실행 순서: 현재 진행 중인 R13 UI Run(`r13-phase13-2-and-13-3-ui`)을 1순위로 완수·병합한 직후, **차기 Run 1(`R32 + R34`)** → **차기 Run 2(`R33`)** 순으로 착수함.
