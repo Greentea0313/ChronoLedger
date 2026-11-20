@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r98-character-icon-remove",
+  "iteration": 1,
+  "agent": "Gemini 4 Hydrogen",
+  "role": "static-review",
+  "base_sha": "bc9e0265abee74b71c50d2886908395ec847ae4e",
+  "target_sha": "342067dd49346e44bbaa228c2ea9ebe26f7c4e1f",
+  "status": "clean",
+  "created_at": "2026-11-21T03:44:20+09:00",
+  "findings": []
+}
