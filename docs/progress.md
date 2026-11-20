@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## Run `r85-schedule-times` Step 1 DB/RLS/RPC & Types 완료 (2026-11-21)
+
+- **수행 주체**: Gemini 4 Neon (GPT Codex 1순위 대체, `Maker`)임.
+- **결과**: `MIGRATION_R85_SCHEDULE_TIMES.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts` 반영, 워크트리 커밋 `97a809f`(미병합·미push). 🐳 로컬 DB 마이그레이션 2회 멱등 + 신규 `SCHEMA.sql` 모두 `TESTS.sql` 41개 PASS, `tsc`·`lint`·Vitest 70파일/900개 통과함.
+- **다음 단계**: Step 2(`Claude Sonnet`, Fallback: `Gemini 4 Hydrogen` / `GitHub Copilot` — 공용 로직·UI & Vitest) `▶ READY`임.
+
 ## Run `r98-character-icon-remove` 완료 — `main` 병합 `56c26ce` (2026-11-21)
 
 - **수행 주체**: Claude Sonnet (Step 1 Maker `342067d`) → Gemini 4 Hydrogen (Step 2 Reviewer & Orchestrator).

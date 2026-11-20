@@ -11,13 +11,22 @@
 - **Orchestrator**: Gemini 4 Hydrogen *(2026-11-21 등록)*
 - **Worktree 경로**: `.worktrees/r85-schedule-times` (브랜치: `collab/r85-schedule-times`, 매니페스트: `artifacts/r85-schedule-times/run.json`)
 - **Base SHA**: `be4b43fd752a15185d584f035f9692d7181e064b`
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`, `sql/SCHEMA.sql` · 🐳 Docker Desktop 실행 확인 완료).
+- **Target SHA**: `97a809f3f80006b375ffabbf0acb439f7fc4eb58` *(Step 1 DB/RLS/RPC & Types 커밋 기준, 미병합·원격 미push)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`, `sql/SCHEMA.sql` · 🐳 Docker Desktop 로컬 DB 업그레이드 2회 멱등 + 신규 `SCHEMA.sql` + `TESTS.sql` 41개 PASS 확인 완료).
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **GPT Codex** *(Fallback: Gemini 4 Neon / Claude Opus)* | `Maker (R85 DB/RLS/RPC & Types)` | `.worktrees/r85-schedule-times`에서 아래 **Step 1 수용 기준** 수행(🐳 Docker Desktop 로컬 Supabase 검증 포함). 허용 파일: 신규 `sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` | 대기 중 |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R85 공용 로직·UI & Vitest)` | `.worktrees/r85-schedule-times`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/lib/`(`calendar-utils.ts` 등 관련 유틸·테스트), `src/app/admin/page.tsx`·`requests/page.tsx` 및 테스트, `src/components/game/request-submission-modal.tsx` 및 테스트, `src/components/calendar/*`·`src/components/game/*`·`src/app/dashboard/page.tsx`·`games/page.tsx`·`src/app/page.tsx` 및 해당 테스트 | 대기 중 |
+| **1** | **`✅ DONE (SHA: 97a809f3f80006b375ffabbf0acb439f7fc4eb58)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Neon** *(1순위 대체로 수행)* | `Maker (R85 DB/RLS/RPC & Types)` | `.worktrees/r85-schedule-times`에서 아래 **Step 1 수용 기준** 수행(🐳 Docker Desktop 로컬 Supabase 검증 포함). 허용 파일: 신규 `sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` | `✅ 97a809f`: `MIGRATION_R85_SCHEDULE_TIMES.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts` 반영. 🐳 로컬 DB 2회 멱등·신규 `SCHEMA.sql`·`TESTS.sql` 41개 PASS, tsc·lint·Vitest 70파일/900개·diff-check 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R85 공용 로직·UI & Vitest)` | `.worktrees/r85-schedule-times`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/lib/`(`calendar-utils.ts` 등 관련 유틸·테스트), `src/app/admin/page.tsx`·`requests/page.tsx` 및 테스트, `src/components/game/request-submission-modal.tsx` 및 테스트, `src/components/calendar/*`·`src/components/game/*`·`src/app/dashboard/page.tsx`·`games/page.tsx`·`src/app/page.tsx` 및 해당 테스트 | 대기 중 |
 | **3** | **`⏳ WAITING`** | **Claude Opus** *(Fallback: Gemini 4 Argon / Gemini 4 Neon)* | `Reviewer & Orchestrator` | Base `be4b43f` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), 🐳 로컬 DB 업그레이드(2회 멱등)·신규 `SCHEMA.sql` + `TESTS.sql` 검증, `main` 병합 및 `docs/` 마감 | 대기 중 |
+
+#### 📝 `r85-schedule-times` Step 1 완료 기록 (Gemini 4 Neon — GPT Codex 1순위 대체, 2026-11-21)
+
+- **Target SHA**: `97a809f3f80006b375ffabbf0acb439f7fc4eb58` (워크트리 브랜치 `collab/r85-schedule-times`, 미병합). 변경 파일: 신규 `sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (허용 5개 파일만, `run.json` 미수정).
+- **DB·RPC 변경**: `games.daily_reset_time TIME`(분 단위 CHECK·`anon` 조회 허용), `game_schedules`·`schedule_requests`의 `start_at`·`end_at TIMESTAMPTZ`·`start_at_estimated`·`end_at_estimated BOOLEAN` 및 CHECK 10종(KST 날짜 일치·순서·`date_trunc('minute', ..., 'UTC')` 분 단위·예상-시각 일치) 추가. `approve_schedule_request`가 신규 INSERT·대상 UPDATE 모두 시각·예상 플래그를 복사하도록 갱신(`sync_version_expenses_trigger` 및 R84 알림 INSERT 유지). `README.md` B표에 확인 쿼리 및 R84 선행/재실행 주의 문구 추가.
+- **검증**: 🐳 로컬 Supabase 초기화 → Base `SCHEMA.sql`(`be4b43f`) + R85 마이그레이션 **1·2회차 멱등 적용** + `README.md` 확인 쿼리(컬럼 9행·제약 11행·`anon`/RPC 4종 `true`) + `TESTS.sql` **41개 PASS(R85 7종 시나리오+`anon` 조회 포함)·최종 rollback PASS**. 별도로 신규 Target `SCHEMA.sql` 직접 적용 + `TESTS.sql` **41개 PASS·롤백 PASS** 확인. 워크트리 `git diff --check`·`tsc --noEmit`·`next lint`·Vitest **70파일/900개** 모두 통과함.
+- **원격 브랜치**: push 안 함(사용자 승인 필요). 다른 PC에서 Step 2를 이어가려면 `git -C .worktrees/r85-schedule-times push -u origin collab/r85-schedule-times` 필요함.
+- **다음 단계**: Step 2(`Claude Sonnet`, Fallback: `Gemini 4 Hydrogen` / `GitHub Copilot` — R85 공용 로직·UI & Vitest) `▶ READY`임.
 
 #### 📌 `r85-schedule-times` 단계별 수용 기준 (Acceptance Criteria)
 
