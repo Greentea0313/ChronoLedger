@@ -7,7 +7,32 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(2026-11-21 `r98-character-icon-remove` 완료·`main` 병합 `56c26ce`. 다음 착수 후보: `R39` 일일 알림, `R85` 일정 시간 단위, `R97` Tauri 알림)*
+- **활성 Run ID**: `r85-schedule-times` *(2026-11-21 등록 · `R85`: 일정 시각 `start_at`·`end_at`·예상 표시 + 게임별 서버 초기화 시각 `games.daily_reset_time` · 설계 [`docs/r85-schedule-time-design.md`](r85-schedule-time-design.md) §4~§8, §10)*
+- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-21 등록)*
+- **Worktree 경로**: `.worktrees/r85-schedule-times` (브랜치: `collab/r85-schedule-times`, 매니페스트: `artifacts/r85-schedule-times/run.json`)
+- **Base SHA**: `be4b43fd752a15185d584f035f9692d7181e064b`
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`, `sql/SCHEMA.sql` · 🐳 Docker Desktop 실행 확인 완료).
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **GPT Codex** *(Fallback: Gemini 4 Neon / Claude Opus)* | `Maker (R85 DB/RLS/RPC & Types)` | `.worktrees/r85-schedule-times`에서 아래 **Step 1 수용 기준** 수행(🐳 Docker Desktop 로컬 Supabase 검증 포함). 허용 파일: 신규 `sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` | 대기 중 |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R85 공용 로직·UI & Vitest)` | `.worktrees/r85-schedule-times`에서 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/lib/`(`calendar-utils.ts` 등 관련 유틸·테스트), `src/app/admin/page.tsx`·`requests/page.tsx` 및 테스트, `src/components/game/request-submission-modal.tsx` 및 테스트, `src/components/calendar/*`·`src/components/game/*`·`src/app/dashboard/page.tsx`·`games/page.tsx`·`src/app/page.tsx` 및 해당 테스트 | 대기 중 |
+| **3** | **`⏳ WAITING`** | **Claude Opus** *(Fallback: Gemini 4 Argon / Gemini 4 Neon)* | `Reviewer & Orchestrator` | Base `be4b43f` ↔ Step 2 Target SHA 통합 정적 리뷰(`review.json`·`test.json`), 🐳 로컬 DB 업그레이드(2회 멱등)·신규 `SCHEMA.sql` + `TESTS.sql` 검증, `main` 병합 및 `docs/` 마감 | 대기 중 |
+
+#### 📌 `r85-schedule-times` 단계별 수용 기준 (Acceptance Criteria)
+
+- **Step 1 (`GPT Codex` — DB/RLS/RPC & Types, 🐳 Docker 필요)**: 상세 [`docs/r85-schedule-time-design.md`](r85-schedule-time-design.md) §4·§8
+  1. `sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`(재실행 멱등) 및 `sql/SCHEMA.sql` 동기화: `game_schedules`·`schedule_requests`에 `start_at`/`end_at TIMESTAMPTZ NULL`, `start_at_estimated`/`end_at_estimated BOOLEAN NOT NULL DEFAULT FALSE` 및 일관성 CHECK(`date_trunc('minute', ...)` 초/밀리초 0, `(start_at AT TIME ZONE 'Asia/Seoul')::date = start_date` 등, 순서 CHECK, 플래그-시각 일치 CHECK) 추가.
+  2. `games`에 `daily_reset_time TIME NULL` 및 분 단위 CHECK 추가(`anon`·`authenticated` 조회 허용).
+  3. `approve_schedule_request`가 신규 INSERT·대상 일정 UPDATE 모두 `start_at`·`end_at`·두 플래그를 복사하도록 갱신(`sync_version_expenses_trigger`는 날짜 변경 시에만 동작 유지).
+  4. `sql/README.md` B표 확인 쿼리 추가, `sql/tests/TESTS.sql` R85 스모크 테스트(§8 7종) 추가 및 🐳 로컬 Supabase 2회 멱등 적용·`TESTS.sql` PASS 확인, `src/types/database.types.ts` 갱신 후 `tsc --noEmit` 통과 및 워크트리 커밋.
+- **Step 2 (`Claude Sonnet` — 공용 로직·UI & Vitest)**: 상세 [`docs/r85-schedule-time-design.md`](r85-schedule-time-design.md) §5·§6·§8·§10
+  1. 공용 함수(`formatSchedulePeriod`, `getScheduleStatus`, `getDdayLabel` 확장) 및 미적용 DB(`42703`/`PGRST204`) 비차단 폴백(조회 시 새 컬럼 제외 재조회, 저장 시 시각 제외 폴백 + 안내).
+  2. 폼: `/admin` 일정 등록·수정(시작·종료 `시각(선택)`+`예상` 체크, `daily_reset_time` 있을 때 `[초기화 시각으로 종료]` 버튼 및 `00:00` 전날 `23:59` 안내, 순서 검증), `/admin` 게임 정보 모달(`서버 초기화 시각 (KST)`), 사용자 요청 모달(`request-submission-modal.tsx` 선택 시각 입력).
+  3. 표시: 주차별 리스트(오늘 새벽 종료 제외·기간 문자열), 선택일 상세(오늘 이미 종료된 일정 `종료` 배지), 게임별 일정 모달(`진행 중`·`다음 예정` 구분), `/admin/requests`·내 요청 카드 기간 문자열 표시. 달력 칸(`desktop-calendar.tsx`, 모바일 달력 타일)은 미변경.
+  4. §8 Vitest 케이스 추가 후 `tsc --noEmit`, `npm run lint`, `vitest run --dir src` 통과 및 워크트리 커밋.
+- **Step 3 (`Claude Opus` — 통합 정적 리뷰·로컬 DB 검증·병합·마감)**:
+  1. Base `be4b43f` ↔ Step 2 Target SHA 정적 리뷰(`review.json`·`test.json`), 🐳 로컬 DB 업그레이드(2회 멱등)·신규 `SCHEMA.sql` + `TESTS.sql` 통과 확인 후 `main` 병합 및 `docs/` 마감(`r98-character-icon-remove` 기록을 `docs/archive/handoff-archive.md`로 이동).
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
