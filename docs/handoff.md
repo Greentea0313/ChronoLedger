@@ -33,7 +33,7 @@
 - **Worktree 경로**: `.worktrees/r85-schedule-times` (브랜치: `collab/r85-schedule-times`, 매니페스트: `artifacts/r85-schedule-times/run.json`, 미삭제·원격 미push)
 - **Base SHA**: `be4b43fd752a15185d584f035f9692d7181e064b`
 - **Target SHA**: `48086cc101299340c3b982439afc22efd87efd85` *(iteration-01 리뷰 clean, 산출물 `62b8b76`, `main` 병합 `6204346`. Step 1 DB 커밋은 `97a809f`)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`, `sql/SCHEMA.sql`). 🐳 Step 3 로컬 DB 재검증 통과. **운영 DB 적용은 사용자 수동 적용 대기**.
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R85_SCHEDULE_TIMES.sql`, `sql/SCHEMA.sql`). 🐳 Step 3 로컬 DB 재검증 통과. 운영 DB 수동 적용·README 확인 쿼리(컬럼 9행·제약 11행·`true` 4종) 완료(사용자, 2026-11-21).
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
@@ -67,4 +67,4 @@
 - **정적 리뷰 (`clean`, 지적 0건)**: 마이그레이션 CHECK 11종·`approve_schedule_request` 본문이 `SCHEMA.sql`과 동일함(diff 0줄). 기존 `end_date >= start_date`·R84 알림 INSERT·예정 지출 트리거 조건 유지. UI는 날짜+시각을 한 입력에서 합성해 CHECK 위반 경로 없음, 시각 키는 사용 시에만 전송·`42703`/`PGRST204` 폴백, 조회는 `select("*")`·재조회로 미적용 DB 비차단. 달력 칸·예산 로직 미변경 확인함.
 - **검증**: 🐳 로컬 Supabase 초기화 → Base `SCHEMA.sql` + 마이그레이션 2회 → `TESTS.sql` 41개 PASS·롤백 PASS. 초기화 → 신규 `SCHEMA.sql` → `TESTS.sql` 41개 PASS → 마이그레이션 재실행 무오류, README 확인 쿼리 9행·11행·`t|t|t|t`. 워크트리 tsc·lint·Vitest 71파일/950개·`next build` 통과, 병합 후 `main` tsc·Vitest 재통과함.
 - **산출물**: `artifacts/r85-schedule-times/iteration-01/review.json`·`test.json`, `run.json` `target_sha` 갱신(`62b8b76`). 공식 검증 스크립트는 `jsonschema` 미설치로 미실행, Node 부분 검증기로 대조함.
-- **남은 일 (사용자)**: 운영 DB에 `MIGRATION_R85_SCHEDULE_TIMES.sql` 수동 적용 후 `sql/README.md` B표 R85 확인 쿼리 실행, 실브라우저 입력·표시 확인. 후속 판단: 사용자용 게임별 일정 모달의 서버 초기화 시각 표시(설계 §3.2, 이번 범위 제외).
+- **남은 일 (사용자)**: 운영 DB 적용·확인 쿼리는 완료(2026-11-21). 실브라우저 입력·표시 확인만 남음. 후속 판단: 사용자용 게임별 일정 모달의 서버 초기화 시각 표시(설계 §3.2, 이번 범위 제외).
