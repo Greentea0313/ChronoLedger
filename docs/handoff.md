@@ -7,7 +7,26 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(2026-11-19 `r84-feedback-and-inbox` 완료·`main` 병합 `660c3fc`. 운영 DB `MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 수동 적용·확인 쿼리 검증 완료(사용자, 2026-11-19), 실브라우저 확인 대기. 다음 착수 후보: `R39` 일일 알림, `R85` 일정 시간 단위, `R97` Tauri 알림)*
+- **활성 Run ID**: `r98-character-icon-remove` *(2026-11-21 등록 · `R98`: 관리자 캐릭터 모달, 사용자 캐릭터 요청 모달, 관리자 요청 대기열에 캐릭터 아바타/아이콘 이미지 제거 기능 추가)*
+- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-21 등록)*
+- **Worktree 경로**: `.worktrees/r98-character-icon-remove` (브랜치: `collab/r98-character-icon-remove`, 매니페스트: `artifacts/r98-character-icon-remove/run.json`)
+- **Base SHA**: `bc9e0265abee74b71c50d2886908395ec847ae4e`
+- **DB 변경**: 없음. 🐳 Docker 불필요.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R98 캐릭터 이미지 제거 UI & 테스트)` | `.worktrees/r98-character-icon-remove`에서 아래 **Step 1 수용 기준** 수행 후 워크트리 커밋. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx` | 대기 중 |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Reviewer & Orchestrator` | Base `bc9e026` ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `tsc`·`lint`·Vitest 검증, `main` 병합 및 `docs/` 마감 | 대기 중 |
+
+#### 📌 `r98-character-icon-remove` 단계별 수용 기준 (Acceptance Criteria)
+
+- **Step 1 (`Claude Sonnet` — Maker)**:
+  1. 관리자 캐릭터 추가/수정 모달([src/app/admin/page.tsx](../../src/app/admin/page.tsx)): `characterFormIconUrl.trim()` 존재 시 `이미지 제거` 버튼 노출·클릭 시 상태 초기화 및 미리보기 숨김; 픽업 전용 캐릭터(`pickupOnlyEdit`) 수정 시 기존 `default_icon_url`이 있었는데 제거한 경우에만 `default_icon_url: null` 전달(기존 `null`인 픽업 전용 캐릭터 이름만 수정 시 불필요한 키 미전송 유지).
+  2. 사용자 캐릭터 등록 요청 모달([src/components/game/request-submission-modal.tsx](../../src/components/game/request-submission-modal.tsx)): `characterIconUrl` 존재 시 `이미지 제거` 버튼 노출·클릭 시 상태 초기화 및 `default_icon_url: null` 제출.
+  3. 관리자 캐릭터 요청 대기열([src/app/admin/requests/page.tsx](../../src/app/admin/requests/page.tsx)): `defaultIconUrls[req.id]` 존재 시 `이미지 제거` 버튼 노출·클릭 시 해당 요청의 교체 아이콘 상태 제거.
+  4. Vitest 보강: 각 파일 테스트에 이미지 제거 동작·미리보기 숨김·`default_icon_url: null` 저장/제출 검증 추가 후 `tsc --noEmit`, `npm run lint`, `vitest run --dir src` 통과 및 워크트리 커밋.
+- **Step 2 (`Gemini 4 Hydrogen` — Reviewer & Orchestrator)**:
+  1. 정적 리뷰(`review.json`·`test.json` 스키마 검증), 전체 검증 통과 확인, `main` 병합 및 `docs/` 마감(`r84-feedback-and-inbox` 기록을 `docs/archive/handoff-archive.md`로 이동).
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
