@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-21 (Run `r85-schedule-times` 완료 — `main` 병합 `6204346`)
+
+- **DB**: `games.daily_reset_time`, `game_schedules`·`schedule_requests`의 `start_at`·`end_at`·예상 플래그와 CHECK 11종 추가, `approve_schedule_request` 시각 복사 (`MIGRATION_R85_SCHEDULE_TIMES.sql`).
+- **로직·UI**: `src/lib/schedule-time.ts` 신규(KST 기간 문자열·진행 상태·종료 라벨·미적용 DB 폴백). 관리자 일정·게임 정보·사용자 요청 폼에 선택 시각 입력, 주차별 리스트·선택일 상세·게임별 일정 모달·요청 화면에 시각 표시와 종료 시각 기준 판정 반영.
+- **협업 산출물**: `artifacts/r85-schedule-times/iteration-01/review.json`(clean)·`test.json`(passed). `r98-character-icon-remove` 기록을 보관 문서로 이동함.
+
 ## 2026-11-21 (Run `r98-character-icon-remove` 완료 — `main` 병합 `56c26ce`)
 
 - **캐릭터 아바타 이미지 제거 기능(`R98`)**: 관리자 캐릭터 추가/수정 모달, 사용자 캐릭터 등록 요청 모달, 관리자 캐릭터 요청 대기열에 `이미지 제거` 버튼을 추가해 등록·교체 이미지를 비우고(`default_icon_url: null`) 기본 아바타 상태로 되돌릴 수 있게 함.

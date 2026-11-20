@@ -6,7 +6,27 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
-### 🗂️ 직전 완료 Run 기록: `r84-feedback-and-inbox`
+### 🗂️ 이전 Run 기록 (완료): `r98-character-icon-remove`
+
+- **Run ID**: `r98-character-icon-remove` **(완료, `main` 병합 `56c26ce`, 2026-11-21)** *(`R98`: 관리자 캐릭터 모달, 사용자 캐릭터 등록 요청 모달, 관리자 캐릭터 요청 대기열에 캐릭터 아바타/아이콘 이미지 제거 기능 추가)*
+- **Orchestrator & Reviewer**: Gemini 4 Hydrogen *(2026-11-21 등록·리뷰·병합 마감)*
+- **Worktree 경로**: `.worktrees/r98-character-icon-remove` (브랜치: `collab/r98-character-icon-remove`, 매니페스트: `artifacts/r98-character-icon-remove/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `bc9e0265abee74b71c50d2886908395ec847ae4e`
+- **Target SHA**: `342067dd49346e44bbaa228c2ea9ebe26f7c4e1f` *(iteration-01 리뷰 clean, 산출물 `bfdfb59`, `main` 병합 `56c26ce`)*
+- **DB 변경**: 없음. 🐳 Docker 불필요.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: 342067d)`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R98 캐릭터 이미지 제거 UI & 테스트)` | 관리자 캐릭터 모달·요청 모달·관리자 요청 대기열에 `이미지 제거` 추가 및 Vitest 5건 보강. tsc·lint·Vitest 70파일/900개 통과 |
+| **2** | **`✅ DONE (산출물 bfdfb59, main 병합 56c26ce)`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Reviewer & Orchestrator` | Base `bc9e026` ↔ Target `342067d` 정적 리뷰 **clean**(지적 0건). tsc·lint·Vitest 70파일/900개·`next build`(16페이지) 통과 후 `main` 병합 `56c26ce` 및 병합 후 검증 통과 |
+
+#### 📝 `r98-character-icon-remove` Step 2 완료 기록 (Gemini 4 Hydrogen, 2026-11-21)
+
+- **리뷰 범위·독립성**: Base `bc9e0265abee74b71c50d2886908395ec847ae4e` ↔ Target `342067dd49346e44bbaa228c2ea9ebe26f7c4e1f`. 범위 검사(`merge-base --is-ancestor`·`Target..HEAD`의 `src`·`sql` 변경 0건) 통과, Maker(Claude Sonnet)와 다른 모델로 독립 리뷰함.
+- **정적 리뷰 (`clean`, 지적 0건)**: 6개 허용 파일 외 변경 없음. 일반/픽업 전용 캐릭터 `default_icon_url: null` 분기, 요청 모달 `null` 제출, 요청 대기열 교체 이미지 초기화 모두 수용 기준과 일치함.
+- **산출물·검증**: `artifacts/r98-character-icon-remove/iteration-01/review.json`·`test.json`, `run.json` 갱신 후 워크트리 커밋 `bfdfb59` (이 PC Python에 `jsonschema` 모듈 미설치로 `json.load` + 스키마 수동 대조 검증). 워크트리 `tsc --noEmit`, `npm run lint`, Vitest 70파일/900개, `next build` 통과 후 `main` 병합(`56c26ce`), 병합 후 `main`에서 `tsc`·`lint`·Vitest 70파일/900개 재통과 확인함. 실브라우저 확인 및 워크트리/브랜치 정리는 사용자 선택 대기.
+
+### 🗂️ 이전 Run 기록 (완료): `r84-feedback-and-inbox`
 
 - **Run ID**: `r84-feedback-and-inbox` **(완료, `main` 병합 `660c3fc`, 2026-11-19 · 운영 DB 수동 마이그레이션·확인 쿼리 완료(사용자, 2026-11-19), 실브라우저 확인 대기)** *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
 - **설계 기준**: [`docs/push-notification-research.md`](../push-notification-research.md) §5.3·§8·§9 (`feedback_requests`·`notifications`·30일 보관 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·기존 6개 요청 승인/반려 RPC 알림 연동 + 건의 모달/내 요청 카드/관리자 대기열/상단바 알림 벨 UI)

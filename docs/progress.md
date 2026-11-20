@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## Run `r85-schedule-times` 완료 — `main` 병합 `6204346` (2026-11-21)
+
+- **수행 주체**: Claude Opus (Step 3 통합 리뷰·병합)임.
+- **결과**: Base `be4b43f` ↔ Target `48086cc` 정적 리뷰 clean. 🐳 로컬 DB 업그레이드 2회 멱등·신규 `SCHEMA.sql`·`TESTS.sql` 41개 PASS, tsc·lint·Vitest 71파일/950개·`next build` 통과 후 `main` 병합함.
+- **남음 (사용자)**: 운영 DB `MIGRATION_R85_SCHEDULE_TIMES.sql` 수동 적용·README 확인 쿼리, 실브라우저 확인.
+
 ## R85 일정 시각 공용 로직·UI 구현 (2026-11-21)
 
 - **수행 주체**: Claude Sonnet (Run `r85-schedule-times` Step 2)임.
