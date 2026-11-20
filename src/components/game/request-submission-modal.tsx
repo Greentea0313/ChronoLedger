@@ -13,6 +13,14 @@ import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 import { assertIconDataUrlSize } from "@/lib/image-resizer"
 import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
+import {
+  SCHEDULE_TIME_PENDING_MESSAGE,
+  composeScheduleAt,
+  formatSchedulePeriod,
+  getKstTime,
+  isMissingScheduleTimeColumnError,
+  stripScheduleTimeFields,
+} from "@/lib/schedule-time"
 import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
 import { isCharacterTemplateActive, normalizeClassificationSchema, type ClassificationSchema } from "@/lib/character-utils"
 import { validateGameRequest, validateScheduleRequest } from "./request-validation"
@@ -33,6 +41,11 @@ type Schedule = {
   pickup_character_ids?: string[] | null
   start_date: string
   end_date: string
+  /** R85 optional KST times; absent on a database without the migration. */
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   memo: string | null
 }
 type GameRequest = {
@@ -52,6 +65,10 @@ type ScheduleRequest = {
   is_official: boolean
   start_date: string
   end_date: string
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   memo: string | null
   request_status: "PENDING" | "APPROVED" | "REJECTED"
   admin_memo: string | null
@@ -128,6 +145,11 @@ export function RequestSubmissionModal({
   const [isTitleAutoFilled, setIsTitleAutoFilled] = useState(false)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
+  // R85 optional KST times (`HH:mm`, empty = date only) and estimate flags.
+  const [startTime, setStartTime] = useState("")
+  const [endTime, setEndTime] = useState("")
+  const [startEstimated, setStartEstimated] = useState(false)
+  const [endEstimated, setEndEstimated] = useState(false)
   const [scheduleMemo, setScheduleMemo] = useState("")
   const [characterRequestMode, setCharacterRequestMode] = useState<"ADD" | "UPDATE">("ADD")
   const [targetCharacterId, setTargetCharacterId] = useState("")
@@ -358,9 +380,20 @@ export function RequestSubmissionModal({
     setIsOfficial(schedule.is_official ?? true)
     setStartDate(schedule.start_date)
     setEndDate(schedule.end_date)
+    setStartTime(getKstTime(schedule.start_at))
+    setEndTime(getKstTime(schedule.end_at))
+    setStartEstimated(!!schedule.start_at && schedule.start_at_estimated === true)
+    setEndEstimated(!!schedule.end_at && schedule.end_at_estimated === true)
     setScheduleMemo(schedule.memo ?? "")
     resetPickupState(schedule.pickup_character_ids ?? [])
   }, [requestKind, requestMode, schedulesForGame, targetScheduleId])
+
+  const resetTimeFields = () => {
+    setStartTime("")
+    setEndTime("")
+    setStartEstimated(false)
+    setEndEstimated(false)
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -390,8 +423,12 @@ export function RequestSubmissionModal({
           : (characterSchema?.axes ?? []).find((axis) => !characterAttributes[axis.key]?.trim()) ? `${(characterSchema?.axes ?? []).find((axis) => !characterAttributes[axis.key]?.trim())?.label}을(를) 선택해 주세요.`
           : characterMemo.length > 500 ? "메모는 500자 이내로 입력해 주세요."
           : null)
-    if (validationError) {
-      setSubmitError(validationError)
+    // R85: times are optional; a start/end pair must be in order.
+    const startAt = requestKind === "schedule" ? composeScheduleAt(startDate, startTime) : null
+    const endAt = requestKind === "schedule" ? composeScheduleAt(endDate, endTime) : null
+    const timeOrderError = startAt && endAt && new Date(endAt).getTime() <= new Date(startAt).getTime() ? "종료 시각은 시작 시각보다 늦어야 합니다." : null
+    if (validationError || timeOrderError) {
+      setSubmitError(validationError ?? timeOrderError)
       return
     }
 
@@ -421,7 +458,12 @@ export function RequestSubmissionModal({
         return
       }
     }
+    // Time columns are sent only when used (or when an edited schedule had times that may now be cleared), so a database
+    // without the R85 migration keeps working for date-only requests.
+    const hasTimePayload = !!startAt || !!endAt || !!originalSchedule?.start_at || !!originalSchedule?.end_at
+    let timesDropped = false
     try {
+      const insertScheduleRequest = (payload: object) => supabase.from("schedule_requests").insert(payload as never)
       const result = requestKind === "game"
         ? await supabase.from("game_requests").insert({ user_id: user.id, name: name.trim(), memo: null })
         : requestKind === "feedback"
@@ -432,19 +474,30 @@ export function RequestSubmissionModal({
             content: feedbackContent.trim(),
           })
         : requestKind === "schedule"
-        ? await supabase.from("schedule_requests").insert({
-            user_id: user.id,
-            game_id: gameId,
-            target_schedule_id: requestMode === "EDIT" ? targetScheduleId : null,
-            title: title.trim(),
-            schedule_type: scheduleType,
-            ...(isRerun ? { is_rerun: true } : originalSchedule?.is_rerun === true ? { is_rerun: false } : {}),
-            ...pickupPayload,
-            is_official: isOfficial,
-            start_date: startDate,
-            end_date: endDate,
-            memo: scheduleMemo.trim() || null,
-          })
+        ? await (async () => {
+            const schedulePayload = {
+              user_id: user.id,
+              game_id: gameId,
+              target_schedule_id: requestMode === "EDIT" ? targetScheduleId : null,
+              title: title.trim(),
+              schedule_type: scheduleType,
+              ...(isRerun ? { is_rerun: true } : originalSchedule?.is_rerun === true ? { is_rerun: false } : {}),
+              ...pickupPayload,
+              is_official: isOfficial,
+              start_date: startDate,
+              end_date: endDate,
+              ...(hasTimePayload
+                ? { start_at: startAt, end_at: endAt, start_at_estimated: !!startAt && startEstimated, end_at_estimated: !!endAt && endEstimated }
+                : {}),
+              memo: scheduleMemo.trim() || null,
+            }
+            const first = await insertScheduleRequest(schedulePayload)
+            if (first.error && hasTimePayload && isMissingScheduleTimeColumnError(first.error)) {
+              timesDropped = true
+              return insertScheduleRequest(stripScheduleTimeFields(schedulePayload))
+            }
+            return first
+          })()
         : await supabase.from("character_requests").insert({
             user_id: user.id,
             game_id: gameId,
@@ -471,7 +524,7 @@ export function RequestSubmissionModal({
             : "요청을 저장하지 못했습니다. 입력값과 로그인 상태를 확인한 뒤 다시 시도해 주세요.")
         return
       }
-      setSuccessMessage("요청을 제출했습니다. 관리자 검토 후 처리됩니다.")
+      setSuccessMessage(timesDropped ? `요청을 제출했습니다. 관리자 검토 후 처리됩니다. ${SCHEDULE_TIME_PENDING_MESSAGE}` : "요청을 제출했습니다. 관리자 검토 후 처리됩니다.")
       if (requestKind === "game") {
         setName("")
       } else if (requestKind === "feedback") {
@@ -483,6 +536,7 @@ export function RequestSubmissionModal({
         setTitle("")
         setStartDate("")
         setEndDate("")
+        resetTimeFields()
         setScheduleMemo("")
         setIsOfficial(true)
         setIsRerun(false)
@@ -678,6 +732,7 @@ export function RequestSubmissionModal({
                         setTitle("")
                         setStartDate("")
                         setEndDate("")
+                        resetTimeFields()
                         setScheduleMemo("")
                         setIsOfficial(true)
                       }
@@ -710,6 +765,7 @@ export function RequestSubmissionModal({
                       setTitle("")
                       setStartDate("")
                       setEndDate("")
+                      resetTimeFields()
                       setScheduleMemo("")
                       setSubmitError(null)
                     }}>
@@ -872,6 +928,47 @@ export function RequestSubmissionModal({
                       />
                     </div>
                   </div>
+                  <div className="space-y-2" data-testid="request-time-fields">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <label htmlFor="schedule-start-time" className="text-sm font-medium text-content">시작 시각 (선택)</label>
+                        <Input
+                          id="schedule-start-time"
+                          type="time"
+                          step={60}
+                          value={startTime}
+                          onChange={(event) => {
+                            setStartTime(event.target.value)
+                            if (!event.target.value) setStartEstimated(false)
+                          }}
+                          className="border-line-control bg-surface-2 text-content"
+                        />
+                        <label className="flex items-center gap-1.5 text-xs text-content-secondary">
+                          <input type="checkbox" checked={startEstimated} disabled={!startTime} onChange={(event) => setStartEstimated(event.target.checked)} />
+                          시작 시각 예상
+                        </label>
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="schedule-end-time" className="text-sm font-medium text-content">종료 시각 (선택)</label>
+                        <Input
+                          id="schedule-end-time"
+                          type="time"
+                          step={60}
+                          value={endTime}
+                          onChange={(event) => {
+                            setEndTime(event.target.value)
+                            if (!event.target.value) setEndEstimated(false)
+                          }}
+                          className="border-line-control bg-surface-2 text-content"
+                        />
+                        <label className="flex items-center gap-1.5 text-xs text-content-secondary">
+                          <input type="checkbox" checked={endEstimated} disabled={!endTime} onChange={(event) => setEndEstimated(event.target.checked)} />
+                          종료 시각 예상
+                        </label>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-content-secondary">모든 시각은 한국 시간(KST)임. 비우면 날짜만 요청됨.</p>
+                  </div>
                   <div className="space-y-2">
                     <label htmlFor="schedule-memo" className="text-sm font-medium text-content">일정 내용 및 메모 (선택)</label>
                     <Textarea
@@ -914,7 +1011,7 @@ export function RequestSubmissionModal({
                   <span className="text-sm text-content-secondary">{statusLabels[request.request_status]}</span>
                 </div>
                 <p className="text-sm text-content-secondary">
-                  {gameNames.get(request.game_id) ?? "게임"} · {request.schedule_type} · {request.start_date} ~ {request.end_date}
+                  {gameNames.get(request.game_id) ?? "게임"} · {request.schedule_type} · {formatSchedulePeriod(request, { style: "full" })}
                   {request.is_official === false ? " · [비공식]" : ""}
                 </p>
                 {request.memo && <p className="text-sm text-content-muted">{request.memo}</p>}

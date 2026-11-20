@@ -9,6 +9,7 @@ import { PickupAvatars, type PickupAvatar } from "@/components/calendar/pickup-a
 import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getDdayLabel, getPeriodProgress, getTodayLocalDate } from "@/lib/calendar-utils"
+import { formatSchedulePeriod, getScheduleEndLabel, hasScheduleEnded, type ScheduleClock } from "@/lib/schedule-time"
 import { formatChildSummary, getVersionParents } from "@/lib/version-schedule-groups"
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -56,6 +57,11 @@ export interface HeroScheduleItem {
   schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   start_date: string
   end_date: string
+  /** R85 optional KST times (null/undefined = date only). */
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   is_official?: boolean
   is_rerun?: boolean
   pickupAvatars?: PickupAvatar[]
@@ -71,6 +77,10 @@ interface HeroScheduleGroup {
   is_rerun: boolean
   start_date: string
   end_date: string
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   gameName?: string | null
   iconUrl?: string
   items: HeroScheduleItem[]
@@ -96,6 +106,8 @@ export interface HeroSidebarProps {
   onIncomeAdded?: () => void
   /** KST today (YYYY-MM-DD) used by D-n badges and progress bars. */
   todayDate?: string
+  /** Current instant for end-time checks (R85); defaults to now. */
+  now?: Date
   /** R35: the user's favourite schedule ids. Together with onToggleFavorite it enables the star toggle (omit for guests). */
   favoriteScheduleIds?: ReadonlySet<string>
   onToggleFavorite?: (scheduleId: string) => void
@@ -141,10 +153,12 @@ export function HeroSidebarContent({
   registerDisabled,
   onIncomeAdded,
   todayDate,
+  now,
   favoriteScheduleIds,
   onToggleFavorite,
 }: HeroSidebarProps) {
   const today = todayDate ?? getTodayLocalDate()
+  const clock: ScheduleClock = { now: now ?? new Date(), today }
   const confirmed = confirmedExpense ?? 0
   const progress =
     expectedExpense > 0 ? Math.min(100, Math.round((confirmed / expectedExpense) * 100)) : 0
@@ -215,7 +229,7 @@ export function HeroSidebarContent({
   // 같은 게임 + 같은 유형 + 같은 기간의 일정은 하나의 카드로 묶어서 표시 (정렬 순서 유지)
   const scheduleGroups = filteredSchedules.filter((s) => !nestedIds.has(s.id)).reduce<HeroScheduleGroup[]>((groups, s) => {
     const gameKey = s.gameId ?? s.gameName ?? ""
-    const key = `${gameKey}|${s.schedule_type}|${s.is_rerun === true ? "rerun" : "new"}|${s.start_date}|${s.end_date}`
+    const key = `${gameKey}|${s.schedule_type}|${s.is_rerun === true ? "rerun" : "new"}|${s.start_date}|${s.end_date}|${s.start_at ?? ""}|${s.end_at ?? ""}|${s.start_at_estimated ? "e" : ""}|${s.end_at_estimated ? "e" : ""}`
     const existing = groups.find((g) => g.key === key)
     if (existing) {
       existing.items.push(s)
@@ -226,6 +240,10 @@ export function HeroSidebarContent({
         is_rerun: s.is_rerun === true,
         start_date: s.start_date,
         end_date: s.end_date,
+        start_at: s.start_at,
+        end_at: s.end_at,
+        start_at_estimated: s.start_at_estimated,
+        end_at_estimated: s.end_at_estimated,
         gameName: s.gameName,
         iconUrl: s.iconUrl,
         items: [s],
@@ -349,10 +367,13 @@ export function HeroSidebarContent({
                 scheduleGroups.map((group) => {
                   const isSingle = group.start_date === group.end_date
                   const isGrouped = group.items.length > 1
+                  // R85: when today is selected, a schedule whose end time already passed is dimmed and marked 종료.
+                  const isEndedToday = selectedDateLabel === today && hasScheduleEnded(group, clock)
                   return (
                     <div
                       key={group.key}
-                      className="relative overflow-hidden rounded-md border border-line bg-surface-2 p-3 text-sm flex flex-col gap-1 transition-colors hover:border-line-control"
+                      data-ended={isEndedToday ? "true" : undefined}
+                      className={`relative overflow-hidden rounded-md border border-line bg-surface-2 p-3 text-sm flex flex-col gap-1 transition-colors hover:border-line-control${isEndedToday ? " opacity-60" : ""}`}
                     >
                       {group.iconUrl && (
                         <div className="absolute right-0 top-0 bottom-0 w-28 overflow-hidden z-0 pointer-events-none">
@@ -380,7 +401,7 @@ export function HeroSidebarContent({
 
                       {/* Line 2: 2026-10-14 ~ 2026-10-28 */}
                       <div className="relative z-10 text-xs text-content-muted">
-                        {isSingle ? `${group.start_date} (단일)` : `${group.start_date} ~ ${group.end_date}`}
+                        {formatSchedulePeriod(group, { style: "full" })}
                       </div>
 
                       <div className="relative z-10 flex items-center gap-2">
@@ -388,7 +409,7 @@ export function HeroSidebarContent({
                           data-testid="dday-badge"
                           className="shrink-0 rounded border border-line bg-surface px-1.5 py-0.5 text-[10px] font-bold text-content"
                         >
-                          {getDdayLabel(today, group.end_date)}
+                          {isEndedToday ? "종료" : getScheduleEndLabel(group, clock)}
                         </span>
                         {!isSingle && (
                           <div
@@ -518,10 +539,10 @@ export function HeroSidebarContent({
                                     <div className="flex flex-wrap items-center gap-1.5">
                                       <ScheduleTypeBadge type={child.schedule_type} isRerun={child.is_rerun === true} size="sm" />
                                       <span className="text-xs text-content-muted">
-                                        {child.start_date === child.end_date ? `${child.start_date} (단일)` : `${child.start_date} ~ ${child.end_date}`}
+                                        {formatSchedulePeriod(child, { style: "full" })}
                                       </span>
                                       <span data-testid="dday-badge" className="text-[10px] font-bold text-content">
-                                        {getDdayLabel(today, child.end_date)}
+                                        {getScheduleEndLabel(child, clock)}
                                       </span>
                                     </div>
                                     <div className="flex items-start gap-2">

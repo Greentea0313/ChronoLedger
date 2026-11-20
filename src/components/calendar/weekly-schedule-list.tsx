@@ -7,7 +7,8 @@ import { DefaultAvatar } from "@/components/character/default-avatar"
 import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
 import type { PickupAvatar } from "@/components/calendar/pickup-avatars"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
-import { getDdayLabel, groupDatesByWeek } from "@/lib/calendar-utils"
+import { groupDatesByWeek } from "@/lib/calendar-utils"
+import { formatSchedulePeriod, getScheduleEndLabel, getScheduleStatus, hasScheduleEnded, type ScheduleClock } from "@/lib/schedule-time"
 import { cn } from "@/lib/utils"
 
 export interface WeeklyScheduleEntry {
@@ -18,6 +19,11 @@ export interface WeeklyScheduleEntry {
   pickupAvatars?: PickupAvatar[]
   start_date: string
   end_date: string
+  /** R85 optional KST times (null/undefined = date only). */
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   gameId?: string | null
   gameName: string | null
   iconUrl?: string
@@ -36,6 +42,8 @@ interface WeeklyScheduleListProps {
   year: number
   month: number
   todayDate: string
+  /** Current instant for end-time checks (R85); defaults to now. */
+  now?: Date
   selectedDate: string
   schedules: WeeklyScheduleEntry[]
   /** Pass null in guest mode to hide expense items and subtotals. */
@@ -69,10 +77,6 @@ const PICKUP_FILTERS: { value: PickupFilter; label: string }[] = [
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"]
 
-function shortDate(date: string): string {
-  return date.slice(5).replace("-", ".")
-}
-
 function slashDate(date: string): string {
   return date.slice(5).replace("-", "/")
 }
@@ -82,12 +86,12 @@ function dateWithWeekday(date: string): string {
   return `${slashDate(date)}(${WEEKDAYS[day]})`
 }
 
-function matchesFilters(schedule: WeeklyScheduleEntry, typeFilter: TypeFilter, pickupFilter: PickupFilter, todayDate: string): boolean {
+function matchesFilters(schedule: WeeklyScheduleEntry, typeFilter: TypeFilter, pickupFilter: PickupFilter, clock: ScheduleClock): boolean {
   if (typeFilter !== "ALL" && schedule.schedule_type !== typeFilter) return false
   if (typeFilter !== "PICKUP" || pickupFilter === "ALL") return true
   if (pickupFilter === "NEW") return schedule.is_rerun !== true
   if (pickupFilter === "RERUN") return schedule.is_rerun === true
-  return schedule.start_date <= todayDate && todayDate <= schedule.end_date
+  return getScheduleStatus(schedule, clock) === "ongoing"
 }
 
 function chipClass(active: boolean): string {
@@ -136,6 +140,7 @@ export function WeeklyScheduleList({
   year,
   month,
   todayDate,
+  now,
   selectedDate,
   schedules,
   expenses,
@@ -155,9 +160,10 @@ export function WeeklyScheduleList({
   const toggle = (key: string, defaultOpen: boolean) =>
     setOpenOverrides((prev) => ({ ...prev, [key]: !(prev[key] ?? defaultOpen) }))
 
-  // R91: schedules that already ended (end date before today, KST) never appear in the weekly list.
+  // R91/R85: schedules that already ended never appear in the weekly list: end_at once it passed, otherwise the end date before today (KST).
+  const clock: ScheduleClock = { now: now ?? new Date(), today: todayDate }
   const visibleSchedules = schedules.filter(
-    (s) => s.end_date >= todayDate && matchesFilters(s, typeFilter, pickupFilter, todayDate),
+    (s) => !hasScheduleEnded(s, clock) && matchesFilters(s, typeFilter, pickupFilter, clock),
   )
 
   return (
@@ -334,9 +340,9 @@ export function WeeklyScheduleList({
                                 </span>
                                 <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-content-muted">
                                   <span>{schedule.gameName ?? "기타"}</span>
-                                  <span>{`${shortDate(schedule.start_date)} ~ ${shortDate(schedule.end_date)}`}</span>
+                                  <span>{formatSchedulePeriod(schedule)}</span>
                                   <span data-testid="dday-badge" className="font-bold text-content">
-                                    {getDdayLabel(todayDate, schedule.end_date)}
+                                    {getScheduleEndLabel(schedule, clock)}
                                   </span>
                                 </span>
                               </span>

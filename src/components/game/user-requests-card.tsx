@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
+import { formatSchedulePeriod } from "@/lib/schedule-time"
 import { Clock, RefreshCw } from "lucide-react"
 
 interface GameRequestItem {
@@ -25,6 +26,10 @@ interface ScheduleRequestItem {
   is_rerun?: boolean
   start_date: string
   end_date: string
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   memo: string | null
   request_status: "PENDING" | "APPROVED" | "REJECTED"
   admin_memo: string | null
@@ -49,7 +54,9 @@ function isMissingFeedbackTable(error: { code?: string } | null | undefined): bo
 }
 
 const SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN = "id, game_id, target_schedule_id, title, schedule_type, start_date, end_date, memo, request_status, admin_memo, created_at, games(name)"
-const SCHEDULE_REQUEST_COLUMNS = SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN.replace("schedule_type, ", "schedule_type, is_rerun, ")
+const SCHEDULE_REQUEST_COLUMNS_WITH_RERUN = SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN.replace("schedule_type, ", "schedule_type, is_rerun, ")
+// R85: optional KST times; the migration may not be applied yet, so the widest column set is tried first.
+const SCHEDULE_REQUEST_COLUMNS = SCHEDULE_REQUEST_COLUMNS_WITH_RERUN.replace("end_date, ", "end_date, start_at, end_at, start_at_estimated, end_at_estimated, ")
 
 type ScheduleRequestResult = { data: unknown; error: { code?: string; message?: string } | null }
 
@@ -58,8 +65,11 @@ async function fetchScheduleRequests(userId: string): Promise<ScheduleRequestRes
   const query = (columns: string): PromiseLike<ScheduleRequestResult> =>
     supabase.from("schedule_requests").select(columns).eq("user_id", userId).order("created_at", { ascending: false })
   const first = await query(SCHEDULE_REQUEST_COLUMNS)
-  if (first.error && isMissingRerunColumnError(first.error)) return query(SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN)
-  return first
+  if (!first.error || !isMissingRerunColumnError(first.error)) return first
+  // Without the R85 columns but with is_rerun (R33), then without both.
+  const withRerun = await query(SCHEDULE_REQUEST_COLUMNS_WITH_RERUN)
+  if (!withRerun.error || !isMissingRerunColumnError(withRerun.error)) return withRerun
+  return query(SCHEDULE_REQUEST_COLUMNS_WITHOUT_RERUN)
 }
 
 function isMissingRerunColumnError(error: { code?: string; message?: string }): boolean {
@@ -279,7 +289,7 @@ export function UserRequestsCard() {
                         : req.schedule_type === "BROADCAST"
                           ? "특별방송"
                           : "콘텐츠"}{" "}
-                    {req.is_rerun && <span className="font-semibold text-warning">복각</span>} · {req.start_date} ~ {req.end_date}
+                    {req.is_rerun && <span className="font-semibold text-warning">복각</span>} · {formatSchedulePeriod(req, { style: "full" })}
                   </p>
 
                   {req.memo && <p className="text-xs text-content-secondary">메모: {req.memo}</p>}

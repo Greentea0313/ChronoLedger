@@ -16,7 +16,8 @@ import { downloadUserIcon, uploadUserIcon, deleteUserIcon } from "@/lib/storage-
 import { resizeImageToWebP } from "@/lib/image-resizer"
 import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
 import { getKstToday } from "@/lib/dashboard-date"
-import { getDdayLabel, getPeriodProgress } from "@/lib/calendar-utils"
+import { getPeriodProgress } from "@/lib/calendar-utils"
+import { formatSchedulePeriod, getScheduleEndLabel, getScheduleStatus, hasScheduleEnded, type ScheduleClock } from "@/lib/schedule-time"
 import { useFavoriteSchedules } from "@/lib/use-favorite-schedules"
 import { loadSchedulePreference } from "@/lib/schedule-preferences"
 import { GameIcon } from "@/components/ui/game-icon"
@@ -62,6 +63,11 @@ interface GameScheduleRow {
   schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   start_date: string
   end_date: string
+  /** R85 optional KST times; absent on a database without the migration. */
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   memo: string | null
   is_official?: boolean
   is_rerun?: boolean
@@ -127,18 +133,18 @@ function ScheduleTree({
   pickupCharacters: PickupCharacterMap
 } & FavoriteScheduleControls) {
   const today = getKstToday()
-  // Past schedules (end_date < today) live in their own collapsed record; the trees only hold current/future ones.
+  // R85: ended schedules (end_at passed, or end_date before today without end_at) live in their own collapsed record;
+  // the trees only hold current/future ones. The clock is read once per mount/data change, like the rest of the page data.
+  const clock = useMemo<ScheduleClock>(() => ({ now: new Date(), today }), [allSchedules, today]) // eslint-disable-line react-hooks/exhaustive-deps
   const pastSchedules = useMemo(
-    () => allSchedules.filter((schedule) => schedule.end_date < today).sort((a, b) => b.end_date.localeCompare(a.end_date)),
-    [allSchedules, today],
+    () => allSchedules.filter((schedule) => hasScheduleEnded(schedule, clock)).sort((a, b) => b.end_date.localeCompare(a.end_date)),
+    [allSchedules, clock],
   )
   // Memoized: the effect below depends on this array's identity.
-  const schedules = useMemo(() => allSchedules.filter((schedule) => schedule.end_date >= today), [allSchedules, today])
+  const schedules = useMemo(() => allSchedules.filter((schedule) => !hasScheduleEnded(schedule, clock)), [allSchedules, clock])
   const [isPastExpanded, setIsPastExpanded] = useState(false)
-  const onAir = schedules.filter((schedule) =>
-    schedule.start_date <= today && schedule.end_date >= today,
-  )
-  const upcoming = schedules.filter((schedule) => schedule.start_date > today)
+  const onAir = schedules.filter((schedule) => getScheduleStatus(schedule, clock) === "ongoing")
+  const upcoming = schedules.filter((schedule) => getScheduleStatus(schedule, clock) === "upcoming")
   const versions = schedules.filter((schedule) => schedule.schedule_type === "VERSION")
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     () => Object.fromEntries(versions.filter((version) => version.start_date <= today && version.end_date >= today).map((version) => [version.id, true])),
@@ -189,14 +195,12 @@ function ScheduleTree({
         />
       </div>
       <p className="text-xs text-content-secondary">
-        {schedule.start_date === schedule.end_date
-          ? `${schedule.start_date} (단일)`
-          : `${schedule.start_date} ~ ${schedule.end_date}`}
+        {formatSchedulePeriod(schedule, { style: "full" })}
       </p>
       {withCountdown && (
         <div className="flex items-center gap-2">
           <span data-testid="dday-badge" className="shrink-0 rounded border border-line bg-surface px-1.5 py-0.5 text-[10px] font-bold text-content">
-            {getDdayLabel(today, schedule.end_date)}
+            {getScheduleEndLabel(schedule, clock)}
           </span>
           {schedule.start_date < schedule.end_date && (
             <div

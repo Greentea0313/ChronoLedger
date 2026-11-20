@@ -82,9 +82,88 @@ describe("UserRequestsCard schedule type labels", () => {
 
     expect(await screen.findByText("마이그레이션 전 일정")).toBeTruthy()
     expect(screen.queryByText("요청 내역을 불러오지 못했습니다.")).toBeNull()
-    expect(scheduleSelects).toHaveLength(2)
+    // R85: widest columns first (is_rerun + times), then is_rerun only, then neither.
+    expect(scheduleSelects).toHaveLength(3)
     expect(scheduleSelects[0]).toContain("is_rerun")
-    expect(scheduleSelects[1]).not.toContain("is_rerun")
+    expect(scheduleSelects[0]).toContain("start_at")
+    expect(scheduleSelects[1]).toContain("is_rerun")
+    expect(scheduleSelects[1]).not.toContain("start_at")
+    expect(scheduleSelects[2]).not.toContain("is_rerun")
+    expect(scheduleSelects[2]).not.toContain("start_at")
+  })
+
+  it("falls back to the is_rerun-only column set when only the R85 time columns are missing", async () => {
+    const row = {
+      id: "request-3",
+      game_id: "game-1",
+      target_schedule_id: null,
+      title: "R85 전 복각 일정",
+      schedule_type: "PICKUP",
+      is_rerun: true,
+      start_date: "2026-11-10",
+      end_date: "2026-11-12",
+      memo: null,
+      request_status: "PENDING",
+      admin_memo: null,
+      created_at: "2026-11-09T00:00:00Z",
+      games: { name: "게임" },
+    }
+    from.mockImplementation((table: string) => {
+      const builder = query([])
+      if (table === "schedule_requests") {
+        builder.select.mockImplementation((columns: string) => {
+          builder.order.mockResolvedValue(
+            columns.includes("start_at")
+              ? { data: null, error: { code: "42703", message: 'column "start_at" does not exist' } }
+              : { data: [row], error: null },
+          )
+          return builder
+        })
+      }
+      return builder
+    })
+
+    render(<UserRequestsCard />)
+
+    expect(await screen.findByText("R85 전 복각 일정")).toBeTruthy()
+    expect(screen.getByText("복각")).toBeTruthy()
+  })
+
+  it("shows request times in the period text (R85)", async () => {
+    const row = {
+      id: "request-4",
+      game_id: "game-1",
+      target_schedule_id: null,
+      title: "시각 있는 일정",
+      schedule_type: "PICKUP",
+      is_rerun: false,
+      start_date: "2026-11-13",
+      end_date: "2026-11-27",
+      start_at: "2026-11-13T02:00:00.000Z",
+      end_at: "2026-11-26T19:59:00.000Z",
+      start_at_estimated: true,
+      end_at_estimated: false,
+      memo: null,
+      request_status: "PENDING",
+      admin_memo: null,
+      created_at: "2026-11-09T00:00:00Z",
+      games: { name: "게임" },
+    }
+    from.mockImplementation((table: string) => {
+      const builder = query([])
+      if (table === "schedule_requests") {
+        builder.select.mockImplementation(() => {
+          builder.order.mockResolvedValue({ data: [row], error: null })
+          return builder
+        })
+      }
+      return builder
+    })
+
+    render(<UserRequestsCard />)
+
+    await screen.findByText("시각 있는 일정")
+    expect(document.body.textContent).toContain("2026-11-13 11:00(예상) ~ 2026-11-27 04:59")
   })
 
   it("does not retry for unrelated errors and shows the load error", async () => {

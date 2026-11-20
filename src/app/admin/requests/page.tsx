@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react"
 import { convertIconSourceToDataUrl } from "@/lib/image-resizer"
+import { formatSchedulePeriod } from "@/lib/schedule-time"
 import { ICON_MIGRATION_PENDING_MESSAGE, isIconRequiredByUnappliedMigration } from "@/lib/pickup-character-registration"
 import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
 
@@ -32,6 +33,11 @@ type ScheduleRequest = {
   schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   start_date: string
   end_date: string
+  /** R85 optional KST times; absent on a database without the migration. */
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   memo: string | null
   is_official?: boolean
   is_rerun?: boolean
@@ -670,7 +676,7 @@ export default function AdminRequestsPage() {
                       <h3 className="font-bold text-lg text-content">{req.title}</h3>
                     </div>
                     <p className="text-sm text-content-secondary">대상 게임: <span className="font-semibold text-content">{req.games?.name || '알 수 없음'}</span></p>
-                    <p className="text-sm text-content-secondary mt-1">기간: {req.start_date || '미정'} ~ {req.end_date || '미정'}</p>
+                    <p className="text-sm text-content-secondary mt-1">기간: {req.start_date && req.end_date ? formatSchedulePeriod(req, { style: "full" }) : `${req.start_date || '미정'} ~ ${req.end_date || '미정'}`}</p>
                     {req.schedule_type === "PICKUP" && (req.pickup_character_ids?.length ?? 0) > 0 && (
                       <div className="mt-2 flex flex-wrap items-center gap-2" data-testid="pickup-request-characters">
                         {(req.pickup_character_ids ?? []).map((characterId) => {
