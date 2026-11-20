@@ -96,6 +96,8 @@
 --   R84-02 authenticated / A       계정 삭제 대기 사용자 건의 등록·알림 읽음 거부, 조회 차단.
 --   R84-03 DB fixture 역할         purge_expired_notifications 30일 초과 삭제, 탈퇴 purge 연동·차단 트리거.
 --   R84-04 anon                   feedback_requests/notifications/RPC 접근 -> insufficient_privilege.
+--   R85-01 DB fixture / B / admin  games.daily_reset_time 분 단위 CHECK, game_schedules/schedule_requests 시각·날짜·순서·분·예상 CHECK,
+--                                  approve_schedule_request 신규/수정 시각·예상 복사(+R84 알림 유지), 시각만 수정 시 예정 지출 날짜 불변, anon 조회.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -2748,6 +2750,278 @@ END;
 $$;
 RESET ROLE;
 \echo PASS: R76 empty presets, atomic slot RPC, preset ordering, and anon ACL
+
+-- R85: schedule start_at/end_at/estimated flags, games.daily_reset_time, approve_schedule_request copy,
+-- expense trigger immunity to time-only edits, and anon visibility.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_game_id UUID := current_setting('chronoledger.r13_game_id')::uuid;
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_sched_id UUID;
+    v_exp_id UUID;
+    v_exp_start DATE;
+    v_exp_end DATE;
+    v_exp_target DATE;
+BEGIN
+    -- 1) games.daily_reset_time rejects seconds and sub-seconds, accepts HH:MM and NULL.
+    BEGIN
+        UPDATE public.games SET daily_reset_time = TIME '05:00:30' WHERE id = v_game_id;
+        RAISE EXCEPTION 'FAIL: R85 daily_reset_time accepted seconds';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        UPDATE public.games SET daily_reset_time = TIME '05:00:00.5' WHERE id = v_game_id;
+        RAISE EXCEPTION 'FAIL: R85 daily_reset_time accepted fractional seconds';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    UPDATE public.games SET daily_reset_time = TIME '00:00' WHERE id = v_game_id;
+    UPDATE public.games SET daily_reset_time = NULL WHERE id = v_game_id;
+    UPDATE public.games SET daily_reset_time = TIME '05:00' WHERE id = v_game_id;
+
+    -- 2) game_schedules CHECKs: KST date mismatch, UTC/KST midnight boundary, order, seconds, estimated without timestamp.
+    BEGIN
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, start_at)
+        VALUES (v_game_id, 'R85 bad start date', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-27', TIMESTAMPTZ '2026-11-21 00:00:00+09');
+        RAISE EXCEPTION 'FAIL: R85 start_at date mismatch was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        -- 2026-11-19T15:00:00Z is 2026-11-20 00:00 KST, so start_date 2026-11-19 must fail.
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, start_at)
+        VALUES (v_game_id, 'R85 utc boundary mismatch', 'CONTENTS', DATE '2026-11-19', DATE '2026-11-27', TIMESTAMPTZ '2026-11-19 15:00:00+00');
+        RAISE EXCEPTION 'FAIL: R85 UTC/KST boundary mismatch was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, end_at)
+        VALUES (v_game_id, 'R85 bad end date', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-27', TIMESTAMPTZ '2026-11-28 04:59:00+09');
+        RAISE EXCEPTION 'FAIL: R85 end_at date mismatch was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, start_at, end_at)
+        VALUES (v_game_id, 'R85 end before start', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-20',
+                TIMESTAMPTZ '2026-11-20 20:00:00+09', TIMESTAMPTZ '2026-11-20 19:00:00+09');
+        RAISE EXCEPTION 'FAIL: R85 end_at < start_at was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, start_at, end_at)
+        VALUES (v_game_id, 'R85 end equals start', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-20',
+                TIMESTAMPTZ '2026-11-20 20:00:00+09', TIMESTAMPTZ '2026-11-20 20:00:00+09');
+        RAISE EXCEPTION 'FAIL: R85 end_at = start_at was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, start_at)
+        VALUES (v_game_id, 'R85 start seconds', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-27', TIMESTAMPTZ '2026-11-20 11:00:30+09');
+        RAISE EXCEPTION 'FAIL: R85 start_at with seconds was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, end_at)
+        VALUES (v_game_id, 'R85 end millis', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-27', TIMESTAMPTZ '2026-11-27 04:59:00.25+09');
+        RAISE EXCEPTION 'FAIL: R85 end_at with millis was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, start_at_estimated)
+        VALUES (v_game_id, 'R85 start est no at', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-27', true);
+        RAISE EXCEPTION 'FAIL: R85 start_at_estimated without start_at was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, end_at_estimated)
+        VALUES (v_game_id, 'R85 end est no at', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-27', true);
+        RAISE EXCEPTION 'FAIL: R85 end_at_estimated without end_at was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    -- 3) Time-only update on game_schedules must not trigger sync_version_expenses_trigger.
+    INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, is_official)
+    VALUES (v_game_id, 'R85 version target', 'VERSION', DATE '2026-11-20', DATE '2026-11-27', true)
+    RETURNING id INTO v_sched_id;
+    PERFORM set_config('chronoledger.r85_target_sched_id', v_sched_id::text, true);
+
+    INSERT INTO public.expenses(user_id, game_id, schedule_id, title, category, status, original_price, final_amount, start_date, end_date, target_date)
+    VALUES (v_user_a, v_game_id, v_sched_id, 'R85 planned check', '게임', 'PLANNED', 12000, 12000,
+            DATE '2026-11-20', DATE '2026-11-27', DATE '2026-11-22')
+    RETURNING id INTO v_exp_id;
+
+    UPDATE public.game_schedules
+    SET start_at = TIMESTAMPTZ '2026-11-19 15:00:00+00', -- 2026-11-20 00:00 KST (UTC boundary valid)
+        end_at = TIMESTAMPTZ '2026-11-27 04:59:00+09',
+        start_at_estimated = true,
+        end_at_estimated = false
+    WHERE id = v_sched_id;
+
+    SELECT start_date, end_date, target_date INTO v_exp_start, v_exp_end, v_exp_target
+    FROM public.expenses WHERE id = v_exp_id;
+    IF v_exp_start <> DATE '2026-11-20' OR v_exp_end <> DATE '2026-11-27' OR v_exp_target <> DATE '2026-11-22' THEN
+        RAISE EXCEPTION 'FAIL: R85 time-only schedule update mutated planned expense dates (%, %, %)',
+            v_exp_start, v_exp_end, v_exp_target;
+    END IF;
+END $$;
+
+-- 4) Authenticated user B validates schedule_requests CHECKs and submits ADD & EDIT requests with times.
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_user UUID := auth.uid();
+    v_game_id UUID := current_setting('chronoledger.r13_game_id')::uuid;
+    v_target_sched_id UUID := current_setting('chronoledger.r85_target_sched_id')::uuid;
+    v_add_req_id UUID;
+    v_edit_req_id UUID;
+BEGIN
+    BEGIN
+        INSERT INTO public.schedule_requests(user_id, game_id, title, schedule_type, start_date, end_date, start_at)
+        VALUES (v_user, v_game_id, 'R85 req bad date', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-27', TIMESTAMPTZ '2026-11-21 11:00:00+09');
+        RAISE EXCEPTION 'FAIL: R85 schedule_requests date mismatch was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.schedule_requests(user_id, game_id, title, schedule_type, start_date, end_date, start_at, end_at)
+        VALUES (v_user, v_game_id, 'R85 req bad order', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-20',
+                TIMESTAMPTZ '2026-11-20 15:00:00+09', TIMESTAMPTZ '2026-11-20 14:00:00+09');
+        RAISE EXCEPTION 'FAIL: R85 schedule_requests end_at <= start_at was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.schedule_requests(user_id, game_id, title, schedule_type, start_date, end_date, start_at)
+        VALUES (v_user, v_game_id, 'R85 req seconds', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-27', TIMESTAMPTZ '2026-11-20 11:00:15+09');
+        RAISE EXCEPTION 'FAIL: R85 schedule_requests seconds were accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    BEGIN
+        INSERT INTO public.schedule_requests(user_id, game_id, title, schedule_type, start_date, end_date, end_at_estimated)
+        VALUES (v_user, v_game_id, 'R85 req est no at', 'CONTENTS', DATE '2026-11-20', DATE '2026-11-27', true);
+        RAISE EXCEPTION 'FAIL: R85 schedule_requests estimated without timestamp was accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    INSERT INTO public.schedule_requests(
+        user_id, game_id, title, schedule_type, start_date, end_date,
+        start_at, end_at, start_at_estimated, end_at_estimated, is_official
+    )
+    VALUES (
+        v_user, v_game_id, 'R85 approved new schedule', 'BROADCAST', DATE '2026-11-21', DATE '2026-11-21',
+        TIMESTAMPTZ '2026-11-21 20:00:00+09', TIMESTAMPTZ '2026-11-21 22:00:00+09', true, false, true
+    )
+    RETURNING id INTO v_add_req_id;
+    PERFORM set_config('chronoledger.r85_add_req_id', v_add_req_id::text, true);
+
+    INSERT INTO public.schedule_requests(
+        user_id, game_id, target_schedule_id, title, schedule_type, start_date, end_date,
+        start_at, end_at, start_at_estimated, end_at_estimated, is_official
+    )
+    VALUES (
+        v_user, v_game_id, v_target_sched_id, 'R85 version target edited', 'VERSION', DATE '2026-11-20', DATE '2026-11-27',
+        TIMESTAMPTZ '2026-11-20 11:00:00+09', TIMESTAMPTZ '2026-11-27 04:59:00+09', false, true, true
+    )
+    RETURNING id INTO v_edit_req_id;
+    PERFORM set_config('chronoledger.r85_edit_req_id', v_edit_req_id::text, true);
+END $$;
+RESET ROLE;
+
+-- 5) Admin approves both requests: approve_schedule_request copies times/flags on INSERT and UPDATE and keeps R84 notifications.
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'admin'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_game_id UUID := current_setting('chronoledger.r13_game_id')::uuid;
+    v_target_sched_id UUID := current_setting('chronoledger.r85_target_sched_id')::uuid;
+    v_add_req_id UUID := current_setting('chronoledger.r85_add_req_id')::uuid;
+    v_edit_req_id UUID := current_setting('chronoledger.r85_edit_req_id')::uuid;
+    v_new_sched_id UUID;
+BEGIN
+    PERFORM public.approve_schedule_request(v_add_req_id);
+    SELECT id INTO v_new_sched_id
+    FROM public.game_schedules
+    WHERE game_id = v_game_id
+      AND title = 'R85 approved new schedule'
+      AND start_at = TIMESTAMPTZ '2026-11-21 20:00:00+09'
+      AND end_at = TIMESTAMPTZ '2026-11-21 22:00:00+09'
+      AND start_at_estimated = true
+      AND end_at_estimated = false;
+    IF v_new_sched_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: R85 approve_schedule_request INSERT did not copy time/estimated fields';
+    END IF;
+    PERFORM set_config('chronoledger.r85_new_sched_id', v_new_sched_id::text, true);
+
+    PERFORM public.approve_schedule_request(v_edit_req_id);
+    IF NOT EXISTS (
+        SELECT 1 FROM public.game_schedules
+        WHERE id = v_target_sched_id
+          AND title = 'R85 version target edited'
+          AND start_at = TIMESTAMPTZ '2026-11-20 11:00:00+09'
+          AND end_at = TIMESTAMPTZ '2026-11-27 04:59:00+09'
+          AND start_at_estimated = false
+          AND end_at_estimated = true
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R85 approve_schedule_request UPDATE did not copy time/estimated fields';
+    END IF;
+
+    IF (SELECT count(*) FROM public.notifications
+        WHERE user_id = current_setting('chronoledger.other_user_id')::uuid
+          AND kind = 'REQUEST_APPROVED'
+          AND source_id IN (v_add_req_id, v_edit_req_id)) <> 2 THEN
+        RAISE EXCEPTION 'FAIL: R85 approve_schedule_request did not preserve R84 REQUEST_APPROVED notifications';
+    END IF;
+END $$;
+RESET ROLE;
+
+-- 6) Anon can read games.daily_reset_time and official game_schedules time columns.
+SET LOCAL ROLE anon;
+DO $$
+DECLARE
+    v_reset TIME;
+    v_start TIMESTAMPTZ;
+    v_end TIMESTAMPTZ;
+    v_start_est BOOLEAN;
+BEGIN
+    SELECT daily_reset_time INTO v_reset
+    FROM public.games
+    WHERE id = current_setting('chronoledger.r13_game_id')::uuid;
+    IF v_reset IS DISTINCT FROM TIME '05:00' THEN
+        RAISE EXCEPTION 'FAIL: R85 anon could not read games.daily_reset_time (got %)', v_reset;
+    END IF;
+
+    SELECT start_at, end_at, start_at_estimated INTO v_start, v_end, v_start_est
+    FROM public.game_schedules
+    WHERE id = current_setting('chronoledger.r85_new_sched_id')::uuid;
+    IF v_start <> TIMESTAMPTZ '2026-11-21 20:00:00+09'
+       OR v_end <> TIMESTAMPTZ '2026-11-21 22:00:00+09'
+       OR v_start_est IS NOT TRUE THEN
+        RAISE EXCEPTION 'FAIL: R85 anon could not read official schedule time columns';
+    END IF;
+END $$;
+RESET ROLE;
+\echo PASS: R85 schedule times, estimated flags, games.daily_reset_time, approve RPC copy, expense trigger immunity, and anon read
 
 SET LOCAL ROLE anon;
 DO $$

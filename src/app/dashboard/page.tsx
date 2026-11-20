@@ -42,6 +42,11 @@ interface ScheduleRow {
   schedule_type: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST"
   start_date: string
   end_date: string
+  /** R85 optional KST times; absent on a database without the migration. */
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   game_id: string
   is_official?: boolean
   is_rerun?: boolean
@@ -617,6 +622,10 @@ export default function DashboardPage() {
           pickupAvatars: getPickupAvatars(s, pickupCharacters),
           start_date: s.start_date,
           end_date: s.end_date,
+          start_at: s.start_at,
+          end_at: s.end_at,
+          start_at_estimated: s.start_at_estimated,
+          end_at_estimated: s.end_at_estimated,
           gameId: s.game_id,
           gameName: gameInfo ? gameInfo.name : null,
           iconUrl: (s.game_id ? gameIcons[s.game_id] : undefined) || gameInfo?.iconUrl,
@@ -740,6 +749,10 @@ export default function DashboardPage() {
           pickupAvatars: getPickupAvatars(s, pickupCharacters),
           start_date: s.start_date,
           end_date: s.end_date,
+          start_at: s.start_at,
+          end_at: s.end_at,
+          start_at_estimated: s.start_at_estimated,
+          end_at_estimated: s.end_at_estimated,
           gameId: s.game_id || null,
           gameName: gameInfo ? gameInfo.name : null,
           iconUrl: (s.game_id ? gameIcons[s.game_id] : undefined) || gameInfo?.iconUrl,

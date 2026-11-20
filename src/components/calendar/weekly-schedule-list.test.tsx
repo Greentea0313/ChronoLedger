@@ -21,6 +21,18 @@ const otherWeeks = () => screen.getAllByTestId("week-group").filter((group) => g
 const openWeek = (week: HTMLElement) => fireEvent.click(within(week).getByTestId("week-header"))
 const filterChip = (name: string) => within(screen.getByRole("group", { name: "일정 유형 필터" })).getByRole("button", { name })
 
+const baseProps = {
+  year: 2026,
+  month: 11,
+  todayDate: "2026-11-09",
+  selectedDate: "2026-11-09",
+  expenses,
+  onSelectDate: vi.fn(),
+  onSelectExpense: vi.fn(),
+  onPrevMonth: vi.fn(),
+  onNextMonth: vi.fn(),
+}
+
 function renderList(overrides: Partial<React.ComponentProps<typeof WeeklyScheduleList>> = {}) {
   const props = {
     year: 2026,
@@ -82,6 +94,54 @@ describe("WeeklyScheduleList ended schedules (R91)", () => {
     otherWeeks().forEach(openWeek)
     expect(screen.queryByText("어제 종료")).toBeNull()
     expect(screen.getAllByText("오늘 종료").length).toBeGreaterThan(0)
+  })
+})
+
+describe("WeeklyScheduleList schedule times (R85)", () => {
+  const at = (date: string, time: string) => new Date(`${date}T${time}:00+09:00`).toISOString()
+  const dawn: WeeklyScheduleEntry = {
+    id: "dawn", title: "새벽 종료", schedule_type: "CONTENTS", start_date: "2026-11-05", end_date: "2026-11-09", end_at: at("2026-11-09", "04:59"), gameId: "g1", gameName: "게임 가",
+  }
+
+  it("hides a schedule once its end time passed today, and keeps it before that moment", () => {
+    const { unmount } = render(<WeeklyScheduleList {...baseProps} now={new Date("2026-11-09T05:00:00+09:00")} schedules={[dawn]} />)
+    fireEvent.click(filterChip("전체"))
+    expect(screen.queryByText("새벽 종료")).toBeNull()
+    unmount()
+
+    render(<WeeklyScheduleList {...baseProps} now={new Date("2026-11-09T04:58:00+09:00")} schedules={[dawn]} />)
+    fireEvent.click(filterChip("전체"))
+    expect(within(currentWeek()).getByText("새벽 종료")).toBeTruthy()
+  })
+
+  it("shows the time period and the end-time badge on the end day", () => {
+    render(
+      <WeeklyScheduleList
+        {...baseProps}
+        now={new Date("2026-11-09T03:00:00+09:00")}
+        schedules={[{ ...dawn, start_at: at("2026-11-05", "11:00"), start_at_estimated: true }]}
+      />,
+    )
+    fireEvent.click(filterChip("전체"))
+    const row = within(currentWeek()).getAllByTestId("timeline-row").find((item) => item.textContent?.includes("새벽 종료")) as HTMLElement
+    expect(row.textContent).toContain("11.05 11:00(예상) ~ 11.09 04:59")
+    expect(within(row).getByTestId("dday-badge").textContent).toBe("오늘 04:59 종료")
+  })
+
+  it("keeps date-only schedules unchanged (period without times, D-Day on the end day)", () => {
+    render(<WeeklyScheduleList {...baseProps} now={new Date("2026-11-09T23:59:00+09:00")} schedules={[{ ...dawn, end_at: null }]} />)
+    fireEvent.click(filterChip("전체"))
+    const row = within(currentWeek()).getAllByTestId("timeline-row").find((item) => item.textContent?.includes("새벽 종료")) as HTMLElement
+    expect(row.textContent).toContain("11.05 ~ 11.09")
+    expect(within(row).getByTestId("dday-badge").textContent).toBe("D-Day")
+  })
+
+  it("does not count a schedule whose start time has not come as 진행 중", () => {
+    const later: WeeklyScheduleEntry = { ...dawn, id: "later", title: "저녁 시작", schedule_type: "PICKUP", start_date: "2026-11-09", start_at: at("2026-11-09", "20:00"), end_at: null }
+    render(<WeeklyScheduleList {...baseProps} now={new Date("2026-11-09T10:00:00+09:00")} schedules={[later]} />)
+    expect(within(currentWeek()).getByText("저녁 시작")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "진행 중" }))
+    expect(screen.queryByText("저녁 시작")).toBeNull()
   })
 })
 

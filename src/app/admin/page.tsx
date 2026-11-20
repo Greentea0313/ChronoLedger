@@ -33,6 +33,15 @@ import {
 } from "@/lib/pickup-character-registration"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import {
+  SCHEDULE_TIME_PENDING_MESSAGE,
+  composeScheduleAt,
+  getKstTime,
+  getResetEndMoment,
+  isMissingScheduleTimeColumnError,
+  normalizeTimeInput,
+  stripScheduleTimeFields,
+} from "@/lib/schedule-time"
+import {
   DEFAULT_MAX_BREAKTHROUGH,
   assignAxisKey,
   isCharacterTemplateActive,
@@ -86,6 +95,8 @@ interface GameOption {
   max_preset_slots: number
   max_breakthrough: number
   classification_schema: ClassificationSchema
+  /** R85 server reset time (KST, `HH:mm`); null/absent when unset or the migration is not applied. */
+  daily_reset_time?: string | null
 }
 
 const DEFAULT_MAX_PRESET_SLOTS = 4
@@ -110,6 +121,7 @@ function normalizeGameRow(row: {
   max_preset_slots?: number | null
   max_breakthrough?: number | null
   classification_schema?: unknown
+  daily_reset_time?: string | null
 }): GameOption {
   return {
     id: row.id,
@@ -122,6 +134,7 @@ function normalizeGameRow(row: {
         : DEFAULT_MAX_PRESET_SLOTS,
     max_breakthrough: normalizeMaxBreakthrough(row.max_breakthrough),
     classification_schema: normalizeClassificationSchema(row.classification_schema),
+    daily_reset_time: normalizeTimeInput(row.daily_reset_time),
   }
 }
 
@@ -143,6 +156,11 @@ interface ScheduleItem {
   title: string
   start_date: string
   end_date: string
+  /** R85 optional KST times; absent on a database without the migration. */
+  start_at?: string | null
+  end_at?: string | null
+  start_at_estimated?: boolean | null
+  end_at_estimated?: boolean | null
   memo: string | null
   is_official?: boolean
   is_rerun?: boolean
@@ -193,6 +211,7 @@ export default function AdminPage() {
   const [isGameModalOpen, setIsGameModalOpen] = useState(false)
   const [editingGame, setEditingGame] = useState<GameOption | null>(null)
   const [gameFormName, setGameFormName] = useState("")
+  const [gameFormResetTime, setGameFormResetTime] = useState("")
   const [gameFormIconUrl, setGameFormIconUrl] = useState("")
   const [isGameIconDialogOpen, setIsGameIconDialogOpen] = useState(false)
   const [gameFormError, setGameFormError] = useState<string | null>(null)
@@ -290,6 +309,12 @@ export default function AdminPage() {
   const [title, setTitle] = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
+  // R85 optional KST times (`HH:mm`, empty = date only) and estimate flags.
+  const [startTime, setStartTime] = useState("")
+  const [endTime, setEndTime] = useState("")
+  const [startEstimated, setStartEstimated] = useState(false)
+  const [endEstimated, setEndEstimated] = useState(false)
+  const [originalHadTimes, setOriginalHadTimes] = useState(false)
   const [memo, setMemo] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -338,14 +363,20 @@ export default function AdminPage() {
 
   const fetchGames = useCallback(async () => {
     setIsLoadingGames(true)
-    const { data, error } = await supabase
-      .from("games")
-      .select("id, name, default_icon_url, created_at, max_preset_slots, max_breakthrough, classification_schema")
-      .order("name")
+    const gameColumns = "id, name, default_icon_url, created_at, max_preset_slots, max_breakthrough, classification_schema"
+    const first = await supabase.from("games").select(`${gameColumns}, daily_reset_time`).order("name")
+    let rows: Parameters<typeof normalizeGameRow>[0][] | null = first.data
+    let error = first.error
+    // R85 migration not applied yet: read the games again without the new column.
+    if (error && isMissingScheduleTimeColumnError(error)) {
+      const retry = await supabase.from("games").select(gameColumns).order("name")
+      rows = retry.data
+      error = retry.error
+    }
     if (error) {
       setMessage({ type: "error", text: "게임 목록을 불러오지 못했습니다: " + error.message })
-    } else if (data) {
-      setGames(data.map(normalizeGameRow))
+    } else if (rows) {
+      setGames(rows.map(normalizeGameRow))
     }
     setIsLoadingGames(false)
   }, [])
@@ -470,9 +501,26 @@ export default function AdminPage() {
     setTitle("")
     setStartDate("")
     setEndDate("")
+    resetTimeFields()
     setMemo("")
     setFormError(null)
     setIsModalOpen(true)
+  }
+
+  const resetTimeFields = () => {
+    setStartTime("")
+    setEndTime("")
+    setStartEstimated(false)
+    setEndEstimated(false)
+    setOriginalHadTimes(false)
+  }
+
+  const loadTimeFields = (schedule: ScheduleItem) => {
+    setStartTime(getKstTime(schedule.start_at))
+    setEndTime(getKstTime(schedule.end_at))
+    setStartEstimated(!!schedule.start_at && schedule.start_at_estimated === true)
+    setEndEstimated(!!schedule.end_at && schedule.end_at_estimated === true)
+    setOriginalHadTimes(!!schedule.start_at || !!schedule.end_at)
   }
 
   // 기존 일정 값을 그대로 채운 상태로 '새 일정' 모달을 연다 (저장 시 insert)
@@ -490,6 +538,7 @@ export default function AdminPage() {
     setTitle(schedule.title)
     setStartDate(schedule.start_date)
     setEndDate(schedule.end_date)
+    loadTimeFields(schedule)
     setMemo(schedule.memo || "")
     setFormError(null)
     setIsModalOpen(true)
@@ -509,6 +558,7 @@ export default function AdminPage() {
     setTitle(schedule.title)
     setStartDate(schedule.start_date)
     setEndDate(schedule.end_date)
+    loadTimeFields(schedule)
     setMemo(schedule.memo || "")
     setFormError(null)
     setIsModalOpen(true)
@@ -555,6 +605,14 @@ export default function AdminPage() {
       return
     }
 
+    // R85: times are optional; a start/end time pair on the same day must be in order.
+    const startAt = composeScheduleAt(startDate, startTime)
+    const endAt = composeScheduleAt(finalEndDate, endTime)
+    if (startAt && endAt && new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+      setFormError("종료 시각은 시작 시각보다 늦어야 합니다.")
+      return
+    }
+
     setIsSubmitting(true)
     setFormError(null)
 
@@ -574,6 +632,11 @@ export default function AdminPage() {
       start_date: startDate,
       end_date: finalEndDate,
       memo: memo.trim() || null,
+      // Time columns are sent only when used (or when an edited schedule had times that may now be cleared), so a database
+      // without the R85 migration keeps working for date-only schedules.
+      ...(startAt || endAt || originalHadTimes
+        ? { start_at: startAt, end_at: endAt, start_at_estimated: !!startAt && startEstimated, end_at_estimated: !!endAt && endEstimated }
+        : {}),
       ...(isRerun ? { is_rerun: true } : editingScheduleId && originalIsRerun ? { is_rerun: false } : {}),
       ...pickupPayload,
     }
@@ -588,22 +651,31 @@ export default function AdminPage() {
         : fallback + error.message
     }
 
+    // R85: a database without the time columns rejects the write (42703/PGRST204); save again without the times and say so.
+    let timesDropped = false
+    const writeSchedule = async (payload: object) =>
+      editingScheduleId
+        ? await supabase.from("game_schedules").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", editingScheduleId)
+        : await supabase.from("game_schedules").insert(payload as typeof schedulePayload)
+    const saveWithFallback = async () => {
+      const first = await writeSchedule(schedulePayload)
+      if (first.error && isMissingScheduleTimeColumnError(first.error) && "start_at" in schedulePayload) {
+        timesDropped = true
+        return writeSchedule(stripScheduleTimeFields(schedulePayload))
+      }
+      return first
+    }
+
     if (editingScheduleId) {
       // 기존 일정 수정
-      const { error } = await supabase
-        .from("game_schedules")
-        .update({
-          ...schedulePayload,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", editingScheduleId)
+      const { error } = await saveWithFallback()
 
       setIsSubmitting(false)
 
       if (error) {
         setFormError(describeWriteError(error, "일정 수정에 실패했습니다: "))
       } else {
-        setMessage({ type: "success", text: "일정이 성공적으로 수정되었습니다." })
+        setMessage({ type: "success", text: timesDropped ? `일정이 수정되었습니다. ${SCHEDULE_TIME_PENDING_MESSAGE}` : "일정이 성공적으로 수정되었습니다." })
         setIsModalOpen(false)
         void fetchSchedules()
         void fetchPastSchedules()
@@ -614,14 +686,14 @@ export default function AdminPage() {
       }
     } else {
       // 새 일정 등록
-      const { error } = await supabase.from("game_schedules").insert(schedulePayload)
+      const { error } = await saveWithFallback()
 
       setIsSubmitting(false)
 
       if (error) {
         setFormError(describeWriteError(error, "일정 추가에 실패했습니다: "))
       } else {
-        setMessage({ type: "success", text: "일정이 성공적으로 추가되었습니다." })
+        setMessage({ type: "success", text: timesDropped ? `일정이 추가되었습니다. ${SCHEDULE_TIME_PENDING_MESSAGE}` : "일정이 성공적으로 추가되었습니다." })
         setIsModalOpen(false)
         void fetchSchedules()
         void fetchPastSchedules()
@@ -661,6 +733,7 @@ export default function AdminPage() {
   const handleOpenAddGame = () => {
     setEditingGame(null)
     setGameFormName("")
+    setGameFormResetTime("")
     setGameFormIconUrl("")
     setGameFormError(null)
     setGameFormMaxPresetSlots("4")
@@ -676,6 +749,7 @@ export default function AdminPage() {
   const handleOpenEditGame = (game: GameOption) => {
     setEditingGame(game)
     setGameFormName(game.name)
+    setGameFormResetTime(game.daily_reset_time ?? "")
     setGameFormIconUrl(game.default_icon_url || "")
     setGameFormError(null)
     const schema = game.classification_schema ?? { rarities: [], axes: [] }
@@ -1084,6 +1158,8 @@ export default function AdminPage() {
       }
     }
 
+    const resetValue = normalizeTimeInput(gameFormResetTime)
+    let resetTimeDropped = false
     if (editingGame) {
       // 게임 수정 (게임 정보 수정은 이름·아이콘만, 템플릿 흐름은 템플릿 컬럼만 갱신)
       const updatePayload = isTemplateSave
@@ -1095,11 +1171,17 @@ export default function AdminPage() {
         : {
             name: trimmedName,
             default_icon_url: defaultIconUrl,
+            // R85: sent only when set (or when an existing value may be cleared) so an unmigrated database keeps working.
+            ...(resetValue || editingGame.daily_reset_time ? { daily_reset_time: resetValue } : {}),
           }
-      const { error } = await supabase
+      let { error } = await supabase
         .from("games")
         .update(updatePayload)
         .eq("id", editingGame.id)
+      if (error && isMissingScheduleTimeColumnError(error) && "daily_reset_time" in updatePayload) {
+        resetTimeDropped = true
+        ;({ error } = await supabase.from("games").update({ name: trimmedName, default_icon_url: defaultIconUrl }).eq("id", editingGame.id))
+      }
 
       setIsSubmittingGame(false)
       setIsProcessingIcon(false)
@@ -1109,7 +1191,9 @@ export default function AdminPage() {
       } else {
         setMessage({
           type: "success",
-          text: isTemplateSave ? `'${editingGame.name}' 캐릭터 템플릿이 저장되었습니다.` : `'${trimmedName}' 게임 정보가 수정되었습니다.`,
+          text: isTemplateSave
+            ? `'${editingGame.name}' 캐릭터 템플릿이 저장되었습니다.`
+            : `'${trimmedName}' 게임 정보가 수정되었습니다.${resetTimeDropped ? " DB 업데이트(R85) 적용 전이라 서버 초기화 시각은 저장하지 못함." : ""}`,
         })
         setIsGameModalOpen(false)
         const continueWithFirstCharacter = templateFlowGameId === editingGame.id && rarities.length >= 1
@@ -1127,7 +1211,7 @@ export default function AdminPage() {
       }
     } else {
       // 새 게임 등록
-      const { error } = await supabase.from("games").insert({
+      const insertPayload = {
         name: trimmedName,
         default_icon_url: defaultIconUrl,
         max_preset_slots: maxPresetSlots,
@@ -1135,7 +1219,12 @@ export default function AdminPage() {
         classification_schema: classificationSchema,
         status: "APPROVED",
         created_by: user?.id ?? null,
-      })
+      }
+      let { error } = await supabase.from("games").insert({ ...insertPayload, ...(resetValue ? { daily_reset_time: resetValue } : {}) })
+      if (error && resetValue && isMissingScheduleTimeColumnError(error)) {
+        resetTimeDropped = true
+        ;({ error } = await supabase.from("games").insert(insertPayload))
+      }
 
       setIsSubmittingGame(false)
 
@@ -1150,7 +1239,10 @@ export default function AdminPage() {
           setGameFormError(describeGameSaveError(error, "게임 등록에 실패했습니다: "))
         }
       } else {
-        setMessage({ type: "success", text: `'${trimmedName}' 게임이 성공적으로 등록되었습니다.` })
+        setMessage({
+          type: "success",
+          text: `'${trimmedName}' 게임이 성공적으로 등록되었습니다.${resetTimeDropped ? " DB 업데이트(R85) 적용 전이라 서버 초기화 시각은 저장하지 못함." : ""}`,
+        })
         setIsGameModalOpen(false)
         void fetchGames()
       }
@@ -1359,6 +1451,15 @@ export default function AdminPage() {
       setIsSavingNewPickup(false)
       setIsProcessingIcon(false)
     }
+  }
+
+  // R85: reset-time shortcut of the schedule form (only for games with a server reset time).
+  const scheduleResetTime = games.find((game) => game.id === gameId)?.daily_reset_time ?? ""
+  const resetFill = scheduleResetTime && endDate ? getResetEndMoment(endDate, scheduleResetTime) : null
+  const handleFillResetEnd = () => {
+    if (!resetFill) return
+    setEndDate(resetFill.date)
+    setEndTime(resetFill.time)
   }
 
   // R81: the AI upscale option lives in the shared image dialog (offered only for detected low-resolution images, R60-REV-006).
@@ -2515,6 +2616,58 @@ export default function AdminPage() {
               </div>
             )}
 
+            <div className="space-y-2" data-testid="schedule-time-fields">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="schedule-start-time-input" className="block text-sm font-medium mb-1">시작 시각 (선택)</label>
+                  <Input
+                    id="schedule-start-time-input"
+                    type="time"
+                    step={60}
+                    value={startTime}
+                    onChange={(e) => {
+                      setStartTime(e.target.value)
+                      if (!e.target.value) setStartEstimated(false)
+                    }}
+                  />
+                  <label className="mt-1 flex items-center gap-1.5 text-xs text-content-secondary">
+                    <input type="checkbox" checked={startEstimated} disabled={!startTime} onChange={(e) => setStartEstimated(e.target.checked)} />
+                    시작 시각 예상
+                  </label>
+                </div>
+                <div>
+                  <label htmlFor="schedule-end-time-input" className="block text-sm font-medium mb-1">종료 시각 (선택)</label>
+                  <Input
+                    id="schedule-end-time-input"
+                    type="time"
+                    step={60}
+                    value={endTime}
+                    onChange={(e) => {
+                      setEndTime(e.target.value)
+                      if (!e.target.value) setEndEstimated(false)
+                    }}
+                  />
+                  <label className="mt-1 flex items-center gap-1.5 text-xs text-content-secondary">
+                    <input type="checkbox" checked={endEstimated} disabled={!endTime} onChange={(e) => setEndEstimated(e.target.checked)} />
+                    종료 시각 예상
+                  </label>
+                </div>
+              </div>
+              {!isSingleDate && scheduleResetTime && (
+                <div className="space-y-1">
+                  <Button type="button" size="sm" variant="outline" disabled={!endDate || !resetFill} onClick={handleFillResetEnd}>
+                    초기화 시각으로 종료
+                  </Button>
+                  <p className="text-[11px] text-content-muted" data-testid="reset-end-hint">
+                    {resetFill
+                      ? `서버 초기화 ${scheduleResetTime} → 종료 ${resetFill.date} ${resetFill.time}${resetFill.date !== endDate ? " (초기화가 00:00이라 종료일이 하루 앞당겨짐)" : ""}`
+                      : "종료일을 먼저 입력하면 채울 시각을 보여줌"}
+                  </p>
+                </div>
+              )}
+              <p className="text-[11px] text-content-muted">모든 시각은 한국 시간(KST)임. 비우면 날짜만 저장됨.</p>
+            </div>
+
             <div>
               <label htmlFor="schedule-memo-input" className="block text-sm font-medium mb-1">메모 (선택)</label>
               <Input
@@ -2641,6 +2794,20 @@ export default function AdminPage() {
               </Button>
               <p className="text-[11px] text-content-muted mt-1">
                 URL은 직접 가져오기를 우선 시도하고, 실패하면 wsrv.nl에 전달해 변환합니다. 이미지 복사 후 붙여넣기 또는 파일 업로드도 가능합니다.
+              </p>
+            </div>
+
+            <div className="w-full min-w-0">
+              <label htmlFor="game-form-reset-time" className="block text-sm font-medium mb-1">서버 초기화 시각 (KST, 선택)</label>
+              <Input
+                id="game-form-reset-time"
+                type="time"
+                step={60}
+                value={gameFormResetTime}
+                onChange={(e) => setGameFormResetTime(e.target.value)}
+              />
+              <p className="text-[11px] text-content-muted mt-1">
+                공지 시각이 서버 시간이면 한국 시간으로 바꿔 입력함. 일정 폼의 [초기화 시각으로 종료] 버튼에만 쓰임.
               </p>
             </div>
 

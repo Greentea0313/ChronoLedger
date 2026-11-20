@@ -43,6 +43,45 @@ describe("HeroSidebarContent pickup avatars (R52)", () => {
   })
 })
 
+describe("HeroSidebarContent schedule times (R85)", () => {
+  const base = { totalAsset: 0, budgetAmount: 0, expectedExpense: 0, wallets: [], memos: [] }
+  const at = (date: string, time: string) => new Date(`${date}T${time}:00+09:00`).toISOString()
+  const dawn: HeroScheduleItem = {
+    id: "dawn", title: "새벽 종료 이벤트", schedule_type: "CONTENTS", start_date: "2026-11-10", end_date: "2026-11-20",
+    start_at: at("2026-11-10", "11:00"), end_at: at("2026-11-20", "04:59"), end_at_estimated: true, gameId: "g", gameName: "게임",
+  }
+
+  it("shows the time period with an estimate mark in the period line", () => {
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-10" todayDate="2026-11-10" now={new Date("2026-11-10T12:00:00+09:00")} schedules={[dawn]} expenses={[]} />)
+    expect(screen.getByText("2026-11-10 11:00 ~ 2026-11-20 04:59(예상)")).toBeTruthy()
+    expect(screen.getByTestId("dday-badge").textContent).toBe("D-10")
+  })
+
+  it("shows 오늘 HH:mm 종료 on the end day and marks an already ended schedule as 종료 (dimmed)", () => {
+    const { unmount } = render(
+      <HeroSidebarContent {...base} selectedDateLabel="2026-11-20" todayDate="2026-11-20" now={new Date("2026-11-20T03:00:00+09:00")} schedules={[dawn]} expenses={[]} />,
+    )
+    expect(screen.getByTestId("dday-badge").textContent).toBe("오늘 04:59 종료")
+    expect(document.querySelector('[data-ended="true"]')).toBeNull()
+    unmount()
+
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-20" todayDate="2026-11-20" now={new Date("2026-11-20T05:00:00+09:00")} schedules={[dawn]} expenses={[]} />)
+    expect(screen.getByTestId("dday-badge").textContent).toBe("종료")
+    expect(document.querySelector('[data-ended="true"]')?.className).toContain("opacity-60")
+  })
+
+  it("does not dim a schedule when a past date is selected", () => {
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-20" todayDate="2026-11-25" now={new Date("2026-11-25T12:00:00+09:00")} schedules={[dawn]} expenses={[]} />)
+    expect(document.querySelector('[data-ended="true"]')).toBeNull()
+  })
+
+  it("keeps schedules with different times in separate cards", () => {
+    const other: HeroScheduleItem = { ...dawn, id: "dawn2", title: "다른 시각 이벤트", end_at: at("2026-11-20", "05:59") }
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-20" todayDate="2026-11-20" now={new Date("2026-11-20T03:00:00+09:00")} schedules={[dawn, other]} expenses={[]} />)
+    expect(screen.getAllByTestId("dday-badge")).toHaveLength(2)
+  })
+})
+
 describe("HeroSidebarContent D-n badge and period progress bar", () => {
   const base = { totalAsset: 0, budgetAmount: 0, expectedExpense: 0, wallets: [], memos: [] }
 

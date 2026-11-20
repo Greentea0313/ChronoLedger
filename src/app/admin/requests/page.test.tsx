@@ -462,6 +462,26 @@ describe("AdminRequestsPage", () => {
       await click(approve as HTMLElement)
     }
 
+    it("shows the request period with times and estimate marks (R85) and plain dates when there are none", async () => {
+      const timed = {
+        ...pickupRequest,
+        id: "schedule-request-timed",
+        title: "시각 있는 요청",
+        start_date: "2026-01-13",
+        end_date: "2026-01-27",
+        start_at: "2026-01-13T02:00:00.000Z",
+        start_at_estimated: true,
+        end_at: "2026-01-26T19:59:00.000Z",
+        end_at_estimated: false,
+      }
+      mockQueries({ schedules: [timed, { ...pickupRequest, id: "schedule-request-plain", title: "시각 없는 요청" }], characters: { data: [], error: null } })
+      await openScheduleTab()
+
+      const text = container.textContent ?? ""
+      expect(text).toContain("기간: 2026-01-13 11:00(예상) ~ 2026-01-27 04:59")
+      expect(text).toContain("기간: 2026-01-10 ~ 2026-01-20")
+    })
+
     it("shows proposed new characters with a 신규 badge, their image or an initial avatar", async () => {
       mockQueries({ schedules: [proposalRequest], characters: { data: [{ id: "c1", name: "카프카", default_icon_url: null }], error: null } })
       await openScheduleTab()

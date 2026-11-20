@@ -147,14 +147,14 @@ isOneToOne: false
                   ]
                 },"game_schedules": {
                   Row: {
-                    "created_at": string | null,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"is_rerun": boolean,"pickup_character_ids": string[],"memo": string | null,"schedule_type": "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_date": string,"title": string,"updated_at": string | null
+                    "created_at": string | null,"end_at": string | null,"end_at_estimated": boolean,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"is_rerun": boolean,"pickup_character_ids": string[],"memo": string | null,"schedule_type": "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_at": string | null,"start_at_estimated": boolean,"start_date": string,"title": string,"updated_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"is_rerun"?: boolean,"pickup_character_ids"?: string[],"memo"?: string | null,"schedule_type": "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_date": string,"title": string,"updated_at"?: string | null
+                    "created_at"?: string | null,"end_at"?: string | null,"end_at_estimated"?: boolean,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"is_rerun"?: boolean,"pickup_character_ids"?: string[],"memo"?: string | null,"schedule_type": "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_at"?: string | null,"start_at_estimated"?: boolean,"start_date": string,"title": string,"updated_at"?: string | null
                   }
                   Update: {
-                    "created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"is_rerun"?: boolean,"pickup_character_ids"?: string[],"memo"?: string | null,"schedule_type"?: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_date"?: string,"title"?: string,"updated_at"?: string | null
+                    "created_at"?: string | null,"end_at"?: string | null,"end_at_estimated"?: boolean,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"is_rerun"?: boolean,"pickup_character_ids"?: string[],"memo"?: string | null,"schedule_type"?: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_at"?: string | null,"start_at_estimated"?: boolean,"start_date"?: string,"title"?: string,"updated_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -167,14 +167,14 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "classification_schema": Json,"created_at": string | null,"created_by": string | null,"default_icon_url": string,"id": string,"max_breakthrough": number,"max_preset_slots": number,"name": string,"status": string
+                    "classification_schema": Json,"created_at": string | null,"created_by": string | null,"daily_reset_time": string | null,"default_icon_url": string,"id": string,"max_breakthrough": number,"max_preset_slots": number,"name": string,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"default_icon_url": string,"id"?: string,"max_breakthrough"?: number,"max_preset_slots"?: number,"name": string,"status"?: string
+                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"daily_reset_time"?: string | null,"default_icon_url": string,"id"?: string,"max_breakthrough"?: number,"max_preset_slots"?: number,"name": string,"status"?: string
                   }
                   Update: {
-                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"default_icon_url"?: string,"id"?: string,"max_breakthrough"?: number,"max_preset_slots"?: number,"name"?: string,"status"?: string
+                    "classification_schema"?: Json,"created_at"?: string | null,"created_by"?: string | null,"daily_reset_time"?: string | null,"default_icon_url"?: string,"id"?: string,"max_breakthrough"?: number,"max_preset_slots"?: number,"name"?: string,"status"?: string
                   }
                   Relationships: [
                     
@@ -223,14 +223,14 @@ isOneToOne: false
                   ]
                 },"schedule_requests": {
                   Row: {
-                    "admin_memo": string | null,"created_at": string | null,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"is_rerun": boolean,"pickup_character_ids": string[],"pickup_new_characters": Json,"memo": string | null,"request_status": "PENDING" | "APPROVED" | "REJECTED","schedule_type": "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_date": string,"target_schedule_id": string | null,"title": string,"user_id": string
+                    "admin_memo": string | null,"created_at": string | null,"end_at": string | null,"end_at_estimated": boolean,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"is_rerun": boolean,"pickup_character_ids": string[],"pickup_new_characters": Json,"memo": string | null,"request_status": "PENDING" | "APPROVED" | "REJECTED","schedule_type": "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_at": string | null,"start_at_estimated": boolean,"start_date": string,"target_schedule_id": string | null,"title": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"is_rerun"?: boolean,"pickup_character_ids"?: string[],"pickup_new_characters"?: Json,"memo"?: string | null,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","schedule_type": "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_date": string,"target_schedule_id"?: string | null,"title": string,"user_id": string
+                    "admin_memo"?: string | null,"created_at"?: string | null,"end_at"?: string | null,"end_at_estimated"?: boolean,"end_date": string,"game_id": string,"id"?: string,"is_official"?: boolean,"is_rerun"?: boolean,"pickup_character_ids"?: string[],"pickup_new_characters"?: Json,"memo"?: string | null,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","schedule_type": "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_at"?: string | null,"start_at_estimated"?: boolean,"start_date": string,"target_schedule_id"?: string | null,"title": string,"user_id": string
                   }
                   Update: {
-                    "admin_memo"?: string | null,"created_at"?: string | null,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"is_rerun"?: boolean,"pickup_character_ids"?: string[],"pickup_new_characters"?: Json,"memo"?: string | null,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","schedule_type"?: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_date"?: string,"target_schedule_id"?: string | null,"title"?: string,"user_id"?: string
+                    "admin_memo"?: string | null,"created_at"?: string | null,"end_at"?: string | null,"end_at_estimated"?: boolean,"end_date"?: string,"game_id"?: string,"id"?: string,"is_official"?: boolean,"is_rerun"?: boolean,"pickup_character_ids"?: string[],"pickup_new_characters"?: Json,"memo"?: string | null,"request_status"?: "PENDING" | "APPROVED" | "REJECTED","schedule_type"?: "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_at"?: string | null,"start_at_estimated"?: boolean,"start_date"?: string,"target_schedule_id"?: string | null,"title"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {

@@ -167,7 +167,9 @@ CREATE TABLE public.games (
     status VARCHAR(20) NOT NULL DEFAULT 'APPROVED' CHECK (status = 'APPROVED'),
     created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     max_breakthrough SMALLINT NOT NULL DEFAULT 6 CHECK (max_breakthrough BETWEEN 0 AND 12),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    daily_reset_time TIME,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT chk_games_daily_reset_time_minute CHECK (daily_reset_time IS NULL OR date_trunc('minute', daily_reset_time) = daily_reset_time)
 );
 
 CREATE OR REPLACE FUNCTION public.is_valid_classification_schema(p_schema JSONB)
@@ -807,10 +809,25 @@ CREATE TABLE public.game_schedules (
     is_official BOOLEAN NOT NULL DEFAULT true,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
+    start_at TIMESTAMPTZ,
+    end_at TIMESTAMPTZ,
+    start_at_estimated BOOLEAN NOT NULL DEFAULT false,
+    end_at_estimated BOOLEAN NOT NULL DEFAULT false,
     memo TEXT,
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT chk_schedule_dates CHECK (end_date >= start_date),
+    CONSTRAINT chk_game_schedules_start_at_date CHECK (start_at IS NULL OR (start_at AT TIME ZONE 'Asia/Seoul')::date = start_date),
+    CONSTRAINT chk_game_schedules_end_at_date CHECK (end_at IS NULL OR (end_at AT TIME ZONE 'Asia/Seoul')::date = end_date),
+    CONSTRAINT chk_game_schedules_at_order CHECK (start_at IS NULL OR end_at IS NULL OR end_at > start_at),
+    CONSTRAINT chk_game_schedules_at_minute CHECK (
+        (start_at IS NULL OR date_trunc('minute', start_at, 'UTC') = start_at)
+        AND (end_at IS NULL OR date_trunc('minute', end_at, 'UTC') = end_at)
+    ),
+    CONSTRAINT chk_game_schedules_estimated_needs_at CHECK (
+        (NOT start_at_estimated OR start_at IS NOT NULL)
+        AND (NOT end_at_estimated OR end_at IS NOT NULL)
+    ),
     CONSTRAINT chk_game_schedules_rerun_pickup CHECK (is_rerun = false OR schedule_type = 'PICKUP'),
     CONSTRAINT chk_game_schedules_pickup_characters_only_pickup CHECK (cardinality(pickup_character_ids) = 0 OR (schedule_type = 'PICKUP' AND cardinality(pickup_character_ids) <= 8))
 );
@@ -840,11 +857,26 @@ CREATE TABLE public.schedule_requests (
     is_official BOOLEAN NOT NULL DEFAULT true,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
+    start_at TIMESTAMPTZ,
+    end_at TIMESTAMPTZ,
+    start_at_estimated BOOLEAN NOT NULL DEFAULT false,
+    end_at_estimated BOOLEAN NOT NULL DEFAULT false,
     request_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (request_status IN ('PENDING', 'APPROVED', 'REJECTED')),
     memo TEXT,
     admin_memo TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT chk_req_dates CHECK (end_date >= start_date),
+    CONSTRAINT chk_schedule_requests_start_at_date CHECK (start_at IS NULL OR (start_at AT TIME ZONE 'Asia/Seoul')::date = start_date),
+    CONSTRAINT chk_schedule_requests_end_at_date CHECK (end_at IS NULL OR (end_at AT TIME ZONE 'Asia/Seoul')::date = end_date),
+    CONSTRAINT chk_schedule_requests_at_order CHECK (start_at IS NULL OR end_at IS NULL OR end_at > start_at),
+    CONSTRAINT chk_schedule_requests_at_minute CHECK (
+        (start_at IS NULL OR date_trunc('minute', start_at, 'UTC') = start_at)
+        AND (end_at IS NULL OR date_trunc('minute', end_at, 'UTC') = end_at)
+    ),
+    CONSTRAINT chk_schedule_requests_estimated_needs_at CHECK (
+        (NOT start_at_estimated OR start_at IS NOT NULL)
+        AND (NOT end_at_estimated OR end_at IS NOT NULL)
+    ),
     CONSTRAINT chk_schedule_requests_rerun_pickup CHECK (is_rerun = false OR schedule_type = 'PICKUP'),
     CONSTRAINT chk_schedule_requests_pickup_characters_only_pickup CHECK (cardinality(pickup_character_ids) <= 8 AND (cardinality(pickup_character_ids) = 0 OR schedule_type = 'PICKUP')),
     CONSTRAINT chk_schedule_requests_pickup_new_characters_valid CHECK (public.is_valid_pickup_new_characters(pickup_new_characters) AND (schedule_type = 'PICKUP' OR jsonb_array_length(pickup_new_characters) = 0) AND cardinality(pickup_character_ids) + jsonb_array_length(pickup_new_characters) <= 8)
@@ -2207,13 +2239,23 @@ BEGIN
     END IF;
 
     IF v_request.target_schedule_id IS NULL THEN
-        INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo, is_official, is_rerun, pickup_character_ids)
-        VALUES (v_request.game_id, v_request.title, v_request.schedule_type, v_request.start_date, v_request.end_date, v_request.memo,
-            v_request.is_official, v_request.is_rerun, v_pickup_character_ids);
+        INSERT INTO public.game_schedules(
+            game_id, title, schedule_type, start_date, end_date,
+            start_at, end_at, start_at_estimated, end_at_estimated,
+            memo, is_official, is_rerun, pickup_character_ids
+        )
+        VALUES (
+            v_request.game_id, v_request.title, v_request.schedule_type, v_request.start_date, v_request.end_date,
+            v_request.start_at, v_request.end_at, v_request.start_at_estimated, v_request.end_at_estimated,
+            v_request.memo, v_request.is_official, v_request.is_rerun, v_pickup_character_ids
+        );
     ELSE
         UPDATE public.game_schedules
         SET title = v_request.title, schedule_type = v_request.schedule_type,
-            start_date = v_request.start_date, end_date = v_request.end_date, memo = v_request.memo,
+            start_date = v_request.start_date, end_date = v_request.end_date,
+            start_at = v_request.start_at, end_at = v_request.end_at,
+            start_at_estimated = v_request.start_at_estimated, end_at_estimated = v_request.end_at_estimated,
+            memo = v_request.memo,
             is_official = v_request.is_official, is_rerun = v_request.is_rerun,
             pickup_character_ids = v_pickup_character_ids,
             updated_at = NOW()
