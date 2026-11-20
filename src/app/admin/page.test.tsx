@@ -2055,6 +2055,47 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
       })
 
+      it("이미지 제거 버튼은 아이콘이 있을 때만 보이고 누르면 미리보기를 숨긴다 (R98)", async () => {
+        await openCharacterTabWith([labeledGame], labeledCharacters)
+        selectGame("game-1")
+        fireEvent.click(await screen.findByRole("button", { name: "공명자 추가" }))
+        expect(screen.queryByRole("button", { name: "이미지 제거" })).toBeNull()
+
+        await registerImageInDialog({ url: "https://example.com/new.png" })
+        expect(screen.getByAltText("캐릭터 기본 아이콘 미리보기")).toBeTruthy()
+        fireEvent.click(screen.getByRole("button", { name: "이미지 제거" }))
+
+        expect(screen.queryByAltText("캐릭터 기본 아이콘 미리보기")).toBeNull()
+        expect(screen.queryByRole("button", { name: "이미지 제거" })).toBeNull()
+        expect(screen.getByRole("button", { name: "이미지 선택" })).toBeTruthy()
+      })
+
+      it("정식 캐릭터의 아이콘을 제거하고 저장하면 default_icon_url을 null로 보낸다 (R98)", async () => {
+        charactersBuilder.update.mockReturnValue(charactersBuilder)
+        charactersBuilder.eq.mockResolvedValue({ error: null })
+        await openCharacterTabWith([labeledGame], labeledCharacters)
+        selectGame("game-1")
+        fireEvent.click(await screen.findByRole("button", { name: "가 낮은 등급 수정" }))
+        fireEvent.click(screen.getByRole("button", { name: "이미지 제거" }))
+        fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+        await waitFor(() => expect(charactersBuilder.update).toHaveBeenCalled())
+        expect(charactersBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ name: "가 낮은 등급", default_icon_url: null }))
+        expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
+      })
+
+      it("아이콘이 있던 픽업 전용 캐릭터는 제거할 때만 default_icon_url null을 보내고, 원래 없던 경우는 키를 보내지 않는다 (R98)", async () => {
+        charactersBuilder.update.mockReturnValue(charactersBuilder)
+        charactersBuilder.eq.mockResolvedValue({ error: null })
+        await openCharacterTabWith([schemaGame, emptyGame], [...mockCharacters, { ...pickupOnly, game_id: "game-2", default_icon_url: "data:image/webp;base64,po" }])
+        selectGame("game-2")
+        fireEvent.click(await screen.findByRole("button", { name: "픽업 전용 캐릭 수정" }))
+        fireEvent.click(screen.getByRole("button", { name: "이미지 제거" }))
+        fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+        await waitFor(() => expect(charactersBuilder.update).toHaveBeenCalledWith({ game_id: "game-2", name: "픽업 전용 캐릭", default_icon_url: null }))
+      })
+
       it("템플릿이 활성인 게임에서는 등급·분류를 채워 정식 캐릭터로 승격할 수 있다", async () => {
         charactersBuilder.update.mockReturnValue(charactersBuilder)
         charactersBuilder.eq.mockResolvedValue({ error: null })

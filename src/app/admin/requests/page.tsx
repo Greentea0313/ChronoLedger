@@ -627,6 +627,17 @@ export default function AdminRequestsPage() {
                     >
                       {defaultIconUrls[req.id] ? "아이콘 교체 이미지 변경" : "아이콘 교체 이미지 선택"}
                     </Button>
+                    {defaultIconUrls[req.id] && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        aria-label={`${req.name} 캐릭터 교체 이미지 제거`}
+                        onClick={() => setDefaultIconUrls((current) => ({ ...current, [req.id]: "" }))}
+                        disabled={processingId === req.id || !isOnline}
+                      >
+                        이미지 제거
+                      </Button>
+                    )}
                     {!hasIcon && !req.target_character_id && (
                       <p className="text-[11px] text-content-muted">아이콘이 없으면 기본 아바타로 표시됨</p>
                     )}

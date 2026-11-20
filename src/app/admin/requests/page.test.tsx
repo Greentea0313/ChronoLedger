@@ -367,6 +367,19 @@ describe("AdminRequestsPage", () => {
     expect(container.textContent).toContain("업데이트 적용 전에는 아이콘이 필요합니다.")
   })
 
+  it("removes an admin replacement icon with 이미지 제거 and approves without p_default_icon_url (R98)", async () => {
+    await openCharacterTab()
+    expect(container.querySelector('[aria-label="NoIcon 캐릭터 교체 이미지 제거"]')).toBeNull()
+
+    await registerIcon("NoIcon 캐릭터 아이콘 이미지 선택", { url: "https://example.test/noicon.png" })
+    await click(byLabel("NoIcon 캐릭터 교체 이미지 제거"))
+
+    expect(container.querySelector('[aria-label="NoIcon 캐릭터 교체 이미지 제거"]')).toBeNull()
+    expect(container.querySelector('img[alt="NoIcon 아이콘 미리보기"]')).toBeNull()
+    await click(byLabel("NoIcon 캐릭터 요청 승인"))
+    expect(rpc).toHaveBeenCalledWith("approve_character_request", { p_request_id: "char-req-2" })
+  })
+
   it("rejects an invalid replacement icon URL without calling the RPC", async () => {
     await openCharacterTab()
 

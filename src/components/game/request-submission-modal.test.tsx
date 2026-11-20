@@ -443,6 +443,28 @@ describe("RequestSubmissionModal", () => {
     expect(insertCharacter).toHaveBeenCalledWith(expect.objectContaining({ name: "No Icon Hero", target_character_id: null, default_icon_url: null }))
   })
 
+  it("removes a registered character icon with 이미지 제거 and submits default_icon_url null (R98)", async () => {
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-game", "game-1")
+    await change("#character-name", "Remove Hero")
+    await change("#character-rarity", "5★")
+    await change("#character-axis-element", "불")
+    const removeButton = () => Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent === "이미지 제거")
+    expect(removeButton()).toBeUndefined()
+
+    expect(await registerImage("data:image/webp;base64,toremove")).toBe(true)
+    expect(document.body.querySelector('img[alt="캐릭터 아이콘 미리보기"]')).not.toBeNull()
+    await act(async () => {
+      Simulate.click(removeButton()!)
+    })
+
+    expect(document.body.querySelector('img[alt="캐릭터 아이콘 미리보기"]')).toBeNull()
+    expect(removeButton()).toBeUndefined()
+    await submit()
+    expect(insertCharacter).toHaveBeenCalledWith(expect.objectContaining({ name: "Remove Hero", default_icon_url: null }))
+  })
+
   it("registers a character icon through the shared image dialog and submits it as default_icon_url", async () => {
     await openModal()
     await change("#request-kind", "character")
