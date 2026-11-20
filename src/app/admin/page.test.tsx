@@ -200,6 +200,191 @@ describe("AdminPage - 일정 관리", () => {
     })
   })
 
+  describe("일정 시각 (R85)", () => {
+    const kst = (date: string, time: string) => new Date(`${date}T${time}:00+09:00`).toISOString()
+
+    async function openNewScheduleForm() {
+      render(<AdminPage />)
+      expect(await screen.findByText("등록된 일정")).toBeTruthy()
+      fireEvent.click(screen.getByRole("button", { name: "새 일정 등록" }))
+      fireEvent.change(screen.getByLabelText(/게임 선택/), { target: { value: "game-1" } })
+      fireEvent.change(screen.getByPlaceholderText("일정 제목을 입력하세요"), { target: { value: "시각 일정" } })
+    }
+    const setDates = (start: string, end: string) => {
+      fireEvent.change(screen.getByLabelText(/시작일/), { target: { value: start } })
+      fireEvent.change(screen.getByLabelText(/종료일/), { target: { value: end } })
+    }
+
+    it("시작·종료 시각과 예상 체크를 KST 날짜와 합쳐 start_at·end_at으로 저장한다", async () => {
+      schedulesBuilder.insert.mockResolvedValue({ error: null })
+      await openNewScheduleForm()
+      setDates("2026-11-13", "2026-11-27")
+      fireEvent.change(screen.getByLabelText("시작 시각 (선택)"), { target: { value: "11:00" } })
+      fireEvent.click(screen.getByLabelText("시작 시각 예상"))
+      fireEvent.change(screen.getByLabelText("종료 시각 (선택)"), { target: { value: "04:59" } })
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+      await waitFor(() => {
+        expect(schedulesBuilder.insert).toHaveBeenCalledWith({
+          game_id: "game-1",
+          schedule_type: "VERSION",
+          is_official: true,
+          title: "시각 일정",
+          start_date: "2026-11-13",
+          end_date: "2026-11-27",
+          start_at: kst("2026-11-13", "11:00"),
+          end_at: kst("2026-11-27", "04:59"),
+          start_at_estimated: true,
+          end_at_estimated: false,
+          memo: null,
+        })
+      })
+    })
+
+    it("시각을 비우면 예상 체크는 꺼지고 날짜만 저장한다(시각 키를 보내지 않음)", async () => {
+      schedulesBuilder.insert.mockResolvedValue({ error: null })
+      await openNewScheduleForm()
+      setDates("2026-11-13", "2026-11-27")
+      expect((screen.getByLabelText("시작 시각 예상") as HTMLInputElement).disabled).toBe(true)
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+      await waitFor(() => expect(schedulesBuilder.insert).toHaveBeenCalled())
+      expect(schedulesBuilder.insert.mock.calls[0][0]).not.toHaveProperty("start_at")
+      expect(schedulesBuilder.insert.mock.calls[0][0]).not.toHaveProperty("end_at_estimated")
+    })
+
+    it("같은 날 종료 시각이 시작 시각보다 빠르거나 같으면 저장을 막는다", async () => {
+      await openNewScheduleForm()
+      setDates("2026-11-20", "2026-11-20")
+      fireEvent.change(screen.getByLabelText("시작 시각 (선택)"), { target: { value: "20:00" } })
+      fireEvent.change(screen.getByLabelText("종료 시각 (선택)"), { target: { value: "20:00" } })
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+      expect(await screen.findByText("종료 시각은 시작 시각보다 늦어야 합니다.")).toBeTruthy()
+      expect(schedulesBuilder.insert).not.toHaveBeenCalled()
+    })
+
+    it("서버 초기화 시각이 있는 게임은 [초기화 시각으로 종료]로 종료일 초기화 시각 1분 전을 채운다", async () => {
+      gamesBuilder.order.mockResolvedValue({ data: [{ ...mockGames[0], daily_reset_time: "05:00:00" }, mockGames[1]], error: null })
+      schedulesBuilder.insert.mockResolvedValue({ error: null })
+      await openNewScheduleForm()
+      setDates("2026-11-13", "2026-11-27")
+
+      expect(screen.getByTestId("reset-end-hint").textContent).toContain("서버 초기화 05:00 → 종료 2026-11-27 04:59")
+      fireEvent.click(screen.getByRole("button", { name: "초기화 시각으로 종료" }))
+
+      expect((screen.getByLabelText("종료 시각 (선택)") as HTMLInputElement).value).toBe("04:59")
+      expect((screen.getByLabelText(/종료일/) as HTMLInputElement).value).toBe("2026-11-27")
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+      await waitFor(() =>
+        expect(schedulesBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ end_date: "2026-11-27", end_at: kst("2026-11-27", "04:59"), end_at_estimated: false })),
+      )
+    })
+
+    it("초기화 시각이 00:00이면 종료일이 하루 앞당겨지고 23:59가 채워지며 미리 안내한다", async () => {
+      gamesBuilder.order.mockResolvedValue({ data: [{ ...mockGames[0], daily_reset_time: "00:00" }, mockGames[1]], error: null })
+      await openNewScheduleForm()
+      setDates("2026-11-13", "2026-11-27")
+
+      expect(screen.getByTestId("reset-end-hint").textContent).toContain("종료 2026-11-26 23:59")
+      expect(screen.getByTestId("reset-end-hint").textContent).toContain("종료일이 하루 앞당겨짐")
+      fireEvent.click(screen.getByRole("button", { name: "초기화 시각으로 종료" }))
+
+      expect((screen.getByLabelText(/종료일/) as HTMLInputElement).value).toBe("2026-11-26")
+      expect((screen.getByLabelText("종료 시각 (선택)") as HTMLInputElement).value).toBe("23:59")
+    })
+
+    it("서버 초기화 시각이 없는 게임에는 버튼을 보여주지 않는다", async () => {
+      await openNewScheduleForm()
+      setDates("2026-11-13", "2026-11-27")
+      expect(screen.queryByRole("button", { name: "초기화 시각으로 종료" })).toBeNull()
+    })
+
+    it("R85 마이그레이션 적용 전 DB가 시각 컬럼을 거부하면 시각 없이 다시 저장하고 안내한다", async () => {
+      schedulesBuilder.insert
+        .mockResolvedValueOnce({ error: { code: "42703", message: 'column "start_at" of relation "game_schedules" does not exist' } })
+        .mockResolvedValueOnce({ error: null })
+      await openNewScheduleForm()
+      setDates("2026-11-13", "2026-11-27")
+      fireEvent.change(screen.getByLabelText("종료 시각 (선택)"), { target: { value: "04:59" } })
+      fireEvent.click(screen.getByRole("button", { name: "일정 등록" }))
+
+      await waitFor(() => expect(schedulesBuilder.insert).toHaveBeenCalledTimes(2))
+      expect(schedulesBuilder.insert.mock.calls[0][0]).toHaveProperty("end_at")
+      expect(schedulesBuilder.insert.mock.calls[1][0]).not.toHaveProperty("end_at")
+      expect(schedulesBuilder.insert.mock.calls[1][0]).not.toHaveProperty("start_at_estimated")
+      expect(await screen.findByText(/DB 업데이트\(R85\) 적용 전이라 시각 없이 저장함/)).toBeTruthy()
+    })
+
+    it("수정 모달은 저장된 시각을 채우고 지우면 null과 false로 갱신한다", async () => {
+      schedulesBuilder.order.mockResolvedValue({
+        data: [{ ...mockSchedules[0], start_at: kst("2026-08-28", "11:00"), start_at_estimated: true, end_at: kst("2026-10-08", "04:59"), end_at_estimated: false }],
+        error: null,
+      })
+      schedulesBuilder.update.mockReturnValue(schedulesBuilder)
+      schedulesBuilder.eq.mockResolvedValue({ error: null })
+      render(<AdminPage />)
+      expect(await screen.findByText("등록된 일정")).toBeTruthy()
+      fireEvent.click(screen.getAllByRole("button", { name: /일정 수정:/ })[0])
+
+      expect((screen.getByLabelText("시작 시각 (선택)") as HTMLInputElement).value).toBe("11:00")
+      expect((screen.getByLabelText("시작 시각 예상") as HTMLInputElement).checked).toBe(true)
+      expect((screen.getByLabelText("종료 시각 (선택)") as HTMLInputElement).value).toBe("04:59")
+
+      fireEvent.change(screen.getByLabelText("시작 시각 (선택)"), { target: { value: "" } })
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => expect(schedulesBuilder.update).toHaveBeenCalled())
+      expect(schedulesBuilder.update).toHaveBeenCalledWith(
+        expect.objectContaining({ start_at: null, start_at_estimated: false, end_at: kst("2026-10-08", "04:59"), end_at_estimated: false }),
+      )
+    })
+
+    it("게임 정보 수정 모달에서 서버 초기화 시각을 저장한다", async () => {
+      gamesBuilder.order.mockResolvedValue({ data: [{ ...mockGames[0], default_icon_url: "data:image/webp;base64,own" }, mockGames[1]], error: null })
+      gamesBuilder.update.mockReturnValue(gamesBuilder)
+      gamesBuilder.eq.mockResolvedValue({ error: null })
+      render(<AdminPage />)
+      fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
+      fireEvent.click(screen.getByRole("button", { name: "게임 수정: 원신" }))
+
+      fireEvent.change(screen.getByLabelText("서버 초기화 시각 (KST, 선택)"), { target: { value: "05:00" } })
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalledWith(expect.objectContaining({ daily_reset_time: "05:00" })))
+    })
+
+    it("미적용 DB에서 서버 초기화 시각 저장이 거부되면 이름·아이콘만 저장하고 안내한다", async () => {
+      gamesBuilder.order.mockResolvedValue({ data: [{ ...mockGames[0], default_icon_url: "data:image/webp;base64,own" }, mockGames[1]], error: null })
+      gamesBuilder.update.mockReturnValue(gamesBuilder)
+      gamesBuilder.eq
+        .mockResolvedValueOnce({ error: { code: "PGRST204", message: "Could not find the 'daily_reset_time' column of 'games' in the schema cache" } })
+        .mockResolvedValueOnce({ error: null })
+      render(<AdminPage />)
+      fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
+      fireEvent.click(screen.getByRole("button", { name: "게임 수정: 원신" }))
+      fireEvent.change(screen.getByLabelText("서버 초기화 시각 (KST, 선택)"), { target: { value: "05:00" } })
+      fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
+
+      await waitFor(() => expect(gamesBuilder.update).toHaveBeenCalledTimes(2))
+      expect(gamesBuilder.update.mock.calls[1][0]).not.toHaveProperty("daily_reset_time")
+      expect(await screen.findByText(/서버 초기화 시각은 저장하지 못함/)).toBeTruthy()
+    })
+
+    it("게임 목록 조회가 daily_reset_time 컬럼 오류로 실패하면 컬럼 없이 다시 조회한다", async () => {
+      gamesBuilder.order
+        .mockResolvedValueOnce({ data: null, error: { code: "42703", message: 'column games.daily_reset_time does not exist' } })
+        .mockResolvedValue({ data: mockGames, error: null })
+      render(<AdminPage />)
+      expect(await screen.findByText("등록된 일정")).toBeTruthy()
+
+      const selects = gamesBuilder.select.mock.calls.map((call) => String(call[0]))
+      expect(selects[0]).toContain("daily_reset_time")
+      expect(selects.some((columns) => !columns.includes("daily_reset_time") && columns.includes("default_icon_url"))).toBe(true)
+      expect(screen.queryByText(/게임 목록을 불러오지 못했습니다/)).toBeNull()
+    })
+  })
+
   it("일정 항목의 버튼이 [복사] [수정] [삭제] 순서로 배치된다", async () => {
     render(<AdminPage />)
     expect(await screen.findByText("등록된 일정")).toBeTruthy()

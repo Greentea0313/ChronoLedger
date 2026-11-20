@@ -619,6 +619,53 @@ describe("GamesPage", () => {
     expect(document.body.querySelector('section[aria-label="다음 예정 일정"]')?.textContent).toContain("새해 특별 이벤트")
   })
 
+  it("R85: splits 진행 중 / 다음 예정 / 지난 일정 by start and end times and shows the time period", async () => {
+    // KST today is mocked as 2026-11-09; pin the clock to 10:00 KST that day.
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-11-09T10:00:00+09:00"))
+    const at = (time: string) => new Date(`2026-11-09T${time}:00+09:00`).toISOString()
+    try {
+      from.mockImplementation((table: string) => {
+        const q = createQuery(table)
+        if (table === "game_schedules") {
+          q.then = vi.fn((resolve: (val: unknown) => unknown) =>
+            Promise.resolve({
+              data: [
+                { id: "t-ended", game_id: "game-1", title: "새벽에 끝난 이벤트", schedule_type: "CONTENTS", start_date: "2026-11-05", end_date: "2026-11-09", end_at: at("04:59"), memo: null },
+                { id: "t-ongoing", game_id: "game-1", title: "진행 중 이벤트", schedule_type: "CONTENTS", start_date: "2026-11-05", end_date: "2026-11-09", end_at: at("23:59"), end_at_estimated: true, memo: null },
+                { id: "t-later", game_id: "game-1", title: "저녁에 시작하는 이벤트", schedule_type: "CONTENTS", start_date: "2026-11-09", end_date: "2026-11-12", start_at: at("20:00"), memo: null },
+              ],
+              error: null,
+            }).then(resolve),
+          )
+        }
+        return q
+      })
+
+      await act(async () => root.render(<GamesPage />))
+      const scheduleBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("일정 보기"))
+      await act(async () => {
+        Simulate.click(scheduleBtn!)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      const onAir = document.body.querySelector('section[aria-label="진행 중인 일정"]')
+      const upcoming = document.body.querySelector('section[aria-label="다음 예정 일정"]')
+      const past = document.body.querySelector('section[aria-label="지난 일정 기록"]')
+      expect(onAir?.textContent).toContain("진행 중 이벤트")
+      expect(onAir?.textContent).toContain("2026-11-05 ~ 2026-11-09 23:59(예상)")
+      expect(onAir?.textContent).toContain("오늘 23:59 종료")
+      expect(onAir?.textContent).not.toContain("새벽에 끝난 이벤트")
+      expect(onAir?.textContent).not.toContain("저녁에 시작하는 이벤트")
+      expect(upcoming?.textContent).toContain("저녁에 시작하는 이벤트")
+      expect(upcoming?.textContent).toContain("2026-11-09 20:00 ~ 2026-11-12")
+      expect(past?.textContent).toContain("지난 일정 기록 (1건)")
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it("renders guest mode notice when user is unauthenticated", async () => {
     useAuth.mockReturnValue({ user: null, role: null })
     from.mockImplementation((table: string) => {

@@ -222,6 +222,93 @@ describe("RequestSubmissionModal", () => {
     })
   })
 
+  describe("schedule request times (R85)", () => {
+    const kst = (date: string, time: string) => new Date(`${date}T${time}:00+09:00`).toISOString()
+    async function fillBase() {
+      await openModal()
+      await change("#request-kind", "schedule")
+      await change("#schedule-game", "game-1")
+      await change("#schedule-title", "Timed 2.0")
+      await change("#schedule-type", "CONTENTS")
+      await change("#schedule-start-date", "2026-02-01")
+      await change("#schedule-end-date", "2026-02-03")
+    }
+
+    it("sends optional start/end times with estimate flags as KST timestamps", async () => {
+      await fillBase()
+      await change("#schedule-start-time", "11:00")
+      await change("#schedule-end-time", "04:59")
+      const estimate = Array.from(document.body.querySelectorAll('[data-testid="request-time-fields"] input[type="checkbox"]'))[1] as HTMLInputElement
+      await act(async () => {
+        Simulate.change(estimate, { target: { checked: true } } as never)
+      })
+      await submit()
+
+      expect(insertSchedule).toHaveBeenCalledWith(
+        expect.objectContaining({
+          start_date: "2026-02-01",
+          end_date: "2026-02-03",
+          start_at: kst("2026-02-01", "11:00"),
+          end_at: kst("2026-02-03", "04:59"),
+          start_at_estimated: false,
+          end_at_estimated: true,
+        }),
+      )
+    })
+
+    it("keeps the date-only payload free of time keys when no time is entered", async () => {
+      await fillBase()
+      await submit()
+
+      expect(insertSchedule.mock.calls[0][0]).not.toHaveProperty("start_at")
+      expect(insertSchedule.mock.calls[0][0]).not.toHaveProperty("end_at_estimated")
+    })
+
+    it("disables an estimate checkbox until its time is entered", async () => {
+      await fillBase()
+      const boxes = Array.from(document.body.querySelectorAll('[data-testid="request-time-fields"] input[type="checkbox"]')) as HTMLInputElement[]
+      expect(boxes.map((box) => box.disabled)).toEqual([true, true])
+      await change("#schedule-start-time", "11:00")
+      expect(boxes[0].disabled).toBe(false)
+      expect(boxes[1].disabled).toBe(true)
+    })
+
+    it("blocks a same-day end time that is not later than the start time", async () => {
+      await fillBase()
+      await change("#schedule-end-date", "2026-02-01")
+      await change("#schedule-start-time", "20:00")
+      await change("#schedule-end-time", "19:00")
+      await submit()
+
+      expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("종료 시각은 시작 시각보다 늦어야 합니다.")
+      expect(insertSchedule).not.toHaveBeenCalled()
+    })
+
+    it("resubmits without the time columns when the R85 migration is not applied and says so", async () => {
+      insertSchedule
+        .mockResolvedValueOnce({ error: { code: "42703", message: 'column "end_at" of relation "schedule_requests" does not exist' } })
+        .mockResolvedValueOnce({ error: null })
+      await fillBase()
+      await change("#schedule-end-time", "04:59")
+      await submit()
+
+      expect(insertSchedule).toHaveBeenCalledTimes(2)
+      expect(insertSchedule.mock.calls[0][0]).toHaveProperty("end_at")
+      expect(insertSchedule.mock.calls[1][0]).not.toHaveProperty("end_at")
+      expect(insertSchedule.mock.calls[1][0]).not.toHaveProperty("end_at_estimated")
+      expect(document.body.textContent).toContain("DB 업데이트(R85) 적용 전이라 시각 없이 저장함")
+    })
+
+    it("does not treat unrelated column errors as a missing time column", async () => {
+      insertSchedule.mockResolvedValue({ error: { code: "42703", message: 'column "pickup_character_ids" does not exist' } })
+      await fillBase()
+      await change("#schedule-end-time", "04:59")
+      await submit()
+
+      expect(insertSchedule).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it("supports BROADCAST and resets the rerun flag when the type changes", async () => {
     await openModal()
     await change("#request-kind", "schedule")
