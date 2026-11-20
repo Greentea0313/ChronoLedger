@@ -899,7 +899,7 @@ export default function AdminPage() {
     game.classification_schema.rarities.forEach((rarity) => {
       if (nextRarities.includes(rarity)) return
       const count = gameCharacters.filter((character) => character.rarity === rarity).length
-      if (count > 0) usage.push(`레어도 '${rarity}' ${count}명`)
+      if (count > 0) usage.push(`희귀도 '${rarity}' ${count}명`)
     })
     game.classification_schema.axes.forEach((axis) => {
       const nextAxis = nextAxes.find((item) => item.key === axis.key)
@@ -1869,9 +1869,9 @@ export default function AdminPage() {
                 setCharacterRarityFilter(event.target.value)
                 setCurrentCharacterPage(1)
               }}
-              aria-label="캐릭터 레어도 필터"
+              aria-label="캐릭터 희귀도 필터"
             >
-              <option value="">모든 레어도</option>
+              <option value="">모든 희귀도</option>
               {getGameSchema(activeCharacterGameId).rarities.map((rarity) => (
                 <option key={rarity} value={rarity}>{rarity}</option>
               ))}
@@ -2689,7 +2689,7 @@ export default function AdminPage() {
                 <Input id="game-form-max-breakthrough" type="number" min={0} max={12} value={gameFormMaxBreakthrough} onChange={(event) => setGameFormMaxBreakthrough(event.target.value)} />
               </div>
               <div>
-                <label htmlFor="game-form-rarities" className="block text-sm font-medium mb-1">{isTemplateFlow ? "등급 목록 (최고 등급부터) *" : "레어도 목록"}</label>
+                <label htmlFor="game-form-rarities" className="block text-sm font-medium mb-1">{isTemplateFlow ? "등급 목록 (최고 등급부터) *" : "희귀도 목록"}</label>
                 <Input id="game-form-rarities" value={gameFormRarities} onChange={(event) => setGameFormRarities(event.target.value)} placeholder="5★, 4★ (최고 등급부터)" />
               </div>
             </div>

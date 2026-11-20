@@ -16,7 +16,7 @@ describe("CharacterFilterBar", () => {
     )
     const row = screen.getByTestId("roster-rarity-filter")
     const [label, chips] = Array.from(row.children) as HTMLElement[]
-    expect(label.textContent).toBe("레어도")
+    expect(label.textContent).toBe("희귀도")
     expect(label.className).toContain("shrink-0")
     // Chips live in their own wrapping container next to the label, not as siblings of the label.
     expect(chips.className).toContain("flex-wrap")

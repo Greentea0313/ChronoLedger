@@ -94,7 +94,7 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
       </FilterRow>
 
       {schema.rarities.length > 0 && (
-        <FilterRow label="레어도" stacked={stacked} testId={`${idPrefix}-rarity-filter`}>
+        <FilterRow label="희귀도" stacked={stacked} testId={`${idPrefix}-rarity-filter`}>
           <Chip active={filters.rarity === ""} onClick={() => onChange({ ...filters, rarity: "" })}>전체</Chip>
           {schema.rarities.map((rarity) => (
             <Chip key={rarity} active={filters.rarity === rarity} onClick={() => onChange({ ...filters, rarity })}>

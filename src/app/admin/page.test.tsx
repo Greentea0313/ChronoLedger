@@ -1104,7 +1104,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect(await screen.findByText("알리스")).toBeTruthy()
   }
 
-  it("템플릿 수정 모달이 슬롯·레어도·분류 축을 불러오고 변경값을 classification_schema로 저장한다", async () => {
+  it("템플릿 수정 모달이 슬롯·희귀도·분류 축을 불러오고 변경값을 classification_schema로 저장한다", async () => {
     await openTemplateEditModal()
 
     expect((screen.getByLabelText("최대 프리셋 슬롯") as HTMLInputElement).value).toBe("4")
@@ -1145,7 +1145,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     })
   })
 
-  it("레어도가 10개를 초과하면 저장하지 않는다", async () => {
+  it("희귀도가 10개를 초과하면 저장하지 않는다", async () => {
     await openTemplateEditModal()
 
     fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), {
@@ -1153,7 +1153,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     })
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
-    expect(await screen.findByText("레어도는 비어 있지 않은 문자열을 최대 10개까지 입력할 수 있습니다.")).toBeTruthy()
+    expect(await screen.findByText("희귀도는 비어 있지 않은 문자열을 최대 10개까지 입력할 수 있습니다.")).toBeTruthy()
     expect(gamesBuilder.update).not.toHaveBeenCalled()
   })
 
@@ -1170,7 +1170,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect(afterInput.value).toBe("원소 속성")
   })
 
-  it("기존 캐릭터가 쓰는 레어도·분류 옵션을 제거하면 사용 인원 경고를 보이고 재확인 후 저장한다 (§7.3.4)", async () => {
+  it("기존 캐릭터가 쓰는 희귀도·분류 옵션을 제거하면 사용 인원 경고를 보이고 재확인 후 저장한다 (§7.3.4)", async () => {
     await openTemplateEditModal()
 
     fireEvent.change(screen.getByLabelText("등급 목록 (최고 등급부터) *"), { target: { value: "5★" } })
@@ -1178,7 +1178,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
 
     const warning = await screen.findByText(/제거되는 분류 값을 사용 중인 캐릭터가 있음/)
-    expect(warning.textContent).toContain("레어도 '4★' 2명")
+    expect(warning.textContent).toContain("희귀도 '4★' 2명")
     expect(warning.textContent).toContain("속성 '물' 1명")
     expect(gamesBuilder.update).not.toHaveBeenCalled()
 
@@ -1203,11 +1203,11 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect(screen.queryByText(/제거되는 분류 값을 사용 중인 캐릭터가 있음/)).toBeNull()
   })
 
-  it("캐릭터 관리 탭에서 레어도 필터와 이름 검색으로 목록을 좁힌다", async () => {
+  it("캐릭터 관리 탭에서 희귀도 필터와 이름 검색으로 목록을 좁힌다", async () => {
     await openCharacterTab()
     expect(screen.getByText("보리스")).toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText("캐릭터 레어도 필터"), { target: { value: "4★" } })
+    fireEvent.change(screen.getByLabelText("캐릭터 희귀도 필터"), { target: { value: "4★" } })
     expect(screen.queryByText("알리스")).toBeNull()
     expect(screen.getByText("보리스")).toBeTruthy()
     expect(screen.getByText("카린")).toBeTruthy()
@@ -1289,7 +1289,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     expect((await screen.findByRole("alert")).textContent).toContain("업데이트 적용 전에는 아이콘이 필요합니다.")
   })
 
-  it("아이콘 URL이 있으면 캐릭터를 WebP Data URL·레어도·분류와 함께 등록한다", async () => {
+  it("아이콘 URL이 있으면 캐릭터를 WebP Data URL·희귀도·분류와 함께 등록한다", async () => {
     charactersBuilder.insert.mockResolvedValue({ error: null })
     await openCharacterTab()
 
@@ -1573,16 +1573,16 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         expect(screen.queryByText("에스급 캐릭")).toBeNull()
       })
 
-      it("레어도 필터는 선택한 게임의 등급만 나열하고 게임을 바꾸면 초기화한다", async () => {
+      it("희귀도 필터는 선택한 게임의 등급만 나열하고 게임을 바꾸면 초기화한다", async () => {
         await openCharacterTabWith([schemaGame, secondGame], [...mockCharacters, secondGameCharacter])
-        expect(optionTexts("캐릭터 레어도 필터")).toEqual(["모든 레어도", "5★", "4★"])
+        expect(optionTexts("캐릭터 희귀도 필터")).toEqual(["모든 희귀도", "5★", "4★"])
 
-        fireEvent.change(screen.getByLabelText("캐릭터 레어도 필터"), { target: { value: "4★" } })
+        fireEvent.change(screen.getByLabelText("캐릭터 희귀도 필터"), { target: { value: "4★" } })
         expect(screen.queryByText("알리스")).toBeNull()
 
         selectGame("game-3")
-        expect(optionTexts("캐릭터 레어도 필터")).toEqual(["모든 레어도", "S급", "A급"])
-        expect((screen.getByLabelText("캐릭터 레어도 필터") as HTMLSelectElement).value).toBe("")
+        expect(optionTexts("캐릭터 희귀도 필터")).toEqual(["모든 희귀도", "S급", "A급"])
+        expect((screen.getByLabelText("캐릭터 희귀도 필터") as HTMLSelectElement).value).toBe("")
         expect(await screen.findByText("에스급 캐릭")).toBeTruthy()
       })
 
@@ -1932,7 +1932,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         expect(screen.queryByLabelText("캐릭터 시스템 명칭")).toBeNull()
         expect(screen.queryByLabelText("최대 프리셋 슬롯")).toBeNull()
         expect(screen.queryByLabelText("최대 돌파 단계")).toBeNull()
-        expect(screen.queryByLabelText("레어도 목록")).toBeNull()
+        expect(screen.queryByLabelText("희귀도 목록")).toBeNull()
         expect(screen.queryByText("분류 기준 (최대 2개)")).toBeNull()
 
         fireEvent.change(screen.getByLabelText("게임 이름 *"), { target: { value: "원신 리뉴얼" } })
