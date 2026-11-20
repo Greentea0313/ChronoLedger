@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r85-schedule-times",
+    "created_at":  "2026-11-20T20:55:29.6785310+00:00",
+    "objective":  "Implement R85 schedule start/end times (start_at, end_at, estimated flags) and per-game daily_reset_time with KST display and status calculation",
+    "acceptance_criteria":  [
+                                "Step 1: Add R85 DB migration (MIGRATION_R85_SCHEDULE_TIMES.sql), SCHEMA.sql, README check query, TESTS.sql, database.types.ts and verify on local Supabase",
+                                "Step 2: Add shared KST period/status helpers, DB fallback, admin/request/game forms, and calendar/list/modal UI with Vitest coverage",
+                                "Step 3: Perform static review (review.json/test.json), local DB upgrade and fresh SCHEMA.sql verification, merge into main, and close out docs"
+                            ],
+    "base_sha":  "be4b43fd752a15185d584f035f9692d7181e064b",
+    "target_sha":  null,
+    "branch":  "collab/r85-schedule-times",
+    "worktree_path":  ".worktrees/r85-schedule-times",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
