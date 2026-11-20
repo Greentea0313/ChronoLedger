@@ -5,6 +5,7 @@
 - @.agents/rules/language.md — 답과 문서는 한국어 개조식(~함, ~임). 작업 목록·완료 상자(recap·질문·버튼)·브리프·요약도 같음. `~습니다`·`~입니다` 금지.
 - @.agents/rules/agent_rules.md — Think before coding, simplicity first, surgical changes, verifiable goals.
 - @.agents/rules/document_location.md — Project docs live in `docs/`; finished records in `docs/archive/`.
+- Chief Architect escalation (`.agents/rules/collaboration.md` §2): **Claude Sonnet** never specifies an out-of-scope requirement itself (open design/product decision, new spec, 3+ module restructuring, money/ledger/RLS/RPC/security design, or acceptance criteria the approved documents cannot settle); it records `📐 SPEC_NEEDED` with a `요구사항 접수 기록` for Gemini 4 Argon. **Claude Opus** is the Chief Architect's Fallback 1 and may execute `📐 SPEC_NEEDED` rows (spec/decision and acceptance criteria only, no `src/**` edits), then returns Run registration to Gemini 4 Hydrogen.
 - Model roles, fallback chains, Gemini (Hydrogen default $\to$ Neon/Argon promotion) and Claude (Sonnet default $\to$ Opus promotion) criteria are in `.agents/rules/collaboration.md`. It is not loaded automatically; read it when assigning a model, choosing a fallback, or registering a Run.
 
 ## 2. Claude Role (Sonnet / Opus)

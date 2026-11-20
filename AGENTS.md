@@ -7,6 +7,7 @@ Shared guidelines for coding agents (GPT Codex, GitHub Copilot, Gemini, OpenCode
 - [.agents/rules/language.md](.agents/rules/language.md) — Always answer the user in Korean itemized style (~함, ~임), including questions and summaries.
 - [.agents/rules/agent_rules.md](.agents/rules/agent_rules.md) — Think before coding, simplicity first, surgical changes.
 - [.agents/rules/document_location.md](.agents/rules/document_location.md) — Project docs live in `docs/`; finished records in `docs/archive/`.
+- **Chief Architect escalation** ([.agents/rules/collaboration.md](.agents/rules/collaboration.md) §2) — Every model except the Chief Architect (Gemini 4 Argon) and its Fallback 1 (Claude Opus, Gemini 4 Neon) never specifies an out-of-scope requirement itself (open design/product decision, new spec, 3+ module restructuring, money/ledger/RLS/RPC/security design, or acceptance criteria the approved documents cannot settle): record a `📐 SPEC_NEEDED` row with a `요구사항 접수 기록` in `docs/handoff.md` and hand it to the Chief Architect.
 
 ## 2. Read Only When Needed (skills)
 

@@ -34,7 +34,20 @@ description: ChronoLedger 7-model AI collaboration roles, fallback chains, Gemin
 > - **Claude Opus (Deep Specialist · On Demand)**: High-complexity composite state and browser lifecycle control (History API, async race conditions), architectural refactoring and rule/collaboration design, deep security/RLS/`SECURITY DEFINER` RPC/ledger integrity auditing, Base $\leftrightarrow$ Target SHA integrated static review (`review.json`), Fallback 1 for `Gemini 4 Argon`, `Gemini 4 Neon`, and `GPT Codex`.
 > - **Opus Promotion Conditions** (Assign Opus if any condition is met): ① Modifications to money, ledger, points, RLS, or SQL/RPC, ② Browser lifecycle and async concurrency edge cases, ③ Restructuring across 3+ modules or open architectural design decisions, ④ Run-level integrated reviews. If Sonnet discovers any of these conditions during work, hand over to Opus via `⚠️ HANDOVER_NEEDED`.
 
-## 2. Role-Scoped `src/**` Implementation Boundaries & Hybrid Delegation
+## 2. Requirement Intake & Chief Architect Escalation (`📐 SPEC_NEEDED`)
+
+**Applies to every AI except the Chief Architect (`Gemini 4 Argon`) and its Fallback 1 (`Claude Opus`, `Gemini 4 Neon`)**: `Gemini 4 Hydrogen`, `GPT Codex`, `Claude Sonnet`, `GitHub Copilot`, `Gemini 3.8 Flash`. These models never specify an out-of-scope requirement themselves (no guessed product decisions, specs or acceptance criteria); they hand it to the Chief Architect, or to its Fallback 1 when Argon's quota is exhausted.
+
+1. **Intake**: new requirements are received by `Gemini 4 Hydrogen` by default (any other non-escalation model follows the same rule).
+2. **Triage**: escalate if any applies; otherwise the receiving model writes the acceptance criteria and registers the Run itself.
+   - an `Argon` promotion condition in §1 (open architecture/product decision, new formal spec, restructuring across 3+ domain modules, pre-design or audit of money/ledger/points/RLS/`SECURITY DEFINER` RPC/auth/deletion boundaries, collaboration rule or skill redesign);
+   - the acceptance criteria cannot be settled from the approved documents (`docs/spec/*`, design docs, prior decisions).
+3. **Escalation record**: add a `📐 SPEC_NEEDED` row in the root `docs/handoff.md` queue assigned to `Gemini 4 Argon` *(Fallback: Claude Opus / Gemini 4 Neon)* with a `요구사항 접수 기록`: ① the request as understood, ② the triggering condition, ③ open questions and decisions needed, ④ related files/documents. `⚠️ HANDOVER_NEEDED` stays reserved for token/context exhaustion.
+4. **Specification**: the Chief Architect (or Fallback 1) writes the spec or decision record and per-Step acceptance criteria, asking the user with question cards for product decisions. It does not edit `src/**`.
+5. **Return**: the Chief Architect sets its row to `✅ DONE` and returns Run registration, worktree creation and model assignment to `Gemini 4 Hydrogen` (`▶ READY` Orchestrator row) to save Argon's weekly quota, unless it already registered the Run in the same step.
+6. **Mid-task discovery**: if a non-escalation model finds such a condition while working, it stops, saves its work and records `📐 SPEC_NEEDED` for judgment (spec, design, security/ledger decision) or `⚠️ HANDOVER_NEEDED` to `Gemini 4 Neon` / `Claude Opus` for implementation-only promotion, as in §1.
+
+## 3. Role-Scoped `src/**` Implementation Boundaries & Hybrid Delegation
 
 1. **Role-Scoped Product Source (`src/**`) Implementation Boundaries**:
    - **`Gemini 4 Argon` (`Architect · Orchestrator · Reviewer`)**: **Must NEVER directly edit product implementation source code (`src/**`).** Focuses exclusively on architecture, specs, security/ledger auditing, integrated review, and high-risk orchestration.
@@ -46,7 +59,7 @@ description: ChronoLedger 7-model AI collaboration roles, fallback chains, Gemin
    - **Dispatch Queue Assignment (`Gemini 4 Hydrogen / Neon / Argon`, `GPT Codex`, `Claude Sonnet / Opus`, `GitHub Copilot`)**:
      - Register multi-step or cross-model tasks in `## 🎯 Active AI Collaboration Dispatch Queue` at the top of `docs/handoff.md` with status **`▶ READY`** (after running `New-CollaborationRun.ps1` if isolated execution is needed), end the turn, and instruct the user to switch to the assigned model and input **`"인수인계 문서를 확인해"`**.
 
-## 3. Handoff Execution & Emergency Handover
+## 4. Handoff Execution & Emergency Handover
 
 - The `"인수인계 문서를 확인해"` procedure, hard-cutoff recovery, Docker precheck and emergency handover checkpoint are defined only in the handoff skill (`.agents/skills/handoff/SKILL.md`).
 - Document updates after each step follow `.agents/skills/chronoledger-docs-closeout/SKILL.md`.

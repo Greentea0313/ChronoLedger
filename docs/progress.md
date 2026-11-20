@@ -1,4 +1,11 @@
 # 프로젝트 진행 현황
+## 협업 파이프라인: 요구사항 접수·Chief Architect 구체화 규칙 추가 (2026-11-21)
+
+- **수행 주체**: Claude Opus (사용자 요청, 규칙 재설계)임.
+- **규칙**: Chief Architect(Gemini 4 Argon)와 Fallback 1(Claude Opus·Gemini 4 Neon)을 뺀 모든 AI(Hydrogen·Codex·Sonnet·Copilot·Flash)는 범위를 넘는 요구사항을 직접 구체화하지 않고 `📐 SPEC_NEEDED` 행과 `요구사항 접수 기록`(이해한 내용·해당 조건·정할 질문·관련 파일)으로 Chief Architect에게 넘김.
+- **흐름**: Hydrogen 기본 접수 → 분류(Argon 승격 조건 또는 문서로 수용 기준을 정할 수 없음) → `📐 SPEC_NEEDED` → Argon(대체 Opus/Neon)이 명세·결정·단계별 수용 기준 작성(`src/**` 수정 없음) → Hydrogen에게 반환해 Run 등록·배정. `⚠️ HANDOVER_NEEDED`는 토큰 소진 전용으로 유지함.
+- **변경 파일**: `.agents/rules/collaboration.md` §2 신설(이후 절 번호 +1), handoff·orchestrator·maker 스킬과 `.claude/skills` 사본(`Sync-Skills.ps1` 동기화·검사 통과), `AGENTS.md`·`CLAUDE.md`·`.github/copilot-instructions.md`에 항상 읽는 한 줄 추가.
+
 
 ## Run `r84-feedback-and-inbox` 완료 — `main` 병합 `660c3fc` (2026-11-19)
 

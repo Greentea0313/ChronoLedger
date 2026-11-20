@@ -1,4 +1,8 @@
 # 변경 이력
+## 2026-11-21 (협업 파이프라인: Chief Architect 구체화 규칙)
+
+- 범위를 넘는 요구사항은 Chief Architect(Gemini 4 Argon, 대체 Claude Opus·Gemini 4 Neon)만 구체화하도록 규칙을 추가함. 다른 모델은 `📐 SPEC_NEEDED`로 넘기고, 구체화 후 Run 등록은 Gemini 4 Hydrogen이 이어받음. `인수인계 문서를 확인해` 처리 순서는 `⚠️ HANDOVER_NEEDED` → `📐 SPEC_NEEDED` → `▶ READY`임.
+
 
 ## 2026-11-19 (Run `r84-feedback-and-inbox` 완료 — `main` 병합 `660c3fc`)
 
