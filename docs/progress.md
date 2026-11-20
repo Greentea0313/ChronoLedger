@@ -1,4 +1,15 @@
 # 프로젝트 진행 현황
+
+## Run `r98-character-icon-remove` 완료 — `main` 병합 `56c26ce` (2026-11-21)
+
+- **수행 주체**: Claude Sonnet (Step 1 Maker `342067d`) → Gemini 4 Hydrogen (Step 2 Reviewer & Orchestrator).
+- **결과**: Base `bc9e026` ↔ Target `342067d` 정적 리뷰 **clean**(지적 0건, 산출물 `bfdfb59`). 워크트리 `tsc`·`lint`·Vitest 70파일/900개·`next build`(16페이지) 통과 후 `main` 병합(`56c26ce`), 병합 후 검증 모두 통과함. 활성 Run 없음.
+## R98 캐릭터 이미지 제거 UI 구현 (2026-11-21)
+
+- **수행 주체**: Claude Sonnet (Run `r98-character-icon-remove` Step 1)임.
+- **결과**: 워크트리 커밋 `342067d`(미병합). 관리자 캐릭터 모달·요청 모달·관리자 요청 대기열에 `이미지 제거` 추가함. tsc·lint·Vitest 70파일/900개 통과함.
+- **다음 단계**: Step 2(`Gemini 4 Hydrogen`, 리뷰·병합·문서 마감) `▶ READY`임.
+
 ## 협업 파이프라인: 요구사항 접수·Chief Architect 구체화 규칙 추가 (2026-11-21)
 
 - **수행 주체**: Claude Opus (사용자 요청, 규칙 재설계)임.

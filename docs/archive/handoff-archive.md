@@ -6,6 +6,41 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 직전 완료 Run 기록: `r84-feedback-and-inbox`
+
+- **Run ID**: `r84-feedback-and-inbox` **(완료, `main` 병합 `660c3fc`, 2026-11-19 · 운영 DB 수동 마이그레이션·확인 쿼리 완료(사용자, 2026-11-19), 실브라우저 확인 대기)** *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
+- **설계 기준**: [`docs/push-notification-research.md`](../push-notification-research.md) §5.3·§8·§9 (`feedback_requests`·`notifications`·30일 보관 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·기존 6개 요청 승인/반려 RPC 알림 연동 + 건의 모달/내 요청 카드/관리자 대기열/상단바 알림 벨 UI)
+- **Orchestrator**: Gemini 4 Argon *(2026-11-18 등록)* · 마감 병합: Gemini 4 Neon *(2026-11-19)*
+- **Worktree 경로**: `.worktrees/r84-feedback-and-inbox` (브랜치: `collab/r84-feedback-and-inbox`, 매니페스트: `artifacts/r84-feedback-and-inbox/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `ac71676bb8f4e0e737d97c26e21f35d7507296a1`
+- **Target SHA**: `71824a21d01c7a115b9554186d46153032cf9fb4` *(iteration-03 최종 리뷰 통과, 산출물 `2cebdf5`, `main` 병합 `660c3fc`)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`, `sql/SCHEMA.sql`). 🐳 로컬 DB 2회 멱등 적용 + 신규 `SCHEMA.sql` + `TESTS.sql` 40개 PASS 검증 완료.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: 0b93975)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Hydrogen** *(1순위 대체)* | `Maker (DB/RLS/RPC & Types)` | `feedback_requests`·`notifications`·30일 정리 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·6개 요청 RPC 알림 연동·`SCHEMA.sql`·`README.md`·`TESTS.sql`·타입 반영. tsc·lint·Vitest 862개 통과 (로컬 DB 검증 Step 3 이관) |
+| **2** | **`✅ DONE (SHA: d7eef7a)`** | **Claude Sonnet** | `Maker (UI & Vitest)` | 건의 모달·내 요청 카드·관리자 건의 대기열·상단바 알림 벨(`NotificationBell`) 구현 및 테스트 추가. tsc·lint·Vitest 892개 통과 |
+| **2b** | **`✅ DONE (SHA: 0f8e188)`** | **Claude Opus** *(iteration-02 Maker)* | `Maker (iteration-02 Fixes)` | iteration-01 P3 2건·P4 3건 반영(`answer_feedback_request` PENDING 가드, 승인/반려 알림 `TESTS.sql`, `CLOSED` 문구, README 경고, KST 시각). tsc·lint·Vitest 893개 통과 |
+| **3a** | **`✅ DONE (SHA: 71824a2)`** | ~~**GPT Codex**~~ ➡️ **Claude Opus** *(1순위 대체)* | `Maker (iteration-03: TESTS.sql)` | iteration-02 `R84-REV-06`~`09`(`TESTS.sql` R84 블록 테스트 코드 4건) 수정. 🐳 로컬 DB 마이그레이션 2회·`TESTS.sql` 40개 PASS, tsc·lint·Vitest 893개 통과 |
+| **3** | **`✅ DONE (산출물 2cebdf5, main 병합 660c3fc)`** | ~~**Claude Opus**~~ ➡️ **Gemini 4 Neon** *(1순위 대체, 독립 리뷰)* | `Reviewer & Orchestrator` | Base `ac71676` ↔ Target `71824a2` 통합 정적 리뷰 **clean**(지적 0건). 🐳 로컬 DB 업그레이드(마이그레이션 2회)·신규 `SCHEMA.sql` 모두 `TESTS.sql` 40개 PASS, `main` 병합 `660c3fc` 및 병합 후 검증 통과 |
+
+#### 📝 `r84-feedback-and-inbox` Step 3 iteration-03 완료 기록 (Gemini 4 Neon — Claude Opus 1순위 대체, 2026-11-19)
+
+- **리뷰 범위·독립성**: Base `ac71676bb8f4e0e737d97c26e21f35d7507296a1` ↔ Target `71824a21d01c7a115b9554186d46153032cf9fb4`. 범위 검사(`merge-base --is-ancestor`·`Target..HEAD`의 `src`·`sql` 변경 0건) 통과함. 이전 iteration Maker와 다른 모델(Gemini 4 Neon)로 독립 통합 리뷰 수행함.
+- **정적 리뷰 결과 (`clean`, 지적 0건)**: `MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts`·UI 5종 및 테스트 전체 대조 완료. iteration-01(P3 2·P4 3)·iteration-02(`R84-REV-06`~`09`) 지적 사항 모두 해소 확인함.
+- **산출물**: `artifacts/r84-feedback-and-inbox/iteration-03/review.json`·`test.json`, `run.json`(`target_sha` 갱신·`status: completed`) 워크트리 커밋 `2cebdf5`. 이 PC에 Python `jsonschema`가 없어 공식 검증 스크립트 대신 Node로 스키마 전체 규칙·SHA 일치를 검증함.
+- **검증 (워크트리 Target `71824a2`)**: `git diff --check`·`tsc --noEmit`·`next lint`·Vitest 70파일/893개·`next build`(16개 정적 페이지, 플레이스홀더 env) 모두 통과함. 🐳 로컬 Supabase 초기화 후 ① Base `SCHEMA.sql`(`ac71676`) + R84 마이그레이션 **1·2회 멱등 적용** + `README.md` R84 확인 쿼리(RLS·권한·RPC 3종·`pg_cron` 잡) + `TESTS.sql` **40개 PASS·롤백 PASS**, ② 신규 Target `SCHEMA.sql` 직접 적용 + `TESTS.sql` **40개 PASS·롤백 PASS** 모두 통과함. 실브라우저 확인은 `skipped`.
+- **병합·후속 검증**: `main`에 충돌 없이 병합(`660c3fc`, 23개 파일 변경). 병합 후 `main` 기준 `tsc --noEmit`·`next lint`·Vitest **70파일/895개** 통과함. 원격 `push` 및 워크트리/브랜치 삭제는 수행하지 않음(사용자 결정 대기).
+- **사용자 수동 작업**:
+  1. ✅ (사용자, 2026-11-19 적용·확인 쿼리 검증 완료) 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 적용 후 `sql/README.md` B표 R84 확인 쿼리 검증.
+  2. 실브라우저에서 건의 등록·내 요청 내역·관리자 답변/종료·상단바 알림 벨(배지·읽음·이동) 확인.
+
+#### 📝 `r84-feedback-and-inbox` 이전 단계 요약 (Step 1~iteration-03 Maker)
+
+- **Step 1 (`0b93975`, Gemini 4 Hydrogen)** · **Step 2 (`d7eef7a`, Claude Sonnet)**: DB/RLS/RPC/타입 및 건의·알림 UI/테스트 1차 구현.
+- **iteration-01 리뷰 (`0429417`, Claude Opus)** → **iteration-02 Maker (`0f8e188`, Claude Opus)**: P3 2건(`answer_feedback_request` PENDING 가드, 승인/반려 알림 `TESTS.sql`)·P4 3건(`CLOSED` 제목, README 경고, KST 시각) 반영.
+- **iteration-02 리뷰 (`eb6379c`, Claude Opus)** → **iteration-03 Maker (`71824a2`, Claude Opus)**: 로컬 DB에서 드러난 `TESTS.sql` R84 블록 테스트 코드 4건(`R84-REV-06`~`09`) 수정 및 40개 PASS 확인. 상세 기록은 각 커밋 및 `artifacts/r84-feedback-and-inbox/iteration-01~03/` 참조.
+
 ### 🗂️ 이전 Run 기록 (완료): `pipeline-collab-6-items-opus-review`
 
 - **Run ID**: `pipeline-collab-6-items-opus-review` **(완료, 2026-11-19)** *(AI 협업 파이프라인 6대 병목·모순 Opus 2차 검토 및 스킬 반영)*

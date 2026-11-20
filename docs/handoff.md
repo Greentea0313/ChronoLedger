@@ -7,26 +7,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r98-character-icon-remove` *(2026-11-21 등록 · `R98`: 관리자 캐릭터 모달, 사용자 캐릭터 요청 모달, 관리자 요청 대기열에 캐릭터 아바타/아이콘 이미지 제거 기능 추가)*
-- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-21 등록)*
-- **Worktree 경로**: `.worktrees/r98-character-icon-remove` (브랜치: `collab/r98-character-icon-remove`, 매니페스트: `artifacts/r98-character-icon-remove/run.json`)
-- **Base SHA**: `bc9e0265abee74b71c50d2886908395ec847ae4e`
-- **DB 변경**: 없음. 🐳 Docker 불필요.
-
-| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
-| :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R98 캐릭터 이미지 제거 UI & 테스트)` | `.worktrees/r98-character-icon-remove`에서 아래 **Step 1 수용 기준** 수행 후 워크트리 커밋. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `src/components/game/request-submission-modal.tsx`, `src/components/game/request-submission-modal.test.tsx` | 대기 중 |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Reviewer & Orchestrator` | Base `bc9e026` ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `tsc`·`lint`·Vitest 검증, `main` 병합 및 `docs/` 마감 | 대기 중 |
-
-#### 📌 `r98-character-icon-remove` 단계별 수용 기준 (Acceptance Criteria)
-
-- **Step 1 (`Claude Sonnet` — Maker)**:
-  1. 관리자 캐릭터 추가/수정 모달([src/app/admin/page.tsx](../../src/app/admin/page.tsx)): `characterFormIconUrl.trim()` 존재 시 `이미지 제거` 버튼 노출·클릭 시 상태 초기화 및 미리보기 숨김; 픽업 전용 캐릭터(`pickupOnlyEdit`) 수정 시 기존 `default_icon_url`이 있었는데 제거한 경우에만 `default_icon_url: null` 전달(기존 `null`인 픽업 전용 캐릭터 이름만 수정 시 불필요한 키 미전송 유지).
-  2. 사용자 캐릭터 등록 요청 모달([src/components/game/request-submission-modal.tsx](../../src/components/game/request-submission-modal.tsx)): `characterIconUrl` 존재 시 `이미지 제거` 버튼 노출·클릭 시 상태 초기화 및 `default_icon_url: null` 제출.
-  3. 관리자 캐릭터 요청 대기열([src/app/admin/requests/page.tsx](../../src/app/admin/requests/page.tsx)): `defaultIconUrls[req.id]` 존재 시 `이미지 제거` 버튼 노출·클릭 시 해당 요청의 교체 아이콘 상태 제거.
-  4. Vitest 보강: 각 파일 테스트에 이미지 제거 동작·미리보기 숨김·`default_icon_url: null` 저장/제출 검증 추가 후 `tsc --noEmit`, `npm run lint`, `vitest run --dir src` 통과 및 워크트리 커밋.
-- **Step 2 (`Gemini 4 Hydrogen` — Reviewer & Orchestrator)**:
-  1. 정적 리뷰(`review.json`·`test.json` 스키마 검증), 전체 검증 통과 확인, `main` 병합 및 `docs/` 마감(`r84-feedback-and-inbox` 기록을 `docs/archive/handoff-archive.md`로 이동).
+- **활성 Run 없음** *(2026-11-21 `r98-character-icon-remove` 완료·`main` 병합 `56c26ce`. 다음 착수 후보: `R39` 일일 알림, `R85` 일정 시간 단위, `R97` Tauri 알림)*
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -46,37 +27,22 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |
 
-### 🗂️ 직전 완료 Run 기록: `r84-feedback-and-inbox`
+### 🗂️ 직전 완료 Run 기록: `r98-character-icon-remove`
 
-- **Run ID**: `r84-feedback-and-inbox` **(완료, `main` 병합 `660c3fc`, 2026-11-19 · 운영 DB 수동 마이그레이션·확인 쿼리 완료(사용자, 2026-11-19), 실브라우저 확인 대기)** *(`R84` 1차: 기타 건의 요청 창구 `feedback_requests` + `public.notifications` 테이블·30일 보관 `pg_cron` 정리·앱 내 알림함 상단 벨 UI + 건의 답변·요청 승인/반려 시 알림 행 원자적 생성)*
-- **설계 기준**: [`docs/push-notification-research.md`](push-notification-research.md) §5.3·§8·§9 (`feedback_requests`·`notifications`·30일 보관 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·기존 6개 요청 승인/반려 RPC 알림 연동 + 건의 모달/내 요청 카드/관리자 대기열/상단바 알림 벨 UI)
-- **Orchestrator**: Gemini 4 Argon *(2026-11-18 등록)* · 마감 병합: Gemini 4 Neon *(2026-11-19)*
-- **Worktree 경로**: `.worktrees/r84-feedback-and-inbox` (브랜치: `collab/r84-feedback-and-inbox`, 매니페스트: `artifacts/r84-feedback-and-inbox/run.json`, 미삭제·원격 미push)
-- **Base SHA**: `ac71676bb8f4e0e737d97c26e21f35d7507296a1`
-- **Target SHA**: `71824a21d01c7a115b9554186d46153032cf9fb4` *(iteration-03 최종 리뷰 통과, 산출물 `2cebdf5`, `main` 병합 `660c3fc`)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`, `sql/SCHEMA.sql`). 🐳 로컬 DB 2회 멱등 적용 + 신규 `SCHEMA.sql` + `TESTS.sql` 40개 PASS 검증 완료.
+- **Run ID**: `r98-character-icon-remove` **(완료, `main` 병합 `56c26ce`, 2026-11-21)** *(`R98`: 관리자 캐릭터 모달, 사용자 캐릭터 등록 요청 모달, 관리자 캐릭터 요청 대기열에 캐릭터 아바타/아이콘 이미지 제거 기능 추가)*
+- **Orchestrator & Reviewer**: Gemini 4 Hydrogen *(2026-11-21 등록·리뷰·병합 마감)*
+- **Worktree 경로**: `.worktrees/r98-character-icon-remove` (브랜치: `collab/r98-character-icon-remove`, 매니페스트: `artifacts/r98-character-icon-remove/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `bc9e0265abee74b71c50d2886908395ec847ae4e`
+- **Target SHA**: `342067dd49346e44bbaa228c2ea9ebe26f7c4e1f` *(iteration-01 리뷰 clean, 산출물 `bfdfb59`, `main` 병합 `56c26ce`)*
+- **DB 변경**: 없음. 🐳 Docker 불필요.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: 0b93975)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Hydrogen** *(1순위 대체)* | `Maker (DB/RLS/RPC & Types)` | `feedback_requests`·`notifications`·30일 정리 `pg_cron`·`mark_notifications_read`·`answer_feedback_request`·6개 요청 RPC 알림 연동·`SCHEMA.sql`·`README.md`·`TESTS.sql`·타입 반영. tsc·lint·Vitest 862개 통과 (로컬 DB 검증 Step 3 이관) |
-| **2** | **`✅ DONE (SHA: d7eef7a)`** | **Claude Sonnet** | `Maker (UI & Vitest)` | 건의 모달·내 요청 카드·관리자 건의 대기열·상단바 알림 벨(`NotificationBell`) 구현 및 테스트 추가. tsc·lint·Vitest 892개 통과 |
-| **2b** | **`✅ DONE (SHA: 0f8e188)`** | **Claude Opus** *(iteration-02 Maker)* | `Maker (iteration-02 Fixes)` | iteration-01 P3 2건·P4 3건 반영(`answer_feedback_request` PENDING 가드, 승인/반려 알림 `TESTS.sql`, `CLOSED` 문구, README 경고, KST 시각). tsc·lint·Vitest 893개 통과 |
-| **3a** | **`✅ DONE (SHA: 71824a2)`** | ~~**GPT Codex**~~ ➡️ **Claude Opus** *(1순위 대체)* | `Maker (iteration-03: TESTS.sql)` | iteration-02 `R84-REV-06`~`09`(`TESTS.sql` R84 블록 테스트 코드 4건) 수정. 🐳 로컬 DB 마이그레이션 2회·`TESTS.sql` 40개 PASS, tsc·lint·Vitest 893개 통과 |
-| **3** | **`✅ DONE (산출물 2cebdf5, main 병합 660c3fc)`** | ~~**Claude Opus**~~ ➡️ **Gemini 4 Neon** *(1순위 대체, 독립 리뷰)* | `Reviewer & Orchestrator` | Base `ac71676` ↔ Target `71824a2` 통합 정적 리뷰 **clean**(지적 0건). 🐳 로컬 DB 업그레이드(마이그레이션 2회)·신규 `SCHEMA.sql` 모두 `TESTS.sql` 40개 PASS, `main` 병합 `660c3fc` 및 병합 후 검증 통과 |
+| **1** | **`✅ DONE (SHA: 342067d)`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R98 캐릭터 이미지 제거 UI & 테스트)` | 관리자 캐릭터 모달·요청 모달·관리자 요청 대기열에 `이미지 제거` 추가 및 Vitest 5건 보강. tsc·lint·Vitest 70파일/900개 통과 |
+| **2** | **`✅ DONE (산출물 bfdfb59, main 병합 56c26ce)`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Reviewer & Orchestrator` | Base `bc9e026` ↔ Target `342067d` 정적 리뷰 **clean**(지적 0건). tsc·lint·Vitest 70파일/900개·`next build`(16페이지) 통과 후 `main` 병합 `56c26ce` 및 병합 후 검증 통과 |
 
-#### 📝 `r84-feedback-and-inbox` Step 3 iteration-03 완료 기록 (Gemini 4 Neon — Claude Opus 1순위 대체, 2026-11-19)
+#### 📝 `r98-character-icon-remove` Step 2 완료 기록 (Gemini 4 Hydrogen, 2026-11-21)
 
-- **리뷰 범위·독립성**: Base `ac71676bb8f4e0e737d97c26e21f35d7507296a1` ↔ Target `71824a21d01c7a115b9554186d46153032cf9fb4`. 범위 검사(`merge-base --is-ancestor`·`Target..HEAD`의 `src`·`sql` 변경 0건) 통과함. 이전 iteration Maker와 다른 모델(Gemini 4 Neon)로 독립 통합 리뷰 수행함.
-- **정적 리뷰 결과 (`clean`, 지적 0건)**: `MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts`·UI 5종 및 테스트 전체 대조 완료. iteration-01(P3 2·P4 3)·iteration-02(`R84-REV-06`~`09`) 지적 사항 모두 해소 확인함.
-- **산출물**: `artifacts/r84-feedback-and-inbox/iteration-03/review.json`·`test.json`, `run.json`(`target_sha` 갱신·`status: completed`) 워크트리 커밋 `2cebdf5`. 이 PC에 Python `jsonschema`가 없어 공식 검증 스크립트 대신 Node로 스키마 전체 규칙·SHA 일치를 검증함.
-- **검증 (워크트리 Target `71824a2`)**: `git diff --check`·`tsc --noEmit`·`next lint`·Vitest 70파일/893개·`next build`(16개 정적 페이지, 플레이스홀더 env) 모두 통과함. 🐳 로컬 Supabase 초기화 후 ① Base `SCHEMA.sql`(`ac71676`) + R84 마이그레이션 **1·2회 멱등 적용** + `README.md` R84 확인 쿼리(RLS·권한·RPC 3종·`pg_cron` 잡) + `TESTS.sql` **40개 PASS·롤백 PASS**, ② 신규 Target `SCHEMA.sql` 직접 적용 + `TESTS.sql` **40개 PASS·롤백 PASS** 모두 통과함. 실브라우저 확인은 `skipped`.
-- **병합·후속 검증**: `main`에 충돌 없이 병합(`660c3fc`, 23개 파일 변경). 병합 후 `main` 기준 `tsc --noEmit`·`next lint`·Vitest **70파일/895개** 통과함. 원격 `push` 및 워크트리/브랜치 삭제는 수행하지 않음(사용자 결정 대기).
-- **사용자 수동 작업**:
-  1. ✅ (사용자, 2026-11-19 적용·확인 쿼리 검증 완료) 운영 Supabase SQL Editor에서 `sql/migrations/MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 적용 후 `sql/README.md` B표 R84 확인 쿼리 검증.
-  2. 실브라우저에서 건의 등록·내 요청 내역·관리자 답변/종료·상단바 알림 벨(배지·읽음·이동) 확인.
-
-#### 📝 `r84-feedback-and-inbox` 이전 단계 요약 (Step 1~iteration-03 Maker)
-
-- **Step 1 (`0b93975`, Gemini 4 Hydrogen)** · **Step 2 (`d7eef7a`, Claude Sonnet)**: DB/RLS/RPC/타입 및 건의·알림 UI/테스트 1차 구현.
-- **iteration-01 리뷰 (`0429417`, Claude Opus)** → **iteration-02 Maker (`0f8e188`, Claude Opus)**: P3 2건(`answer_feedback_request` PENDING 가드, 승인/반려 알림 `TESTS.sql`)·P4 3건(`CLOSED` 제목, README 경고, KST 시각) 반영.
-- **iteration-02 리뷰 (`eb6379c`, Claude Opus)** → **iteration-03 Maker (`71824a2`, Claude Opus)**: 로컬 DB에서 드러난 `TESTS.sql` R84 블록 테스트 코드 4건(`R84-REV-06`~`09`) 수정 및 40개 PASS 확인. 상세 기록은 각 커밋 및 `artifacts/r84-feedback-and-inbox/iteration-01~03/` 참조.
+- **리뷰 범위·독립성**: Base `bc9e0265abee74b71c50d2886908395ec847ae4e` ↔ Target `342067dd49346e44bbaa228c2ea9ebe26f7c4e1f`. 범위 검사(`merge-base --is-ancestor`·`Target..HEAD`의 `src`·`sql` 변경 0건) 통과, Maker(Claude Sonnet)와 다른 모델로 독립 리뷰함.
+- **정적 리뷰 (`clean`, 지적 0건)**: 6개 허용 파일 외 변경 없음. 일반/픽업 전용 캐릭터 `default_icon_url: null` 분기, 요청 모달 `null` 제출, 요청 대기열 교체 이미지 초기화 모두 수용 기준과 일치함.
+- **산출물·검증**: `artifacts/r98-character-icon-remove/iteration-01/review.json`·`test.json`, `run.json` 갱신 후 워크트리 커밋 `bfdfb59` (이 PC Python에 `jsonschema` 모듈 미설치로 `json.load` + 스키마 수동 대조 검증). 워크트리 `tsc --noEmit`, `npm run lint`, Vitest 70파일/900개, `next build` 통과 후 `main` 병합(`56c26ce`), 병합 후 `main`에서 `tsc`·`lint`·Vitest 70파일/900개 재통과 확인함. 실브라우저 확인 및 워크트리/브랜치 정리는 사용자 선택 대기.
