@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r85-schedule-times",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "be4b43fd752a15185d584f035f9692d7181e064b",
+  "target_sha": "48086cc101299340c3b982439afc22efd87efd85",
+  "status": "clean",
+  "created_at": "2026-11-21T06:31:31+09:00",
+  "findings": []
+}

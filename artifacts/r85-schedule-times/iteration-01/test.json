@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "run_id": "r85-schedule-times",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "be4b43fd752a15185d584f035f9692d7181e064b",
+  "target_sha": "48086cc101299340c3b982439afc22efd87efd85",
+  "status": "passed",
+  "created_at": "2026-11-21T06:31:31+09:00",
+  "finished_at": "2026-11-21T06:31:31+09:00",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Local DB upgrade: base be4b43f SCHEMA.sql + MIGRATION_R85_SCHEDULE_TIMES.sql applied twice",
+      "command": "psql -v ON_ERROR_STOP=1 -f MIGRATION_R85_SCHEDULE_TIMES.sql (x2)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TESTS.sql on upgraded DB (41 PASS)",
+      "command": "psql -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Fresh install: target SCHEMA.sql + TESTS.sql (41 PASS) + migration re-run",
+      "command": "psql -v ON_ERROR_STOP=1 -f sql/SCHEMA.sql; -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "sql/README.md R85 check queries (9 columns, 11 constraints, t|t|t|t)",
+      "command": "psql -c <README B-table R85 queries>",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest suite (71 files, 950 tests)",
+      "command": "npx vitest run",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Next.js production build (placeholder env)",
+      "command": "npm run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}
