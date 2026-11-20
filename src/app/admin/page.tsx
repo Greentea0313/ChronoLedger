@@ -818,6 +818,8 @@ export default function AdminPage() {
     const pickupOnlyEdit = editingCharacter?.is_pickup_only === true && !characterFormPromote
     // R88: the icon is optional for regular characters too (no icon -> default avatar).
     const hasIconSource = !!characterFormIconUrl.trim()
+    // R98: a pickup-only character that had an icon and lost it sends an explicit null; one that never had an icon sends no icon key.
+    const iconRemoved = !hasIconSource && !!editingCharacter?.default_icon_url
     if (isOffline()) {
       setCharacterFormError(OFFLINE_WRITE_MESSAGE)
       return
@@ -859,7 +861,7 @@ export default function AdminPage() {
         default_icon_url?: string | null
         is_pickup_only?: boolean
       } = pickupOnlyEdit
-        ? { game_id: characterFormGameId, name, ...(iconUrl ? { default_icon_url: iconUrl } : {}) }
+        ? { game_id: characterFormGameId, name, ...(iconUrl ? { default_icon_url: iconUrl } : iconRemoved ? { default_icon_url: null } : {}) }
         : {
             game_id: characterFormGameId,
             name,
@@ -3076,6 +3078,9 @@ export default function AdminPage() {
                         <div className="h-12 w-12 overflow-hidden rounded-lg border border-line">
                           <GameIcon src={characterFormIconUrl.trim()} alt="캐릭터 기본 아이콘 미리보기" />
                         </div>
+                      )}
+                      {characterFormIconUrl.trim() && (
+                        <Button type="button" variant="ghost" onClick={() => setCharacterFormIconUrl("")}>이미지 제거</Button>
                       )}
                     </div>
                   </div>
