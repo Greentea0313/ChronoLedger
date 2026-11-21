@@ -711,7 +711,7 @@ export function RequestSubmissionModal({
                         <img src={characterIconUrl} alt="캐릭터 아이콘 미리보기" width={40} height={40} className="h-10 w-10 rounded border border-line object-cover" />
                       )}
                       {characterIconUrl && (
-                        <Button type="button" variant="ghost" onClick={() => setCharacterIconUrl("")}>이미지 제거</Button>
+                        <Button type="button" variant="destructive" onClick={() => setCharacterIconUrl("")}>이미지 제거</Button>
                       )}
                     </div>
                   </div>

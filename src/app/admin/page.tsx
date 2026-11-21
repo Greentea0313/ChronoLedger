@@ -3247,7 +3247,7 @@ export default function AdminPage() {
                         </div>
                       )}
                       {characterFormIconUrl.trim() && (
-                        <Button type="button" variant="ghost" onClick={() => setCharacterFormIconUrl("")}>이미지 제거</Button>
+                        <Button type="button" variant="destructive" onClick={() => setCharacterFormIconUrl("")}>이미지 제거</Button>
                       )}
                     </div>
                   </div>

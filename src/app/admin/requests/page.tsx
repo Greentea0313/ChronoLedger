@@ -636,7 +636,7 @@ export default function AdminRequestsPage() {
                     {defaultIconUrls[req.id] && (
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="destructive"
                         aria-label={`${req.name} 캐릭터 교체 이미지 제거`}
                         onClick={() => setDefaultIconUrls((current) => ({ ...current, [req.id]: "" }))}
                         disabled={processingId === req.id || !isOnline}
