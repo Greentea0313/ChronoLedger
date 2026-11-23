@@ -81,13 +81,13 @@
 - **Orchestrator**: Gemini 4 Hydrogen *(2026-11-23 사용자 요청으로 등록)*
 - **Worktree 경로**: `.worktrees/r97-tauri-notifications` (브랜치: `collab/r97-tauri-notifications`, 매니페스트: `artifacts/r97-tauri-notifications/run.json`)
 - **Base SHA**: `0f8ce5529ccfc4fd8065678ac474627b1d224b4c`
-- **Target SHA**: *(Step 1 진행 전)*
+- **Target SHA**: `390920fed29d7e130fd6b10a460f5cecdd489470` *(Step 1 완료 기준, 미병합)*
 - **DB 변경**: 없음 (`src/lib/tauri-notifications.ts`, `src/components/layout/notification-bell.tsx`, `src-tauri/` 범위)
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Maker (R97 실기기 검증·엣지 케이스 보완 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts`, `src/components/layout/notification-bell.tsx`·`test.tsx`, `src-tauri/src/`, `src-tauri/capabilities/`, `docs/push-notification-research.md`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `▶ 신규 등록 — 실기기·엣지 케이스 점검 대기` |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`0f8ce5529ccfc4fd8065678ac474627b1d224b4c`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (SHA: 390920fed29d7e130fd6b10a460f5cecdd489470)`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Maker (R97 실기기 검증·엣지 케이스 보완 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts`, `src/components/layout/notification-bell.tsx`·`test.tsx`, `src-tauri/src/`, `src-tauri/capabilities/`, `docs/push-notification-research.md`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 390920f`: 빈 초기 알림함 시드 누락·동시 호출 경쟁 상태·빈 제목/본문 폴백 보완. `cargo check`·`tsc`·`lint`·`diff-check`·Vitest 72파일/960개 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`0f8ce5529ccfc4fd8065678ac474627b1d224b4c`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`)·`main` 병합·문서 마감 | `▶ Step 1 완료(390920f). Base 0f8ce55 ↔ Target 390920f` |
 
 #### 📋 `r97-tauri-notifications` Step 1 수용 기준 (`Gemini 4 Hydrogen` — 실기기 검증·보완 & Vitest)
 
@@ -97,6 +97,13 @@
    - 워크트리에서 `cargo check`(필요 시 `tauri build` / `tauri dev`)로 Rust·권한 설정을 재확인하고, 실기기 OS 토스트 확인 절차를 실행·기록함(사용자 확인 필요 시 구체적 확인 절차 명시).
 3. **정적·단위 테스트 검증 및 커밋**:
    - `npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check` 통과 후 워크트리 커밋, `Target SHA` 기록 및 Step 2(`Claude Sonnet`) `▶ READY` 전환함.
+
+#### 📝 `r97-tauri-notifications` Step 1 완료 기록 (Gemini 4 Hydrogen, 2026-11-23)
+
+- **Target SHA**: `390920fed29d7e130fd6b10a460f5cecdd489470` (워크트리 브랜치 `collab/r97-tauri-notifications`, 미병합·원격 push 안 함). 변경 파일: `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts` (`run.json` 미수정).
+- **보완 내용**: ① 빈 초기 알림함(`items = []`)에서도 최초 1회 시드(`saveSeenIds(userId, [])`)를 기록해 직후 도착한 첫 알림이 누락되지 않도록 수정함. ② 사용자별 직렬화 큐(`pendingByUser`)와 권한 질의 전 `seenIds` 선저장으로 마운트·`focus`·폴링 동시 호출 시 중복 OS 토스트 발송을 차단함. ③ 공백 제목 시 `"ChronoLedger"` 폴백 및 공백 본문 생략 처리함.
+- **검증**: 워크트리에서 `cargo check --manifest-path src-tauri/Cargo.toml`, `npx tsc --noEmit`, `npm run lint`, `git diff --check`, `npx vitest run`(72파일/960개, 신규 3건 포함) 모두 통과함. Windows 설치본/개발 실행 실기기 OS 토스트 육안 확인은 사용자 수동 확인(`npm run tauri dev` 또는 설치본 실행 중 새 알림 수신 시 Windows 알림 센터 확인)으로 남김.
+- **다음 단계**: Step 2(`Claude Sonnet`, Base `0f8ce55` ↔ Target `390920f` 정적 리뷰·검증·`main` 병합) `▶ READY`임.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
