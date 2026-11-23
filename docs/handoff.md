@@ -75,6 +75,29 @@
 - **가정**: `request_result`·`push_enabled` 토글은 R96 범위라 UI에 두지 않음. 설정을 바꿔도 이미 생성된 알림은 그대로이며, 새 설정은 다음 일일 생성(KST 09:00)부터 `enqueue_daily_notifications()`가 반영하는지는 Step 1 SQL의 동작에 의존하고 이번에 검증하지 못함.
 - **다음 단계**: Step 3(`Claude Opus`, Base `1af478b` ↔ Target `afc9a21` 통합 리뷰·🐳 로컬 DB 검증·병합) `▶ READY`임.
 
+### 🚦 병행 활성 Run: `r97-tauri-notifications`
+
+- **Run ID**: `r97-tauri-notifications` *(`R97` Windows Tauri 데스크톱 OS 네이티브 알림 실기기 동작 확인 및 엣지 케이스 보완 — `r39-daily-notifications`와 별도 병행)*
+- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-23 사용자 요청으로 등록)*
+- **Worktree 경로**: `.worktrees/r97-tauri-notifications` (브랜치: `collab/r97-tauri-notifications`, 매니페스트: `artifacts/r97-tauri-notifications/run.json`)
+- **Base SHA**: `0f8ce5529ccfc4fd8065678ac474627b1d224b4c`
+- **Target SHA**: *(Step 1 진행 전)*
+- **DB 변경**: 없음 (`src/lib/tauri-notifications.ts`, `src/components/layout/notification-bell.tsx`, `src-tauri/` 범위)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Maker (R97 실기기 검증·엣지 케이스 보완 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts`, `src/components/layout/notification-bell.tsx`·`test.tsx`, `src-tauri/src/`, `src-tauri/capabilities/`, `docs/push-notification-research.md`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `▶ 신규 등록 — 실기기·엣지 케이스 점검 대기` |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`0f8ce5529ccfc4fd8065678ac474627b1d224b4c`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+
+#### 📋 `r97-tauri-notifications` Step 1 수용 기준 (`Gemini 4 Hydrogen` — 실기기 검증·보완 & Vitest)
+
+1. **기존 `R97` 구현 엣지 케이스 점검·보완** ([`docs/push-notification-research.md`](push-notification-research.md) §3.3·§8 기준):
+   - `src/lib/tauri-notifications.ts`·`NotificationBell`·`src-tauri` 권한/capabilities에서 다중 탭/폴링 중복 발송, 권한 거부 후 재시도, 빈 제목/본문 길이, 재로그인 시 `seenIds` 초기화 등 엣지 케이스를 점검하고 필요 시 보완함.
+2. **Windows Tauri 빌드·실기기 OS 토스트 검증**:
+   - 워크트리에서 `cargo check`(필요 시 `tauri build` / `tauri dev`)로 Rust·권한 설정을 재확인하고, 실기기 OS 토스트 확인 절차를 실행·기록함(사용자 확인 필요 시 구체적 확인 절차 명시).
+3. **정적·단위 테스트 검증 및 커밋**:
+   - `npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check` 통과 후 워크트리 커밋, `Target SHA` 기록 및 Step 2(`Claude Sonnet`) `▶ READY` 전환함.
+
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*
@@ -87,7 +110,7 @@
 | :--- | :--- | :--- | :--- |
 | `R39` | 결정 완료 · 2차 Run 예약 (`r39-daily-notifications`) | `R84` 완료 후 착수 가능. `notification_settings` + `pg_cron` 일일 알림(KST 09:00, 관심 일정 시작 당일·종료 D-1·예정 지출 결제일 D-1 3종) + 설정 화면 알림 토글 (DB 변경, 🐳 Docker 필요) | `docs/to-do.md` R39, [`docs/push-notification-research.md`](push-notification-research.md) §4.2·§5.2·§8·§9 |
 | `R96` | 결정 완료 · 3차 Run 예약 (`r96-web-push`) | `R39` 완료 후 착수. VAPID·`push_subscriptions`·Edge Function `send-notifications`·`pg_net` 웹훅·SW `push` 핸들러·로그아웃 구독 해제·iOS 홈 화면 안내 (DB·Edge Function 변경, 🐳 Docker 필요) | `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §3·§4·§5.1·§8 |
-| `R97` | 결정 완료 · 4차 Run 예약 (`r97-tauri-notifications`) | `R84` 완료로 착수 가능. Windows 데스크톱(Tauri v2) `@tauri-apps/plugin-notification` 연동 + 앱 실행 중 새 알림 OS 네이티브 표시 (DB 변경 없음) | `docs/to-do.md` R97, [`docs/push-notification-research.md`](push-notification-research.md) §3.3·§8 |
+| `R97` | 진행 중 · 병행 Run (`r97-tauri-notifications`) | `main` 1차 구현(`3a8bad9`) 이후 실기기 OS 토스트 동작 확인 및 엣지 케이스 보완 진행 (`r39-daily-notifications`와 병행, DB 변경 없음) | `docs/to-do.md` R97, [`docs/push-notification-research.md`](push-notification-research.md) §3.3·§8 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |

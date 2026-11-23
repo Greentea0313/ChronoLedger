@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-23 (`r97-tauri-notifications` 병행 Run 등록 — Gemini 4 Hydrogen)**: `r39-daily-notifications`와 별도로 `R97` 실기기 OS 토스트 동작 확인·엣지 케이스 보완 Run(`.worktrees/r97-tauri-notifications`, Base `0f8ce55`)을 등록하고 Step 1(`Gemini 4 Hydrogen`) `▶ READY`로 전환함.
 - **2026-11-23 (`main` 직접 수정 — Gemini 4 Hydrogen)**: `src/app/favicon.ico`와 `public/favicon.ico`를 투명 배경 ChronoLedger 심볼 아이콘(`16×16`·`32×32`·`48×48`·`256×256` RGBA ICO)으로 교체함(`tsc`·`lint`·`diff-check`·Vitest 72파일/957개 통과).
 - **2026-11-23 (`r39-daily-notifications` Step 2 — Claude Sonnet)**: 설정 화면 `알림 설정` 카드(일일 알림 3종 토글, `notification_settings` 부분 upsert, 오프라인·미적용 DB 폴백) 구현, 워크트리 `afc9a21`(tsc·lint·Vitest 960개 통과, 실브라우저·실DB 미확인). `LOCAL_DB_DEFERRED` 유지. Step 3(`Claude Opus` 통합 리뷰·🐳 로컬 DB 검증·병합) `▶ READY`.
 ## Run `r39-daily-notifications` Step 1 DB/RLS/`pg_cron` & Types 완료 (2026-11-23)
