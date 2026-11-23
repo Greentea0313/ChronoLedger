@@ -119,7 +119,7 @@
 
 - **Target SHA**: `390920fed29d7e130fd6b10a460f5cecdd489470` (워크트리 브랜치 `collab/r97-tauri-notifications`, 미병합·원격 push 안 함). 변경 파일: `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts` (`run.json` 미수정).
 - **보완 내용**: ① 빈 초기 알림함(`items = []`)에서도 최초 1회 시드(`saveSeenIds(userId, [])`)를 기록해 직후 도착한 첫 알림이 누락되지 않도록 수정함. ② 사용자별 직렬화 큐(`pendingByUser`)와 권한 질의 전 `seenIds` 선저장으로 마운트·`focus`·폴링 동시 호출 시 중복 OS 토스트 발송을 차단함. ③ 공백 제목 시 `"ChronoLedger"` 폴백 및 공백 본문 생략 처리함.
-- **검증**: 워크트리에서 `cargo check --manifest-path src-tauri/Cargo.toml`, `npx tsc --noEmit`, `npm run lint`, `git diff --check`, `npx vitest run`(72파일/960개, 신규 3건 포함) 모두 통과함. Windows 설치본/개발 실행 실기기 OS 토스트 육안 확인은 사용자 수동 확인(`npm run tauri dev` 또는 설치본 실행 중 새 알림 수신 시 Windows 알림 센터 확인)으로 남김.
+- **검증**: 워크트리에서 `cargo check --manifest-path src-tauri/Cargo.toml`, `npx tsc --noEmit`, `npm run lint`, `git diff --check`, `npx vitest run`(72파일/960개, 신규 3건 포함) 모두 통과함. Windows 실기기(`npm run tauri dev`)에서 `"게임 요청이 반려되었습니다"` OS 토스트 수신 확인 완료함(개발 실행 환경 AUMID 특성상 발신 앱이 `Windows PowerShell`로 표시되며 설치본에서는 `ChronoLedger`로 표시됨).
 - **다음 단계**: Step 2(`Claude Sonnet`, Base `0f8ce55` ↔ Target `390920f` 정적 리뷰·검증·`main` 병합) `▶ READY`임.
 
 #### 📝 `r97-tauri-notifications` Step 2 완료 기록 (Claude Sonnet, 2026-11-23)
