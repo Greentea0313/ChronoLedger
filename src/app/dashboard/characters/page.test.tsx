@@ -588,6 +588,25 @@ describe("CharactersPage", () => {
       expect(container.textContent).toContain("보유 캐릭터 3 / 4명 · 프리셋 1개")
     })
 
+    it("changes avatar size presets (작게/보통/크게) and persists the choice in localStorage", async () => {
+      window.localStorage.removeItem("chronoledger:roster-avatar-size")
+      await renderPage()
+
+      const group = container.querySelector('[role="group"][aria-label="아바타 크기"]') as HTMLElement
+      expect(group).toBeTruthy()
+      expect(cardByName("아케론").querySelector('[data-testid="character-icon"]')?.className).toContain("h-20 w-20")
+
+      await click(buttonByText("작게", group))
+      expect(cardByName("아케론").querySelector('[data-testid="character-icon"]')?.className).toContain("h-14 w-14")
+      expect(window.localStorage.getItem("chronoledger:roster-avatar-size")).toBe("sm")
+
+      await click(buttonByText("크게", group))
+      expect(cardByName("아케론").querySelector('[data-testid="character-icon"]')?.className).toContain("h-24 w-24")
+      expect(window.localStorage.getItem("chronoledger:roster-avatar-size")).toBe("lg")
+
+      window.localStorage.removeItem("chronoledger:roster-avatar-size")
+    })
+
     it("toggles favorite of an owned character without changing ownership", async () => {
       await renderPage()
       const dialog = await openSettings("아케론")

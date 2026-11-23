@@ -254,6 +254,8 @@
   - [x] 네이버 이용약관 원문(`policy.naver.com/rules/service.html`)의 자동 수집 금지 문구 확인 (2026-11-12 사용자 제공 본문: 사전 허락 없는 자동 수단 게시물 수집 금지, 예외 없음)
 - [x] R95. [2026-11-19 완료] ① 수익 삭제 실패 시 RPC 사유(`error.message`)를 화면에 표시함 ② README 표 위치 정정 완료됨.
 - [x] R98. [Run `r98-character-icon-remove` 완료·`main` 병합 `56c26ce`(2026-11-21, 정적 리뷰 clean, `tsc`·`lint`·Vitest 70파일/900개·`next build` 통과) · DB 변경 없음] 캐릭터 아바타/아이콘 이미지 제거 기능 추가: 관리자 캐릭터 추가/수정 모달(픽업 전용 기존 아이콘 제거 포함), 사용자 캐릭터 등록 요청 모달, 관리자 캐릭터 요청 대기열에 `이미지 제거` 버튼 및 `default_icon_url: null` 반영
+- [ ] R99. [후속 · 우선 낮음 · DB/Storage/RLS 변경 → Opus 승격 조건 ①] 기타 건의(`feedback_requests`, 특히 오류 신고) 스크린샷 이미지 첨부 기능: 전용 비공개 Storage 버킷 + Signed URL 열람 + 장수/크기 제한 + 종료·탈퇴 시 자동 정리 설계 및 구현
+- [x] R100. [2026-11-23 완료 · DB 변경 없음] `/dashboard/characters` 캐릭터 아바타 크기 조절 3단계 프리셋(`작게`/`보통`/`크게`, `localStorage` 저장) 도입함.
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---

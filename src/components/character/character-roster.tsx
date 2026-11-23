@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react"
 import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
@@ -35,6 +35,53 @@ import { ClassificationOptionIcon, type ClassificationIconMap } from "./classifi
 
 /** Drag props spread on the favorite card's settings button (mouse, touch and keyboard drag start there). */
 type FavoriteDragProps = ButtonHTMLAttributes<HTMLButtonElement>
+
+type RosterAvatarSize = "sm" | "md" | "lg"
+
+const ROSTER_AVATAR_SIZE_KEY = "chronoledger:roster-avatar-size"
+
+const ROSTER_SIZE_OPTIONS: Record<
+  RosterAvatarSize,
+  { label: string; gridClass: string; iconClass: string; textClass: string }
+> = {
+  sm: {
+    label: "작게",
+    gridClass: "grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8",
+    iconClass: "h-14 w-14",
+    textClass: "text-sm",
+  },
+  md: {
+    label: "보통",
+    gridClass: "grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6",
+    iconClass: "h-20 w-20",
+    textClass: "text-base",
+  },
+  lg: {
+    label: "크게",
+    gridClass: "grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
+    iconClass: "h-24 w-24",
+    textClass: "text-base",
+  },
+}
+
+const ROSTER_SIZE_KEYS: RosterAvatarSize[] = ["sm", "md", "lg"]
+
+function loadRosterAvatarSize(): RosterAvatarSize {
+  try {
+    const saved = typeof window !== "undefined" ? window.localStorage.getItem(ROSTER_AVATAR_SIZE_KEY) : null
+    return saved === "sm" || saved === "md" || saved === "lg" ? saved : "md"
+  } catch {
+    return "md"
+  }
+}
+
+function saveRosterAvatarSize(size: RosterAvatarSize): void {
+  try {
+    if (typeof window !== "undefined") window.localStorage.setItem(ROSTER_AVATAR_SIZE_KEY, size)
+  } catch {
+    // Ignore storage quota/private-mode errors.
+  }
+}
 
 /**
  * A favorite card: the whole card (its settings button) is the drag source (R76 §7, no handle, no move buttons).
@@ -337,6 +384,18 @@ export function CharacterRoster({
 }: CharacterRosterProps) {
   const [filters, setFilters] = useState<CharacterFilters>(EMPTY_CHARACTER_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [avatarSize, setAvatarSize] = useState<RosterAvatarSize>("md")
+
+  useEffect(() => {
+    setAvatarSize(loadRosterAvatarSize())
+  }, [])
+
+  const handleSelectAvatarSize = (size: RosterAvatarSize) => {
+    setAvatarSize(size)
+    saveRosterAvatarSize(size)
+  }
+
+  const sizeConfig = ROSTER_SIZE_OPTIONS[avatarSize]
 
   const sensors = useBoardSensors()
   // A click that ends a drag (mouse up, or the keyup after a Space pick-up/drop) must not open the settings dialog.
@@ -384,6 +443,29 @@ export function CharacterRoster({
         classificationIcons={classificationIcons}
       />
 
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-xs text-content-secondary">아바타 크기</span>
+        <div role="group" aria-label="아바타 크기" className="inline-flex rounded-lg border border-line bg-surface p-0.5">
+          {ROSTER_SIZE_KEYS.map((key) => {
+            const active = avatarSize === key
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => handleSelectAvatarSize(key)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors duration-fast",
+                  active ? "bg-primary/15 text-primary" : "text-content-secondary hover:text-content",
+                )}
+              >
+                {ROSTER_SIZE_OPTIONS[key].label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {isLoading ? (
         <p className="py-6 text-center text-sm text-content-secondary">캐릭터를 불러오는 중입니다...</p>
       ) : characters.length === 0 ? (
@@ -417,7 +499,7 @@ export function CharacterRoster({
                   onDragEnd={handleFavoriteDragEnd}
                 >
                 <ul
-                  className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6"
+                  className={cn("grid", sizeConfig.gridClass)}
                   data-testid={`roster-list-${key}`}
                 >
                   {items.map((character) => {
@@ -438,9 +520,9 @@ export function CharacterRoster({
                           dimmed={!isOwned}
                           favorite={isOwned && (state?.is_favorite ?? false)}
                           breakthroughLevel={isOwned ? (state?.breakthrough_level ?? 0) : null}
-                          className="h-20 w-20"
+                          className={sizeConfig.iconClass}
                         />
-                        <span className="w-full truncate text-center text-base text-content">{character.name}</span>
+                        <span className={cn("w-full truncate text-center text-content", sizeConfig.textClass)}>{character.name}</span>
                       </button>
                     )
                     return reorderable ? (

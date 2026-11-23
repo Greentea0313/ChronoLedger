@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-23 (`R100` 캐릭터 아바타 크기 조절 & 모바일 알림 팝오버 정렬)
+
+- `/dashboard/characters` 보유 캐릭터 목록(`CharacterRoster`)에 아바타 크기 3단계 프리셋(`작게` 56px·`보통` 80px·`크게` 96px, `localStorage` 저장)을 추가함.
+- 모바일 상단바 알림 팝오버(`NotificationBell`)가 뷰포트 좌측을 벗어나지 않도록 `fixed inset-x-4` 반응형 배치로 수정함(`b5317d3`).
+- `docs/to-do.md`에 기타 건의 스크린샷 첨부 기능을 후속 과제 `R99`로 분리 등록함.
+
 ## 2026-11-21 (Run `r85-schedule-times` 완료 — `main` 병합 `6204346`)
 
 - **DB**: `games.daily_reset_time`, `game_schedules`·`schedule_requests`의 `start_at`·`end_at`·예상 플래그와 CHECK 11종 추가, `approve_schedule_request` 시각 복사 (`MIGRATION_R85_SCHEDULE_TIMES.sql`).
