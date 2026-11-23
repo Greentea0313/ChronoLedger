@@ -9,7 +9,7 @@
                                 "Pass npx tsc --noEmit, npm run lint, npx vitest run, and git diff --check inside the worktree"
                             ],
     "base_sha":  "0f8ce5529ccfc4fd8065678ac474627b1d224b4c",
-    "target_sha":  null,
+    "target_sha":  "390920fed29d7e130fd6b10a460f5cecdd489470",
     "branch":  "collab/r97-tauri-notifications",
     "worktree_path":  ".worktrees/r97-tauri-notifications",
     "max_iterations":  3,
