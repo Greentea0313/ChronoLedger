@@ -90,7 +90,7 @@ function CharactersPageSkeleton() {
 }
 
 export default function CharactersPage() {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading = false } = useAuth()
   const userId = user?.id
 
   const [userGameRows, setUserGameRows] = useState<UserGameRow[]>([])
@@ -505,8 +505,22 @@ export default function CharactersPage() {
     setSelectedGameId(gameId)
   }
 
+  if (authLoading) return <CharactersPageSkeleton />
+  if (!user) {
+    return (
+      <div className="space-y-4 animate-fade-in">
+        <h1 className="text-2xl font-bold text-primary">캐릭터</h1>
+        <EmptyState
+          message="캐릭터 관리는 로그인 후 이용할 수 있습니다."
+          hint="로그인하면 보유 캐릭터, 커스텀 아이콘 및 조합 프리셋을 관리할 수 있습니다."
+        />
+        <div className="flex justify-center">
+          <Button onClick={() => { window.location.href = "/auth" }}>로그인하러 가기</Button>
+        </div>
+      </div>
+    )
+  }
   if (isLoading && !hasLoadedInitialRef.current) return <CharactersPageSkeleton />
-  if (!user) return <div className="p-6 text-content">로그인이 필요합니다.</div>
 
   return (
     <div className="space-y-6 animate-fade-in">

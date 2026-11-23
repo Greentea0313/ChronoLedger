@@ -338,6 +338,15 @@ describe("CharactersPage", () => {
   })
 
   describe("game selector bar", () => {
+    it("shows guest login guidance instead of infinite skeleton when user is null", async () => {
+      useAuth.mockReturnValue({ user: null, isLoading: false })
+      await renderPage()
+
+      expect(container.querySelector('[aria-label="캐릭터 페이지 불러오는 중"]')).toBeNull()
+      expect(container.textContent).toContain("캐릭터 관리는 로그인 후 이용할 수 있습니다.")
+      expect(buttonByText("로그인하러 가기")).toBeTruthy()
+    })
+
     it("lists subscribed games with ownership and preset summaries and selects the first one", async () => {
       await renderPage()
 
