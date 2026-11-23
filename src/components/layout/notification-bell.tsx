@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react"
 import { useRouter } from "next/navigation"
+import { isTauri } from "@tauri-apps/api/core"
 import { Bell } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { isOffline } from "@/lib/offline-guard"
+import { notifyNewTauriNotifications } from "@/lib/tauri-notifications"
 import { cn } from "@/lib/utils"
 
 const NOTIFICATION_LIMIT = 30
+const TAURI_POLL_INTERVAL_MS = 60_000
 
 export interface NotificationRow {
   id: string
@@ -69,7 +72,9 @@ export function NotificationBell({ userId, className }: { userId: string; classN
         setItems([])
         return
       }
-      setItems((data ?? []) as NotificationRow[])
+      const nextItems = (data ?? []) as NotificationRow[]
+      setItems(nextItems)
+      void notifyNewTauriNotifications(userId, nextItems)
     } catch (cause) {
       console.error("알림을 불러오지 못했습니다:", cause)
       setItems([])
@@ -78,6 +83,20 @@ export function NotificationBell({ userId, className }: { userId: string; classN
 
   useEffect(() => {
     void load()
+  }, [load])
+
+  // In Tauri desktop, refresh on window focus and periodically so running sessions surface new OS notifications.
+  useEffect(() => {
+    if (!isTauri()) return
+    const handleFocus = () => void load()
+    window.addEventListener("focus", handleFocus)
+    const timerId = window.setInterval(() => {
+      if (!isOffline()) void load()
+    }, TAURI_POLL_INTERVAL_MS)
+    return () => {
+      window.removeEventListener("focus", handleFocus)
+      window.clearInterval(timerId)
+    }
   }, [load])
 
   useEffect(() => {

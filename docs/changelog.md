@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-23 (`R97` Windows Tauri 데스크톱 OS 네이티브 알림 연동)
+
+- `@tauri-apps/plugin-notification`(`tauri-plugin-notification` v2)을 설치·등록(`src-tauri/Cargo.toml`, `src-tauri/src/lib.rs`, `src-tauri/capabilities/default.json`)함.
+- `src/lib/tauri-notifications.ts` 및 `NotificationBell` 연동을 통해 Tauri 데스크톱 앱 실행 중 새로 도착한 미읽음 알림만 중복·초기 폭주 없이 OS 네이티브 알림으로 표시하도록 구현함(비Tauri 웹 환경에서는 no-op).
+
 ## 2026-11-23 (`R100` 캐릭터 아바타 크기 조절 & 모바일 알림 팝오버 정렬)
 
 - `/dashboard/characters` 보유 캐릭터 목록(`CharacterRoster`)에 아바타 크기 3단계 프리셋(`작게` 56px·`보통` 80px·`크게` 96px, `localStorage` 저장)을 추가함.
