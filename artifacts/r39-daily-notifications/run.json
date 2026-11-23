@@ -11,7 +11,7 @@
                                 "Pass tsc, lint, Vitest, and independent static review + local Supabase TESTS.sql verification."
                             ],
     "base_sha":  "1af478baed61123977a05729f46e23768726f4a9",
-    "target_sha":  null,
+    "target_sha":  "afc9a21d3672314c829a3d491e649c81f848ffa2",
     "branch":  "collab/r39-daily-notifications",
     "worktree_path":  ".worktrees/r39-daily-notifications",
     "max_iterations":  3,

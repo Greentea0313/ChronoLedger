@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r39-daily-notifications",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "1af478baed61123977a05729f46e23768726f4a9",
+  "target_sha": "afc9a21d3672314c829a3d491e649c81f848ffa2",
+  "status": "findings",
+  "created_at": "2026-11-24T07:15:11+09:00",
+  "findings": [
+    {
+      "id": "R39-REV-01",
+      "severity": "P4",
+      "file": "src/types/database.types.ts",
+      "line": 109,
+      "evidence": "notification_settings Update type declares \"user_id\": string as required, while every other table's Update type makes all columns optional.",
+      "impact": "Type-only inconsistency: a future partial .update() on notification_settings would be forced to pass user_id. No runtime effect; the current UI uses upsert (Insert type), so nothing breaks today.",
+      "recommendation": "Make user_id optional in the Update type the next time database.types.ts is regenerated or touched. Non-blocking for merge."
+    }
+  ]
+}
