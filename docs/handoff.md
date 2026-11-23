@@ -19,7 +19,7 @@
 
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
-| `R39` | 완료 (`r39-daily-notifications`, `main` 병합 `9ae05f9`, 2026-11-24) | 운영 DB 마이그레이션 수동 적용·확인 쿼리·실브라우저 확인 대기(사용자). P4 후속 `R39-REV-01`(타입 전용) | `docs/to-do.md` R39 |
+| `R39` | 완료 (`r39-daily-notifications`, `main` 병합 `9ae05f9`, 2026-11-24) | 운영 DB 적용·확인 쿼리 완료(사용자, 2026-11-24). 실브라우저·KST 09:00 알림 생성 확인 대기. P4 후속 `R39-REV-01`(타입 전용) | `docs/to-do.md` R39 |
 | `R96` | 결정 완료 · 3차 Run 예약 (`r96-web-push`) | `R39` 완료로 착수 가능(운영 DB R39 적용 후 권장). VAPID·`push_subscriptions`·Edge Function `send-notifications`·`pg_net` 웹훅·SW `push` 핸들러·로그아웃 구독 해제·iOS 홈 화면 안내 (DB·Edge Function 변경, 🐳 Docker 필요) | `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §3·§4·§5.1·§8 |
 | `R97` | 완료 (`r97-tauri-notifications`, `main` 병합 `d350267`, 2026-11-23) | 엣지 케이스 보완 병합 및 `npm run tauri dev` 실기기 OS 토스트 수신 확인 완료(개발 실행 시 발신 앱 `Windows PowerShell` 표기). 선택 후속 `R97-REV-001`(P4)이 `docs/to-do.md`에 있음 | 아래 직전 완료 Run 기록 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
@@ -33,7 +33,7 @@
 - **Worktree 경로**: `.worktrees/r39-daily-notifications` (브랜치: `collab/r39-daily-notifications`, 매니페스트: `artifacts/r39-daily-notifications/run.json`, 미삭제)
 - **Base SHA**: `1af478baed61123977a05729f46e23768726f4a9`
 - **Target SHA**: `afc9a21d3672314c829a3d491e649c81f848ffa2` *(iteration-01 리뷰 P4 1건 비차단, 산출물 `94e3abe`, `main` 병합 `9ae05f9`)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R39_DAILY_NOTIFICATIONS.sql`, `sql/SCHEMA.sql` — `pg_cron`·RLS·`SECURITY DEFINER`). Step 1·2의 `LOCAL_DB_DEFERRED`는 Step 3에서 🐳 로컬 DB 검증으로 해소함. **운영 DB 적용은 사용자 수동 적용 대기**.
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R39_DAILY_NOTIFICATIONS.sql`, `sql/SCHEMA.sql` — `pg_cron`·RLS·`SECURITY DEFINER`). Step 1·2의 `LOCAL_DB_DEFERRED`는 Step 3에서 🐳 로컬 DB 검증으로 해소함. 운영 DB 수동 적용·README 확인 쿼리 3종 기대값 확인 완료(사용자, 2026-11-24).
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
@@ -73,4 +73,4 @@
 - **정적 리뷰 (P4 1건, 비차단)**: 마이그레이션의 `enqueue_daily_notifications`·`purge_expired_account_deletion_requests` 본문이 `SCHEMA.sql`과 동일함(diff 0줄). `notifications` kind CHECK·부분 유니크 인덱스와 맞물리고, 제목·본문 길이 제한 안, 금액·메모 미포함 확인함. 설정 카드는 토글한 컬럼만 `upsert`해 `request_result`·`push_enabled`를 보존함. **R39-REV-01(P4)**: `database.types.ts` `notification_settings` `Update` 타입의 `user_id`만 필수로 되어 있음(타입 전용, 동작 영향 없음).
 - **검증**: 🐳 초기화 → Base `SCHEMA.sql` + 마이그레이션 2회 → `TESTS.sql` 42개 PASS(R39 블록 포함)·롤백 PASS. 초기화 → 신규 `SCHEMA.sql` → `TESTS.sql` 42개 PASS → 마이그레이션 재실행 무오류. README 확인 쿼리 `notification_settings|t|4`·`f|t|t|f|f`·`1|t|0 0 * * *`. 워크트리 tsc·lint·Vitest 71파일/960개·`next build` 통과, 병합 후 `main` tsc·lint·Vitest 72파일/968개 재통과함(r97 의존성 `@tauri-apps/plugin-notification`이 이 PC에 미설치라 `npm install`로 lockfile 동기화 후 실행).
 - **산출물**: `artifacts/r39-daily-notifications/iteration-01/review.json`(`findings`, P4 1건)·`test.json`(passed), `run.json` `target_sha` 갱신(`94e3abe`). 공식 검증 스크립트는 `jsonschema` 미설치로 미실행, Node 부분 검증기로 대조함.
-- **남은 일 (사용자)**: 운영 DB에 `MIGRATION_R39_DAILY_NOTIFICATIONS.sql` 수동 적용(R84 선행) 후 `sql/README.md` B표 R39 확인 쿼리 실행, 실브라우저 설정 카드 확인, 다음 KST 09:00 알림 생성 확인.
+- **남은 일 (사용자)**: 운영 DB 적용·확인 쿼리는 완료(2026-11-24). 실브라우저 설정 카드 확인, 다음 KST 09:00 알림 생성 확인만 남음.
