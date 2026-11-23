@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r97-tauri-notifications",
+    "created_at":  "2026-11-23T04:29:30.3153951+00:00",
+    "objective":  "Verify R97 Windows Tauri native OS notification behavior and polish edge cases (no DB changes)",
+    "acceptance_criteria":  [
+                                "Audit existing R97 Tauri notification implementation (src/lib/tauri-notifications.ts, notification-bell.tsx, src-tauri) for edge cases and fix if needed",
+                                "Run Windows Tauri check (cargo check / tauri build or dev) and verify or document OS toast verification",
+                                "Pass npx tsc --noEmit, npm run lint, npx vitest run, and git diff --check inside the worktree"
+                            ],
+    "base_sha":  "0f8ce5529ccfc4fd8065678ac474627b1d224b4c",
+    "target_sha":  null,
+    "branch":  "collab/r97-tauri-notifications",
+    "worktree_path":  ".worktrees/r97-tauri-notifications",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
