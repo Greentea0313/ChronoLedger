@@ -6,6 +6,44 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 이전 Run 기록 (완료): `r97-tauri-notifications`
+
+- **Run ID**: `r97-tauri-notifications` **(완료, `main` 병합 `d350267`, 2026-11-23)** *(`R97` Windows Tauri 데스크톱 OS 네이티브 알림 실기기 동작 확인 및 엣지 케이스 보완 — `r39-daily-notifications`와 별도 병행)*
+- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-23 사용자 요청으로 등록)*
+- **Worktree 경로**: `.worktrees/r97-tauri-notifications` (브랜치: `collab/r97-tauri-notifications`, 매니페스트: `artifacts/r97-tauri-notifications/run.json`)
+- **Base SHA**: `0f8ce5529ccfc4fd8065678ac474627b1d224b4c`
+- **Target SHA**: `390920fed29d7e130fd6b10a460f5cecdd489470` *(Step 1 완료 기준, `main` 병합 완료)*
+- **DB 변경**: 없음 (`src/lib/tauri-notifications.ts`, `src/components/layout/notification-bell.tsx`, `src-tauri/` 범위)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: 390920fed29d7e130fd6b10a460f5cecdd489470)`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Maker (R97 실기기 검증·엣지 케이스 보완 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts`, `src/components/layout/notification-bell.tsx`·`test.tsx`, `src-tauri/src/`, `src-tauri/capabilities/`, `docs/push-notification-research.md`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 390920f`: 빈 초기 알림함 시드 누락·동시 호출 경쟁 상태·빈 제목/본문 폴백 보완. `cargo check`·`tsc`·`lint`·`diff-check`·Vitest 72파일/960개 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`✅ DONE (SHA: e9c0ef4)`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`0f8ce5529ccfc4fd8065678ac474627b1d224b4c`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`)·`main` 병합·문서 마감 | `✅ e9c0ef4`: P4 1건(비차단)·산출물 검증 통과, `main` 병합 `d350267` (아래 Step 2 완료 기록 참고) |
+
+#### 📋 `r97-tauri-notifications` Step 1 수용 기준 (`Gemini 4 Hydrogen` — 실기기 검증·보완 & Vitest)
+
+1. **기존 `R97` 구현 엣지 케이스 점검·보완** ([`docs/push-notification-research.md`](push-notification-research.md) §3.3·§8 기준):
+   - `src/lib/tauri-notifications.ts`·`NotificationBell`·`src-tauri` 권한/capabilities에서 다중 탭/폴링 중복 발송, 권한 거부 후 재시도, 빈 제목/본문 길이, 재로그인 시 `seenIds` 초기화 등 엣지 케이스를 점검하고 필요 시 보완함.
+2. **Windows Tauri 빌드·실기기 OS 토스트 검증**:
+   - 워크트리에서 `cargo check`(필요 시 `tauri build` / `tauri dev`)로 Rust·권한 설정을 재확인하고, 실기기 OS 토스트 확인 절차를 실행·기록함(사용자 확인 필요 시 구체적 확인 절차 명시).
+3. **정적·단위 테스트 검증 및 커밋**:
+   - `npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check` 통과 후 워크트리 커밋, `Target SHA` 기록 및 Step 2(`Claude Sonnet`) `▶ READY` 전환함.
+
+#### 📝 `r97-tauri-notifications` Step 1 완료 기록 (Gemini 4 Hydrogen, 2026-11-23)
+
+- **Target SHA**: `390920fed29d7e130fd6b10a460f5cecdd489470` (워크트리 브랜치 `collab/r97-tauri-notifications`, 미병합·원격 push 안 함). 변경 파일: `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts` (`run.json` 미수정).
+- **보완 내용**: ① 빈 초기 알림함(`items = []`)에서도 최초 1회 시드(`saveSeenIds(userId, [])`)를 기록해 직후 도착한 첫 알림이 누락되지 않도록 수정함. ② 사용자별 직렬화 큐(`pendingByUser`)와 권한 질의 전 `seenIds` 선저장으로 마운트·`focus`·폴링 동시 호출 시 중복 OS 토스트 발송을 차단함. ③ 공백 제목 시 `"ChronoLedger"` 폴백 및 공백 본문 생략 처리함.
+- **검증**: 워크트리에서 `cargo check --manifest-path src-tauri/Cargo.toml`, `npx tsc --noEmit`, `npm run lint`, `git diff --check`, `npx vitest run`(72파일/960개, 신규 3건 포함) 모두 통과함. Windows 실기기(`npm run tauri dev`)에서 `"게임 요청이 반려되었습니다"` OS 토스트 수신 확인 완료함(개발 실행 환경 AUMID 특성상 발신 앱이 `Windows PowerShell`로 표시되며 설치본에서는 `ChronoLedger`로 표시됨).
+- **다음 단계**: Step 2(`Claude Sonnet`, Base `0f8ce55` ↔ Target `390920f` 정적 리뷰·검증·`main` 병합) `▶ READY`임.
+
+#### 📝 `r97-tauri-notifications` Step 2 완료 기록 (Claude Sonnet, 2026-11-23)
+
+- **리뷰 범위**: Base `0f8ce5529ccfc4fd8065678ac474627b1d224b4c` ↔ Target `390920fed29d7e130fd6b10a460f5cecdd489470`(범위 확인: Target이 워크트리 `HEAD`의 조상이고 `src`·`sql` 차이 없음). 변경은 `src/lib/tauri-notifications.ts`·테스트와 Run 산출물뿐이며 `sql/` 변경이 없어 로컬 DB 게이트 대상이 아님.
+- **정적 리뷰 (`findings`, P4 1건·비차단)**: Step 1의 세 보완(빈 초기 알림함 시드, 사용자별 직렬화 큐, 빈 제목/본문 폴백)은 수용 기준에 맞고 `NotificationBell`은 로드 성공 때만 호출해 빈 목록 시드가 정상임을 확인함. `R97-REV-001`(P4): 이미 본 ID 저장(`saveSeenIds`)이 권한 확인(`ensurePermission`) 앞으로 옮겨져, 권한 질의 IPC가 예외를 던지면 그 묶음의 OS 토스트가 재시도 없이 사라짐(Base는 다음 폴링에서 재시도). 알림함에는 그대로 남고 권한 거부(예외 아님)는 이전과 같음. 직렬화 큐가 있어 권한 확인 뒤 저장으로 되돌려도 중복 위험이 없어 선택 후속으로 `to-do.md`에 등록함.
+- **검증 (리뷰어가 Target에서 직접 재실행)**: `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 72파일 960개 통과, `cargo check --manifest-path src-tauri/Cargo.toml` 통과(`notification:default` capability·`tauri_plugin_notification::init()` 확인), `npm run build` 통과(워크트리에 `.env.local`이 없어 더미 Supabase 환경변수로 실행, 환경변수 없이는 `/auth` 사전 렌더가 실패함). 실기기 OS 토스트 육안 확인은 하지 않음(`skipped`).
+- **산출물**: `artifacts/r97-tauri-notifications/iteration-01/review.json`·`test.json`(스키마 검증 통과)과 `run.json` `target_sha` 갱신, 산출물 커밋 `e9c0ef4`. `main` 병합 `d350267`(`--no-ff`, 미push).
+- **남은 일 (사용자)**: `npm run tauri dev`에서 새 알림 수신 시 Windows 알림 센터 토스트 표시 확인 완료(`Windows PowerShell` 발신 표기). 필요 시 설치본(`npm run tauri build`) 발신 표기(`ChronoLedger`) 및 알림 권한 거부 후 재실행 동작만 추가 확인함.
+
 ### 🗂️ 이전 Run 기록 (완료): `r85-schedule-times`
 
 - **Run ID**: `r85-schedule-times` **(완료, `main` 병합 `6204346`, 2026-11-21)** *(2026-11-21 등록 · `R85`: 일정 시각 `start_at`·`end_at`·예상 표시 + 게임별 서버 초기화 시각 `games.daily_reset_time` · 설계 [`docs/r85-schedule-time-design.md`](r85-schedule-time-design.md) §4~§8, §10)*

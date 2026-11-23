@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-24 (Run `r39-daily-notifications` 완료 — `main` 병합 `9ae05f9`)
+
+- **DB**: `public.notification_settings`(본인 행 RLS·삭제 대기 차단·탈퇴 정리 연결), `enqueue_daily_notifications()`(`FAVORITE_START`·`FAVORITE_END_D1`·`EXPENSE_D1`, 금액·메모 미포함, 중복 방지), `pg_cron` 잡 `chronoledger-daily-notifications`(KST 09:00) 추가 (`MIGRATION_R39_DAILY_NOTIFICATIONS.sql`).
+- **UI**: 설정 화면 `알림 설정` 카드(일일 알림 3종 토글, 토글한 컬럼만 `upsert`, 오프라인·미적용 DB 폴백).
+- **협업 산출물**: `artifacts/r39-daily-notifications/iteration-01/review.json`(P4 1건)·`test.json`(passed). `r97-tauri-notifications` 기록을 보관 문서로 이동함.
+
 ## 2026-11-23 (`r97` Tauri 데스크톱 알림 보완 병합 `d350267`)
 
 - 데스크톱(Tauri) OS 알림이 빈 알림함으로 시작해도 직후 도착한 첫 알림을 놓치지 않도록 최초 시드를 기록함.
