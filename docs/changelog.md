@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-23 (`src/app/favicon.ico` 프로젝트 아이콘 교체)
+
+- `src/app/favicon.ico`에 남아 있던 기본 Vercel 삼각형 아이콘을 `public/icons/icon-512.png` 기반 ChronoLedger 프로젝트 아이콘(RGBA ICO, `16×16`·`32×32`·`48×48`·`256×256`)으로 교체함.
+
 ## 2026-11-23 (`R97` Windows Tauri 데스크톱 OS 네이티브 알림 연동)
 
 - `@tauri-apps/plugin-notification`(`tauri-plugin-notification` v2)을 설치·등록(`src-tauri/Cargo.toml`, `src-tauri/src/lib.rs`, `src-tauri/capabilities/default.json`)함.
