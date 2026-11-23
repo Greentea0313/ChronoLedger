@@ -32,4 +32,4 @@ Prepend new entries at the top of each file, preserve each file's existing forma
 
 ## 3. Final report
 
-Report the queue state, the next model to call with `"인수인계 문서를 확인해"`, which documents were updated, follow-ups added, and which expected documents were not updated and why.
+Always re-read the active queue in the root `docs/handoff.md` right before reporting the next step—never rely on earlier conversation context, because another agent or session may have updated or closed a Run in parallel. Report the queue state, the next model to call with `"인수인계 문서를 확인해"`, which documents were updated, follow-ups added, and which expected documents were not updated and why.
