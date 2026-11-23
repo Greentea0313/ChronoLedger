@@ -1,4 +1,10 @@
 # 프로젝트 진행 현황
+## Run `r39-daily-notifications` (`R39` 일일 정기 알림) 등록 및 활성화 (2026-11-23)
+
+- **수행 주체**: Gemini 4 Hydrogen (`Orchestrator`, 사용자 선택)임.
+- **내용**: 격리 워크트리 `.worktrees/r39-daily-notifications`(브랜치 `collab/r39-daily-notifications`, Base `1af478b`)를 생성하고 Step 1(`GPT Codex` — DB/RLS/`pg_cron` & Types)을 `▶ READY`로 등록함.
+- **참고**: 현재 PC에 Docker Desktop 미설치로 Step 1은 SQL/타입/테스트 작성·정적 검증까지 수행하고, 로컬 DB 2회 적용·`TESTS.sql` 실행 검증은 Docker 환경(Step 3 또는 별도 PC)에서 수행하도록 명시함.
+
 ## Run `r85-schedule-times` 완료 — `main` 병합 `6204346` (2026-11-21)
 
 - **수행 주체**: Claude Opus (Step 3 통합 리뷰·병합)임.
