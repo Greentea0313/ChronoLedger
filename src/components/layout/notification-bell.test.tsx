@@ -106,6 +106,33 @@ describe("NotificationBell", () => {
     expect(screen.queryByRole("dialog", { name: "알림함" })).toBeNull()
   })
 
+  it("anchors the mobile popover within viewport horizontal margins below the bell", async () => {
+    mockInbox({ data: [], error: null })
+    const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      top: 12,
+      bottom: 56,
+      left: 160,
+      right: 204,
+      width: 44,
+      height: 44,
+      x: 160,
+      y: 12,
+      toJSON: () => ({}),
+    })
+    try {
+      render(<NotificationBell userId="u1" />)
+      await waitFor(() => expect(from).toHaveBeenCalled())
+      openBell()
+      const dialog = screen.getByRole("dialog", { name: "알림함" })
+      expect(dialog.className).toContain("fixed inset-x-4")
+      expect(dialog.className).toContain("sm:absolute")
+      expect(dialog.className).toContain("sm:right-0")
+      expect(dialog.style.getPropertyValue("--notification-top")).toBe("60px")
+    } finally {
+      rectSpy.mockRestore()
+    }
+  })
+
   it("does not navigate to an unsafe link but still marks it read", async () => {
     mockInbox({ data: [row("a", { link_path: "//evil.example" })], error: null })
     render(<NotificationBell userId="u1" />)

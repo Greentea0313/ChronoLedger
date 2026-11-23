@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react"
 import { useRouter } from "next/navigation"
 import { Bell } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
@@ -51,6 +51,7 @@ export function formatCreatedAt(value: string): string {
 export function NotificationBell({ userId, className }: { userId: string; className?: string }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [popoverTop, setPopoverTop] = useState(0)
   const [items, setItems] = useState<NotificationRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -117,12 +118,18 @@ export function NotificationBell({ userId, className }: { userId: string; classN
     }
   }
 
+  const updatePopoverTop = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (rect) setPopoverTop(Math.max(8, Math.round(rect.bottom) + 4))
+  }, [])
+
   const handleToggle = () => {
     setError(null)
-    setOpen((prev) => {
-      if (!prev) void load()
-      return !prev
-    })
+    if (!open) {
+      updatePopoverTop()
+      void load()
+    }
+    setOpen((prev) => !prev)
   }
 
   const handleSelect = async (item: NotificationRow) => {
@@ -158,7 +165,8 @@ export function NotificationBell({ userId, className }: { userId: string; classN
         <div
           role="dialog"
           aria-label="알림함"
-          className="absolute right-0 top-full z-50 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-line bg-surface shadow-modal"
+          style={{ "--notification-top": `${popoverTop}px` } as CSSProperties}
+          className="fixed inset-x-4 top-[var(--notification-top)] z-50 rounded-md border border-line bg-surface shadow-modal sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-1 sm:w-[min(22rem,calc(100vw-2rem))]"
         >
           <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
             <h2 className="text-sm font-semibold text-content">알림</h2>
