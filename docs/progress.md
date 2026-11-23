@@ -1,4 +1,12 @@
 # 프로젝트 진행 현황
+- **2026-11-23 (`r39-daily-notifications` Step 2 — Claude Sonnet)**: 설정 화면 `알림 설정` 카드(일일 알림 3종 토글, `notification_settings` 부분 upsert, 오프라인·미적용 DB 폴백) 구현, 워크트리 `afc9a21`(tsc·lint·Vitest 960개 통과, 실브라우저·실DB 미확인). `LOCAL_DB_DEFERRED` 유지. Step 3(`Claude Opus` 통합 리뷰·🐳 로컬 DB 검증·병합) `▶ READY`.
+## Run `r39-daily-notifications` Step 1 DB/RLS/`pg_cron` & Types 완료 (2026-11-23)
+
+- **수행 주체**: Gemini 4 Neon (GPT Codex 1순위 대체, `Maker`)임.
+- **결과**: 워크트리 커밋 `3d612ed`(미병합·미push). `MIGRATION_R39_DAILY_NOTIFICATIONS.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts` 반영(`notification_settings`·RLS·탈퇴 정리·`enqueue_daily_notifications()`·KST 09:00 `pg_cron`). `tsc`·`lint`·`diff-check`·Vitest 71파일/952개 통과함.
+- **보류 (`⚠️ LOCAL_DB_DEFERRED`)**: 현재 PC Docker 미설치로 로컬 Supabase 2회 멱등·`TESTS.sql` 검증은 미실행이며 Step 3(Docker 환경)에서 수행 필요함.
+- **다음 단계**: Step 2(`Claude Sonnet`, Fallback: `Gemini 4 Hydrogen` / `GitHub Copilot` — 설정 화면 알림 토글 UI & Vitest) `▶ READY`임.
+
 ## Run `r39-daily-notifications` (`R39` 일일 정기 알림) 등록 및 활성화 (2026-11-23)
 
 - **수행 주체**: Gemini 4 Hydrogen (`Orchestrator`, 사용자 선택)임.
