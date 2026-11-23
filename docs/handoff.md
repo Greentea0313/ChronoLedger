@@ -87,7 +87,7 @@
 | :--- | :--- | :--- | :--- |
 | `R39` | 결정 완료 · 2차 Run 예약 (`r39-daily-notifications`) | `R84` 완료 후 착수 가능. `notification_settings` + `pg_cron` 일일 알림(KST 09:00, 관심 일정 시작 당일·종료 D-1·예정 지출 결제일 D-1 3종) + 설정 화면 알림 토글 (DB 변경, 🐳 Docker 필요) | `docs/to-do.md` R39, [`docs/push-notification-research.md`](push-notification-research.md) §4.2·§5.2·§8·§9 |
 | `R96` | 결정 완료 · 3차 Run 예약 (`r96-web-push`) | `R39` 완료 후 착수. VAPID·`push_subscriptions`·Edge Function `send-notifications`·`pg_net` 웹훅·SW `push` 핸들러·로그아웃 구독 해제·iOS 홈 화면 안내 (DB·Edge Function 변경, 🐳 Docker 필요) | `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §3·§4·§5.1·§8 |
-| `R97` | 완료 (`r97-tauri-notifications`, `main` 병합 `d350267`, 2026-11-23) | 엣지 케이스 보완 병합 완료. 실기기 OS 토스트 육안 확인은 사용자 몫이고 선택 후속 `R97-REV-001`(P4)이 `docs/to-do.md`에 있음 | 아래 직전 완료 Run 기록 |
+| `R97` | 완료 (`r97-tauri-notifications`, `main` 병합 `d350267`, 2026-11-23) | 엣지 케이스 보완 병합 및 `npm run tauri dev` 실기기 OS 토스트 수신 확인 완료(개발 실행 시 발신 앱 `Windows PowerShell` 표기). 선택 후속 `R97-REV-001`(P4)이 `docs/to-do.md`에 있음 | 아래 직전 완료 Run 기록 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |
@@ -128,4 +128,4 @@
 - **정적 리뷰 (`findings`, P4 1건·비차단)**: Step 1의 세 보완(빈 초기 알림함 시드, 사용자별 직렬화 큐, 빈 제목/본문 폴백)은 수용 기준에 맞고 `NotificationBell`은 로드 성공 때만 호출해 빈 목록 시드가 정상임을 확인함. `R97-REV-001`(P4): 이미 본 ID 저장(`saveSeenIds`)이 권한 확인(`ensurePermission`) 앞으로 옮겨져, 권한 질의 IPC가 예외를 던지면 그 묶음의 OS 토스트가 재시도 없이 사라짐(Base는 다음 폴링에서 재시도). 알림함에는 그대로 남고 권한 거부(예외 아님)는 이전과 같음. 직렬화 큐가 있어 권한 확인 뒤 저장으로 되돌려도 중복 위험이 없어 선택 후속으로 `to-do.md`에 등록함.
 - **검증 (리뷰어가 Target에서 직접 재실행)**: `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 72파일 960개 통과, `cargo check --manifest-path src-tauri/Cargo.toml` 통과(`notification:default` capability·`tauri_plugin_notification::init()` 확인), `npm run build` 통과(워크트리에 `.env.local`이 없어 더미 Supabase 환경변수로 실행, 환경변수 없이는 `/auth` 사전 렌더가 실패함). 실기기 OS 토스트 육안 확인은 하지 않음(`skipped`).
 - **산출물**: `artifacts/r97-tauri-notifications/iteration-01/review.json`·`test.json`(스키마 검증 통과)과 `run.json` `target_sha` 갱신, 산출물 커밋 `e9c0ef4`. `main` 병합 `d350267`(`--no-ff`, 미push).
-- **남은 일 (사용자)**: `npm run tauri dev` 또는 설치본에서 로그인한 뒤 새 알림이 생길 때 Windows 알림 센터에 토스트가 뜨는지, 알림 권한 거부 후 재실행 동작을 확인함.
+- **남은 일 (사용자)**: `npm run tauri dev`에서 새 알림 수신 시 Windows 알림 센터 토스트 표시 확인 완료(`Windows PowerShell` 발신 표기). 필요 시 설치본(`npm run tauri build`) 발신 표기(`ChronoLedger`) 및 알림 권한 거부 후 재실행 동작만 추가 확인함.
