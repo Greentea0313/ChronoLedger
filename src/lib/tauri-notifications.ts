@@ -10,6 +10,8 @@ export interface TauriNotificationCandidate {
 
 const SEEN_IDS_KEY_PREFIX = "chronoledger:tauri-notified-ids:"
 const MAX_STORED_IDS = 100
+const DEFAULT_NOTIFICATION_TITLE = "ChronoLedger"
+const pendingByUser = new Map<string, Promise<number>>()
 
 function getStorage(): Storage | null {
   try {
@@ -53,41 +55,52 @@ async function ensurePermission(): Promise<boolean> {
   return permission === "granted"
 }
 
-/**
- * In Tauri desktop, fires native OS notifications for newly arrived unread rows while the app is running.
- * The first load seeds the seen set so old unread items do not burst on launch. No-op in web browsers.
- */
-export async function notifyNewTauriNotifications(
+async function runNotifyNewTauriNotifications(
   userId: string,
   items: readonly TauriNotificationCandidate[],
 ): Promise<number> {
-  if (!userId || !isTauri() || items.length === 0) return 0
-
   try {
     const { initialized, ids: seenIds } = loadSeenRecord(userId)
     if (!initialized) {
       saveSeenIds(userId, items.map((item) => item.id))
       return 0
     }
+    if (items.length === 0) return 0
 
     const freshUnread = items.filter((item) => item.read_at === null && !seenIds.has(item.id))
     for (const item of items) seenIds.add(item.id)
-    if (freshUnread.length === 0) {
-      saveSeenIds(userId, seenIds)
-      return 0
-    }
+    saveSeenIds(userId, seenIds)
+    if (freshUnread.length === 0) return 0
 
     const granted = await ensurePermission()
-    saveSeenIds(userId, seenIds)
     if (!granted) return 0
 
     let sent = 0
     for (const item of freshUnread) {
-      sendNotification({ title: item.title, body: item.body })
+      const title = item.title.trim() || DEFAULT_NOTIFICATION_TITLE
+      const body = item.body.trim()
+      sendNotification(body ? { title, body } : { title })
       sent += 1
     }
     return sent
   } catch {
     return 0
   }
+}
+
+/**
+ * In Tauri desktop, fires native OS notifications for newly arrived unread rows while the app is running.
+ * The first load seeds the seen set so old unread items do not burst on launch. No-op in web browsers.
+ */
+export function notifyNewTauriNotifications(
+  userId: string,
+  items: readonly TauriNotificationCandidate[],
+): Promise<number> {
+  if (!userId || !isTauri()) return Promise.resolve(0)
+  const previous = pendingByUser.get(userId) ?? Promise.resolve(0)
+  const next = previous.catch(() => 0).then(() => runNotifyNewTauriNotifications(userId, items))
+  pendingByUser.set(userId, next)
+  return next.finally(() => {
+    if (pendingByUser.get(userId) === next) pendingByUser.delete(userId)
+  })
 }

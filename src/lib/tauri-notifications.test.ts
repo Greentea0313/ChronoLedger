@@ -61,4 +61,39 @@ describe("notifyNewTauriNotifications", () => {
     expect(requestPermission).toHaveBeenCalledTimes(1)
     expect(sendNotification).not.toHaveBeenCalled()
   })
+
+  it("seeds empty initial inbox so the very first arriving notification still fires", async () => {
+    expect(await notifyNewTauriNotifications("u1", [])).toBe(0)
+
+    const sent = await notifyNewTauriNotifications("u1", [item("n1")])
+    expect(sent).toBe(1)
+    expect(sendNotification).toHaveBeenCalledWith({ title: "제목 n1", body: "본문 n1" })
+  })
+
+  it("serializes concurrent calls for the same user to avoid duplicate OS notifications", async () => {
+    await notifyNewTauriNotifications("u1", [])
+    let resolvePermission!: (granted: boolean) => void
+    isPermissionGranted.mockImplementationOnce(
+      () => new Promise<boolean>((resolve) => { resolvePermission = resolve }),
+    )
+
+    const first = notifyNewTauriNotifications("u1", [item("n1")])
+    const second = notifyNewTauriNotifications("u1", [item("n1")])
+    await vi.waitFor(() => expect(resolvePermission).toBeTypeOf("function"))
+    resolvePermission(true)
+
+    const [sentFirst, sentSecond] = await Promise.all([first, second])
+    expect(sentFirst + sentSecond).toBe(1)
+    expect(sendNotification).toHaveBeenCalledTimes(1)
+  })
+
+  it("falls back to default title when title is blank and omits blank body", async () => {
+    await notifyNewTauriNotifications("u1", [])
+
+    const sent = await notifyNewTauriNotifications("u1", [
+      { id: "n1", title: "   ", body: "   ", read_at: null },
+    ])
+    expect(sent).toBe(1)
+    expect(sendNotification).toHaveBeenCalledWith({ title: "ChronoLedger" })
+  })
 })
