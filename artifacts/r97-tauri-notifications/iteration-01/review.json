@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r97-tauri-notifications",
+  "iteration": 1,
+  "agent": "Claude Sonnet",
+  "base_sha": "0f8ce5529ccfc4fd8065678ac474627b1d224b4c",
+  "target_sha": "390920fed29d7e130fd6b10a460f5cecdd489470",
+  "created_at": "2026-11-23T13:52:11+09:00",
+  "role": "static-review",
+  "status": "findings",
+  "findings": [
+    {
+      "id": "R97-REV-001",
+      "severity": "P4",
+      "file": "src/lib/tauri-notifications.ts",
+      "line": 72,
+      "evidence": "Target moved saveSeenIds(userId, seenIds) from after ensurePermission() (Base) to before it (lines 72-75). ensurePermission() awaits isPermissionGranted()/requestPermission(), which are Tauri IPC calls and can reject; the outer try/catch then returns 0 with the fresh ids already recorded as seen.",
+      "impact": "A transient IPC failure while checking permission silently drops that batch of OS notifications: the ids are already seen, so later polls never retry them (Base retried on the next poll). The in-app inbox still shows them, so only the desktop toast is lost. Permission denied (not an exception) behaves as before.",
+      "recommendation": "Optional follow-up: on an exception from ensurePermission(), restore the previous seen set (or save only after a granted/denied answer). The concurrency guard (pendingByUser) already prevents duplicates, so saving after permission no longer risks double toasts. Not blocking for merge."
+    }
+  ]
+}
