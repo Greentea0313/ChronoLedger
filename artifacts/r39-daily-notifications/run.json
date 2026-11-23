@@ -1,0 +1,19 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r39-daily-notifications",
+    "created_at":  "2026-11-23T00:50:29.0866741+00:00",
+    "objective":  "Implement R39 daily scheduled notifications: notification_settings table/RLS/purge, enqueue_daily_notifications pg_cron (KST 09:00) for FAVORITE_START, FAVORITE_END_D1, and EXPENSE_D1, and settings screen notification toggle card.",
+    "acceptance_criteria":  [
+                                "Create public.notification_settings table with RLS, pending-deletion block, account-purge cleanup, and default-enabled semantics.",
+                                "Create SECURITY DEFINER enqueue_daily_notifications() and KST 09:00 (0 0 * * * UTC) pg_cron job generating FAVORITE_START, FAVORITE_END_D1, and EXPENSE_D1 notifications without leaking amounts or memos and deduplicated by uq_notifications_daily_source.",
+                                "Sync sql/SCHEMA.sql, sql/README.md, sql/tests/TESTS.sql, and src/types/database.types.ts.",
+                                "Add notification settings toggle card in /dashboard/settings with graceful fallback when notification_settings is not yet migrated.",
+                                "Pass tsc, lint, Vitest, and independent static review + local Supabase TESTS.sql verification."
+                            ],
+    "base_sha":  "1af478baed61123977a05729f46e23768726f4a9",
+    "target_sha":  null,
+    "branch":  "collab/r39-daily-notifications",
+    "worktree_path":  ".worktrees/r39-daily-notifications",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
