@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "run_id": "r96-rev07-webhook-config",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "91c7abd7b4b95a7bb02f536d1571529b2743e017",
+  "target_sha": "1514343279d78d19d18c9df5a2723a9b2cb73113",
+  "status": "passed",
+  "created_at": "2026-11-24T23:22:30+09:00",
+  "finished_at": "2026-11-24T23:22:30+09:00",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Upgrade path: Base SCHEMA.sql (91c7abd) then MIGRATION_R96_WEBHOOK_CONFIG.sql applied twice on local Supabase", "command": "psql -X -v ON_ERROR_STOP=1 -f MIGRATION_R96_WEBHOOK_CONFIG.sql (x2)", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Upgrade path: README section B check queries (push_webhook_config,t,0 / 6 privileges false / uses_config_table true)", "command": "psql -X -f checks.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Upgrade path: TESTS.sql full run (44 PASS, final rollback PASS)", "command": "psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Fresh install path: SCHEMA.sql x1 (non-rerunnable baseline), MIGRATION_R96_WEB_PUSH.sql x2, MIGRATION_R96_WEBHOOK_CONFIG.sql x2, MIGRATION_R102_EXPENSE_PRESETS.sql x1", "command": "psql -X -v ON_ERROR_STOP=1 -f <file>", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Fresh install path: README section B check queries and TESTS.sql full run (44 PASS, final rollback PASS)", "command": "psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "3-tier lookup priority with stubbed net.http_post in rolled-back transaction (none -> no call, GUC only, table over GUC, table URL + Vault secret over GUC secret)", "command": "psql -X -f priority.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Whitespace check", "command": "git diff --check 91c7abd 1514343", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest (76 files / 1021 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Next.js production build (placeholder public env; worktree has no .env.local)", "command": "npm run build", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}

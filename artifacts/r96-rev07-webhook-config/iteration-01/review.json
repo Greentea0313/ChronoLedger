@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r96-rev07-webhook-config",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "91c7abd7b4b95a7bb02f536d1571529b2743e017",
+  "target_sha": "1514343279d78d19d18c9df5a2723a9b2cb73113",
+  "status": "clean",
+  "created_at": "2026-11-24T23:22:30+09:00",
+  "findings": []
+}

@@ -105,13 +105,14 @@
 --   R39-04 anon                   notification_settings 조회 및 enqueue_daily_notifications() 실행 -> insufficient_privilege.
 --   R96-01 authenticated / B       push_subscriptions 직접 쓰기 거부, upsert_push_subscription 유효성·등록·공용 기기 endpoint 소유자 교체·
 --                                  push_enabled 자동 true, 타인 행 은닉, delete_push_subscription 삭제·0건 시 push_enabled false,
---                                  service_role 전용 claim/complete RPC 실행 -> insufficient_privilege.
+--                                  service_role 전용 claim/complete RPC 및 push_webhook_config/set_push_webhook_config 접근 -> insufficient_privilege.
 --   R96-02 DB fixture 역할         claim_pending_push_notifications(request_result=false/push_enabled=false/구독 0건/계정 삭제 대기 SKIPPED),
 --                                  complete_push_notification_delivery(만료 endpoint 삭제·last_success_at·3회 재시도 후 FAILED),
 --                                  claim 5분 점유(재선점 금지)·1일 초과/첫 구독 이전 알림 SKIPPED·재시도 cron 등록,
+--                                  set_push_webhook_config 유효성·등록·NULL 시크릿 갱신·service_role 차단,
 --                                  pg_net 웹훅 트리거 예외 격리, 탈퇴 purge 연동 및 차단 트리거 검증.
 --   R96-03 authenticated / A       계정 삭제 대기 사용자 push_subscriptions 조회 은닉 및 upsert/delete RPC 차단.
---   R96-04 anon                   push_subscriptions 조회 및 4개 RPC 실행 -> insufficient_privilege.
+--   R96-04 anon                   push_subscriptions·push_webhook_config 조회/쓰기 및 5개 RPC 실행 -> insufficient_privilege.
 --   R102-01 authenticated / B      user_expense_presets 본인 CRUD·타인 행 은닉 및 쓰기 차단·CHECK 검증·20개 상한 트리거(21번째 23514 거부·삭제 후 재등록 성공).
 --   R102-02 DB fixture 역할        게임 삭제 시 game_id ON DELETE SET NULL, 탈퇴 purge 연동 및 트리거 존재 검증.
 --   R102-03 authenticated / A      계정 삭제 대기 사용자 user_expense_presets 조회 은닉 및 INSERT/UPDATE/DELETE 차단.
@@ -2809,7 +2810,7 @@ BEGIN
     PERFORM public.upsert_push_subscription(v_shared_ep, v_p256dh, v_auth, 'web', 'Chrome · Desktop');
     PERFORM public.upsert_push_subscription(v_b_ep_2, v_p256dh, v_auth, 'ios_pwa', 'Safari · iPhone');
 
-    -- Authenticated user cannot call service_role delivery RPCs.
+    -- Authenticated user cannot call service_role delivery RPCs or access push_webhook_config.
     BEGIN
         PERFORM * FROM public.claim_pending_push_notifications(10);
         RAISE EXCEPTION 'FAIL: R96 authenticated user executed claim_pending_push_notifications';
@@ -2818,6 +2819,22 @@ BEGIN
     BEGIN
         PERFORM public.complete_push_notification_delivery(gen_random_uuid(), 'SENT');
         RAISE EXCEPTION 'FAIL: R96 authenticated user executed complete_push_notification_delivery';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM 1 FROM public.push_webhook_config LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R96 authenticated user read push_webhook_config';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.push_webhook_config(id, url, secret)
+        VALUES (true, 'https://example.invalid/functions/v1/send-notifications', repeat('s', 32));
+        RAISE EXCEPTION 'FAIL: R96 authenticated user inserted push_webhook_config';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.set_push_webhook_config('https://example.invalid/functions/v1/send-notifications', repeat('s', 32));
+        RAISE EXCEPTION 'FAIL: R96 authenticated user executed set_push_webhook_config';
     EXCEPTION WHEN insufficient_privilege THEN NULL;
     END;
 END $$;
@@ -2986,6 +3003,54 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'chronoledger-push-retry' AND schedule = '*/5 * * * *') THEN
         RAISE EXCEPTION 'FAIL: R96 retry cron job chronoledger-push-retry missing';
     END IF;
+
+    -- R96-REV-07: push_webhook_config validation, upsert/update (including NULL secret), service_role ACL block,
+    -- and exception-isolated invoke_send_notifications_webhook() with config present and cleared.
+    BEGIN
+        PERFORM public.set_push_webhook_config('http://insecure.example.invalid/functions/v1/send-notifications', repeat('s', 32));
+        RAISE EXCEPTION 'FAIL: R96-REV-07 non-https webhook url accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.set_push_webhook_config('https://example.invalid/functions/v1/send-notifications', 'too-short-secret');
+        RAISE EXCEPTION 'FAIL: R96-REV-07 short webhook secret (<32 chars) accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    PERFORM public.set_push_webhook_config('https://example.invalid/functions/v1/send-notifications', repeat('s', 32));
+    IF (SELECT count(*) FROM public.push_webhook_config) <> 1
+       OR NOT EXISTS (
+           SELECT 1
+           FROM public.push_webhook_config
+           WHERE id = true
+             AND url = 'https://example.invalid/functions/v1/send-notifications'
+             AND secret = repeat('s', 32)
+       ) THEN
+        RAISE EXCEPTION 'FAIL: R96-REV-07 set_push_webhook_config did not persist singleton row';
+    END IF;
+
+    -- Calling invoke_send_notifications_webhook() with config present must never raise.
+    PERFORM public.invoke_send_notifications_webhook();
+
+    -- Updating singleton row with NULL secret (for Vault-backed secret) keeps 1 row and clears secret.
+    PERFORM public.set_push_webhook_config('https://updated.example.invalid/functions/v1/send-notifications', NULL);
+    IF (SELECT count(*) FROM public.push_webhook_config) <> 1
+       OR NOT EXISTS (
+           SELECT 1
+           FROM public.push_webhook_config
+           WHERE id = true
+             AND url = 'https://updated.example.invalid/functions/v1/send-notifications'
+             AND secret IS NULL
+       ) THEN
+        RAISE EXCEPTION 'FAIL: R96-REV-07 set_push_webhook_config update with NULL secret failed';
+    END IF;
+
+    IF has_table_privilege('service_role', 'public.push_webhook_config', 'SELECT')
+       OR has_function_privilege('service_role', 'public.set_push_webhook_config(text,text)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'FAIL: R96-REV-07 service_role still has privilege on push_webhook_config or set_push_webhook_config';
+    END IF;
+
+    DELETE FROM public.push_webhook_config;
     PERFORM public.invoke_send_notifications_webhook();
 END $$;
 
@@ -3053,6 +3118,22 @@ BEGIN
     BEGIN
         PERFORM public.complete_push_notification_delivery(gen_random_uuid(), 'SENT');
         RAISE EXCEPTION 'FAIL: R96 anon executed complete_push_notification_delivery';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM 1 FROM public.push_webhook_config LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R96 anon read push_webhook_config';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.push_webhook_config(id, url, secret)
+        VALUES (true, 'https://example.invalid/functions/v1/send-notifications', repeat('s', 32));
+        RAISE EXCEPTION 'FAIL: R96 anon inserted push_webhook_config';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.set_push_webhook_config('https://example.invalid/functions/v1/send-notifications', repeat('s', 32));
+        RAISE EXCEPTION 'FAIL: R96 anon executed set_push_webhook_config';
     EXCEPTION WHEN insufficient_privilege THEN NULL;
     END;
 END $$;

@@ -1,0 +1,16 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r96-rev07-webhook-config",
+    "created_at":  "2026-11-24T14:05:32.8585525+00:00",
+    "objective":  "R96-REV-07: Replace ALTER DATABASE app.settings with private public.push_webhook_config table, set_push_webhook_config helper, and 3-tier webhook lookup",
+    "acceptance_criteria":  [
+                                "Step 1 (Maker): Add MIGRATION_R96_WEBHOOK_CONFIG.sql and sync MIGRATION_R96_WEB_PUSH.sql, SCHEMA.sql, sql/README.md, and sql/tests/TESTS.sql per docs/push-notification-research.md §11.2.4 \u0026 §11.6; pass git diff --check, tsc, lint, Vitest.",
+                                "Step 2 (Reviewer \u0026 Orchestrator): Static review (review.json), 2x idempotent local DB migrations \u0026 TESTS.sql pass (test.json), merge to main, and close out docs."
+                            ],
+    "base_sha":  "91c7abd7b4b95a7bb02f536d1571529b2743e017",
+    "target_sha":  "1514343279d78d19d18c9df5a2723a9b2cb73113",
+    "branch":  "collab/r96-rev07-webhook-config",
+    "worktree_path":  ".worktrees/r96-rev07-webhook-config",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
