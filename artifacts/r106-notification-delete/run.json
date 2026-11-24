@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r106-notification-delete",
+    "created_at":  "2026-11-24T18:22:13.3245831+00:00",
+    "objective":  "R106: Add direct notification delete (public.delete_notifications RPC + NotificationBell per-item and delete-all buttons)",
+    "acceptance_criteria":  [
+                                "Step 1 (Maker): Add MIGRATION_R106_NOTIFICATION_DELETE.sql and sync SCHEMA.sql, sql/README.md, sql/tests/TESTS.sql, and src/types/database.types.ts per docs/push-notification-research.md §12.2 \u0026 §12.4; pass git diff --check, tsc, lint, Vitest.",
+                                "Step 2 (Maker): Implement NotificationBell delete-all and per-item sibling delete buttons with offline/error handling and tests per §12.3 \u0026 §12.4; pass git diff --check, tsc, lint, Vitest.",
+                                "Step 3 (Reviewer \u0026 Orchestrator): Static review (review.json), 2x idempotent local DB migrations \u0026 TESTS.sql pass (test.json), next build, merge to main, and close out docs."
+                            ],
+    "base_sha":  "cddb943e9f0bad17c7bde121b3756710dbdb29c5",
+    "target_sha":  null,
+    "branch":  "collab/r106-notification-delete",
+    "worktree_path":  ".worktrees/r106-notification-delete",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
