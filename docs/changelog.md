@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-24 (`r101`·`r103` 병합 `c942e1e` — 2개월 예산 비교·단축키·빠른 시작)
+
+- `/dashboard/expenses` 상단에 `당월 · 익월 예산 비교` 카드를 추가함. 월 예산, 확정 지출, 고정 구독 예정(아직 생성되지 않은 활성 월간 구독 포함), 일반 예정 지출, 예상 총 지출·잔여 예산과 `예산 초과` 표시를 두 달 나란히 보여줌. 월 예산이 없으면 기본 예산을 쓰고, 예산 조회가 실패해도 지출 목록은 그대로 뜸.
+- `/dashboard`에 접이식 `빠른 시작 · 단축키` 안내(처음에만 펼침, 닫으면 기억)와 데스크톱 단축키 `[`·`]`(이전/다음 달), `T`(오늘), `V`(캘린더/주차 전환), `N`(새 지출), `?`(안내 펼침/접기)를 추가함. 입력 중이거나 모달·드로어가 열려 있으면 동작하지 않음. DB 변경 없음.
+
 ## 2026-11-24 (Run `r39-daily-notifications` 완료 — `main` 병합 `9ae05f9`)
 
 - **DB**: `public.notification_settings`(본인 행 RLS·삭제 대기 차단·탈퇴 정리 연결), `enqueue_daily_notifications()`(`FAVORITE_START`·`FAVORITE_END_D1`·`EXPENSE_D1`, 금액·메모 미포함, 중복 방지), `pg_cron` 잡 `chronoledger-daily-notifications`(KST 09:00) 추가 (`MIGRATION_R39_DAILY_NOTIFICATIONS.sql`).
