@@ -7,7 +7,29 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 과제**: **없음** *(`r96-rev07-webhook-config` 병합 완료, 2026-11-24. 새 과제는 사용자가 지목하면 `Gemini 4 Hydrogen`이 접수·등록함)*
+- **활성 과제**: **`알림 직접 삭제 기능` (`📐 SPEC_NEEDED` — Chief Architect 설계·RLS/RPC·수용 기준 확정 대기)** *(수신한 알림을 사용자가 직접 삭제할 수 있는 버튼 추가 요청에 따른 `public.notifications` 삭제 권한·RPC/RLS 및 예약 알림 재발송 방지 설계 필요)*
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **0** | **`📐 SPEC_NEEDED`** | **Gemini 4 Argon** *(Fallback 1: Claude Opus / Gemini 4 Neon, Fallback 2: Gemini 4 Hydrogen)* | `Chief Architect` | 아래 **요구사항 접수 기록 (`알림 직접 삭제`)**을 검토해 제품·보안 설계 결정, 명세 문서(`docs/push-notification-research.md` 등) 및 단계별 수용 기준을 확정(`src/**`·`sql/**` 직접 수정 금지)하고, Row 1(`Gemini 4 Hydrogen`)을 `▶ READY`로 전환함 | 대기 중 |
+| **1** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback 1: Gemini 4 Neon / Claude Sonnet, Fallback 2: GitHub Copilot)* | `Orchestrator (Run 등록 및 워크트리 생성)` | Row 0 확정 후 착수. 깨끗한 `main`에서 `New-CollaborationRun.ps1`로 격리 워크트리 생성 및 Maker/Reviewer 큐(`▶ READY`) 등록함 | 대기 중 |
+
+#### 📥 요구사항 접수 기록 (알림 직접 삭제 기능 — `Gemini 4 Hydrogen` 접수, 2026-11-25)
+
+1. **요청 요지**:
+   - 사용자가 앱 내 알림함([notification-bell.tsx](file:///c:/Users/inha/Desktop/Project/ChronoLedger/src/components/layout/notification-bell.tsx))에서 수신한 알림을 직접 삭제할 수 있는 버튼을 추가해 달라고 요청함.
+2. **에스컬레이션 사유 (`collaboration.md` §2)**:
+   - 현재 `public.notifications`([SCHEMA.sql](file:///c:/Users/inha/Desktop/Project/ChronoLedger/sql/SCHEMA.sql#L1964-L1968))는 `authenticated` 역할에 `SELECT`만 허용(`REVOKE ALL ...; GRANT SELECT ...`)하고 있어 `DELETE` 권한/RLS 정책 또는 삭제용 `SECURITY DEFINER` RPC 설계·추가가 필수임(`Argon` 승격 조건 ②: RLS/`SECURITY DEFINER` RPC/보안 경계 설계).
+   - 삭제 범위(개별 삭제 vs 전체/읽은 알림 일괄 삭제) 및 하드 `DELETE` 시 예약 알림(`scheduled_for`, `idx_notifications_user_scheduled_unique`) 재발송 여부 등 승인 문서([push-notification-research.md](file:///c:/Users/inha/Desktop/Project/ChronoLedger/docs/push-notification-research.md))에 미확정된 제품·설계 결정이 있음.
+3. **검토·결정 필요 사항**:
+   - ① **삭제 방식 및 보안 경계**: `DELETE` RLS 정책(`auth.uid() = user_id` + `account_deletion_is_pending` 차단) vs `mark_notifications_read(UUID[])`와 대칭인 `SECURITY DEFINER` RPC(`delete_notifications(p_notification_ids UUID[] DEFAULT NULL)`) 선택.
+   - ② **예약 알림 중복 방지 정합성**: `scheduled_for`가 있는 일정 알림을 하드 `DELETE`할 경우 크론이 동일 `(user_id, kind, source_id, scheduled_for)` 알림을 재삽입할 수 있는지 여부(소프트 삭제 컬럼 `deleted_at` vs 하드 `DELETE` 허용 범위).
+   - ③ **UI 범위 및 접근성**: 알림 목록 항목별 삭제 버튼(아이콘/`aria-label`)만 둘지, 헤더에 "읽은 알림 삭제" 또는 "전체 삭제" 버튼도 함께 둘지(필요 시 사용자 질문 카드로 결정).
+   - ④ **Run 분할 및 검증 기준**: DB/타입(Step 1) $\to$ UI/테스트(Step 2) $\to$ 통합 리뷰·로컬 DB 검증(Step 3) 수용 기준 및 `R` 번호 부여.
+4. **관련 파일·문서**:
+   - `sql/SCHEMA.sql` (`public.notifications` 49~70행, RLS 1964~1970행, `mark_notifications_read` 2502~2532행)
+   - `src/components/layout/notification-bell.tsx` · `src/components/layout/notification-bell.test.tsx`
+   - `docs/push-notification-research.md` §8·§9
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
