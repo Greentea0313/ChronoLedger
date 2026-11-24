@@ -7,29 +7,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run ID**: `r105-dashboard-summary-bar` *(2026-11-24 등록 · `R105`: 대시보드 홈 상단 상태바를 버전 3 — 컴팩트 KPI + 월간 예산 페이스 연동 바로 개편)*
-- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-24 등록)*
-- **Worktree 경로**: `.worktrees/r105-dashboard-summary-bar` (브랜치: `collab/r105-dashboard-summary-bar`, 매니페스트: `artifacts/r105-dashboard-summary-bar/run.json`)
-- **Base SHA**: `d1e18b42e021d8eeefe4dc0795be421d0a450a29`
-- **DB 변경**: 없음. 🐳 Docker 불필요.
-
-| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
-| :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R105 대시보드 상태바 개편 & Vitest)` | `.worktrees/r105-dashboard-summary-bar`에서 아래 **Step 1 수용 기준** 수행 후 워크트리 커밋. 허용 파일: `src/app/dashboard/page.tsx`, `src/app/dashboard/page.test.tsx` (필요 시 `src/components/calendar/` 또는 `src/lib/` 내 신규/보강 보조 유틸) | 대기 중 |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Reviewer & Orchestrator` | Base `d1e18b4` ↔ Step 1 Target SHA 정적 리뷰(`review.json`·`test.json`), `tsc`·`lint`·Vitest·`next build` 검증, `main` 병합 및 `docs/` 마감 | 대기 중 |
-
-#### 📌 `r105-dashboard-summary-bar` 단계별 수용 기준 (Acceptance Criteria)
-
-- **Step 1 (`Claude Sonnet` — Maker)**:
-  1. `src/app/dashboard/page.tsx` 상단 `dashboard-summary`를 **4칸 인터랙티브 카드/버튼**으로 개편:
-     - ① **오늘 일정** (`시작 N · 마감 N` 통합): 클릭 시 `selectedDate`를 `todayDate`로 선택(모바일이면 `MobileDrawer` 또는 선택일 포커스 연계).
-     - ② **이번 주 관심 일정** (로그인 시 관심 일정 기준 `N건`, 비로그인 또는 관심 0건일 때는 전체 기준 또는 보조 라벨 명확히 표시): 클릭 시 `viewMode`를 `"weekly"`(`주차별 리스트`)로 전환(로그인 시 관심 일정 필터 ON 연계).
-     - ③ **이번 주 예정 지출** (`N원`, 비로그인 시 `-`): 클릭 시 `/dashboard/expenses`로 이동(`Link` 또는 `router.push`).
-     - ④ **이번 달 예산 잔여** (`budgetAmount - expectedExpense` 잔여액 및 소진율 `%` 페이스 바, 예산 미설정·비로그인 시 안내 문구): 클릭 시 `/dashboard/expenses` 또는 예산 설정/소비 현황 확인으로 이동.
-  2. 기존 `data-testid="dashboard-summary"` 및 접근성(`aria-label`, `<button>`/`<Link>`, 키보드 포커스)을 유지·보강하고 모바일 `grid-cols-2` / 데스크톱 `sm:grid-cols-4` 반응형 레이아웃 깨짐이 없게 함.
-  3. `src/app/dashboard/page.test.tsx`에 4칸 표시값(예산 잔여·소진율·예정 지출·오늘 일정·관심 일정)·클릭 연계 동작(`setSelectedDate`, `setViewMode("weekly")`, 이동 링크) 테스트를 추가/갱신하고 `tsc --noEmit`, `npm run lint`, `vitest run --dir src` 통과 후 워크트리에 커밋함.
-- **Step 2 (`Gemini 4 Hydrogen` — Reviewer & Orchestrator)**:
-  1. 정적 리뷰(`review.json`·`test.json`), 전체 검증 통과 확인, `main` 병합 및 `docs/` 마감(`r102-expense-presets` 기록을 `docs/archive/handoff-archive.md`로 이동).
+- **현재 활성 Run 없음** *(직전 `r105-dashboard-summary-bar` 완료·`main` 병합 `fe5bf77`, 2026-11-24. 다음 Run은 예약 요약표에서 사용자가 지목하면 Orchestrator가 등록함)*
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -47,49 +25,22 @@
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 | `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R96-REV-07`·`R101-REV-001` | `docs/to-do.md` 해당 항목 |
 
-### 🗂️ 직전 완료 Run 기록: `r102-expense-presets`
+### 🗂️ 직전 완료 Run 기록: `r105-dashboard-summary-bar`
 
-- **Run ID**: `r102-expense-presets` **(완료, `main` 병합 `9ff2ae6`, 2026-11-24)** *(`R102` 자주 쓰는 과금 프리셋 사용자 DB 저장: `public.user_expense_presets` 최대 20개 + `ExpenseModal` 상단 칩 원클릭 적용·**`[프리셋 저장]`**·삭제 — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3, `r96-web-push`와 병행)*
-- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-24 등록)*
-- **Worktree 경로**: `.worktrees/r102-expense-presets` (브랜치: `collab/r102-expense-presets`, 매니페스트: `artifacts/r102-expense-presets/run.json`)
-- **Base SHA**: `052e53acdd7d22031bcee020487f91bd37718ad5`
-- **Target SHA**: `56e4ab8234218b6085968687a108859481df4497` *(iteration-02, 산출물 `dd1beb7`, `main` 병합 `9ff2ae6`. iteration-01 `bffa1e4`, Step 1 DB `a6a36ed`)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql`, `sql/SCHEMA.sql`). `LOCAL_DB_DEFERRED`는 Step 3에서 🐳 로컬 DB 검증으로 해소함. 운영 DB 적용(R96 → R102)·README 확인 쿼리 기대값 확인 완료(사용자, 2026-11-24).
+- **Run ID**: `r105-dashboard-summary-bar` **(완료, `main` 병합 `fe5bf77`, 2026-11-24)** *(`R105`: 대시보드 홈 상단 상태바를 컴팩트 KPI + 월간 예산 페이스 연동 바로 개편)*
+- **Orchestrator & Reviewer**: Gemini 4 Hydrogen *(2026-11-24 등록·리뷰·병합 마감)*
+- **Worktree 경로**: `.worktrees/r105-dashboard-summary-bar` (브랜치: `collab/r105-dashboard-summary-bar`, 매니페스트: `artifacts/r105-dashboard-summary-bar/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `d1e18b42e021d8eeefe4dc0795be421d0a450a29`
+- **Target SHA**: `3271d5d0e6c0ed00dfa8b3a7deca8cf4b11d20c1` *(iteration-01 리뷰 clean, 산출물 `e363cc4`, `main` 병합 `fe5bf77`)*
+- **DB 변경**: 없음. 🐳 Docker 불필요.
 
-| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
-| :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: a6a36ed304d6b6a53f04b75851b0c6697af8b352)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Neon** *(1순위 대체로 수행)* | `Maker (R102 DB/RLS/Trigger & Types)` | 아래 **Step 1 수용 기준** 수행(🐳 Docker Desktop 필요, 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 진행). 허용 파일: 신규 `sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ a6a36ed`: `MIGRATION_R102_EXPENSE_PRESETS.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts` 반영. `tsc`·`lint`·`diff-check`·Vitest 74파일/977개 통과. ⚠️ `LOCAL_DB_DEFERRED`(Docker 미설치, 아래 Step 1 완료 기록 참고) |
-| **2** | **`✅ DONE (SHA: bffa1e45abeac81074122dbb9c51550f155bdf85)`** | **Claude Sonnet** *(Fallback 1: Gemini 4 Hydrogen, Fallback 2: GitHub Copilot)* | `Maker (ExpenseModal 프리셋 칩·[프리셋 저장]·삭제 UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ bffa1e4`: ExpenseModal 프리셋 칩·`[프리셋 저장]`·삭제·미적용 DB 폴백. tsc·lint·Vitest 993개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`✅ DONE (산출물 dd1beb7, main 병합 9ff2ae6)`** | **Claude Opus** *(Fallback 1: Gemini 4 Argon / Gemini 4 Neon)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base(`052e53acdd7d22031bcee020487f91bd37718ad5`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·🐳 로컬 DB 2회 멱등 적용 및 `TESTS.sql` 검증(`test.json`)·`main` 병합·문서 마감 | iteration-01 리뷰 P2 1건(R96과 탈퇴 정리 함수 충돌) → iteration-02 수정 `56e4ab8` clean. 🐳 R96+R102 업그레이드 각 2회·신규 `SCHEMA.sql`·`TESTS.sql` 44개 PASS, tsc·lint·Vitest 76파일/1013개·`next build` 통과 후 `main` 병합 `9ff2ae6` |
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: 3271d5d)`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R105 대시보드 상태바 개편 & Vitest)` | 상태바 4칸 인터랙티브 카드·월간 예산 페이스 바·클릭 연계 구현 및 Vitest 8건 보강. tsc·lint·Vitest 76파일/1021개 통과 |
+| **2** | **`✅ DONE (산출물 e363cc4, main 병합 fe5bf77)`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Reviewer & Orchestrator` | Base `d1e18b4` ↔ Target `3271d5d` 정적 리뷰 **clean**(지적 0건). tsc·lint·Vitest 76파일/1021개·`next build`(16페이지) 통과 후 `main` 병합 `fe5bf77` 및 병합 후 검증 통과 |
 
-#### 📝 `r102-expense-presets` Step 1 완료 기록 (Gemini 4 Neon — GPT Codex 1순위 대체, 2026-11-24)
+#### 📝 `r105-dashboard-summary-bar` Step 2 완료 기록 (Gemini 4 Hydrogen, 2026-11-24)
 
-- **Target SHA**: `a6a36ed304d6b6a53f04b75851b0c6697af8b352` (워크트리 브랜치 `collab/r102-expense-presets`, 미병합). 변경 파일: 신규 `sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (허용 5개 파일만, `run.json` 미수정).
-- **DB·트리거·RLS·탈퇴 변경**:
-  - `public.user_expense_presets` 테이블(`title` 1~150자·`category` 5종·`game_id` `ON DELETE SET NULL`·`original_price >= 0`·`payment_method` 2종·`point_platform` NULL 또는 2종·`deduct_from_asset`·`sort_order`), `idx_user_expense_presets_user_sort` 인덱스 생성함(`SCHEMA.sql`에서는 `games`·`expenses` 뒤, 공통 계정 삭제 대기 루프 앞에 배치).
-  - `public.enforce_user_expense_presets_limit()` (`SECURITY DEFINER SET search_path = public`, `pg_advisory_xact_lock`으로 동일 사용자 동시 INSERT 직렬화 후 20개 이상 시 `23514` 예외 발생, 직접 실행 권한 회수) 및 `trg_enforce_user_expense_presets_limit` (`BEFORE INSERT`) 추가함.
-  - RLS 활성화(`Manage own expense presets`, 본인 행 CRUD 허용, `anon` 차단), 계정 삭제 대기 차단 RESTRICTIVE 정책·트리거(`SCHEMA.sql` 공통 루프 2곳 포함) 및 `purge_expired_account_deletion_requests`에 `DELETE FROM public.user_expense_presets WHERE user_id = v_req.user_id;` 추가함.
-  - `sql/README.md` B표 확인 쿼리·선행 purge 주의 추가, `sql/tests/TESTS.sql` `R102-01`~`R102-04` 스모크 블록(RLS·CHECK·20개 상한·삭제 후 재등록·게임 `SET NULL`·삭제 대기 차단·탈퇴 정리·`anon` 차단) 추가, `src/types/database.types.ts` `user_expense_presets` 타입 추가함.
-- **검증**: 워크트리에서 `git diff --check`, `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `npx vitest run`(74파일 / 977개 통과) 확인함.
-- **미실행 (`⚠️ LOCAL_DB_DEFERRED`)**: 현재 PC Docker CLI 미설치(`NO_DOCKER`)로 로컬 Supabase 2회 멱등 적용·신규 `SCHEMA.sql`·`TESTS.sql` 실행 검증은 미수행임. Step 3(Docker 환경)에서 로컬 DB 병합 게이트 검증 필수임.
-- **원격 브랜치**: push 안 함(사용자 승인 필요). 다른 PC에서 이어가려면 `git -C .worktrees/r102-expense-presets push -u origin collab/r102-expense-presets` 필요함.
-- **다음 단계**: Step 2(**Claude Sonnet**, Fallback 1: **Gemini 4 Hydrogen**, Fallback 2: **GitHub Copilot** — `ExpenseModal` 프리셋 칩·`[프리셋 저장]`·삭제 UI & Vitest) `▶ READY`임.
-
-#### 📝 `r102-expense-presets` Step 2 완료 기록 (Claude Sonnet, 2026-11-24)
-
-- **Target SHA**: `bffa1e45abeac81074122dbb9c51550f155bdf85` (워크트리 브랜치 `collab/r102-expense-presets`, 미병합·원격 push 안 함). SQL·타입 변경 없음. 변경 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`(허용 2개 파일만, `run.json` 미수정).
-- **칩 목록·적용**: 신규 등록 모드(`!plannedExpense && !editingExpense`)에서 모달이 열릴 때 `user_expense_presets`를 `sort_order`·`created_at` 오름차순으로 조회해 `자주 쓰는 과금` 칩으로 표시함. 선택한 게임의 프리셋과 공통(`game_id === null`) 프리셋만 보이고, 칩 클릭 시 항목명·카테고리·게임(게임 카테고리이고 프리셋에 게임이 있을 때)·정가·실결제액·결제수단·플랫폼(`point_platform ?? "OTHER"`)·총자산 차감을 채우며 할인·쿠폰·사용 포인트·적립 입력은 비움. 게임이 아닌 카테고리 프리셋은 게임을 비우고 플랫폼을 `OTHER`로 둠(기존 카테고리 변경 동작과 동일).
-- **삭제**: 칩의 `×`가 해당 프리셋을 `DELETE`하고 칩을 제거함(`isOffline()` 가드, 실패 시 칩 유지·오류 표시).
-- **`[프리셋 저장]`**: 항목명 1~150자, 정가 0 이상 정수를 검증하고 `INSERT`(`game_id`는 게임 카테고리에서 선택한 게임 또는 `null`, `point_platform`은 스토어 플랫폼일 때만, `sort_order`는 현재 개수) 후 목록을 다시 불러와 칩을 갱신함. 이미 20개면 요청 없이 "최대 20개" 안내, DB 트리거 `23514`도 같은 문구, 오프라인은 오프라인 안내, 테이블 미적용은 "DB 업데이트(R102) 적용 후" 안내를 표시함.
-- **미적용 DB 폴백**: 조회가 `42P01`/`PGRST205`이면 프리셋 영역 전체를 숨기고 오류를 기록하지 않으며 나머지 지출 입력은 그대로 동작함. 예정 지출 결제·수정 모드에서는 프리셋 영역도 조회도 하지 않음.
-- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`(CRLF 경고만), Vitest 74파일 993개 통과함(프리셋 테스트 16개 추가: 조회·게임별 필터·필드 채움·비게임 적용·삭제 성공/실패/오프라인·저장·게임 저장·검증·20개 상한 클라이언트/DB·오프라인·미적용 2종·결제/수정 모드 숨김). 실브라우저·실DB 확인은 하지 않음.
-- **미실행 (`⚠️ LOCAL_DB_DEFERRED` 유지)**: Step 1의 로컬 Supabase 2회 멱등 적용·`SCHEMA.sql`·`TESTS.sql` 실행은 여전히 미수행이며 Step 3(🐳 Docker 환경)이 맡음.
-- **가정**: 프리셋 칩은 게임 선택 후에야 해당 게임 전용 프리셋이 보이는 명세(§3.2) 그대로임. 프리셋 이름 변경·순서 변경 UI는 명세에 없어 만들지 않음. 같은 제목의 프리셋 중복 저장은 막지 않음.
-- **원격 브랜치**: push 안 함(사용자 승인 필요). 다른 PC(Docker)에서 Step 3을 하려면 `git -C .worktrees/r102-expense-presets push -u origin collab/r102-expense-presets` 필요함.
-- **다음 단계**: Step 3(`Claude Opus`, Base `052e53a` ↔ Target `bffa1e4` 통합 리뷰·🐳 로컬 DB 검증·병합) `▶ READY`임.
-
-#### 📝 `r102-expense-presets` Step 3 리뷰·iteration-02·병합 기록 (Claude Opus, 2026-11-24)
-
-- **iteration-01 리뷰** (Base `052e53a` ↔ Target `bffa1e4`, 산출물 `a9496ef`): 화면 로직(칩 필터·원클릭 적용·20개 사전 확인·오프라인·미적용 DB 폴백)과 R102 자체 로컬 DB(2회 멱등·`TESTS.sql` 43개 PASS)는 이상 없음. **R102-REV-01(P2)**: 병행 Run r96과 둘 다 `purge_expired_account_deletion_requests` 전체를 다시 정의하는데 R102 본문에 `push_subscriptions` 삭제가 없어, 운영 DB에 R96 → R102 순서로 적용하면 탈퇴 시 푸시 구독 정리가 빠짐.
-- **iteration-02 수정** (Claude Opus, `56e4ab8`): r96 병합 후 `main`을 Run 브랜치에 합치고 `SCHEMA.sql`(공통 루프 2곳에 두 테이블)·README·`TESTS.sql`(R96 블록 뒤 R102 블록)·타입 충돌 해결. R102 마이그레이션의 탈퇴 정리 함수에 `push_subscriptions` 삭제를 넣고 "R96 적용 후 실행" 선행 조건과 재실행 주의를 README에 적음. ⚠️ 수정과 재리뷰를 같은 모델이 함.
-- **검증**: 🐳 Base `052e53a` + R96 2회 + R102 2회 → `TESTS.sql` 44개 PASS, 탈퇴 정리 함수에 두 테이블 모두 포함 확인. 신규 `SCHEMA.sql` → 44개 PASS → 두 마이그레이션 재실행 무오류, README 확인 쿼리 기대값 일치. tsc·lint·Vitest 76파일/1013개·`next build` 통과.
+- **리뷰 범위·독립성**: Base `d1e18b42e021d8eeefe4dc0795be421d0a450a29` ↔ Target `3271d5d0e6c0ed00dfa8b3a7deca8cf4b11d20c1`. 범위 검사(`merge-base --is-ancestor`·`Target..HEAD`의 `src`·`sql` 변경 0건) 통과, Maker(Claude Sonnet)와 다른 모델로 독립 리뷰함.
+- **정적 리뷰 (`clean`, 지적 0건)**: `src/app/dashboard/page.tsx`·`page.test.tsx` 2개 허용 파일만 변경. 4칸 카드(오늘 일정·이번 주 관심/진행 일정·이번 주 예정 지출·월 예산 잔여 페이스 바), 80%/100% 초과 색·폭 상한, 비로그인/미설정 폴백, 접근성(`aria-label`, `<button>`/`<Link>`, `progressbar`) 모두 수용 기준과 일치함.
+- **산출물·검증**: `artifacts/r105-dashboard-summary-bar/iteration-01/review.json`·`test.json`, `run.json` 갱신 후 워크트리 커밋 `e363cc4` (이 PC Python에 `jsonschema` 모듈 미설치로 `json.load` + 스키마 대조 검증). 워크트리 `tsc`·`lint`·Vitest 76파일/1021개·`next build` 통과 후 `main` 병합(`fe5bf77`), 병합 후 `main`에서 `tsc`·`lint`·Vitest 76파일/1021개 재통과 확인함. 실브라우저(모바일 드로어·반응형) 확인 및 워크트리 정리는 사용자 선택 대기.

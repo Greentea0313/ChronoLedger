@@ -6,6 +6,23 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 직전 완료 Run 기록: `r102-expense-presets`
+
+- **Run ID**: `r102-expense-presets` **(완료, `main` 병합 `9ff2ae6`, 2026-11-24)** *(`R102` 자주 쓰는 과금 프리셋 사용자 DB 저장: `public.user_expense_presets` 최대 20개 + `ExpenseModal` 상단 칩 원클릭 적용·**`[프리셋 저장]`**·삭제 — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](../r101-r103-budget-presets-shortcuts-spec.md) §3, `r96-web-push`와 병행)*
+- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-24 등록)*
+- **Worktree 경로**: `.worktrees/r102-expense-presets` (브랜치: `collab/r102-expense-presets`, 매니페스트: `artifacts/r102-expense-presets/run.json`)
+- **Base SHA**: `052e53acdd7d22031bcee020487f91bd37718ad5`
+- **Target SHA**: `56e4ab8234218b6085968687a108859481df4497` *(iteration-02, 산출물 `dd1beb7`, `main` 병합 `9ff2ae6`. iteration-01 `bffa1e4`, Step 1 DB `a6a36ed`)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql`, `sql/SCHEMA.sql`). `LOCAL_DB_DEFERRED`는 Step 3에서 🐳 로컬 DB 검증으로 해소함. 운영 DB 적용(R96 → R102)·README 확인 쿼리 기대값 확인 완료(사용자, 2026-11-24).
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: a6a36ed)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Neon** *(1순위 대체)* | `Maker (R102 DB/RLS/Trigger & Types)` | `MIGRATION_R102_EXPENSE_PRESETS.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts` 반영. `tsc`·`lint`·`diff-check`·Vitest 74파일/977개 통과 |
+| **2** | **`✅ DONE (SHA: bffa1e4)`** | **Claude Sonnet** *(Fallback 1: Gemini 4 Hydrogen, Fallback 2: GitHub Copilot)* | `Maker (ExpenseModal 프리셋 칩·[프리셋 저장]·삭제 UI & Vitest)` | ExpenseModal 프리셋 칩·`[프리셋 저장]`·삭제·미적용 DB 폴백. tsc·lint·Vitest 993개 통과 |
+| **3** | **`✅ DONE (산출물 dd1beb7, main 병합 9ff2ae6)`** | **Claude Opus** *(Fallback 1: Gemini 4 Argon / Gemini 4 Neon)* | `Reviewer & Orchestrator` | iteration-01 리뷰 P2 1건(R96과 탈퇴 정리 함수 충돌) → iteration-02 수정 `56e4ab8` clean. 🐳 R96+R102 업그레이드 각 2회·신규 `SCHEMA.sql`·`TESTS.sql` 44개 PASS, tsc·lint·Vitest 76파일/1013개·`next build` 통과 후 `main` 병합 `9ff2ae6` |
+
+- **요약**: `user_expense_presets`(계정당 20개 상한 트리거, 본인 행 RLS, 탈퇴 정리) 및 `ExpenseModal` 프리셋 칩·저장·삭제 구현 완료. 상세 기록은 `artifacts/r102-expense-presets/iteration-01~02/` 참조.
+
 ### 🗂️ 이전 Run 기록 (완료): `r96-web-push`
 
 - **Run ID**: `r96-web-push` **(완료, `main` 병합 `18d5f0c`, 2026-11-24)** *(`R96` Web Push 외부 발송: `public.push_subscriptions`·4개 RPC·`pg_net` 웹훅·순수 Web Crypto RFC 8291/8292·Edge Function `send-notifications`·SW `push` 핸들러·로그아웃 해제·설정 UI — 명세 [`docs/push-notification-research.md`](push-notification-research.md) §11)*

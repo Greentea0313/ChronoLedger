@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-24 (Run `r105-dashboard-summary-bar` 완료 — `main` 병합 `fe5bf77`)
+
+- **대시보드 상태바 개편(`R105`)**: 홈 상단 `dashboard-summary`를 4칸 인터랙티브 카드(① `오늘 일정` 클릭 시 오늘 선택·모바일 드로어 열기, ② `이번 주 관심 일정` 클릭 시 주차별 리스트·`관심 일정만` 전환, ③ `이번 주 예정 지출` `/dashboard/expenses` 링크, ④ `이번 달 예산 잔여`·소진율 `%`·경과율 마커 페이스 바 및 `/dashboard/expenses` 링크)로 개편함.
+
 ## 2026-11-24 (Run `r96-web-push` 병합 `18d5f0c`, Run `r102-expense-presets` 병합 `9ff2ae6`)
 
 - **R96 Web Push**: `push_subscriptions`·구독/해제 RPC·워커 점유(`push_claimed_at`)·과거 알림 미발송·`pg_net` 웹훅·5분 재시도 `pg_cron` 잡, Edge Function `send-notifications`(Web Crypto RFC 8291/8292), SW `push` 처리, 로그아웃 시 구독 해제, 설정 화면 푸시 카드. 배포 절차는 `docs/push-notification-research.md` §11.5.

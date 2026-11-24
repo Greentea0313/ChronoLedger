@@ -1,4 +1,16 @@
 # 프로젝트 진행 현황
+
+## R105 대시보드 상태바 개편 완료 — `main` 병합 `fe5bf77` (2026-11-24)
+
+- **수행 주체**: Claude Sonnet (Step 1 Maker `3271d5d`) → Gemini 4 Hydrogen (Step 2 Reviewer & Orchestrator).
+- **결과**: Base `d1e18b4` ↔ Target `3271d5d` 정적 리뷰 **clean**(지적 0건, 산출물 `e363cc4`). 워크트리 `tsc`·`lint`·Vitest 76파일/1021개·`next build`(16페이지) 통과 후 `main` 병합(`fe5bf77`), 병합 후 검증 모두 통과함. 활성 Run 없음.
+## R105 대시보드 상태바 개편 구현 (2026-11-24)
+
+- **수행 주체**: Claude Sonnet (Run `r105-dashboard-summary-bar` Step 1)임.
+- **결과**: 워크트리 커밋 `3271d5d`(미병합, 원격 push 안 함). 상태바를 4칸 인터랙티브 카드(오늘 일정·이번 주 관심 일정·이번 주 예정 지출·월 예산 잔여 페이스 바)로 개편하고 클릭 연계를 구현함. tsc·lint·Vitest 76파일/1021개 통과함.
+- **미확인**: `next build`·실브라우저 반응형.
+- **다음 단계**: Step 2(`Gemini 4 Hydrogen`, 리뷰·병합·마감) `▶ READY`임.
+
 - **2026-11-24 (`r96-web-push`·`r102-expense-presets` Step 3 — Claude Opus)**: r96 iteration-02 리뷰(P3 1건·P4 2건 비차단)·🐳 로컬 DB 2회·`TESTS.sql` 43개 PASS 후 `main` 병합 `18d5f0c`. r102 iteration-01 리뷰에서 r96과 탈퇴 정리 함수 충돌(P2) 발견 → iteration-02(`56e4ab8`)로 `main` 반영·충돌 해결·R102 마이그레이션 본문 보정, 🐳 R96+R102 각 2회·`TESTS.sql` 44개 PASS 후 `main` 병합 `9ff2ae6`. 병합 후 `main` tsc·lint·Vitest 76파일/1013개 통과. 운영 DB 적용(R96 → R102)·확인 쿼리 기대값 확인 완료(사용자, 2026-11-24). 남음: R96 배포 절차·실기기 확인(사용자).
 - **2026-11-24 (`r102-expense-presets` Step 2 — Claude Sonnet)**: `ExpenseModal`에 프리셋 칩(게임+공통 필터·원클릭 채움)·`[프리셋 저장]`(20개 상한·오프라인·미적용 DB 안내)·`×` 삭제 구현, 워크트리 `bffa1e4`(tsc·lint·Vitest 993개 통과, 실브라우저·실DB 미확인). `LOCAL_DB_DEFERRED` 유지. Step 3(`Claude Opus` 통합 리뷰·🐳 로컬 DB 검증·병합) `▶ READY`.
 - **2026-11-24 (`r102-expense-presets` Step 1 완료 — Gemini 4 Neon, GPT Codex 1순위 대체)**: 워크트리 커밋 `a6a36ed`(미병합·미push). `MIGRATION_R102_EXPENSE_PRESETS.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts` 반영(`user_expense_presets`·20개 상한 트리거·본인 CRUD RLS·계정 삭제 대기 차단·탈퇴 정리). `tsc`·`lint`·`diff-check`·Vitest 74파일/977개 통과함. 현재 PC Docker 미설치로 `⚠️ LOCAL_DB_DEFERRED`이며 Step 2(`Claude Sonnet`, `ExpenseModal` 프리셋 UI & Vitest) `▶ READY`임.
