@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-24 (Run `r96-rev07-webhook-config` 완료 — `main` 병합 `7445447`)
+
+- **웹훅 설정 저장소 교체(`R96-REV-07`)**: 호스팅 Supabase에서 `ALTER DATABASE ... SET app.settings.*`가 `42501`로 막히는 문제를 비공개 단일 행 테이블 `public.push_webhook_config`(RLS 무정책, `PUBLIC`/`anon`/`authenticated`/`service_role` 권한 전량 회수)와 SQL Editor 전용 등록 함수 `public.set_push_webhook_config(url, secret DEFAULT NULL)`로 대체함.
+- **조회 순서**: `invoke_send_notifications_webhook()`이 `push_webhook_config` → `vault.decrypted_secrets`(예외 격리 동적 조회) → `current_setting('app.settings.*')` 순으로 URL·시크릿을 찾음.
+- **파일**: 신규 `MIGRATION_R96_WEBHOOK_CONFIG.sql`(이미 R96 적용한 운영 DB용), `MIGRATION_R96_WEB_PUSH.sql`·`SCHEMA.sql`·`sql/README.md`·`TESTS.sql` 동기화. 협업 산출물 `artifacts/r96-rev07-webhook-config/iteration-01/`. `r105` 기록을 보관 문서로 이동함.
+
 ## 2026-11-24 (Run `r105-dashboard-summary-bar` 완료 — `main` 병합 `fe5bf77`)
 
 - **대시보드 상태바 개편(`R105`)**: 홈 상단 `dashboard-summary`를 4칸 인터랙티브 카드(① `오늘 일정` 클릭 시 오늘 선택·모바일 드로어 열기, ② `이번 주 관심 일정` 클릭 시 주차별 리스트·`관심 일정만` 전환, ③ `이번 주 예정 지출` `/dashboard/expenses` 링크, ④ `이번 달 예산 잔여`·소진율 `%`·경과율 마커 페이스 바 및 `/dashboard/expenses` 링크)로 개편함.

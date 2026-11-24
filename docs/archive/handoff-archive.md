@@ -6,6 +6,26 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 직전 완료 Run 기록: `r105-dashboard-summary-bar`
+
+- **Run ID**: `r105-dashboard-summary-bar` **(완료, `main` 병합 `fe5bf77`, 2026-11-24)** *(`R105`: 대시보드 홈 상단 상태바를 컴팩트 KPI + 월간 예산 페이스 연동 바로 개편)*
+- **Orchestrator & Reviewer**: Gemini 4 Hydrogen *(2026-11-24 등록·리뷰·병합 마감)*
+- **Worktree 경로**: `.worktrees/r105-dashboard-summary-bar` (브랜치: `collab/r105-dashboard-summary-bar`, 매니페스트: `artifacts/r105-dashboard-summary-bar/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `d1e18b42e021d8eeefe4dc0795be421d0a450a29`
+- **Target SHA**: `3271d5d0e6c0ed00dfa8b3a7deca8cf4b11d20c1` *(iteration-01 리뷰 clean, 산출물 `e363cc4`, `main` 병합 `fe5bf77`)*
+- **DB 변경**: 없음. 🐳 Docker 불필요.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: 3271d5d)`** | **Claude Sonnet** *(Fallback: Gemini 4 Hydrogen / GitHub Copilot)* | `Maker (R105 대시보드 상태바 개편 & Vitest)` | 상태바 4칸 인터랙티브 카드·월간 예산 페이스 바·클릭 연계 구현 및 Vitest 8건 보강. tsc·lint·Vitest 76파일/1021개 통과 |
+| **2** | **`✅ DONE (산출물 e363cc4, main 병합 fe5bf77)`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet / GitHub Copilot)* | `Reviewer & Orchestrator` | Base `d1e18b4` ↔ Target `3271d5d` 정적 리뷰 **clean**(지적 0건). tsc·lint·Vitest 76파일/1021개·`next build`(16페이지) 통과 후 `main` 병합 `fe5bf77` 및 병합 후 검증 통과 |
+
+#### 📝 `r105-dashboard-summary-bar` Step 2 완료 기록 (Gemini 4 Hydrogen, 2026-11-24)
+
+- **리뷰 범위·독립성**: Base `d1e18b42e021d8eeefe4dc0795be421d0a450a29` ↔ Target `3271d5d0e6c0ed00dfa8b3a7deca8cf4b11d20c1`. 범위 검사(`merge-base --is-ancestor`·`Target..HEAD`의 `src`·`sql` 변경 0건) 통과, Maker(Claude Sonnet)와 다른 모델로 독립 리뷰함.
+- **정적 리뷰 (`clean`, 지적 0건)**: `src/app/dashboard/page.tsx`·`page.test.tsx` 2개 허용 파일만 변경. 4칸 카드(오늘 일정·이번 주 관심/진행 일정·이번 주 예정 지출·월 예산 잔여 페이스 바), 80%/100% 초과 색·폭 상한, 비로그인/미설정 폴백, 접근성(`aria-label`, `<button>`/`<Link>`, `progressbar`) 모두 수용 기준과 일치함.
+- **산출물·검증**: `artifacts/r105-dashboard-summary-bar/iteration-01/review.json`·`test.json`, `run.json` 갱신 후 워크트리 커밋 `e363cc4` (이 PC Python에 `jsonschema` 모듈 미설치로 `json.load` + 스키마 대조 검증). 워크트리 `tsc`·`lint`·Vitest 76파일/1021개·`next build` 통과 후 `main` 병합(`fe5bf77`), 병합 후 `main`에서 `tsc`·`lint`·Vitest 76파일/1021개 재통과 확인함. 실브라우저(모바일 드로어·반응형) 확인 및 워크트리 정리는 사용자 선택 대기.
+
 ### 🗂️ 직전 완료 Run 기록: `r102-expense-presets`
 
 - **Run ID**: `r102-expense-presets` **(완료, `main` 병합 `9ff2ae6`, 2026-11-24)** *(`R102` 자주 쓰는 과금 프리셋 사용자 DB 저장: `public.user_expense_presets` 최대 20개 + `ExpenseModal` 상단 칩 원클릭 적용·**`[프리셋 저장]`**·삭제 — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](../r101-r103-budget-presets-shortcuts-spec.md) §3, `r96-web-push`와 병행)*

@@ -148,3 +148,11 @@
     - 증상: 로컬 PostgreSQL이나 세션 내 `set_config('app.settings.*', ..., true)`는 동작하지만, 호스팅 Supabase SQL Editor에서 `ALTER DATABASE postgres SET app.settings.send_notifications_url = ...` 실행 시 `ERROR: 42501: permission denied to set parameter`가 발생함(2026-11-24, `R96-REV-07`).
     - 원인: 호스팅 Supabase의 `postgres` 역할은 진정한 PostgreSQL `SUPERUSER`(`supabase_admin`)가 아니므로 임의 커스텀 GUC(`app.settings.*`)를 DB 전역 수준에 영속 설정할 권한이 없음.
     - 방어책: DB 전역 영속 설정이나 내부 웹훅 시크릿은 `ALTER DATABASE ... SET`에 의존하지 않고, `PUBLIC, anon, authenticated, service_role` 모두로부터 권한을 회수(`REVOKE ALL`)하고 무정책 RLS를 켠 단일 행 설정 테이블(`public.push_webhook_config`) + 소유자 전용 등록 함수(`public.set_push_webhook_config`) 또는 Supabase Vault(`vault.decrypted_secrets`)에 보관하며, `current_setting('app.settings.*', true)`는 로컬 `TESTS.sql`의 세션 단위 오버라이드 폴백으로만 유지함.
+43. **Git Bash에서 `docker exec ... psql -f /tmp/<file>` 경로 변환**
+    - 증상: 컨테이너에 복사한 `/tmp/SCHEMA.sql`을 `psql`이 `C:/Users/.../AppData/Local/Temp/SCHEMA.sql: No such file or directory`로 못 찾음(2026-11-24).
+    - 원인: Git Bash(MSYS)가 `/tmp/...` 인자를 Windows 경로로 자동 변환함.
+    - 방어책: `export MSYS_NO_PATHCONV=1`을 먼저 설정하고, 호스트 쪽 `docker cp` 원본은 `cygpath -w`로 Windows 경로를 넘김. PowerShell에서 실행하면 해당 없음.
+44. **워크트리 `npm run build` 실패 (`Missing NEXT_PUBLIC_SUPABASE_URL`)**
+    - 증상: `.worktrees/<run>`에서 빌드 시 정적 export 프리렌더가 Supabase 환경 변수 누락으로 실패함.
+    - 원인: `.env.local`은 Git 추적 대상이 아니라 워크트리에 없음(`src/lib/supabase/client.ts`가 import 시 throw).
+    - 방어책: 실제 키를 복사하지 않고 더미 공개 값(`NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321`, `NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key`)을 명령 앞에 붙여 빌드하고 `test.json`에 placeholder env임을 적음.

@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## `R96-REV-07` Run `r96-rev07-webhook-config` Step 3 리뷰·병합 완료 (2026-11-24)
+
+- **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.
+- **결과**: 정적 리뷰 clean(지적 0건), 산출물 `bf3d370`, `main` 병합 `7445447`. 활성 Run 없음.
+- **검증**: 🐳 로컬 업그레이드·신규 설치 2경로 멱등·`TESTS.sql` 44개 PASS, `net.http_post` 스텁으로 3단계 조회 우선순위 확인, tsc·lint·Vitest 76파일/1021개·build 통과(병합 후 재통과).
+- **다음 단계**: 사용자가 운영 SQL Editor에서 `MIGRATION_R96_WEBHOOK_CONFIG.sql` 적용 + `set_push_webhook_config` 등록 → `NEXT_PUBLIC_VAPID_PUBLIC_KEY` 반영 → 실기기 확인.
+
 ## `R96-REV-07` Run `r96-rev07-webhook-config` Step 2 DB/마이그레이션/테스트 구현 완료 (2026-11-24)
 
 - **수행 주체**: Gemini 4 Neon (`GPT Codex` 1순위 대체, `Maker`)임.
