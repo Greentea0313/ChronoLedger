@@ -266,6 +266,7 @@
 - [ ] R101-REV-001. [P4 · 선택 후속 · 2026-11-24 리뷰] `src/lib/budget-calculations.ts` `calculateMonthBudgetBreakdown`이 `CANCELLED` 지출을 템플릿 "생성됨" 판정에서 제외해, 활성 월간 템플릿의 그 달 회차를 취소하면 고정 구독 예정액이 다시 더해짐(예상 총 지출 과대 표시). 취소된 같은 달 `template_id`도 `coveredTemplateIds`에만 넣거나(금액 제외) 취소 달 표시 정책을 명세에 확정하고 단위 테스트를 추가함(DB 변경 없음, 담당: Claude Sonnet)
 - [ ] R104. [⏸️ 보류 (2026-11-24 사용자 결정, 직접 호출 시에만 재검토)] 단기(1~2개월) 픽업 재화·과금 계산기(게임별 천장 시스템 차이 검토 안건)
 - [x] R105. [Run `r105-dashboard-summary-bar` 완료·`main` 병합 `fe5bf77`(2026-11-24, 정적 리뷰 clean, `tsc`·`lint`·Vitest 76파일/1021개·`next build` 통과) · DB 변경 없음] 대시보드 홈 상태바(`dashboard-summary`)를 컴팩트 KPI + 월간 예산 페이스 연동 바(오늘 일정·이번 주 관심 일정·이번 주 예정 지출·이번 달 예산 잔여/소진율)로 개편
+- [ ] R106. [Chief Architect 명세 확정(2026-11-25) · Run `r106-notification-delete` 등록 대기(`▶ READY`: `Gemini 4 Hydrogen`) · DB/RPC 변경 → Codex/Neon/Opus] 앱 내 알림함(`NotificationBell`) 알림 직접 삭제 기능: `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL)` `SECURITY DEFINER` RPC(본인 알림 개별·전체 하드 `DELETE`, 비로그인·계정 삭제 대기 차단, 테이블 직접 `DELETE` 미부여) + 알림 항목별 개별 삭제 버튼 및 헤더 `'전체 삭제'` 버튼 — 확정 명세 [`docs/push-notification-research.md`](push-notification-research.md) §12 (담당: Step 1 GPT Codex / Gemini 4 Neon DB → Step 2 Gemini 4 Hydrogen / Claude Sonnet UI → Step 3 Claude Opus 통합 리뷰)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---

@@ -7,12 +7,19 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 과제**: **`알림 직접 삭제 기능` (`📐 SPEC_NEEDED` — Chief Architect 설계·RLS/RPC·수용 기준 확정 대기)** *(수신한 알림을 사용자가 직접 삭제할 수 있는 버튼 추가 요청에 따른 `public.notifications` 삭제 권한·RPC/RLS 및 예약 알림 재발송 방지 설계 필요)*
+- **활성 과제**: **`R106` 알림 직접 삭제 기능 (`r106-notification-delete`) — Chief Architect 설계·수용 기준 확정 완료, Orchestrator Run 등록 대기 (`▶ READY`)** *(확정 명세: [`docs/push-notification-research.md`](push-notification-research.md) §12 — `public.delete_notifications(UUID[])` `SECURITY DEFINER` RPC 하드 삭제 + `NotificationBell` 항목별 개별 삭제 버튼 및 헤더 `'전체 삭제'` 버튼)*
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **0** | **`📐 SPEC_NEEDED`** | **Gemini 4 Argon** *(Fallback 1: Claude Opus / Gemini 4 Neon, Fallback 2: Gemini 4 Hydrogen)* | `Chief Architect` | 아래 **요구사항 접수 기록 (`알림 직접 삭제`)**을 검토해 제품·보안 설계 결정, 명세 문서(`docs/push-notification-research.md` 등) 및 단계별 수용 기준을 확정(`src/**`·`sql/**` 직접 수정 금지)하고, Row 1(`Gemini 4 Hydrogen`)을 `▶ READY`로 전환함 | 대기 중 |
-| **1** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback 1: Gemini 4 Neon / Claude Sonnet, Fallback 2: GitHub Copilot)* | `Orchestrator (Run 등록 및 워크트리 생성)` | Row 0 확정 후 착수. 깨끗한 `main`에서 `New-CollaborationRun.ps1`로 격리 워크트리 생성 및 Maker/Reviewer 큐(`▶ READY`) 등록함 | 대기 중 |
+| **0** | **`✅ DONE (2026-11-25)`** | **Gemini 4 Argon** *(Fallback 1: Claude Opus / Gemini 4 Neon, Fallback 2: Gemini 4 Hydrogen)* | `Chief Architect` | **요구사항 접수 기록 (`알림 직접 삭제`)** 검토, 사용자 질문 카드(개별 삭제 + 헤더 `'전체 삭제'`) 확정, [`docs/push-notification-research.md`](push-notification-research.md) §12(`R106`) 명세·단계별 수용 기준 작성 및 Row 1(`Gemini 4 Hydrogen`) `▶ READY` 전환 | [`docs/push-notification-research.md`](push-notification-research.md) §12, `docs/to-do.md` `R106` |
+| **1** | **`▶ READY`** | **Gemini 4 Hydrogen** *(Fallback 1: Gemini 4 Neon / Claude Sonnet, Fallback 2: GitHub Copilot)* | `Orchestrator (Run 등록 및 워크트리 생성)` | Row 0 미커밋 `docs/` 변경사항을 `main`에 선행 커밋해 깨끗한 `main`을 만든 뒤, `New-CollaborationRun.ps1 -RunId "r106-notification-delete"`로 격리 워크트리(`.worktrees/r106-notification-delete`)를 생성하고 [`docs/push-notification-research.md`](push-notification-research.md) §12.4의 Step 1(`GPT Codex` DB/RPC/Migration/Tests & Types, 🐳)`▶ READY` $\to$ Step 2(`Gemini 4 Hydrogen` UI & Vitest)`⏳ WAITING` $\to$ Step 3(`Claude Opus` 통합 리뷰·로컬 DB 검증·병합, 🐳)`⏳ WAITING` 큐를 등록함 | 대기 중 |
+
+#### 📝 `R106` Chief Architect 설계 결정 및 수용 기준 확정 기록 (Gemini 4 Argon, 2026-11-25)
+
+- **사용자 결정 확정 (질문 카드)**: 상단 벨 알림함(`NotificationBell` 팝오버)에 **항목별 개별 삭제 버튼**과 **상단 헤더 `'전체 삭제'` 버튼**(`'모두 읽음'` 옆)을 함께 제공함.
+- **보안 경계 및 RPC 설계 ([`docs/push-notification-research.md`](push-notification-research.md) §12.2)**: `public.notifications` 테이블의 클라이언트 직접 쓰기 차단(`authenticated`는 `SELECT`만 허용)을 유지하고, `mark_notifications_read(UUID[])`와 대칭인 `SECURITY DEFINER` RPC `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL) RETURNS INTEGER`(`SET search_path = public`, 비로그인·`account_deletion_is_pending` 시 `insufficient_privilege` 거부, 본인 소유 알림 선택/전체 하드 `DELETE` 후 삭제 행 수 반환)를 신설함.
+- **예약 알림 중복 방지 정합성**: `enqueue_daily_notifications()`는 하루 1회(`0 0 * * *` UTC = KST 09:00) 실행 시점의 단일 날짜(`v_today` / `v_tomorrow`) 일치 조건만 조회하므로, 수신 후 하드 `DELETE`된 알림은 다음 날 배치에서 재삽입되지 않음(소프트 삭제 컬럼 불필요). 미발송(`PENDING`) 알림 삭제 시 발송 대기열에서도 즉시 제외됨.
+- **UI·접근성 및 단계별 수용 기준 ([`docs/push-notification-research.md`](push-notification-research.md) §12.3·§12.4)**: `<li>` 내 알림 이동 버튼과 개별 삭제 버튼(`data-testid="notification-delete-button"`, `aria-label="${item.title} 알림 삭제"`)을 형제(sibling) `<button>`으로 분리(버튼 중첩 금지)하고 오프라인 가드·오류 알림(`role="alert"`)을 적용함. Run `r106-notification-delete`를 Step 1(`GPT Codex` DB/RPC/Tests/Types, 🐳) $\to$ Step 2(`Gemini 4 Hydrogen` UI/Vitest) $\to$ Step 3(`Claude Opus` 통합 리뷰·🐳 로컬 DB 게이트·병합)으로 분할하고 Row 1(`Gemini 4 Hydrogen` Orchestrator)을 `▶ READY`로 전환함.
 
 #### 📥 요구사항 접수 기록 (알림 직접 삭제 기능 — `Gemini 4 Hydrogen` 접수, 2026-11-25)
 

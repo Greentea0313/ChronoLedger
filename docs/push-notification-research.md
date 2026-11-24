@@ -366,3 +366,66 @@ pg_cron 일일 스캔 함수   ─┐
 - **Step 2 (`Claude Opus`, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon` — `Reviewer & Orchestrator`)**:
   - 🐳 **Docker Desktop 필요** (로컬 DB 2회 멱등 적용 및 `TESTS.sql` 실행 병합 게이트).
   - Base $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`), 로컬 Supabase에서 `SCHEMA.sql` + `MIGRATION_R96_WEB_PUSH.sql` + `MIGRATION_R96_WEBHOOK_CONFIG.sql` 각 2회 멱등 적용 및 `TESTS.sql` 전체 PASS 검증(`test.json`), `main` 병합, 운영 DB 적용 안내(`MIGRATION_R96_WEBHOOK_CONFIG.sql` + `SELECT public.set_push_webhook_config(...)`) 및 문서 마감.
+
+---
+
+## 12. R106 알림 직접 삭제 확정 명세 및 단계별 수용 기준 (2026-11-25 Chief Architect 확정)
+
+- **작성**: Gemini 4 Argon (`Chief Architect`, `📐 SPEC_NEEDED` 구체화), 2026-11-25
+
+### 12.1 사용자 확정 결정 사항 (2026-11-25 질문 카드 확정)
+
+1. **알림 삭제 UI 구성 범위**: 상단 벨 알림함(`NotificationBell` 팝오버)에 **① 알림 항목별 개별 삭제 버튼**과 **② 상단 헤더 `'전체 삭제'` 버튼**(`'모두 읽음'` 버튼 옆)을 함께 제공함.
+2. **DB 삭제 방식**: `public.notifications` 테이블의 클라이언트 직접 쓰기 차단 원칙(`authenticated`는 `SELECT` 전용)을 유지하고, `public.mark_notifications_read(UUID[])`와 대칭인 `SECURITY DEFINER` RPC `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL) RETURNS INTEGER`를 통해 하드 `DELETE`로 처리함.
+
+### 12.2 DB 스키마·RLS·RPC 및 예약 알림 정합성 명세 (`sql/migrations/MIGRATION_R106_NOTIFICATION_DELETE.sql`)
+
+1. **권한 경계 유지 (`public.notifications`)**:
+   - `public.notifications` 테이블은 기존 `R84` 설계대로 `REVOKE ALL ON public.notifications FROM PUBLIC, anon, authenticated; GRANT SELECT ON public.notifications TO authenticated;`를 그대로 유지하며, `authenticated` 역할에 직접 `DELETE` 권한이나 `DELETE` RLS 정책을 열지 않음.
+2. **알림 삭제 `SECURITY DEFINER` RPC (`public.delete_notifications`)**:
+   - 시그니처: `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL) RETURNS INTEGER` (`LANGUAGE plpgsql SECURITY DEFINER SET search_path = public`)
+   - 권한: `REVOKE ALL ON FUNCTION public.delete_notifications(UUID[]) FROM PUBLIC, anon; GRANT EXECUTE ON FUNCTION public.delete_notifications(UUID[]) TO authenticated;`
+   - 검증 및 동작:
+     - `v_user_id := auth.uid();`가 `NULL`이면 `RAISE EXCEPTION '로그인이 필요합니다.' USING ERRCODE = 'insufficient_privilege';` 발생.
+     - `public.account_deletion_is_pending(v_user_id)`가 `true`이면 `RAISE EXCEPTION '계정 삭제 대기 중에는 알림을 삭제할 수 없습니다.' USING ERRCODE = 'insufficient_privilege';` 발생.
+     - `p_notification_ids IS NULL`이면 `DELETE FROM public.notifications WHERE user_id = v_user_id;`로 본인 알림 전체를 삭제함.
+     - `p_notification_ids IS NOT NULL`이면 `DELETE FROM public.notifications WHERE user_id = v_user_id AND id = ANY(p_notification_ids);`로 본인 소유 알림 중 일치하는 행만 삭제함(타인 알림 ID는 무시되며, 빈 배열 `'{}'::uuid[]` 전달 시 0건 삭제).
+     - `GET DIAGNOSTICS v_deleted_count = ROW_COUNT; RETURN v_deleted_count;`로 실제 삭제된 행 수를 반환함.
+3. **일일 정기 알림 중복 방지(`uq_notifications_daily_source`) 및 웹 푸시 워커 정합성**:
+   - `public.enqueue_daily_notifications()`는 하루 1회(`0 0 * * *` UTC = KST 09:00) 실행되며, 실행 당일의 `v_today`(`FAVORITE_START`: `s.start_date = v_today`) 및 `v_tomorrow`(`FAVORITE_END_D1`: `s.end_date = v_tomorrow`, `EXPENSE_D1`: `e.target_date = v_tomorrow`) 단일 날짜 일치 조건으로만 행을 생성함.
+   - 사용자가 KST 09:00 이후 수신한 알림을 하드 `DELETE`하더라도 다음 날 KST 09:00 배치에서는 `v_today`·`v_tomorrow`가 `+1일` 이동하므로 이미 삭제한 알림이 재삽입되지 않음. 따라서 소프트 삭제 컬럼(`deleted_at`) 추가 없이 하드 `DELETE`로 즉시 정리함.
+   - 아직 발송되지 않은(`push_status = 'PENDING'`) 알림이 삭제되면 발송 대기열에서도 즉시 제거됨.
+
+### 12.3 클라이언트 UI·접근성·오프라인 가드 명세 (`src/components/layout/notification-bell.tsx`)
+
+1. **상단 헤더 (`모두 읽음` + `전체 삭제`)**:
+   - 알림함 팝오버 헤더 우측 액션 영역에 기존 `'모두 읽음'`(`disabled={unreadCount === 0}`) 옆에 `'전체 삭제'` 버튼(`type="button"`, `disabled={items.length === 0}`)을 배치함.
+   - 클릭 시 `deleteNotifications(null)`을 호출해 `supabase.rpc("delete_notifications", { p_notification_ids: null })` 성공 후 `setItems([])`로 목록과 미읽음 배지를 즉시 비움.
+2. **항목별 개별 삭제 버튼 및 비중첩 마크업**:
+   - 유효한 HTML 및 스크린리더 접근성을 위해 `<li key={item.id}>` 내부에서 알림 본문 클릭 버튼(`data-testid="notification-item"`)과 개별 삭제 버튼(`data-testid="notification-delete-button"`)을 **형제(sibling) `<button>` 요소**로 분리함(버튼 내부에 버튼 중첩 금지).
+   - 개별 삭제 버튼은 `type="button"`, `data-testid="notification-delete-button"`, `aria-label={`${item.title} 알림 삭제`}` 속성을 가지며, 클릭 시 `handleSelect`(읽음 처리 및 `router.push`)를 호출하지 않고 `deleteNotifications([item.id])`만 실행함.
+   - 성공 시 `setItems((prev) => prev.filter((item) => !ids.includes(item.id)))`로 해당 항목만 즉시 제거하며, 미읽음 항목이 삭제된 경우 `unreadCount` 배지도 자동 갱신됨.
+3. **오프라인 가드 및 오류 메시지**:
+   - `isOffline()` 상태에서 삭제 시도 시 RPC를 호출하지 않고 `setError("오프라인 상태에서는 알림을 삭제할 수 없습니다.")`를 `role="alert"` 영역에 표시함.
+   - RPC 오류 또는 예외 발생 시 기존 목록을 유지하고 `setError("알림 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.")`를 `role="alert"` 영역에 표시함.
+
+### 12.4 `r106-notification-delete` 단계별 수용 기준 (Dispatch Queue 등록용)
+
+- **Step 1 (`GPT Codex`, Fallback 1: `Gemini 4 Neon` / `Claude Opus`, Fallback 2: `Gemini 4 Hydrogen` — `Maker: R106 DB/RPC/Migration/Tests & Types`)**:
+  - 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관).
+  - 허용 파일: 신규 `sql/migrations/MIGRATION_R106_NOTIFICATION_DELETE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md`.
+  - 수용 기준:
+    1. §12.2의 `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL) RETURNS INTEGER`(`SECURITY DEFINER SET search_path = public`, `REVOKE ALL FROM PUBLIC, anon`, `GRANT EXECUTE TO authenticated`, 비로그인·계정 삭제 대기 사용자 `insufficient_privilege` 차단, 본인 알림 선택/전체 하드 `DELETE` 및 삭제 행 수 반환)를 신규 `sql/migrations/MIGRATION_R106_NOTIFICATION_DELETE.sql` 및 `sql/SCHEMA.sql`에 반영함(`public.notifications`의 `authenticated` 직접 `DELETE` 권한은 부여하지 않음).
+    2. `sql/README.md` B표에 `MIGRATION_R106_NOTIFICATION_DELETE.sql` 행과 확인 쿼리(`delete_notifications` 존재·`prosecdef = true`, `anon` EXECUTE `false` / `authenticated` EXECUTE `true`, `notifications` 테이블 `authenticated` `DELETE` 권한 `false`)를 추가함.
+    3. `sql/tests/TESTS.sql`에 `R106` 스모크 블록(상단 헤더 표 포함)을 추가함: ① 본인 알림 선택 삭제(`ARRAY[id]`) 및 타인 알림 ID 혼입 시 타인 알림 보존, ② 전체 삭제(`NULL`) 시 본인 알림 0건 및 타인 알림 보존, ③ `public.notifications` 테이블 직접 `DELETE` 시도 시 `insufficient_privilege` 거부, ④ `anon` 역할의 `delete_notifications` 호출 거부, ⑤ 계정 삭제 대기 사용자의 `delete_notifications` 호출 거부 단언.
+    4. `src/types/database.types.ts`의 `public.Functions`에 `delete_notifications` 타입(`Args: { p_notification_ids?: string[] | null }`, `Returns: number`)을 추가하고 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과.
+- **Step 2 (`Gemini 4 Hydrogen`, Fallback 1: `Claude Sonnet` / `Gemini 4 Neon`, Fallback 2: `GitHub Copilot` — `Maker: NotificationBell 삭제 UI & Vitest`)**:
+  - 허용 파일: `src/components/layout/notification-bell.tsx`, `src/components/layout/notification-bell.test.tsx`, 루트 `docs/handoff.md`, `docs/progress.md`.
+  - 수용 기준:
+    1. §12.3에 따라 `NotificationBell` 팝오버 헤더에 `'전체 삭제'` 버튼(`items.length === 0`이면 `disabled`, 클릭 시 `delete_notifications` RPC `p_notification_ids: null` 호출 및 목록 비움)을 추가함.
+    2. 각 알림 항목(`<li>`) 내부에 알림 선택 버튼(`data-testid="notification-item"`)과 형제(sibling) 요소로 개별 삭제 버튼(`data-testid="notification-delete-button"`, `aria-label="${item.title} 알림 삭제"`, 클릭 시 라우터 이동·읽음 처리 없이 `delete_notifications` RPC `p_notification_ids: [item.id]` 호출 후 해당 항목 제거)을 구현함.
+    3. 오프라인(`isOffline()`) 시 `"오프라인 상태에서는 알림을 삭제할 수 없습니다."` 및 RPC 오류 시 `"알림 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요."`를 `role="alert"`로 표시하고 기존 목록을 유지함.
+    4. `notification-bell.test.tsx`에 개별 삭제(미읽음 배지 감소·라우터 미호출), 전체 삭제(빈 상태 전환·버튼 비활성화), 삭제 실패 시 목록 보존·경고 표시, 오프라인 삭제 차단 테스트를 추가하고 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과.
+- **Step 3 (`Claude Opus`, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon` — `Reviewer & Orchestrator`)**:
+  - 🐳 **Docker Desktop 필요** (로컬 DB 2회 멱등 적용 및 `TESTS.sql` 실행 병합 게이트).
+  - Base $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`), 로컬 Supabase 업그레이드·신규 설치 2경로 멱등 적용 및 `TESTS.sql` 전체 PASS 검증(`test.json`), `next build` 통과 후 `main` 병합, 운영 DB 적용 안내(`MIGRATION_R106_NOTIFICATION_DELETE.sql`) 및 문서 마감.

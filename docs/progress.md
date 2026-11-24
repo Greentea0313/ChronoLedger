@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## `R106` 알림 직접 삭제 기능 Chief Architect 설계 및 수용 기준 확정 (2026-11-25)
+
+- **수행 주체**: Gemini 4 Argon (`Chief Architect`, Row 0)임.
+- **결과**: 사용자 질문 카드(항목별 개별 삭제 버튼 + 상단 헤더 `'전체 삭제'` 버튼 함께 제공)를 반영해 [`docs/push-notification-research.md`](push-notification-research.md) §12에 `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL) RETURNS INTEGER` `SECURITY DEFINER` RPC(하드 `DELETE`, `public.notifications` 직접 `DELETE` 권한 미부여, 비로그인·계정 삭제 대기 차단, 일일 알림 `enqueue_daily_notifications` 재삽입 없음 검증)와 `NotificationBell` 형제(sibling) `<button>` 접근성 구조·오프라인 가드 및 Run `r106-notification-delete` 단계별 수용 기준(Step 1 `GPT Codex` DB $\to$ Step 2 `Gemini 4 Hydrogen` UI $\to$ Step 3 `Claude Opus` 통합 리뷰)을 확정함.
+- **다음 단계**: **Gemini 4 Hydrogen**(Fallback 1: `Gemini 4 Neon` / `Claude Sonnet`, Fallback 2: `GitHub Copilot`)이 Row 1(`▶ READY`)에서 미커밋 `docs/` 선행 커밋 후 `New-CollaborationRun.ps1 -RunId "r106-notification-delete"`로 격리 워크트리 및 Dispatch Queue를 등록함.
+
 ## `R96` 운영 배포 완료 확인 및 안드로이드 푸시 배지 수정 (`main` 직접 수정, 2026-11-25)
 
 - **수행 주체**: Claude Opus임(사용자 보고 기반 `main` 직접 수정).
