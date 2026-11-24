@@ -20,13 +20,13 @@
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
 | `R39` | 완료 (`r39-daily-notifications`, `main` 병합 `9ae05f9`, 2026-11-24) | 운영 DB 적용·확인 쿼리 완료(사용자, 2026-11-24). 실브라우저·KST 09:00 알림 생성 확인 대기. P4 후속 `R39-REV-01`(타입 전용) | `docs/to-do.md` R39, 아래 직전 완료 Run 기록 |
-| `R96` | 완료 (`r96-web-push`, `main` 병합 `18d5f0c`, 2026-11-24) | 운영 DB 마이그레이션·Edge Function 배포·시크릿·DB 설정값·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 설정 대기(사용자, §11.5). P3 `R96-REV-07`·P4 2건 후속 | `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
+| `R96` | 완료 (`r96-web-push`, `main` 병합 `18d5f0c`, 2026-11-24) | 운영 DB 적용·확인 쿼리 완료(사용자, 2026-11-24). Edge Function 배포·시크릿·DB 설정값·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 설정 대기(사용자, §11.5). P3 `R96-REV-07`·P4 2건 후속 | `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
 | `R97` | 완료 (`r97-tauri-notifications`, `main` 병합 `d350267`, 2026-11-23) | 엣지 케이스 보완 병합 및 `npm run tauri dev` 실기기 OS 토스트 수신 확인 완료(개발 실행 시 발신 앱 `Windows PowerShell` 표기). 선택 후속 `R97-REV-001`(P4)이 `docs/to-do.md`에 있음 | [`docs/archive/handoff-archive.md`](archive/handoff-archive.md) |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |
 | `R101`+`R103` | 완료 (`r101-r103-two-month-budget-and-shortcuts`, `main` 병합 `c942e1e`, 2026-11-24) | 당월·익월 예산 비교 카드와 데스크톱 단축키·빠른 시작 안내 병합 완료. 실브라우저 확인은 사용자 몫이고 선택 후속 `R101-REV-001`(P4)이 `docs/to-do.md`에 있음 | 아래 직전 완료 Run 기록 |
-| `R102` | 완료 (`r102-expense-presets`, `main` 병합 `9ff2ae6`, 2026-11-24) | 운영 DB 마이그레이션 수동 적용(R96 다음)·실브라우저 확인 대기(사용자) | `docs/to-do.md` R102 |
+| `R102` | 완료 (`r102-expense-presets`, `main` 병합 `9ff2ae6`, 2026-11-24) | 운영 DB 적용(R96 다음)·확인 쿼리 완료(사용자, 2026-11-24). 실브라우저 확인 대기 | `docs/to-do.md` R102 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 
 ### 🗂️ 직전 완료 Run 기록: `r102-expense-presets`
@@ -36,7 +36,7 @@
 - **Worktree 경로**: `.worktrees/r102-expense-presets` (브랜치: `collab/r102-expense-presets`, 매니페스트: `artifacts/r102-expense-presets/run.json`)
 - **Base SHA**: `052e53acdd7d22031bcee020487f91bd37718ad5`
 - **Target SHA**: `56e4ab8234218b6085968687a108859481df4497` *(iteration-02, 산출물 `dd1beb7`, `main` 병합 `9ff2ae6`. iteration-01 `bffa1e4`, Step 1 DB `a6a36ed`)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql`, `sql/SCHEMA.sql`). `LOCAL_DB_DEFERRED`는 Step 3에서 🐳 로컬 DB 검증으로 해소함. **운영 DB 적용은 R96 다음 순서로 사용자 수동 적용 대기**.
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql`, `sql/SCHEMA.sql`). `LOCAL_DB_DEFERRED`는 Step 3에서 🐳 로컬 DB 검증으로 해소함. 운영 DB 적용(R96 → R102)·README 확인 쿼리 기대값 확인 완료(사용자, 2026-11-24).
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
