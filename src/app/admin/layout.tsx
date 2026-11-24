@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
+import { unsubscribeCurrentDevicePush } from '@/lib/push-notifications'
 import { supabase } from '@/lib/supabase/client'
 import { AccountDeletionStatusScreen } from '@/components/auth/account-deletion-status'
 import { Topbar } from '@/components/layout/topbar'
@@ -35,6 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setLogoutError(null)
 
     try {
+      await unsubscribeCurrentDevicePush()
       const { error } = await supabase.auth.signOut()
       if (error) {
         setLogoutError(`로그아웃하지 못했습니다: ${error.message}`)
