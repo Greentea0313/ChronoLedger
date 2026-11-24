@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r96-web-push",
+    "created_at":  "2026-11-24T01:01:38.7840293+00:00",
+    "objective":  "Implement R96 Web Push external delivery (push_subscriptions, RPCs, pg_net webhook, Edge Function, SW push, logout cleanup, Settings UI)",
+    "acceptance_criteria":  [
+                                "Step 1 (GPT Codex): Implement R96 DB schema (push_subscriptions, RLS, deletion blocks), 4 SECURITY DEFINER RPCs, pg_net webhook trigger, README/TESTS.sql, and database.types.ts per docs/push-notification-research.md §11.2 \u0026 §11.4",
+                                "Step 2 (Gemini 4 Neon): Implement Web Crypto RFC 8291/8292 module, send-notifications Edge Function, sw.js v6 push/click handlers, push-notifications client + logout cleanup, NotificationSettingsCard extension, and Vitest tests per §11.3 \u0026 §11.4",
+                                "Step 3 (Claude Opus): Integrated static review (review.json), Docker local DB idempotency + TESTS.sql verification (test.json), main merge, and docs closeout"
+                            ],
+    "base_sha":  "54a1224d7833566da43d0a41d6014bc459c84a0a",
+    "target_sha":  null,
+    "branch":  "collab/r96-web-push",
+    "worktree_path":  ".worktrees/r96-web-push",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
