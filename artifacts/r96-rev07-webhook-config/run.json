@@ -8,7 +8,7 @@
                                 "Step 2 (Reviewer \u0026 Orchestrator): Static review (review.json), 2x idempotent local DB migrations \u0026 TESTS.sql pass (test.json), merge to main, and close out docs."
                             ],
     "base_sha":  "91c7abd7b4b95a7bb02f536d1571529b2743e017",
-    "target_sha":  null,
+    "target_sha":  "1514343279d78d19d18c9df5a2723a9b2cb73113",
     "branch":  "collab/r96-rev07-webhook-config",
     "worktree_path":  ".worktrees/r96-rev07-webhook-config",
     "max_iterations":  3,
