@@ -87,7 +87,7 @@
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (2026-11-24)`** | **Gemini 4 Argon** *(Fallback: Claude Opus / Gemini 4 Neon)* | `Chief Architect (R101·R102·R103 명세·RLS·수용 기준 확정 및 R104 검토 정리)` | 아래 **요구사항 접수 기록**을 바탕으로 `R101`(2개월 예산 비교)·`R102`(DB 저장 과금 프리셋 테이블·RLS·탈퇴 정리)·`R103`(단축키·선택형 시작 안내) 공식 명세·Step별 수용 기준 확정 및 `R104`(게임별 천장 계산기) 검토 방향 정리 (`src/**` 직접 수정 금지). 허용 파일: 신규 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md), `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `✅` 질문 카드 4건 확정: ① DB 변경 없는 1차 Run(`R101`+`R103`) 우선 착수 후 2차 Run(`R102`) 분리, ② `R101` 익월 미생성 `MONTHLY_DAY` 정기 구독 고정비 포함 비교, ③ `R102` 지출 모달 칩 + **`[프리셋 저장]`** 버튼(최대 20개), ④ `R104` `⏸️ 보류`. 명세서 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) 작성 완료 |
-| **2** | **`▶ READY`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet)* | `Orchestrator (1차 Run r101-r103-two-month-budget-and-shortcuts 등록)` | [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2.3에 따라 DB 변경 없는 1차 Run **`r101-r103-two-month-budget-and-shortcuts`** 격리 워크트리(`New-CollaborationRun.ps1`) 생성 및 Dispatch Queue(Step 1 `Gemini 4 Hydrogen` `▶ READY`, Step 2 `Claude Sonnet` `⏳ WAITING`) 등록 수행 (`r96-web-push`는 Docker PC 검증 대기 상태로 병행 유지) | `▶ Step 1 명세 확정 완료. 1차 Run(R101+R103) 등록 대기` |
+| **2** | **`✅ DONE (2026-11-24)`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet)* | `Orchestrator (1차 Run r101-r103-two-month-budget-and-shortcuts 등록)` | [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2.3에 따라 DB 변경 없는 1차 Run **`r101-r103-two-month-budget-and-shortcuts`** 격리 워크트리(`New-CollaborationRun.ps1`) 생성 및 Dispatch Queue(Step 1 `Gemini 4 Hydrogen` `▶ READY`, Step 2 `Claude Sonnet` `⏳ WAITING`) 등록 수행 (`r96-web-push`는 Docker PC 검증 대기 상태로 병행 유지) | `✅` `.worktrees/r101-r103-two-month-budget-and-shortcuts`(Base `4fbf67f`) 생성 및 아래 병행 Run 등록 완료 |
 
 #### 📝 `R101` · `R102` · `R103` · `R104` Chief Architect 명세 확정 기록 (Gemini 4 Argon, 2026-11-24)
 
@@ -97,6 +97,26 @@
    - **`R101` 익월 산출 기준**: 익월 예산(미설정 시 `default_budget` 폴백) 대비 이미 등록된 익월 귀속 지출과 아직 익월 `PLANNED` 행이 생성되지 않은 활성 `MONTHLY_DAY` 정기 구독 예상 고정비(중복 템플릿 제외)를 합산해 당월·익월의 고정비·예정 지출·예상 잔여 예산을 나란히 비교함.
    - **`R102` 과금 프리셋**: `public.user_expense_presets`(사용자당 최대 20개 상한 트리거, 특정 게임 연결 또는 공통 `NULL`, 본인 CRUD RLS, 삭제 대기 차단·탈퇴 정리)에 저장하고, `ExpenseModal` 상단 칩 원클릭 적용·삭제 및 **`[프리셋 저장]`** 버튼으로 즉시 저장을 지원함.
    - **`R104` 천장 계산기**: **`⏸️ 보류`**로 결정함(사용자가 직접 호출할 때만 재검토).
+
+### 🚦 병행 활성 Run: `r101-r103-two-month-budget-and-shortcuts`
+
+- **Run ID**: `r101-r103-two-month-budget-and-shortcuts` *(`R101` 당월+익월 2개월 예산·고정 구독비 비교 뷰 + `R103` 데스크톱 키보드 단축키·선택형 빠른 시작 안내 — DB 변경 없음, `r96-web-push`와 병행)*
+- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-24 등록)*
+- **Worktree 경로**: `.worktrees/r101-r103-two-month-budget-and-shortcuts` (브랜치: `collab/r101-r103-two-month-budget-and-shortcuts`, 매니페스트: `artifacts/r101-r103-two-month-budget-and-shortcuts/run.json`)
+- **Base SHA**: `4fbf67f2a1e2ac47f0945aaa72011734f347e333`
+- **Target SHA**: *(Step 1 진행 전)*
+- **DB 변경**: 없음 (🐳 Docker 불필요)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Gemini 4 Hydrogen** *(Fallback 1: Claude Sonnet, Fallback 2: GitHub Copilot)* | `Maker (R101 2개월 예산 비교 + R103 단축키·빠른 시작 안내 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/lib/budget-calculations.ts`·`test.ts`, 신규 `src/components/finance/two-month-budget-card.tsx`·테스트, `src/app/dashboard/expenses/page.tsx`·`test.tsx`, 신규 `src/components/calendar/quick-start-guide.tsx`·테스트, `src/app/dashboard/page.tsx`·`test.tsx`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `▶ 신규 등록 — Step 1 착수 대기` |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Fallback 1: Gemini 4 Neon / Claude Opus)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`4fbf67f2a1e2ac47f0945aaa72011734f347e333`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `tsc`·`lint`·`vitest`·`next build`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+
+#### 📋 `r101-r103-two-month-budget-and-shortcuts` Step 1 수용 기준 ([`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2)
+
+1. **`R101` 2개월 예산·고정비 계산 및 UI**: `budget-calculations.ts`(`getNextMonthKey`·`calculateMonthBudgetBreakdown`·`calculateTwoMonthBudgetComparison` — 미생성 활성 `MONTHLY_DAY` 템플릿 중복 제외 합산, `INTERVAL_30`/`VERSION_PASS` 미생성분 제외) 및 `/dashboard/expenses` 상단 `TwoMonthBudgetCard` 2열 비교 뷰·테스트.
+2. **`R103` 빠른 시작 & 키보드 단축키**: `/dashboard` 상단 접이식 `QuickStartGuide`(`localStorage` 저장·`?` 토글, `FR-001` 비차단 준수) 및 단축키(`[`, `]`, `T`, `V`, `N`, `?` + 입력란·모달·IME 포커스 가드)·테스트.
+3. **검증 및 커밋**: `npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check` 통과 후 워크트리 커밋, `Target SHA` 기록 및 Step 2(`Claude Sonnet`) `▶ READY` 전환.
 
 ### 🗓️ 예약·보류·안건 요약 (자동 실행 대상 아님)
 
@@ -110,7 +130,7 @@
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |
-| `R101`+`R103` | **명세 확정 완료 · 1차 Run 등록 `▶ READY`** (`r101-r103-two-month-budget-and-shortcuts`) | 당월·익월 2개월 예산·고정 구독비 비교(`R101`) + 데스크톱 단축키·선택형 빠른 시작 안내(`R103`) — DB 변경 없음, `Gemini 4 Hydrogen` Run 등록 대기 | 위 `📐 Chief Architect 구체화 완료`, [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2 |
+| `R101`+`R103` | **진행 중 · 병행 활성 Run (`r101-r103-two-month-budget-and-shortcuts`)** | 당월·익월 2개월 예산·고정 구독비 비교(`R101`) + 데스크톱 단축키·선택형 빠른 시작 안내(`R103`) — Step 1(`Gemini 4 Hydrogen`) `▶ READY`, DB 변경 없음 | 위 병행 활성 Run 표, [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2 |
 | `R102` | **명세 확정 완료 · 2차 Run 예약** (`r102-expense-presets`) | `R101`+`R103` 완료 후 착수. `public.user_expense_presets`(최대 20개) + `ExpenseModal` 칩 원클릭 적용·**`[프리셋 저장]`**·삭제 (DB 변경, 🐳 Docker 필요) | [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3, `docs/to-do.md` `R102` |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 
