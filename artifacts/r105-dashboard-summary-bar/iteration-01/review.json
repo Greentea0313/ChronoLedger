@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r105-dashboard-summary-bar",
+  "iteration": 1,
+  "agent": "Gemini 4 Hydrogen",
+  "role": "static-review",
+  "base_sha": "d1e18b42e021d8eeefe4dc0795be421d0a450a29",
+  "target_sha": "3271d5d0e6c0ed00dfa8b3a7deca8cf4b11d20c1",
+  "status": "clean",
+  "created_at": "2026-11-24T22:18:10+09:00",
+  "findings": []
+}

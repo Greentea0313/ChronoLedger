@@ -1062,3 +1062,174 @@ describe("DashboardPage favourite schedules (R35)", () => {
   })
 
 })
+
+describe("DashboardPage summary bar (R105)", () => {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+
+  function setup(options: { signedIn?: boolean; budgetAmount?: number | null; favoriteRows?: { schedule_id: string }[] } = {}) {
+    const { signedIn = true, budgetAmount = 100000, favoriteRows = [] } = options
+    window.localStorage.setItem("chronoledger:quick-start-dismissed:user-1", "1")
+    useAuth.mockReturnValue({ user: signedIn ? { id: "user-1" } : null, isLoading: false })
+    ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+
+    const finance = createQueryBuilder()
+    finance.maybeSingle.mockResolvedValue({ data: { total_asset: 0, default_budget: 0 }, error: null })
+    const budget = createQueryBuilder()
+    budget.maybeSingle.mockResolvedValue({ data: budgetAmount === null ? null : { budget_amount: budgetAmount }, error: null })
+    const wallets = createQueryBuilder()
+    wallets.eq.mockResolvedValue({ data: [], error: null })
+    const schedules = createQueryBuilder()
+    schedules.gte.mockResolvedValue({
+      data: [
+        { id: "s1", title: "관심 픽업", schedule_type: "PICKUP", start_date: today, end_date: today, game_id: "game-1", is_official: true },
+        { id: "s2", title: "장기 콘텐츠", schedule_type: "CONTENTS", start_date: "2000-01-01", end_date: "2999-12-31", game_id: "game-1", is_official: true },
+      ],
+      error: null,
+    })
+    const memos = createQueryBuilder()
+    memos.lt.mockResolvedValue({ data: [], error: null })
+    const expenses = createQueryBuilder()
+    expenses.lt.mockResolvedValue({
+      data: [
+        { id: "e1", title: "확정 패키지", final_amount: 30000, status: "CONFIRMED", target_date: today, end_date: null, game_id: "game-1" },
+        { id: "e2", title: "예정 패키지", final_amount: 5000, status: "PLANNED", target_date: today, end_date: today, game_id: "game-1" },
+      ],
+      error: null,
+    })
+    const userGames = createQueryBuilder()
+    userGames.eq.mockResolvedValue({ data: [{ game_id: "game-1" }], error: null })
+    const favorites = { select: vi.fn().mockResolvedValue({ data: favoriteRows, error: null }), insert: vi.fn(), delete: vi.fn() }
+
+    from.mockImplementation((table: string) => {
+      switch (table) {
+        case "user_finances": return finance
+        case "monthly_budgets": return budget
+        case "store_wallets": return wallets
+        case "game_schedules": return schedules
+        case "personal_memos": return memos
+        case "expenses": return expenses
+        case "user_games": return userGames
+        case "user_favorite_schedules": return favorites
+        default: return createQueryBuilder()
+      }
+    })
+  }
+
+  async function renderPage() {
+    render(<DashboardPage />)
+    expect(await screen.findByLabelText("월간 캘린더")).toBeTruthy()
+  }
+
+  it("shows four interactive cards: today's schedules, this week, planned expense and the budget pace", async () => {
+    setup()
+    await renderPage()
+
+    const summary = screen.getByTestId("dashboard-summary")
+    expect(summary.className).toContain("grid-cols-2")
+    expect(summary.className).toContain("sm:grid-cols-4")
+    expect(summary.querySelectorAll("button, a")).toHaveLength(4)
+    expect(screen.getByTestId("summary-card-today").textContent).toContain("시작 1건 · 마감 1건")
+    expect(screen.getByTestId("summary-planned-week").textContent).toBe("5,000 원")
+    // Budget 100,000 - expected (30,000 confirmed + 5,000 planned) = 65,000 left, 35% used.
+    expect(screen.getByTestId("summary-budget-remaining").textContent).toBe("65,000 원")
+    expect(screen.getByTestId("summary-budget-rate").textContent).toBe("소진 35%")
+    const bar = screen.getByTestId("summary-budget-bar")
+    expect(bar.getAttribute("aria-valuenow")).toBe("35")
+    expect(bar.querySelector(".bg-primary")).not.toBeNull()
+    expect(screen.getByTestId("summary-budget-pace-marker")).toBeTruthy()
+    expect(screen.getByTestId("summary-card-budget").textContent).toContain("이번 달 예산 잔여")
+  })
+
+  it("links the planned-expense and budget cards to the expenses page", async () => {
+    setup()
+    await renderPage()
+
+    expect(screen.getByTestId("summary-card-planned").getAttribute("href")).toBe("/dashboard/expenses")
+    expect(screen.getByTestId("summary-card-budget").getAttribute("href")).toBe("/dashboard/expenses")
+    expect(screen.getByTestId("summary-card-planned").getAttribute("aria-label")).toContain("이번 주 예정 지출 5,000원")
+  })
+
+  it("turns the bar warning at 80% and danger above 100%, capping the bar width and marking the overrun", async () => {
+    setup({ budgetAmount: 40000 })
+    const { unmount } = render(<DashboardPage />)
+    await screen.findByLabelText("월간 캘린더")
+    expect(screen.getByTestId("summary-budget-rate").textContent).toBe("소진 88%")
+    expect(screen.getByTestId("summary-budget-bar").querySelector(".bg-warning")).not.toBeNull()
+    unmount()
+
+    setup({ budgetAmount: 20000 })
+    render(<DashboardPage />)
+    await screen.findByLabelText("월간 캘린더")
+    expect(screen.getByTestId("summary-budget-remaining").textContent).toBe("15,000 원 초과")
+    expect(screen.getByTestId("summary-budget-rate").textContent).toBe("소진 175%")
+    const bar = screen.getByTestId("summary-budget-bar")
+    expect(bar.getAttribute("aria-valuenow")).toBe("100")
+    expect(bar.querySelector(".bg-danger")).not.toBeNull()
+  })
+
+  it("shows 예산 미설정 without a bar when no monthly budget exists", async () => {
+    setup({ budgetAmount: null })
+    await renderPage()
+
+    expect(screen.getByTestId("summary-budget-remaining").textContent).toBe("예산 미설정")
+    expect(screen.queryByTestId("summary-budget-bar")).toBeNull()
+    expect(screen.getByTestId("summary-card-budget").getAttribute("aria-label")).toContain("월 예산 미설정")
+  })
+
+  it("counts this week's favourite schedules and opens the weekly list with 관심 일정만 on click", async () => {
+    setup({ favoriteRows: [{ schedule_id: "s1" }] })
+    await renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("summary-card-week").textContent).toContain("이번 주 관심 일정"))
+    expect(screen.getByTestId("summary-ongoing-week").textContent).toBe("1")
+    expect(screen.queryByText("관심 일정이 없어 전체 기준")).toBeNull()
+
+    fireEvent.click(screen.getByTestId("summary-card-week"))
+
+    expect(screen.getByRole("button", { name: "주차별 리스트" }).getAttribute("aria-pressed")).toBe("true")
+    expect(screen.getByRole("button", { name: "관심 일정만" }).getAttribute("aria-pressed")).toBe("true")
+  })
+
+  it("falls back to the all-schedules count with an explicit label when there are no favourites", async () => {
+    setup({ favoriteRows: [] })
+    await renderPage()
+
+    expect(screen.getByTestId("summary-card-week").textContent).toContain("이번 주 진행 일정")
+    expect(screen.getByTestId("summary-ongoing-week").textContent).toBe("2")
+    expect(screen.getByText("관심 일정이 없어 전체 기준")).toBeTruthy()
+
+    fireEvent.click(screen.getByTestId("summary-card-week"))
+
+    expect(screen.getByRole("button", { name: "주차별 리스트" }).getAttribute("aria-pressed")).toBe("true")
+    expect(screen.getByRole("button", { name: "관심 일정만" }).getAttribute("aria-pressed")).toBe("false")
+  })
+
+  it("selects today and returns to the current month when the today card is clicked", async () => {
+    setup()
+    await renderPage()
+    const currentLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월`
+    fireEvent.click(screen.getByRole("button", { name: "다음 달" }))
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    expect(await screen.findByText(`${next.getFullYear()}년 ${next.getMonth() + 1}월`)).toBeTruthy()
+
+    fireEvent.click(screen.getByTestId("summary-card-today"))
+
+    expect(await screen.findByText(currentLabel)).toBeTruthy()
+    expect(screen.queryByText(`${next.getFullYear()}년 ${next.getMonth() + 1}월`)).toBeNull()
+  })
+
+  it("keeps the summary readable for guests: no links, dashes and a login hint", async () => {
+    setup({ signedIn: false })
+    await renderPage()
+
+    const planned = screen.getByTestId("summary-card-planned")
+    const budget = screen.getByTestId("summary-card-budget")
+    expect(planned.tagName).toBe("DIV")
+    expect(budget.tagName).toBe("DIV")
+    expect(screen.getByTestId("summary-planned-week").textContent).toBe("-")
+    expect(screen.getByTestId("summary-budget-remaining").textContent).toBe("-")
+    expect(screen.getAllByText("로그인 후 확인")).toHaveLength(2)
+    expect(screen.getByTestId("summary-card-week").textContent).toContain("전체 일정 기준")
+  })
+})
