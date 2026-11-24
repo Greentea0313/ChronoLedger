@@ -19,15 +19,12 @@
 
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
-| `R39` | 완료 (`r39-daily-notifications`, `main` 병합 `9ae05f9`, 2026-11-24) | 운영 DB 적용·확인 쿼리 완료(사용자, 2026-11-24). 실브라우저·KST 09:00 알림 생성 확인 대기. P4 후속 `R39-REV-01`(타입 전용) | `docs/to-do.md` R39, 아래 직전 완료 Run 기록 |
-| `R96` | 완료 (`r96-web-push`, `main` 병합 `18d5f0c`, 2026-11-24) | 운영 DB 적용·확인 쿼리 완료(사용자, 2026-11-24). Edge Function 배포·시크릿·DB 설정값·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 설정 대기(사용자, §11.5). P3 `R96-REV-07`·P4 2건 후속 | `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
-| `R97` | 완료 (`r97-tauri-notifications`, `main` 병합 `d350267`, 2026-11-23) | 엣지 케이스 보완 병합 및 `npm run tauri dev` 실기기 OS 토스트 수신 확인 완료(개발 실행 시 발신 앱 `Windows PowerShell` 표기). 선택 후속 `R97-REV-001`(P4)이 `docs/to-do.md`에 있음 | [`docs/archive/handoff-archive.md`](archive/handoff-archive.md) |
+| `R96` | 완료 · 사용자 수동 배포 대기 | 운영 DB 적용 완료(2026-11-24). Edge Function 배포·시크릿·DB 설정값·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 설정 대기 | `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
+| `대시보드 상태바` | `📝 AGENDA` | 대시보드 홈 상단 `오늘/이번 주 요약` 상태바([page.tsx](../../src/app/dashboard/page.tsx)) 기능 연계 개편 또는 제거 검토 | 사용자 방향 결정 대기 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
-| `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |
-| `R101`+`R103` | 완료 (`r101-r103-two-month-budget-and-shortcuts`, `main` 병합 `c942e1e`, 2026-11-24) | 당월·익월 예산 비교 카드와 데스크톱 단축키·빠른 시작 안내 병합 완료. 실브라우저 확인은 사용자 몫이고 선택 후속 `R101-REV-001`(P4)이 `docs/to-do.md`에 있음 | 아래 직전 완료 Run 기록 |
-| `R102` | 완료 (`r102-expense-presets`, `main` 병합 `9ff2ae6`, 2026-11-24) | 운영 DB 적용(R96 다음)·확인 쿼리 완료(사용자, 2026-11-24). 실브라우저 확인 대기 | `docs/to-do.md` R102 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
+| `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R96-REV-07`·`R101-REV-001` | `docs/to-do.md` 해당 항목 |
 
 ### 🗂️ 직전 완료 Run 기록: `r102-expense-presets`
 
