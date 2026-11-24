@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-25 (Run `r106-notification-delete` 완료 — `main` 병합 `0ddc229`)
+
+- **알림 직접 삭제(`R106`)**: 상단 벨 알림함에 항목별 삭제 버튼(휴지통 아이콘)과 헤더 `'전체 삭제'` 버튼을 추가함. 오프라인이면 삭제하지 않고 안내하며, 실패하면 목록을 그대로 두고 오류를 표시함.
+- **DB**: `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL)` `SECURITY DEFINER` RPC 추가(본인 알림만 선택/전체 하드 삭제, 비로그인·계정 삭제 대기 사용자 차단, 테이블 직접 `DELETE` 권한은 계속 막음). 신규 `MIGRATION_R106_NOTIFICATION_DELETE.sql`, `SCHEMA.sql`·`sql/README.md`·`TESTS.sql`·`database.types.ts` 동기화.
+- **협업 산출물**: `artifacts/r106-notification-delete/iteration-01/`. `r96-rev07` 기록을 보관 문서로 이동함.
+
 ## 2026-11-25 (`main` 직접 수정 — 이번 주 관심 일정 필터 초기화)
 
 - **대시보드 상단바 연동**: `[이번 주 관심 일정]` 카드 클릭 시 주차별 리스트 하단 필터를 `(전체, 전체, 관심 일정만)`으로 함께 설정하도록 `WeeklyScheduleList`에 선택적 제어 props를 추가하고 `DashboardPage` 및 테스트를 갱신함.
