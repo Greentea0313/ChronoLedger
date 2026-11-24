@@ -342,6 +342,20 @@ isOneToOne: false
                     { foreignKeyName: "user_characters_character_id_fkey"; columns: ["character_id"]; isOneToOne: false; referencedRelation: "game_characters"; referencedColumns: ["id"] },
                     { foreignKeyName: "user_characters_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] }
                   ]
+                },"user_expense_presets": {
+                  Row: {
+                    "category": "게임" | "식비" | "교통" | "생활" | "기타","created_at": string,"deduct_from_asset": boolean,"game_id": string | null,"id": string,"original_price": number,"payment_method": "WALLET" | "NAVER_PAY","point_platform": "GOOGLE_PLAY" | "GALAXY_STORE" | null,"sort_order": number,"title": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "category"?: "게임" | "식비" | "교통" | "생활" | "기타","created_at"?: string,"deduct_from_asset"?: boolean,"game_id"?: string | null,"id"?: string,"original_price": number,"payment_method"?: "WALLET" | "NAVER_PAY","point_platform"?: "GOOGLE_PLAY" | "GALAXY_STORE" | null,"sort_order"?: number,"title": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "category"?: "게임" | "식비" | "교통" | "생활" | "기타","created_at"?: string,"deduct_from_asset"?: boolean,"game_id"?: string | null,"id"?: string,"original_price"?: number,"payment_method"?: "WALLET" | "NAVER_PAY","point_platform"?: "GOOGLE_PLAY" | "GALAXY_STORE" | null,"sort_order"?: number,"title"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    { foreignKeyName: "user_expense_presets_game_id_fkey"; columns: ["game_id"]; isOneToOne: false; referencedRelation: "games"; referencedColumns: ["id"] }
+                  ]
                 },"user_favorite_schedules": {
                   Row: {
                     "created_at": string,"id": string,"schedule_id": string,"user_id": string

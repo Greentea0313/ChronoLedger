@@ -103,6 +103,10 @@
 --                                  계정 삭제 대기 사용자 제외·탈퇴 purge 연동·차단 트리거·pg_cron 스케줄 검증.
 --   R39-03 authenticated / A       계정 삭제 대기 사용자 notification_settings 조회 은닉 및 INSERT/UPDATE 차단.
 --   R39-04 anon                   notification_settings 조회 및 enqueue_daily_notifications() 실행 -> insufficient_privilege.
+--   R102-01 authenticated / B      user_expense_presets 본인 CRUD·타인 행 은닉 및 쓰기 차단·CHECK 검증·20개 상한 트리거(21번째 23514 거부·삭제 후 재등록 성공).
+--   R102-02 DB fixture 역할        게임 삭제 시 game_id ON DELETE SET NULL, 탈퇴 purge 연동 및 트리거 존재 검증.
+--   R102-03 authenticated / A      계정 삭제 대기 사용자 user_expense_presets 조회 은닉 및 INSERT/UPDATE/DELETE 차단.
+--   R102-04 anon                   user_expense_presets SELECT/INSERT -> insufficient_privilege.
 --   R85-01 DB fixture / B / admin  games.daily_reset_time 분 단위 CHECK, game_schedules/schedule_requests 시각·날짜·순서·분·예상 CHECK,
 --                                  approve_schedule_request 신규/수정 시각·예상 복사(+R84 알림 유지), 시각만 수정 시 예정 지출 날짜 불변, anon 조회.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
@@ -2663,6 +2667,210 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R39 notification_settings RLS, enqueue_daily_notifications 3 kinds, dedupe, privacy, pending-deletion, purge, cron and anon checks
+
+-- R102: user_expense_presets CRUD/owner isolation, CHECK constraints, 20-item limit trigger,
+-- ON DELETE SET NULL on games, pending-deletion block, account purge linkage, and anon ACL.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_temp_game_id UUID;
+    v_a_preset_id UUID;
+BEGIN
+    INSERT INTO public.games(name, default_icon_url, status)
+    VALUES ('R102 temp game ' || v_user_a::text, 'https://example.com/r102.webp', 'APPROVED')
+    RETURNING id INTO v_temp_game_id;
+
+    INSERT INTO public.user_expense_presets(user_id, title, category, game_id, original_price, payment_method, point_platform, deduct_from_asset)
+    VALUES (v_user_a, 'R102 User A Preset', '게임', v_temp_game_id, 119000, 'WALLET', 'GOOGLE_PLAY', true)
+    RETURNING id INTO v_a_preset_id;
+
+    PERFORM set_config('chronoledger.r102_temp_game_id', v_temp_game_id::text, true);
+    PERFORM set_config('chronoledger.r102_a_preset_id', v_a_preset_id::text, true);
+END $$;
+
+-- R102-01: User B owner isolation, CHECK constraints, CRUD, and 20-preset limit trigger.
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_user_b UUID := auth.uid();
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_a_preset_id UUID := current_setting('chronoledger.r102_a_preset_id')::uuid;
+    v_temp_game_id UUID := current_setting('chronoledger.r102_temp_game_id')::uuid;
+    v_game_preset_id UUID;
+    v_last_preset_id UUID;
+    v_idx INTEGER;
+BEGIN
+    IF EXISTS (SELECT 1 FROM public.user_expense_presets WHERE id = v_a_preset_id) THEN
+        RAISE EXCEPTION 'FAIL: R102 RLS exposed another user expense preset';
+    END IF;
+
+    BEGIN
+        INSERT INTO public.user_expense_presets(user_id, title, original_price)
+        VALUES (v_user_a, 'R102 cross user insert', 5900);
+        RAISE EXCEPTION 'FAIL: R102 user B inserted preset for user A';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    UPDATE public.user_expense_presets SET title = 'tamper' WHERE id = v_a_preset_id;
+    IF FOUND THEN
+        RAISE EXCEPTION 'FAIL: R102 user B updated user A preset';
+    END IF;
+
+    DELETE FROM public.user_expense_presets WHERE id = v_a_preset_id;
+    IF FOUND THEN
+        RAISE EXCEPTION 'FAIL: R102 user B deleted user A preset';
+    END IF;
+
+    -- CHECK constraints
+    BEGIN
+        INSERT INTO public.user_expense_presets(user_id, title, original_price) VALUES (v_user_b, '   ', 1000);
+        RAISE EXCEPTION 'FAIL: R102 blank title accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.user_expense_presets(user_id, title, original_price) VALUES (v_user_b, '음수 금액', -1);
+        RAISE EXCEPTION 'FAIL: R102 negative original_price accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.user_expense_presets(user_id, title, category, original_price) VALUES (v_user_b, '불가 카테고리', '정기 구독', 5900);
+        RAISE EXCEPTION 'FAIL: R102 invalid category accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.user_expense_presets(user_id, title, original_price, payment_method) VALUES (v_user_b, '불가 결제수단', 5900, 'GOOGLE_PLAY');
+        RAISE EXCEPTION 'FAIL: R102 invalid payment_method accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.user_expense_presets(user_id, title, original_price, point_platform) VALUES (v_user_b, '불가 플랫폼', 5900, 'NAVER_PAY');
+        RAISE EXCEPTION 'FAIL: R102 invalid point_platform accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    -- Insert game-linked preset (1 of 20) and update it.
+    INSERT INTO public.user_expense_presets(user_id, title, category, game_id, original_price, payment_method, point_platform, deduct_from_asset, sort_order)
+    VALUES (v_user_b, '월정액', '게임', v_temp_game_id, 5900, 'WALLET', 'GOOGLE_PLAY', true, 1)
+    RETURNING id INTO v_game_preset_id;
+    PERFORM set_config('chronoledger.r102_b_game_preset_id', v_game_preset_id::text, true);
+
+    UPDATE public.user_expense_presets
+    SET title = '월정액(수정)', original_price = 6000, updated_at = NOW()
+    WHERE id = v_game_preset_id;
+    IF NOT EXISTS (SELECT 1 FROM public.user_expense_presets WHERE id = v_game_preset_id AND title = '월정액(수정)' AND original_price = 6000) THEN
+        RAISE EXCEPTION 'FAIL: R102 user B update on own preset did not persist';
+    END IF;
+
+    -- Insert remaining 19 common presets (total 20).
+    FOR v_idx IN 2..20 LOOP
+        INSERT INTO public.user_expense_presets(user_id, title, category, game_id, original_price, payment_method, point_platform, deduct_from_asset, sort_order)
+        VALUES (v_user_b, 'R102 프리셋 #' || v_idx, '기타', NULL, v_idx * 1000, 'NAVER_PAY', NULL, false, v_idx)
+        RETURNING id INTO v_last_preset_id;
+    END LOOP;
+
+    -- 21st preset must be rejected with check_violation (23514).
+    BEGIN
+        INSERT INTO public.user_expense_presets(user_id, title, original_price)
+        VALUES (v_user_b, 'R102 21번째 초과', 1000);
+        RAISE EXCEPTION 'FAIL: R102 21st expense preset was accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLERRM NOT LIKE '%최대 20개%' THEN RAISE; END IF;
+    END;
+
+    -- After deleting one preset, inserting a new one succeeds again.
+    DELETE FROM public.user_expense_presets WHERE id = v_last_preset_id;
+    INSERT INTO public.user_expense_presets(user_id, title, original_price)
+    VALUES (v_user_b, 'R102 삭제 후 재등록', 9900);
+END $$;
+RESET ROLE;
+
+-- R102-02: Deleting linked game sets preset.game_id to NULL; verify purge linkage and triggers.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_temp_game_id UUID := current_setting('chronoledger.r102_temp_game_id')::uuid;
+    v_b_game_preset_id UUID := current_setting('chronoledger.r102_b_game_preset_id')::uuid;
+    v_purge_def TEXT := pg_get_functiondef('public.purge_expired_account_deletion_requests(integer)'::regprocedure);
+BEGIN
+    DELETE FROM public.games WHERE id = v_temp_game_id;
+    IF NOT EXISTS (
+        SELECT 1 FROM public.user_expense_presets WHERE id = v_b_game_preset_id AND game_id IS NULL
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R102 deleting linked game did not set user_expense_presets.game_id to NULL';
+    END IF;
+
+    IF position('public.user_expense_presets' IN v_purge_def) = 0 THEN
+        RAISE EXCEPTION 'FAIL: R102 account purge function missing user_expense_presets cleanup';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'block_pending_account_deletion_user_expense_presets')
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_enforce_user_expense_presets_limit') THEN
+        RAISE EXCEPTION 'FAIL: R102 required triggers missing';
+    END IF;
+END $$;
+
+-- R102-03: Pending-deletion user A cannot read, insert, update, or delete user_expense_presets.
+SELECT set_config('request.jwt.claim.sub', :'test_user_id'::text, true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', :'test_user_id'::text, 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM public.user_expense_presets) THEN
+        RAISE EXCEPTION 'FAIL: R102 pending user could read user_expense_presets';
+    END IF;
+
+    UPDATE public.user_expense_presets SET title = 'blocked' WHERE user_id = auth.uid();
+    IF FOUND THEN
+        RAISE EXCEPTION 'FAIL: R102 pending user updated user_expense_presets';
+    END IF;
+
+    DELETE FROM public.user_expense_presets WHERE user_id = auth.uid();
+    IF FOUND THEN
+        RAISE EXCEPTION 'FAIL: R102 pending user deleted user_expense_presets';
+    END IF;
+
+    BEGIN
+        INSERT INTO public.user_expense_presets(user_id, title, original_price)
+        VALUES (auth.uid(), 'blocked insert', 1000);
+        RAISE EXCEPTION 'FAIL: R102 pending user inserted user_expense_presets';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+END $$;
+RESET ROLE;
+
+-- R102-04: anon cannot read or insert user_expense_presets.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM 1 FROM public.user_expense_presets LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R102 anon read user_expense_presets';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        INSERT INTO public.user_expense_presets(user_id, title, original_price)
+        VALUES (current_setting('chronoledger.other_user_id')::uuid, 'anon', 1000);
+        RAISE EXCEPTION 'FAIL: R102 anon inserted user_expense_presets';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R102 user_expense_presets RLS, CHECKs, 20-item limit trigger, game SET NULL, pending-deletion, purge and anon checks
 
 -- User A's PENDING account deletion request (R13-07) is only needed up to R35; later blocks write as user A.
 DELETE FROM public.account_deletion_requests WHERE user_id = :'test_user_id'::uuid AND status_token_hash = repeat('a', 64);

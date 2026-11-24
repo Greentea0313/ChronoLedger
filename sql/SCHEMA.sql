@@ -1040,6 +1040,50 @@ ALTER TABLE public.subscription_templates ADD CONSTRAINT chk_subscription_paymen
 ALTER TABLE public.personal_memos ADD CONSTRAINT chk_personal_memo_content
     CHECK (length(btrim(content)) > 0);
 
+-- 10-1. 사용자별 자주 쓰는 과금 프리셋 (R102, 사용자당 최대 20개 상한)
+CREATE TABLE public.user_expense_presets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title VARCHAR(150) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 150),
+    category VARCHAR(50) NOT NULL DEFAULT '게임' CHECK (category IN ('게임', '식비', '교통', '생활', '기타')),
+    game_id UUID REFERENCES public.games(id) ON DELETE SET NULL,
+    original_price BIGINT NOT NULL CHECK (original_price >= 0),
+    payment_method VARCHAR(30) NOT NULL DEFAULT 'WALLET' CHECK (payment_method IN ('WALLET', 'NAVER_PAY')),
+    point_platform VARCHAR(30) CHECK (point_platform IS NULL OR point_platform IN ('GOOGLE_PLAY', 'GALAXY_STORE')),
+    deduct_from_asset BOOLEAN NOT NULL DEFAULT true,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_user_expense_presets_user_sort
+    ON public.user_expense_presets(user_id, sort_order ASC, created_at ASC);
+
+CREATE OR REPLACE FUNCTION public.enforce_user_expense_presets_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_count INTEGER;
+BEGIN
+    PERFORM pg_advisory_xact_lock(hashtext('user_expense_presets:' || NEW.user_id::text));
+
+    SELECT count(*) INTO v_count
+    FROM public.user_expense_presets
+    WHERE user_id = NEW.user_id;
+
+    IF v_count >= 20 THEN
+        RAISE EXCEPTION '과금 프리셋은 최대 20개까지 저장할 수 있습니다.' USING ERRCODE = '23514';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.enforce_user_expense_presets_limit() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_enforce_user_expense_presets_limit ON public.user_expense_presets;
+CREATE TRIGGER trg_enforce_user_expense_presets_limit
+    BEFORE INSERT ON public.user_expense_presets
+    FOR EACH ROW EXECUTE FUNCTION public.enforce_user_expense_presets_limit();
+
 -- 11. 스토어 포인트 및 페이 거래 원장 (Ledger)
 CREATE TABLE public.store_point_transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1539,7 +1583,7 @@ BEGIN
         'user_finances', 'monthly_budgets', 'game_requests', 'user_games',
         'schedule_requests', 'character_requests', 'user_characters', 'user_character_presets',
         'personal_memos', 'subscription_templates', 'store_wallets', 'expenses', 'store_point_transactions',
-        'incomes', 'feedback_requests', 'notifications', 'notification_settings'
+        'incomes', 'feedback_requests', 'notifications', 'notification_settings', 'user_expense_presets'
     ] LOOP
         EXECUTE format(
             'CREATE POLICY %I ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING (NOT public.account_deletion_is_pending(auth.uid())) WITH CHECK (NOT public.account_deletion_is_pending(auth.uid()))',
@@ -1615,6 +1659,7 @@ BEGIN
             DELETE FROM public.schedule_requests WHERE user_id = v_req.user_id;
             DELETE FROM public.game_requests WHERE user_id = v_req.user_id;
             DELETE FROM public.store_point_transactions WHERE user_id = v_req.user_id;
+            DELETE FROM public.user_expense_presets WHERE user_id = v_req.user_id;
             DELETE FROM public.expenses WHERE user_id = v_req.user_id;
             DELETE FROM public.incomes WHERE user_id = v_req.user_id;
             DELETE FROM public.subscription_templates WHERE user_id = v_req.user_id;
@@ -1763,7 +1808,7 @@ BEGIN
         'user_finances', 'monthly_budgets', 'game_requests', 'user_games',
         'schedule_requests', 'character_requests', 'user_characters', 'user_character_presets',
         'personal_memos', 'subscription_templates', 'store_wallets', 'expenses', 'store_point_transactions',
-        'incomes', 'feedback_requests', 'notifications', 'notification_settings'
+        'incomes', 'feedback_requests', 'notifications', 'notification_settings', 'user_expense_presets'
     ] LOOP
         EXECUTE format(
             'CREATE TRIGGER %I BEFORE INSERT OR UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.block_pending_account_data_mutations()',
@@ -1998,6 +2043,16 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 REVOKE ALL ON FUNCTION public.enqueue_daily_notifications() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.enqueue_daily_notifications() TO service_role;
+
+-- R102 과금 프리셋: 본인 행만 조회·등록·수정·삭제 허용, anon 차단.
+-- 계정 삭제 대기 사용자 차단 정책·트리거는 위 공통 루프 목록('user_expense_presets')에서 생성됨.
+ALTER TABLE public.user_expense_presets ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.user_expense_presets FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_expense_presets TO authenticated;
+DROP POLICY IF EXISTS "Manage own expense presets" ON public.user_expense_presets;
+CREATE POLICY "Manage own expense presets" ON public.user_expense_presets FOR ALL TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 
 CREATE OR REPLACE FUNCTION public.mark_notifications_read(p_notification_ids UUID[] DEFAULT NULL)
 RETURNS INTEGER AS $$
