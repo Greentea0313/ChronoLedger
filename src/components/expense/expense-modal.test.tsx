@@ -3,12 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ExpenseModal } from "./expense-modal"
 import { getKstToday } from "@/lib/dashboard-date"
 
-const { from, rpc, useAuth, insert, update } = vi.hoisted(() => ({
+const { from, rpc, useAuth, insert, update, presetInsert, presetDelete, presetResult } = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
   useAuth: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
+  presetInsert: vi.fn(),
+  presetDelete: vi.fn(),
+  presetResult: { current: { data: [] as unknown[], error: null as { code?: string; message: string } | null } },
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
@@ -25,8 +28,21 @@ function query(result: unknown) {
   return q
 }
 
+function presetQuery() {
+  const q = { select: vi.fn(), eq: vi.fn(), order: vi.fn(), insert: presetInsert, delete: presetDelete }
+  q.select.mockReturnValue(q)
+  q.eq.mockReturnValue(q)
+  // two order() calls (sort_order, created_at): the first keeps chaining, the second resolves the list.
+  q.order.mockReturnValueOnce(q).mockImplementation(() => Promise.resolve(presetResult.current))
+  return q
+}
+
 function setup() {
+  presetResult.current = { data: [], error: null }
+  presetInsert.mockResolvedValue({ error: null })
+  presetDelete.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
   from.mockImplementation((table: string) => {
+    if (table === "user_expense_presets") return presetQuery()
     if (table === "games") return query({ data: [{ id: "g1", name: "Sample RPG" }], error: null })
     if (table === "user_games") {
       const ug = query(null)
@@ -1020,3 +1036,216 @@ describe("ExpenseModal", () => {
   })
 })
 
+describe("ExpenseModal presets (R102)", () => {
+  const preset = (overrides: Record<string, unknown> = {}) => ({
+    id: "p1",
+    title: "월간 패스",
+    category: "게임",
+    game_id: "g1",
+    original_price: 11000,
+    payment_method: "NAVER_PAY",
+    point_platform: "GALAXY_STORE",
+    deduct_from_asset: false,
+    ...overrides,
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useAuth.mockReturnValue({ user: { id: "u1" } })
+    setup()
+    Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+  })
+
+  const chips = () => screen.queryAllByTestId("expense-preset-chip")
+
+  async function openWith(presets: unknown[]) {
+    presetResult.current = { data: presets, error: null }
+    render(<ExpenseModal open onOpenChange={vi.fn()} />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+  }
+
+  it("loads the user's presets in sort order for a new registration", async () => {
+    await openWith([preset({ id: "c1", game_id: null, title: "커피" })])
+
+    await waitFor(() => expect(chips()).toHaveLength(1))
+    expect(from).toHaveBeenCalledWith("user_expense_presets")
+    expect(screen.getByRole("button", { name: "커피 프리셋 적용" })).toBeTruthy()
+  })
+
+  it("shows common presets and the selected game's presets only", async () => {
+    await openWith([
+      preset({ id: "common", game_id: null, title: "공통 커피" }),
+      preset({ id: "g1p", game_id: "g1", title: "게임1 패스" }),
+      preset({ id: "g2p", game_id: "g2", title: "게임2 패스" }),
+    ])
+    await waitFor(() => expect(chips()).toHaveLength(1))
+    expect(screen.queryByRole("button", { name: "게임1 패스 프리셋 적용" })).toBeNull()
+
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    await waitFor(() => expect(chips()).toHaveLength(2))
+    expect(screen.getByRole("button", { name: "게임1 패스 프리셋 적용" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "게임2 패스 프리셋 적용" })).toBeNull()
+  })
+
+  it("fills every form field when a preset chip is clicked", async () => {
+    await openWith([preset()])
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    fireEvent.click(await screen.findByRole("button", { name: "월간 패스 프리셋 적용" }))
+
+    expect((screen.getByLabelText("항목명") as HTMLInputElement).value).toBe("월간 패스")
+    expect((screen.getByLabelText("카테고리") as HTMLSelectElement).value).toBe("게임")
+    expect((screen.getByLabelText("게임") as HTMLSelectElement).value).toBe("g1")
+    expect((screen.getByLabelText("정가 (원)") as HTMLInputElement).value).toBe("11000")
+    expect((screen.getByLabelText("결제 플랫폼") as HTMLSelectElement).value).toBe("GALAXY_STORE")
+    expect(screen.getByText("실결제액: 11,000 원")).toBeTruthy()
+  })
+
+  it("applies a non-game preset by clearing the game and using OTHER platform", async () => {
+    await openWith([preset({ id: "food", title: "점심", category: "식비", game_id: null, original_price: 9000, payment_method: "WALLET", point_platform: null, deduct_from_asset: true })])
+    fireEvent.click(await screen.findByRole("button", { name: "점심 프리셋 적용" }))
+
+    expect((screen.getByLabelText("카테고리") as HTMLSelectElement).value).toBe("식비")
+    expect(screen.queryByLabelText("게임")).toBeNull()
+    expect((screen.getByLabelText("정가 (원)") as HTMLInputElement).value).toBe("9000")
+    expect((screen.getByLabelText("결제 플랫폼") as HTMLSelectElement).value).toBe("OTHER")
+  })
+
+  it("deletes a preset with the x button and removes its chip", async () => {
+    await openWith([preset({ id: "c1", game_id: null, title: "커피" })])
+    fireEvent.click(await screen.findByRole("button", { name: "커피 프리셋 삭제" }))
+
+    await waitFor(() => expect(chips()).toHaveLength(0))
+    expect(presetDelete).toHaveBeenCalledTimes(1)
+    expect(presetDelete.mock.results[0].value.eq).toHaveBeenCalledWith("id", "c1")
+  })
+
+  it("keeps the chip and shows an error when deleting fails", async () => {
+    presetDelete.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: { message: "denied" } }) })
+    await openWith([preset({ id: "c1", game_id: null, title: "커피" })])
+    fireEvent.click(await screen.findByRole("button", { name: "커피 프리셋 삭제" }))
+
+    expect((await screen.findByRole("alert")).textContent).toContain("프리셋을 삭제하지 못했습니다")
+    expect(chips()).toHaveLength(1)
+  })
+
+  it("blocks deleting while offline", async () => {
+    await openWith([preset({ id: "c1", game_id: null, title: "커피" })])
+    const remove = await screen.findByRole("button", { name: "커피 프리셋 삭제" })
+    Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+    fireEvent.click(remove)
+
+    expect((await screen.findByRole("alert")).textContent).toContain("오프라인")
+    expect(presetDelete).not.toHaveBeenCalled()
+  })
+
+  it("saves the current input as a preset and refreshes the chips", async () => {
+    await openWith([])
+    fireEvent.change(screen.getByLabelText("카테고리"), { target: { value: "식비" } })
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "  점심  " } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "9000" } })
+    presetResult.current = { data: [preset({ id: "new", title: "점심", category: "식비", game_id: null, original_price: 9000, payment_method: "WALLET", point_platform: null, deduct_from_asset: true })], error: null }
+
+    fireEvent.click(screen.getByRole("button", { name: "프리셋 저장" }))
+
+    await waitFor(() => expect(presetInsert).toHaveBeenCalledTimes(1))
+    expect(presetInsert).toHaveBeenCalledWith({
+      user_id: "u1",
+      title: "점심",
+      category: "식비",
+      game_id: null,
+      original_price: 9000,
+      payment_method: "WALLET",
+      point_platform: null,
+      deduct_from_asset: true,
+      sort_order: 0,
+    })
+    expect(await screen.findByText("프리셋을 저장했습니다.")).toBeTruthy()
+    await waitFor(() => expect(chips()).toHaveLength(1))
+  })
+
+  it("stores the selected game and store platform for a game preset", async () => {
+    await openWith([])
+    fireEvent.change(screen.getByLabelText("게임"), { target: { value: "g1" } })
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "월간 패스" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "11000" } })
+    fireEvent.change(screen.getByLabelText("결제 플랫폼"), { target: { value: "GALAXY_STORE" } })
+    fireEvent.click(screen.getByRole("button", { name: "프리셋 저장" }))
+
+    await waitFor(() => expect(presetInsert).toHaveBeenCalledWith(expect.objectContaining({
+      category: "게임",
+      game_id: "g1",
+      original_price: 11000,
+      point_platform: "GALAXY_STORE",
+    })))
+  })
+
+  it("rejects an empty title or an invalid amount before inserting", async () => {
+    await openWith([])
+    fireEvent.click(screen.getByRole("button", { name: "프리셋 저장" }))
+    expect((await screen.findByRole("alert")).textContent).toContain("항목명")
+
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "커피" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "-5" } })
+    fireEvent.click(screen.getByRole("button", { name: "프리셋 저장" }))
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("0원 이상"))
+    expect(presetInsert).not.toHaveBeenCalled()
+  })
+
+  it("blocks saving when 20 presets already exist, without calling the server", async () => {
+    await openWith(Array.from({ length: 20 }, (_, i) => preset({ id: `p${i}`, game_id: null, title: `프리셋${i}` })))
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "스물한 번째" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "1000" } })
+    fireEvent.click(screen.getByRole("button", { name: "프리셋 저장" }))
+
+    expect((await screen.findByRole("alert")).textContent).toContain("최대 20개")
+    expect(presetInsert).not.toHaveBeenCalled()
+  })
+
+  it("shows the limit message when the DB trigger rejects the insert (23514)", async () => {
+    presetInsert.mockResolvedValue({ error: { code: "23514", message: "limit" } })
+    await openWith([])
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "커피" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "4500" } })
+    fireEvent.click(screen.getByRole("button", { name: "프리셋 저장" }))
+
+    expect((await screen.findByRole("alert")).textContent).toContain("최대 20개")
+  })
+
+  it("blocks saving while offline", async () => {
+    await openWith([])
+    fireEvent.change(screen.getByLabelText("항목명"), { target: { value: "커피" } })
+    fireEvent.change(screen.getByLabelText("정가 (원)"), { target: { value: "4500" } })
+    Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+    fireEvent.click(screen.getByRole("button", { name: "프리셋 저장" }))
+
+    await waitFor(() => expect(presetInsert).not.toHaveBeenCalled())
+  })
+
+  it.each(["42P01", "PGRST205"])("hides the preset section without an error when the table is missing (%s)", async (code) => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    presetResult.current = { data: [], error: { code, message: "missing" } }
+    render(<ExpenseModal open onOpenChange={vi.fn()} />)
+    await screen.findByRole("option", { name: "Sample RPG" })
+
+    await waitFor(() => expect(screen.queryByTestId("expense-presets")).toBeNull())
+    expect(screen.getByLabelText("항목명")).toBeTruthy()
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  it("does not show presets when paying or editing a planned expense", async () => {
+    presetResult.current = { data: [preset()], error: null }
+    const { rerender } = render(
+      <ExpenseModal open onOpenChange={vi.fn()} plannedExpense={{ id: "e1", title: "예정 항목", original_price: 5000 }} />,
+    )
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.queryByTestId("expense-presets")).toBeNull()
+    expect(from).not.toHaveBeenCalledWith("user_expense_presets")
+
+    rerender(
+      <ExpenseModal open onOpenChange={vi.fn()} plannedExpense={null} editingExpense={{ id: "e2", title: "수정 항목", original_price: 5000 }} />,
+    )
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.queryByTestId("expense-presets")).toBeNull()
+  })
+})

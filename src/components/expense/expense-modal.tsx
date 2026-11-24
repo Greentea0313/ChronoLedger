@@ -100,6 +100,29 @@ interface GameOption {
   name: string
 }
 
+/** R102: saved expense preset (a user's frequently used purchase). */
+interface ExpensePreset {
+  id: string
+  title: string
+  category: "게임" | "식비" | "교통" | "생활" | "기타"
+  game_id: string | null
+  original_price: number
+  payment_method: PaymentMethod
+  point_platform: "GOOGLE_PLAY" | "GALAXY_STORE" | null
+  deduct_from_asset: boolean
+}
+
+const PRESET_COLUMNS = "id, title, category, game_id, original_price, payment_method, point_platform, deduct_from_asset"
+const PRESET_LIMIT = 20
+const PRESET_LIMIT_MESSAGE = "과금 프리셋은 최대 20개까지 저장할 수 있습니다. 사용하지 않는 프리셋을 삭제해 주세요."
+const PRESET_MIGRATION_MESSAGE = "DB 업데이트(R102) 적용 후 프리셋을 저장할 수 있습니다."
+
+/** `user_expense_presets` not migrated yet (R102): the preset UI stays hidden instead of failing the modal. */
+function isMissingPresetTable(error: { code?: string } | null | undefined): boolean {
+  const code = error?.code ?? ""
+  return code === "42P01" || code === "PGRST205"
+}
+
 interface ScheduleOption {
   id: string
   game_id: string
@@ -194,6 +217,11 @@ export function ExpenseModal({
   const [preferredScheduleId, setPreferredScheduleId] = useState<string | null>(null)
   const titleRef = useRef(title)
   titleRef.current = title
+  const [presets, setPresets] = useState<ExpensePreset[]>([])
+  const [arePresetsAvailable, setArePresetsAvailable] = useState(true)
+  const [presetMessage, setPresetMessage] = useState<{ type: "error" | "success"; text: string } | null>(null)
+  const [isSavingPreset, setIsSavingPreset] = useState(false)
+  const [deletingPresetId, setDeletingPresetId] = useState<string | null>(null)
 
   useEffect(() => {
     const plannedId = plannedExpense?.id ?? null
@@ -205,6 +233,7 @@ export function ExpenseModal({
     if (isOpening || isNewPlannedExpense || isNewEditingExpense) {
       pendingExpenseId.current = null
       setError(null)
+      setPresetMessage(null)
       setDiscountAmount("")
       setCouponPercent("")
       setUsedPoints("")
@@ -333,6 +362,145 @@ export function ExpenseModal({
       cancelled = true
     }
   }, [open, userId])
+
+  const isNewRegistration = !plannedExpense && !editingExpense
+
+  const loadPresets = async (): Promise<boolean> => {
+    if (!userId) return true
+    try {
+      const { data, error: loadError } = await supabase
+        .from("user_expense_presets")
+        .select(PRESET_COLUMNS)
+        .eq("user_id", userId)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true })
+      if (loadError) {
+        if (isMissingPresetTable(loadError)) setArePresetsAvailable(false)
+        else console.error("과금 프리셋을 불러오지 못했습니다:", loadError)
+        setPresets([])
+        return false
+      }
+      setArePresetsAvailable(true)
+      setPresets(Array.isArray(data) ? (data as ExpensePreset[]).filter((preset) => typeof preset?.id === "string") : [])
+      return true
+    } catch (cause) {
+      console.error("과금 프리셋을 불러오지 못했습니다:", cause)
+      setPresets([])
+      return false
+    }
+  }
+
+  useEffect(() => {
+    if (!open || !userId || !isNewRegistration) return
+    void loadPresets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, userId, isNewRegistration])
+
+  const visiblePresets = presets.filter((preset) => preset.game_id === null || preset.game_id === gameId)
+
+  const applyPreset = (preset: ExpensePreset) => {
+    setPresetMessage(null)
+    setError(null)
+    const price = String(preset.original_price)
+    setTitle(preset.title)
+    setCategory(preset.category)
+    if (preset.category === "게임") {
+      if (preset.game_id) setGameId(preset.game_id)
+      setPaymentPlatform(preset.point_platform ?? "OTHER")
+    } else {
+      setGameId("")
+      setSchedules([])
+      setPaymentPlatform("OTHER")
+    }
+    setOriginalPrice(price)
+    setFinalAmountInput(price)
+    setDiscountAmount("")
+    setCouponPercent("")
+    setUsedPoints("")
+    setEarnedPointsInput("")
+    setIsEarnedPointsManual(false)
+    setIsVersionPass(false)
+    setKeptPeriod(null)
+    setPreferredScheduleId(null)
+    setPaymentMethod(preset.payment_method)
+    setDeductAsset(preset.deduct_from_asset)
+  }
+
+  const handleDeletePreset = async (preset: ExpensePreset) => {
+    if (deletingPresetId !== null) return
+    if (isOffline()) {
+      setPresetMessage({ type: "error", text: OFFLINE_WRITE_MESSAGE })
+      return
+    }
+    setDeletingPresetId(preset.id)
+    setPresetMessage(null)
+    try {
+      const { error: deleteError } = await supabase.from("user_expense_presets").delete().eq("id", preset.id)
+      if (deleteError) {
+        setPresetMessage({ type: "error", text: "프리셋을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요." })
+      } else {
+        setPresets((prev) => prev.filter((item) => item.id !== preset.id))
+      }
+    } catch {
+      setPresetMessage({ type: "error", text: "프리셋을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요." })
+    } finally {
+      setDeletingPresetId(null)
+    }
+  }
+
+  const handleSavePreset = async () => {
+    if (!userId || isSavingPreset) return
+    setPresetMessage(null)
+    const trimmedTitle = title.trim()
+    const price = toAmount(originalPrice)
+    if (trimmedTitle.length < 1 || trimmedTitle.length > 150) {
+      setPresetMessage({ type: "error", text: "프리셋 항목명을 1~150자로 입력해 주세요." })
+      return
+    }
+    if (!Number.isInteger(price) || price < 0) {
+      setPresetMessage({ type: "error", text: "프리셋 금액은 0원 이상의 정수로 입력해 주세요." })
+      return
+    }
+    if (isOffline()) {
+      setPresetMessage({ type: "error", text: OFFLINE_WRITE_MESSAGE })
+      return
+    }
+    if (presets.length >= PRESET_LIMIT) {
+      setPresetMessage({ type: "error", text: PRESET_LIMIT_MESSAGE })
+      return
+    }
+    setIsSavingPreset(true)
+    try {
+      const { error: insertError } = await supabase.from("user_expense_presets").insert({
+        user_id: userId,
+        title: trimmedTitle,
+        category,
+        game_id: category === "게임" && gameId ? gameId : null,
+        original_price: price,
+        payment_method: paymentMethod,
+        point_platform: paymentPlatform === "GOOGLE_PLAY" || paymentPlatform === "GALAXY_STORE" ? paymentPlatform : null,
+        deduct_from_asset: deductAsset,
+        sort_order: presets.length,
+      })
+      if (insertError) {
+        setPresetMessage({
+          type: "error",
+          text: isMissingPresetTable(insertError)
+            ? PRESET_MIGRATION_MESSAGE
+            : insertError.code === "23514"
+              ? PRESET_LIMIT_MESSAGE
+              : "프리셋을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        })
+        return
+      }
+      await loadPresets()
+      setPresetMessage({ type: "success", text: "프리셋을 저장했습니다." })
+    } catch {
+      setPresetMessage({ type: "error", text: "프리셋을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요." })
+    } finally {
+      setIsSavingPreset(false)
+    }
+  }
 
   useEffect(() => {
     if (!gameId) {
@@ -715,6 +883,57 @@ export function ExpenseModal({
         </DialogHeader>
 
         <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
+          {isNewRegistration && arePresetsAvailable && userId && (
+            <section aria-label="자주 쓰는 과금 프리셋" data-testid="expense-presets" className="space-y-2 rounded-md border border-line bg-surface-2 p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-content">자주 쓰는 과금</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleSavePreset()}
+                  disabled={isSavingPreset || !isOnline}
+                  className="h-7 px-2 text-xs"
+                >
+                  {isSavingPreset ? "저장 중..." : "프리셋 저장"}
+                </Button>
+              </div>
+              {visiblePresets.length > 0 ? (
+                <ul className="flex flex-wrap gap-1.5">
+                  {visiblePresets.map((preset) => (
+                    <li key={preset.id} data-testid="expense-preset-chip" className="inline-flex items-center overflow-hidden rounded-full border border-line bg-surface text-xs">
+                      <button
+                        type="button"
+                        onClick={() => applyPreset(preset)}
+                        aria-label={`${preset.title} 프리셋 적용`}
+                        className="max-w-[12rem] truncate px-2.5 py-1 text-content hover:bg-surface-2"
+                      >
+                        {preset.title}
+                        <span className="ml-1 text-content-muted">{`${preset.original_price.toLocaleString()}원`}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeletePreset(preset)}
+                        disabled={deletingPresetId !== null}
+                        aria-label={`${preset.title} 프리셋 삭제`}
+                        className="border-l border-line px-1.5 py-1 text-content-muted hover:bg-surface-2 hover:text-danger disabled:opacity-50"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[11px] text-content-muted">저장된 프리셋이 없습니다. 항목을 입력한 뒤 [프리셋 저장]으로 등록해 보세요.</p>
+              )}
+              {presetMessage && (
+                <p role={presetMessage.type === "error" ? "alert" : "status"} className={presetMessage.type === "error" ? "text-xs text-danger" : "text-xs text-success"}>
+                  {presetMessage.text}
+                </p>
+              )}
+            </section>
+          )}
+
           {!isPlannedPayment && (
             <>
               <div>
