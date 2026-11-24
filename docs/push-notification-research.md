@@ -271,8 +271,23 @@ pg_cron 일일 스캔 함수   ─┐
      - `p_status IN ('SENT', 'SKIPPED', 'FAILED', 'PENDING')` 검증(`429`/`5xx` 일시 오류 시 `push_attempts < 3`이면 `'PENDING'` 유지, `>= 3`이면 `'FAILED'`).
      - 대상 알림 소유자(`user_id`)의 `push_subscriptions` 중 `endpoint = ANY(p_expired_endpoints)`인 만료 구독(`404`/`410`)을 삭제하고(남은 구독이 0건이면 `notification_settings.push_enabled = false` 동기화), `endpoint = ANY(p_succeeded_endpoints)`인 구독의 `last_success_at = NOW(), updated_at = NOW()`를 갱신함.
      - 대상 `public.notifications` 행의 `push_status = p_status`, `pushed_at = CASE WHEN p_status IN ('SENT', 'SKIPPED', 'FAILED') THEN NOW() ELSE pushed_at END`를 갱신함.
-4. **비동기 웹훅 호출 도우미 (`public.trigger_send_notifications_webhook`)**:
-   - `notifications` `AFTER INSERT FOR EACH STATEMENT` 트리거로 연결하되, `pg_net` 확장(`net.http_post`)과 DB 설정(`current_setting('app.settings.send_notifications_url', true)`, `current_setting('app.settings.send_notifications_secret', true)`)이 모두 유효할 때만 호출하고, 블록 전체를 `EXCEPTION WHEN OTHERS THEN RETURN NULL;`로 감싸 **로컬/운영 DB에서 `pg_net` 미설정이나 네트워크 오류가 나도 알림 INSERT가 절대 실패하지 않게 보장**함.
+4. **비동기 웹훅 설정 저장소 및 호출 도우미 (`public.push_webhook_config`, `public.set_push_webhook_config`, `public.invoke_send_notifications_webhook`, `public.trigger_send_notifications_webhook` — `R96-REV-07` 보완)**:
+   - **배경 (`R96-REV-07`)**: 호스팅 Supabase 클라우드 DB의 `postgres` 역할은 비슈퍼유저(`supabase_admin`만 슈퍼유저)이므로 SQL Editor에서 `ALTER DATABASE postgres SET app.settings.send_notifications_url = ...` 실행 시 `ERROR: 42501: permission denied to set parameter "app.settings.send_notifications_url"`로 차단됨. 이에 따라 PostgREST 모든 역할(`anon`, `authenticated`, `service_role`)에서 접근이 원천 차단된 DB 소유자 전용 단일 행 설정 테이블(`public.push_webhook_config`) + SQL Editor 등록 헬퍼(`public.set_push_webhook_config`)를 1차 저장소로 도입하고, Supabase Vault(`vault.decrypted_secrets`) 및 세션 GUC(`current_setting('app.settings.send_notifications_*', true)`) 폴백을 결합한 3단계 조회 구조로 확정함.
+   - **단일 행 비공개 설정 테이블 (`public.push_webhook_config`)**:
+     - `id BOOLEAN PRIMARY KEY DEFAULT true CONSTRAINT chk_push_webhook_config_singleton CHECK (id = true)`
+     - `url TEXT NOT NULL CONSTRAINT chk_push_webhook_config_url CHECK (char_length(btrim(url)) BETWEEN 12 AND 2048 AND btrim(url) ~ '^https://')`
+     - `secret TEXT NULL CONSTRAINT chk_push_webhook_config_secret CHECK (secret IS NULL OR char_length(btrim(secret)) BETWEEN 32 AND 512)` *(Vault에 시크릿을 분리 보관할 때 `NULL` 허용)*
+     - `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+     - **권한·RLS 격리**: `ALTER TABLE public.push_webhook_config ENABLE ROW LEVEL SECURITY;` (RLS 정책 0개 = 비소유자 전면 거부) 및 `REVOKE ALL ON TABLE public.push_webhook_config FROM PUBLIC, anon, authenticated, service_role;`를 적용해 PostgREST API(`anon`, `authenticated`, `service_role`)를 통한 조회·쓰기를 100% 차단하고 테이블 소유자(`postgres` 및 `SECURITY DEFINER` 함수)만 접근할 수 있게 함.
+   - **SQL Editor 전용 설정 등록·갱신 함수 (`public.set_push_webhook_config(p_url TEXT, p_secret TEXT DEFAULT NULL) RETURNS VOID`)**:
+     - `SECURITY DEFINER SET search_path = public`로 정의하고 `REVOKE ALL ON FUNCTION public.set_push_webhook_config(TEXT, TEXT) FROM PUBLIC, anon, authenticated, service_role;`로 PostgREST RPC 노출을 차단함(Supabase Dashboard SQL Editor 또는 로컬 `psql -U postgres`에서만 호출 가능).
+     - `v_url := nullif(btrim(coalesce(p_url, '')), '')`, `v_secret := nullif(btrim(coalesce(p_secret, '')), '')`로 정규화한 뒤, `v_url IS NULL OR char_length(v_url) NOT BETWEEN 12 AND 2048 OR v_url !~ '^https://'`이면 `ERRCODE = '23514'` 예외를 발생시키고, `v_secret IS NOT NULL AND char_length(v_secret) NOT BETWEEN 32 AND 512`이면 `ERRCODE = '23514'` 예외를 발생시킴.
+     - `INSERT INTO public.push_webhook_config(id, url, secret, updated_at) VALUES (true, v_url, v_secret, NOW()) ON CONFLICT (id) DO UPDATE SET url = EXCLUDED.url, secret = EXCLUDED.secret, updated_at = NOW();`로 멱등 갱신함.
+   - **3단계 설정 조회 우선순위 (`public.invoke_send_notifications_webhook()`)**:
+     - ① **1순위 (`public.push_webhook_config`)**: `SELECT nullif(btrim(url), ''), nullif(btrim(secret), '') INTO v_url, v_secret FROM public.push_webhook_config WHERE id = true;`
+     - ② **2순위 (`vault.decrypted_secrets` — `R96-REV-06` 연동)**: `(v_url IS NULL OR v_secret IS NULL) AND to_regclass('vault.decrypted_secrets') IS NOT NULL`일 때, 내부 `BEGIN ... EXCEPTION WHEN OTHERS THEN NULL; END;` 블록 안에서 동적 SQL(`EXECUTE`)로 `vault.decrypted_secrets`의 `name = 'send_notifications_url'` / `'send_notifications_secret'`을 조회해 비어 있는 값을 보충함(`supabase_vault` 미설치 로컬 PG나 `pgsodium` 키 미초기화 환경에서도 컴파일·실행 오류가 절대 전파되지 않음).
+     - ③ **3순위 (`current_setting('app.settings.send_notifications_*', true)`)**: 여전히 비어 있는 항목은 `nullif(btrim(coalesce(current_setting('app.settings.send_notifications_url', true), '')), '')` 및 `send_notifications_secret` 세션 GUC에서 폴백 조회함(`TESTS.sql` `set_config` 호환성 유지).
+     - `v_url`·`v_secret`이 모두 유효하고 `to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)') IS NOT NULL`일 때만 `net.http_post`를 호출하며, 함수 전체를 `EXCEPTION WHEN OTHERS THEN RETURN;`으로 감싸 알림 `INSERT`나 `pg_cron` 재시도 잡이 절대 실패하지 않게 보장함.
 
 ### 11.3 Web Crypto 암호화·Edge Function·SW·클라이언트 확정 명세
 
@@ -310,13 +325,44 @@ pg_cron 일일 스캔 함수   ─┐
 - **Step 3 (`Claude Opus`, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon` — `Reviewer & Orchestrator`)**:
   - Base $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·🐳 로컬 DB 2회 멱등 적용 및 `TESTS.sql` 검증(`test.json`)·`main` 병합·문서 마감.
 
-### 11.5 운영 배포 설정 절차 (iteration-02 리뷰 반영, 2026-11-24)
+### 11.5 운영 배포 설정 절차 (iteration-02 및 `R96-REV-07` 반영, 2026-11-24)
 
-- **적용 순서**: ① `MIGRATION_R96_WEB_PUSH.sql` 적용 → ② Edge Function 배포·시크릿 등록 → ③ DB 설정값 등록 → ④ 웹 빌드에 공개키 반영 순서로 진행함. ③을 마지막에 하면 그 전까지 웹훅은 아무 일도 하지 않음(트리거가 조용히 건너뜀).
+- **적용 순서**: ① `MIGRATION_R96_WEB_PUSH.sql` (이미 적용한 운영 DB는 후속 `MIGRATION_R96_WEBHOOK_CONFIG.sql`) 적용 → ② Edge Function 배포·시크릿 등록 → ③ DB 웹훅 설정(`set_push_webhook_config`) 등록 → ④ 웹 빌드에 공개키 반영 순서로 진행함. ③을 마지막에 하면 그 전까지 웹훅은 아무 일도 하지 않음(트리거가 조용히 건너뜀).
 - **VAPID 키 생성**: P-256 키쌍 1개를 만들고 공개키는 65바이트 비압축 점, 개인키는 32바이트 스칼라 `d`를 각각 base64url로 보관함(예: `npx web-push generate-vapid-keys` 출력값을 그대로 사용 가능). 개인키는 Edge Function 시크릿에만 둠.
 - **Edge Function 배포**: `supabase functions deploy send-notifications --no-verify-jwt`로 배포함. DB 웹훅은 JWT 없이 `x-webhook-secret`만 보내므로, 기본값(JWT 검증)으로 배포하면 게이트웨이가 401로 막고 푸시가 전혀 나가지 않음. 함수가 시크릿을 상수 시간 비교로 직접 검증함.
 - **Edge Function 시크릿**: `supabase secrets set VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=… VAPID_SUBJECT=mailto:… SEND_NOTIFICATIONS_WEBHOOK_SECRET=<임의 32자 이상>`. `SUPABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`는 Supabase가 자동 주입함.
-- **DB 설정값**: SQL Editor에서 `ALTER DATABASE postgres SET app.settings.send_notifications_url = 'https://<project>.supabase.co/functions/v1/send-notifications';`와 `ALTER DATABASE postgres SET app.settings.send_notifications_secret = '<위 웹훅 시크릿>';` 실행 후 새 연결부터 적용됨. `pg_net` 확장 활성화 필요.
+- **DB 웹훅 설정값 등록 (`R96-REV-07` — `ALTER DATABASE` `42501` 대체)**:
+  - 호스팅 Supabase에서는 `ALTER DATABASE postgres SET app.settings.*`가 `42501: permission denied`로 거부되므로, Supabase Dashboard → **SQL Editor**에서 `MIGRATION_R96_WEBHOOK_CONFIG.sql`을 적용한 뒤 아래 함수를 실행함(재연결 없이 즉시 모든 세션에 반영됨):
+    ```sql
+    SELECT public.set_push_webhook_config(
+        'https://<project-ref>.supabase.co/functions/v1/send-notifications',
+        '<SEND_NOTIFICATIONS_WEBHOOK_SECRET과 동일한 32자 이상 시크릿>'
+    );
+    ```
+  - **선택 사항 (Supabase Vault 연동 — `R96-REV-06`)**: 웹훅 시크릿을 테이블 대신 Supabase Vault(`vault.secrets`)에 암호화 보관하려면 Dashboard → Vault(또는 `SELECT vault.create_secret('<시크릿>', 'send_notifications_secret');`)에 등록한 뒤 `SELECT public.set_push_webhook_config('https://<project-ref>.supabase.co/functions/v1/send-notifications', NULL);`로 URL만 테이블에 둘 수 있음(`invoke_send_notifications_webhook`이 `push_webhook_config` → `vault.decrypted_secrets` → `current_setting('app.settings.*')` 순으로 자동 조회함).
+  - **설정 확인 쿼리 (시크릿 원문 비노출)**:
+    ```sql
+    SELECT url,
+           (secret IS NOT NULL AND char_length(btrim(secret)) >= 32) AS has_table_secret,
+           updated_at
+    FROM public.push_webhook_config
+    WHERE id = true;
+    ```
+  - `pg_net` 확장이 활성화되어 있어야 함(Supabase Dashboard → Database → Extensions에서 `pg_net` 활성화 확인).
 - **웹 빌드**: Cloudflare Pages 환경 변수 `NEXT_PUBLIC_VAPID_PUBLIC_KEY`에 공개키를 넣고 다시 빌드함. 미설정이면 설정 화면이 `unconfigured` 안내를 보여 줌.
 - **발송 보장 장치**: 워커는 알림을 5분간 점유(`push_claimed_at`)해 동시 호출 중복 발송을 막음. 1일 지난 알림과 사용자의 첫 기기 등록 전에 생긴 알림은 푸시하지 않고 앱 내 알림함에만 둠. `pg_cron` 잡 `chronoledger-push-retry`가 5분마다 최근 `PENDING` 알림이 있을 때만 워커를 다시 호출해 일시 오류(429/5xx)와 놓친 웹훅을 재시도함.
-- **알려진 절충**: 웹훅 시크릿을 DB 설정값에 두므로 SQL을 실행할 수 있는 역할은 값을 읽을 수 있음. 워커는 이미 쌓인 알림만 보내므로 노출 영향은 제한적이며, 필요 시 Supabase Vault로 옮기는 후속 과제로 둠.
+- **보안 경계**: `public.push_webhook_config`와 `public.set_push_webhook_config`는 `PUBLIC, anon, authenticated, service_role` 모두로부터 권한을 회수(`REVOKE ALL`)하고 RLS 무정책 기본 거부를 걸어 PostgREST API로는 어떤 키(심지어 `service_role` JWT)로도 읽거나 쓸 수 없으며, 오직 DB 소유자(`postgres`, SQL Editor 및 `SECURITY DEFINER` 웹훅 함수)만 접근함.
+
+### 11.6 `r96-rev07-webhook-config` 단계별 수용 기준 (Dispatch Queue 등록용)
+
+- **Step 1 (`GPT Codex`, Fallback 1: `Gemini 4 Neon` / `Claude Opus`, Fallback 2: `Gemini 4 Hydrogen` — `Maker: R96-REV-07 Webhook Config DB/Migration/Tests`)**:
+  - 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관).
+  - 허용 파일: 신규 `sql/migrations/MIGRATION_R96_WEBHOOK_CONFIG.sql`, `sql/migrations/MIGRATION_R96_WEB_PUSH.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md`.
+  - 수용 기준:
+    1. §11.2.4의 `public.push_webhook_config` 단일 행 테이블(`id = true` CHECK, `url` `^https://` 12~2048자 CHECK, `secret` `NULL` 또는 32~512자 CHECK, `ENABLE ROW LEVEL SECURITY` + 무정책, `REVOKE ALL ON TABLE public.push_webhook_config FROM PUBLIC, anon, authenticated, service_role`), `public.set_push_webhook_config(p_url TEXT, p_secret TEXT DEFAULT NULL)`(`SECURITY DEFINER SET search_path = public`, 입력 검증 위반 시 `ERRCODE = '23514'`, `ON CONFLICT (id) DO UPDATE`, `REVOKE ALL ON FUNCTION public.set_push_webhook_config(TEXT, TEXT) FROM PUBLIC, anon, authenticated, service_role`), `public.invoke_send_notifications_webhook()` 3단계 조회(`push_webhook_config` $\to$ 동적 `vault.decrypted_secrets` 내부 예외 격리 $\to$ `current_setting('app.settings.send_notifications_*', true)` 폴백)를 신규 `sql/migrations/MIGRATION_R96_WEBHOOK_CONFIG.sql`에 작성하고, 구 마이그레이션 재실행 회귀를 막기 위해 `sql/migrations/MIGRATION_R96_WEB_PUSH.sql` 및 `sql/SCHEMA.sql`에도 동일하게 반영함.
+    2. `sql/README.md` B표에 `MIGRATION_R96_WEBHOOK_CONFIG.sql` 행(확인 쿼리 3종: 테이블·RLS·0정책 `push_webhook_config, true, 0`, `anon`·`authenticated`·`service_role` 테이블 SELECT 및 함수 EXECUTE 권한 모두 `false`, `invoke_send_notifications_webhook` 본문 `push_webhook_config` 포함 `true`)을 추가하고 `MIGRATION_R96_WEB_PUSH.sql` 행에 후속 안내를 연결함.
+    3. `sql/tests/TESTS.sql` R96 블록 확장: ① `set_push_webhook_config` 유효성 검사(`http://` URL 거부, 32자 미만 시크릿 거부) 및 정상 등록·갱신(`id = true` 1행, `p_secret = NULL` 허용), ② 설정 존재 상태에서 `invoke_send_notifications_webhook()` 예외 미발생 확인 후 `DELETE FROM public.push_webhook_config`, ③ `R96-01`(`authenticated`) 및 `R96-04`(`anon`)에서 `push_webhook_config` `SELECT`/`INSERT`와 `set_push_webhook_config` 호출이 모두 `insufficient_privilege`로 거부됨을 단언함.
+    4. `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npx vitest run --dir src` 통과.
+- **Step 2 (`Claude Opus`, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon` — `Reviewer & Orchestrator`)**:
+  - 🐳 **Docker Desktop 필요** (로컬 DB 2회 멱등 적용 및 `TESTS.sql` 실행 병합 게이트).
+  - Base $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`), 로컬 Supabase에서 `SCHEMA.sql` + `MIGRATION_R96_WEB_PUSH.sql` + `MIGRATION_R96_WEBHOOK_CONFIG.sql` 각 2회 멱등 적용 및 `TESTS.sql` 전체 PASS 검증(`test.json`), `main` 병합, 운영 DB 적용 안내(`MIGRATION_R96_WEBHOOK_CONFIG.sql` + `SELECT public.set_push_webhook_config(...)`) 및 문서 마감.

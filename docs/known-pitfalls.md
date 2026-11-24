@@ -144,3 +144,7 @@
     - 증상: R85 제약 확인 쿼리가 표에서 중간에 잘려 보임(2026-11-21 사용자 지적).
     - 원인: 정규식 `~ '^chk_(a|b)$'`의 `|`가 마크다운 표 칸 구분자로 읽혀 쿼리가 여러 칸으로 쪼개짐.
     - 방어책: 표 안 쿼리는 `IN (...)` 목록 등 `|` 없는 형태로 씀. 추가 후 행의 `|` 개수가 열 수+1인지 확인함.
+42. **호스팅 Supabase에서 `ALTER DATABASE postgres SET app.settings.*` 권한 거부 (`42501`)**
+    - 증상: 로컬 PostgreSQL이나 세션 내 `set_config('app.settings.*', ..., true)`는 동작하지만, 호스팅 Supabase SQL Editor에서 `ALTER DATABASE postgres SET app.settings.send_notifications_url = ...` 실행 시 `ERROR: 42501: permission denied to set parameter`가 발생함(2026-11-24, `R96-REV-07`).
+    - 원인: 호스팅 Supabase의 `postgres` 역할은 진정한 PostgreSQL `SUPERUSER`(`supabase_admin`)가 아니므로 임의 커스텀 GUC(`app.settings.*`)를 DB 전역 수준에 영속 설정할 권한이 없음.
+    - 방어책: DB 전역 영속 설정이나 내부 웹훅 시크릿은 `ALTER DATABASE ... SET`에 의존하지 않고, `PUBLIC, anon, authenticated, service_role` 모두로부터 권한을 회수(`REVOKE ALL`)하고 무정책 RLS를 켠 단일 행 설정 테이블(`public.push_webhook_config`) + 소유자 전용 등록 함수(`public.set_push_webhook_config`) 또는 Supabase Vault(`vault.decrypted_secrets`)에 보관하며, `current_setting('app.settings.*', true)`는 로컬 `TESTS.sql`의 세션 단위 오버라이드 폴백으로만 유지함.

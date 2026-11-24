@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## `R96-REV-07` Chief Architect 웹훅 설정 저장소 설계 및 수용 기준 확정 (2026-11-24)
+
+- **수행 주체**: Gemini 4 Argon (`Chief Architect`)임.
+- **결과**: 호스팅 Supabase SQL Editor에서 `ALTER DATABASE postgres SET app.settings.send_notifications_*` 실행 시 발생하는 `42501: permission denied`를 해결하기 위해 [`docs/push-notification-research.md`](push-notification-research.md) §11.2.4·§11.5·§11.6에 단일 행 비공개 설정 테이블 `public.push_webhook_config`(`REVOKE ALL FROM PUBLIC, anon, authenticated, service_role` + RLS 무정책), SQL Editor 전용 등록 헬퍼 `public.set_push_webhook_config(p_url, p_secret)`, 3단계 설정 조회(`push_webhook_config` $\to$ 동적 `vault.decrypted_secrets` $\to$ `current_setting('app.settings.*')` 폴백) 및 증분 마이그레이션 `MIGRATION_R96_WEBHOOK_CONFIG.sql` 수용 기준을 확정함.
+- **다음 단계**: 새 채팅 세션에서 **Gemini 4 Hydrogen**(Fallback: `Gemini 4 Neon` / `Claude Sonnet`)이 Run `r96-rev07-webhook-config` 워크트리를 생성·등록(`▶ READY`)한 뒤 Step 2(`GPT Codex` Maker)로 인계함.
+
 ## R105 대시보드 상태바 개편 완료 — `main` 병합 `fe5bf77` (2026-11-24)
 
 - **수행 주체**: Claude Sonnet (Step 1 Maker `3271d5d`) → Gemini 4 Hydrogen (Step 2 Reviewer & Orchestrator).
