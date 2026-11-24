@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r101-r103-two-month-budget-and-shortcuts",
+  "iteration": 1,
+  "agent": "Claude Sonnet",
+  "base_sha": "4fbf67f2a1e2ac47f0945aaa72011734f347e333",
+  "target_sha": "8a53990e0407f79170f401fd7e021802ac35c01a",
+  "created_at": "2026-11-24T12:48:06+09:00",
+  "role": "static-review",
+  "status": "findings",
+  "findings": [
+    {
+      "id": "R101-REV-001",
+      "severity": "P4",
+      "file": "src/lib/budget-calculations.ts",
+      "line": 130,
+      "evidence": "calculateMonthBudgetBreakdown skips every expense that is not PLANNED/CONFIRMED (`!isBudgetCounted(expense) ... continue`) before `coveredTemplateIds.add(expense.template_id)`, so a CANCELLED expense generated from a MONTHLY_DAY template never marks that template as covered for the month. This matches the spec text (covered = PLANNED or CONFIRMED) and the unit tests, but the template then falls into the 'not yet generated' loop (lines 140-145) and its default_price is added to plannedFixedAmount.",
+      "impact": "If a user cancels one month's generated subscription expense while the template stays active, ensureMonthlySubscriptionExpenses does not regenerate it (duplicate-ignoring upsert), yet the two-month card still adds the template's default_price for that month. The card then over-states 예상 총 지출 and under-states 예상 잔여 예산 for that month. Display only, no ledger or RPC effect.",
+      "recommendation": "Optional follow-up: also add template_id of CANCELLED expenses of the same budget month to coveredTemplateIds (without counting their amount) and add a unit test; if the product wants cancelled months to still show the fixed cost, record that decision in docs/r101-r103-budget-presets-shortcuts-spec.md. Not blocking for merge."
+    }
+  ]
+}

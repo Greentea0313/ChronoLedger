@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest"
 import {
   calculateConfirmedExpense,
   calculateExpectedExpense,
+  calculateMonthBudgetBreakdown,
   calculateRemainingBudget,
+  calculateTwoMonthBudgetComparison,
   findOverduePlannedExpenses,
   getBudgetDate,
+  getNextMonthKey,
   spansMultipleMonths,
+  type BudgetComparisonExpense,
   type BudgetExpense,
+  type BudgetSubscriptionTemplate,
 } from "./budget-calculations"
 
 const pickup = (overrides: Partial<BudgetExpense> = {}): BudgetExpense => ({
@@ -97,5 +102,67 @@ describe("budget-calculations", () => {
     const today = pickup({ end_date: "2026-10-08", target_date: "2026-10-08" })
     const confirmed = pickup({ status: "CONFIRMED", target_date: "2026-09-01", end_date: null })
     expect(findOverduePlannedExpenses([expired, today, confirmed, older], "2026-10-08")).toEqual([older, expired])
+  })
+
+  it("12월의 다음 달 MonthKey는 다음 해 1월을 반환한다", () => {
+    expect(getNextMonthKey({ year: 2026, month: 11 })).toEqual({ year: 2026, month: 12 })
+    expect(getNextMonthKey({ year: 2026, month: 12 })).toEqual({ year: 2027, month: 1 })
+  })
+
+  it("당월·익월 비교 시 이미 생성된 template_id 지출과 미생성 활성 MONTHLY_DAY 템플릿만 중복 없이 합산한다", () => {
+    const expenses: BudgetComparisonExpense[] = [
+      { status: "CONFIRMED", target_date: "2026-11-05", end_date: null, final_amount: 5900, template_id: "tpl-monthly-1" },
+      { status: "PLANNED", target_date: "2026-11-25", end_date: null, final_amount: 12000, template_id: "tpl-monthly-2" },
+      { status: "PLANNED", target_date: "2026-11-20", end_date: null, final_amount: 30000, template_id: null },
+      { status: "PLANNED", target_date: "2026-12-10", end_date: "2026-12-10", final_amount: 119000, template_id: null },
+      { status: "CANCELLED", target_date: "2026-12-05", end_date: null, final_amount: 5900, template_id: "tpl-monthly-1" },
+    ]
+    const templates: BudgetSubscriptionTemplate[] = [
+      { id: "tpl-monthly-1", is_active: true, cycle_type: "MONTHLY_DAY", default_price: 5900 },
+      { id: "tpl-monthly-2", is_active: true, cycle_type: "MONTHLY_DAY", default_price: 12000 },
+      { id: "tpl-interval", is_active: true, cycle_type: "INTERVAL_30", default_price: 9900 },
+      { id: "tpl-version", is_active: true, cycle_type: "VERSION_PASS", default_price: 12000 },
+      { id: "tpl-inactive", is_active: false, cycle_type: "MONTHLY_DAY", default_price: 4900 },
+    ]
+
+    const result = calculateTwoMonthBudgetComparison({
+      currentMonth: { year: 2026, month: 11 },
+      currentBudgetAmount: 100000,
+      nextBudgetAmount: 120000,
+      expenses,
+      templates,
+    })
+
+    expect(result.current).toEqual({
+      month: { year: 2026, month: 11 },
+      budgetAmount: 100000,
+      confirmedAmount: 5900,
+      plannedFixedAmount: 12000,
+      plannedVariableAmount: 30000,
+      totalExpectedAmount: 47900,
+      remainingBudget: 52100,
+      isOverBudget: false,
+    })
+    expect(result.next).toEqual({
+      month: { year: 2026, month: 12 },
+      budgetAmount: 120000,
+      confirmedAmount: 0,
+      plannedFixedAmount: 17900, // CANCELLED는 제외되므로 tpl-monthly-1(5900) + tpl-monthly-2(12000) 합산, INTERVAL_30/VERSION_PASS/비활성 제외
+      plannedVariableAmount: 119000,
+      totalExpectedAmount: 136900,
+      remainingBudget: -16900,
+      isOverBudget: true,
+    })
+  })
+
+  it("예산이 0원(미설정)이면 총 예상 지출이 양수여도 isOverBudget은 false다", () => {
+    const breakdown = calculateMonthBudgetBreakdown({
+      month: { year: 2026, month: 11 },
+      budgetAmount: 0,
+      expenses: [{ status: "PLANNED", target_date: "2026-11-10", final_amount: 50000 }],
+      templates: [],
+    })
+    expect(breakdown.isOverBudget).toBe(false)
+    expect(breakdown.remainingBudget).toBe(-50000)
   })
 })

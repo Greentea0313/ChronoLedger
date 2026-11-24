@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client"
 import { DesktopCalendar, type DesktopCalendarDay } from "@/components/calendar/desktop-calendar"
 import { CalendarGameFilter, type GameFilterOption } from "@/components/calendar/calendar-game-filter"
 import { CalendarBgCustomizer } from "@/components/calendar/calendar-bg-customizer"
+import { QuickStartGuide } from "@/components/calendar/quick-start-guide"
 import {
   clearCalendarBgRecord,
   DEFAULT_CALENDAR_BG_SETTINGS,
@@ -137,6 +138,7 @@ export default function DashboardPage() {
   const [payingExpense, setPayingExpense] = useState<OverduePlannedExpense | null>(null)
   const [viewMode, setViewMode] = useState<"calendar" | "weekly">("calendar")
   const [viewMonth, setViewMonth] = useState<{ year: number; month: number } | null>(null)
+  const [isQuickStartOpen, setIsQuickStartOpen] = useState(false)
 
   // 캘린더 커스텀 배경 상태 (IndexedDB 영구 보관)
   const [bgBlob, setBgBlob] = useState<Blob | null>(null)
@@ -151,6 +153,37 @@ export default function DashboardPage() {
     setSelectedDate(today)
     setViewMonth({ year: parsed.getFullYear(), month: parsed.getMonth() + 1 })
   }, [])
+
+  const quickStartStorageKey = `chronoledger:quick-start-dismissed:${user?.id ?? "guest"}`
+
+  useEffect(() => {
+    try {
+      setIsQuickStartOpen(window.localStorage.getItem(quickStartStorageKey) !== "1")
+    } catch {
+      setIsQuickStartOpen(true)
+    }
+  }, [quickStartStorageKey])
+
+  const setQuickStartOpenWithStorage = useCallback((nextOpen: boolean) => {
+    setIsQuickStartOpen(nextOpen)
+    try {
+      if (nextOpen) {
+        window.localStorage.removeItem(quickStartStorageKey)
+      } else {
+        window.localStorage.setItem(quickStartStorageKey, "1")
+      }
+    } catch {
+      // Ignore storage quota or private-mode errors.
+    }
+  }, [quickStartStorageKey])
+
+  const handleToggleQuickStart = useCallback(() => {
+    setQuickStartOpenWithStorage(!isQuickStartOpen)
+  }, [isQuickStartOpen, setQuickStartOpenWithStorage])
+
+  const handleDismissQuickStart = useCallback(() => {
+    setQuickStartOpenWithStorage(false)
+  }, [setQuickStartOpenWithStorage])
 
   useEffect(() => {
     if (!user?.id) return
@@ -575,6 +608,71 @@ export default function DashboardPage() {
     setIsExpenseModalOpen(true)
   }
 
+  // R103: desktop keyboard shortcuts (ignored while typing or while any dialog/drawer is open).
+  const isOnboardingModalOpen = Boolean(
+    user && hasLoadedInitial && !error && userGames.length === 0 && onboardingDismissed === false,
+  )
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return
+      const target = event.target instanceof HTMLElement ? event.target : null
+      if (
+        target &&
+        (target.isContentEditable || Boolean(target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')))
+      ) {
+        return
+      }
+      if (
+        isExpenseModalOpen ||
+        payingExpense !== null ||
+        detailExpenseId !== null ||
+        overdueExpenses.length > 0 ||
+        isMobileDrawerOpen ||
+        isOnboardingModalOpen
+      ) {
+        return
+      }
+
+      if (event.key === "[") {
+        event.preventDefault()
+        setViewMonth((prev) => (prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null))
+      } else if (event.key === "]") {
+        event.preventDefault()
+        setViewMonth((prev) => (prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null))
+      } else if (event.key === "t" || event.key === "T") {
+        event.preventDefault()
+        const today = getTodayLocalDate()
+        const parsed = parseLocalDate(today)
+        setSelectedDate(today)
+        setViewMonth({ year: parsed.getFullYear(), month: parsed.getMonth() + 1 })
+      } else if (event.key === "v" || event.key === "V") {
+        event.preventDefault()
+        setViewMode((prev) => (prev === "calendar" ? "weekly" : "calendar"))
+      } else if (event.key === "n" || event.key === "N") {
+        if (!user || !isOnline) return
+        event.preventDefault()
+        setExpensePrefill(null)
+        setIsExpenseModalOpen(true)
+      } else if (event.key === "?") {
+        event.preventDefault()
+        handleToggleQuickStart()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [
+    detailExpenseId,
+    handleToggleQuickStart,
+    isExpenseModalOpen,
+    isMobileDrawerOpen,
+    isOnboardingModalOpen,
+    isOnline,
+    overdueExpenses.length,
+    payingExpense,
+    user,
+  ])
+
   // Pickup avatars (spec §5.2, NR-10): only the characters referenced by the loaded schedules are fetched, with explicit
   // columns so guests can read them too. A failed lookup just leaves the schedules without avatars.
   const [pickupCharacters, setPickupCharacters] = useState<Record<string, { name: string; iconUrl: string | null }>>({})
@@ -885,6 +983,12 @@ export default function DashboardPage() {
         expense={detailExpense}
         onOpenChange={(open) => { if (!open) setDetailExpenseId(null) }}
         onRefunded={() => void load()}
+      />
+      <QuickStartGuide
+        isOpen={isQuickStartOpen}
+        isSignedIn={Boolean(user)}
+        onToggle={handleToggleQuickStart}
+        onDismiss={handleDismissQuickStart}
       />
       <section aria-label="오늘/이번 주 요약" data-testid="dashboard-summary" className="grid grid-cols-2 gap-2 rounded-lg border border-line bg-surface p-3 text-sm sm:grid-cols-4">
         <p>{`오늘 시작 `}<strong data-testid="summary-starts-today">{summary.startsToday}</strong>{`건`}</p>
