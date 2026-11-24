@@ -265,6 +265,7 @@
 - [x] R103. [2026-11-24 구현·리뷰·병합 완료(`c942e1e`) · 1차 Run `r101-r103-two-month-budget-and-shortcuts` · DB 변경 없음] 데스크톱 키보드 단축키(`[ / ]` 달 이동·`T` 오늘·`V` 보기 전환·`N` 새 지출 등록·`?` 도움말 토글, 입력창·모달 포커스 가드) 및 선택형 접이식 빠른 시작 안내(`FR-001` 강제 온보딩 금지 준수) — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2.2
 - [ ] R101-REV-001. [P4 · 선택 후속 · 2026-11-24 리뷰] `src/lib/budget-calculations.ts` `calculateMonthBudgetBreakdown`이 `CANCELLED` 지출을 템플릿 "생성됨" 판정에서 제외해, 활성 월간 템플릿의 그 달 회차를 취소하면 고정 구독 예정액이 다시 더해짐(예상 총 지출 과대 표시). 취소된 같은 달 `template_id`도 `coveredTemplateIds`에만 넣거나(금액 제외) 취소 달 표시 정책을 명세에 확정하고 단위 테스트를 추가함(DB 변경 없음, 담당: Claude Sonnet)
 - [ ] R104. [⏸️ 보류 (2026-11-24 사용자 결정, 직접 호출 시에만 재검토)] 단기(1~2개월) 픽업 재화·과금 계산기(게임별 천장 시스템 차이 검토 안건)
+- [ ] R105. [Run `r105-dashboard-summary-bar` 등록(2026-11-24) · Step 1 `▶ READY` · DB 변경 없음] 대시보드 홈 상태바(`dashboard-summary`)를 컴팩트 KPI + 월간 예산 페이스 연동 바(오늘 일정·이번 주 관심 일정·이번 주 예정 지출·이번 달 예산 잔여/소진율)로 개편
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---
