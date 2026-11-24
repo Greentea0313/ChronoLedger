@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r102-expense-presets",
+    "created_at":  "2026-11-24T04:09:13.1734561+00:00",
+    "objective":  "Implement R102 DB-backed user expense presets (user_expense_presets, RLS/limit trigger, ExpenseModal chips and save)",
+    "acceptance_criteria":  [
+                                "Step 1 (GPT Codex): Implement public.user_expense_presets table, 20-item limit trigger, RLS, account deletion blocks/purge, MIGRATION_R102_EXPENSE_PRESETS.sql, SCHEMA.sql, README.md, TESTS.sql, and database.types.ts per docs/r101-r103-budget-presets-shortcuts-spec.md §3.1 \u0026 §3.3",
+                                "Step 2 (Claude Sonnet): Implement ExpenseModal preset chips, [프리셋 저장] button, delete button, offline/unmigrated DB fallback, and Vitest tests per §3.2 \u0026 §3.3",
+                                "Step 3 (Claude Opus): Integrated static review (review.json), Docker local DB idempotency + TESTS.sql verification (test.json), main merge, and docs closeout"
+                            ],
+    "base_sha":  "052e53acdd7d22031bcee020487f91bd37718ad5",
+    "target_sha":  null,
+    "branch":  "collab/r102-expense-presets",
+    "worktree_path":  ".worktrees/r102-expense-presets",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
