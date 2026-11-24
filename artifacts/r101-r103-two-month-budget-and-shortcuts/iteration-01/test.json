@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "run_id": "r101-r103-two-month-budget-and-shortcuts",
+  "iteration": 1,
+  "agent": "Claude Sonnet",
+  "base_sha": "4fbf67f2a1e2ac47f0945aaa72011734f347e333",
+  "target_sha": "8a53990e0407f79170f401fd7e021802ac35c01a",
+  "created_at": "2026-11-24T12:48:06+09:00",
+  "role": "dynamic-test",
+  "status": "passed",
+  "finished_at": "2026-11-24T12:48:06+09:00",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "TypeScript typecheck on Target",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint on Target",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest suite (74 files, 977 tests, includes new budget-calculations, TwoMonthBudgetCard, QuickStartGuide, dashboard shortcut and expenses page tests)",
+      "command": "npx vitest run",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "git diff --check Base..Target",
+      "command": "git diff --check 4fbf67f 8a53990",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Next.js production build (placeholder Supabase env; worktree has no .env.local)",
+      "command": "npm run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Local DB migration/TESTS.sql",
+      "command": "n/a (no sql/ changes between Base and Target)",
+      "status": "skipped",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Real-browser check of two-month card and keyboard shortcuts",
+      "command": "manual user check (not run by reviewer)",
+      "status": "skipped",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}
