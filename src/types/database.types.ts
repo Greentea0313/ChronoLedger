@@ -500,6 +500,9 @@ isOneToOne: false
 "delete_income":
 { Args: { "p_income_id": string }; Returns: undefined
                            },
+"delete_notifications":
+{ Args: { "p_notification_ids"?: string[] | null }; Returns: number
+                           },
 "delete_push_subscription":
 { Args: { "p_endpoint"?: string | null,"p_subscription_id"?: string | null }; Returns: number
                            },
