@@ -19,7 +19,13 @@ import { HeroSidebar, type HeroExpenseItem, type HeroScheduleItem, type HeroWall
 import { MobileDrawer } from "@/components/calendar/mobile-drawer"
 import { getPickupAvatars } from "@/components/calendar/pickup-avatars"
 import { buildCalendarGrid, enumerateDates, getGridRange, getTodayLocalDate, groupDatesByWeek, parseLocalDate } from "@/lib/calendar-utils"
-import { WeeklyScheduleList, type WeeklyExpenseEntry, type WeeklyScheduleEntry } from "@/components/calendar/weekly-schedule-list"
+import {
+  WeeklyScheduleList,
+  type WeeklyExpenseEntry,
+  type WeeklyPickupFilter,
+  type WeeklyScheduleEntry,
+  type WeeklyTypeFilter,
+} from "@/components/calendar/weekly-schedule-list"
 import { GameOnboardingModal } from "@/components/game/game-onboarding-modal"
 import { isGameOnboardingDismissed, loadGameOrder, sortByGameOrder } from "@/lib/game-order-storage"
 import { ExpenseModal, type ExpensePrefill } from "@/components/expense/expense-modal"
@@ -138,6 +144,8 @@ export default function DashboardPage() {
   const [overdueExpenses, setOverdueExpenses] = useState<OverduePlannedExpense[]>([])
   const [payingExpense, setPayingExpense] = useState<OverduePlannedExpense | null>(null)
   const [viewMode, setViewMode] = useState<"calendar" | "weekly">("calendar")
+  const [weeklyTypeFilter, setWeeklyTypeFilter] = useState<WeeklyTypeFilter>("PICKUP")
+  const [weeklyPickupFilter, setWeeklyPickupFilter] = useState<WeeklyPickupFilter>("NEW")
   const [viewMonth, setViewMonth] = useState<{ year: number; month: number } | null>(null)
   const [isQuickStartOpen, setIsQuickStartOpen] = useState(false)
 
@@ -928,7 +936,11 @@ export default function DashboardPage() {
     const today = parseLocalDate(todayDate)
     setViewMonth({ year: today.getFullYear(), month: today.getMonth() + 1 })
     setViewMode("weekly")
-    if (hasFavorites) setOnlyFavorites(true)
+    if (hasFavorites) {
+      setWeeklyTypeFilter("ALL")
+      setWeeklyPickupFilter("ALL")
+      setOnlyFavorites(true)
+    }
   }
 
   const memoDates = useMemo(() => new Set(memos.map((memo) => memo.memo_date)), [memos])
@@ -1167,6 +1179,10 @@ export default function DashboardPage() {
               onSelectExpense={setDetailExpenseId}
               favoriteScheduleIds={favoriteScheduleIds}
               onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
+              typeFilter={weeklyTypeFilter}
+              pickupFilter={weeklyPickupFilter}
+              onTypeFilterChange={setWeeklyTypeFilter}
+              onPickupFilterChange={setWeeklyPickupFilter}
               onPrevMonth={() => setViewMonth(prev => prev ? { year: prev.month === 1 ? prev.year - 1 : prev.year, month: prev.month === 1 ? 12 : prev.month - 1 } : null)}
               onNextMonth={() => setViewMonth(prev => prev ? { year: prev.month === 12 ? prev.year + 1 : prev.year, month: prev.month === 12 ? 1 : prev.month + 1 } : null)}
             />

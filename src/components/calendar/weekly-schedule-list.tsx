@@ -55,12 +55,16 @@ interface WeeklyScheduleListProps {
   /** R35 favourites (omit onToggleFavorite for guests to hide the controls). */
   favoriteScheduleIds?: ReadonlySet<string>
   onToggleFavorite?: (scheduleId: string) => void
+  typeFilter?: WeeklyTypeFilter
+  pickupFilter?: WeeklyPickupFilter
+  onTypeFilterChange?: (next: WeeklyTypeFilter) => void
+  onPickupFilterChange?: (next: WeeklyPickupFilter) => void
 }
 
-type TypeFilter = "ALL" | WeeklyScheduleEntry["schedule_type"]
-type PickupFilter = "ALL" | "NEW" | "RERUN" | "ONGOING"
+export type WeeklyTypeFilter = "ALL" | WeeklyScheduleEntry["schedule_type"]
+export type WeeklyPickupFilter = "ALL" | "NEW" | "RERUN" | "ONGOING"
 
-const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
+const TYPE_FILTERS: { value: WeeklyTypeFilter; label: string }[] = [
   { value: "ALL", label: "전체" },
   { value: "PICKUP", label: "픽업" },
   { value: "VERSION", label: "버전" },
@@ -68,7 +72,7 @@ const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
   { value: "BROADCAST", label: "방송" },
 ]
 
-const PICKUP_FILTERS: { value: PickupFilter; label: string }[] = [
+const PICKUP_FILTERS: { value: WeeklyPickupFilter; label: string }[] = [
   { value: "ALL", label: "전체" },
   { value: "NEW", label: "신규" },
   { value: "RERUN", label: "복각" },
@@ -86,7 +90,7 @@ function dateWithWeekday(date: string): string {
   return `${slashDate(date)}(${WEEKDAYS[day]})`
 }
 
-function matchesFilters(schedule: WeeklyScheduleEntry, typeFilter: TypeFilter, pickupFilter: PickupFilter, clock: ScheduleClock): boolean {
+function matchesFilters(schedule: WeeklyScheduleEntry, typeFilter: WeeklyTypeFilter, pickupFilter: WeeklyPickupFilter, clock: ScheduleClock): boolean {
   if (typeFilter !== "ALL" && schedule.schedule_type !== typeFilter) return false
   if (typeFilter !== "PICKUP" || pickupFilter === "ALL") return true
   if (pickupFilter === "NEW") return schedule.is_rerun !== true
@@ -150,12 +154,20 @@ export function WeeklyScheduleList({
   onNextMonth,
   favoriteScheduleIds,
   onToggleFavorite,
+  typeFilter: controlledTypeFilter,
+  pickupFilter: controlledPickupFilter,
+  onTypeFilterChange,
+  onPickupFilterChange,
 }: WeeklyScheduleListProps) {
   const weeks = groupDatesByWeek(year, month, todayDate)
   // Open state is screen-local only: the current week starts open, other weeks collapsed; user toggles override that.
   const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({})
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("PICKUP")
-  const [pickupFilter, setPickupFilter] = useState<PickupFilter>("NEW")
+  const [uncontrolledTypeFilter, setUncontrolledTypeFilter] = useState<WeeklyTypeFilter>("PICKUP")
+  const [uncontrolledPickupFilter, setUncontrolledPickupFilter] = useState<WeeklyPickupFilter>("NEW")
+  const typeFilter = controlledTypeFilter ?? uncontrolledTypeFilter
+  const pickupFilter = controlledPickupFilter ?? uncontrolledPickupFilter
+  const setTypeFilter = onTypeFilterChange ?? setUncontrolledTypeFilter
+  const setPickupFilter = onPickupFilterChange ?? setUncontrolledPickupFilter
   const isOpen = (key: string, defaultOpen: boolean) => openOverrides[key] ?? defaultOpen
   const toggle = (key: string, defaultOpen: boolean) =>
     setOpenOverrides((prev) => ({ ...prev, [key]: !(prev[key] ?? defaultOpen) }))

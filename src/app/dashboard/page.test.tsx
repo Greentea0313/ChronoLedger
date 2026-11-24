@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import DashboardPage from "./page"
 import { getGridRange } from "@/lib/calendar-utils"
@@ -1188,6 +1188,19 @@ describe("DashboardPage summary bar (R105)", () => {
     fireEvent.click(screen.getByTestId("summary-card-week"))
 
     expect(screen.getByRole("button", { name: "주차별 리스트" }).getAttribute("aria-pressed")).toBe("true")
+    expect(screen.getByRole("button", { name: "관심 일정만" }).getAttribute("aria-pressed")).toBe("true")
+    const typeGroup = screen.getByRole("group", { name: "일정 유형 필터" })
+    expect(within(typeGroup).getByRole("button", { name: "전체" }).getAttribute("aria-pressed")).toBe("true")
+    expect(screen.queryByRole("group", { name: "픽업 하위 필터" })).toBeNull()
+
+    fireEvent.click(within(typeGroup).getByRole("button", { name: "픽업" }))
+    const pickupGroup = screen.getByRole("group", { name: "픽업 하위 필터" })
+    expect(within(pickupGroup).getByRole("button", { name: "전체" }).getAttribute("aria-pressed")).toBe("true")
+    fireEvent.click(within(pickupGroup).getByRole("button", { name: "신규" }))
+    expect(within(pickupGroup).getByRole("button", { name: "신규" }).getAttribute("aria-pressed")).toBe("true")
+
+    fireEvent.click(screen.getByTestId("summary-card-week"))
+    expect(within(screen.getByRole("group", { name: "일정 유형 필터" })).getByRole("button", { name: "전체" }).getAttribute("aria-pressed")).toBe("true")
     expect(screen.getByRole("button", { name: "관심 일정만" }).getAttribute("aria-pressed")).toBe("true")
   })
 
