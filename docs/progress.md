@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## `R96-REV-07` Run `r96-rev07-webhook-config` 격리 워크트리 등록 완료 (2026-11-24)
+
+- **수행 주체**: Gemini 4 Hydrogen (`Orchestrator`, Step 1)임.
+- **결과**: Row 0 미커밋 `docs/` 5개 파일 커밋(`91c7abd`) 후 `New-CollaborationRun.ps1`로 `.worktrees/r96-rev07-webhook-config`(`collab/r96-rev07-webhook-config`, `run.json`) 생성 및 Step 2(`GPT Codex` Maker)를 `▶ READY`로 전환함.
+- **다음 단계**: **GPT Codex**가 `.worktrees/r96-rev07-webhook-config`에서 🐳 로컬 DB 검증을 포함해 `MIGRATION_R96_WEBHOOK_CONFIG.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql` 구현 예정임.
+
 ## `R96-REV-07` Chief Architect 웹훅 설정 저장소 설계 및 수용 기준 확정 (2026-11-24)
 
 - **수행 주체**: Gemini 4 Argon (`Chief Architect`)임.
