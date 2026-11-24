@@ -1,5 +1,11 @@
 # 프로젝트 진행 현황
 
+## `R106` Run `r106-notification-delete` 격리 워크트리 등록 완료 (2026-11-25)
+
+- **수행 주체**: Gemini 4 Hydrogen (`Orchestrator`, Row 1)임.
+- **결과**: Row 0 미커밋 `docs/` 4개 파일 커밋(`cddb943`) 후 `New-CollaborationRun.ps1`로 `.worktrees/r106-notification-delete`(`collab/r106-notification-delete`, `run.json`) 생성 및 Step 1(`GPT Codex` DB/RPC/Migration/Tests & Types)을 `▶ READY`로 등록·전환함.
+- **다음 단계**: **GPT Codex**가 `.worktrees/r106-notification-delete`에서 🐳 로컬 DB 검증을 포함해 `MIGRATION_R106_NOTIFICATION_DELETE.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts` 구현 예정임.
+
 ## `R106` 알림 직접 삭제 기능 Chief Architect 설계 및 수용 기준 확정 (2026-11-25)
 
 - **수행 주체**: Gemini 4 Argon (`Chief Architect`, Row 0)임.
