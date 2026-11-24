@@ -79,6 +79,26 @@
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*
 
+### 📐 Chief Architect 구체화 대기 (`R96` Web Push 외부 발송)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`📐 SPEC_NEEDED`** | **Gemini 4 Argon** *(Fallback: Claude Opus / Gemini 4 Neon)* | `Chief Architect (R96 명세·보안 경계·Step 수용 기준 확정)` | 아래 **요구사항 접수 기록**을 바탕으로 `R96` 공식 명세/결정 및 Step별 수용 기준 확정 (`src/**` 직접 수정 금지). 허용 파일: `docs/spec/` 또는 `docs/push-notification-research.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `📐 구체화 대기 (2026-11-24 접수)` |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet)* | `Orchestrator (r96-web-push Run 등록)` | Step 1 완료 후 `R39` 병합 상태 및 `main` 작업트리 정리 여부를 확인해 `r96-web-push` 워크트리 생성·Dispatch Queue 등록 수행 | `⏳ Step 1 완료 대기` |
+
+#### 📝 `R96` 요구사항 접수 기록 (Gemini 4 Hydrogen, 2026-11-24)
+
+1. **요청 내용**: 사용자가 `R96` (Web Push 외부 발송) 개발 착수를 요청함.
+2. **에스컬레이션 사유 (`.agents/rules/collaboration.md` §1~§2)**:
+   - `public.push_subscriptions` 테이블·RLS·`SECURITY DEFINER` RPC(`upsert_push_subscription`, `delete_push_subscription`)·탈퇴 정리 및 `pg_net` DB 웹훅·Edge Function(`send-notifications`)·VAPID 개인키 비밀 관리 등 **RLS/RPC/인증·보안 경계**를 포함함 (`Argon` 승격 조건 ②).
+   - DB/RPC, Edge Function, `public/sw.js`, Auth 로그아웃 경로, `/dashboard/settings` UI 등 **3개 이상 도메인 모듈**에 걸침 (`Argon` 승격 조건 ①).
+   - [`docs/push-notification-research.md`](push-notification-research.md) §4.4·§5.1에 구현 시 확정해야 할 미결 사항이 남아 있음.
+3. **확정·결정이 필요한 사항**:
+   - **선행 의존성**: 현재 `r39-daily-notifications`(`notification_settings`, `enqueue_daily_notifications()`)가 Step 3(`Claude Opus` `▶ READY`) 미병합 상태이므로, `R96` 착수를 `R39` 병합 이후로 순서 고정할지 또는 병행 시 인터페이스/마이그레이션 기준을 어떻게 잡을지 결정 필요함.
+   - **Deno Web Push 라이브러리 및 VAPID 운영 방식**: `npm:@pushforge/builder` vs `jsr:@negrel/webpush` 선택, `pg_net` → Edge Function 인증 헤더/비밀 관리 방식 확정.
+   - **DB 스키마·RPC·대기열 잠금**: `push_subscriptions` 제약(`endpoint` 길이/프로토콜, 소유자 교체 RPC, `SKIP LOCKED` 배치 RPC, `push_status` 전이, `R39` `push_enabled`·`request_result` 토글 연동 범위) 및 Step별 수용 기준 확정.
+4. **관련 파일·문서**: [`docs/push-notification-research.md`](push-notification-research.md) §3·§4·§5.1·§5.4·§6·§8, [`docs/to-do.md`](to-do.md) `R96`, `public/sw.js`, `src/components/settings/notification-settings-card.tsx`(현재 `collab/r39-daily-notifications`에 존재).
+
 ### 🗓️ 예약·보류·안건 요약 (자동 실행 대상 아님)
 
 > 아래 항목은 `"인수인계 문서를 확인해"`로 자동 착수하지 않음. 사용자가 지목하면 Orchestrator가 Run으로 등록함.
@@ -86,7 +106,7 @@
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
 | `R39` | 결정 완료 · 2차 Run 예약 (`r39-daily-notifications`) | `R84` 완료 후 착수 가능. `notification_settings` + `pg_cron` 일일 알림(KST 09:00, 관심 일정 시작 당일·종료 D-1·예정 지출 결제일 D-1 3종) + 설정 화면 알림 토글 (DB 변경, 🐳 Docker 필요) | `docs/to-do.md` R39, [`docs/push-notification-research.md`](push-notification-research.md) §4.2·§5.2·§8·§9 |
-| `R96` | 결정 완료 · 3차 Run 예약 (`r96-web-push`) | `R39` 완료 후 착수. VAPID·`push_subscriptions`·Edge Function `send-notifications`·`pg_net` 웹훅·SW `push` 핸들러·로그아웃 구독 해제·iOS 홈 화면 안내 (DB·Edge Function 변경, 🐳 Docker 필요) | `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §3·§4·§5.1·§8 |
+| `R96` | `📐 SPEC_NEEDED` · 3차 Run 예정 (`r96-web-push`) | Chief Architect(`Gemini 4 Argon`) 명세·수용 기준 확정 대기(`R39` 선행 병합 여부 포함). VAPID·`push_subscriptions`·Edge Function·`pg_net`·SW `push`·로그아웃 구독 해제·iOS 안내 (DB·Edge Function 변경, 🐳 Docker 필요) | 위 `📐 Chief Architect 구체화 대기`, `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §3·§4·§5.1·§8 |
 | `R97` | 완료 (`r97-tauri-notifications`, `main` 병합 `d350267`, 2026-11-23) | 엣지 케이스 보완 병합 및 `npm run tauri dev` 실기기 OS 토스트 수신 확인 완료(개발 실행 시 발신 앱 `Windows PowerShell` 표기). 선택 후속 `R97-REV-001`(P4)이 `docs/to-do.md`에 있음 | 아래 직전 완료 Run 기록 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
