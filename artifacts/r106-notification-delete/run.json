@@ -9,7 +9,7 @@
                                 "Step 3 (Reviewer \u0026 Orchestrator): Static review (review.json), 2x idempotent local DB migrations \u0026 TESTS.sql pass (test.json), next build, merge to main, and close out docs."
                             ],
     "base_sha":  "cddb943e9f0bad17c7bde121b3756710dbdb29c5",
-    "target_sha":  null,
+    "target_sha":  "61a4b17cb3e37cb5a7c310c85b23756c018cbfd8",
     "branch":  "collab/r106-notification-delete",
     "worktree_path":  ".worktrees/r106-notification-delete",
     "max_iterations":  3,

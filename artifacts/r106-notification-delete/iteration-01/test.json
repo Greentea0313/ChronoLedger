@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "run_id": "r106-notification-delete",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "cddb943e9f0bad17c7bde121b3756710dbdb29c5",
+  "target_sha": "61a4b17cb3e37cb5a7c310c85b23756c018cbfd8",
+  "status": "passed",
+  "created_at": "2026-11-25T03:57:57+09:00",
+  "finished_at": "2026-11-25T03:57:57+09:00",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "Upgrade path: Base SCHEMA.sql (cddb943) then MIGRATION_R106_NOTIFICATION_DELETE.sql applied twice on local Supabase", "command": "psql -X -v ON_ERROR_STOP=1 -f MIGRATION_R106_NOTIFICATION_DELETE.sql (x2)", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Upgrade path: README section B check queries (delete_notifications,t / anon_exec f, auth_exec t, auth_tbl_del f)", "command": "psql -X -f checks.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Upgrade path: TESTS.sql full run (45 PASS, final rollback PASS)", "command": "psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Fresh install path: Target SCHEMA.sql x1 (non-rerunnable baseline), MIGRATION_R106_NOTIFICATION_DELETE.sql x2, check queries", "command": "psql -X -v ON_ERROR_STOP=1 -f <file>", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Fresh install path: TESTS.sql full run (45 PASS, final rollback PASS)", "command": "psql -X -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Whitespace check", "command": "git diff --check cddb943 61a4b17", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript typecheck", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest (76 files / 1026 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Next.js production build (placeholder public env; worktree has no .env.local)", "command": "npm run build", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}

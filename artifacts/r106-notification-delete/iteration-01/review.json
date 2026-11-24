@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r106-notification-delete",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "cddb943e9f0bad17c7bde121b3756710dbdb29c5",
+  "target_sha": "61a4b17cb3e37cb5a7c310c85b23756c018cbfd8",
+  "status": "findings",
+  "created_at": "2026-11-25T03:57:57+09:00",
+  "findings": [
+    {
+      "id": "R106-REV-001",
+      "severity": "P4",
+      "file": "src/components/layout/notification-bell.tsx",
+      "line": 224,
+      "evidence": "The header delete-all button calls deleteNotifications(null) on a single click; the RPC with NULL deletes every notification of the user, including rows beyond the 30 loaded (NOTIFICATION_LIMIT) and rows inserted after the popover loaded. This matches spec section 12.1/12.2 exactly.",
+      "impact": "An accidental click irreversibly hard-deletes the whole inbox, including notifications the user never saw in the popover. No data integrity or security impact.",
+      "recommendation": "Non-blocking, spec-conformant. Decide as a product follow-up whether delete-all needs a confirmation step or should pass only the loaded IDs."
+    },
+    {
+      "id": "R106-REV-002",
+      "severity": "P4",
+      "file": "sql/SCHEMA.sql",
+      "line": 2311,
+      "evidence": "complete_push_notification_delivery raises no_data_found when the notification row is gone. With R106 a user can hard-delete a notification while send-notifications holds its 5-minute claim; the Edge Function only logs the failed complete RPC (supabase/functions/send-notifications/index.ts:435).",
+      "impact": "For that one delivery, expired endpoint cleanup and last_success_at updates are skipped; the next push to the user retries the cleanup. The push itself may already have been delivered. No user-facing error.",
+      "recommendation": "Non-blocking. Optionally let the complete RPC return quietly when the row no longer exists, or accept the self-healing behavior."
+    }
+  ]
+}
