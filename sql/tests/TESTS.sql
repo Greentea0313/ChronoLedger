@@ -108,6 +108,7 @@
 --                                  service_role 전용 claim/complete RPC 실행 -> insufficient_privilege.
 --   R96-02 DB fixture 역할         claim_pending_push_notifications(request_result=false/push_enabled=false/구독 0건/계정 삭제 대기 SKIPPED),
 --                                  complete_push_notification_delivery(만료 endpoint 삭제·last_success_at·3회 재시도 후 FAILED),
+--                                  claim 5분 점유(재선점 금지)·1일 초과/첫 구독 이전 알림 SKIPPED·재시도 cron 등록,
 --                                  pg_net 웹훅 트리거 예외 격리, 탈퇴 purge 연동 및 차단 트리거 검증.
 --   R96-03 authenticated / A       계정 삭제 대기 사용자 push_subscriptions 조회 은닉 및 upsert/delete RPC 차단.
 --   R96-04 anon                   push_subscriptions 조회 및 4개 RPC 실행 -> insufficient_privilege.
@@ -2834,6 +2835,8 @@ DECLARE
     v_n_sent UUID;
     v_n_expire_last UUID;
     v_n_off UUID;
+    v_n_old UUID;
+    v_n_before_sub UUID;
     v_claimed_count INTEGER;
     v_claimed_id UUID;
     v_claimed_attempts SMALLINT;
@@ -2880,6 +2883,26 @@ BEGIN
     END IF;
     IF (SELECT push_status FROM public.notifications WHERE id = v_n_pending_a) <> 'SKIPPED' THEN
         RAISE EXCEPTION 'FAIL: R96 pending-deletion user notification was not marked SKIPPED';
+    END IF;
+
+    -- Lease: a second worker right after the first must not claim the same row again.
+    -- Backlog: rows older than 1 day or created before the first subscription are SKIPPED, never pushed.
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, created_at)
+    VALUES (v_user_b, 'FAVORITE_START', 'R96 old backlog', 'body', '/dashboard', NOW() - INTERVAL '2 days')
+    RETURNING id INTO v_n_old;
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, created_at)
+    VALUES (v_user_b, 'FAVORITE_START', 'R96 before first sub', 'body', '/dashboard', NOW() - INTERVAL '1 hour')
+    RETURNING id INTO v_n_before_sub;
+    SELECT count(*) INTO v_claimed_count FROM public.claim_pending_push_notifications(50);
+    IF v_claimed_count <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R96 second claim re-claimed a leased or backlog notification (count=%)', v_claimed_count;
+    END IF;
+    IF (SELECT push_status FROM public.notifications WHERE id = v_n_old) <> 'SKIPPED'
+       OR (SELECT push_status FROM public.notifications WHERE id = v_n_before_sub) <> 'SKIPPED' THEN
+        RAISE EXCEPTION 'FAIL: R96 backlog notification was not marked SKIPPED';
+    END IF;
+    IF (SELECT push_claimed_at FROM public.notifications WHERE id = v_n_fav) IS NULL THEN
+        RAISE EXCEPTION 'FAIL: R96 claim did not record push_claimed_at lease';
     END IF;
 
     -- Retry attempt 1: transient failure ('PENDING') + expire v_ep_1 (v_ep_2 remains so push_enabled stays true).
@@ -2956,6 +2979,10 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_notifications_send_webhook') THEN
         RAISE EXCEPTION 'FAIL: R96 webhook trigger trg_notifications_send_webhook missing';
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'chronoledger-push-retry' AND schedule = '*/5 * * * *') THEN
+        RAISE EXCEPTION 'FAIL: R96 retry cron job chronoledger-push-retry missing';
+    END IF;
+    PERFORM public.invoke_send_notifications_webhook();
 END $$;
 
 -- R96-03: Pending-deletion user A cannot read, upsert, or delete push_subscriptions.

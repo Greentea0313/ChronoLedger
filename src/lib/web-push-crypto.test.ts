@@ -275,4 +275,67 @@ describe("send-notifications Edge Function worker", () => {
       errorSpy.mockRestore()
     }
   })
+
+  it("sends a body that the subscriber can decrypt with the library helper (worker copy stays RFC 8291 compatible)", async () => {
+    const vapid = await generateVapidKeyPair()
+    const sub = await generateSubscriberKeys()
+    const endpoint = "https://push.example/decrypt-check"
+    const captured: { body?: Uint8Array; headers?: Headers } = {}
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url
+      if (url.endsWith("/rest/v1/rpc/claim_pending_push_notifications")) {
+        return new Response(
+          JSON.stringify([
+            {
+              notification_id: "notif-d",
+              user_id: "user-d",
+              kind: "REQUEST_APPROVED",
+              title: "게임 요청이 승인되었습니다",
+              body: "내 요청 현황에서 확인하세요.",
+              link_path: "/dashboard/games",
+              push_attempts: 1,
+            },
+          ]),
+          { status: 200 },
+        )
+      }
+      if (url.includes("/rest/v1/push_subscriptions")) {
+        return new Response(JSON.stringify([{ user_id: "user-d", endpoint, p256dh: sub.p256dh, auth: sub.auth }]), { status: 200 })
+      }
+      if (url === endpoint) {
+        captured.body = new Uint8Array(init?.body as ArrayBuffer)
+        captured.headers = new Headers(init?.headers)
+        return new Response("", { status: 201 })
+      }
+      return new Response(null, { status: 204 })
+    })
+
+    const res = await handleSendNotificationsRequest(
+      new Request("https://edge.example/send-notifications", { method: "POST", headers: { "x-webhook-secret": "hook-secret" } }),
+      {
+        env: {
+          supabaseUrl: "https://proj.supabase.co",
+          serviceRoleKey: "service-role-secret",
+          vapidPublicKey: vapid.publicKey,
+          vapidPrivateKey: vapid.privateKey,
+          vapidSubject: "mailto:ops@chronoledger.example",
+          webhookSecret: "hook-secret",
+        },
+        fetchImpl: fetchMock as unknown as typeof fetch,
+      },
+    )
+
+    expect(res.status).toBe(200)
+    expect(captured.body).toBeDefined()
+    expect(captured.headers?.get("Content-Encoding")).toBe("aes128gcm")
+    expect(captured.headers?.get("Authorization")).toMatch(new RegExp(`^vapid t=[^.]+\.[^.]+\.[^,]+, k=${vapid.publicKey}$`))
+    const plaintext = await decryptWebPushPayload({ body: captured.body as Uint8Array, uaKeyPair: sub.uaKeyPair, auth: sub.auth })
+    expect(JSON.parse(plaintext)).toEqual({
+      title: "게임 요청이 승인되었습니다",
+      body: "내 요청 현황에서 확인하세요.",
+      link_path: "/dashboard/games",
+      tag: "REQUEST_APPROVED:notif-d",
+    })
+  })
 })

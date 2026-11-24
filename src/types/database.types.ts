@@ -87,14 +87,14 @@ isOneToOne: false
                   Relationships: []
                 },"notifications": {
                   Row: {
-                    "body": string,"created_at": string,"id": string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts": number,"push_status": "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at": string | null,"read_at": string | null,"scheduled_for": string | null,"source_id": string | null,"title": string,"user_id": string
+                    "body": string,"created_at": string,"id": string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts": number,"push_claimed_at": string | null,"push_status": "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at": string | null,"read_at": string | null,"scheduled_for": string | null,"source_id": string | null,"title": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body": string,"created_at"?: string,"id"?: string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title": string,"user_id": string
+                    "body": string,"created_at"?: string,"id"?: string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title": string,"user_id": string
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"id"?: string,"kind"?: "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title"?: string,"user_id"?: string
+                    "body"?: string,"created_at"?: string,"id"?: string,"kind"?: "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title"?: string,"user_id"?: string
                   }
                   Relationships: []
                 },"notification_settings": {

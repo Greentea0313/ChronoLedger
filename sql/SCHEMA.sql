@@ -60,6 +60,7 @@ CREATE TABLE public.notifications (
     push_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (push_status IN ('PENDING', 'SENT', 'SKIPPED', 'FAILED')),
     push_attempts SMALLINT NOT NULL DEFAULT 0 CHECK (push_attempts >= 0),
     pushed_at TIMESTAMPTZ,
+    push_claimed_at TIMESTAMPTZ,
     read_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -2148,6 +2149,7 @@ DECLARE
     v_push_enabled BOOLEAN;
     v_request_result BOOLEAN;
     v_has_subscription BOOLEAN;
+    v_first_subscribed_at TIMESTAMPTZ;
     v_next_attempts SMALLINT;
 BEGIN
     IF p_limit IS NULL OR p_limit < 1 OR p_limit > 200 THEN
@@ -2158,6 +2160,7 @@ BEGIN
         SELECT n.*
         FROM public.notifications n
         WHERE n.push_status = 'PENDING'
+          AND (n.push_claimed_at IS NULL OR n.push_claimed_at < NOW() - INTERVAL '5 minutes')
         ORDER BY n.created_at ASC, n.id ASC
         FOR UPDATE SKIP LOCKED
         LIMIT p_limit
@@ -2181,7 +2184,14 @@ BEGIN
             SELECT 1 FROM public.push_subscriptions ps WHERE ps.user_id = v_notif.user_id
         ) INTO v_has_subscription;
 
+        -- Never push a backlog: rows older than the push TTL (1 day) or created before the
+        -- user's first device subscription stay in the in-app inbox only.
+        SELECT min(ps.created_at) INTO v_first_subscribed_at
+        FROM public.push_subscriptions ps WHERE ps.user_id = v_notif.user_id;
+
         IF public.account_deletion_is_pending(v_notif.user_id)
+           OR v_notif.created_at < NOW() - INTERVAL '1 day'
+           OR v_notif.created_at < v_first_subscribed_at
            OR NOT coalesce(v_push_enabled, false)
            OR (
                v_notif.kind IN ('REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED')
@@ -2195,8 +2205,10 @@ BEGIN
             CONTINUE;
         END IF;
 
+        -- Lease the row for 5 minutes so a concurrent worker does not claim it again.
         UPDATE public.notifications AS target
-        SET push_attempts = target.push_attempts + 1
+        SET push_attempts = target.push_attempts + 1,
+            push_claimed_at = NOW()
         WHERE target.id = v_notif.id
         RETURNING target.push_attempts INTO v_next_attempts;
 
@@ -2269,6 +2281,7 @@ BEGIN
 
     UPDATE public.notifications
     SET push_status = v_final_status,
+        push_claimed_at = NULL,
         pushed_at = CASE
             WHEN v_final_status IN ('SENT', 'SKIPPED', 'FAILED') THEN NOW()
             ELSE pushed_at
@@ -2280,8 +2293,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 REVOKE ALL ON FUNCTION public.complete_push_notification_delivery(UUID, VARCHAR, TEXT[], TEXT[]) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.complete_push_notification_delivery(UUID, VARCHAR, TEXT[], TEXT[]) TO service_role;
 
-CREATE OR REPLACE FUNCTION public.trigger_send_notifications_webhook()
-RETURNS TRIGGER AS $$
+-- Shared webhook caller for the AFTER INSERT trigger and the retry pg_cron job.
+-- Every failure is swallowed so a notification INSERT or a cron run never fails because of it.
+CREATE OR REPLACE FUNCTION public.invoke_send_notifications_webhook()
+RETURNS VOID AS $$
 DECLARE
     v_url TEXT;
     v_secret TEXT;
@@ -2290,11 +2305,11 @@ BEGIN
     v_secret := nullif(btrim(coalesce(current_setting('app.settings.send_notifications_secret', true), '')), '');
 
     IF v_url IS NULL OR v_secret IS NULL THEN
-        RETURN NULL;
+        RETURN;
     END IF;
 
     IF to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)') IS NULL THEN
-        RETURN NULL;
+        RETURN;
     END IF;
 
     PERFORM net.http_post(
@@ -2307,6 +2322,17 @@ BEGIN
         ),
         timeout_milliseconds := 5000
     );
+EXCEPTION WHEN OTHERS THEN
+    RETURN;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.invoke_send_notifications_webhook() FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.trigger_send_notifications_webhook()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM public.invoke_send_notifications_webhook();
     RETURN NULL;
 EXCEPTION WHEN OTHERS THEN
     RETURN NULL;
@@ -3084,6 +3110,17 @@ BEGIN
         'chronoledger-daily-notifications',
         '0 0 * * *',
         'SELECT public.enqueue_daily_notifications();'
+    );
+
+    -- R96: re-run the worker every 5 minutes while recent PENDING rows exist (429/5xx retries, missed webhooks).
+    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'chronoledger-push-retry') THEN
+        PERFORM cron.unschedule('chronoledger-push-retry');
+    END IF;
+
+    PERFORM cron.schedule(
+        'chronoledger-push-retry',
+        '*/5 * * * *',
+        $cron$SELECT public.invoke_send_notifications_webhook() WHERE EXISTS (SELECT 1 FROM public.notifications WHERE push_status = 'PENDING' AND created_at >= NOW() - INTERVAL '1 day');$cron$
     );
 END;
 $$;
