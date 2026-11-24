@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r102-expense-presets",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "base_sha": "052e53acdd7d22031bcee020487f91bd37718ad5",
+  "target_sha": "bffa1e45abeac81074122dbb9c51550f155bdf85",
+  "role": "static-review",
+  "status": "findings",
+  "created_at": "2026-11-24T19:07:50+09:00",
+  "findings": [
+    {
+      "id": "R102-REV-01",
+      "severity": "P2",
+      "file": "sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql",
+      "line": 101,
+      "evidence": "The migration redefines the whole purge_expired_account_deletion_requests body from the Base (052e53a) SCHEMA.sql. The parallel run r96-web-push, merged into main first (18d5f0c), also redefines that function and adds DELETE FROM public.push_subscriptions. The R102 body does not contain that line, and merging the branch will also conflict in SCHEMA.sql, README, TESTS.sql and database.types.ts.",
+      "impact": "Applying MIGRATION_R102_EXPENSE_PRESETS.sql after MIGRATION_R96_WEB_PUSH.sql in production replaces the purge function without the push_subscriptions cleanup, so a deleted account's push subscriptions are no longer removed by the purge (they would rely only on the auth.users ON DELETE CASCADE).",
+      "recommendation": "Iteration-02: merge main into the run branch, resolve the conflicts so SCHEMA.sql keeps both cleanup lines, add DELETE FROM public.push_subscriptions to the R102 migration's purge body, note in README that R102 runs after R96, and re-run the local DB gate."
+    }
+  ]
+}
