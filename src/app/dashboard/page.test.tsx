@@ -1004,4 +1004,61 @@ describe("DashboardPage favourite schedules (R35)", () => {
     expect(screen.queryByRole("button", { name: /예정 지출 추가/ })).toBeNull()
   })
 
+  it("R103: 빠른 시작 가이드는 최초 방문 시 열려 있고 닫기·? 단축키로 토글된다", async () => {
+    window.localStorage.removeItem("chronoledger:quick-start-dismissed:user-1")
+    setup()
+    render(<DashboardPage />)
+
+    expect(await screen.findByText("빠른 시작 가이드")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "빠른 시작 닫기" }))
+    expect(screen.queryByText("빠른 시작 가이드")).toBeNull()
+    expect(window.localStorage.getItem("chronoledger:quick-start-dismissed:user-1")).toBe("1")
+
+    fireEvent.keyDown(window, { key: "?" })
+    expect(await screen.findByText("빠른 시작 가이드")).toBeTruthy()
+    expect(window.localStorage.getItem("chronoledger:quick-start-dismissed:user-1")).toBeNull()
+  })
+
+  it("R103: [, ], T, V, N 단축키가 동작하고 입력창·모달 및 게스트에서는 가드된다", async () => {
+    window.localStorage.setItem("chronoledger:quick-start-dismissed:user-1", "1")
+    setup()
+    render(<DashboardPage />)
+    await screen.findByTestId("dashboard-summary")
+
+    const calendarBtn = screen.getByRole("button", { name: "캘린더형" })
+    const weeklyBtn = screen.getByRole("button", { name: "주차별 리스트" })
+    expect(calendarBtn.getAttribute("aria-pressed")).toBe("true")
+
+    fireEvent.keyDown(window, { key: "v" })
+    expect(weeklyBtn.getAttribute("aria-pressed")).toBe("true")
+    fireEvent.keyDown(window, { key: "V" })
+    expect(calendarBtn.getAttribute("aria-pressed")).toBe("true")
+
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1
+    const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear
+    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
+    const prevMonthText = `${prevYear}년 ${prevMonth}월`
+    const currMonthText = `${currentYear}년 ${currentMonth}월`
+
+    fireEvent.keyDown(window, { key: "[" })
+    await waitFor(() => expect(screen.getAllByText(prevMonthText).length).toBeGreaterThan(0))
+
+    fireEvent.keyDown(window, { key: "t" })
+    await waitFor(() => expect(screen.getAllByText(currMonthText).length).toBeGreaterThan(0))
+
+    const input = document.createElement("input")
+    document.body.appendChild(input)
+    fireEvent.keyDown(input, { key: "v" })
+    expect(calendarBtn.getAttribute("aria-pressed")).toBe("true")
+    document.body.removeChild(input)
+
+    fireEvent.keyDown(window, { key: "n" })
+    expect(await screen.findByRole("dialog")).toBeTruthy()
+
+    // 모달이 열린 상태에서는 V 단축키가 무시된다
+    fireEvent.keyDown(window, { key: "v" })
+    expect(calendarBtn.getAttribute("aria-pressed")).toBe("true")
+  })
+
 })

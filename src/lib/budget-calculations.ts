@@ -73,3 +73,115 @@ export function findOverduePlannedExpenses<T extends BudgetExpense>(expenses: T[
     .filter((expense) => expense.status === "PLANNED" && getBudgetDate(expense) < today)
     .sort((a, b) => getBudgetDate(a).localeCompare(getBudgetDate(b)))
 }
+
+export interface BudgetComparisonExpense extends BudgetExpense {
+  template_id?: string | null
+}
+
+export interface BudgetSubscriptionTemplate {
+  id: string
+  is_active: boolean
+  cycle_type?: "MONTHLY_DAY" | "INTERVAL_30" | "VERSION_PASS" | string
+  default_price: number
+}
+
+export interface MonthBudgetBreakdown {
+  month: MonthKey
+  budgetAmount: number
+  confirmedAmount: number
+  /** 해당 월 귀속 PLANNED 중 template_id가 있는 지출 + 아직 해당 월 지출(PLANNED/CONFIRMED)이 없는 활성 MONTHLY_DAY 템플릿의 default_price 합계 */
+  plannedFixedAmount: number
+  /** 해당 월 귀속 PLANNED 중 template_id가 없는 일반 예정 지출 합계 */
+  plannedVariableAmount: number
+  /** confirmedAmount + plannedFixedAmount + plannedVariableAmount */
+  totalExpectedAmount: number
+  /** budgetAmount - totalExpectedAmount */
+  remainingBudget: number
+  isOverBudget: boolean
+}
+
+export interface TwoMonthBudgetComparison {
+  current: MonthBudgetBreakdown
+  next: MonthBudgetBreakdown
+}
+
+/** 다음 달 MonthKey를 반환한다(12월이면 다음 해 1월). */
+export function getNextMonthKey(month: MonthKey): MonthKey {
+  if (month.month >= 12) {
+    return { year: month.year + 1, month: 1 }
+  }
+  return { year: month.year, month: month.month + 1 }
+}
+
+/** 단일 월의 예산·확정·고정구독(미생성 MONTHLY_DAY 포함)·일반 예정 지출 내역을 산출한다. */
+export function calculateMonthBudgetBreakdown(params: {
+  month: MonthKey
+  budgetAmount: number
+  expenses: readonly BudgetComparisonExpense[]
+  templates: readonly BudgetSubscriptionTemplate[]
+}): MonthBudgetBreakdown {
+  const { month, budgetAmount, expenses, templates } = params
+  let confirmedAmount = 0
+  let plannedFixedAmount = 0
+  let plannedVariableAmount = 0
+  const coveredTemplateIds = new Set<string>()
+
+  for (const expense of expenses) {
+    if (!isBudgetCounted(expense) || !sameMonth(getBudgetDate(expense), month)) continue
+    if (expense.template_id) coveredTemplateIds.add(expense.template_id)
+    if (expense.status === "CONFIRMED") {
+      confirmedAmount += expense.final_amount
+    } else if (expense.template_id) {
+      plannedFixedAmount += expense.final_amount
+    } else {
+      plannedVariableAmount += expense.final_amount
+    }
+  }
+
+  for (const tpl of templates) {
+    if (!tpl.is_active) continue
+    if ((tpl.cycle_type ?? "MONTHLY_DAY") !== "MONTHLY_DAY") continue
+    if (coveredTemplateIds.has(tpl.id)) continue
+    plannedFixedAmount += tpl.default_price
+  }
+
+  const totalExpectedAmount = confirmedAmount + plannedFixedAmount + plannedVariableAmount
+  const remainingBudget = budgetAmount - totalExpectedAmount
+  const isOverBudget = budgetAmount > 0 && totalExpectedAmount > budgetAmount
+
+  return {
+    month,
+    budgetAmount,
+    confirmedAmount,
+    plannedFixedAmount,
+    plannedVariableAmount,
+    totalExpectedAmount,
+    remainingBudget,
+    isOverBudget,
+  }
+}
+
+/** 당월과 익월의 2개월 예산·고정 구독비 비교 내역을 반환한다. */
+export function calculateTwoMonthBudgetComparison(params: {
+  currentMonth: MonthKey
+  currentBudgetAmount: number
+  nextBudgetAmount: number
+  expenses: readonly BudgetComparisonExpense[]
+  templates: readonly BudgetSubscriptionTemplate[]
+}): TwoMonthBudgetComparison {
+  const nextMonth = getNextMonthKey(params.currentMonth)
+  return {
+    current: calculateMonthBudgetBreakdown({
+      month: params.currentMonth,
+      budgetAmount: params.currentBudgetAmount,
+      expenses: params.expenses,
+      templates: params.templates,
+    }),
+    next: calculateMonthBudgetBreakdown({
+      month: nextMonth,
+      budgetAmount: params.nextBudgetAmount,
+      expenses: params.expenses,
+      templates: params.templates,
+    }),
+  }
+}

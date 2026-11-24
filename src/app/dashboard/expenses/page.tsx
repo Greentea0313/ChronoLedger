@@ -22,6 +22,8 @@ import { ChevronLeft, ChevronRight, Trash2, History } from "lucide-react"
 import { preloadImages } from "@/lib/icon-preload"
 import { downloadUserIcon } from "@/lib/storage-upload"
 import { IncomeModal } from "@/components/finance/income-modal"
+import { TwoMonthBudgetCard } from "@/components/finance/two-month-budget-card"
+import { calculateTwoMonthBudgetComparison, getNextMonthKey } from "@/lib/budget-calculations"
 import { formatAmountAxisTick, getGameTooltipLabel } from "@/lib/chart-format"
 
 const EXPENSES_PER_PAGE = 10
@@ -220,6 +222,8 @@ export default function ExpensesPage() {
 
   // 사용자 지정 게임 아이콘 URL 맵 (gameId -> objectUrl)
   const [gameIcons, setGameIcons] = useState<Record<string, string>>({})
+  const [defaultBudget, setDefaultBudget] = useState(0)
+  const [monthlyBudgetMap, setMonthlyBudgetMap] = useState<Record<string, number>>({})
 
   const userId = user?.id
 
@@ -348,6 +352,56 @@ export default function ExpensesPage() {
     void loadExpenses()
     void loadSubscriptions()
   }, [loadExpenses, loadSubscriptions])
+
+  const loadBudgets = useCallback(async () => {
+    if (!userId) return
+    try {
+      const [financeRes, monthlyRes] = await Promise.all([
+        supabase.from("user_finances").select("default_budget").eq("user_id", userId),
+        supabase.from("monthly_budgets").select("year, month, budget_amount").eq("user_id", userId),
+      ])
+      if (!financeRes?.error && Array.isArray(financeRes?.data) && financeRes.data.length > 0) {
+        setDefaultBudget(Number(financeRes.data[0].default_budget ?? 0))
+      } else {
+        setDefaultBudget(0)
+      }
+      if (!monthlyRes?.error && Array.isArray(monthlyRes?.data)) {
+        const nextMap: Record<string, number> = {}
+        for (const row of monthlyRes.data as Array<{ year?: number; month?: number; budget_amount?: number }>) {
+          if (typeof row.year === "number" && typeof row.month === "number") {
+            nextMap[`${row.year}-${row.month}`] = Number(row.budget_amount ?? 0)
+          }
+        }
+        setMonthlyBudgetMap(nextMap)
+      } else {
+        setMonthlyBudgetMap({})
+      }
+    } catch {
+      // 예산 조회 실패가 지출 내역/통계 로드를 막지 않도록 비차단 처리
+    }
+  }, [userId])
+
+  useEffect(() => {
+    void loadBudgets()
+  }, [loadBudgets])
+
+  const twoMonthComparison = useMemo(() => {
+    const kstToday = getKstToday()
+    const currentMonth = {
+      year: Number(kstToday.slice(0, 4)),
+      month: Number(kstToday.slice(5, 7)),
+    }
+    const nextMonth = getNextMonthKey(currentMonth)
+    const currentMonthly = monthlyBudgetMap[`${currentMonth.year}-${currentMonth.month}`] ?? 0
+    const nextMonthly = monthlyBudgetMap[`${nextMonth.year}-${nextMonth.month}`] ?? 0
+    return calculateTwoMonthBudgetComparison({
+      currentMonth,
+      currentBudgetAmount: currentMonthly > 0 ? currentMonthly : defaultBudget,
+      nextBudgetAmount: nextMonthly > 0 ? nextMonthly : defaultBudget,
+      expenses,
+      templates,
+    })
+  }, [defaultBudget, expenses, monthlyBudgetMap, templates])
 
   // 정기 구독 탭 정렬: [게임] (게임명 가나다순) > [정기 구독] (고정 결제 (결제일 오름차순) > 누적 충전형)
   const sortedTemplates = useMemo(() => {
@@ -992,6 +1046,7 @@ export default function ExpensesPage() {
 
         {/* 탭 1: 지출 내역 및 통계 */}
         <TabsContent value="expenses" className="space-y-4 mt-4">
+          <TwoMonthBudgetCard comparison={twoMonthComparison} />
           <div className="grid gap-4 lg:grid-cols-2">
             {/* 카테고리별 지출 비중 (원그래프) */}
             <Card className="flex flex-col">

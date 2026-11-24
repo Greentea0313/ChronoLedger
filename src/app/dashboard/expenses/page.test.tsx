@@ -1246,3 +1246,78 @@ describe("ExpensesPage 수익 내역 (R93)", () => {
     }
   })
 })
+
+describe("ExpensesPage R101", () => {
+  it("당월·익월 2개월 예산 비교 카드를 렌더링하고 기본 예산 폴백·초과 상태를 표시한다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } })
+    from.mockImplementation((table: string) => {
+      if (table === "expenses") {
+        return createExpenseQueryBuilder([
+          {
+            id: "exp-oct",
+            title: "10월 확정",
+            category: "게임",
+            status: "CONFIRMED",
+            target_date: "2026-10-15",
+            end_date: null,
+            game_id: null,
+            template_id: null,
+            original_price: 20000,
+            final_amount: 20000,
+            payment_method: "WALLET",
+            games: null,
+          },
+          {
+            id: "exp-nov",
+            title: "11월 픽업 예정",
+            category: "게임",
+            status: "PLANNED",
+            target_date: "2026-11-10",
+            end_date: "2026-11-10",
+            game_id: null,
+            template_id: null,
+            original_price: 90000,
+            final_amount: 90000,
+            payment_method: "WALLET",
+            games: null,
+          },
+        ])
+      }
+      if (table === "subscription_templates") {
+        return createExpenseQueryBuilder([
+          {
+            id: "tpl-1",
+            title: "공월 축복",
+            category: "게임",
+            cycle_type: "MONTHLY_DAY",
+            billing_day: 5,
+            default_price: 5900,
+            payment_method: "WALLET",
+            is_active: true,
+            game_id: null,
+            games: null,
+          },
+        ])
+      }
+      if (table === "user_finances") {
+        return createExpenseQueryBuilder([{ default_budget: 80000 }])
+      }
+      if (table === "monthly_budgets") {
+        return createExpenseQueryBuilder([{ year: 2026, month: 10, budget_amount: 100000 }])
+      }
+      return createExpenseQueryBuilder([])
+    })
+
+    render(<ExpensesPage />)
+
+    const card = await screen.findByTestId("two-month-budget-card")
+    expect(within(card).getByText("2026년 10월")).toBeTruthy()
+    expect(within(card).getByText("2026년 11월")).toBeTruthy()
+    await waitFor(() => {
+      expect(within(card).getByText("100,000원")).toBeTruthy()
+      expect(within(card).getByText("80,000원")).toBeTruthy()
+      expect(within(card).getByText("95,900원")).toBeTruthy()
+      expect(within(card).getByText("예산 초과")).toBeTruthy()
+    })
+  })
+})
