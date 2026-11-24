@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "run_id": "r96-web-push",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "static-review",
+  "base_sha": "54a1224d7833566da43d0a41d6014bc459c84a0a",
+  "target_sha": "c3940c50d993d2243daf53d3c6388dae96675447",
+  "status": "findings",
+  "created_at": "2026-11-24T00:00:00+09:00",
+  "findings": [
+    {
+      "id": "R96-REV-01",
+      "severity": "P2",
+      "file": "sql/migrations/MIGRATION_R96_WEB_PUSH.sql",
+      "line": 211,
+      "evidence": "claim_pending_push_notifications only increments push_attempts and leaves push_status = 'PENDING'. Each PostgREST RPC call is its own transaction, so the FOR UPDATE SKIP LOCKED row locks are released as soon as claim returns, before the worker sends anything. The webhook trigger fires once per INSERT statement, so two notification INSERTs close together (two admin approvals, R39 cron plus an approval) start two concurrent workers.",
+      "impact": "A second worker that claims while the first is still sending gets the same rows again and the user receives duplicate pushes; each extra claim also burns one of the three attempts, so a row can be marked FAILED after it was actually delivered.",
+      "recommendation": "Add a claim lease: for example set pushed_at (or a new push_claimed_at column) at claim time and select only rows whose lease is NULL or older than a few minutes, or introduce an in-flight status. Mirror it in SCHEMA.sql and add a TESTS.sql check that a second claim right after the first returns no rows."
+    },
+    {
+      "id": "R96-REV-02",
+      "severity": "P2",
+      "file": "sql/migrations/MIGRATION_R96_WEB_PUSH.sql",
+      "line": 173,
+      "evidence": "notifications.push_status defaults to 'PENDING' since R84, and nothing has ever processed those rows. The migration does not backfill existing rows, and claim selects every PENDING row with no age limit (up to 30 days are kept by the R84 purge).",
+      "impact": "After R96 is applied, a user's first device subscription plus the next webhook delivers their whole backlog of old notifications (up to 50 per call) as pushes, including already-read ones.",
+      "recommendation": "In the migration, mark rows created before R96 as SKIPPED (UPDATE public.notifications SET push_status = 'SKIPPED', pushed_at = NOW() WHERE push_status = 'PENDING'), and let claim skip rows older than a short window (for example created_at < NOW() - INTERVAL '1 day', matching the 86400 s push TTL)."
+    },
+    {
+      "id": "R96-REV-03",
+      "severity": "P2",
+      "file": "supabase/functions/send-notifications/index.ts",
+      "line": 286,
+      "evidence": "The pg_net trigger sends only Content-Type and x-webhook-secret. Supabase Edge Functions verify a JWT in the Authorization header by default (verify_jwt = true), and the repository has no supabase/config.toml entry or documented --no-verify-jwt deploy step. sql/README.md and docs also do not describe how to set app.settings.send_notifications_url / send_notifications_secret, the function secrets (VAPID keys, SEND_NOTIFICATIONS_WEBHOOK_SECRET) or NEXT_PUBLIC_VAPID_PUBLIC_KEY.",
+      "impact": "Deployed as-is, every webhook call is rejected by the gateway with 401 before the function runs; the trigger swallows the error, so no push is ever sent and nothing reports why.",
+      "recommendation": "Add supabase/config.toml with [functions.send-notifications] verify_jwt = false (the function checks the secret itself) or document the deploy flag, and add a short operations runbook (VAPID key generation, function secrets, database settings, NEXT_PUBLIC_VAPID_PUBLIC_KEY) to docs or the sql/README.md R96 row."
+    },
+    {
+      "id": "R96-REV-04",
+      "severity": "P3",
+      "file": "supabase/functions/send-notifications/index.ts",
+      "line": 417,
+      "evidence": "On 429/5xx the worker completes the notification as 'PENDING' and returns. The only thing that calls the worker is the AFTER INSERT webhook; there is no pg_cron job or other schedule that re-invokes it.",
+      "impact": "A transient push-service error is retried only when some later notification INSERT happens, which may be hours later (or after the 1-day TTL), so the '429/5xx up to 3 retries' criterion is not reliably met.",
+      "recommendation": "Schedule a light pg_cron job (for example every 5 minutes) that calls the function through pg_net when PENDING rows exist, or retry with a short backoff inside the same invocation; document the chosen behaviour."
+    },
+    {
+      "id": "R96-REV-05",
+      "severity": "P4",
+      "file": "supabase/functions/send-notifications/index.ts",
+      "line": 196,
+      "evidence": "The worker carries its own copy of the VAPID and aes128gcm code instead of using src/lib/web-push-crypto.ts. The worker test mocks fetch but does not decrypt the body it sends, and neither copy is checked against the RFC 8291 Appendix A test vector; the library is checked only by round-trip with its own decrypt helper.",
+      "impact": "A mistake made identically in encrypt and decrypt, or a later edit to only one copy, would pass all tests but break delivery in real browsers.",
+      "recommendation": "Add a test that decrypts the body produced by the worker with decryptWebPushPayload, and a fixed-key test using the RFC 8291 Appendix A vector."
+    },
+    {
+      "id": "R96-REV-06",
+      "severity": "P4",
+      "file": "sql/migrations/MIGRATION_R96_WEB_PUSH.sql",
+      "line": 303,
+      "evidence": "The webhook secret is read from the database setting app.settings.send_notifications_secret, which any database role can read with current_setting().",
+      "impact": "Anyone who can run SQL as a low-privilege role can read the secret and trigger the worker; impact is limited because the worker only sends already-queued notifications.",
+      "recommendation": "Prefer Supabase Vault (vault.decrypted_secrets inside the SECURITY DEFINER trigger function) for the URL and secret, or note the trade-off in the runbook."
+    }
+  ]
+}
