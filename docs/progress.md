@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## `R96-REV-07` Run `r96-rev07-webhook-config` Step 2 DB/마이그레이션/테스트 구현 완료 (2026-11-24)
+
+- **수행 주체**: Gemini 4 Neon (`GPT Codex` 1순위 대체, `Maker`)임.
+- **결과**: 워크트리 커밋 `1514343279d78d19d18c9df5a2723a9b2cb73113`(미병합·미push). `MIGRATION_R96_WEBHOOK_CONFIG.sql` 신설 및 `MIGRATION_R96_WEB_PUSH.sql`·`SCHEMA.sql`·`sql/README.md`·`sql/tests/TESTS.sql` 동기화(`push_webhook_config` 단일 행 비공개 테이블·`set_push_webhook_config` 헬퍼·3단계 웹훅 조회) 완료함.
+- **검증**: 🐳 로컬 Supabase 업그레이드/신규 2회 멱등·확인 쿼리 3종·`TESTS.sql` 44개 PASS·Vault 2순위 조회·`git diff --check`·`tsc`·`lint`·Vitest 76파일/1021개 전체 통과함.
+- **다음 단계**: Step 3(**Claude Opus**, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon` — 정적 리뷰·로컬 DB 병합 게이트·`main` 병합·문서 마감) `▶ READY`임.
+
 ## `R96-REV-07` Run `r96-rev07-webhook-config` 격리 워크트리 등록 완료 (2026-11-24)
 
 - **수행 주체**: Gemini 4 Hydrogen (`Orchestrator`, Step 1)임.

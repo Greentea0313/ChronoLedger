@@ -8,6 +8,8 @@
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 과제**: **`R96-REV-07` (`r96-rev07-webhook-config` — Base `91c7abd`, 브랜치 `collab/r96-rev07-webhook-config`, 워크트리 `.worktrees/r96-rev07-webhook-config`)** *(운영 Supabase DB에서 `ALTER DATABASE postgres SET app.settings.send_notifications_*` 실행 시 `42501: permission denied` 발생에 따른 비공개 단일 행 설정 테이블 `public.push_webhook_config` + `public.set_push_webhook_config` 헬퍼 + 3단계 조회 `push_webhook_config` → `vault.decrypted_secrets` → `current_setting` 전환)*
+- **Target SHA**: `1514343279d78d19d18c9df5a2723a9b2cb73113` *(Step 2 Maker 완료, 미병합, 원격 브랜치: push 안 함)*
+- **DB 변경**: 있음(🐳 로컬 Supabase DB 업그레이드·신규 2회 멱등 + `TESTS.sql` 44개 PASS 완료; Step 3 병합 게이트 재검증 대기).
 - **전제 현황 (사용자 완료)**: R96 1~3단계(VAPID 키쌍·웹훅 시크릿 생성, Edge Function `send-notifications --no-verify-jwt` 배포, Edge Function 시크릿 4종 등록) 적용 완료됨.
 - **확정 명세 및 수용 기준**: [`docs/push-notification-research.md`](push-notification-research.md) **§11.2.4 · §11.5 · §11.6**
 
@@ -15,8 +17,26 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **0** | **`✅ DONE (2026-11-24)`** | **Gemini 4 Argon** *(Fallback 1: Claude Opus / Gemini 4 Neon, Fallback 2: Gemini 4 Hydrogen)* | `Chief Architect` | **요구사항 접수 기록 (`R96-REV-07`)** 검토 후 설계 결정·단계별 수용 기준 확정([`docs/push-notification-research.md`](push-notification-research.md) §11.2.4·§11.5·§11.6·`docs/handoff.md`, `src/**`·`sql/**` 직접 수정 금지) 및 Run 등록용 `Gemini 4 Hydrogen`(`▶ READY`) 행 반환 | `✅` `public.push_webhook_config` 단일 행 비공개 테이블(`REVOKE ALL FROM PUBLIC, anon, authenticated, service_role` + RLS 무정책)·`public.set_push_webhook_config` 헬퍼·3단계 조회(`push_webhook_config` $\to$ 동적 `vault.decrypted_secrets` $\to$ `current_setting`) 설계 및 §11.6 수용 기준 확정 완료 |
 | **1** | **`✅ DONE (Base 91c7abd)`** | **Gemini 4 Hydrogen** *(Fallback 1: Gemini 4 Neon / Claude Sonnet, Fallback 2: GitHub Copilot)* | `Orchestrator (Run r96-rev07-webhook-config 워크트리 생성 및 등록)` | [`docs/push-notification-research.md`](push-notification-research.md) §11.6에 따라 깨끗한 `main`에서 `New-CollaborationRun.ps1 -RunId "r96-rev07-webhook-config"`로 격리 워크트리(`.worktrees/r96-rev07-webhook-config`)를 생성하고 아래 Step 2(`GPT Codex` Maker)를 `▶ READY`로 전환함 | `✅` Row 0 `docs/` 커밋(`91c7abd`) 후 `.worktrees/r96-rev07-webhook-config`(`collab/r96-rev07-webhook-config`, `run.json`) 생성 및 Step 2 `▶ READY` 전환 완료 |
-| **2** | **`▶ READY`** | **GPT Codex** *(Fallback 1: Gemini 4 Neon / Claude Opus, Fallback 2: Gemini 4 Hydrogen)* | `Maker (R96-REV-07 Webhook Config DB/Migration/Tests)` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). [`docs/push-notification-research.md`](push-notification-research.md) §11.2.4·§11.6 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R96_WEBHOOK_CONFIG.sql`, `sql/migrations/MIGRATION_R96_WEB_PUSH.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **3** | **`⏳ WAITING`** | **Claude Opus** *(Fallback 1: Gemini 4 Argon / Gemini 4 Neon)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2회 멱등 적용 및 `TESTS.sql` 검증 병합 게이트). [`docs/push-notification-research.md`](push-notification-research.md) §11.6 Step 2 수용 기준(Base $\leftrightarrow$ Target 정적 리뷰 `review.json`·로컬 DB 2회 멱등 및 `TESTS.sql` 검증 `test.json`·`main` 병합·운영 적용 안내 및 문서 마감) 수행 | 대기 중 |
+| **2** | **`✅ DONE (SHA: 1514343279d78d19d18c9df5a2723a9b2cb73113)`** | **~~GPT Codex~~ ➡️ Gemini 4 Neon** *(Fallback 1 대체 실행; Fallback 1: Claude Opus, Fallback 2: Gemini 4 Hydrogen)* | `Maker (R96-REV-07 Webhook Config DB/Migration/Tests)` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). [`docs/push-notification-research.md`](push-notification-research.md) §11.2.4·§11.6 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R96_WEBHOOK_CONFIG.sql`, `sql/migrations/MIGRATION_R96_WEB_PUSH.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅` 워크트리 커밋 `1514343279d78d19d18c9df5a2723a9b2cb73113`(SQL 5파일). 🐳 로컬 Supabase 업그레이드/신규 2회 멱등·확인 쿼리 3종·`TESTS.sql` 44개 PASS·Vault 2순위 조회·`git diff --check`·`tsc`·`lint`·Vitest 76파일/1021개 통과 |
+| **3** | **`▶ READY`** | **Claude Opus** *(Fallback 1: Gemini 4 Argon / Gemini 4 Neon)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2회 멱등 적용 및 `TESTS.sql` 검증 병합 게이트). [`docs/push-notification-research.md`](push-notification-research.md) §11.6 Step 2 수용 기준(Base `91c7abd7b4b95a7bb02f536d1571529b2743e017` $\leftrightarrow$ Target `1514343279d78d19d18c9df5a2723a9b2cb73113` 정적 리뷰 `review.json`·로컬 DB 2회 멱등 및 `TESTS.sql` 검증 `test.json`·`main` 병합·운영 적용 안내 및 문서 마감) 수행 | 대기 중 |
+
+#### 📝 `r96-rev07-webhook-config` Step 2 (Maker) 완료 기록 (Gemini 4 Neon, GPT Codex 1순위 대체, 2026-11-24)
+
+- **Target SHA**: `1514343279d78d19d18c9df5a2723a9b2cb73113` (`collab/r96-rev07-webhook-config`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (워크트리 5건)**:
+  - 신규 `sql/migrations/MIGRATION_R96_WEBHOOK_CONFIG.sql`: `public.push_webhook_config` 단일 행 비공개 테이블(`id = true` CHECK, `url` `^https://` 12~2048자 CHECK, `secret` `NULL` 또는 32~512자 CHECK, `ENABLE ROW LEVEL SECURITY` 무정책, `REVOKE ALL FROM PUBLIC, anon, authenticated, service_role`), `public.set_push_webhook_config(p_url, p_secret DEFAULT NULL)`(`SECURITY DEFINER SET search_path = public`, `ERRCODE = '23514'` 검증, `ON CONFLICT (id) DO UPDATE`, `REVOKE ALL FROM PUBLIC, anon, authenticated, service_role`), `public.invoke_send_notifications_webhook()` 3단계 조회(`push_webhook_config` $\to$ 동적 예외 격리 `vault.decrypted_secrets` $\to$ `current_setting('app.settings.send_notifications_*', true)`).
+  - `sql/migrations/MIGRATION_R96_WEB_PUSH.sql` · `sql/SCHEMA.sql`: 구 마이그레이션 재실행 회귀 방지 및 신규 설치 정합성을 위해 동일 테이블·RLS·권한·함수 반영함.
+  - `sql/README.md`: B표에 `MIGRATION_R96_WEBHOOK_CONFIG.sql` 행 및 확인 쿼리 3종 추가, `MIGRATION_R96_WEB_PUSH.sql` 행에 후속 증분 안내 연결함.
+  - `sql/tests/TESTS.sql`: 헤더·`R96-01`(`authenticated`)·`R96-02`(fixture: 유효성 `23514` 거부·등록·설정 존재 시 `invoke_send_notifications_webhook()` 예외 미발생·`NULL` 시크릿 갱신·`service_role` 권한 차단 단언·정리)·`R96-04`(`anon`) 확장함.
+- **결정·전제 사항**:
+  - `src/types/database.types.ts`는 의도적으로 미수정함(`push_webhook_config`·`set_push_webhook_config` 모두 PostgREST 전 역할 권한 회수·SQL Editor 전용이며 허용 파일 외임).
+  - `MIGRATION_R96_WEB_PUSH.sql`을 R102 적용 DB에 재실행하면 구버전 `purge_expired_account_deletion_requests` 본문으로 되돌아가므로(기존 README 주의사항) 로컬 검증 시 R96 재실행 후 `MIGRATION_R102_EXPENSE_PRESETS.sql`을 재적용해 탈퇴 정리 함수를 최신화함.
+- **실행 검증 결과**:
+  - 🐳 로컬 Supabase 업그레이드 경로(`MIGRATION_R96_WEBHOOK_CONFIG.sql` 2회 멱등 → 확인 쿼리 3종: `push_webhook_config, t, 0` / 6개 권한 모두 `f` / `uses_config_table = t` → `TESTS.sql` 44개 PASS·ROLLBACK) 통과함.
+  - 🐳 로컬 Supabase 신규 설치 경로(`public` 스키마 리셋 → `SCHEMA.sql` 1회 → `MIGRATION_R96_WEB_PUSH.sql` 2회 → `MIGRATION_R96_WEBHOOK_CONFIG.sql` 2회 → `MIGRATION_R102_EXPENSE_PRESETS.sql` 1회 → `TESTS.sql` 44개 PASS·ROLLBACK) 통과함.
+  - 🐳 2순위 `vault.decrypted_secrets` 동적 SQL 조회 실동작(ROLLBACK 트랜잭션 내 `vault.create_secret` 등록 후 테이블 비어 있음 / `secret = NULL` 조합 모두 예외 없음·복호화 값 일치) 확인함.
+  - 워크트리 `git diff --check` 통과, `npx.cmd tsc --noEmit` 통과, `npm.cmd run lint` 경고·오류 0건, `npx.cmd vitest run --dir src` 76파일 1021개 전체 통과함.
+- **남은 작업**: Step 3(**Claude Opus**, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon`)가 Base `91c7abd` $\leftrightarrow$ Target `1514343` 정적 리뷰(`review.json`)·🐳 로컬 DB 병합 게이트 검증(`test.json`)·`main` 병합·운영 DB 적용 안내 및 문서 마감 수행 예정임.
 
 #### 📝 `r96-rev07-webhook-config` Step 1 (Orchestrator) 완료 기록 (Gemini 4 Hydrogen, 2026-11-24)
 
