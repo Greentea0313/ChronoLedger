@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { DesktopCalendar, type DesktopCalendarDay } from "@/components/calendar/desktop-calendar"
@@ -891,6 +892,45 @@ export default function DashboardPage() {
     }
   }, [activeGameIdSet, summaryPlanned, summarySchedules, todayDate, user])
 
+  // R105: this week's favourite schedules (same week/game filter as the summary). With no favourites (or as a guest) the card
+  // falls back to the all-schedules count and says so in its label.
+  const hasFavorites = Boolean(user) && favoriteScheduleIds.size > 0
+  const favoriteWeekCount = useMemo(() => {
+    const { weekStart, weekEnd } = getCurrentWeekRange(todayDate)
+    return summarySchedules.filter(
+      (s) => (!s.game_id || activeGameIdSet.has(s.game_id)) && s.start_date <= weekEnd && s.end_date >= weekStart && favoriteScheduleIds.has(s.id),
+    ).length
+  }, [activeGameIdSet, favoriteScheduleIds, summarySchedules, todayDate])
+
+  // R105 budget pace: the viewed month's budget vs. expected expense (confirmed + planned). The month-progress marker only
+  // makes sense for the current KST month.
+  const budgetPace = useMemo(() => {
+    const today = parseLocalDate(todayDate)
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month
+    const daysInMonth = new Date(year, month, 0).getDate()
+    const rate = budgetAmount > 0 ? Math.round((expectedExpense / budgetAmount) * 100) : null
+    return {
+      isCurrentMonth,
+      remaining: budgetAmount - expectedExpense,
+      rate,
+      monthProgress: isCurrentMonth ? Math.round((today.getDate() / daysInMonth) * 100) : null,
+      tone: rate === null ? "none" : rate > 100 ? "danger" : rate >= 80 ? "warning" : "ok",
+    }
+  }, [budgetAmount, expectedExpense, month, todayDate, year])
+
+  const handleSelectToday = () => {
+    const today = parseLocalDate(todayDate)
+    setViewMonth({ year: today.getFullYear(), month: today.getMonth() + 1 })
+    setSelectedDate(todayDate)
+    if (typeof window !== "undefined" && window.innerWidth < 900) setIsMobileDrawerOpen(true)
+  }
+  const handleShowWeeklyFavorites = () => {
+    const today = parseLocalDate(todayDate)
+    setViewMonth({ year: today.getFullYear(), month: today.getMonth() + 1 })
+    setViewMode("weekly")
+    if (hasFavorites) setOnlyFavorites(true)
+  }
+
   const memoDates = useMemo(() => new Set(memos.map((memo) => memo.memo_date)), [memos])
 
   const days = useMemo<DesktopCalendarDay[]>(() => {
@@ -991,10 +1031,96 @@ export default function DashboardPage() {
         onDismiss={handleDismissQuickStart}
       />
       <section aria-label="오늘/이번 주 요약" data-testid="dashboard-summary" className="grid grid-cols-2 gap-2 rounded-lg border border-line bg-surface p-3 text-sm sm:grid-cols-4">
-        <p>{`오늘 시작 `}<strong data-testid="summary-starts-today">{summary.startsToday}</strong>{`건`}</p>
-        <p>{`오늘 마감 `}<strong data-testid="summary-ends-today">{summary.endsToday}</strong>{`건`}</p>
-        <p>{`이번 주 진행 `}<strong data-testid="summary-ongoing-week">{summary.ongoingThisWeek}</strong>{`건`}</p>
-        <p>{`이번 주 예정 지출 `}<strong data-testid="summary-planned-week">{summary.plannedThisWeek === null ? "-" : `${summary.plannedThisWeek.toLocaleString()} 원`}</strong></p>
+        <button
+          type="button"
+          data-testid="summary-card-today"
+          aria-label={`오늘 일정 보기: 시작 ${summary.startsToday}건, 마감 ${summary.endsToday}건`}
+          onClick={handleSelectToday}
+          className="flex min-h-[72px] w-full flex-col items-start gap-0.5 rounded-md border border-line bg-surface-2 p-2.5 text-left text-sm transition-colors duration-fast hover:border-line-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <span className="text-xs text-content-secondary">오늘 일정</span>
+          <span className="font-semibold text-content">
+            {`시작 `}<strong data-testid="summary-starts-today">{summary.startsToday}</strong>{`건 · 마감 `}<strong data-testid="summary-ends-today">{summary.endsToday}</strong>{`건`}
+          </span>
+        </button>
+        <button
+          type="button"
+          data-testid="summary-card-week"
+          aria-label={hasFavorites ? `이번 주 관심 일정 ${favoriteWeekCount}건, 주차별 리스트에서 보기` : `이번 주 진행 일정 ${summary.ongoingThisWeek}건, 주차별 리스트에서 보기`}
+          onClick={handleShowWeeklyFavorites}
+          className="flex min-h-[72px] w-full flex-col items-start gap-0.5 rounded-md border border-line bg-surface-2 p-2.5 text-left text-sm transition-colors duration-fast hover:border-line-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <span className="text-xs text-content-secondary">{hasFavorites ? "이번 주 관심 일정" : "이번 주 진행 일정"}</span>
+          <span className="font-semibold text-content">
+            <strong data-testid="summary-ongoing-week">{hasFavorites ? favoriteWeekCount : summary.ongoingThisWeek}</strong>{`건`}
+          </span>
+          {!hasFavorites && <span className="text-[11px] text-content-muted">{user ? "관심 일정이 없어 전체 기준" : "전체 일정 기준"}</span>}
+        </button>
+        {user ? (
+          <Link
+            href="/dashboard/expenses"
+            data-testid="summary-card-planned"
+            aria-label={`이번 주 예정 지출 ${(summary.plannedThisWeek ?? 0).toLocaleString()}원, 소비 화면으로 이동`}
+            className="flex min-h-[72px] w-full flex-col items-start gap-0.5 rounded-md border border-line bg-surface-2 p-2.5 text-left text-sm transition-colors duration-fast hover:border-line-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <span className="text-xs text-content-secondary">이번 주 예정 지출</span>
+            <strong data-testid="summary-planned-week" className="font-semibold text-content">
+              {summary.plannedThisWeek === null ? "-" : `${summary.plannedThisWeek.toLocaleString()} 원`}
+            </strong>
+          </Link>
+        ) : (
+          <div data-testid="summary-card-planned" className="flex min-h-[72px] w-full flex-col items-start gap-0.5 rounded-md border border-line bg-surface-2 p-2.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <span className="text-xs text-content-secondary">이번 주 예정 지출</span>
+            <strong data-testid="summary-planned-week" className="font-semibold text-content">-</strong>
+            <span className="text-[11px] text-content-muted">로그인 후 확인</span>
+          </div>
+        )}
+        {user ? (
+          <Link
+            href="/dashboard/expenses"
+            data-testid="summary-card-budget"
+            aria-label={
+              budgetPace.rate === null
+                ? "월 예산 미설정, 소비 화면으로 이동"
+                : `${budgetPace.isCurrentMonth ? "이번 달" : `${month}월`} 예산 ${budgetPace.remaining >= 0 ? "잔여" : "초과"} ${Math.abs(budgetPace.remaining).toLocaleString()}원, 소진율 ${budgetPace.rate}%, 소비 화면으로 이동`
+            }
+            className="flex min-h-[72px] w-full flex-col items-start gap-0.5 rounded-md border border-line bg-surface-2 p-2.5 text-left text-sm transition-colors duration-fast hover:border-line-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <span className="text-xs text-content-secondary">{budgetPace.isCurrentMonth ? "이번 달 예산 잔여" : `${month}월 예산 잔여`}</span>
+            {budgetPace.rate === null ? (
+              <span className="font-semibold text-content-muted" data-testid="summary-budget-remaining">예산 미설정</span>
+            ) : (
+              <>
+                <span className="font-semibold text-content">
+                  <strong data-testid="summary-budget-remaining">
+                    {budgetPace.remaining >= 0 ? `${budgetPace.remaining.toLocaleString()} 원` : `${Math.abs(budgetPace.remaining).toLocaleString()} 원 초과`}
+                  </strong>
+                  <span data-testid="summary-budget-rate" className="ml-1.5 text-xs font-normal text-content-secondary">{`소진 ${budgetPace.rate}%`}</span>
+                </span>
+                <span
+                  role="progressbar"
+                  aria-label="월 예산 소진율"
+                  aria-valuenow={Math.min(100, budgetPace.rate)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  data-testid="summary-budget-bar"
+                  className="relative mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface"
+                >
+                  <span className={`block h-full rounded-full ${budgetPace.tone === "danger" ? "bg-danger" : budgetPace.tone === "warning" ? "bg-warning" : "bg-primary"}`} style={{ width: `${Math.min(100, budgetPace.rate)}%` }} />
+                  {budgetPace.monthProgress !== null && (
+                    <span data-testid="summary-budget-pace-marker" className="absolute top-0 h-full w-0.5 bg-content-secondary" style={{ left: `${budgetPace.monthProgress}%` }} />
+                  )}
+                </span>
+              </>
+            )}
+          </Link>
+        ) : (
+          <div data-testid="summary-card-budget" className="flex min-h-[72px] w-full flex-col items-start gap-0.5 rounded-md border border-line bg-surface-2 p-2.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <span className="text-xs text-content-secondary">이번 달 예산 잔여</span>
+            <span className="font-semibold text-content-muted" data-testid="summary-budget-remaining">-</span>
+            <span className="text-[11px] text-content-muted">로그인 후 확인</span>
+          </div>
+        )}
       </section>
       {/* grid-cols-1 = minmax(0, 1fr): long single-line titles must not widen the mobile column and the page. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
