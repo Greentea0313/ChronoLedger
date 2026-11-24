@@ -32,7 +32,7 @@
 - **Worktree 경로**: `.worktrees/r106-notification-delete` (브랜치: `collab/r106-notification-delete`, 매니페스트: `artifacts/r106-notification-delete/run.json`, 미삭제·원격 미push)
 - **Base SHA**: `cddb943e9f0bad17c7bde121b3756710dbdb29c5`
 - **Target SHA**: `61a4b17cb3e37cb5a7c310c85b23756c018cbfd8` *(iteration-01 리뷰 P4 2건 비차단, 산출물 `34a99bf`, `main` 병합 `0ddc229`)*
-- **DB 변경**: 있음. 🐳 로컬 DB 업그레이드·신규 설치 경로 각 2회 멱등·`TESTS.sql` 45개 PASS. **운영 적용은 사용자 대기**.
+- **DB 변경**: 있음. 🐳 로컬 DB 업그레이드·신규 설치 경로 각 2회 멱등·`TESTS.sql` 45개 PASS. 운영 DB 적용·확인 쿼리·실배포 확인 완료(사용자, 2026-11-25).
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- |
@@ -49,7 +49,7 @@
 - **🐳 로컬 DB 병합 게이트**: ① 업그레이드 경로(`db reset` → Base `SCHEMA.sql` → 신규 마이그레이션 2회 멱등 → 확인 쿼리 `delete_notifications, t` / `f, t, f` → `TESTS.sql` 45개 PASS·ROLLBACK), ② 신규 설치 경로(`db reset` → Target `SCHEMA.sql` 1회 → 마이그레이션 2회 → 확인 쿼리 → `TESTS.sql` 45개 PASS·ROLLBACK) 모두 통과함.
 - **산출물·검증**: `artifacts/r106-notification-delete/iteration-01/review.json`·`test.json`, `run.json` `target_sha` 기록 후 워크트리 커밋 `34a99bf`. `jsonschema` 미설치로 `node_modules/ajv`(6.15.0) 대체 검증 통과(공식 스크립트 재검증 필요). 워크트리 `tsc`·`lint`·Vitest 76파일/1026개·`next build`(더미 공개 env) 통과.
 - **병합**: `main`에 `--no-ff` 병합 `0ddc229`. 병합 후 `sql`·`src`가 Target과 동일함 확인, `tsc`·`lint`·Vitest 76파일/1026개 재통과함. 원격 push·워크트리 삭제 안 함.
-- **남은 작업 (사용자, 운영)**: Supabase SQL Editor에서 `sql/migrations/MIGRATION_R106_NOTIFICATION_DELETE.sql` 실행 → README B표 확인 쿼리 2종(`delete_notifications, true` / `false, true, false`) → 웹 재배포 후 알림함 개별·전체 삭제 실브라우저 확인. 마이그레이션 적용 전에 배포하면 삭제 버튼이 오류 안내만 표시함.
+- **운영 적용 (사용자 완료, 2026-11-25)**: 아래 절차대로 적용·확인 쿼리 검증·실배포 확인 완료함. Supabase SQL Editor에서 `sql/migrations/MIGRATION_R106_NOTIFICATION_DELETE.sql` 실행 → README B표 확인 쿼리 2종(`delete_notifications, true` / `false, true, false`) → 웹 재배포 후 알림함 개별·전체 삭제 실브라우저 확인. 마이그레이션 적용 전에 배포하면 삭제 버튼이 오류 안내만 표시함.
 
 #### 📝 `r106-notification-delete` Step 2 (Maker) 완료 기록 (Gemini 4 Hydrogen, 2026-11-25)
 

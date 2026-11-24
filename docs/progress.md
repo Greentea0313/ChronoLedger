@@ -5,7 +5,7 @@
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.
 - **결과**: 정적 리뷰 P4 2건(비차단, `R106-REV-001·002` 후속 등록), 산출물 `34a99bf`, `main` 병합 `0ddc229`. 활성 Run 없음.
 - **검증**: 🐳 로컬 업그레이드·신규 설치 2경로 멱등·`TESTS.sql` 45개 PASS, tsc·lint·Vitest 76파일/1026개·build 통과(병합 후 재통과).
-- **다음 단계**: 사용자가 운영 SQL Editor에서 `MIGRATION_R106_NOTIFICATION_DELETE.sql` 적용 → 웹 재배포 → 알림함 삭제 실브라우저 확인.
+- **운영 적용**: 사용자가 운영 SQL Editor에서 `MIGRATION_R106_NOTIFICATION_DELETE.sql` 적용·확인 쿼리 검증·실배포 확인 완료함(2026-11-25).
 
 ## `R106` Run `r106-notification-delete` Step 2 알림 삭제 UI·테스트 구현 완료 (2026-11-25)
 
