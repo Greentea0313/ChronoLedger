@@ -233,6 +233,18 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"push_subscriptions": {
+                  Row: {
+                    "auth": string,"created_at": string,"endpoint": string,"id": string,"last_success_at": string | null,"p256dh": string,"platform": "web" | "ios_pwa" | "android_pwa","updated_at": string,"user_agent_label": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: string,"last_success_at"?: string | null,"p256dh": string,"platform"?: "web" | "ios_pwa" | "android_pwa","updated_at"?: string,"user_agent_label"?: string,"user_id": string
+                  }
+                  Update: {
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"last_success_at"?: string | null,"p256dh"?: string,"platform"?: "web" | "ios_pwa" | "android_pwa","updated_at"?: string,"user_agent_label"?: string,"user_id"?: string
+                  }
+                  Relationships: []
                 },"schedule_requests": {
                   Row: {
                     "admin_memo": string | null,"created_at": string | null,"end_at": string | null,"end_at_estimated": boolean,"end_date": string,"game_id": string,"id": string,"is_official": boolean,"is_rerun": boolean,"pickup_character_ids": string[],"pickup_new_characters": Json,"memo": string | null,"request_status": "PENDING" | "APPROVED" | "REJECTED","schedule_type": "VERSION" | "PICKUP" | "CONTENTS" | "BROADCAST","start_at": string | null,"start_at_estimated": boolean,"start_date": string,"target_schedule_id": string | null,"title": string,"user_id": string
@@ -457,8 +469,25 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"claim_pending_push_notifications":
+{ Args: { "p_limit"?: number }; Returns: {
+              "body": string,
+"kind": string,
+"link_path": string,
+"notification_id": string,
+"push_attempts": number,
+"title": string,
+"user_id": string
+            }[]
+                           },
+"complete_push_notification_delivery":
+{ Args: { "p_expired_endpoints"?: string[],"p_notification_id": string,"p_status": string,"p_succeeded_endpoints"?: string[] }; Returns: undefined
+                           },
 "delete_income":
 { Args: { "p_income_id": string }; Returns: undefined
+                           },
+"delete_push_subscription":
+{ Args: { "p_endpoint"?: string | null,"p_subscription_id"?: string | null }; Returns: number
                            },
 "delete_subscription_template":
 { Args: { "p_template_id": string }; Returns: undefined
@@ -522,6 +551,9 @@ isOneToOne: false
                            },
 "update_store_wallet_settings":
 { Args: { "p_earn_rate": number,"p_platform": string,"p_tier": string | null }; Returns: undefined
+                           },
+"upsert_push_subscription":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_platform"?: string,"p_user_agent_label"?: string }; Returns: string
                            }
           }
           Enums: {
