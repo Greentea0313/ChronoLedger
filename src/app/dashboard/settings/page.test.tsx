@@ -2,19 +2,40 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import SettingsPage from "./page"
 
-const { useAuth, requestAccountDeletion, from, rpc, loadSchedulePreference, saveSchedulePreference } = vi.hoisted(() => ({
+const {
+  useAuth,
+  requestAccountDeletion,
+  from,
+  rpc,
+  loadSchedulePreference,
+  saveSchedulePreference,
+  getPushSupportState,
+  getCurrentDevicePushEndpoint,
+  subscribeCurrentDevicePush,
+  unsubscribeBrowserPushIfMatching,
+} = vi.hoisted(() => ({
   useAuth: vi.fn(),
   requestAccountDeletion: vi.fn(),
   from: vi.fn(),
   rpc: vi.fn(),
   loadSchedulePreference: vi.fn(),
   saveSchedulePreference: vi.fn(),
+  getPushSupportState: vi.fn(),
+  getCurrentDevicePushEndpoint: vi.fn(),
+  subscribeCurrentDevicePush: vi.fn(),
+  unsubscribeBrowserPushIfMatching: vi.fn(),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/account-deletion", () => ({ requestAccountDeletion }))
 vi.mock("@/lib/schedule-preferences", () => ({ loadSchedulePreference, saveSchedulePreference }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from, rpc } }))
+vi.mock("@/lib/push-notifications", () => ({
+  getPushSupportState,
+  getCurrentDevicePushEndpoint,
+  subscribeCurrentDevicePush,
+  unsubscribeBrowserPushIfMatching,
+}))
 vi.mock("@/lib/storage-upload", () => ({
   downloadProfileAvatar: vi.fn().mockResolvedValue(null),
   uploadProfileAvatar: vi.fn().mockResolvedValue(undefined),
@@ -67,6 +88,19 @@ describe("SettingsPage", () => {
     rpc.mockResolvedValue({ error: null })
     loadSchedulePreference.mockResolvedValue({ showUnofficialSchedules: false, isAvailable: true })
     saveSchedulePreference.mockResolvedValue(undefined)
+    getPushSupportState.mockReturnValue("supported")
+    getCurrentDevicePushEndpoint.mockResolvedValue(null)
+    subscribeCurrentDevicePush.mockResolvedValue({
+      subscriptionId: "sub-new",
+      endpoint: "https://fcm.googleapis.com/fcm/send/new",
+      platform: "web",
+      userAgentLabel: "Chrome · Windows",
+    })
+    unsubscribeBrowserPushIfMatching.mockResolvedValue(undefined)
+    Object.defineProperty(window, "Notification", {
+      value: { permission: "default", requestPermission: vi.fn().mockResolvedValue("granted") },
+      configurable: true,
+    })
   })
 
   it("renders page header and main sections", async () => {
@@ -181,9 +215,32 @@ describe("SettingsPage", () => {
   })
 
   describe("알림 설정 (R39)", () => {
-    type SettingsRow = { favorite_schedule_start?: boolean; favorite_schedule_end_d1?: boolean; planned_expense_d1?: boolean } | null
+    type SettingsRow = {
+      favorite_schedule_start?: boolean
+      favorite_schedule_end_d1?: boolean
+      planned_expense_d1?: boolean
+      request_result?: boolean
+      push_enabled?: boolean
+    } | null
 
-    function mockNotificationSettings(options: { row?: SettingsRow; loadError?: { code?: string; message: string }; upsertError?: { code?: string; message: string } } = {}) {
+    type PushSubRow = {
+      id: string
+      endpoint: string
+      platform: "web" | "ios_pwa" | "android_pwa"
+      user_agent_label: string
+      created_at: string
+      last_success_at: string | null
+    }
+
+    function mockNotificationSettings(
+      options: {
+        row?: SettingsRow
+        loadError?: { code?: string; message: string }
+        upsertError?: { code?: string; message: string }
+        subscriptions?: PushSubRow[]
+        subsError?: { code?: string; message: string }
+      } = {},
+    ) {
       const base = from.getMockImplementation()!
       const builder = {
         select: vi.fn(),
@@ -193,24 +250,51 @@ describe("SettingsPage", () => {
       }
       builder.select.mockReturnValue(builder)
       builder.eq.mockReturnValue(builder)
-      from.mockImplementation((table: string) => (table === "notification_settings" ? builder : base(table)))
-      return builder
-    }
-    const toggle = (label: string) => screen.findByRole("switch", { name: `${label} 알림` })
 
-    it("shows all three toggles on by default when the user has no settings row", async () => {
-      const builder = mockNotificationSettings({ row: null })
+      const subsBuilder = {
+        select: vi.fn(),
+        eq: vi.fn(),
+        order: vi.fn().mockResolvedValue(
+          options.subsError ? { data: null, error: options.subsError } : { data: options.subscriptions ?? [], error: null },
+        ),
+      }
+      subsBuilder.select.mockReturnValue(subsBuilder)
+      subsBuilder.eq.mockReturnValue(subsBuilder)
+
+      from.mockImplementation((table: string) => {
+        if (table === "notification_settings") return builder
+        if (table === "push_subscriptions") return subsBuilder
+        return base(table)
+      })
+      return { builder, subsBuilder }
+    }
+    const toggle = (label: string) =>
+      screen.findByRole("switch", { name: label.endsWith("알림") ? label : `${label} 알림` })
+
+    it("shows all daily and request_result toggles on by default when the user has no settings row", async () => {
+      const { builder } = mockNotificationSettings({ row: null })
       render(<SettingsPage />)
 
-      for (const label of ["관심 일정 시작 당일", "관심 일정 종료 1일 전", "예정 지출 결제일 1일 전"]) {
+      for (const label of ["관심 일정 시작 당일", "관심 일정 종료 1일 전", "예정 지출 결제일 1일 전", "요청 처리 결과 알림"]) {
         expect((await toggle(label)).getAttribute("aria-checked")).toBe("true")
       }
-      expect(builder.select).toHaveBeenCalledWith("favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1")
+      expect((await toggle("웹 푸시 전체 수신")).getAttribute("aria-checked")).toBe("false")
+      expect(builder.select).toHaveBeenCalledWith(
+        "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, request_result, push_enabled",
+      )
       expect(builder.eq).toHaveBeenCalledWith("user_id", "user-123")
     })
 
     it("reflects the saved values of an existing row", async () => {
-      mockNotificationSettings({ row: { favorite_schedule_start: false, favorite_schedule_end_d1: true, planned_expense_d1: false } })
+      mockNotificationSettings({
+        row: {
+          favorite_schedule_start: false,
+          favorite_schedule_end_d1: true,
+          planned_expense_d1: false,
+          request_result: false,
+          push_enabled: true,
+        },
+      })
       render(<SettingsPage />)
 
       await waitFor(async () => {
@@ -218,10 +302,12 @@ describe("SettingsPage", () => {
       })
       expect((await toggle("관심 일정 종료 1일 전")).getAttribute("aria-checked")).toBe("true")
       expect((await toggle("예정 지출 결제일 1일 전")).getAttribute("aria-checked")).toBe("false")
+      expect((await toggle("요청 처리 결과 알림")).getAttribute("aria-checked")).toBe("false")
+      expect((await toggle("웹 푸시 전체 수신")).getAttribute("aria-checked")).toBe("true")
     })
 
     it("upserts only the toggled column with onConflict user_id", async () => {
-      const builder = mockNotificationSettings({ row: null })
+      const { builder } = mockNotificationSettings({ row: null })
       render(<SettingsPage />)
       const target = await toggle("예정 지출 결제일 1일 전")
       await waitFor(() => expect((target as HTMLButtonElement).disabled).toBe(false))
@@ -249,7 +335,7 @@ describe("SettingsPage", () => {
     })
 
     it("blocks saving while offline", async () => {
-      const builder = mockNotificationSettings({ row: null })
+      const { builder } = mockNotificationSettings({ row: null })
       render(<SettingsPage />)
       const target = await toggle("관심 일정 시작 당일")
       await waitFor(() => expect((target as HTMLButtonElement).disabled).toBe(false))
@@ -279,6 +365,82 @@ describe("SettingsPage", () => {
 
       expect(await screen.findByText("알림 설정을 불러오지 못했습니다.")).toBeTruthy()
       expect(screen.queryByText("DB 업데이트(R39) 적용 후 알림 설정을 저장할 수 있습니다.")).toBeNull()
+    })
+
+    it("subscribes the current device when clicking the Web Push enable button (R96)", async () => {
+      mockNotificationSettings({ row: null, subscriptions: [] })
+      render(<SettingsPage />)
+
+      const enableBtn = await screen.findByRole("button", { name: "이 기기에서 푸시 알림 켜기" })
+      await waitFor(() => expect((enableBtn as HTMLButtonElement).disabled).toBe(false))
+
+      fireEvent.click(enableBtn)
+
+      await waitFor(() => expect(subscribeCurrentDevicePush).toHaveBeenCalledTimes(1))
+      expect(await screen.findByText("이 기기에서 웹 푸시 알림을 켰습니다.")).toBeTruthy()
+      expect((await toggle("웹 푸시 전체 수신")).getAttribute("aria-checked")).toBe("true")
+    })
+
+    it("lists registered devices and unsubscribes via delete_push_subscription RPC, disabling push_enabled on last removal (R96)", async () => {
+      const ep = "https://fcm.googleapis.com/fcm/send/current-device"
+      getCurrentDevicePushEndpoint.mockResolvedValue(ep)
+      mockNotificationSettings({
+        row: { push_enabled: true },
+        subscriptions: [
+          {
+            id: "sub-1",
+            endpoint: ep,
+            platform: "web",
+            user_agent_label: "Chrome · Windows",
+            created_at: "2026-11-24T01:00:00Z",
+            last_success_at: null,
+          },
+        ],
+      })
+      render(<SettingsPage />)
+
+      expect(await screen.findByText("Chrome · Windows")).toBeTruthy()
+      expect(screen.getByText("(현재 기기)")).toBeTruthy()
+
+      const removeBtn = screen.getByRole("button", { name: "Chrome · Windows 기기 해제" })
+      fireEvent.click(removeBtn)
+
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith("delete_push_subscription", { p_subscription_id: "sub-1" }))
+      expect(unsubscribeBrowserPushIfMatching).toHaveBeenCalledWith(ep)
+      expect(await screen.findByText("등록된 기기가 없습니다.")).toBeTruthy()
+      expect((await toggle("웹 푸시 전체 수신")).getAttribute("aria-checked")).toBe("false")
+    })
+
+    it("renders platform-specific Web Push notices for Tauri, iOS Safari tab, and denied permission (R96)", async () => {
+      getPushSupportState.mockReturnValue("tauri_desktop")
+      mockNotificationSettings({ row: null })
+      const { unmount } = render(<SettingsPage />)
+      expect(await screen.findByText(/Windows 데스크톱 앱에서는 웹 푸시 대신/)).toBeTruthy()
+      expect(screen.queryByRole("button", { name: "이 기기에서 푸시 알림 켜기" })).toBeNull()
+      unmount()
+
+      getPushSupportState.mockReturnValue("ios_install_required")
+      mockNotificationSettings({ row: null })
+      const { unmount: unmountIos } = render(<SettingsPage />)
+      expect(await screen.findByText(/홈 화면에 추가/)).toBeTruthy()
+      unmountIos()
+
+      getPushSupportState.mockReturnValue("supported")
+      Object.defineProperty(window, "Notification", {
+        value: { permission: "denied", requestPermission: vi.fn() },
+        configurable: true,
+      })
+      mockNotificationSettings({ row: null })
+      render(<SettingsPage />)
+      expect(await screen.findByText(/브라우저에서 알림 권한이 차단되어 있습니다/)).toBeTruthy()
+    })
+
+    it("shows R96 migration fallback when push_subscriptions table is missing", async () => {
+      mockNotificationSettings({ row: null, subsError: { code: "42P01", message: "missing" } })
+      render(<SettingsPage />)
+
+      expect(await screen.findByText("DB 업데이트(R96) 적용 후 웹 푸시 기기를 관리할 수 있습니다.")).toBeTruthy()
+      expect((await screen.findByRole("button", { name: "이 기기에서 푸시 알림 켜기" }) as HTMLButtonElement).disabled).toBe(true)
     })
   })
 })

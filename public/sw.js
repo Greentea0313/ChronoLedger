@@ -4,7 +4,7 @@
  *    - 키: 요청 URL + JWT sub. 익명(anon) 토큰·만료 토큰 요청은 저장/제공하지 않는다.
  *    - 로그아웃/세션 없음 시 클라이언트가 CLEAR_CACHES를 보내 전부 삭제한다.
  * 쓰기(비-GET) 요청은 절대 가로채지 않는다. */
-const SHELL_CACHE = "chronoledger-shell-v5"
+const SHELL_CACHE = "chronoledger-shell-v6"
 const DATA_CACHE = "chronoledger-data-v1"
 const PRECACHE_URLS = [
   "/manifest.json",
@@ -144,5 +144,64 @@ self.addEventListener("fetch", (event) => {
           return response
         }),
     ),
+  )
+})
+
+function sanitizePushLinkPath(value) {
+  if (typeof value !== "string") return "/dashboard"
+  const trimmed = value.trim()
+  if (/^\/(?!\/)/.test(trimmed) && trimmed.length <= 200) return trimmed
+  return "/dashboard"
+}
+
+function parsePushPayload(event) {
+  const fallback = { title: "ChronoLedger 알림", body: "", link_path: "/dashboard", tag: undefined }
+  if (!event || !event.data) return fallback
+  try {
+    const data = typeof event.data.json === "function" ? event.data.json() : JSON.parse(event.data.text())
+    if (!data || typeof data !== "object") return fallback
+    const title = typeof data.title === "string" && data.title.trim() ? data.title.trim().slice(0, 120) : fallback.title
+    const body = typeof data.body === "string" ? data.body.trim().slice(0, 300) : ""
+    const link_path = sanitizePushLinkPath(data.link_path)
+    const tag = typeof data.tag === "string" && data.tag.trim() ? data.tag.trim().slice(0, 120) : undefined
+    return { title, body, link_path, tag }
+  } catch {
+    return fallback
+  }
+}
+
+self.addEventListener("push", (event) => {
+  const payload = parsePushPayload(event)
+  const options = {
+    body: payload.body,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { link_path: payload.link_path },
+  }
+  if (payload.tag) options.tag = payload.tag
+  event.waitUntil(self.registration.showNotification(payload.title, options))
+})
+
+self.addEventListener("notificationclick", (event) => {
+  if (event.notification && typeof event.notification.close === "function") {
+    event.notification.close()
+  }
+  const linkPath = sanitizePushLinkPath(event.notification && event.notification.data && event.notification.data.link_path)
+  const targetUrl = new URL(linkPath, self.location.origin).toString()
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        try {
+          if (new URL(client.url).origin === self.location.origin) {
+            const navPromise = typeof client.navigate === "function" ? client.navigate(targetUrl).catch(() => client) : Promise.resolve(client)
+            return navPromise.then(() => (typeof client.focus === "function" ? client.focus() : undefined))
+          }
+        } catch {
+          // Ignore malformed client URL and continue scanning.
+        }
+      }
+      return self.clients.openWindow(targetUrl)
+    }),
   )
 })

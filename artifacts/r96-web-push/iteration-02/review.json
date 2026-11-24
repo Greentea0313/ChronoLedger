@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "run_id": "r96-web-push",
+  "iteration": 2,
+  "agent": "Claude Opus",
+  "base_sha": "54a1224d7833566da43d0a41d6014bc459c84a0a",
+  "target_sha": "e2dbc4db2a900bdc09f07ae32d23ac419078e290",
+  "role": "static-review",
+  "status": "findings",
+  "created_at": "2026-11-24T19:06:26+09:00",
+  "findings": [
+    {
+      "id": "R96-REV-07",
+      "severity": "P3",
+      "file": "docs/push-notification-research.md",
+      "line": 319,
+      "evidence": "The deploy runbook (11.5) stores the webhook URL and secret with ALTER DATABASE postgres SET app.settings.*. On hosted Supabase projects the postgres role may be refused when setting custom app.settings parameters, and invoke_send_notifications_webhook silently returns when either setting is NULL.",
+      "impact": "If the setting is refused or never applied, the trigger and the retry cron do nothing and no Web Push is sent, with no error surfaced. In-app notifications still work.",
+      "recommendation": "When deploying, run the two ALTER DATABASE statements and confirm current_setting('app.settings.send_notifications_url', true) is non-null in a new connection; if the statement is refused, move the URL/secret to Supabase Vault (already listed as the follow-up for R96-REV-06). Non-blocking for merge."
+    },
+    {
+      "id": "R96-REV-05",
+      "severity": "P4",
+      "file": "supabase/functions/send-notifications/index.ts",
+      "line": 196,
+      "evidence": "Carried over from iteration-01: iteration-02 added a test that decrypts the worker's output with a library, but there is still no RFC 8291 Appendix A fixed-vector test for the duplicated worker crypto.",
+      "impact": "A future edit to the worker's copy of the aes128gcm/VAPID code could drift from src/lib/web-push-crypto.ts; the decrypt round-trip test catches most such drift.",
+      "recommendation": "Optional: add the RFC 8291 Appendix A vector test. Non-blocking."
+    },
+    {
+      "id": "R96-REV-06",
+      "severity": "P4",
+      "file": "sql/migrations/MIGRATION_R96_WEB_PUSH.sql",
+      "line": 320,
+      "evidence": "Carried over from iteration-01 and accepted as a documented tradeoff in docs/push-notification-research.md 11.5: the webhook secret lives in a database setting readable by any role that can run SQL.",
+      "impact": "Limited: the worker only sends already-queued notifications.",
+      "recommendation": "Move to Supabase Vault as a follow-up. Non-blocking."
+    }
+  ]
+}

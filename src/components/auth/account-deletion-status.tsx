@@ -7,6 +7,7 @@ import {
   accountDeletionStatusMessage,
 } from "@/lib/account-deletion"
 import { useAuth } from "@/lib/auth-context"
+import { unsubscribeCurrentDevicePush } from "@/lib/push-notifications"
 import { supabase } from "@/lib/supabase/client"
 
 export function AccountDeletionStatusScreen() {
@@ -16,7 +17,9 @@ export function AccountDeletionStatusScreen() {
   useEffect(() => {
     if (accountDeletionStatus !== "COMPLETED") return
 
-    void supabase.auth.signOut({ scope: "local" })
+    void unsubscribeCurrentDevicePush()
+      .catch(() => undefined)
+      .then(() => supabase.auth.signOut({ scope: "local" }))
       .catch((error: unknown) => console.error("삭제 완료 후 로컬 세션 정리 실패:", error))
       .finally(() => {
         window.localStorage.removeItem(ACCOUNT_DELETION_STATUS_TOKEN_KEY)
