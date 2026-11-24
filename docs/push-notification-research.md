@@ -309,3 +309,14 @@ pg_cron 일일 스캔 함수   ─┐
   - 수용 기준: §11.3의 순수 Web Crypto VAPID/RFC 8291 암호화 모듈 및 단위 테스트(복호화 왕복·서명·상대 경로 검증), `supabase/functions/send-notifications/index.ts` 워커(404/410 구독 정리·429/5xx 3회 재시도·민감정보 로그 배제), `public/sw.js`(`chronoledger-shell-v6`, `push`/`notificationclick` 동일 출처 상대 경로 강제), `src/lib/push-notifications.ts` 및 로그아웃 3곳(`dashboard/layout`, `admin/layout`, `account-deletion-status`) 구독 해제 연동, `NotificationSettingsCard` 확장(`request_result`·`push_enabled` 토글, `[이 기기에서 푸시 알림 켜기]`, Tauri/iOS/권한 거부/미적용 DB 폴백, 등록 기기 목록 및 `[해제]`)과 Vitest 테스트 통과(`npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check`).
 - **Step 3 (`Claude Opus`, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon` — `Reviewer & Orchestrator`)**:
   - Base $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·🐳 로컬 DB 2회 멱등 적용 및 `TESTS.sql` 검증(`test.json`)·`main` 병합·문서 마감.
+
+### 11.5 운영 배포 설정 절차 (iteration-02 리뷰 반영, 2026-11-24)
+
+- **적용 순서**: ① `MIGRATION_R96_WEB_PUSH.sql` 적용 → ② Edge Function 배포·시크릿 등록 → ③ DB 설정값 등록 → ④ 웹 빌드에 공개키 반영 순서로 진행함. ③을 마지막에 하면 그 전까지 웹훅은 아무 일도 하지 않음(트리거가 조용히 건너뜀).
+- **VAPID 키 생성**: P-256 키쌍 1개를 만들고 공개키는 65바이트 비압축 점, 개인키는 32바이트 스칼라 `d`를 각각 base64url로 보관함(예: `npx web-push generate-vapid-keys` 출력값을 그대로 사용 가능). 개인키는 Edge Function 시크릿에만 둠.
+- **Edge Function 배포**: `supabase functions deploy send-notifications --no-verify-jwt`로 배포함. DB 웹훅은 JWT 없이 `x-webhook-secret`만 보내므로, 기본값(JWT 검증)으로 배포하면 게이트웨이가 401로 막고 푸시가 전혀 나가지 않음. 함수가 시크릿을 상수 시간 비교로 직접 검증함.
+- **Edge Function 시크릿**: `supabase secrets set VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=… VAPID_SUBJECT=mailto:… SEND_NOTIFICATIONS_WEBHOOK_SECRET=<임의 32자 이상>`. `SUPABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`는 Supabase가 자동 주입함.
+- **DB 설정값**: SQL Editor에서 `ALTER DATABASE postgres SET app.settings.send_notifications_url = 'https://<project>.supabase.co/functions/v1/send-notifications';`와 `ALTER DATABASE postgres SET app.settings.send_notifications_secret = '<위 웹훅 시크릿>';` 실행 후 새 연결부터 적용됨. `pg_net` 확장 활성화 필요.
+- **웹 빌드**: Cloudflare Pages 환경 변수 `NEXT_PUBLIC_VAPID_PUBLIC_KEY`에 공개키를 넣고 다시 빌드함. 미설정이면 설정 화면이 `unconfigured` 안내를 보여 줌.
+- **발송 보장 장치**: 워커는 알림을 5분간 점유(`push_claimed_at`)해 동시 호출 중복 발송을 막음. 1일 지난 알림과 사용자의 첫 기기 등록 전에 생긴 알림은 푸시하지 않고 앱 내 알림함에만 둠. `pg_cron` 잡 `chronoledger-push-retry`가 5분마다 최근 `PENDING` 알림이 있을 때만 워커를 다시 호출해 일시 오류(429/5xx)와 놓친 웹훅을 재시도함.
+- **알려진 절충**: 웹훅 시크릿을 DB 설정값에 두므로 SQL을 실행할 수 있는 역할은 값을 읽을 수 있음. 워커는 이미 쌓인 알림만 보내므로 노출 영향은 제한적이며, 필요 시 Supabase Vault로 옮기는 후속 과제로 둠.

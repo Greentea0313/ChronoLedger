@@ -103,6 +103,15 @@
 --                                  계정 삭제 대기 사용자 제외·탈퇴 purge 연동·차단 트리거·pg_cron 스케줄 검증.
 --   R39-03 authenticated / A       계정 삭제 대기 사용자 notification_settings 조회 은닉 및 INSERT/UPDATE 차단.
 --   R39-04 anon                   notification_settings 조회 및 enqueue_daily_notifications() 실행 -> insufficient_privilege.
+--   R96-01 authenticated / B       push_subscriptions 직접 쓰기 거부, upsert_push_subscription 유효성·등록·공용 기기 endpoint 소유자 교체·
+--                                  push_enabled 자동 true, 타인 행 은닉, delete_push_subscription 삭제·0건 시 push_enabled false,
+--                                  service_role 전용 claim/complete RPC 실행 -> insufficient_privilege.
+--   R96-02 DB fixture 역할         claim_pending_push_notifications(request_result=false/push_enabled=false/구독 0건/계정 삭제 대기 SKIPPED),
+--                                  complete_push_notification_delivery(만료 endpoint 삭제·last_success_at·3회 재시도 후 FAILED),
+--                                  claim 5분 점유(재선점 금지)·1일 초과/첫 구독 이전 알림 SKIPPED·재시도 cron 등록,
+--                                  pg_net 웹훅 트리거 예외 격리, 탈퇴 purge 연동 및 차단 트리거 검증.
+--   R96-03 authenticated / A       계정 삭제 대기 사용자 push_subscriptions 조회 은닉 및 upsert/delete RPC 차단.
+--   R96-04 anon                   push_subscriptions 조회 및 4개 RPC 실행 -> insufficient_privilege.
 --   R102-01 authenticated / B      user_expense_presets 본인 CRUD·타인 행 은닉 및 쓰기 차단·CHECK 검증·20개 상한 트리거(21번째 23514 거부·삭제 후 재등록 성공).
 --   R102-02 DB fixture 역할        게임 삭제 시 game_id ON DELETE SET NULL, 탈퇴 purge 연동 및 트리거 존재 검증.
 --   R102-03 authenticated / A      계정 삭제 대기 사용자 user_expense_presets 조회 은닉 및 INSERT/UPDATE/DELETE 차단.
@@ -2667,6 +2676,388 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R39 notification_settings RLS, enqueue_daily_notifications 3 kinds, dedupe, privacy, pending-deletion, purge, cron and anon checks
+
+-- R96: push_subscriptions RLS/grants, upsert/delete RPCs (shared-device endpoint takeover, push_enabled sync),
+-- claim/complete delivery queue RPCs (SKIPPED rules, 3-retry FAILED cap, expired endpoint cleanup, last_success_at),
+-- exception-isolated pg_net webhook trigger, pending-deletion block, account purge linkage, and anon ACL.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_shared_ep TEXT := 'https://push.example.test/r96/shared-device-endpoint';
+    v_a_private_ep TEXT := 'https://push.example.test/r96/user-a-private-endpoint';
+    v_p256dh TEXT := repeat('P', 65);
+    v_auth TEXT := repeat('A', 22);
+    v_a_sub_id UUID;
+BEGIN
+    -- Seed user A subscriptions via fixture role (user A is pending deletion).
+    INSERT INTO public.push_subscriptions(user_id, endpoint, p256dh, auth, platform, user_agent_label)
+    VALUES (v_user_a, v_shared_ep, v_p256dh, v_auth, 'web', 'Chrome · Shared PC');
+
+    INSERT INTO public.push_subscriptions(user_id, endpoint, p256dh, auth, platform, user_agent_label)
+    VALUES (v_user_a, v_a_private_ep, v_p256dh, v_auth, 'web', 'Edge · User A')
+    RETURNING id INTO v_a_sub_id;
+
+    PERFORM set_config('chronoledger.r96_a_sub_id', v_a_sub_id::text, true);
+END $$;
+
+-- R96-01: User B direct writes denied, validation enforced, upsert & shared-device takeover, isolation, delete sync.
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_user_b UUID := auth.uid();
+    v_a_sub_id UUID := current_setting('chronoledger.r96_a_sub_id')::uuid;
+    v_shared_ep TEXT := 'https://push.example.test/r96/shared-device-endpoint';
+    v_b_ep_2 TEXT := 'https://push.example.test/r96/user-b-second-endpoint';
+    v_p256dh TEXT := repeat('Q', 65);
+    v_auth TEXT := repeat('B', 22);
+    v_sub_id_1 UUID;
+    v_sub_id_2 UUID;
+    v_deleted INTEGER;
+BEGIN
+    -- User B cannot see user A's subscriptions.
+    IF EXISTS (SELECT 1 FROM public.push_subscriptions WHERE id = v_a_sub_id) THEN
+        RAISE EXCEPTION 'FAIL: R96 RLS exposed another user push_subscriptions';
+    END IF;
+
+    -- Direct table writes are revoked.
+    BEGIN
+        INSERT INTO public.push_subscriptions(user_id, endpoint, p256dh, auth)
+        VALUES (v_user_b, v_b_ep_2, v_p256dh, v_auth);
+        RAISE EXCEPTION 'FAIL: R96 direct INSERT on push_subscriptions succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    -- Validation checks in upsert_push_subscription.
+    BEGIN
+        PERFORM public.upsert_push_subscription('http://insecure.example/ep', v_p256dh, v_auth, 'web', 'Bad');
+        RAISE EXCEPTION 'FAIL: R96 non-https endpoint accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.upsert_push_subscription(v_b_ep_2, 'short', v_auth, 'web', 'Bad');
+        RAISE EXCEPTION 'FAIL: R96 short p256dh accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.upsert_push_subscription(v_b_ep_2, v_p256dh, 'short', 'web', 'Bad');
+        RAISE EXCEPTION 'FAIL: R96 short auth accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.upsert_push_subscription(v_b_ep_2, v_p256dh, v_auth, 'desktop', 'Bad');
+        RAISE EXCEPTION 'FAIL: R96 invalid platform accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    -- Shared-device endpoint takeover: user A's shared endpoint transfers atomically to user B.
+    v_sub_id_1 := public.upsert_push_subscription(v_shared_ep, v_p256dh, v_auth, 'android_pwa', 'Chrome · Android');
+    IF NOT EXISTS (
+        SELECT 1 FROM public.push_subscriptions
+        WHERE id = v_sub_id_1 AND user_id = v_user_b AND endpoint = v_shared_ep AND platform = 'android_pwa'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R96 shared-device endpoint takeover did not transfer ownership to user B';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM public.notification_settings WHERE user_id = v_user_b AND push_enabled = true
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R96 upsert_push_subscription did not enable push_enabled';
+    END IF;
+
+    -- Direct UPDATE/DELETE on own row are also revoked.
+    BEGIN
+        UPDATE public.push_subscriptions SET user_agent_label = 'tamper' WHERE id = v_sub_id_1;
+        RAISE EXCEPTION 'FAIL: R96 direct UPDATE on push_subscriptions succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        DELETE FROM public.push_subscriptions WHERE id = v_sub_id_1;
+        RAISE EXCEPTION 'FAIL: R96 direct DELETE on push_subscriptions succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    -- Cannot delete another user's subscription.
+    v_deleted := public.delete_push_subscription(NULL, v_a_sub_id);
+    IF v_deleted <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R96 user B deleted another user subscription (deleted %)', v_deleted;
+    END IF;
+
+    -- Register a second subscription, delete one (push_enabled stays true), delete last (push_enabled becomes false).
+    v_sub_id_2 := public.upsert_push_subscription(v_b_ep_2, v_p256dh, v_auth, 'ios_pwa', 'Safari · iPhone');
+    v_deleted := public.delete_push_subscription(NULL, v_sub_id_1);
+    IF v_deleted <> 1 OR NOT EXISTS (
+        SELECT 1 FROM public.notification_settings WHERE user_id = v_user_b AND push_enabled = true
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R96 deleting 1 of 2 subscriptions failed or cleared push_enabled prematurely';
+    END IF;
+
+    v_deleted := public.delete_push_subscription(v_b_ep_2, NULL);
+    IF v_deleted <> 1 OR NOT EXISTS (
+        SELECT 1 FROM public.notification_settings WHERE user_id = v_user_b AND push_enabled = false
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R96 deleting last subscription failed or did not disable push_enabled';
+    END IF;
+
+    -- Re-register two subscriptions for R96-02 delivery queue tests.
+    PERFORM public.upsert_push_subscription(v_shared_ep, v_p256dh, v_auth, 'web', 'Chrome · Desktop');
+    PERFORM public.upsert_push_subscription(v_b_ep_2, v_p256dh, v_auth, 'ios_pwa', 'Safari · iPhone');
+
+    -- Authenticated user cannot call service_role delivery RPCs.
+    BEGIN
+        PERFORM * FROM public.claim_pending_push_notifications(10);
+        RAISE EXCEPTION 'FAIL: R96 authenticated user executed claim_pending_push_notifications';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.complete_push_notification_delivery(gen_random_uuid(), 'SENT');
+        RAISE EXCEPTION 'FAIL: R96 authenticated user executed complete_push_notification_delivery';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+
+-- R96-02: Fixture role tests claim/complete RPCs, SKIPPED rules, 3-attempt FAILED cap, expired cleanup,
+-- webhook trigger exception isolation, purge linkage, and pending-deletion trigger.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_user_b UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_ep_1 TEXT := 'https://push.example.test/r96/shared-device-endpoint';
+    v_ep_2 TEXT := 'https://push.example.test/r96/user-b-second-endpoint';
+    v_n_req UUID;
+    v_n_fav UUID;
+    v_n_pending_a UUID;
+    v_n_sent UUID;
+    v_n_expire_last UUID;
+    v_n_off UUID;
+    v_n_old UUID;
+    v_n_before_sub UUID;
+    v_claimed_count INTEGER;
+    v_claimed_id UUID;
+    v_claimed_attempts SMALLINT;
+    v_purge_def TEXT := pg_get_functiondef('public.purge_expired_account_deletion_requests(integer)'::regprocedure);
+BEGIN
+    -- Clear prior PENDING notifications from earlier smoke blocks so claim ordering is deterministic.
+    UPDATE public.notifications SET push_status = 'SKIPPED', pushed_at = NOW() WHERE push_status = 'PENDING';
+
+    -- User B has push_enabled=true and request_result=false.
+    UPDATE public.notification_settings
+    SET push_enabled = true, request_result = false, updated_at = NOW()
+    WHERE user_id = v_user_b;
+
+    -- User A has push_enabled=true and a subscription, but is pending account deletion.
+    UPDATE public.notification_settings
+    SET push_enabled = true, request_result = true, updated_at = NOW()
+    WHERE user_id = v_user_a;
+
+    -- Confirm webhook trigger does not break INSERT even with an unreachable/unset setting.
+    PERFORM set_config('app.settings.send_notifications_url', '', true);
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_b, 'REQUEST_APPROVED', 'R96 req skipped', 'req body', '/dashboard/games')
+    RETURNING id INTO v_n_req;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_b, 'FAVORITE_START', 'R96 fav claim', 'fav body', '/dashboard')
+    RETURNING id INTO v_n_fav;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_a, 'FAVORITE_START', 'R96 pending user', 'a body', '/dashboard')
+    RETURNING id INTO v_n_pending_a;
+
+    -- Claim pass 1: only v_n_fav is returned (attempts=1); v_n_req and v_n_pending_a become SKIPPED.
+    SELECT count(*), min(notification_id::text)::uuid, max(push_attempts)
+    INTO v_claimed_count, v_claimed_id, v_claimed_attempts
+    FROM public.claim_pending_push_notifications(50);
+
+    IF v_claimed_count <> 1 OR v_claimed_id <> v_n_fav OR v_claimed_attempts <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R96 claim pass 1 unexpected result (count=%, id=%, attempts=%)',
+            v_claimed_count, v_claimed_id, v_claimed_attempts;
+    END IF;
+    IF (SELECT push_status FROM public.notifications WHERE id = v_n_req) <> 'SKIPPED' THEN
+        RAISE EXCEPTION 'FAIL: R96 request_result=false notification was not marked SKIPPED';
+    END IF;
+    IF (SELECT push_status FROM public.notifications WHERE id = v_n_pending_a) <> 'SKIPPED' THEN
+        RAISE EXCEPTION 'FAIL: R96 pending-deletion user notification was not marked SKIPPED';
+    END IF;
+
+    -- Lease: a second worker right after the first must not claim the same row again.
+    -- Backlog: rows older than 1 day or created before the first subscription are SKIPPED, never pushed.
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, created_at)
+    VALUES (v_user_b, 'FAVORITE_START', 'R96 old backlog', 'body', '/dashboard', NOW() - INTERVAL '2 days')
+    RETURNING id INTO v_n_old;
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, created_at)
+    VALUES (v_user_b, 'FAVORITE_START', 'R96 before first sub', 'body', '/dashboard', NOW() - INTERVAL '1 hour')
+    RETURNING id INTO v_n_before_sub;
+    SELECT count(*) INTO v_claimed_count FROM public.claim_pending_push_notifications(50);
+    IF v_claimed_count <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R96 second claim re-claimed a leased or backlog notification (count=%)', v_claimed_count;
+    END IF;
+    IF (SELECT push_status FROM public.notifications WHERE id = v_n_old) <> 'SKIPPED'
+       OR (SELECT push_status FROM public.notifications WHERE id = v_n_before_sub) <> 'SKIPPED' THEN
+        RAISE EXCEPTION 'FAIL: R96 backlog notification was not marked SKIPPED';
+    END IF;
+    IF (SELECT push_claimed_at FROM public.notifications WHERE id = v_n_fav) IS NULL THEN
+        RAISE EXCEPTION 'FAIL: R96 claim did not record push_claimed_at lease';
+    END IF;
+
+    -- Retry attempt 1: transient failure ('PENDING') + expire v_ep_1 (v_ep_2 remains so push_enabled stays true).
+    PERFORM public.complete_push_notification_delivery(v_n_fav, 'PENDING', ARRAY[v_ep_1]::TEXT[], '{}'::TEXT[]);
+    IF (SELECT push_status FROM public.notifications WHERE id = v_n_fav) <> 'PENDING'
+       OR EXISTS (SELECT 1 FROM public.push_subscriptions WHERE user_id = v_user_b AND endpoint = v_ep_1)
+       OR NOT EXISTS (SELECT 1 FROM public.notification_settings WHERE user_id = v_user_b AND push_enabled = true) THEN
+        RAISE EXCEPTION 'FAIL: R96 attempt 1 completion did not preserve PENDING or clean expired endpoint';
+    END IF;
+
+    -- Retry attempt 2 -> still PENDING.
+    SELECT push_attempts INTO v_claimed_attempts FROM public.claim_pending_push_notifications(50) LIMIT 1;
+    IF v_claimed_attempts <> 2 THEN
+        RAISE EXCEPTION 'FAIL: R96 claim pass 2 expected attempts=2, got %', v_claimed_attempts;
+    END IF;
+    PERFORM public.complete_push_notification_delivery(v_n_fav, 'PENDING', '{}'::TEXT[], '{}'::TEXT[]);
+    IF (SELECT push_status FROM public.notifications WHERE id = v_n_fav) <> 'PENDING' THEN
+        RAISE EXCEPTION 'FAIL: R96 attempt 2 did not remain PENDING';
+    END IF;
+
+    -- Retry attempt 3 -> server enforces FAILED at attempts >= 3 even if caller passes PENDING.
+    SELECT push_attempts INTO v_claimed_attempts FROM public.claim_pending_push_notifications(50) LIMIT 1;
+    IF v_claimed_attempts <> 3 THEN
+        RAISE EXCEPTION 'FAIL: R96 claim pass 3 expected attempts=3, got %', v_claimed_attempts;
+    END IF;
+    PERFORM public.complete_push_notification_delivery(v_n_fav, 'PENDING', '{}'::TEXT[], '{}'::TEXT[]);
+    IF NOT EXISTS (
+        SELECT 1 FROM public.notifications WHERE id = v_n_fav AND push_status = 'FAILED' AND pushed_at IS NOT NULL
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R96 attempt 3 did not transition to FAILED';
+    END IF;
+
+    -- Successful delivery updates push_status='SENT' and subscription last_success_at.
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_b, 'EXPENSE_D1', 'R96 sent ok', 'body', '/dashboard/expenses')
+    RETURNING id INTO v_n_sent;
+
+    PERFORM * FROM public.claim_pending_push_notifications(50);
+    PERFORM public.complete_push_notification_delivery(v_n_sent, 'SENT', '{}'::TEXT[], ARRAY[v_ep_2]::TEXT[]);
+    IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE id = v_n_sent AND push_status = 'SENT' AND pushed_at IS NOT NULL)
+       OR NOT EXISTS (SELECT 1 FROM public.push_subscriptions WHERE user_id = v_user_b AND endpoint = v_ep_2 AND last_success_at IS NOT NULL) THEN
+        RAISE EXCEPTION 'FAIL: R96 SENT delivery did not update notification or last_success_at';
+    END IF;
+
+    -- Expiring the final remaining endpoint disables push_enabled automatically.
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_b, 'EXPENSE_D1', 'R96 expire last', 'body', '/dashboard/expenses')
+    RETURNING id INTO v_n_expire_last;
+
+    PERFORM * FROM public.claim_pending_push_notifications(50);
+    PERFORM public.complete_push_notification_delivery(v_n_expire_last, 'FAILED', ARRAY[v_ep_2]::TEXT[], '{}'::TEXT[]);
+    IF EXISTS (SELECT 1 FROM public.push_subscriptions WHERE user_id = v_user_b)
+       OR NOT EXISTS (SELECT 1 FROM public.notification_settings WHERE user_id = v_user_b AND push_enabled = false) THEN
+        RAISE EXCEPTION 'FAIL: R96 expiring last endpoint did not disable push_enabled';
+    END IF;
+
+    -- With push_enabled=false / 0 subscriptions, new notification is immediately SKIPPED.
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_b, 'FAVORITE_START', 'R96 push off', 'body', '/dashboard')
+    RETURNING id INTO v_n_off;
+
+    SELECT count(*) INTO v_claimed_count FROM public.claim_pending_push_notifications(50);
+    IF v_claimed_count <> 0 OR (SELECT push_status FROM public.notifications WHERE id = v_n_off) <> 'SKIPPED' THEN
+        RAISE EXCEPTION 'FAIL: R96 notification with push_enabled=false was not SKIPPED';
+    END IF;
+
+    -- Verify account purge linkage, pending-deletion trigger, and webhook trigger.
+    IF position('public.push_subscriptions' IN v_purge_def) = 0 THEN
+        RAISE EXCEPTION 'FAIL: R96 account purge function missing push_subscriptions cleanup';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'block_pending_account_deletion_push_subscriptions') THEN
+        RAISE EXCEPTION 'FAIL: R96 pending-deletion trigger missing';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_notifications_send_webhook') THEN
+        RAISE EXCEPTION 'FAIL: R96 webhook trigger trg_notifications_send_webhook missing';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'chronoledger-push-retry' AND schedule = '*/5 * * * *') THEN
+        RAISE EXCEPTION 'FAIL: R96 retry cron job chronoledger-push-retry missing';
+    END IF;
+    PERFORM public.invoke_send_notifications_webhook();
+END $$;
+
+-- R96-03: Pending-deletion user A cannot read, upsert, or delete push_subscriptions.
+SELECT set_config('request.jwt.claim.sub', :'test_user_id'::text, true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', :'test_user_id'::text, 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM public.push_subscriptions) THEN
+        RAISE EXCEPTION 'FAIL: R96 pending user could read push_subscriptions';
+    END IF;
+
+    BEGIN
+        PERFORM public.upsert_push_subscription(
+            'https://push.example.test/r96/pending-a',
+            repeat('P', 65),
+            repeat('A', 22),
+            'web',
+            'Blocked'
+        );
+        RAISE EXCEPTION 'FAIL: R96 pending user executed upsert_push_subscription';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    BEGIN
+        PERFORM public.delete_push_subscription(NULL, current_setting('chronoledger.r96_a_sub_id')::uuid);
+        RAISE EXCEPTION 'FAIL: R96 pending user deleted push_subscriptions';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+END $$;
+RESET ROLE;
+
+-- R96-04: anon cannot read push_subscriptions or execute any R96 RPC.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM 1 FROM public.push_subscriptions LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R96 anon read push_subscriptions';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.upsert_push_subscription('https://push.example.test/r96/anon', repeat('P', 65), repeat('A', 22));
+        RAISE EXCEPTION 'FAIL: R96 anon executed upsert_push_subscription';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.delete_push_subscription('https://push.example.test/r96/anon', NULL);
+        RAISE EXCEPTION 'FAIL: R96 anon executed delete_push_subscription';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM * FROM public.claim_pending_push_notifications(10);
+        RAISE EXCEPTION 'FAIL: R96 anon executed claim_pending_push_notifications';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.complete_push_notification_delivery(gen_random_uuid(), 'SENT');
+        RAISE EXCEPTION 'FAIL: R96 anon executed complete_push_notification_delivery';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R96 push_subscriptions RLS, upsert/delete RPCs, delivery queue RPCs, webhook trigger, pending-deletion, purge and anon checks
 
 -- R102: user_expense_presets CRUD/owner isolation, CHECK constraints, 20-item limit trigger,
 -- ON DELETE SET NULL on games, pending-deletion block, account purge linkage, and anon ACL.

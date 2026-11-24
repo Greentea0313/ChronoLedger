@@ -1,4 +1,5 @@
 -- R102: 사용자별 자주 쓰는 과금 프리셋(user_expense_presets) 테이블, 20개 상한 트리거, RLS, 계정 삭제 대기 차단 및 탈퇴 정리 연동
+-- 선행 조건: MIGRATION_R96_WEB_PUSH.sql 적용 이후 실행한다(탈퇴 정리 함수 본문에 R96 push_subscriptions 삭제 포함).
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.user_expense_presets (
@@ -92,6 +93,7 @@ BEGIN
             WHERE bucket_id = 'user-icons'
               AND (name LIKE v_req.user_id || '/%' OR (path_tokens IS NOT NULL AND path_tokens[1] = v_req.user_id::text));
 
+            DELETE FROM public.push_subscriptions WHERE user_id = v_req.user_id;
             DELETE FROM public.notification_settings WHERE user_id = v_req.user_id;
             DELETE FROM public.notifications WHERE user_id = v_req.user_id;
             DELETE FROM public.feedback_requests WHERE user_id = v_req.user_id;

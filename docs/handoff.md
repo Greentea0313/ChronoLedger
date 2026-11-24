@@ -98,6 +98,58 @@
    - **`R102` 과금 프리셋**: `public.user_expense_presets`(사용자당 최대 20개 상한 트리거, 특정 게임 연결 또는 공통 `NULL`, 본인 CRUD RLS, 삭제 대기 차단·탈퇴 정리)에 저장하고, `ExpenseModal` 상단 칩 원클릭 적용·삭제 및 **`[프리셋 저장]`** 버튼으로 즉시 저장을 지원함.
    - **`R104` 천장 계산기**: **`⏸️ 보류`**로 결정함(사용자가 직접 호출할 때만 재검토).
 
+### 🚦 병행 활성 Run: `r102-expense-presets`
+
+- **Run ID**: `r102-expense-presets` *(`R102` 자주 쓰는 과금 프리셋 사용자 DB 저장: `public.user_expense_presets` 최대 20개 + `ExpenseModal` 상단 칩 원클릭 적용·**`[프리셋 저장]`**·삭제 — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3, `r96-web-push`와 병행)*
+- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-24 등록)*
+- **Worktree 경로**: `.worktrees/r102-expense-presets` (브랜치: `collab/r102-expense-presets`, 매니페스트: `artifacts/r102-expense-presets/run.json`)
+- **Base SHA**: `052e53acdd7d22031bcee020487f91bd37718ad5`
+- **Target SHA**: `bffa1e45abeac81074122dbb9c51550f155bdf85` *(Step 2 완료 기준, 미병합)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql`, `sql/SCHEMA.sql` — `user_expense_presets`·RLS·20개 상한 트리거·탈퇴 정리 → Opus 승격 조건 ①). ⚠️ `LOCAL_DB_DEFERRED` — 현재 PC Docker CLI 미설치(`NO_DOCKER`)로 로컬 DB 2회 멱등 적용·신규 `SCHEMA.sql`·`TESTS.sql` 검증은 미실행이며 Step 3(🐳 Docker 환경)에서 필수 수행함.
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: a6a36ed304d6b6a53f04b75851b0c6697af8b352)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Neon** *(1순위 대체로 수행)* | `Maker (R102 DB/RLS/Trigger & Types)` | 아래 **Step 1 수용 기준** 수행(🐳 Docker Desktop 필요, 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 진행). 허용 파일: 신규 `sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ a6a36ed`: `MIGRATION_R102_EXPENSE_PRESETS.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts` 반영. `tsc`·`lint`·`diff-check`·Vitest 74파일/977개 통과. ⚠️ `LOCAL_DB_DEFERRED`(Docker 미설치, 아래 Step 1 완료 기록 참고) |
+| **2** | **`✅ DONE (SHA: bffa1e45abeac81074122dbb9c51550f155bdf85)`** | **Claude Sonnet** *(Fallback 1: Gemini 4 Hydrogen, Fallback 2: GitHub Copilot)* | `Maker (ExpenseModal 프리셋 칩·[프리셋 저장]·삭제 UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ bffa1e4`: ExpenseModal 프리셋 칩·`[프리셋 저장]`·삭제·미적용 DB 폴백. tsc·lint·Vitest 993개 통과 (아래 Step 2 완료 기록 참고) |
+| **3** | **`▶ READY`** | **Claude Opus** *(Fallback 1: Gemini 4 Argon / Gemini 4 Neon)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base(`052e53acdd7d22031bcee020487f91bd37718ad5`) $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·🐳 로컬 DB 2회 멱등 적용 및 `TESTS.sql` 검증(`test.json`)·`main` 병합·문서 마감 | `▶ Step 2 완료(bffa1e4). Base 052e53a ↔ Target bffa1e4` |
+
+#### 📋 `r102-expense-presets` Step 1 수용 기준 (`GPT Codex` — DB/RLS/Trigger & Types, [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3.1·§3.3)
+
+1. **`public.user_expense_presets` 테이블·20개 상한 트리거**: `title`(1~150자)·`category`·`game_id`(ON DELETE SET NULL)·`original_price`(>=0)·`payment_method`·`point_platform`·`deduct_from_asset`·`sort_order`·인덱스 및 `enforce_user_expense_presets_limit`(20개 이상 시 `23514` 예외) 구현.
+2. **RLS·계정 삭제 연동**: 본인 CRUD 정책(`Manage own expense presets`), 계정 삭제 대기 `RESTRICTIVE` 정책·트리거(`SCHEMA.sql` 공통 루프 2곳 포함), `purge_expired_account_deletion_requests` 삭제 연결.
+3. **동기화 및 검증**: `MIGRATION_R102_EXPENSE_PRESETS.sql`(멱등), `SCHEMA.sql`, `README.md`(B표 확인 쿼리), `TESTS.sql`(`R102` 스모크 블록), `database.types.ts` 반영 후 `tsc`·`lint`·`vitest`·`diff-check` 통과 및 커밋(🐳 Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록).
+
+#### 📋 `r102-expense-presets` Step 2 수용 기준 (`Claude Sonnet` — `ExpenseModal` 프리셋 UI & Vitest, [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3.2·§3.3)
+
+1. **프리셋 칩 목록·적용·삭제**: 신규 등록 모드에서 본인 `user_expense_presets` 조회(미적용 DB `42P01`/`PGRST205` 숨김 폴백), 선택 게임+공통(`null`) 칩 표시, 클릭 시 폼 필드 일괄 채움, `×` 삭제(`isOffline()` 가드).
+2. **`[프리셋 저장]` & 테스트**: 현재 입력값 검증 후 `INSERT`·칩 갱신(20개 초과·오프라인·미적용 DB 안내) 및 `expense-modal.test.tsx` 추가 후 `tsc`·`lint`·`vitest`·`diff-check` 통과, 커밋 후 Step 3 `▶ READY` 전환.
+
+#### 📝 `r102-expense-presets` Step 1 완료 기록 (Gemini 4 Neon — GPT Codex 1순위 대체, 2026-11-24)
+
+- **Target SHA**: `a6a36ed304d6b6a53f04b75851b0c6697af8b352` (워크트리 브랜치 `collab/r102-expense-presets`, 미병합). 변경 파일: 신규 `sql/migrations/MIGRATION_R102_EXPENSE_PRESETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts` (허용 5개 파일만, `run.json` 미수정).
+- **DB·트리거·RLS·탈퇴 변경**:
+  - `public.user_expense_presets` 테이블(`title` 1~150자·`category` 5종·`game_id` `ON DELETE SET NULL`·`original_price >= 0`·`payment_method` 2종·`point_platform` NULL 또는 2종·`deduct_from_asset`·`sort_order`), `idx_user_expense_presets_user_sort` 인덱스 생성함(`SCHEMA.sql`에서는 `games`·`expenses` 뒤, 공통 계정 삭제 대기 루프 앞에 배치).
+  - `public.enforce_user_expense_presets_limit()` (`SECURITY DEFINER SET search_path = public`, `pg_advisory_xact_lock`으로 동일 사용자 동시 INSERT 직렬화 후 20개 이상 시 `23514` 예외 발생, 직접 실행 권한 회수) 및 `trg_enforce_user_expense_presets_limit` (`BEFORE INSERT`) 추가함.
+  - RLS 활성화(`Manage own expense presets`, 본인 행 CRUD 허용, `anon` 차단), 계정 삭제 대기 차단 RESTRICTIVE 정책·트리거(`SCHEMA.sql` 공통 루프 2곳 포함) 및 `purge_expired_account_deletion_requests`에 `DELETE FROM public.user_expense_presets WHERE user_id = v_req.user_id;` 추가함.
+  - `sql/README.md` B표 확인 쿼리·선행 purge 주의 추가, `sql/tests/TESTS.sql` `R102-01`~`R102-04` 스모크 블록(RLS·CHECK·20개 상한·삭제 후 재등록·게임 `SET NULL`·삭제 대기 차단·탈퇴 정리·`anon` 차단) 추가, `src/types/database.types.ts` `user_expense_presets` 타입 추가함.
+- **검증**: 워크트리에서 `git diff --check`, `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `npx vitest run`(74파일 / 977개 통과) 확인함.
+- **미실행 (`⚠️ LOCAL_DB_DEFERRED`)**: 현재 PC Docker CLI 미설치(`NO_DOCKER`)로 로컬 Supabase 2회 멱등 적용·신규 `SCHEMA.sql`·`TESTS.sql` 실행 검증은 미수행임. Step 3(Docker 환경)에서 로컬 DB 병합 게이트 검증 필수임.
+- **원격 브랜치**: push 안 함(사용자 승인 필요). 다른 PC에서 이어가려면 `git -C .worktrees/r102-expense-presets push -u origin collab/r102-expense-presets` 필요함.
+- **다음 단계**: Step 2(**Claude Sonnet**, Fallback 1: **Gemini 4 Hydrogen**, Fallback 2: **GitHub Copilot** — `ExpenseModal` 프리셋 칩·`[프리셋 저장]`·삭제 UI & Vitest) `▶ READY`임.
+
+#### 📝 `r102-expense-presets` Step 2 완료 기록 (Claude Sonnet, 2026-11-24)
+
+- **Target SHA**: `bffa1e45abeac81074122dbb9c51550f155bdf85` (워크트리 브랜치 `collab/r102-expense-presets`, 미병합·원격 push 안 함). SQL·타입 변경 없음. 변경 파일: `src/components/expense/expense-modal.tsx`, `src/components/expense/expense-modal.test.tsx`(허용 2개 파일만, `run.json` 미수정).
+- **칩 목록·적용**: 신규 등록 모드(`!plannedExpense && !editingExpense`)에서 모달이 열릴 때 `user_expense_presets`를 `sort_order`·`created_at` 오름차순으로 조회해 `자주 쓰는 과금` 칩으로 표시함. 선택한 게임의 프리셋과 공통(`game_id === null`) 프리셋만 보이고, 칩 클릭 시 항목명·카테고리·게임(게임 카테고리이고 프리셋에 게임이 있을 때)·정가·실결제액·결제수단·플랫폼(`point_platform ?? "OTHER"`)·총자산 차감을 채우며 할인·쿠폰·사용 포인트·적립 입력은 비움. 게임이 아닌 카테고리 프리셋은 게임을 비우고 플랫폼을 `OTHER`로 둠(기존 카테고리 변경 동작과 동일).
+- **삭제**: 칩의 `×`가 해당 프리셋을 `DELETE`하고 칩을 제거함(`isOffline()` 가드, 실패 시 칩 유지·오류 표시).
+- **`[프리셋 저장]`**: 항목명 1~150자, 정가 0 이상 정수를 검증하고 `INSERT`(`game_id`는 게임 카테고리에서 선택한 게임 또는 `null`, `point_platform`은 스토어 플랫폼일 때만, `sort_order`는 현재 개수) 후 목록을 다시 불러와 칩을 갱신함. 이미 20개면 요청 없이 "최대 20개" 안내, DB 트리거 `23514`도 같은 문구, 오프라인은 오프라인 안내, 테이블 미적용은 "DB 업데이트(R102) 적용 후" 안내를 표시함.
+- **미적용 DB 폴백**: 조회가 `42P01`/`PGRST205`이면 프리셋 영역 전체를 숨기고 오류를 기록하지 않으며 나머지 지출 입력은 그대로 동작함. 예정 지출 결제·수정 모드에서는 프리셋 영역도 조회도 하지 않음.
+- **검증**: `tsc --noEmit`, `npm run lint`, `git diff --check`(CRLF 경고만), Vitest 74파일 993개 통과함(프리셋 테스트 16개 추가: 조회·게임별 필터·필드 채움·비게임 적용·삭제 성공/실패/오프라인·저장·게임 저장·검증·20개 상한 클라이언트/DB·오프라인·미적용 2종·결제/수정 모드 숨김). 실브라우저·실DB 확인은 하지 않음.
+- **미실행 (`⚠️ LOCAL_DB_DEFERRED` 유지)**: Step 1의 로컬 Supabase 2회 멱등 적용·`SCHEMA.sql`·`TESTS.sql` 실행은 여전히 미수행이며 Step 3(🐳 Docker 환경)이 맡음.
+- **가정**: 프리셋 칩은 게임 선택 후에야 해당 게임 전용 프리셋이 보이는 명세(§3.2) 그대로임. 프리셋 이름 변경·순서 변경 UI는 명세에 없어 만들지 않음. 같은 제목의 프리셋 중복 저장은 막지 않음.
+- **원격 브랜치**: push 안 함(사용자 승인 필요). 다른 PC(Docker)에서 Step 3을 하려면 `git -C .worktrees/r102-expense-presets push -u origin collab/r102-expense-presets` 필요함.
+- **다음 단계**: Step 3(`Claude Opus`, Base `052e53a` ↔ Target `bffa1e4` 통합 리뷰·🐳 로컬 DB 검증·병합) `▶ READY`임.
+
 ### 🗓️ 예약·보류·안건 요약 (자동 실행 대상 아님)
 
 > 아래 항목은 `"인수인계 문서를 확인해"`로 자동 착수하지 않음. 사용자가 지목하면 Orchestrator가 Run으로 등록함.
@@ -111,7 +163,7 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |
 | `R101`+`R103` | 완료 (`r101-r103-two-month-budget-and-shortcuts`, `main` 병합 `c942e1e`, 2026-11-24) | 당월·익월 예산 비교 카드와 데스크톱 단축키·빠른 시작 안내 병합 완료. 실브라우저 확인은 사용자 몫이고 선택 후속 `R101-REV-001`(P4)이 `docs/to-do.md`에 있음 | 아래 직전 완료 Run 기록 |
-| `R102` | **명세 확정 완료 · 2차 Run 예약** (`r102-expense-presets`) | `R101`+`R103` 완료 후 착수. `public.user_expense_presets`(최대 20개) + `ExpenseModal` 칩 원클릭 적용·**`[프리셋 저장]`**·삭제 (DB 변경, 🐳 Docker 필요) | [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3, `docs/to-do.md` `R102` |
+| `R102` | **진행 중 · 병행 활성 Run (`r102-expense-presets`)** | `public.user_expense_presets`(최대 20개) + `ExpenseModal` 칩 원클릭 적용·**`[프리셋 저장]`**·삭제 — Step 1(`a6a36ed`, `⚠️ LOCAL_DB_DEFERRED`) 완료 → Step 2(`Claude Sonnet`) `▶ READY` | 위 병행 활성 Run 표, [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3, `docs/to-do.md` `R102` |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 
 ### 🗂️ 직전 완료 Run 기록: `r101-r103-two-month-budget-and-shortcuts`
