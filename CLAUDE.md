@@ -25,6 +25,7 @@ Project skills live in `.claude/skills/` (copies of `.agents/skills/`). Edit onl
 | `chronoledger-reviewer` | A queue row assigns you the Reviewer role (`review.json`/`test.json`). |
 | `chronoledger-sql-migration` | Any `sql/`, RLS, trigger or RPC change, or a local Supabase run. |
 | `chronoledger-docs-closeout` | After a queue step or other meaningful work: update `docs/` and archive old records. |
+| `chronoledger-weekly-doc-audit` | Weekly (or on request) integrity audit of documents changed in the last 7 days; read-only report unless the user asks for fixes. |
 
 ## 4. Key Project Documents & Code Paths
 
