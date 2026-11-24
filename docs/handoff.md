@@ -82,6 +82,25 @@
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*
 
+### 📐 Chief Architect 구체화 대기 (`R101` · `R102` · `R103` 신규 기능 명세 및 `R104` 검토 방향)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`📐 SPEC_NEEDED`** | **Gemini 4 Argon** *(Fallback: Claude Opus / Gemini 4 Neon)* | `Chief Architect (R101·R102·R103 명세·RLS·수용 기준 확정 및 R104 검토 정리)` | 아래 **요구사항 접수 기록**을 바탕으로 `R101`(2개월 예산 비교)·`R102`(DB 저장 과금 프리셋 테이블·RLS·탈퇴 정리)·`R103`(단축키·선택형 시작 안내) 공식 명세·Step별 수용 기준 확정 및 `R104`(게임별 천장 계산기) 검토 방향 정리 (`src/**` 직접 수정 금지). 허용 파일: `docs/spec/` 또는 신규 설계 문서, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `📐 구체화 대기 (2026-11-24 접수)` |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet)* | `Orchestrator (신규 Run 등록)` | Step 1 완료 후 `r96-web-push` 상태 확인 및 확정 명세에 따라 Run 등록·격리 워크트리 생성(DB 없는 `R101`·`R103`과 DB 포함 `R102` 분리 여부 반영) | `⏳ Step 1 완료 대기` |
+
+#### 📝 `R101` · `R102` · `R103` · `R104` 요구사항 접수 기록 (Gemini 4 Hydrogen, 2026-11-24)
+
+1. **요청 내용**: 전체 기획·설계 검토 결과, 일정 공개 주기(1~2개월)에 맞춰 ① `R101` 당월+익월 2개월 예산·고정비 비교, ② `R102` 자주 쓰는 과금 프리셋 사용자 DB 저장, ③ `R103` 데스크톱 단축키·선택형 빠른 시작 안내를 도입하고, ④ `R104` 단기 픽업 재화·과금 계산기는 게임별 천장 시스템 차이 검토 대상으로 등록함.
+2. **에스컬레이션 사유 (`.agents/rules/collaboration.md` §1~§2)**:
+   - 승인된 `docs/spec/SRS.md`·`SPEC.md`에 없는 신규 제품 기능·UI·규칙을 포함함.
+   - `R102`는 사용자별 과금 프리셋 테이블 신설·RLS·계정 삭제 대기 차단·탈퇴 정리 등 **DB/RLS/보안 경계**를 포함함 (`Argon` 승격 조건 ①·②).
+3. **확정·결정이 필요한 사항**:
+   - **`R102` DB 스키마·보안**: 테이블명/컬럼(게임 선택 연결 여부, 금액·결제수단·스토어·`deduct_from_asset` 기본값, 개수 상한), RLS 정책(`authenticated` 본인 CRUD vs RPC 경계), 계정 삭제 대기 차단·탈퇴 정리 연결.
+   - **`R101`·`R103` 수용 기준 및 Run 분할**: DB 변경 없는 `R101`+`R103`을 별도 Run으로 먼저 진행할지(`r96-web-push` Step 3와 병행/후속), `R102`(🐳 Docker 필요)와 분리할지 결정.
+   - **`R104` 검토 범위**: 게임별 천장 규칙(카탈로그 속성 vs 사용자 입력 vs 별도 문서 연구)을 후속 검토 안건으로 둘지 여부.
+4. **관련 파일·문서**: [`docs/spec/SRS.md`](spec/SRS.md), [`docs/spec/SPEC.md`](spec/SPEC.md), [`docs/to-do.md`](to-do.md) `R101`~`R104`, `src/lib/budget-calculations.ts`, `src/components/expense/expense-modal.tsx`.
+
 ### 🗓️ 예약·보류·안건 요약 (자동 실행 대상 아님)
 
 > 아래 항목은 `"인수인계 문서를 확인해"`로 자동 착수하지 않음. 사용자가 지목하면 Orchestrator가 Run으로 등록함.
@@ -94,6 +113,8 @@
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |
+| `R101`~`R103` | `📐 SPEC_NEEDED` | 2개월 예산 비교(`R101`)·DB 저장 과금 프리셋(`R102`, 🐳 Docker 필요)·단축키/빠른 시작(`R103`) — Chief Architect 명세 대기 | 위 `📐 Chief Architect 구체화 대기`, `docs/to-do.md` `R101`~`R103` |
+| `R104` | `📝 AGENDA` | 단기 픽업 재화·과금 계산기 (게임별 천장 시스템 차이 검토 필요) | `docs/to-do.md` `R104` |
 
 ### 🗂️ 직전 완료 Run 기록: `r39-daily-notifications`
 
