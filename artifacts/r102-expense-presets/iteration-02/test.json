@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "run_id": "r102-expense-presets",
+  "iteration": 2,
+  "agent": "Claude Opus",
+  "base_sha": "052e53acdd7d22031bcee020487f91bd37718ad5",
+  "target_sha": "56e4ab8234218b6085968687a108859481df4497",
+  "role": "dynamic-test",
+  "status": "passed",
+  "created_at": "2026-11-24T19:11:37+09:00",
+  "finished_at": "2026-11-24T19:11:37+09:00",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Local DB upgrade: base 052e53a SCHEMA.sql + R96 migration x2 + R102 migration x2",
+      "command": "psql -v ON_ERROR_STOP=1 -f MIGRATION_R96_WEB_PUSH.sql (x2); -f MIGRATION_R102_EXPENSE_PRESETS.sql (x2)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TESTS.sql on upgraded DB (44 PASS incl. R96 and R102 blocks); purge body contains push_subscriptions and user_expense_presets",
+      "command": "psql -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Fresh install: merged SCHEMA.sql + TESTS.sql (44 PASS) + R96/R102 migration re-run",
+      "command": "psql -v ON_ERROR_STOP=1 -f sql/SCHEMA.sql; -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "sql/README.md R96 and R102 check queries match expected results",
+      "command": "psql -c <README B-table R96/R102 queries>",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest suite (76 files, 1013 tests)",
+      "command": "npx vitest run",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Next.js production build (placeholder env)",
+      "command": "npm run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}
