@@ -117,6 +117,11 @@
 --   R102-02 DB fixture 역할        게임 삭제 시 game_id ON DELETE SET NULL, 탈퇴 purge 연동 및 트리거 존재 검증.
 --   R102-03 authenticated / A      계정 삭제 대기 사용자 user_expense_presets 조회 은닉 및 INSERT/UPDATE/DELETE 차단.
 --   R102-04 anon                   user_expense_presets SELECT/INSERT -> insufficient_privilege.
+--   R106-01 authenticated / B      notifications 직접 DELETE 거부, delete_notifications 빈 배열 0건·선택 삭제(타인 ID 혼입 무시)·
+--                                  전체 삭제(NULL) 0건 전환 및 재호출 0건 반환.
+--   R106-02 DB fixture 역할        사용자 B 선택/전체 삭제 이후 사용자 A 알림 보존 검증.
+--   R106-03 authenticated / A      계정 삭제 대기 사용자 delete_notifications(선택/전체) 호출 -> insufficient_privilege.
+--   R106-04 anon                   delete_notifications 호출 -> insufficient_privilege.
 --   R85-01 DB fixture / B / admin  games.daily_reset_time 분 단위 CHECK, game_schedules/schedule_requests 시각·날짜·순서·분·예상 CHECK,
 --                                  approve_schedule_request 신규/수정 시각·예상 복사(+R84 알림 유지), 시각만 수정 시 예정 지출 날짜 불변, anon 조회.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
@@ -3343,6 +3348,159 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R102 user_expense_presets RLS, CHECKs, 20-item limit trigger, game SET NULL, pending-deletion, purge and anon checks
+
+-- R106: delete_notifications SECURITY DEFINER RPC (selective/all hard delete, cross-user isolation,
+-- direct DELETE denial, pending-deletion block, and anon ACL).
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_user_b UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_a_nt_id UUID;
+    v_b_nt_1 UUID;
+    v_b_nt_2 UUID;
+    v_b_nt_3 UUID;
+BEGIN
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_a, 'FAVORITE_START', 'R106 User A notif', 'keep a', '/dashboard')
+    RETURNING id INTO v_a_nt_id;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_b, 'FAVORITE_START', 'R106 User B notif 1', 'body 1', '/dashboard')
+    RETURNING id INTO v_b_nt_1;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_b, 'EXPENSE_D1', 'R106 User B notif 2', 'body 2', '/dashboard/expenses')
+    RETURNING id INTO v_b_nt_2;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path)
+    VALUES (v_user_b, 'REQUEST_APPROVED', 'R106 User B notif 3', 'body 3', '/dashboard/games')
+    RETURNING id INTO v_b_nt_3;
+
+    PERFORM set_config('chronoledger.r106_a_nt_id', v_a_nt_id::text, true);
+    PERFORM set_config('chronoledger.r106_b_nt_1', v_b_nt_1::text, true);
+    PERFORM set_config('chronoledger.r106_b_nt_2', v_b_nt_2::text, true);
+    PERFORM set_config('chronoledger.r106_b_nt_3', v_b_nt_3::text, true);
+END $$;
+
+-- R106-01: User B cannot directly DELETE public.notifications, can selectively delete own rows (ignoring user A's ID),
+-- and can delete all own notifications via delete_notifications(NULL).
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_a_nt_id UUID := current_setting('chronoledger.r106_a_nt_id')::uuid;
+    v_b_nt_1 UUID := current_setting('chronoledger.r106_b_nt_1')::uuid;
+    v_b_nt_2 UUID := current_setting('chronoledger.r106_b_nt_2')::uuid;
+    v_b_nt_3 UUID := current_setting('chronoledger.r106_b_nt_3')::uuid;
+    v_before_count INTEGER;
+    v_deleted INTEGER;
+BEGIN
+    -- Direct DELETE on public.notifications must remain revoked.
+    BEGIN
+        DELETE FROM public.notifications WHERE id = v_b_nt_1;
+        RAISE EXCEPTION 'FAIL: R106 direct DELETE on public.notifications succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    SELECT count(*) INTO v_before_count FROM public.notifications;
+    IF v_before_count < 3 THEN
+        RAISE EXCEPTION 'FAIL: R106 expected at least 3 notifications for user B, got %', v_before_count;
+    END IF;
+
+    -- Empty array deletes 0 rows.
+    v_deleted := public.delete_notifications('{}'::uuid[]);
+    IF v_deleted <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R106 empty array delete expected 0, got %', v_deleted;
+    END IF;
+
+    -- Selective delete with mixed own + other user's notification ID deletes only own matching row.
+    v_deleted := public.delete_notifications(ARRAY[v_b_nt_1, v_a_nt_id]);
+    IF v_deleted <> 1
+       OR EXISTS (SELECT 1 FROM public.notifications WHERE id = v_b_nt_1)
+       OR NOT EXISTS (SELECT 1 FROM public.notifications WHERE id = v_b_nt_2)
+       OR NOT EXISTS (SELECT 1 FROM public.notifications WHERE id = v_b_nt_3) THEN
+        RAISE EXCEPTION 'FAIL: R106 selective delete unexpected result (deleted=%)', v_deleted;
+    END IF;
+
+    -- Delete all own notifications (p_notification_ids = NULL) removes all remaining rows for user B.
+    v_deleted := public.delete_notifications(NULL);
+    IF v_deleted <> (v_before_count - 1) OR EXISTS (SELECT 1 FROM public.notifications) THEN
+        RAISE EXCEPTION 'FAIL: R106 delete-all expected %, got %', (v_before_count - 1), v_deleted;
+    END IF;
+
+    -- Calling delete-all again when empty returns 0.
+    v_deleted := public.delete_notifications(NULL);
+    IF v_deleted <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R106 second delete-all expected 0, got %', v_deleted;
+    END IF;
+END $$;
+RESET ROLE;
+
+-- R106-02: Verify user A's notification survived user B's selective (mixed-ID) and delete-all calls.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_a_nt_id UUID := current_setting('chronoledger.r106_a_nt_id')::uuid;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE id = v_a_nt_id) THEN
+        RAISE EXCEPTION 'FAIL: R106 user B delete_notifications removed user A notification';
+    END IF;
+END $$;
+
+-- R106-03: Pending-deletion user A cannot execute delete_notifications.
+SELECT set_config('request.jwt.claim.sub', :'test_user_id'::text, true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', :'test_user_id'::text, 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_a_nt_id UUID := current_setting('chronoledger.r106_a_nt_id')::uuid;
+BEGIN
+    BEGIN
+        PERFORM public.delete_notifications(ARRAY[v_a_nt_id]);
+        RAISE EXCEPTION 'FAIL: R106 pending user executed selective delete_notifications';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.delete_notifications(NULL);
+        RAISE EXCEPTION 'FAIL: R106 pending user executed delete-all delete_notifications';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+
+-- R106-04: anon cannot execute delete_notifications.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+SET LOCAL ROLE anon;
+DO $$
+DECLARE
+    v_a_nt_id UUID := current_setting('chronoledger.r106_a_nt_id')::uuid;
+BEGIN
+    BEGIN
+        PERFORM public.delete_notifications(NULL);
+        RAISE EXCEPTION 'FAIL: R106 anon executed delete_notifications(NULL)';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.delete_notifications(ARRAY[v_a_nt_id]);
+        RAISE EXCEPTION 'FAIL: R106 anon executed delete_notifications(ARRAY)';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R106 delete_notifications RPC selective/all delete, cross-user isolation, direct DELETE denial, pending-deletion and anon checks
 
 -- User A's PENDING account deletion request (R13-07) is only needed up to R35; later blocks write as user A.
 DELETE FROM public.account_deletion_requests WHERE user_id = :'test_user_id'::uuid AND status_token_hash = repeat('a', 64);

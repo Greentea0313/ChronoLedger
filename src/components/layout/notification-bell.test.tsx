@@ -192,4 +192,67 @@ describe("NotificationBell", () => {
     expect(spy).not.toHaveBeenCalled()
     spy.mockRestore()
   })
+
+  it("deletes a single notification without marking read or navigating and updates the unread badge", async () => {
+    mockInbox({ data: [row("a"), row("b")], error: null })
+    render(<NotificationBell userId="u1" />)
+    await waitFor(() => expect(screen.getByTestId("notification-badge").textContent).toBe("2"))
+    openBell()
+
+    fireEvent.click(screen.getByRole("button", { name: "알림 a 알림 삭제" }))
+
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("delete_notifications", { p_notification_ids: ["a"] }))
+    await waitFor(() => expect(screen.getAllByTestId("notification-item")).toHaveLength(1))
+    expect(screen.queryByText("알림 a")).toBeNull()
+    expect(screen.getByText("알림 b")).toBeTruthy()
+    expect(screen.getByTestId("notification-badge").textContent).toBe("1")
+    expect(push).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith("mark_notifications_read", expect.anything())
+  })
+
+  it("deletes all notifications with 전체 삭제 and disables the button when empty", async () => {
+    mockInbox({ data: [row("a"), row("b", { read_at: "2026-11-18T02:00:00Z" })], error: null })
+    render(<NotificationBell userId="u1" />)
+    await waitFor(() => expect(screen.getByTestId("notification-badge").textContent).toBe("1"))
+    openBell()
+
+    const deleteAllButton = screen.getByRole("button", { name: "전체 삭제" }) as HTMLButtonElement
+    expect(deleteAllButton.disabled).toBe(false)
+    fireEvent.click(deleteAllButton)
+
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("delete_notifications", { p_notification_ids: null }))
+    expect(await screen.findByText("새 알림이 없습니다.")).toBeTruthy()
+    expect(screen.queryByTestId("notification-badge")).toBeNull()
+    expect((screen.getByRole("button", { name: "전체 삭제" }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it("shows an alert and keeps notifications when delete RPC fails", async () => {
+    mockInbox({ data: [row("a")], error: null })
+    rpc.mockResolvedValue({ data: null, error: { message: "denied" } })
+    render(<NotificationBell userId="u1" />)
+    await waitFor(() => expect(screen.getByTestId("notification-badge")).toBeTruthy())
+    openBell()
+
+    fireEvent.click(screen.getByTestId("notification-delete-button"))
+
+    expect((await screen.findByRole("alert")).textContent).toContain("알림 삭제에 실패했습니다")
+    expect(screen.getByText("알림 a")).toBeTruthy()
+    expect(screen.getByTestId("notification-badge")).toBeTruthy()
+  })
+
+  it("blocks single and bulk notification deletion while offline", async () => {
+    mockInbox({ data: [row("a")], error: null })
+    render(<NotificationBell userId="u1" />)
+    await waitFor(() => expect(screen.getByTestId("notification-badge")).toBeTruthy())
+    openBell()
+    Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+
+    fireEvent.click(screen.getByTestId("notification-delete-button"))
+    expect((await screen.findByRole("alert")).textContent).toContain("오프라인 상태에서는 알림을 삭제할 수 없습니다")
+    expect(rpc).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole("button", { name: "전체 삭제" }))
+    expect((await screen.findByRole("alert")).textContent).toContain("오프라인 상태에서는 알림을 삭제할 수 없습니다")
+    expect(rpc).not.toHaveBeenCalled()
+  })
 })

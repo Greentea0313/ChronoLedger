@@ -2531,6 +2531,35 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 REVOKE ALL ON FUNCTION public.mark_notifications_read(UUID[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.mark_notifications_read(UUID[]) TO authenticated;
 
+CREATE OR REPLACE FUNCTION public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL)
+RETURNS INTEGER AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_deleted_count INTEGER := 0;
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION '로그인이 필요합니다.' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    IF public.account_deletion_is_pending(v_user_id) THEN
+        RAISE EXCEPTION '계정 삭제 대기 중에는 알림을 삭제할 수 없습니다.' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+
+    IF p_notification_ids IS NULL THEN
+        DELETE FROM public.notifications
+        WHERE user_id = v_user_id;
+    ELSE
+        DELETE FROM public.notifications
+        WHERE user_id = v_user_id
+          AND id = ANY(p_notification_ids);
+    END IF;
+    GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
+    RETURN v_deleted_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.delete_notifications(UUID[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.delete_notifications(UUID[]) TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.answer_feedback_request(
     p_request_id UUID,
     p_admin_answer TEXT DEFAULT NULL,

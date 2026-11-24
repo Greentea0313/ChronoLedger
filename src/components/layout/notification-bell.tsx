@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react"
 import { useRouter } from "next/navigation"
 import { isTauri } from "@tauri-apps/api/core"
-import { Bell } from "lucide-react"
+import { Bell, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { isOffline } from "@/lib/offline-guard"
 import { notifyNewTauriNotifications } from "@/lib/tauri-notifications"
@@ -137,6 +137,26 @@ export function NotificationBell({ userId, className }: { userId: string; classN
     }
   }
 
+  const deleteNotifications = async (ids: string[] | null): Promise<boolean> => {
+    setError(null)
+    if (isOffline()) {
+      setError("오프라인 상태에서는 알림을 삭제할 수 없습니다.")
+      return false
+    }
+    try {
+      const { error: rpcError } = await supabase.rpc("delete_notifications", { p_notification_ids: ids })
+      if (rpcError) {
+        setError("알림 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.")
+        return false
+      }
+      setItems((prev) => (ids === null ? [] : prev.filter((item) => !ids.includes(item.id))))
+      return true
+    } catch {
+      setError("알림 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.")
+      return false
+    }
+  }
+
   const updatePopoverTop = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect()
     if (rect) setPopoverTop(Math.max(8, Math.round(rect.bottom) + 4))
@@ -189,14 +209,24 @@ export function NotificationBell({ userId, className }: { userId: string; classN
         >
           <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
             <h2 className="text-sm font-semibold text-content">알림</h2>
-            <button
-              type="button"
-              disabled={unreadCount === 0}
-              onClick={() => void markRead(null)}
-              className="rounded-md px-2 py-1 text-xs text-primary hover:bg-surface-2 disabled:opacity-40"
-            >
-              모두 읽음
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={unreadCount === 0}
+                onClick={() => void markRead(null)}
+                className="rounded-md px-2 py-1 text-xs text-primary hover:bg-surface-2 disabled:opacity-40"
+              >
+                모두 읽음
+              </button>
+              <button
+                type="button"
+                disabled={items.length === 0}
+                onClick={() => void deleteNotifications(null)}
+                className="rounded-md px-2 py-1 text-xs text-danger hover:bg-surface-2 disabled:opacity-40"
+              >
+                전체 삭제
+              </button>
+            </div>
           </div>
           {error && (
             <p role="alert" className="border-b border-line px-3 py-2 text-xs text-danger">
@@ -208,16 +238,19 @@ export function NotificationBell({ userId, className }: { userId: string; classN
           ) : (
             <ul className="max-h-[60vh] overflow-y-auto py-1">
               {items.map((item) => (
-                <li key={item.id}>
+                <li
+                  key={item.id}
+                  className={cn(
+                    "flex items-stretch gap-1 pr-1.5 hover:bg-surface-2",
+                    item.read_at === null && "bg-primary/5",
+                  )}
+                >
                   <button
                     type="button"
                     data-testid="notification-item"
                     data-unread={item.read_at === null ? "true" : "false"}
                     onClick={() => void handleSelect(item)}
-                    className={cn(
-                      "flex w-full flex-col gap-0.5 px-3 py-2 text-left hover:bg-surface-2",
-                      item.read_at === null && "bg-primary/5",
-                    )}
+                    className="flex min-w-0 flex-1 flex-col gap-0.5 py-2 pl-3 pr-1 text-left"
                   >
                     <span className="flex items-center gap-1.5">
                       {item.read_at === null && <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
@@ -227,6 +260,15 @@ export function NotificationBell({ userId, className }: { userId: string; classN
                       <span className="ml-auto shrink-0 text-[10px] text-content-muted">{formatCreatedAt(item.created_at)}</span>
                     </span>
                     <span className="line-clamp-2 text-xs text-content-secondary">{item.body}</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="notification-delete-button"
+                    aria-label={`${item.title} 알림 삭제`}
+                    onClick={() => void deleteNotifications([item.id])}
+                    className="my-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-content-muted transition-colors duration-fast hover:bg-surface hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
                 </li>
               ))}
