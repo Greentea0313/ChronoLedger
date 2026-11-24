@@ -21,6 +21,7 @@ Do **not** read these up front. Open a skill only when its situation applies; ea
 | You register, route or close out a Run | [.agents/skills/chronoledger-orchestrator/SKILL.md](.agents/skills/chronoledger-orchestrator/SKILL.md) |
 | Any `sql/`, RLS, trigger or RPC change | [.agents/skills/chronoledger-sql-migration/SKILL.md](.agents/skills/chronoledger-sql-migration/SKILL.md) |
 | After finishing a step: update `docs/` | [.agents/skills/chronoledger-docs-closeout/SKILL.md](.agents/skills/chronoledger-docs-closeout/SKILL.md) |
+| Weekly 7-day documentation integrity audit | [.agents/skills/chronoledger-weekly-doc-audit/SKILL.md](.agents/skills/chronoledger-weekly-doc-audit/SKILL.md) |
 | Choosing a model or fallback | [.agents/rules/collaboration.md](.agents/rules/collaboration.md) |
 
 Tools with native project-skill support load these on demand: Google Antigravity reads `.agents/skills/` directly; Claude Code reads the copy in `.claude/skills/` (kept in sync by `scripts/collaboration/Sync-Skills.ps1`). GitHub Copilot and GPT Codex support is unconfirmed, so open the files above manually when their situation applies.
