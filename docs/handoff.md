@@ -11,14 +11,14 @@
 - **Orchestrator**: Gemini 4 Hydrogen *(2026-11-24 등록)*
 - **Worktree 경로**: `.worktrees/r96-web-push` (브랜치: `collab/r96-web-push`, 매니페스트: `artifacts/r96-web-push/run.json`)
 - **Base SHA**: `54a1224d7833566da43d0a41d6014bc459c84a0a`
-- **Target SHA**: `c3940c50d993d2243daf53d3c6388dae96675447` *(Step 1 DB: `abdfd17d3f5ed0f0ae4b8e66254b2fc32d63b1d2`, Step 2 App: `c3940c50d993d2243daf53d3c6388dae96675447`)*
+- **Target SHA**: `e2dbc4db2a900bdc09f07ae32d23ac419078e290` *(iteration-02 Maker 수정 기준. iteration-01 리뷰 대상 `c3940c50d993d2243daf53d3c6388dae96675447`, Step 1 DB: `abdfd17d3f5ed0f0ae4b8e66254b2fc32d63b1d2`, Step 2 App: `c3940c50d993d2243daf53d3c6388dae96675447`)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R96_WEB_PUSH.sql`, `sql/SCHEMA.sql` — `push_subscriptions`·RLS·`SECURITY DEFINER` RPC 4종·`pg_net` 웹훅 → Opus 승격 조건 ①). ⚠️ `LOCAL_DB_DEFERRED` — 현재 PC Docker CLI 미설치(`NO_DOCKER`)로 로컬 DB 2회 멱등 적용·신규 `SCHEMA.sql`·`TESTS.sql` 검증은 미실행이며 Step 3(🐳 Docker 환경)에서 필수 수행함.
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: abdfd17d3f5ed0f0ae4b8e66254b2fc32d63b1d2)`** | ~~**GPT Codex**~~ ➡️ **Gemini 4 Neon** *(1순위 대체로 수행)* | `Maker (R96 DB/RLS/RPC/pg_net & Types)` | 아래 **Step 1 수용 기준** 수행(🐳 Docker Desktop 필요, 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 진행). 허용 파일: 신규 `sql/migrations/MIGRATION_R96_WEB_PUSH.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ abdfd17`: `MIGRATION_R96_WEB_PUSH.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql`·`database.types.ts` 반영. `tsc`·`lint`·`diff-check`·Vitest 72파일/968개 통과. ⚠️ `LOCAL_DB_DEFERRED`(Docker 미설치, 아래 Step 1 완료 기록 참고) |
 | **2** | **`✅ DONE (SHA: c3940c50d993d2243daf53d3c6388dae96675447)`** | **Gemini 4 Neon** *(Fallback 1: Claude Opus / Gemini 4 Hydrogen, Fallback 2: GitHub Copilot)* | `Maker (Web Crypto·Edge Function·SW·로그아웃 해제·설정 UI & Vitest)` | Step 1 완료 후 착수. 아래 **Step 2 수용 기준** 수행. 허용 파일: 신규 `src/lib/web-push-crypto.ts`·`test.ts`, `supabase/functions/send-notifications/index.ts`, `src/lib/push-notifications.ts`·`test.ts`, `public/sw.js`, `src/app/dashboard/layout.tsx`, `src/app/admin/layout.tsx`, `src/components/auth/account-deletion-status.tsx`, `src/components/settings/notification-settings-card.tsx`, `src/app/dashboard/settings/page.test.tsx`(및 관련 레이아웃·SW 테스트), 루트 `docs/handoff.md`, `docs/progress.md` | `✅ c3940c5`: 순수 Web Crypto RFC 8291/8292 모듈·Edge Function·`sw.js` v6·푸시 헬퍼·로그아웃 3곳·설정 UI 확장·테스트 추가. `tsc`·`lint`·`diff-check`·Vitest 74파일/987개 통과 (아래 Step 2 완료 기록 참고) |
-| **3** | **`🛑 BLOCKED (로컬 DB 검증 대기)`** | **Claude Opus** *(Fallback 1: Gemini 4 Argon — Step 1·2 Maker가 Gemini 4 Neon이므로 독립 리뷰어 필수)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base(`54a1224d7833566da43d0a41d6014bc459c84a0a`) $\leftrightarrow$ Target(`c3940c50d993d2243daf53d3c6388dae96675447`) 통합 정적 리뷰(`review.json`)·🐳 로컬 DB 2회 멱등 적용 및 `TESTS.sql` 검증(`test.json`)·`main` 병합·문서 마감 | `🛑` iteration-01 리뷰·테스트 아티팩트 `bd24e4f`(워크트리). P2 3건·P3 1건·P4 2건, tsc·lint·Vitest 987개·build 통과, 로컬 DB 미실행(이 PC Docker 미설치)으로 병합 보류. 아래 Step 3 리뷰 기록 참고 |
+| **3** | **`🛑 BLOCKED (로컬 DB 검증 대기)`** | **Claude Opus** *(Fallback 1: Gemini 4 Argon — Step 1·2 Maker가 Gemini 4 Neon이므로 독립 리뷰어 필수)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base(`54a1224d7833566da43d0a41d6014bc459c84a0a`) $\leftrightarrow$ Target(`c3940c50d993d2243daf53d3c6388dae96675447`) 통합 정적 리뷰(`review.json`)·🐳 로컬 DB 2회 멱등 적용 및 `TESTS.sql` 검증(`test.json`)·`main` 병합·문서 마감 | `🛑` iteration-02 Maker 수정 `e2dbc4d`(P2 3건·P3 반영) 완료, Docker PC에서 iteration-02 리뷰·로컬 DB 실행 후 병합 필요. iteration-01 아티팩트 `bd24e4f`(워크트리). P2 3건·P3 1건·P4 2건, tsc·lint·Vitest 987개·build 통과, 로컬 DB 미실행(이 PC Docker 미설치)으로 병합 보류. 아래 Step 3 리뷰 기록 참고 |
 
 #### 📋 `r96-web-push` Step 1 수용 기준 (`GPT Codex` — DB/RLS/RPC/`pg_net` & Types, [`docs/push-notification-research.md`](push-notification-research.md) §11.2·§11.4)
 
@@ -31,6 +31,15 @@
 1. **순수 Web Crypto & Edge Function**: `src/lib/web-push-crypto.ts`(RFC 8292 VAPID ES256 JWT + RFC 8291 `aes128gcm`) 및 단위 테스트, `supabase/functions/send-notifications/index.ts` 워커(`404`/`410` 정리·`429`/`5xx` 3회 재시도·민감정보 로그 배제).
 2. **SW & 로그아웃 구독 해제**: `public/sw.js`(`chronoledger-shell-v6`, `push`/`notificationclick` 동일 출처 상대 경로 강제), `src/lib/push-notifications.ts` 및 로그아웃 3곳(`dashboard/layout`, `admin/layout`, `account-deletion-status`) 구독 해제 연동.
 3. **설정 UI 확장 및 검증**: `NotificationSettingsCard`(`request_result`·`push_enabled` 토글, `[이 기기에서 푸시 알림 켜기]`, Tauri/iOS/권한 거부/미적용 DB 폴백, 등록 기기 목록·`[해제]`) 및 Vitest 통과(`tsc`·`lint`·`vitest`·`diff-check`), 커밋 후 Step 3 `▶ READY` 전환.
+
+#### 📝 `r96-web-push` iteration-02 Maker 기록 (Claude Opus, 2026-11-24)
+
+- **Target SHA**: `e2dbc4db2a900bdc09f07ae32d23ac419078e290`(워크트리, 미push). 변경: 마이그레이션·`SCHEMA.sql`·`TESTS.sql`·`sql/README.md`·`database.types.ts`·`web-push-crypto.test.ts`·`docs/push-notification-research.md` §11.5임.
+- **수정**: ① `notifications.push_claimed_at` 추가, `claim`이 5분 점유하고 `complete`가 해제(동시 호출 중복 발송 방지) ② 1일 지난 알림·첫 기기 등록 이전 알림은 `SKIPPED`(과거 알림 일괄 발송 방지) ③ 배포 절차 §11.5 추가(`--no-verify-jwt`, 시크릿, DB 설정값, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`) ④ 웹훅 호출을 `invoke_send_notifications_webhook`로 분리하고 5분 재시도 `pg_cron` 잡 `chronoledger-push-retry` 추가.
+- **P4 처리**: 워커 출력 본문을 라이브러리 복호화로 검증하는 테스트 추가함. RFC 8291 부록 A 고정 벡터 테스트와 Vault 이전은 반영 안 함(§11.5에 절충으로 기록).
+- **검증**: tsc·lint·Vitest 74파일 988개·`git diff --check` 통과. 마이그레이션과 `SCHEMA.sql`의 R96 함수 7개 본문 일치 확인. 새 SQL 검사(점유·과거 알림·재시도 잡)는 **미실행**(`⚠️ LOCAL_DB_DEFERRED`, Docker 미설치).
+- **원격 브랜치**: push 안 함.
+- **다음**: Docker PC에서 Reviewer(Claude Opus)가 iteration-02(Base `54a1224` ↔ Target `e2dbc4d`) 리뷰·로컬 DB 2회 적용·`TESTS.sql` 통과 기록 후 병합함.
 
 #### 📝 `r96-web-push` Step 3 리뷰 기록 (Claude Opus, 2026-11-24, iteration-01)
 
@@ -80,7 +89,7 @@
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
 | `R39` | 완료 (`r39-daily-notifications`, `main` 병합 `9ae05f9`, 2026-11-24) | 운영 DB 적용·확인 쿼리 완료(사용자, 2026-11-24). 실브라우저·KST 09:00 알림 생성 확인 대기. P4 후속 `R39-REV-01`(타입 전용) | `docs/to-do.md` R39, 아래 직전 완료 Run 기록 |
-| `R96` | **진행 중 · 활성 Run (`r96-web-push`)** | Step 1·2 완료, Step 3 리뷰 완료(P2 3건) → `🛑 BLOCKED (로컬 DB 검증 대기)`, iteration-02 수정 필요 | 위 활성 과제 표, `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §11 |
+| `R96` | **진행 중 · 활성 Run (`r96-web-push`)** | Step 1·2 완료, iteration-01 리뷰(P2 3건) → iteration-02 수정 `e2dbc4d` 완료 → `🛑 BLOCKED (로컬 DB 검증 대기)`, Docker PC에서 리뷰·병합 필요 | 위 활성 과제 표, `docs/to-do.md` R96, [`docs/push-notification-research.md`](push-notification-research.md) §11 |
 | `R97` | 완료 (`r97-tauri-notifications`, `main` 병합 `d350267`, 2026-11-23) | 엣지 케이스 보완 병합 및 `npm run tauri dev` 실기기 OS 토스트 수신 확인 완료(개발 실행 시 발신 앱 `Windows PowerShell` 표기). 선택 후속 `R97-REV-001`(P4)이 `docs/to-do.md`에 있음 | [`docs/archive/handoff-archive.md`](archive/handoff-archive.md) |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
