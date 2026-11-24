@@ -179,4 +179,106 @@ describe("SettingsPage", () => {
 
     expect(await screen.findByText("로그인한 계정의 이메일 주소를 정확히 입력해주세요.")).toBeTruthy()
   })
+
+  describe("알림 설정 (R39)", () => {
+    type SettingsRow = { favorite_schedule_start?: boolean; favorite_schedule_end_d1?: boolean; planned_expense_d1?: boolean } | null
+
+    function mockNotificationSettings(options: { row?: SettingsRow; loadError?: { code?: string; message: string }; upsertError?: { code?: string; message: string } } = {}) {
+      const base = from.getMockImplementation()!
+      const builder = {
+        select: vi.fn(),
+        eq: vi.fn(),
+        maybeSingle: vi.fn().mockResolvedValue(options.loadError ? { data: null, error: options.loadError } : { data: options.row ?? null, error: null }),
+        upsert: vi.fn().mockResolvedValue({ error: options.upsertError ?? null }),
+      }
+      builder.select.mockReturnValue(builder)
+      builder.eq.mockReturnValue(builder)
+      from.mockImplementation((table: string) => (table === "notification_settings" ? builder : base(table)))
+      return builder
+    }
+    const toggle = (label: string) => screen.findByRole("switch", { name: `${label} 알림` })
+
+    it("shows all three toggles on by default when the user has no settings row", async () => {
+      const builder = mockNotificationSettings({ row: null })
+      render(<SettingsPage />)
+
+      for (const label of ["관심 일정 시작 당일", "관심 일정 종료 1일 전", "예정 지출 결제일 1일 전"]) {
+        expect((await toggle(label)).getAttribute("aria-checked")).toBe("true")
+      }
+      expect(builder.select).toHaveBeenCalledWith("favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1")
+      expect(builder.eq).toHaveBeenCalledWith("user_id", "user-123")
+    })
+
+    it("reflects the saved values of an existing row", async () => {
+      mockNotificationSettings({ row: { favorite_schedule_start: false, favorite_schedule_end_d1: true, planned_expense_d1: false } })
+      render(<SettingsPage />)
+
+      await waitFor(async () => {
+        expect((await toggle("관심 일정 시작 당일")).getAttribute("aria-checked")).toBe("false")
+      })
+      expect((await toggle("관심 일정 종료 1일 전")).getAttribute("aria-checked")).toBe("true")
+      expect((await toggle("예정 지출 결제일 1일 전")).getAttribute("aria-checked")).toBe("false")
+    })
+
+    it("upserts only the toggled column with onConflict user_id", async () => {
+      const builder = mockNotificationSettings({ row: null })
+      render(<SettingsPage />)
+      const target = await toggle("예정 지출 결제일 1일 전")
+      await waitFor(() => expect((target as HTMLButtonElement).disabled).toBe(false))
+
+      fireEvent.click(target)
+
+      await waitFor(() => expect(target.getAttribute("aria-checked")).toBe("false"))
+      expect(builder.upsert).toHaveBeenCalledTimes(1)
+      const [payload, options] = builder.upsert.mock.calls[0]
+      expect(payload).toMatchObject({ user_id: "user-123", planned_expense_d1: false })
+      expect(Object.keys(payload).sort()).toEqual(["planned_expense_d1", "updated_at", "user_id"])
+      expect(options).toEqual({ onConflict: "user_id" })
+    })
+
+    it("rolls the toggle back and shows an error when saving fails", async () => {
+      mockNotificationSettings({ row: null, upsertError: { code: "42501", message: "denied" } })
+      render(<SettingsPage />)
+      const target = await toggle("관심 일정 시작 당일")
+      await waitFor(() => expect((target as HTMLButtonElement).disabled).toBe(false))
+
+      fireEvent.click(target)
+
+      expect(await screen.findByText("알림 설정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")).toBeTruthy()
+      expect(target.getAttribute("aria-checked")).toBe("true")
+    })
+
+    it("blocks saving while offline", async () => {
+      const builder = mockNotificationSettings({ row: null })
+      render(<SettingsPage />)
+      const target = await toggle("관심 일정 시작 당일")
+      await waitFor(() => expect((target as HTMLButtonElement).disabled).toBe(false))
+      Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+      try {
+        fireEvent.click(target)
+        expect(await screen.findByText(/오프라인/)).toBeTruthy()
+        expect(builder.upsert).not.toHaveBeenCalled()
+        expect(target.getAttribute("aria-checked")).toBe("true")
+      } finally {
+        Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+      }
+    })
+
+    it.each(["42P01", "PGRST205"])("disables the toggles with the migration hint when the table is missing (%s)", async (code) => {
+      mockNotificationSettings({ loadError: { code, message: "missing" } })
+      render(<SettingsPage />)
+
+      expect(await screen.findByText("DB 업데이트(R39) 적용 후 알림 설정을 저장할 수 있습니다.")).toBeTruthy()
+      expect((await toggle("관심 일정 시작 당일") as HTMLButtonElement).disabled).toBe(true)
+      expect((await toggle("예정 지출 결제일 1일 전") as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it("shows a load error for other failures without the migration hint", async () => {
+      mockNotificationSettings({ loadError: { code: "42501", message: "denied" } })
+      render(<SettingsPage />)
+
+      expect(await screen.findByText("알림 설정을 불러오지 못했습니다.")).toBeTruthy()
+      expect(screen.queryByText("DB 업데이트(R39) 적용 후 알림 설정을 저장할 수 있습니다.")).toBeNull()
+    })
+  })
 })

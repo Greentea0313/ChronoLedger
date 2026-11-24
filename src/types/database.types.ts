@@ -97,6 +97,18 @@ isOneToOne: false
                     "body"?: string,"created_at"?: string,"id"?: string,"kind"?: "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title"?: string,"user_id"?: string
                   }
                   Relationships: []
+                },"notification_settings": {
+                  Row: {
+                    "favorite_schedule_end_d1": boolean,"favorite_schedule_start": boolean,"planned_expense_d1": boolean,"push_enabled": boolean,"request_result": boolean,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "favorite_schedule_end_d1"?: boolean,"favorite_schedule_start"?: boolean,"planned_expense_d1"?: boolean,"push_enabled"?: boolean,"request_result"?: boolean,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "favorite_schedule_end_d1"?: boolean,"favorite_schedule_start"?: boolean,"planned_expense_d1"?: boolean,"push_enabled"?: boolean,"request_result"?: boolean,"updated_at"?: string,"user_id": string
+                  }
+                  Relationships: []
                 },"game_characters": {
                   Row: {
                     "attributes": Json,"created_at": string,"created_by": string | null,"default_icon_url": string | null,"game_id": string,"id": string,"is_pickup_only": boolean,"name": string,"rarity": string | null,"updated_at": string
@@ -453,6 +465,9 @@ isOneToOne: false
                            },
 "dedupe_monthly_planned_expenses":
 { Args: { "p_template_id": string }; Returns: number
+                           },
+"enqueue_daily_notifications":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "get_account_deletion_status":
 { Args: { "p_status_token": string }; Returns: Json

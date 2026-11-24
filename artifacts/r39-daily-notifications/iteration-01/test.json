@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "run_id": "r39-daily-notifications",
+  "iteration": 1,
+  "agent": "Claude Opus",
+  "role": "dynamic-test",
+  "base_sha": "1af478baed61123977a05729f46e23768726f4a9",
+  "target_sha": "afc9a21d3672314c829a3d491e649c81f848ffa2",
+  "status": "passed",
+  "created_at": "2026-11-24T07:15:11+09:00",
+  "finished_at": "2026-11-24T07:15:11+09:00",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Local DB upgrade: base 1af478b SCHEMA.sql + MIGRATION_R39_DAILY_NOTIFICATIONS.sql applied twice",
+      "command": "psql -v ON_ERROR_STOP=1 -f MIGRATION_R39_DAILY_NOTIFICATIONS.sql (x2)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TESTS.sql on upgraded DB (42 PASS incl. R39 block)",
+      "command": "psql -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Fresh install: target SCHEMA.sql + TESTS.sql (42 PASS) + migration re-run",
+      "command": "psql -v ON_ERROR_STOP=1 -f sql/SCHEMA.sql; -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "sql/README.md R39 check queries (t/4 policies; f,t,t,f,f; 1,t,0 0 * * *)",
+      "command": "psql -c <README B-table R39 queries>",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest suite (71 files, 960 tests)",
+      "command": "npx vitest run",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Next.js production build (placeholder env)",
+      "command": "npm run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}

@@ -96,6 +96,13 @@
 --   R84-02 authenticated / A       계정 삭제 대기 사용자 건의 등록·알림 읽음 거부, 조회 차단.
 --   R84-03 DB fixture 역할         purge_expired_notifications 30일 초과 삭제, 탈퇴 purge 연동·차단 트리거.
 --   R84-04 anon                   feedback_requests/notifications/RPC 접근 -> insufficient_privilege.
+--   R39-01 authenticated / B       notification_settings 본인 등록·조회·수정 성공, 타인 행 등록/조회/수정 차단,
+--                                  직접 DELETE 및 enqueue_daily_notifications() 실행 -> insufficient_privilege.
+--   R39-02 DB fixture 역할         enqueue_daily_notifications() 3종(FAVORITE_START/FAVORITE_END_D1/EXPENSE_D1) 생성·
+--                                  설정 OFF 제외·기본값(행 없음=true)·중복 방지(재실행 0건)·민감정보(금액/메모) 비노출·
+--                                  계정 삭제 대기 사용자 제외·탈퇴 purge 연동·차단 트리거·pg_cron 스케줄 검증.
+--   R39-03 authenticated / A       계정 삭제 대기 사용자 notification_settings 조회 은닉 및 INSERT/UPDATE 차단.
+--   R39-04 anon                   notification_settings 조회 및 enqueue_daily_notifications() 실행 -> insufficient_privilege.
 --   R85-01 DB fixture / B / admin  games.daily_reset_time 분 단위 CHECK, game_schedules/schedule_requests 시각·날짜·순서·분·예상 CHECK,
 --                                  approve_schedule_request 신규/수정 시각·예상 복사(+R84 알림 유지), 시각만 수정 시 예정 지출 날짜 불변, anon 조회.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
@@ -2356,6 +2363,306 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R84 feedback_requests, notifications, answer/read RPCs, 30-day purge, pending-deletion and anon checks
+
+-- R39: notification_settings RLS/grants, enqueue_daily_notifications() (FAVORITE_START, FAVORITE_END_D1, EXPENSE_D1),
+-- dedupe, privacy (no amount/memo leak), pending-deletion block, account purge linkage, pg_cron schedule, and anon ACL.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_game_id UUID := current_setting('chronoledger.test_game_id')::uuid;
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_user_b UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_today DATE := (NOW() AT TIME ZONE 'Asia/Seoul')::date;
+    v_tomorrow DATE := v_today + 1;
+    v_s_start UUID;
+    v_s_end UUID;
+    v_s_other UUID;
+    v_e_planned UUID;
+    v_e_confirmed UUID;
+BEGIN
+    INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo)
+    VALUES (v_game_id, 'R39 오늘 시작 일정', 'CONTENTS', v_today, v_today + 3, 'R39 비밀 메모 START')
+    RETURNING id INTO v_s_start;
+
+    INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo)
+    VALUES (v_game_id, 'R39 내일 종료 일정', 'PICKUP', v_today - 2, v_tomorrow, 'R39 비밀 메모 END')
+    RETURNING id INTO v_s_end;
+
+    INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, memo)
+    VALUES (v_game_id, 'R39 먼 미래 일정', 'CONTENTS', v_today + 5, v_today + 10, 'R39 미래 메모')
+    RETURNING id INTO v_s_other;
+
+    INSERT INTO public.user_favorite_schedules(user_id, schedule_id)
+    VALUES
+        (v_user_b, v_s_start),
+        (v_user_b, v_s_end),
+        (v_user_b, v_s_other),
+        (v_user_a, v_s_start),
+        (v_user_a, v_s_end);
+
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, memo)
+    VALUES (v_user_b, 'R39 비밀 지출 제목 99000원', '게임', 'PLANNED', v_tomorrow, 99000, 99000, 'R39 비밀 지출 메모')
+    RETURNING id INTO v_e_planned;
+
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, memo)
+    VALUES (v_user_b, 'R39 확정 지출', '게임', 'CONFIRMED', v_tomorrow, 5000, 5000, 'R39 확정 메모')
+    RETURNING id INTO v_e_confirmed;
+
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, memo)
+    VALUES (v_user_a, 'R39 대기 사용자 지출', '게임', 'PLANNED', v_tomorrow, 10000, 10000, 'R39 대기 메모');
+
+    -- Fixture row for pending-deletion user A to test cross-user isolation and pending-user read hiding.
+    INSERT INTO public.notification_settings(user_id, favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1)
+    VALUES (v_user_a, true, true, true)
+    ON CONFLICT (user_id) DO UPDATE
+    SET favorite_schedule_start = true, favorite_schedule_end_d1 = true, planned_expense_d1 = true;
+
+    PERFORM set_config('chronoledger.r39_s_start_id', v_s_start::text, true);
+    PERFORM set_config('chronoledger.r39_s_end_id', v_s_end::text, true);
+    PERFORM set_config('chronoledger.r39_s_other_id', v_s_other::text, true);
+    PERFORM set_config('chronoledger.r39_e_planned_id', v_e_planned::text, true);
+    PERFORM set_config('chronoledger.r39_e_confirmed_id', v_e_confirmed::text, true);
+END $$;
+
+-- R39-01: User B manages own notification_settings, cannot access user A, cannot DELETE or run enqueue function.
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_user_b UUID := auth.uid();
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_row public.notification_settings%ROWTYPE;
+BEGIN
+    IF EXISTS (SELECT 1 FROM public.notification_settings WHERE user_id = v_user_a) THEN
+        RAISE EXCEPTION 'FAIL: R39 RLS exposed another user notification_settings';
+    END IF;
+
+    BEGIN
+        INSERT INTO public.notification_settings(user_id) VALUES (v_user_a);
+        RAISE EXCEPTION 'FAIL: R39 user B inserted notification_settings for user A';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    INSERT INTO public.notification_settings(user_id, favorite_schedule_end_d1)
+    VALUES (v_user_b, false);
+
+    SELECT * INTO v_row FROM public.notification_settings WHERE user_id = v_user_b;
+    IF NOT FOUND
+       OR v_row.favorite_schedule_start IS NOT TRUE
+       OR v_row.favorite_schedule_end_d1 IS NOT FALSE
+       OR v_row.planned_expense_d1 IS NOT TRUE
+       OR v_row.request_result IS NOT TRUE
+       OR v_row.push_enabled IS NOT FALSE THEN
+        RAISE EXCEPTION 'FAIL: R39 notification_settings defaults or insert mismatch';
+    END IF;
+
+    UPDATE public.notification_settings SET favorite_schedule_start = false WHERE user_id = v_user_a;
+    IF FOUND THEN
+        RAISE EXCEPTION 'FAIL: R39 user B updated user A notification_settings';
+    END IF;
+
+    BEGIN
+        DELETE FROM public.notification_settings WHERE user_id = v_user_b;
+        RAISE EXCEPTION 'FAIL: R39 direct DELETE on notification_settings succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    BEGIN
+        PERFORM public.enqueue_daily_notifications();
+        RAISE EXCEPTION 'FAIL: R39 authenticated user executed enqueue_daily_notifications';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+
+-- R39-02: DB fixture role runs enqueue_daily_notifications() and verifies 3 kinds, opt-out, privacy, dedupe,
+-- default-enabled (no settings row), pending-deletion exclusion, purge linkage, trigger, and pg_cron job.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_user_b UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_s_start UUID := current_setting('chronoledger.r39_s_start_id')::uuid;
+    v_s_end UUID := current_setting('chronoledger.r39_s_end_id')::uuid;
+    v_s_other UUID := current_setting('chronoledger.r39_s_other_id')::uuid;
+    v_e_planned UUID := current_setting('chronoledger.r39_e_planned_id')::uuid;
+    v_e_confirmed UUID := current_setting('chronoledger.r39_e_confirmed_id')::uuid;
+    v_today DATE := (NOW() AT TIME ZONE 'Asia/Seoul')::date;
+    v_tomorrow DATE := v_today + 1;
+    v_inserted INTEGER;
+    v_purge_def TEXT := pg_get_functiondef('public.purge_expired_account_deletion_requests(integer)'::regprocedure);
+BEGIN
+    v_inserted := public.enqueue_daily_notifications();
+    IF v_inserted < 2 THEN
+        RAISE EXCEPTION 'FAIL: R39 first enqueue expected at least 2 rows, got %', v_inserted;
+    END IF;
+
+    IF (SELECT count(*) FROM public.notifications
+        WHERE user_id = v_user_b
+          AND kind = 'FAVORITE_START'
+          AND source_id = v_s_start
+          AND scheduled_for = v_today
+          AND link_path = '/dashboard?date=' || to_char(v_today, 'YYYY-MM-DD')
+          AND position('R39 오늘 시작 일정' IN title || body) > 0
+          AND position('R39 비밀 메모 START' IN title || body) = 0) <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R39 FAVORITE_START notification missing, malformed, or leaked memo';
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM public.notifications
+        WHERE user_id = v_user_b AND kind = 'FAVORITE_END_D1' AND source_id = v_s_end) THEN
+        RAISE EXCEPTION 'FAIL: R39 FAVORITE_END_D1 was generated despite user opt-out';
+    END IF;
+
+    IF (SELECT count(*) FROM public.notifications
+        WHERE user_id = v_user_b
+          AND kind = 'EXPENSE_D1'
+          AND source_id = v_e_planned
+          AND scheduled_for = v_tomorrow
+          AND link_path = '/dashboard/expenses'
+          AND position('99000' IN title || body) = 0
+          AND position('R39 비밀 지출 메모' IN title || body) = 0
+          AND position('R39 비밀 지출 제목' IN title || body) = 0) <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R39 EXPENSE_D1 notification missing, malformed, or leaked sensitive data';
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM public.notifications
+        WHERE user_id = v_user_b AND source_id IN (v_s_other, v_e_confirmed)) THEN
+        RAISE EXCEPTION 'FAIL: R39 generated notification for non-qualifying schedule or confirmed expense';
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM public.notifications
+        WHERE user_id = v_user_a
+          AND kind IN ('FAVORITE_START', 'FAVORITE_END_D1', 'EXPENSE_D1')
+          AND scheduled_for IN (v_today, v_tomorrow)) THEN
+        RAISE EXCEPTION 'FAIL: R39 generated daily notification for pending-deletion user A';
+    END IF;
+
+    -- Repeat call on the same day must be deduplicated (0 rows inserted).
+    v_inserted := public.enqueue_daily_notifications();
+    IF v_inserted <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R39 repeat enqueue was not deduplicated (inserted %)', v_inserted;
+    END IF;
+
+    -- Verify account purge linkage, trigger, and pg_cron registration.
+    IF position('public.notification_settings' IN v_purge_def) = 0 THEN
+        RAISE EXCEPTION 'FAIL: R39 account purge function missing notification_settings cleanup';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'block_pending_account_deletion_notification_settings') THEN
+        RAISE EXCEPTION 'FAIL: R39 pending-deletion trigger missing';
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM cron.job
+        WHERE jobname = 'chronoledger-daily-notifications' AND schedule = '0 0 * * *'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R39 pg_cron job chronoledger-daily-notifications missing or wrong schedule';
+    END IF;
+END $$;
+
+-- User B re-enables favorite_schedule_end_d1 via authenticated UPDATE policy, then enqueue adds only FAVORITE_END_D1.
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+UPDATE public.notification_settings
+SET favorite_schedule_end_d1 = true, updated_at = NOW()
+WHERE user_id = auth.uid();
+RESET ROLE;
+
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_user_b UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_s_start UUID := current_setting('chronoledger.r39_s_start_id')::uuid;
+    v_s_end UUID := current_setting('chronoledger.r39_s_end_id')::uuid;
+    v_e_planned UUID := current_setting('chronoledger.r39_e_planned_id')::uuid;
+    v_tomorrow DATE := (NOW() AT TIME ZONE 'Asia/Seoul')::date + 1;
+    v_inserted INTEGER;
+BEGIN
+    v_inserted := public.enqueue_daily_notifications();
+    IF v_inserted <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R39 enqueue after enabling FAVORITE_END_D1 expected 1 row, got %', v_inserted;
+    END IF;
+    IF (SELECT count(*) FROM public.notifications
+        WHERE user_id = v_user_b
+          AND kind = 'FAVORITE_END_D1'
+          AND source_id = v_s_end
+          AND scheduled_for = v_tomorrow
+          AND link_path = '/dashboard?date=' || to_char(v_tomorrow, 'YYYY-MM-DD')
+          AND position('R39 내일 종료 일정' IN title || body) > 0
+          AND position('R39 비밀 메모 END' IN title || body) = 0) <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R39 FAVORITE_END_D1 notification missing, malformed, or leaked memo';
+    END IF;
+
+    -- User without a notification_settings row defaults to all 3 daily notifications enabled.
+    DELETE FROM public.notification_settings WHERE user_id = v_user_b;
+    DELETE FROM public.notifications
+    WHERE user_id = v_user_b AND source_id IN (v_s_start, v_s_end, v_e_planned);
+    v_inserted := public.enqueue_daily_notifications();
+    IF v_inserted <> 3 THEN
+        RAISE EXCEPTION 'FAIL: R39 default-enabled enqueue without settings row expected 3 rows, got %', v_inserted;
+    END IF;
+END $$;
+
+-- R39-03: Pending-deletion user A cannot read, insert, or update notification_settings.
+SELECT set_config('request.jwt.claim.sub', :'test_user_id'::text, true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', :'test_user_id'::text, 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'user'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM public.notification_settings) THEN
+        RAISE EXCEPTION 'FAIL: R39 pending user could read notification_settings';
+    END IF;
+
+    UPDATE public.notification_settings SET favorite_schedule_start = false WHERE user_id = auth.uid();
+    IF FOUND THEN
+        RAISE EXCEPTION 'FAIL: R39 pending user updated notification_settings';
+    END IF;
+
+    BEGIN
+        INSERT INTO public.notification_settings(user_id, favorite_schedule_start)
+        VALUES (auth.uid(), false)
+        ON CONFLICT (user_id) DO UPDATE SET favorite_schedule_start = EXCLUDED.favorite_schedule_start;
+        RAISE EXCEPTION 'FAIL: R39 pending user upserted notification_settings';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+    END;
+END $$;
+RESET ROLE;
+
+-- R39-04: anon cannot read notification_settings or execute enqueue_daily_notifications().
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM 1 FROM public.notification_settings LIMIT 1;
+        RAISE EXCEPTION 'FAIL: R39 anon read notification_settings';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.enqueue_daily_notifications();
+        RAISE EXCEPTION 'FAIL: R39 anon executed enqueue_daily_notifications';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R39 notification_settings RLS, enqueue_daily_notifications 3 kinds, dedupe, privacy, pending-deletion, purge, cron and anon checks
 
 -- User A's PENDING account deletion request (R13-07) is only needed up to R35; later blocks write as user A.
 DELETE FROM public.account_deletion_requests WHERE user_id = :'test_user_id'::uuid AND status_token_hash = repeat('a', 64);

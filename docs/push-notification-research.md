@@ -220,3 +220,92 @@ pg_cron 일일 스캔 함수   ─┐
 - PushForge(Web Crypto 기반 웹 푸시, Deno 지원): <https://github.com/draphy/pushforge>
 - Supabase 과금 FAQ: <https://supabase.com/docs/guides/platform/billing-faq>
 - Supabase Cron: <https://supabase.com/modules/cron>
+
+---
+
+## 11. R96 Web Push 외부 발송 확정 명세 및 단계별 수용 기준 (2026-11-24 Chief Architect 확정)
+
+- **작성**: Gemini 4 Argon (`Chief Architect`, `📐 SPEC_NEEDED` 구체화), 2026-11-24
+- **선행 조건 확인**: `R39`(`r39-daily-notifications`)가 `main`에 병합(`9ae05f9`) 및 운영 DB 적용(`a98a621`) 완료되었으므로, `r96-web-push`는 최신 `main`에서 격리 워크트리(`.worktrees/r96-web-push`)로 분기함.
+
+### 11.1 사용자 확정 결정 사항 (2026-11-24 질문 카드 확정)
+
+1. **브랜치 분기 기준**: `R39` 병합 완료본이 반영된 최신 `main`에서 `r96-web-push`를 분기함.
+2. **`request_result` 토글 동작 범위**: 요청 승인(`REQUEST_APPROVED`)·반려(`REQUEST_REJECTED`)·건의 답변(`FEEDBACK_ANSWERED`)의 **앱 내 알림함(`public.notifications` 행)은 항상 생성**하고, `notification_settings.request_result = false`이거나 `push_enabled = false`(또는 활성 구독 0건)이면 **기기 외부 Web Push 발송만 생략(`push_status = 'SKIPPED'`)**함.
+3. **Web Push 암호화·서명 및 DB 웹훅 격리**:
+   - 외부 서드파티 패키지 의존성 없이 **표준 Web Crypto API (`crypto.subtle` — RFC 8292 VAPID ES256 JWT 서명 + RFC 8291 `aes128gcm` 페이로드 암호화)** 내장 모듈로 구현해 Vitest 단위 테스트로 직접 검증함.
+   - `pg_net` 웹훅 미설정·비활성·호출 실패가 DB 알림 행 `INSERT` 트랜잭션을 절대 롤백시키지 않도록 예외 격리(`EXCEPTION WHEN OTHERS THEN`)함.
+
+### 11.2 DB 스키마·RLS·RPC 확정 명세 (`sql/migrations/MIGRATION_R96_WEB_PUSH.sql`)
+
+1. **`public.push_subscriptions` 테이블**:
+   - `id UUID PRIMARY KEY DEFAULT uuid_generate_v4()`
+   - `user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE`
+   - `endpoint TEXT NOT NULL UNIQUE CHECK (endpoint ~ '^https://' AND length(btrim(endpoint)) BETWEEN 12 AND 2048)`
+   - `p256dh TEXT NOT NULL CHECK (length(btrim(p256dh)) BETWEEN 40 AND 256)`
+   - `auth TEXT NOT NULL CHECK (length(btrim(auth)) BETWEEN 16 AND 128)`
+   - `platform VARCHAR(20) NOT NULL DEFAULT 'web' CHECK (platform IN ('web', 'ios_pwa', 'android_pwa'))`
+   - `user_agent_label VARCHAR(100) NOT NULL DEFAULT '웹 브라우저' CHECK (length(btrim(user_agent_label)) BETWEEN 1 AND 100)`
+   - `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+   - `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+   - `last_success_at TIMESTAMPTZ`
+   - 인덱스: `idx_push_subscriptions_user_id ON public.push_subscriptions(user_id, created_at DESC)`
+   - 권한·RLS: `ENABLE ROW LEVEL SECURITY`, `REVOKE ALL ON public.push_subscriptions FROM PUBLIC, anon, authenticated; GRANT SELECT ON public.push_subscriptions TO authenticated;` (클라이언트 직접 `INSERT`/`UPDATE`/`DELETE` 원천 차단, 본인 행 `auth.uid() = user_id` 조회만 허용).
+   - 계정 삭제 대기 차단: `RESTRICTIVE` 정책 `"Block account deletion users from push_subscriptions"` 및 `block_pending_account_deletion_push_subscriptions` 트리거(`SCHEMA.sql` 공통 루프 2곳 포함), `purge_expired_account_deletion_requests` 내 `DELETE FROM public.push_subscriptions WHERE user_id = v_req.user_id;` 추가.
+2. **클라이언트 구독 관리 `SECURITY DEFINER` RPC 2종 (`authenticated` 실행 허용)**:
+   - `public.upsert_push_subscription(p_endpoint TEXT, p_p256dh TEXT, p_auth TEXT, p_platform VARCHAR DEFAULT 'web', p_user_agent_label VARCHAR DEFAULT '웹 브라우저') RETURNS UUID`:
+     - `auth.uid()` 인증 및 `public.account_deletion_is_pending(auth.uid())` 차단 검사.
+     - `p_endpoint`(`^https://`, 12~2048자), `p_p256dh`(40~256자), `p_auth`(16~128자), `p_platform`(`'web'|'ios_pwa'|'android_pwa'`), `p_user_agent_label`(1~100자) 검증.
+     - `INSERT INTO public.push_subscriptions ... ON CONFLICT (endpoint) DO UPDATE SET user_id = auth.uid(), p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, platform = EXCLUDED.platform, user_agent_label = EXCLUDED.user_agent_label, updated_at = NOW()`로 **공용 기기에서 다른 계정이 로그인해 구독할 때 `endpoint` 소유자를 현재 사용자로 원자적 교체**함.
+     - 동시에 `public.notification_settings`에 `INSERT INTO public.notification_settings(user_id, push_enabled, updated_at) VALUES (auth.uid(), true, NOW()) ON CONFLICT (user_id) DO UPDATE SET push_enabled = true, updated_at = NOW()`를 반영함.
+   - `public.delete_push_subscription(p_endpoint TEXT DEFAULT NULL, p_subscription_id UUID DEFAULT NULL) RETURNS INTEGER`:
+     - `auth.uid()` 인증 검사 (`p_endpoint`와 `p_subscription_id`가 모두 `NULL`이면 예외 발생).
+     - `user_id = auth.uid()`이면서 `endpoint = btrim(p_endpoint)` 또는 `id = p_subscription_id`인 행만 삭제하고, 삭제 후 본인의 남은 `push_subscriptions`가 0건이면 `notification_settings`의 `push_enabled = false, updated_at = NOW()`로 갱신한 뒤 삭제 건수를 반환함.
+3. **발송 워커 대기열 선점·완료 `SECURITY DEFINER` RPC 2종 (`service_role` 실행 전용)**:
+   - `public.claim_pending_push_notifications(p_limit INTEGER DEFAULT 50) RETURNS TABLE (notification_id UUID, user_id UUID, kind VARCHAR, title VARCHAR, body VARCHAR, link_path TEXT, push_attempts SMALLINT)`:
+     - `p_limit` (1~200) 범위 검사.
+     - `push_status = 'PENDING'`인 `public.notifications` 행을 `created_at ASC` 순으로 `FOR UPDATE SKIP LOCKED` 잠금:
+       - ① `public.account_deletion_is_pending(n.user_id)`이거나, ② `coalesce(ns.push_enabled, false) = false`이거나, ③ (`n.kind IN ('REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED')` 이고 `coalesce(ns.request_result, true) = false`)이거나, ④ 해당 `user_id`의 `push_subscriptions` 행이 0건인 경우: 즉시 `push_status = 'SKIPPED'`, `pushed_at = NOW()`로 갱신하고 반환 결과에서 제외함.
+       - 실제 발송 대상인 행은 `push_attempts = n.push_attempts + 1`로 증가시키고 반환함.
+   - `public.complete_push_notification_delivery(p_notification_id UUID, p_status VARCHAR, p_expired_endpoints TEXT[] DEFAULT '{}'::TEXT[], p_succeeded_endpoints TEXT[] DEFAULT '{}'::TEXT[]) RETURNS VOID`:
+     - `p_status IN ('SENT', 'SKIPPED', 'FAILED', 'PENDING')` 검증(`429`/`5xx` 일시 오류 시 `push_attempts < 3`이면 `'PENDING'` 유지, `>= 3`이면 `'FAILED'`).
+     - 대상 알림 소유자(`user_id`)의 `push_subscriptions` 중 `endpoint = ANY(p_expired_endpoints)`인 만료 구독(`404`/`410`)을 삭제하고(남은 구독이 0건이면 `notification_settings.push_enabled = false` 동기화), `endpoint = ANY(p_succeeded_endpoints)`인 구독의 `last_success_at = NOW(), updated_at = NOW()`를 갱신함.
+     - 대상 `public.notifications` 행의 `push_status = p_status`, `pushed_at = CASE WHEN p_status IN ('SENT', 'SKIPPED', 'FAILED') THEN NOW() ELSE pushed_at END`를 갱신함.
+4. **비동기 웹훅 호출 도우미 (`public.trigger_send_notifications_webhook`)**:
+   - `notifications` `AFTER INSERT FOR EACH STATEMENT` 트리거로 연결하되, `pg_net` 확장(`net.http_post`)과 DB 설정(`current_setting('app.settings.send_notifications_url', true)`, `current_setting('app.settings.send_notifications_secret', true)`)이 모두 유효할 때만 호출하고, 블록 전체를 `EXCEPTION WHEN OTHERS THEN RETURN NULL;`로 감싸 **로컬/운영 DB에서 `pg_net` 미설정이나 네트워크 오류가 나도 알림 INSERT가 절대 실패하지 않게 보장**함.
+
+### 11.3 Web Crypto 암호화·Edge Function·SW·클라이언트 확정 명세
+
+1. **표준 Web Crypto Web Push 모듈 (`src/lib/web-push-crypto.ts` & Edge Function 공유)**:
+   - 외부 패키지 없이 `crypto.subtle`만으로 ① RFC 8292 VAPID ES256 JWT 서명(`createVapidAuthorizationHeader`), ② RFC 8291 `aes128gcm` 페이로드 암호화(`encryptWebPushPayload`), ③ 알림 페이로드 직렬화(`buildSafePushPayload`: `{ title, body, link_path, tag }`만 허용하고 `link_path`가 `^/`이면서 `^//`가 아니면 통과, 아니면 `'/dashboard'`로 강제)를 구현함.
+   - `supabase/functions/send-notifications/index.ts`는 `x-webhook-secret`(또는 `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`)을 검증한 뒤 `claim_pending_push_notifications` $\to$ 사용자별 `push_subscriptions` 조회 및 암호화 발송 $\to$ `complete_push_notification_delivery`를 수행함. 로그에 `endpoint` 원문이나 암호화 키를 절대 출력하지 않음.
+2. **Service Worker (`public/sw.js`)**:
+   - `SHELL_CACHE`를 `"chronoledger-shell-v6"`으로 상향함.
+   - `push` 이벤트: JSON 페이로드(`{ title, body, link_path, tag }`)를 파싱(비정상 JSON 시 기본 제목 `"ChronoLedger 알림"` 폴백)하여 `self.registration.showNotification()` 호출.
+   - `notificationclick` 이벤트: `notification.close()` 후 `link_path`가 `^/`로 시작하고 `^//`가 아닌 동일 출처 상대 경로인지 검증(위반 시 `'/dashboard'`)한 뒤, 열린 동일 출처 창이 있으면 `focus()` 및 이동하고 없으면 `clients.openWindow(targetUrl)`를 실행함.
+3. **클라이언트 푸시 헬퍼 (`src/lib/push-notifications.ts`) 및 로그아웃 구독 해제**:
+   - 환경 감지(`getPushSupportState`):
+     - Tauri 데스크톱(`isTauriRuntime()`): `'tauri_desktop'` (웹 푸시 대신 데스크톱 OS 알림 사용 안내)
+     - iOS/iPadOS 비-standalone 브라우저 탭: `'ios_install_required'` (`"공유 → 홈 화면에 추가"` 안내)
+     - `serviceWorker` / `PushManager` / `Notification` 미지원: `'unsupported'`
+     - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` 미설정: `'unconfigured'`
+     - 지원 환경: `'supported'`
+   - `unsubscribeCurrentDevicePush()`: 로그아웃 공용 정리 함수. ① 현재 SW registration의 `pushManager.getSubscription()` 조회 → ② 구독이 있으면 `delete_push_subscription(endpoint)` RPC 호출(오프라인·RPC 오류 무시) → ③ `subscription.unsubscribe()` 호출.
+   - `src/app/dashboard/layout.tsx`, `src/app/admin/layout.tsx`, `src/components/auth/account-deletion-status.tsx`의 로그아웃(`signOut`) 직전에 `await unsubscribeCurrentDevicePush()`를 호출해 공용 기기에서 로그아웃 후 이전 계정 푸시가 오지 않게 보장함.
+4. **설정 화면 알림 카드 확장 (`src/components/settings/notification-settings-card.tsx`)**:
+   - `요청 처리 결과 알림`(`request_result`) 토글 추가: `"요청 승인·반려 및 건의 답변 시 웹 푸시 알림을 받습니다. (앱 내 알림함에는 항상 표시됨)"`.
+   - `웹 푸시 알림 (외부 기기 알림)` 섹션 추가:
+     - 플랫폼 상태별 안내(`tauri_desktop`, `ios_install_required`, `Notification.permission === 'denied'`, `unconfigured`).
+     - 지원 환경에서 `[이 기기에서 푸시 알림 켜기]` 버튼(클릭 핸들러 내부에서만 권한 요청 및 `subscribe` 실행 후 `upsert_push_subscription` RPC 호출), `웹 푸시 전체 수신`(`push_enabled`) 토글, 등록된 기기 목록(`push_subscriptions`: `user_agent_label`, `platform`, 등록/최근 발송일) 및 기기별 `[해제]` 버튼(`delete_push_subscription` RPC + 현재 기기 일치 시 `subscription.unsubscribe()`) 제공.
+
+### 11.4 `r96-web-push` 단계별 수용 기준 (Dispatch Queue 등록용)
+
+- **Step 1 (`GPT Codex`, Fallback 1: `Gemini 4 Neon` / `Claude Opus`, Fallback 2: `Gemini 4 Hydrogen` — `Maker: R96 DB/RLS/RPC & Types`)**:
+  - 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관).
+  - 허용 파일: 신규 `sql/migrations/MIGRATION_R96_WEB_PUSH.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md`.
+  - 수용 기준: §11.2의 `public.push_subscriptions` 테이블·RLS·삭제 대기 차단·탈퇴 정리, `upsert_push_subscription`·`delete_push_subscription`·`claim_pending_push_notifications`·`complete_push_notification_delivery` 4개 `SECURITY DEFINER` RPC, 예외 격리된 `trigger_send_notifications_webhook` 트리거, `SCHEMA.sql`·`README.md`(B표 R96 확인 쿼리)·`TESTS.sql`(`R96` 스모크 시나리오: 구독 등록·공용 기기 `endpoint` 소유자 교체·본인 외 조회/직접 쓰기 차단·`claim`/`complete` 상태 전이 및 `request_result=false`/`push_enabled=false` 시 `SKIPPED`·만료 `endpoint` 정리·계정 삭제 대기 차단 및 탈퇴 정리)·`database.types.ts` 동기화.
+- **Step 2 (`Gemini 4 Neon`, Fallback 1: `Claude Opus` / `Gemini 4 Hydrogen`, Fallback 2: `GitHub Copilot` — `Maker: Web Crypto·Edge Function·SW·로그아웃 해제·설정 UI & Vitest`)**:
+  - 허용 파일: 신규 `src/lib/web-push-crypto.ts`, 신규 `src/lib/web-push-crypto.test.ts`, 신규 `supabase/functions/send-notifications/index.ts`, 신규 `src/lib/push-notifications.ts`, 신규 `src/lib/push-notifications.test.ts`, `public/sw.js`, `src/app/dashboard/layout.tsx`, `src/app/admin/layout.tsx`, `src/components/auth/account-deletion-status.tsx`, `src/components/settings/notification-settings-card.tsx`, `src/app/dashboard/settings/page.test.tsx`(및 필요 시 관련 레이아웃 테스트), 루트 `docs/handoff.md`, `docs/progress.md`.
+  - 수용 기준: §11.3의 순수 Web Crypto VAPID/RFC 8291 암호화 모듈 및 단위 테스트(복호화 왕복·서명·상대 경로 검증), `supabase/functions/send-notifications/index.ts` 워커(404/410 구독 정리·429/5xx 3회 재시도·민감정보 로그 배제), `public/sw.js`(`chronoledger-shell-v6`, `push`/`notificationclick` 동일 출처 상대 경로 강제), `src/lib/push-notifications.ts` 및 로그아웃 3곳(`dashboard/layout`, `admin/layout`, `account-deletion-status`) 구독 해제 연동, `NotificationSettingsCard` 확장(`request_result`·`push_enabled` 토글, `[이 기기에서 푸시 알림 켜기]`, Tauri/iOS/권한 거부/미적용 DB 폴백, 등록 기기 목록 및 `[해제]`)과 Vitest 테스트 통과(`npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check`).
+- **Step 3 (`Claude Opus`, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon` — `Reviewer & Orchestrator`)**:
+  - Base $\leftrightarrow$ Target SHA 통합 정적 리뷰(`review.json`)·🐳 로컬 DB 2회 멱등 적용 및 `TESTS.sql` 검증(`test.json`)·`main` 병합·문서 마감.
