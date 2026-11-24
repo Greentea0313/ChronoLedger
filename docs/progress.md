@@ -1,5 +1,12 @@
 # 프로젝트 진행 현황
 
+## `R96` 운영 배포 완료 확인 및 안드로이드 푸시 배지 수정 (`main` 직접 수정, 2026-11-25)
+
+- **수행 주체**: Claude Opus임(사용자 보고 기반 `main` 직접 수정).
+- **결과**: 사용자가 운영 4·5단계(`set_push_webhook_config`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`) 적용 후 테스트 알림 `SENT`·실기기 수신 확인함. 처음 `PENDING`은 `pg_net` 비활성 때문이었고 활성화 후 재시도 잡이 발송함.
+- **수정**: 안드로이드 상태 표시줄 흰 사각형 → 배경을 뺀 투명 컬러 배지 `public/icons/badge-96.png` 추가, `public/sw.js` `badge` 교체·사전 캐시 추가·`SHELL_CACHE` v7. tsc·lint·Vitest 76파일/1022개·build 통과.
+- **다음 단계**: 배포 후 안드로이드에서 사이트를 한 번 열어 새 SW 적용 → 다음 푸시의 상태 표시줄 아이콘 확인(사용자).
+
 ## `R96-REV-07` Run `r96-rev07-webhook-config` Step 3 리뷰·병합 완료 (2026-11-24)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.

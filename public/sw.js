@@ -4,13 +4,14 @@
  *    - 키: 요청 URL + JWT sub. 익명(anon) 토큰·만료 토큰 요청은 저장/제공하지 않는다.
  *    - 로그아웃/세션 없음 시 클라이언트가 CLEAR_CACHES를 보내 전부 삭제한다.
  * 쓰기(비-GET) 요청은 절대 가로채지 않는다. */
-const SHELL_CACHE = "chronoledger-shell-v6"
+const SHELL_CACHE = "chronoledger-shell-v7"
 const DATA_CACHE = "chronoledger-data-v1"
 const PRECACHE_URLS = [
   "/manifest.json",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/icon-maskable-512.png",
+  "/icons/badge-96.png",
   "/assets/games/arknights.png",
   "/assets/games/chaos_zero_nightmare.png",
   "/assets/games/endfield.png",
@@ -175,7 +176,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: payload.body,
     icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    badge: "/icons/badge-96.png",
     data: { link_path: payload.link_path },
   }
   if (payload.tag) options.tag = payload.tag

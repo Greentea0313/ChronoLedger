@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-25 (`main` 직접 수정 — 안드로이드 푸시 배지)
+
+- **푸시 상태 표시줄 아이콘**: 안드로이드가 배지의 투명도만 써서 배경이 꽉 찬 `icon-192.png`가 흰 사각형으로 보이던 문제를 고침. 앱 아이콘에서 배경을 빼고 글자 모양(노란 C·파란 시계바늘·초록 점)만 남긴 투명 PNG `public/icons/badge-96.png`를 추가하고 `public/sw.js`의 `badge`로 씀. `SHELL_CACHE`를 `chronoledger-shell-v7`로 올리고 사전 캐시에 추가함.
+
 ## 2026-11-24 (Run `r96-rev07-webhook-config` 완료 — `main` 병합 `7445447`)
 
 - **웹훅 설정 저장소 교체(`R96-REV-07`)**: 호스팅 Supabase에서 `ALTER DATABASE ... SET app.settings.*`가 `42501`로 막히는 문제를 비공개 단일 행 테이블 `public.push_webhook_config`(RLS 무정책, `PUBLIC`/`anon`/`authenticated`/`service_role` 권한 전량 회수)와 SQL Editor 전용 등록 함수 `public.set_push_webhook_config(url, secret DEFAULT NULL)`로 대체함.

@@ -19,7 +19,7 @@
 
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
-| `R96` | 완료 · 1~3단계 배포 완료 / 4·5단계 사용자 적용 대기 | 운영 DB 마이그레이션 + 1~3단계(VAPID·Edge Function 배포·시크릿 4종) 완료(2026-11-24). `R96-REV-07` `main` 병합(`7445447`)으로 4단계는 운영 SQL Editor에서 `MIGRATION_R96_WEBHOOK_CONFIG.sql` 적용 + `SELECT public.set_push_webhook_config(...)` 등록으로 대체됨(사용자 대기). 5단계(`NEXT_PUBLIC_VAPID_PUBLIC_KEY`)·실기기 수신 확인 대기 | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
+| `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |

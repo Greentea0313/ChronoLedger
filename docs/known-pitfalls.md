@@ -156,3 +156,7 @@
     - 증상: `.worktrees/<run>`에서 빌드 시 정적 export 프리렌더가 Supabase 환경 변수 누락으로 실패함.
     - 원인: `.env.local`은 Git 추적 대상이 아니라 워크트리에 없음(`src/lib/supabase/client.ts`가 import 시 throw).
     - 방어책: 실제 키를 복사하지 않고 더미 공개 값(`NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321`, `NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key`)을 명령 앞에 붙여 빌드하고 `test.json`에 placeholder env임을 적음.
+45. **웹 푸시 `badge`에 배경이 꽉 찬 아이콘 사용 금지**
+    - 증상: 안드로이드에서 푸시가 오면 상태 표시줄 앱 아이콘이 흰 사각형으로 보임(2026-11-25).
+    - 원인: 안드로이드는 `showNotification`의 `badge` 이미지에서 색을 버리고 알파(투명도)만 써서 흰색 실루엣으로 그림. 불투명 배경이 있으면 실루엣이 사각형이 됨.
+    - 방어책: 배지는 투명 배경 RGBA PNG(`public/icons/badge-96.png`)만 씀. 아이콘을 바꾸면 배지도 배경 없이 다시 만들고 `sw.test.ts`의 RGBA 검사를 통과시킴.
