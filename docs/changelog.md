@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-24 (Run `r96-web-push` 병합 `18d5f0c`, Run `r102-expense-presets` 병합 `9ff2ae6`)
+
+- **R96 Web Push**: `push_subscriptions`·구독/해제 RPC·워커 점유(`push_claimed_at`)·과거 알림 미발송·`pg_net` 웹훅·5분 재시도 `pg_cron` 잡, Edge Function `send-notifications`(Web Crypto RFC 8291/8292), SW `push` 처리, 로그아웃 시 구독 해제, 설정 화면 푸시 카드. 배포 절차는 `docs/push-notification-research.md` §11.5.
+- **R102 과금 프리셋**: `user_expense_presets`(계정당 20개 상한 트리거, 본인 행 RLS, 탈퇴 정리), `ExpenseModal` 상단 칩 원클릭 적용·`[프리셋 저장]`·삭제.
+- **병행 Run 충돌 정리**: R102 마이그레이션의 탈퇴 정리 함수에 R96 `push_subscriptions` 삭제를 포함하고, R96 → R102 적용 순서를 `sql/README.md`에 적음.
+- **협업 산출물**: `artifacts/r96-web-push/iteration-02/`, `artifacts/r102-expense-presets/iteration-01·02/`. r96·r101-r103 기록과 Chief Architect 구체화 기록을 보관 문서로 이동함.
+
 ## 2026-11-24 (`r101`·`r103` 병합 `c942e1e` — 2개월 예산 비교·단축키·빠른 시작)
 
 - `/dashboard/expenses` 상단에 `당월 · 익월 예산 비교` 카드를 추가함. 월 예산, 확정 지출, 고정 구독 예정(아직 생성되지 않은 활성 월간 구독 포함), 일반 예정 지출, 예상 총 지출·잔여 예산과 `예산 초과` 표시를 두 달 나란히 보여줌. 월 예산이 없으면 기본 예산을 쓰고, 예산 조회가 실패해도 지출 목록은 그대로 뜸.
