@@ -82,24 +82,21 @@
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*
 
-### 📐 Chief Architect 구체화 대기 (`R101` · `R102` · `R103` 신규 기능 명세 및 `R104` 검토 방향)
+### 📐 Chief Architect 구체화 완료 (`R101` · `R102` · `R103` 신규 기능 명세 확정 및 `R104` 보류)
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`📐 SPEC_NEEDED`** | **Gemini 4 Argon** *(Fallback: Claude Opus / Gemini 4 Neon)* | `Chief Architect (R101·R102·R103 명세·RLS·수용 기준 확정 및 R104 검토 정리)` | 아래 **요구사항 접수 기록**을 바탕으로 `R101`(2개월 예산 비교)·`R102`(DB 저장 과금 프리셋 테이블·RLS·탈퇴 정리)·`R103`(단축키·선택형 시작 안내) 공식 명세·Step별 수용 기준 확정 및 `R104`(게임별 천장 계산기) 검토 방향 정리 (`src/**` 직접 수정 금지). 허용 파일: `docs/spec/` 또는 신규 설계 문서, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `📐 구체화 대기 (2026-11-24 접수)` |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet)* | `Orchestrator (신규 Run 등록)` | Step 1 완료 후 `r96-web-push` 상태 확인 및 확정 명세에 따라 Run 등록·격리 워크트리 생성(DB 없는 `R101`·`R103`과 DB 포함 `R102` 분리 여부 반영) | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (2026-11-24)`** | **Gemini 4 Argon** *(Fallback: Claude Opus / Gemini 4 Neon)* | `Chief Architect (R101·R102·R103 명세·RLS·수용 기준 확정 및 R104 검토 정리)` | 아래 **요구사항 접수 기록**을 바탕으로 `R101`(2개월 예산 비교)·`R102`(DB 저장 과금 프리셋 테이블·RLS·탈퇴 정리)·`R103`(단축키·선택형 시작 안내) 공식 명세·Step별 수용 기준 확정 및 `R104`(게임별 천장 계산기) 검토 방향 정리 (`src/**` 직접 수정 금지). 허용 파일: 신규 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md), `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `✅` 질문 카드 4건 확정: ① DB 변경 없는 1차 Run(`R101`+`R103`) 우선 착수 후 2차 Run(`R102`) 분리, ② `R101` 익월 미생성 `MONTHLY_DAY` 정기 구독 고정비 포함 비교, ③ `R102` 지출 모달 칩 + **`[프리셋 저장]`** 버튼(최대 20개), ④ `R104` `⏸️ 보류`. 명세서 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) 작성 완료 |
+| **2** | **`▶ READY`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet)* | `Orchestrator (1차 Run r101-r103-two-month-budget-and-shortcuts 등록)` | [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2.3에 따라 DB 변경 없는 1차 Run **`r101-r103-two-month-budget-and-shortcuts`** 격리 워크트리(`New-CollaborationRun.ps1`) 생성 및 Dispatch Queue(Step 1 `Gemini 4 Hydrogen` `▶ READY`, Step 2 `Claude Sonnet` `⏳ WAITING`) 등록 수행 (`r96-web-push`는 Docker PC 검증 대기 상태로 병행 유지) | `▶ Step 1 명세 확정 완료. 1차 Run(R101+R103) 등록 대기` |
 
-#### 📝 `R101` · `R102` · `R103` · `R104` 요구사항 접수 기록 (Gemini 4 Hydrogen, 2026-11-24)
+#### 📝 `R101` · `R102` · `R103` · `R104` Chief Architect 명세 확정 기록 (Gemini 4 Argon, 2026-11-24)
 
-1. **요청 내용**: 전체 기획·설계 검토 결과, 일정 공개 주기(1~2개월)에 맞춰 ① `R101` 당월+익월 2개월 예산·고정비 비교, ② `R102` 자주 쓰는 과금 프리셋 사용자 DB 저장, ③ `R103` 데스크톱 단축키·선택형 빠른 시작 안내를 도입하고, ④ `R104` 단기 픽업 재화·과금 계산기는 게임별 천장 시스템 차이 검토 대상으로 등록함.
-2. **에스컬레이션 사유 (`.agents/rules/collaboration.md` §1~§2)**:
-   - 승인된 `docs/spec/SRS.md`·`SPEC.md`에 없는 신규 제품 기능·UI·규칙을 포함함.
-   - `R102`는 사용자별 과금 프리셋 테이블 신설·RLS·계정 삭제 대기 차단·탈퇴 정리 등 **DB/RLS/보안 경계**를 포함함 (`Argon` 승격 조건 ①·②).
-3. **확정·결정이 필요한 사항**:
-   - **`R102` DB 스키마·보안**: 테이블명/컬럼(게임 선택 연결 여부, 금액·결제수단·스토어·`deduct_from_asset` 기본값, 개수 상한), RLS 정책(`authenticated` 본인 CRUD vs RPC 경계), 계정 삭제 대기 차단·탈퇴 정리 연결.
-   - **`R101`·`R103` 수용 기준 및 Run 분할**: DB 변경 없는 `R101`+`R103`을 별도 Run으로 먼저 진행할지(`r96-web-push` Step 3와 병행/후속), `R102`(🐳 Docker 필요)와 분리할지 결정.
-   - **`R104` 검토 범위**: 게임별 천장 규칙(카탈로그 속성 vs 사용자 입력 vs 별도 문서 연구)을 후속 검토 안건으로 둘지 여부.
-4. **관련 파일·문서**: [`docs/spec/SRS.md`](spec/SRS.md), [`docs/spec/SPEC.md`](spec/SPEC.md), [`docs/to-do.md`](to-do.md) `R101`~`R104`, `src/lib/budget-calculations.ts`, `src/components/expense/expense-modal.tsx`.
+1. **확정 명세 문서**: [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md)
+2. **사용자 질문 카드 결정 (2026-11-24)**:
+   - **Run 분할**: DB 변경이 없어 현재 PC(Docker 미설치 환경)에서 병합까지 즉시 완결 가능한 **`R101` + `R103`을 1차 Run (`r101-r103-two-month-budget-and-shortcuts`)**으로 먼저 진행하고, DB/RLS 마이그레이션이 필요한 **`R102`는 2차 Run (`r102-expense-presets`)**으로 분리함.
+   - **`R101` 익월 산출 기준**: 익월 예산(미설정 시 `default_budget` 폴백) 대비 이미 등록된 익월 귀속 지출과 아직 익월 `PLANNED` 행이 생성되지 않은 활성 `MONTHLY_DAY` 정기 구독 예상 고정비(중복 템플릿 제외)를 합산해 당월·익월의 고정비·예정 지출·예상 잔여 예산을 나란히 비교함.
+   - **`R102` 과금 프리셋**: `public.user_expense_presets`(사용자당 최대 20개 상한 트리거, 특정 게임 연결 또는 공통 `NULL`, 본인 CRUD RLS, 삭제 대기 차단·탈퇴 정리)에 저장하고, `ExpenseModal` 상단 칩 원클릭 적용·삭제 및 **`[프리셋 저장]`** 버튼으로 즉시 저장을 지원함.
+   - **`R104` 천장 계산기**: **`⏸️ 보류`**로 결정함(사용자가 직접 호출할 때만 재검토).
 
 ### 🗓️ 예약·보류·안건 요약 (자동 실행 대상 아님)
 
@@ -113,8 +110,9 @@
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |
-| `R101`~`R103` | `📐 SPEC_NEEDED` | 2개월 예산 비교(`R101`)·DB 저장 과금 프리셋(`R102`, 🐳 Docker 필요)·단축키/빠른 시작(`R103`) — Chief Architect 명세 대기 | 위 `📐 Chief Architect 구체화 대기`, `docs/to-do.md` `R101`~`R103` |
-| `R104` | `📝 AGENDA` | 단기 픽업 재화·과금 계산기 (게임별 천장 시스템 차이 검토 필요) | `docs/to-do.md` `R104` |
+| `R101`+`R103` | **명세 확정 완료 · 1차 Run 등록 `▶ READY`** (`r101-r103-two-month-budget-and-shortcuts`) | 당월·익월 2개월 예산·고정 구독비 비교(`R101`) + 데스크톱 단축키·선택형 빠른 시작 안내(`R103`) — DB 변경 없음, `Gemini 4 Hydrogen` Run 등록 대기 | 위 `📐 Chief Architect 구체화 완료`, [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2 |
+| `R102` | **명세 확정 완료 · 2차 Run 예약** (`r102-expense-presets`) | `R101`+`R103` 완료 후 착수. `public.user_expense_presets`(최대 20개) + `ExpenseModal` 칩 원클릭 적용·**`[프리셋 저장]`**·삭제 (DB 변경, 🐳 Docker 필요) | [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3, `docs/to-do.md` `R102` |
+| `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 
 ### 🗂️ 직전 완료 Run 기록: `r39-daily-notifications`
 
