@@ -8,14 +8,39 @@
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 과제**: **`R106` 알림 직접 삭제 기능 (`r106-notification-delete` — Base `cddb943`, 브랜치 `collab/r106-notification-delete`, 워크트리 `.worktrees/r106-notification-delete`)** *(확정 명세: [`docs/push-notification-research.md`](push-notification-research.md) §12 — `public.delete_notifications(UUID[])` `SECURITY DEFINER` RPC 하드 삭제 + `NotificationBell` 항목별 개별 삭제 버튼 및 헤더 `'전체 삭제'` 버튼)*
+- **Target SHA**: `61a4b17cb3e37cb5a7c310c85b23756c018cbfd8` *(Step 2 Maker 완료, 미병합, 원격 브랜치: push 안 함)*
+- **DB 변경**: 있음(🐳 로컬 Supabase DB 업그레이드·신규 설치 2경로 2회 멱등 + 확인 쿼리 + `TESTS.sql` 45개 PASS 완료; Step 3 병합 게이트 재검증 대기).
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **0** | **`✅ DONE (2026-11-25)`** | **Gemini 4 Argon** *(Fallback 1: Claude Opus / Gemini 4 Neon, Fallback 2: Gemini 4 Hydrogen)* | `Chief Architect` | **요구사항 접수 기록 (`알림 직접 삭제`)** 검토, 사용자 질문 카드(개별 삭제 + 헤더 `'전체 삭제'`) 확정, [`docs/push-notification-research.md`](push-notification-research.md) §12(`R106`) 명세·단계별 수용 기준 작성 및 Row 1(`Gemini 4 Hydrogen`) `▶ READY` 전환 | [`docs/push-notification-research.md`](push-notification-research.md) §12, `docs/to-do.md` `R106` |
 | **1** | **`✅ DONE (Base cddb943)`** | **Gemini 4 Hydrogen** *(Fallback 1: Gemini 4 Neon / Claude Sonnet, Fallback 2: GitHub Copilot)* | `Orchestrator (Run 등록 및 워크트리 생성)` | Row 0 미커밋 `docs/` 변경사항을 `main`에 선행 커밋해 깨끗한 `main`을 만든 뒤, `New-CollaborationRun.ps1 -RunId "r106-notification-delete"`로 격리 워크트리(`.worktrees/r106-notification-delete`)를 생성하고 [`docs/push-notification-research.md`](push-notification-research.md) §12.4 큐를 등록함 | `✅` Row 0 `docs/` 커밋(`cddb943`) 후 `.worktrees/r106-notification-delete`(`collab/r106-notification-delete`, `run.json`) 생성 및 Step 1 `▶ READY` 전환 완료 |
-| **2 (Step 1)** | **`▶ READY`** | **GPT Codex** *(Fallback 1: Gemini 4 Neon / Claude Opus, Fallback 2: Gemini 4 Hydrogen)* | `Maker (R106 DB/RPC/Migration/Tests & Types)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). [`docs/push-notification-research.md`](push-notification-research.md) §12.2·§12.4 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R106_NOTIFICATION_DELETE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **3 (Step 2)** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback 1: Claude Sonnet / Gemini 4 Neon, Fallback 2: GitHub Copilot)* | `Maker (R106 NotificationBell 삭제 UI & Vitest)` | Step 1 완료 후 착수. [`docs/push-notification-research.md`](push-notification-research.md) §12.3·§12.4 Step 2 수용 기준 수행(헤더 `'전체 삭제'` + 항목별 형제 `<button>` 개별 삭제 + 오프라인/오류 가드 및 테스트). 허용 파일: `src/components/layout/notification-bell.tsx`, `src/components/layout/notification-bell.test.tsx`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **4 (Step 3)** | **`⏳ WAITING`** | **Claude Opus** *(Fallback 1: Gemini 4 Argon / Gemini 4 Neon)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 멱등 적용 및 `TESTS.sql` 검증 병합 게이트). [`docs/push-notification-research.md`](push-notification-research.md) §12.4 Step 3 수용 기준(Base $\leftrightarrow$ Target 정적 리뷰 `review.json`·로컬 DB 검증 `test.json`·`next build`·`main` 병합·운영 DB 적용 안내 및 문서 마감) 수행 | 대기 중 |
+| **2 (Step 1)** | **`✅ DONE (SHA: 7fe58d2461b2f4bec4c14e260f53f96f527e148d)`** | **~~GPT Codex~~ ➡️ Gemini 4 Neon** *(Fallback 1 대체 실행; Fallback 1: Claude Opus, Fallback 2: Gemini 4 Hydrogen)* | `Maker (R106 DB/RPC/Migration/Tests & Types)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). [`docs/push-notification-research.md`](push-notification-research.md) §12.2·§12.4 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R106_NOTIFICATION_DELETE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅` 워크트리 커밋 `7fe58d2461b2f4bec4c14e260f53f96f527e148d`(SQL·타입 5파일). 🐳 로컬 Supabase 업그레이드/신규 2경로 2회 멱등·확인 쿼리·`TESTS.sql` 45개 PASS·`git diff --check`·`tsc`·`lint`·Vitest 76파일/1022개 통과 |
+| **3 (Step 2)** | **`✅ DONE (SHA: 61a4b17cb3e37cb5a7c310c85b23756c018cbfd8)`** | **Gemini 4 Hydrogen** *(Fallback 1: Claude Sonnet / Gemini 4 Neon, Fallback 2: GitHub Copilot)* | `Maker (R106 NotificationBell 삭제 UI & Vitest)` | Step 1 완료 후 착수. [`docs/push-notification-research.md`](push-notification-research.md) §12.3·§12.4 Step 2 수용 기준 수행(헤더 `'전체 삭제'` + 항목별 형제 `<button>` 개별 삭제 + 오프라인/오류 가드 및 테스트). 허용 파일: `src/components/layout/notification-bell.tsx`, `src/components/layout/notification-bell.test.tsx`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅` 워크트리 커밋 `61a4b17cb3e37cb5a7c310c85b23756c018cbfd8`(UI·테스트 2파일). `git diff --check`·`tsc`·`lint`·Vitest 76파일/1026개 전체 통과 |
+| **4 (Step 3)** | **`▶ READY`** | **Claude Opus** *(Fallback 1: Gemini 4 Argon / Gemini 4 Neon)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 멱등 적용 및 `TESTS.sql` 검증 병합 게이트). [`docs/push-notification-research.md`](push-notification-research.md) §12.4 Step 3 수용 기준(Base $\leftrightarrow$ Target 정적 리뷰 `review.json`·로컬 DB 검증 `test.json`·`next build`·`main` 병합·운영 DB 적용 안내 및 문서 마감) 수행 | 대기 중 |
+
+#### 📝 `r106-notification-delete` Step 2 (Maker) 완료 기록 (Gemini 4 Hydrogen, 2026-11-25)
+
+- **Target SHA**: `61a4b17cb3e37cb5a7c310c85b23756c018cbfd8` (`collab/r106-notification-delete`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (워크트리 2건)**:
+  - `src/components/layout/notification-bell.tsx`: 팝오버 헤더 `'모두 읽음'` 옆에 `'전체 삭제'` 버튼(`items.length === 0` 비활성화)을 추가하고, `<li>` 내 알림 선택 버튼(`data-testid="notification-item"`)과 형제 `<button>`으로 개별 삭제 버튼(`data-testid="notification-delete-button"`, `aria-label="${item.title} 알림 삭제"`)을 분리함. `deleteNotifications(ids)`에서 `isOffline()` 차단·`supabase.rpc("delete_notifications", { p_notification_ids: ids })` 호출·오류 시 `role="alert"` 표시 및 목록 보존 처리함.
+  - `src/components/layout/notification-bell.test.tsx`: 개별 삭제(미읽음 배지 감소·라우터/읽음 RPC 미호출), `'전체 삭제'`(빈 상태 전환·버튼 비활성화), RPC 실패 시 목록 보존·경고 표시, 오프라인 삭제 차단 테스트 4건 추가함.
+- **실행 검증 결과**: 워크트리 `git diff --check` 통과, `npx tsc --noEmit` 통과, `npm run lint` 경고·오류 0건, `npx vitest run --dir src` 76파일 1026개 전체 통과함.
+- **남은 작업**: Step 3(**Claude Opus**, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon`)이 Base `cddb943` ↔ Target `61a4b17` 통합 정적 리뷰·🐳 로컬 DB 검증·`next build`·`main` 병합·문서 마감 수행 예정임.
+
+#### 📝 `r106-notification-delete` Step 1 (Maker) 완료 기록 (Gemini 4 Neon, GPT Codex 1순위 대체, 2026-11-25)
+
+- **Target SHA**: `7fe58d2461b2f4bec4c14e260f53f96f527e148d` (`collab/r106-notification-delete`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (워크트리 5건)**:
+  - 신규 `sql/migrations/MIGRATION_R106_NOTIFICATION_DELETE.sql` · `sql/SCHEMA.sql`: `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL) RETURNS INTEGER`(`SECURITY DEFINER SET search_path = public`, `REVOKE ALL FROM PUBLIC, anon`, `GRANT EXECUTE TO authenticated`, 비로그인·`account_deletion_is_pending` 시 `insufficient_privilege` 거부, 본인 알림 선택/전체 하드 `DELETE` 후 삭제 행 수 반환) 추가함. `public.notifications` 테이블의 `authenticated` 직접 `DELETE` 권한은 미부여 유지함.
+  - `sql/README.md`: B표에 `MIGRATION_R106_NOTIFICATION_DELETE.sql` 행과 확인 쿼리(`delete_notifications, true` / `anon_exec=false, auth_exec=true, auth_tbl_del=false`) 추가함.
+  - `sql/tests/TESTS.sql`: 헤더 표 및 `R106-01`~`R106-04` 스모크 블록(직접 `DELETE` 거부, 빈 배열 0건, 타인 ID 혼입 선택 삭제 시 타인 보존, 전체 삭제(`NULL`) 및 재호출 0건, 타인 보존 검증, 계정 삭제 대기 사용자 A 거부, `anon` 거부) 추가함.
+  - `src/types/database.types.ts`: `public.Functions`에 `delete_notifications` (`Args: { "p_notification_ids"?: string[] | null }; Returns: number`) 추가함.
+- **실행 검증 결과**:
+  - 🐳 로컬 Supabase 업그레이드 경로(`MIGRATION_R106_NOTIFICATION_DELETE.sql` 2회 멱등 → 확인 쿼리 2종 `delete_notifications, t` / `f, t, f` → `TESTS.sql` 45개 PASS·ROLLBACK) 통과함.
+  - 🐳 로컬 Supabase 신규 설치 경로(`public` 스키마 리셋 → `SCHEMA.sql` 1회 → `MIGRATION_R106_NOTIFICATION_DELETE.sql` 2회 멱등 → `TESTS.sql` 45개 PASS·ROLLBACK) 통과함.
+  - 워크트리 `git diff --check` 통과, `npx.cmd tsc --noEmit` 통과, `npm.cmd run lint` 경고·오류 0건, `npx.cmd vitest run --dir src` 76파일 1022개 전체 통과함.
+- **남은 작업**: Step 2(**Gemini 4 Hydrogen**, Fallback 1: `Claude Sonnet` / `Gemini 4 Neon`, Fallback 2: `GitHub Copilot`)가 `.worktrees/r106-notification-delete`에서 `NotificationBell` 삭제 UI 및 Vitest 테스트 구현 예정임.
 
 #### 📝 `r106-notification-delete` Row 1 (Orchestrator) 완료 기록 (Gemini 4 Hydrogen, 2026-11-25)
 

@@ -1,5 +1,18 @@
 # 프로젝트 진행 현황
 
+## `R106` Run `r106-notification-delete` Step 2 알림 삭제 UI·테스트 구현 완료 (2026-11-25)
+
+- **수행 주체**: Gemini 4 Hydrogen (`Maker`)임.
+- **결과**: 워크트리 커밋 `61a4b17cb3e37cb5a7c310c85b23756c018cbfd8`(미병합·미push). `NotificationBell`에 헤더 `'전체 삭제'` 버튼 및 항목별 형제 `<button>` 개별 삭제 버튼, `isOffline()`·RPC 오류 가드와 Vitest 4건 추가함. `git diff --check`·`tsc`·`lint`·Vitest 76파일/1026개 전체 통과함.
+- **다음 단계**: Step 3(**Claude Opus** `Reviewer & Orchestrator`, Fallback 1: `Gemini 4 Argon` / `Gemini 4 Neon`)이 🐳 로컬 DB 검증·정적 리뷰·`next build`·`main` 병합 예정임.
+
+## `R106` Run `r106-notification-delete` Step 1 DB/RPC/테스트·타입 구현 완료 (2026-11-25)
+
+- **수행 주체**: Gemini 4 Neon (`GPT Codex` 1순위 대체, `Maker`)임.
+- **결과**: 워크트리 커밋 `7fe58d2461b2f4bec4c14e260f53f96f527e148d`(미병합·미push). `MIGRATION_R106_NOTIFICATION_DELETE.sql` 신설 및 `SCHEMA.sql`·`sql/README.md`·`sql/tests/TESTS.sql`·`src/types/database.types.ts`에 `public.delete_notifications(UUID[])` RPC 및 검증 반영함.
+- **검증**: 🐳 로컬 Supabase 업그레이드·신규 2경로 2회 멱등·확인 쿼리·`TESTS.sql` 45개 PASS·`git diff --check`·`tsc`·`lint`·Vitest 76파일/1022개 전체 통과함.
+- **다음 단계**: Step 2(**Gemini 4 Hydrogen**, Fallback 1: `Claude Sonnet` / `Gemini 4 Neon` — `NotificationBell` 삭제 UI & Vitest) `▶ READY`임.
+
 ## `R106` Run `r106-notification-delete` 격리 워크트리 등록 완료 (2026-11-25)
 
 - **수행 주체**: Gemini 4 Hydrogen (`Orchestrator`, Row 1)임.
