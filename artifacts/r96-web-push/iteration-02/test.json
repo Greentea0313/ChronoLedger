@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "r96-web-push",
+  "iteration": 2,
+  "agent": "Claude Opus",
+  "base_sha": "54a1224d7833566da43d0a41d6014bc459c84a0a",
+  "target_sha": "e2dbc4db2a900bdc09f07ae32d23ac419078e290",
+  "role": "dynamic-test",
+  "status": "passed",
+  "created_at": "2026-11-24T19:06:26+09:00",
+  "finished_at": "2026-11-24T19:06:26+09:00",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Local DB upgrade: base 54a1224 SCHEMA.sql + MIGRATION_R96_WEB_PUSH.sql applied twice",
+      "command": "psql -v ON_ERROR_STOP=1 -f MIGRATION_R96_WEB_PUSH.sql (x2)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TESTS.sql on upgraded DB (43 PASS incl. R96 lease/backlog/retry checks)",
+      "command": "psql -v ON_ERROR_STOP=1 -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Fresh install: target SCHEMA.sql + TESTS.sql (43 PASS) + migration re-run",
+      "command": "psql -v ON_ERROR_STOP=1 -f sql/SCHEMA.sql; -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "sql/README.md R96 check queries (t/2; f,t,f,t,f; 2,t; 1,*/5 * * * *)",
+      "command": "psql -c <README B-table R96 queries>",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest suite (74 files, 988 tests)",
+      "command": "npx vitest run",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Next.js production build (placeholder env)",
+      "command": "npm run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Edge Function deploy and live Web Push delivery",
+      "command": "supabase functions deploy send-notifications --no-verify-jwt",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": null
+    }
+  ]
+}

@@ -9,7 +9,7 @@
                                 "Step 3 (Claude Opus): Integrated static review (review.json), Docker local DB idempotency + TESTS.sql verification (test.json), main merge, and docs closeout"
                             ],
     "base_sha":  "54a1224d7833566da43d0a41d6014bc459c84a0a",
-    "target_sha":  "c3940c50d993d2243daf53d3c6388dae96675447",
+    "target_sha":  "e2dbc4db2a900bdc09f07ae32d23ac419078e290",
     "branch":  "collab/r96-web-push",
     "worktree_path":  ".worktrees/r96-web-push",
     "max_iterations":  3,
