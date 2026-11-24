@@ -104,19 +104,28 @@
 - **Orchestrator**: Gemini 4 Hydrogen *(2026-11-24 등록)*
 - **Worktree 경로**: `.worktrees/r101-r103-two-month-budget-and-shortcuts` (브랜치: `collab/r101-r103-two-month-budget-and-shortcuts`, 매니페스트: `artifacts/r101-r103-two-month-budget-and-shortcuts/run.json`)
 - **Base SHA**: `4fbf67f2a1e2ac47f0945aaa72011734f347e333`
-- **Target SHA**: *(Step 1 진행 전)*
+- **Target SHA**: `8a53990e0407f79170f401fd7e021802ac35c01a` *(Step 1 완료 기준, 미병합)*
 - **DB 변경**: 없음 (🐳 Docker 불필요)
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Gemini 4 Hydrogen** *(Fallback 1: Claude Sonnet, Fallback 2: GitHub Copilot)* | `Maker (R101 2개월 예산 비교 + R103 단축키·빠른 시작 안내 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/lib/budget-calculations.ts`·`test.ts`, 신규 `src/components/finance/two-month-budget-card.tsx`·테스트, `src/app/dashboard/expenses/page.tsx`·`test.tsx`, 신규 `src/components/calendar/quick-start-guide.tsx`·테스트, `src/app/dashboard/page.tsx`·`test.tsx`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `▶ 신규 등록 — Step 1 착수 대기` |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet** *(Fallback 1: Gemini 4 Neon / Claude Opus)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`4fbf67f2a1e2ac47f0945aaa72011734f347e333`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `tsc`·`lint`·`vitest`·`next build`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (SHA: 8a53990e0407f79170f401fd7e021802ac35c01a)`** | **Gemini 4 Hydrogen** *(Fallback 1: Claude Sonnet, Fallback 2: GitHub Copilot)* | `Maker (R101 2개월 예산 비교 + R103 단축키·빠른 시작 안내 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/lib/budget-calculations.ts`·`test.ts`, 신규 `src/components/finance/two-month-budget-card.tsx`·테스트, `src/app/dashboard/expenses/page.tsx`·`test.tsx`, 신규 `src/components/calendar/quick-start-guide.tsx`·테스트, `src/app/dashboard/page.tsx`·`test.tsx`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 8a53990`: `budget-calculations.ts`·`TwoMonthBudgetCard`·`expenses/page.tsx` + `QuickStartGuide`·`dashboard/page.tsx` 단축키 구현. `tsc`·`lint`·`diff-check`·Vitest 74파일/977개 통과 (아래 Step 1 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Claude Sonnet** *(Fallback 1: Gemini 4 Neon / Claude Opus)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`4fbf67f2a1e2ac47f0945aaa72011734f347e333`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `tsc`·`lint`·`vitest`·`next build`)·`main` 병합·문서 마감 | `▶ Step 1 완료(8a53990). Base 4fbf67f ↔ Target 8a53990` |
 
 #### 📋 `r101-r103-two-month-budget-and-shortcuts` Step 1 수용 기준 ([`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2)
 
 1. **`R101` 2개월 예산·고정비 계산 및 UI**: `budget-calculations.ts`(`getNextMonthKey`·`calculateMonthBudgetBreakdown`·`calculateTwoMonthBudgetComparison` — 미생성 활성 `MONTHLY_DAY` 템플릿 중복 제외 합산, `INTERVAL_30`/`VERSION_PASS` 미생성분 제외) 및 `/dashboard/expenses` 상단 `TwoMonthBudgetCard` 2열 비교 뷰·테스트.
 2. **`R103` 빠른 시작 & 키보드 단축키**: `/dashboard` 상단 접이식 `QuickStartGuide`(`localStorage` 저장·`?` 토글, `FR-001` 비차단 준수) 및 단축키(`[`, `]`, `T`, `V`, `N`, `?` + 입력란·모달·IME 포커스 가드)·테스트.
 3. **검증 및 커밋**: `npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check` 통과 후 워크트리 커밋, `Target SHA` 기록 및 Step 2(`Claude Sonnet`) `▶ READY` 전환.
+
+#### 📝 `r101-r103-two-month-budget-and-shortcuts` Step 1 완료 기록 (Gemini 4 Hydrogen, 2026-11-24)
+
+- **Target SHA**: `8a53990e0407f79170f401fd7e021802ac35c01a` (워크트리 브랜치 `collab/r101-r103-two-month-budget-and-shortcuts`, 미병합·원격 push 안 함). 변경 파일(10개): `src/lib/budget-calculations.ts`·`test.ts`, 신규 `src/components/finance/two-month-budget-card.tsx`·`test.tsx`, `src/app/dashboard/expenses/page.tsx`·`test.tsx`, 신규 `src/components/calendar/quick-start-guide.tsx`·`test.tsx`, `src/app/dashboard/page.tsx`·`test.tsx` (`run.json` 미수정).
+- **`R101` 2개월 예산 비교**: `getNextMonthKey`·`calculateMonthBudgetBreakdown`·`calculateTwoMonthBudgetComparison` 구현(당월/익월 귀속, 이미 생성된 `template_id` 지출과 미생성 활성 `MONTHLY_DAY` 템플릿 중복 제외 합산, `INTERVAL_30`/`VERSION_PASS` 미생성분 제외, 예산 `0원` 미설정 시 초과 판정 `false`) 및 `/dashboard/expenses` 상단 `TwoMonthBudgetCard` 2열 뷰·`user_finances`/`monthly_budgets` 비차단 조회 연결함.
+- **`R103` 빠른 시작 & 단축키**: `/dashboard` 상단 비차단 접이식 `QuickStartGuide`(`localStorage` 키 `chronoledger:quick-start-dismissed:${userId ?? "guest"}`, 최초 방문 열림·`[닫기]`·`?` 토글) 및 데스크톱 단축키(`[`, `]`, `T`, `V`, `N`, `?` + 입력창/`contenteditable`/`role="dialog"`·모달/드로어 오픈·IME·게스트 `N` 가드) 구현함.
+- **검증**: 워크트리에서 `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `git diff --check`, `npx vitest run`(74파일/977개 통과 — 신규·확장 테스트 포함) 확인함. 실브라우저 육안 확인은 미실행임.
+- **원격 브랜치**: push 안 함.
+- **다음 단계**: Step 2(`Claude Sonnet`, Base `4fbf67f` ↔ Target `8a53990` 정적 리뷰·`next build` 포함 검증·`main` 병합·문서 마감) `▶ READY`임.
 
 ### 🗓️ 예약·보류·안건 요약 (자동 실행 대상 아님)
 
@@ -130,7 +139,7 @@
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R40`·`R75` | 후속 · 우선 낮음 | 리뷰 후속·확장 설계 (`R75` ①·④ 🐳 Docker 필요) | `docs/to-do.md` 해당 항목 |
-| `R101`+`R103` | **진행 중 · 병행 활성 Run (`r101-r103-two-month-budget-and-shortcuts`)** | 당월·익월 2개월 예산·고정 구독비 비교(`R101`) + 데스크톱 단축키·선택형 빠른 시작 안내(`R103`) — Step 1(`Gemini 4 Hydrogen`) `▶ READY`, DB 변경 없음 | 위 병행 활성 Run 표, [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2 |
+| `R101`+`R103` | **진행 중 · 병행 활성 Run (`r101-r103-two-month-budget-and-shortcuts`)** | 당월·익월 2개월 예산·고정 구독비 비교(`R101`) + 데스크톱 단축키·선택형 빠른 시작 안내(`R103`) — Step 1 완료(`8a53990`), Step 2(`Claude Sonnet`) `▶ READY` | 위 병행 활성 Run 표, [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2 |
 | `R102` | **명세 확정 완료 · 2차 Run 예약** (`r102-expense-presets`) | `R101`+`R103` 완료 후 착수. `public.user_expense_presets`(최대 20개) + `ExpenseModal` 칩 원클릭 적용·**`[프리셋 저장]`**·삭제 (DB 변경, 🐳 Docker 필요) | [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3, `docs/to-do.md` `R102` |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 
