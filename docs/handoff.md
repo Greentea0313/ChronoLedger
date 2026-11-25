@@ -15,7 +15,7 @@
 
 - **활성 과제**: **`R109` 아이콘 이미지 Storage 이전 (`r109-icon-storage-migration` — Base `358fd4b`, 브랜치 `collab/r109-icon-storage-migration`, 워크트리 `.worktrees/r109-icon-storage-migration`)** *(확정 명세: [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §2~§3 — 공개 읽기 `game-assets` 버킷·해시 파일명·`sw.js` Cache-First 500개·관리자 승인 업로드·`/admin` 일괄 이전)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R109_GAME_ASSETS_STORAGE.sql`, `SCHEMA.sql`). 🐳 **Docker Desktop 필요**. Step 1에서 로컬 업그레이드·신규 설치 2경로 각 2회 멱등·`TESTS.sql` 51개 PASS 확인함(Step 3 병합 게이트에서 재검증 필요). 운영 DB 미적용.
-- **Target SHA (Step 1)**: `5b44d156afaf5d0ef061230f8a4c090301f1d48b`
+- **Target SHA (Step 2)**: `8dfd5f1e288a80ef627019a52c4df13cce92f030` *(Step 1: `5b44d156afaf5d0ef061230f8a4c090301f1d48b`)*
 - **수용 기준**: [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §2~§3. 아래 행은 절 포인터만 둠.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
@@ -23,9 +23,26 @@
 | **0** | **`✅ DONE (SHA: 358fd4b, 2026-11-25)`** *(원 상태 `📐 SPEC_NEEDED`)* | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback 1: Claude Opus (`High`) / Gemini 4 Neon (`High`), Fallback 2: Gemini 4 Hydrogen (`Medium`))* | `Chief Architect` | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) 명세·사용자 질문 카드(`D1`~`D4`)·Step 1~4 수용 기준 확정(`src/**`·`sql/**` 미수정) | ✅ `358fd4b` 명세 작성 및 Row 2 `▶ READY` 반환 |
 | **1** | **`✅ DONE (Base 358fd4b)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Orchestrator (R109 Run 등록 및 워크트리 생성)` | `New-CollaborationRun.ps1 -RunId "r109-icon-storage-migration"`로 격리 워크트리 생성 및 Step 1~4 큐 등록 | `✅` `.worktrees/r109-icon-storage-migration`(`collab/r109-icon-storage-migration`, `run.json`) 생성 및 Step 1 `▶ READY` 전환 |
 | **2 (Step 1)** | **`✅ DONE (SHA: 5b44d156afaf5d0ef061230f8a4c090301f1d48b)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback 1: Gemini 4 Neon (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (Storage 버킷·RLS·승인 RPC SQL & 타입)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §2.1~§2.2 및 §3 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R109_GAME_ASSETS_STORAGE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `CLAUDE.md`, 루트 `docs/handoff.md`, `docs/progress.md` | ✅ 아래 Step 1 완료 기록 |
-| **3 (Step 2)** | **`▶ READY`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (공용 업로드 모듈·관리자 쓰기/일괄 이전·SW 캐시 & Vitest)` | Step 1 완료 후 착수. 명세 §2.3~§2.5 및 §3 Step 2 수용 기준 수행(허용 파일 목록은 명세 §3 표 참고) | 대기 중 |
-| **4 (Step 3)** | **`⏳ WAITING`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback 1: GPT Codex — Step 1·2 Maker가 아닌 독립 모델)* | `Reviewer & Local DB Gate` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 2회 멱등 및 `TESTS.sql` 검증 병합 게이트). 명세 §3 Step 3 통합 정적 리뷰(`review.json`)·`test.json`·`tsc`·`lint`·Vitest·`next build`·`main` 병합 | 대기 중 |
+| **3 (Step 2)** | **`✅ DONE (SHA: 8dfd5f1e288a80ef627019a52c4df13cce92f030)`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (공용 업로드 모듈·관리자 쓰기/일괄 이전·SW 캐시 & Vitest)` | Step 1 완료 후 착수. 명세 §2.3~§2.5 및 §3 Step 2 수용 기준 수행(허용 파일 목록은 명세 §3 표 참고) | ✅ 아래 Step 2 완료 기록 |
+| **4 (Step 3)** | **`▶ READY`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback 1: GPT Codex — Step 1·2 Maker가 아닌 독립 모델)* | `Reviewer & Local DB Gate` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 2회 멱등 및 `TESTS.sql` 검증 병합 게이트). 명세 §3 Step 3 통합 정적 리뷰(`review.json`)·`test.json`·`tsc`·`lint`·Vitest·`next build`·`main` 병합 | 대기 중 |
 | **5 (Step 4)** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (마감)` | Step 3 병합 후 착수. 문서 아카이브 마감 및 명세 §4 운영 적용·`/admin` 일괄 이전 절차 안내 | 대기 중 |
+
+#### 📝 `r109-icon-storage-migration` Step 2 완료 기록 (Gemini 4 Neon `High`, 2026-11-25)
+
+1. **Target SHA**: `8dfd5f1e288a80ef627019a52c4df13cce92f030` (워크트리 `.worktrees/r109-icon-storage-migration`, 브랜치 `collab/r109-icon-storage-migration`, `run.json` 미수정). 원격 브랜치: push 안 함.
+2. **변경 파일 (10개)**: 신규 `src/lib/game-asset-storage.ts`, 신규 `src/lib/game-asset-storage.test.ts`, `src/lib/pickup-character-registration.ts`, `src/lib/pickup-character-registration.test.ts`, `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/app/admin/requests/page.tsx`, `src/app/admin/requests/page.test.tsx`, `public/sw.js`, `src/components/pwa/sw.test.ts`.
+3. **구현 내용 (명세 §2.3~§2.5)**:
+   - 공용 업로드 모듈 `src/lib/game-asset-storage.ts` 신설: `isManagedGameAssetUrl`(설정된 `NEXT_PUBLIC_SUPABASE_URL` origin 일치 검증)·`isLocalStaticGameAssetUrl`(`..` 경로 탐색 방지)·`needsGameAssetMigration`·`decodeValidWebpDataUrl`(100KB 이하 RIFF/WEBP 매직 바이트 무손실 디코딩)·`uploadGameAssetFromSource` 구현. 이미 이전된 `game-assets` URL 및 `/assets/games/`는 단락 반환하고, 그 외 소스는 256×256 WebP(≤100KB) 정규화 후 SHA-256 64자리 hex 경로(`games/{hash}.webp`·`characters/{gameId}/{hash}.webp`), `cacheControl: "31536000"`, `upsert: true`로 공개 `game-assets` 버킷에 업로드해 공개 URL을 반환함(비공개 `user-icons`·`storage-upload.ts` 미수정).
+   - 관리자 쓰기·승인 경로 전환: `pickup-character-registration.ts`, `/admin` 게임·캐릭터 등록/수정, `/admin/requests` 게임·캐릭터(요청 원본 아이콘 포함)·일정(`pickup_new_characters` 제안 아이콘 업로드 후 `approve_schedule_request`의 `p_pickup_icon_overrides` 전달) 승인 경로를 모두 `uploadGameAssetFromSource` 기반으로 전환함.
+   - `/admin` `[아이콘 Storage 일괄 이전]` 구현: 기존 R30 `외부 아이콘 일괄 변환`/`Data URL 재저장`(Storage URL을 Data URL로 역변환할 위험)을 대체해 DB 전체 `games` + `game_characters`의 `needsGameAssetMigration` 대상을 멱등 일괄 이전(오프라인 가드·진행 상태 표시·실패 항목 원본 보존 및 요약 보고·대상 0건 안내)하고 개별 게임 행에도 `Storage 이전` 버튼을 제공함.
+   - `public/sw.js` 오프라인 캐시: `GAME_ASSET_CACHE = "chronoledger-game-assets-v1"`(상한 500개 FIFO 정리) 추가. `SUPABASE_ORIGIN`의 `/storage/v1/object/public/game-assets/` GET만 Cache-First로 캐싱(`activate` 시 보존, `CLEAR_CACHES` 시 삭제)하며 비공개 `user-icons`·타 출처 경로는 절대 가로채지 않음(`SHELL_CACHE = "chronoledger-shell-v8"` 유지).
+4. **검증 (실제 실행, 워크트리 기준)**:
+   - `git diff --check` 및 `git diff --cached --check`: 통과.
+   - `npx.cmd tsc --noEmit`: 통과(오류 0건).
+   - `npm.cmd run lint`: 통과(ESLint 경고·오류 0건).
+   - `npx.cmd vitest run --dir src`: 78개 파일 / 1,067개 테스트 전부 통과(신규 `game-asset-storage.test.ts` + 갱신·추가된 `pickup-character-registration.test.ts`, `admin/page.test.tsx`, `admin/requests/page.test.tsx`, `sw.test.ts` 포함).
+   - 미실행 항목: `next build` 및 🐳 로컬 DB 병합 게이트 재검증은 Step 3 리뷰어 범위이므로 미실행.
+5. **다음 단계**: Row 4 Step 3(**Gemini 4 Carbon `High` — 도구에서 High 선택**, Fallback: `GPT Codex`, 🐳 Docker Desktop 필요) 통합 정적 리뷰(`Base 358fd4b` ↔ `Target 8dfd5f1e288a80ef627019a52c4df13cce92f030`)·로컬 DB 게이트·`next build`·`main` 병합 `▶ READY`임.
 
 #### 📝 `r109-icon-storage-migration` Step 1 완료 기록 (Claude Opus `High`, 2026-11-25)
 
@@ -81,7 +98,7 @@
 | :--- | :--- | :--- | :--- |
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
 | `R107` | `R107-A` 운영 적용 완료 · `R107-B` 운영 DB 적용 완료 | 정기·반복 지출 자동화: `R107-A` 운영 적용 완료(1주 관찰 후 `R107-A-CLEANUP`) → `R107-B` 결제 예정 알림 `main` 병합 `a84c6de`·운영 DB 적용 완료(앱 배포 필요) → `R107-C` 자동 확정 옵션(Run 3, `R107-B` 앱 배포 후 사용자 지목 시 등록). 명세 §9 미결 질문 6건은 기본값으로 진행 중 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
-| `R109` | **Run 등록 완료 (`r109-icon-storage-migration` 진행 중)** | 아이콘 Storage 이전(DB base64 → 공용 `game-assets` 버킷 해시 파일 + 관리자 일괄 이전 + `sw.js` 오프라인 이미지 캐시): Step 1 완료(`5b44d15`), Step 2 `Gemini 4 Neon (High)` `▶ READY`(후속 `R109-CLEANUP`은 운영 이전 완료 후 사용자 지목 시) | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md), `docs/to-do.md` R109 |
+| `R109` | **Run 등록 완료 (`r109-icon-storage-migration` 진행 중)** | 아이콘 Storage 이전(DB base64 → 공용 `game-assets` 버킷 해시 파일 + 관리자 일괄 이전 + `sw.js` 오프라인 이미지 캐시): Step 1(`5b44d15`)·Step 2(`8dfd5f1`) 완료, Step 3 `Gemini 4 Carbon (High)` 🐳 `▶ READY`(후속 `R109-CLEANUP`은 운영 이전 완료 후 사용자 지목 시) | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md), `docs/to-do.md` R109 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
