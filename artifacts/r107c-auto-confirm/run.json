@@ -10,7 +10,7 @@
                                 "Step 4 (Orchestrator): close out docs and guide production rollout order (spec section 6)."
                             ],
     "base_sha":  "3a9e31319fbea82f3b1ab85a26f819e5d904d5af",
-    "target_sha":  null,
+    "target_sha":  "451ab5e4292534fc0f5165fceb4bf9875af06a8b",
     "branch":  "collab/r107c-auto-confirm",
     "worktree_path":  ".worktrees/r107c-auto-confirm",
     "max_iterations":  3,

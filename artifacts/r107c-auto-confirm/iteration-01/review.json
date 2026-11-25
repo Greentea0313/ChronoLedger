@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r107c-auto-confirm",
+  "iteration": 1,
+  "agent": "Gemini 4 Carbon",
+  "role": "static-review",
+  "base_sha": "3a9e31319fbea82f3b1ab85a26f819e5d904d5af",
+  "target_sha": "451ab5e4292534fc0f5165fceb4bf9875af06a8b",
+  "status": "findings",
+  "created_at": "2026-11-26T00:44:30+09:00",
+  "findings": [
+    {
+      "id": "R107C-REV-001",
+      "severity": "P4",
+      "file": "src/components/subscription/subscription-modal.tsx",
+      "line": 232,
+      "evidence": "SubscriptionModal enables editing payment_method (WALLET / GOOGLE_PLAY / GALAXY_STORE), but the post-update sync on open PLANNED rows (supabase.from(\"expenses\").update({ title, category, game_id, original_price, final_amount })) omits payment_method and point_platform.",
+      "impact": "Non-blocking: auto_confirm_due_expenses reads v_tpl.payment_method directly and switching to WALLET forces t.auto_confirm = false, so ledger and auto-confirm behavior remain exact; however, an already-generated PLANNED row can retain its previous payment_method display label or manual payment modal default until the next cycle.",
+      "recommendation": "Include payment_method: paymentMethod and point_platform: paymentMethod === \"WALLET\" ? null : paymentMethod when syncing open PLANNED rows on template edits."
+    },
+    {
+      "id": "R107C-REV-002",
+      "severity": "P4",
+      "file": "sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql",
+      "line": 22,
+      "evidence": "expenses.auto_confirmed_at has no status invariant CHECK, the existing \"Update own planned expenses\" RLS policy allows an authenticated owner to update columns on their own PLANNED rows, and enqueue_daily_notifications() section 5 filters on e.auto_confirmed_at IS NOT NULL without checking status.",
+      "impact": "No cross-user, balance, or point-ledger risk (wallets, ledger, and user_finances remain strictly RPC-only and UI badges check status === \"CONFIRMED\"), but a user calling PostgREST directly on their own PLANNED row could self-trigger an EXPENSE_AUTO_CONFIRMED summary count or clear auto_confirm_blocked on their own row.",
+      "recommendation": "Optionally add CHECK (auto_confirmed_at IS NULL OR status <> 'PLANNED') (or guard auto_confirmed_at / auto_confirm_blocked in a BEFORE UPDATE trigger for non-definer callers) during a follow-up cleanup migration."
+    }
+  ]
+}
