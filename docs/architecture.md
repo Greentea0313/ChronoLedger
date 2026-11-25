@@ -21,6 +21,8 @@ Supabase
 └── pg_cron & 원자적 RPC (내부 스케줄러):
     ├── purge_expired_account_deletion_requests: 5분 주기 계정 탈퇴 자동 정리
     ├── purge_expired_notifications: 매일 00:15 UTC 30일 경과 알림 자동 정리 (R84)
+    ├── run_daily_subscription_automation: 매일 23:50 UTC(KST 08:50) 정기 지출 회차 서버 생성 (R107-A)
+    ├── enqueue_daily_notifications: 매일 00:00 UTC(KST 09:00) 일일 알림 적재 (R39)
     └── request_account_deletion, get_account_deletion_status: SECURITY DEFINER RPC
 ```
 
@@ -49,7 +51,7 @@ Supabase
 - `src/app/admin/requests/`: 관리자 전용 게임/일정/캐릭터 요청 승인·반려 및 기타 건의 대기열 답변/종료(`answer_feedback_request`) 화면. DB 변경은 승인된 RPC 경로를 사용한다.
 - `src/lib/`: 단일 Supabase client(브라우저 PKCE/Tauri implicit 런타임 설정 및 callback URL 자동 감지 비활성화), 인증 상태, KST 날짜 범위·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
 - `src/lib/pickup-character-registration.ts`: 픽업 전용 캐릭터(`is_pickup_only = true`) 등록 공용 함수 `registerPickupOnlyCharacter`. 관리자 일정 폼의 `[+ 새 픽업 캐릭터]`와 캐릭터 탭(템플릿 없는 게임)의 `[+ 캐릭터 추가]`가 함께 사용함(R66). 프리셋 탭(R76, R62 작업 공간·편집 창 대체): `src/components/character/preset-board.tsx`(`@dnd-kit` `DndContext`, 900px 이상 캐릭터 사이드바 + 전체 프리셋 카드 그리드, 900px 미만은 `preset-character-picker.tsx` 하단 선택 창), `preset-board-card.tsx`(카드·슬롯 정렬, 제목·메모 인라인 편집). `src/lib/preset-board.ts`: 드래그 id·드롭 판정·저장 페이로드 순수 함수. `src/lib/use-preset-board.ts`: 단일 FIFO 쓰기 큐 즉시 저장(낙관적 갱신, 실패 시 재조회, `update_character_preset_slots`·`reorder_character_presets` RPC, 미적용 폴백). `src/lib/use-board-sensors.ts`: 마우스 6px·터치 200ms·키보드 센서(입력란·`data-no-dnd` 제외), 프리셋 보드·즐겨찾기 정렬 공용. `src/lib/use-media-query.ts`: `matchMedia` 기반 `useMediaQuery`(미지원·SSR은 false). `character-roster.tsx`와 프리셋 보드 사이드바·선택 창은 `buildCharacterSections`로 즐겨찾기/보유/미보유 3구역을 표시하고, 즐겨찾기 순서는 dnd-kit 카드 전체 드래그로 바꾸고 `reorder_favorite_characters` RPC로 저장함(컬럼·RPC 미적용 DB에서는 이름순 폴백, R63).
-- `src/lib/calendar-utils.ts`: 캘린더 그리드와 말일 보정 날짜 계산. `src/lib/subscription-sync.ts`: 월간 구독 Lazy Generation과 중복 충돌 무시 upsert 경계.
+- `src/lib/calendar-utils.ts`: 캘린더 그리드와 말일 보정 날짜 계산. `src/lib/subscription-sync.ts`: 정기 구독 회차 생성·연장·환불 롤백 서버 RPC(`ensure_subscription_expenses`·`advance_interval_subscription`·`rollback_interval_subscription`) 호출 및 마이그레이션 미적용(`PGRST202`/`42883`) 시 Legacy 폴백 경계(R107-A).
 - `src/components/ui/`: 공통 Button, Card, Input, Dialog, Select, Progress, Drawer UI 컴포넌트. Progress는 Radix UI, Drawer는 Vaul 기반이며 alias는 `components.json`에 정의한다.
 - Web/PWA 앱의 `public/fonts/a2z/`: 자체 호스팅하는 A2Z WOFF2 9개 굵기 및 SIL OFL 1.1 고지.
 - `src/types/`: 배포한 PostgreSQL 스키마에 맞춰 생성한 TypeScript 타입.

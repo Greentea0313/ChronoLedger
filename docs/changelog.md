@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-25 (Run `r107a-server-subscription-generation` 병합 `7aa2984` — `R107-A` 서버 측 정기 지출 생성 통일)
+
+- **서버 측 회차 생성 단일화 및 일 배치(`pg_cron`)**: 정기 지출(`MONTHLY_DAY`·`INTERVAL_30`·`VERSION_PASS`) 생성 규칙을 SQL 내부 함수 `generate_subscription_expenses_core`로 일원화하고, 매일 KST 08:50(`50 23 * * *` UTC, 일일 알림 10분 전)에 `run_daily_subscription_automation`을 실행하는 `chronoledger-subscription-daily` 잡을 등록해 앱을 열지 않아도 예정 회차가 생성되도록 함.
+- **중복 원천 차단 및 클라이언트 RPC 전환**: `INTERVAL_30` 템플릿의 단일 `PLANNED` 회차를 DB 부분 유니크 인덱스(`idx_expenses_interval_single_planned`)와 템플릿 `FOR UPDATE` 잠금으로 보장하고, 클라이언트 `subscription-sync.ts`의 3종 함수(`ensureMonthlySubscriptionExpenses`·`createNextIntervalSubscriptionExpense`·`rollbackIntervalSubscriptionExpense`)를 서버 RPC(`ensure_subscription_expenses`·`advance_interval_subscription`·`rollback_interval_subscription`) 호출 + 미적용 DB(`PGRST202`·`42883`) Legacy 폴백으로 전환함.
+- **협업 산출물**: `artifacts/r107a-server-subscription-generation/iteration-01/`(`review.json` P4 2건 비차단, `test.json` 로컬 DB 2경로·48개 블록·2세션 동시성 통과). 운영 DB 수동 적용(`MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`) 및 Step 4 문서 마감 대기.
+
 ## 2026-11-25 (페이지 로딩 지연 완화: 서비스 워커 응답 대기 제거·캐릭터 페이지 병렬 로딩)
 
 - 서비스 워커가 Supabase 읽기 응답을 오프라인용 캐시에 쓰는 동안 화면에 응답을 늦게 넘기던 것을 백그라운드 저장으로 바꿈. 로그인 후 모든 페이지의 데이터 조회에 적용되며 오프라인 동작은 그대로임.

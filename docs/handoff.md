@@ -13,7 +13,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **과제 구분**: `R107` 정기·반복 지출 자동화 — 명세 완료(Row 1)·Run 1 등록(Row 2) 후 아래 Run 1 `r107a-server-subscription-generation` Step 1(`d82f38f`, SQL 미실행)·Step 2(`372b37b`) 완료 → Step 3(`Gemini 4 Carbon (High)`, 🐳 Docker 필요) `▶ READY`
+- **과제 구분**: `R107` 정기·반복 지출 자동화 — 명세 완료(Row 1)·Run 1 등록(Row 2) 후 아래 Run 1 `r107a-server-subscription-generation` Step 1(`d82f38f`)·Step 2(`372b37b`)·Step 3(`1cd8ad4`, `main` 병합 `7aa2984`) 완료 → Step 4(`Gemini 4 Hydrogen (Medium)`, 마감·운영 적용 안내) `▶ READY` (하단 `T1`~`T4` `📐 SPEC_NEEDED` 별도 대기)
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
@@ -24,16 +24,23 @@
 
 - **Run ID**: `r107a-server-subscription-generation` · **Orchestrator**: Claude Opus *(Hydrogen 대신 사용자 지시로 등록, 2026-11-25)*
 - **Worktree 경로**: `.worktrees/r107a-server-subscription-generation` (브랜치 `collab/r107a-server-subscription-generation`, 매니페스트 `artifacts/r107a-server-subscription-generation/run.json`)
-- **Base SHA**: `ff04d84aff929671d77f42380e73217ec5f27a0e` · **Target SHA**: `372b37b5ad124837f4a11dbe150a59b247dd1523` *(Step 1 SQL `d82f38f` + Step 2 Client `372b37b`, 미병합·미push)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql` — 금전 경로 인접 SQL/RPC·`pg_cron` → Opus 승격 조건 ①). 🐳 **Docker Desktop 필요** (Docker 없는 PC의 Maker는 `⚠️ LOCAL_DB_DEFERRED`, Reviewer는 병합 금지). ⚠️ `LOCAL_DB_DEFERRED` — Step 1 SQL은 Docker 미설치 PC에서 작성되어 한 번도 실행되지 않음. Step 3(🐳 Docker 환경)에서 2회 멱등 적용·`TESTS.sql` 검증 필수.
+- **Base SHA**: `ff04d84aff929671d77f42380e73217ec5f27a0e` · **Target SHA**: `372b37b5ad124837f4a11dbe150a59b247dd1523` *(Step 1 SQL `d82f38f` + Step 2 Client `372b37b`, 산출물 `1cd8ad4`, **`main` 병합 `7aa2984`**·미push)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql` — 금전 경로 인접 SQL/RPC·`pg_cron` → Opus 승격 조건 ①). 🐳 로컬 Supabase 업그레이드·신규 설치 2경로 각 2회 멱등 적용·확인 쿼리·`TESTS.sql` 48개 블록·2세션 병렬 `FOR UPDATE` 직렬화 검증 통과(`LOCAL_DB_DEFERRED` 해소).
 - **수용 기준**: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §3(결정 `D1`~`D5`·`D15`, 인수 기준 `A-1`~`A-9`). 아래 행은 절 포인터만 둠.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: d82f38f492679b7793a137b0c7075c3d1afd9d7d)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Neon (`High`) / GPT Codex)* | `Maker (SQL/RPC/cron)` | 🐳 명세 §3.1 1~7 구현, `A-1`~`A-7`·`A-9`(SQL 측). `subscription-sync.test.ts` 날짜 시나리오를 `TESTS.sql`로 이식하고 TS↔SQL 케이스 대응표를 완료 기록에 남김(`A-3`). 허용 파일: 신규 `sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ d82f38f`: 마이그레이션·`SCHEMA.sql`(함수 5개 본문 일치)·README B표·`TESTS.sql` `R107A-01~03`. tsc·lint·Vitest 76파일/1026개·`git diff --check` 통과. ⚠️ SQL 미실행(`LOCAL_DB_DEFERRED`), 아래 완료 기록 참고 |
 | **2** | **`✅ DONE (SHA: 372b37b5ad124837f4a11dbe150a59b247dd1523)`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Sonnet (`Medium`))* | `Maker (Client RPC 전환·폴백 & Vitest)` | Step 1 완료 후 착수. 명세 §3.2, `A-8`·`A-9`(클라이언트 측). 허용 파일: `src/lib/subscription-sync.ts`·`.test.ts`, 호출 페이지·모달의 테스트 모의(`src/app/dashboard/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 구독 모달 테스트), `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 372b37b`: `subscription-sync.ts` 3종 RPC 전환 + `PGRST202`/`42883` Legacy 폴백·비차단 처리, `subscription-sync.test.ts`·`expenses/page.test.tsx` 보강, `database.types.ts` 5개 RPC 추가. `tsc`·`lint`·`diff-check`·Vitest 76파일/1026개 통과 (아래 완료 기록 참고) |
-| **3** | **`▶ READY`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Step 1·2 Maker인 Opus·Neon은 독립 리뷰 불가)* | `Reviewer` | Base(`ff04d84aff929671d77f42380e73217ec5f27a0e`) ↔ Target(`372b37b5ad124837f4a11dbe150a59b247dd1523`) 정적 리뷰(`review.json`, 동시성·권한·TS/SQL 동등성), 🐳 로컬 DB 2회 멱등·`TESTS.sql`(`test.json`), 통과 시 `main` 병합 | 대기 중 (`▶ READY`, 🐳 Docker 필요) |
-| **4** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (마감)` | 문서 마감, 사용자에게 운영 적용 절차(명세 §3.3) 안내, `R107-A-CLEANUP`·Run 2 등록 시점 안내 | `⏳ Step 3 완료 대기` |
+| **3** | **`✅ DONE (SHA: 1cd8ad41c52ba1bee6f7b7884f709572ac92ebf2)`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Step 1·2 Maker인 Opus·Neon은 독립 리뷰 불가)* | `Reviewer` | Base(`ff04d84aff929671d77f42380e73217ec5f27a0e`) ↔ Target(`372b37b5ad124837f4a11dbe150a59b247dd1523`) 정적 리뷰(`review.json`, 동시성·권한·TS/SQL 동등성), 🐳 로컬 DB 2회 멱등·`TESTS.sql`(`test.json`), 통과 시 `main` 병합 | `✅ 1cd8ad4`: P4 2건(비차단, `R107A-REV-001·002`)·산출물 스키마 검증 통과, 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 48개·2세션 병렬 `FOR UPDATE` 검증·`build` 통과, `main` 병합 `7aa2984`(미push, 아래 완료 기록 참고) |
+| **4** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (마감)` | 문서 마감(직전 완료 Run 아카이브 이관 포함), 사용자에게 운영 적용 절차(명세 §3.3) 안내, `R107-A-CLEANUP`·Run 2 등록 시점 안내 | `▶ READY (Step 3 병합 7aa2984 완료)` |
+
+#### 📝 `r107a-server-subscription-generation` Step 3 완료 기록 (Gemini 4 Carbon `High`, 2026-11-25)
+
+- **리뷰 범위 및 산출물**: 원격 `origin/collab/r107a-server-subscription-generation`에서 워크트리 복원 후 Base `ff04d84aff929671d77f42380e73217ec5f27a0e` ↔ Target `372b37b5ad124837f4a11dbe150a59b247dd1523` 범위 확인(`src`·`sql` 차이 없음). `artifacts/r107a-server-subscription-generation/iteration-01/review.json`·`test.json` 작성 및 `run.json` `target_sha` 갱신, `validate_collaboration_artifact.py` 3종 스키마 검증 통과, 아티팩트 커밋 `1cd8ad41c52ba1bee6f7b7884f709572ac92ebf2`.
+- **정적 리뷰 (`findings`, P4 2건·비차단)**: 5개 함수 본문·권한(`core`·`run_daily_…`는 `service_role` 전용, 클라이언트 3개 RPC만 `authenticated`)·`FOR UPDATE (created_at ASC, id ASC)` 잠금 순서·`ON CONFLICT DO NOTHING`·`idx_expenses_interval_single_planned`·TS↔SQL 날짜/클램프/롤백 동등성 및 `PGRST202`/`42883` 폴백 모두 명세(`A-1`~`A-9`)와 일치함. 비차단 `P4` 2건(`R107A-REV-001`: `advance_interval_subscription.Args.p_original_target_date`가 SQL에 `DEFAULT NULL`이 없어 추후 `supabase gen types` 전체 덮어쓰기 시 `| null`이 빠질 수 있음, `R107A-REV-002`: `rollback_interval_subscription`에 `is_active = true` 조건 생략 — `R107-C` `refund_expense_payment` 통합 시 명시 권장)을 `to-do.md`에 기록함.
+- **로컬 DB 및 동적 검증 (`sandbox: docker`)**: ① 업그레이드 경로(`MIGRATION_R107A` 2회 멱등 + README 확인 쿼리 3종 기댓값 일치 + `TESTS.sql` 48개 블록 PASS·최종 롤백), ② 신규 설치 경로(`supabase db reset` → `SCHEMA.sql` → `user-icons` 버킷 → `MIGRATION_R107A` 2회 → `TESTS.sql` 48개 PASS·롤백), ③ `A-1` 2세션 병렬 `psql` 실행(세션 1 생성 3건 + `pg_sleep(0.8)`, 세션 2 `FOR UPDATE` 856ms 대기 후 `0`건 반환, 총 `PLANNED` 3건 일치), ④ 워크트리 `git diff --check`·`tsc --noEmit`·`npm run lint`·Vitest 76파일/1,026개·`next build`(더미 공개 환경변수, 16페이지) 모두 통과함.
+- **병합 및 다음 단계**: `main`에 `--no-ff` 병합(`7aa298431a1486561d898870e107faffaf119f9e`, 미push) 후 `tsc`·`lint`·관련 Vitest 4파일/73개 재검증 통과함. 다음은 Step 4(**Gemini 4 Hydrogen (`Medium`)** 마감·운영 적용 안내, `▶ READY`) 또는 하단 `📐 SPEC_NEEDED`(**Gemini 4 Carbon (`High`)** `T1`~`T4` 명세)임.
 
 #### 📝 `r107a-server-subscription-generation` Step 2 완료 기록 (Gemini 4 Neon `High`, 2026-11-25)
 
@@ -118,7 +125,7 @@
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
-| `R107` | 명세 완료 · Run 등록 대기 | 정기·반복 지출 자동화: `R107-A` 서버 측 생성 통일 → `R107-B` 결제 예정 알림 → `R107-C` 자동 확정 옵션. Run 1 등록은 위 접수 표 순서 2(Hydrogen), Run 2·3은 선행 운영 적용 후 사용자 지목 시 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
+| `R107` | `R107-A` `main` 병합(`7aa2984`) · Step 4 마감 및 운영 DB 적용 대기 | 정기·반복 지출 자동화: `R107-A` 서버 측 생성 통일(`main` 병합 완료, 운영 SQL 적용 대기) → `R107-B` 결제 예정 알림 → `R107-C` 자동 확정 옵션. Run 2·3은 선행 운영 적용 후 사용자 지목 시 등록 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
 | `R109` | `⏸️ 검토 완료 · 착수 결정 전` | 아이콘 Storage 이전(DB base64 → 공용 버킷 파일): 착수 전 §6 측정 쿼리로 크기 확인, 미결 결정 4건 사용자 확인 필요. 사용자가 지목할 때만 Run 등록 | [`docs/icon-storage-migration-review.md`](icon-storage-migration-review.md), `docs/to-do.md` R109 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
