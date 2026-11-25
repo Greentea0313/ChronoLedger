@@ -13,7 +13,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 과제**: **없음** *(직전 Run `r107b-due-today-notification` 완료·`main` 병합 `a84c6de`, 아래 「직전 완료 Run 기록」 참조)*. 다음 `R107-C`(Run 3 `r107c-auto-confirm`)는 `R107-B` 운영 DB 적용 후 사용자가 지목하면 Orchestrator가 등록함(자동 착수 안 함).
+- **활성 과제**: **없음** *(직전 Run `r107b-due-today-notification` 완료·`main` 병합 `a84c6de`, 아래 「직전 완료 Run 기록」 참조)*. 다음 `R107-C`(Run 3 `r107c-auto-confirm`)는 앱 배포 후 사용자가 지목하면 Orchestrator가 등록함(자동 착수 안 함).
 
 *(별도 대기: 하단 `T1`~`T4` 및 `R101-REV-001`·`R106-REV-001·002` `📐 SPEC_NEEDED` — `Gemini 4 Carbon (High)`)*
 
@@ -47,7 +47,7 @@
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
-| `R107` | `R107-A` 운영 적용 완료 · `R107-B` 병합 완료(운영 DB 미적용) | 정기·반복 지출 자동화: `R107-A` 운영 적용 완료(1주 관찰 후 `R107-A-CLEANUP`) → `R107-B` 결제 예정 알림 `main` 병합 `a84c6de`(사용자 운영 DB 적용·앱 배포 필요) → `R107-C` 자동 확정 옵션(Run 3, `R107-B` 운영 적용 후 사용자 지목 시 등록). 명세 §9 미결 질문 6건은 기본값으로 진행 중 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
+| `R107` | `R107-A` 운영 적용 완료 · `R107-B` 운영 DB 적용 완료 | 정기·반복 지출 자동화: `R107-A` 운영 적용 완료(1주 관찰 후 `R107-A-CLEANUP`) → `R107-B` 결제 예정 알림 `main` 병합 `a84c6de`·운영 DB 적용 완료(앱 배포 필요) → `R107-C` 자동 확정 옵션(Run 3, `R107-B` 앱 배포 후 사용자 지목 시 등록). 명세 §9 미결 질문 6건은 기본값으로 진행 중 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
 | `R109` | `⏸️ 검토 완료 · 착수 결정 전` | 아이콘 Storage 이전(DB base64 → 공용 버킷 파일): 착수 전 §6 측정 쿼리로 크기 확인, 미결 결정 4건 사용자 확인 필요. 사용자가 지목할 때만 Run 등록 | [`docs/icon-storage-migration-review.md`](icon-storage-migration-review.md), `docs/to-do.md` R109 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
@@ -60,7 +60,7 @@
 - **Run ID**: `r107b-due-today-notification` **(완료, `main` 병합 `a84c6de`, 문서 마감 2026-11-25)** · **Orchestrator**: Gemini 4 Hydrogen *(등록)* · Claude Sonnet `Medium` *(Step 3 리뷰·병합·마감)*
 - **Worktree 경로**: `.worktrees/r107b-due-today-notification` (브랜치 `collab/r107b-due-today-notification`, 매니페스트 `artifacts/r107b-due-today-notification/run.json`, 미삭제·원격 미push)
 - **Base SHA**: `a6f14cc2b519bfba97c06c804082378b1c623558` · **Target SHA**: `74bece6ecbdc81a81b6b19610852ae18d4b4458e` *(산출물 `0589844`, `main` 병합 `a84c6de`)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`, `SCHEMA.sql`). **운영 DB 적용 필요(사용자 수행, 미적용)**: Supabase SQL Editor에서 실행 후 `sql/README.md` B표 확인 쿼리 3종 확인. 미적용 상태에서도 설정 UI는 `42703`/`PGRST204` 폴백으로 토글만 숨김.
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`, `SCHEMA.sql`). **운영 DB 적용 및 확인 쿼리 3종 검증 완료(사용자, 2026-11-25)**. 미적용 상태에서도 설정 UI는 `42703`/`PGRST204` 폴백으로 토글만 숨김.
 
 | 순서 | 상태 | 담당 모델 (Level) | 역할 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- |
@@ -73,5 +73,5 @@
 - **구현**: `notifications_kind_check`에 `'EXPENSE_DUE_TODAY'` 추가, `notification_settings.expense_due_today`(기본 true) 추가, `enqueue_daily_notifications()` 4번 절(오늘 KST `PLANNED` 지출 사용자·일자당 1건 요약, 금액·항목명·메모 비노출, 탈퇴 대기·옵트아웃 제외, `ON CONFLICT DO NOTHING`), 설정 UI 토글과 미적용 컬럼 폴백.
 - **리뷰 메모**: `R107-C`에서 `auto_confirm_blocked` 컬럼 추가 시 4번 절 집계 조건 재검토 필요(명세 §5.1-2). `R107-C` 적용 후 이 마이그레이션을 재실행하면 `MIGRATION_R107C_AUTO_CONFIRM.sql`도 재실행해야 함(README 기재).
 - **검증 환경 메모**: 워크트리에 `.env.local`이 없어 `build`는 더미 `NEXT_PUBLIC_SUPABASE_*` 환경변수로 실행함. 로컬 DB 재설정 시 `storage.objects` 정책도 함께 제거해야 `SCHEMA.sql`이 끝까지 적용됨. `validate_collaboration_artifact.py`는 `jsonschema` 설치 필요(`pip install --user jsonschema`로 설치함).
-- **남은 일**: 사용자 운영 DB 적용 → 앱 배포(`main` push) → 사용자 지목 시 `R107-C`.
+- **남은 일**: 앱 배포(`main` push) → 사용자 지목 시 `R107-C`.
 
