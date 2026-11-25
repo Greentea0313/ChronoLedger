@@ -1,0 +1,16 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "t4-rust-build-and-lock",
+    "created_at":  "2026-11-25T10:02:30.7063581+00:00",
+    "objective":  "Verify T4 Rust compilation and Windows Tauri production build, and commit Cargo.lock (no DB changes)",
+    "acceptance_criteria":  [
+                                "Step 1 (Gemini 4 Hydrogen Medium): Run cargo check and npm run tauri build in .worktrees/t4-rust-build-and-lock, update src-tauri/Cargo.lock (and resolve @tauri-apps/plugin-deep-link version mismatch if T1T4-REV-002 blocks build), pass tsc/lint/vitest/diff-check, and commit",
+                                "Step 2 (Claude Sonnet Medium): Static review (review.json), verify cargo check/tsc/lint/vitest/build (test.json), merge into main, and close out docs with T4 manual OAuth checklist"
+                            ],
+    "base_sha":  "ae56b57d02a72af729d13051d8cecb0dabdeaa26",
+    "target_sha":  "2387bcddcf2a60a5705570a220a21e5f8f65ac00",
+    "branch":  "collab/t4-rust-build-and-lock",
+    "worktree_path":  ".worktrees/t4-rust-build-and-lock",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}

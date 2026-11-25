@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-25 (`t4` Rust 빌드·`Cargo.lock` 갱신 병합 `2829bb7`)
+
+- 데스크톱 앱의 단일 실행(`tauri-plugin-single-instance`) 의존성을 `src-tauri/Cargo.lock`에 반영함. Windows 릴리스 빌드(`app.exe`)가 오류 없이 만들어지는 것을 확인했고 `package.json`·`Cargo.toml` 수정은 필요 없었음. 사용자 화면·DB 변경 없음. 실기기 로그인·단일 창 동작 확인은 남아 있음.
+
 ## 2026-11-25 (Run `t1-t4-desktop-and-followups` 병합 `5e63007` — 데스크톱 PKCE 로그인·딥링크, `R101-REV-001`, `R106-REV-001·002`)
 
 - **데스크톱 로그인 PKCE 통일**: 웹과 Windows 데스크톱(Tauri) 모두 PKCE(`code` 교환) 한 가지 방식으로 Google 로그인함. 데스크톱의 해시 토큰(`#access_token`) 경로를 없애고, 외부 브라우저로 여는 인증 주소는 설정된 Supabase 주소(`https:`)일 때만 엶. 플랫폼 차이는 새 `src/lib/auth-adapter.ts`가 맡음.

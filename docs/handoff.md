@@ -13,23 +13,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **Run ID**: `t4-rust-build-and-lock` *(`T4` 후속: Rust 툴체인 PC에서 `cargo check`·`npm run tauri build`·`src-tauri/Cargo.lock` 갱신 및 `T1T4-REV-002` 확인 — DB 변경 없음, 🐳 Docker 불필요)*
-- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-25 등록)*
-- **Worktree 경로**: `.worktrees/t4-rust-build-and-lock` (브랜치 `collab/t4-rust-build-and-lock`, 매니페스트 `artifacts/t4-rust-build-and-lock/run.json`)
-- **Base SHA**: `ae56b57d02a72af729d13051d8cecb0dabdeaa26` · **Target SHA**: `2387bcddcf2a60a5705570a220a21e5f8f65ac00` *(Step 1 완료 기준, 미병합)*
-- **DB 변경**: 없음 (Rust/Cargo 및 npm 버전 정합 확인 전용)
-
-| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
-| :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: 2387bcddcf2a60a5705570a220a21e5f8f65ac00)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (T4 Rust 빌드 & Cargo.lock 갱신)` | `.worktrees/t4-rust-build-and-lock`에서 `cargo check`·`npm run tauri build` 실행 및 `src-tauri/Cargo.lock` 갱신(`T1T4-REV-002` 버전 불일치로 빌드 실패 시 `package.json`·`package-lock.json` 또는 `src-tauri/Cargo.toml` 정합 보완), `tsc`·`lint`·`vitest`·`diff-check` 통과 후 커밋. 허용 파일: `src-tauri/Cargo.lock`, `src-tauri/Cargo.toml`, `package.json`, `package-lock.json`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 2387bcd`: `cargo check`·`npm run tauri build`(`app.exe` 릴리스 빌드 성공, `T1T4-REV-002` 오류 없음)·`Cargo.lock` 갱신, `tsc`·`lint`·`diff-check`·Vitest 77파일/1,050개 통과 (아래 완료 기록 참고) |
-| **2** | **`🛑 BLOCKED (Target SHA·브랜치 없음)`** | **Claude Sonnet (`Medium`)** *(Fallback 1: Gemini 4 Neon (`High` — 도구에서 High 선택) / Claude Opus (`High` — 도구에서 High 선택))* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`ae56b57d02a72af729d13051d8cecb0dabdeaa26`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `cargo check`·`tsc`·`lint`·`vitest`·`build`)·`main` 병합·문서 마감 | `🛑 2026-11-25 Claude Sonnet: 이 PC에 워크트리·브랜치·Target 2387bcd 없고 원격(origin)에도 collab/t4-rust-build-and-lock 없음. Step 1을 수행한 PC에서 git -C .worktrees/t4-rust-build-and-lock push -u origin collab/t4-rust-build-and-lock 실행 필요. 이 PC는 Rust(cargo) 미설치라 cargo check·tauri build는 Step 1 PC 결과 확인 또는 재실행 필요` |
-
-#### 📝 `t4-rust-build-and-lock` Step 1 완료 기록 (Gemini 4 Hydrogen `Medium`, 2026-11-25)
-
-- **Target SHA**: `2387bcddcf2a60a5705570a220a21e5f8f65ac00` (워크트리 브랜치 `collab/t4-rust-build-and-lock`, 미병합·원격 push 안 함). 변경 파일(1개): `src-tauri/Cargo.lock` (`tauri-plugin-single-instance v2.5.3` 등 반영, `run.json` 미수정).
-- **버전 정합 확인 (`T1T4-REV-002`)**: `npm run tauri build` 실행 시 버전 불일치 오류 없이 통과하여 `package.json`·`Cargo.toml` 수정 불필요함.
-- **검증**: 워크트리에서 `cargo check --manifest-path src-tauri/Cargo.toml` 통과, `npm run tauri build` 통과(`next build` 16페이지 + `release` `app.exe` 생성 확인, 임시 복사한 `.env.local` 정리 완료), `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `git diff --check`, `npx vitest run`(77파일 / 1,050개 통과) 확인함.
-- **다음 단계**: Step 2(`Claude Sonnet (Medium)`, Base `ae56b57` ↔ Target `2387bcd` 정적 리뷰·검증·`main` 병합·문서 마감 및 사용자 실기기 OAuth 확인 안내) `▶ READY`임.
+- **현재 활성 Run 없음** *(마지막 Run `t4-rust-build-and-lock`은 마감함. 새 과제는 사용자가 지목하면 Orchestrator가 Run으로 등록함)*
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -48,56 +32,33 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 | `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R108-REV-001` (`R101-REV-001`·`R106-REV-001·002`는 `T1`~`T4` Run에서 완료) | `docs/to-do.md` 해당 항목 |
-| `T1`~`T4` | **`T1`~`T3` 병합 완료 (`5e63007`) · `T4` Rust 빌드 Run Step 2 대기 (`t4-rust-build-and-lock`)** | Windows Tauri 데스크톱 통합 병합 및 운영 DB·Redirect URL 등록 완료. `t4-rust-build-and-lock` Step 1(`2387bcd`, `cargo check`·`tauri build`·`Cargo.lock`) 완료, Step 2(`Claude Sonnet Medium`) `▶ READY` | 위 활성 Run 표, [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §4 |
+| `T1`~`T4` | **완료** (`t1-t4-desktop-and-followups` `main` 병합 `5e63007`, `t4-rust-build-and-lock` `main` 병합 `2829bb7`) | Windows Tauri 데스크톱 통합 병합과 Rust 빌드·`Cargo.lock` 갱신 완료. **사용자 확인 대기**: `app.exe` 실행 후 구글 로그인 복귀·`single-instance`·캘린더·결제 흐름(`docs/to-do.md` T4) | 아래 직전 완료 Run 기록, [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §4 |
 
-### 🗂️ 직전 완료 Run 기록: `t1-t4-desktop-and-followups` *(`T1`~`T4` 데스크톱 PKCE·딥링크·`single-instance` + `R101-REV-001`·`R106-REV-001·002`)*
+### 🗂️ 직전 완료 Run 기록: `t4-rust-build-and-lock` *(`T4` 후속: Rust 빌드·`Cargo.lock` 갱신)*
 
-- **Run ID**: `t1-t4-desktop-and-followups` **(완료, `main` 병합 `5e63007`, 문서 마감 2026-11-25)** · **Orchestrator**: Gemini 4 Hydrogen *(등록)* · Claude Opus `High` *(Step 3 리뷰·병합·마감)*
-- **Worktree 경로**: `.worktrees/t1-t4-desktop-and-followups` (브랜치 `collab/t1-t4-desktop-and-followups`, 매니페스트 `artifacts/t1-t4-desktop-and-followups/run.json`, 미삭제·원격 미push)
-- **Base SHA**: `64c431752a972f5af4925653e710ac4126c8f28b` · **Target SHA**: `277dbdce667837700bdf5c64fd7d5c0ef805713a` *(산출물 `b3467ba`, `main` 병합 `5e63007`)*
-- **명세·결정**: [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §1(`D1`~`D5`)~§4. 명세 확정·요구사항 접수 기록은 `docs/archive/handoff-archive.md`로 옮김.
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql`, `SCHEMA.sql`). **운영 DB 적용 및 확인 쿼리 검증 완료(사용자, 2026-11-25)**.
+- **Run ID**: `t4-rust-build-and-lock` **(완료, `main` 병합 `2829bb7`, 2026-11-25)** *(`T4` 후속: Rust 툴체인 PC에서 `cargo check`·`npm run tauri build`·`src-tauri/Cargo.lock` 갱신 및 `T1T4-REV-002` 확인 — DB 변경 없음, 🐳 Docker 불필요)*
+- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-25 등록)*
+- **Worktree 경로**: `.worktrees/t4-rust-build-and-lock` (브랜치 `collab/t4-rust-build-and-lock`, 매니페스트 `artifacts/t4-rust-build-and-lock/run.json`)
+- **Base SHA**: `ae56b57d02a72af729d13051d8cecb0dabdeaa26` · **Target SHA**: `2387bcddcf2a60a5705570a220a21e5f8f65ac00` *(Step 1 완료 기준, `main` 병합 완료)*
+- **DB 변경**: 없음 (Rust/Cargo 및 npm 버전 정합 확인 전용)
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **0** | **`✅ DONE (SHA: 64c4317, 2026-11-25)`** *(원 상태 `📐 SPEC_NEEDED`)* | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High`) / Gemini 4 Neon (`High`))* | `Chief Architect (T1~T4 인증·딥링크 명세 및 선택 후속 정책 확정)` | [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) 명세·사용자 질문 카드(`D1`~`D5`)·Step 1~3 수용 기준 확정(`src/**`·`sql/**` 미수정) | ✅ `64c4317` 명세 작성 및 Row 2 `▶ READY` 반환 |
-| **1** | **`✅ DONE (Base 64c4317)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (t1-t4-desktop-and-followups Run 등록)` | `New-CollaborationRun.ps1 -RunId "t1-t4-desktop-and-followups"`로 격리 워크트리 생성 및 Step 1~3 큐 등록 | `✅` `.worktrees/t1-t4-desktop-and-followups`(`collab/t1-t4-desktop-and-followups`, `run.json`) 생성 및 Step 1 `▶ READY` 전환 |
-| **2 (Step 1)** | **`✅ DONE (SHA: 57acd67b0bbf625ee2df5801628d7b3f93aba84e)`** | **~~GPT Codex~~ ➡️ Gemini 4 Neon (`High`)** *(Fallback 1 대체 실행; Fallback 1: Claude Opus (`High`))* | `Maker (SQL & 도메인 계산)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §2.4(`R101-REV-001`) + §2.6(`R106-REV-002`) 및 §3 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/budget-calculations.ts`·`.test.ts`, `src/app/dashboard/expenses/page.tsx`·`.test.tsx`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅` 워크트리 커밋 `57acd67b0bbf625ee2df5801628d7b3f93aba84e`(8파일). 🐳 로컬 2경로 2회 멱등·확인 쿼리·`TESTS.sql` 49개 PASS·`git diff --check`·`tsc`·`lint`·Vitest 76파일/1039개 통과 |
-| **3 (Step 2)** | **`✅ DONE (SHA: 277dbdce667837700bdf5c64fd7d5c0ef805713a)`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback 1: Claude Opus (`High` — 도구에서 High 선택), Fallback 2: GitHub Copilot)* | `Maker (T1~T4 Auth·Tauri·알림 UI & 빌드)` | Step 1 완료 후 착수. 명세 §2.1~§2.3(`T1`~`T4`) + §2.5(`R106-REV-001`) 및 §3 Step 2 수용 기준 수행(허용 파일 목록은 명세 §3 표 참고) | `✅` 워크트리 커밋 `277dbdce667837700bdf5c64fd7d5c0ef805713a`(19파일). `git diff --check`·`tsc`·`lint`·Vitest 77파일/1050개·`next build`(16페이지) 통과. ⚠️ 현 PC Rust 미설치로 `cargo check`·`tauri build`·`Cargo.lock` 갱신 미실행 |
-| **4 (Step 3)** | **`✅ DONE (SHA: b3467ba, 병합 5e63007)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Carbon (`High` — 도구에서 High 선택))* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 멱등 적용 및 `TESTS.sql` 검증 병합 게이트). 명세 §3 Step 3 통합 정적 리뷰(`review.json`)·`test.json`·`cargo check`·`next build`·`main` 병합·문서 마감 | `✅` 정적 리뷰 P4 3건 비차단·🐳 로컬 DB 2경로 게이트·`tsc`·`lint`·Vitest 1,050개·`next build` 통과, `cargo check`·`tauri build` 미실행(Rust 없음), `main` 병합 `5e63007` |
+| **1** | **`✅ DONE (SHA: 2387bcddcf2a60a5705570a220a21e5f8f65ac00)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (T4 Rust 빌드 & Cargo.lock 갱신)` | `.worktrees/t4-rust-build-and-lock`에서 `cargo check`·`npm run tauri build` 실행 및 `src-tauri/Cargo.lock` 갱신(`T1T4-REV-002` 버전 불일치로 빌드 실패 시 `package.json`·`package-lock.json` 또는 `src-tauri/Cargo.toml` 정합 보완), `tsc`·`lint`·`vitest`·`diff-check` 통과 후 커밋. 허용 파일: `src-tauri/Cargo.lock`, `src-tauri/Cargo.toml`, `package.json`, `package-lock.json`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 2387bcd`: `cargo check`·`npm run tauri build`(`app.exe` 릴리스 빌드 성공, `T1T4-REV-002` 오류 없음)·`Cargo.lock` 갱신, `tsc`·`lint`·`diff-check`·Vitest 77파일/1,050개 통과 (아래 완료 기록 참고) |
+| **2** | **`✅ DONE (SHA: 501b587)`** | **Claude Sonnet (`Medium`)** *(Fallback 1: Gemini 4 Neon (`High` — 도구에서 High 선택) / Claude Opus (`High` — 도구에서 High 선택))* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`ae56b57d02a72af729d13051d8cecb0dabdeaa26`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `cargo check`·`tsc`·`lint`·`vitest`·`build`)·`main` 병합·문서 마감 | `✅ 501b587`: 지적 0건(clean)·`cargo check --locked`·산출물 검증 통과, `main` 병합 `2829bb7` (아래 Step 2 완료 기록 참고) |
 
-#### 📝 `t1-t4-desktop-and-followups` Step 3 (Reviewer & Orchestrator) 완료 기록 (Claude Opus `High`, 2026-11-25)
+#### 📝 `t4-rust-build-and-lock` Step 1 완료 기록 (Gemini 4 Hydrogen `Medium`, 2026-11-25)
 
-- **리뷰 범위**: Base `64c431752a972f5af4925653e710ac4126c8f28b` ↔ Target `277dbdce667837700bdf5c64fd7d5c0ef805713a`(범위 검사 통과: Target이 워크트리 `HEAD` 조상, `src`·`sql` 차이 없음). 산출물 커밋 `b3467ba`(`run.json` `target_sha` 기록 + `iteration-01/review.json`·`test.json`, 스키마 검증 통과), `main` 병합 `5e63007`(`--no-ff`, 미push).
-- **정적 리뷰 (`review.json` `findings`, P4 3건 비차단)**: 명세 §2.1~§2.6과 일치함(PKCE 단일화·해시/`setSession` 제거, 외부 인증 URL `https:`·동일 Supabase origin 검증, `code` 중복 교환 캐시, `getCurrent` 프로세스당 1회 + `onOpenUrl` cleanup, `single-instance`를 `deep-link`보다 먼저 등록, 로그아웃 `/auth` 복귀, `CANCELLED` 당월 회차 `coveredTemplateIds` 포함, 알림 `[전체 삭제]` 인라인 확인, SQL `NOT FOUND` 조용한 반환·권한 불변).
-  - `T1T4-REV-001`: `Cargo.lock`에 `tauri-plugin-single-instance` 미반영, Rust 컴파일 미검증(Step 2·3 PC 모두 Rust 미설치).
-  - `T1T4-REV-002`: npm `@tauri-apps/plugin-deep-link` 2.0.0 ↔ 크레이트 2.6.1 버전 차이(기존 상태). `tauri build`에서 버전 불일치 검사에 걸리면 npm 패키지 맞춤 필요.
-  - `T1T4-REV-003`: 데스크톱에서 SW 등록은 건너뛰나 예전 데스크톱 빌드가 등록한 SW 해제는 없음(배포된 데스크톱 빌드가 없으면 영향 없음, 선택).
-- **실행 검증 (`test.json` `passed`)**: `git diff --check`·`tsc`·`lint`·Vitest 77파일/1,050개·`next build`(더미 공개 env, 16페이지) 통과. 🐳 로컬 업그레이드 경로(Base `SCHEMA.sql` 적용 시 `quiet_on_missing=f` → 마이그레이션 2회 → `t`/`auth_exec=f`/`anon_exec=f`/`sr_exec=t` → `TESTS.sql` 49개 PASS·ROLLBACK)·신규 설치 경로(Target `SCHEMA.sql` → 마이그레이션 2회 → 확인 쿼리 → `TESTS.sql` 49개 PASS) 통과, `SCHEMA.sql`·마이그레이션 함수 본문 동일 확인. 병합 후 `main` `tsc` 재통과.
-- **미실행 (`skipped`)**: `cargo check`·`npm run tauri build`(이 PC에 Rust 툴체인 없음).
-- **운영 반영 (사용자, 2026-11-25)**: ① 마이그레이션 운영 적용·확인 쿼리 검증 완료, ③ Supabase Redirect URLs에 `chronoledger://auth/callback` 등록 완료. ②·④는 남음.
-- **남은 일 (사용자)**: ① 운영 DB에 `MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql` 적용 후 `sql/README.md` 확인 쿼리(`true, false, true`) 확인, ② `main` push 배포(웹은 기존 PKCE 그대로라 영향 없음), ③ Supabase Redirect URLs에 `chronoledger://auth/callback` 등록, ④ Rust PC에서 `cargo check`·`tauri build` 후 `Cargo.lock` 커밋 및 Windows 실기기 OAuth 왕복·취소·로그아웃 확인(명세 §4). ③ 전에는 데스크톱 Google 로그인이 실패함.
+- **Target SHA**: `2387bcddcf2a60a5705570a220a21e5f8f65ac00` (워크트리 브랜치 `collab/t4-rust-build-and-lock`, 미병합·원격 push 안 함). 변경 파일(1개): `src-tauri/Cargo.lock` (`tauri-plugin-single-instance v2.5.3` 등 반영, `run.json` 미수정).
+- **버전 정합 확인 (`T1T4-REV-002`)**: `npm run tauri build` 실행 시 버전 불일치 오류 없이 통과하여 `package.json`·`Cargo.toml` 수정 불필요함.
+- **검증**: 워크트리에서 `cargo check --manifest-path src-tauri/Cargo.toml` 통과, `npm run tauri build` 통과(`next build` 16페이지 + `release` `app.exe` 생성 확인, 임시 복사한 `.env.local` 정리 완료), `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `git diff --check`, `npx vitest run`(77파일 / 1,050개 통과) 확인함.
+- **다음 단계**: Step 2(`Claude Sonnet (Medium)`, Base `ae56b57` ↔ Target `2387bcd` 정적 리뷰·검증·`main` 병합·문서 마감 및 사용자 실기기 OAuth 확인 안내) `▶ READY`임.
 
-#### 📝 `t1-t4-desktop-and-followups` Step 2 (Maker) 완료 기록 (Gemini 4 Neon `High`, 2026-11-25)
+#### 📝 `t4-rust-build-and-lock` Step 2 완료 기록 (Claude Sonnet `Medium`, 2026-11-25)
 
-- **Target SHA**: `277dbdce667837700bdf5c64fd7d5c0ef805713a` (`collab/t1-t4-desktop-and-followups`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
-- **변경 파일 (워크트리 19건)**:
-  - `T1` PKCE 단일화·Auth Adapter: `src/lib/supabase/client.ts`·`.test.ts`(웹·Tauri 모두 `flowType: 'pkce'`), 신규 `src/lib/auth-adapter.ts`·`.test.ts`(`isDesktopRuntime`, `getOAuthRedirectUrl`, `startGoogleOAuth` 동일 Supabase `https:` origin 검증, `isOAuthCallbackUrl`, `completeOAuthCallbackUrl` 해시/`setSession` 배제·`access_denied` 매핑·최대 10개 `code` 중복 교환 캐시), `src/app/auth/page.tsx`·`.test.tsx`(`startGoogleOAuth`·`oauthError` 쿼리·`chronoledger:oauth-callback-error` 배너), `src/app/auth/callback/page.tsx`·`.test.tsx`(`completeOAuthCallbackUrl`), `src/components/pwa/service-worker-register.tsx`·`.test.tsx`(데스크톱 SW 등록 스킵·로그아웃 캐시 삭제 유지).
-  - `T2`·`T3` 딥링크·단일 인스턴스·로그아웃 복귀: `src/lib/tauri-auth.ts`(`getCurrent` 프로세스당 최초 1회 + `onOpenUrl` + cleanup, 해시/`setSession` 제거), `src/lib/auth-context.tsx`·`.test.tsx`(`routerRef` 안정화·딥링크 성공/오류 라우팅 및 cleanup·만료 `getSession()` 오류 시 세션 정리), `src/app/dashboard/layout.tsx` & `src/lib/push-notifications.test.ts`(로그아웃 성공 시 `router.replace('/auth')`), `src-tauri/Cargo.toml`(`tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }`) · `src-tauri/src/lib.rs`(`single-instance`를 `deep-link`보다 먼저 등록·`"main"` 창 전면화·Windows/Linux `app.deep_link().register_all()` 비패닉 처리).
-  - `R106-REV-001`: `src/components/layout/notification-bell.tsx`·`.test.tsx`(헤더 `[전체 삭제]` 인라인 2단계 확인 `[삭제 확인]`/`[취소]`, 팝오버 닫힘·재토글·항목 0건·개별 삭제·모두 읽음 시 확인 상태 초기화).
-- **실행 검증 결과**:
-  - 통과: 워크트리 `git diff --check`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`(경고·오류 0건), `npx.cmd vitest run --dir src`(77파일 1050개 전체 통과), `npm.cmd run build`(더미 공개 env, 정적 16페이지 `out/` 생성 확인).
-  - ⚠️ **미실행 (`Rust/Cargo` 미설치 환경)**: 현 PC에 `cargo`/`rustc`가 없어 `cargo check`, `npm.cmd run tauri build`, `src-tauri/Cargo.lock` 갱신은 실행하지 못함(Rust 툴체인 설치 PC에서 확인 필요).
-- **남은 작업**: Step 3(**Claude Opus (`High` — 도구에서 High 선택)**, Fallback: `Gemini 4 Carbon (High — 도구에서 High 선택)`)가 Base `64c431752a972f5af4925653e710ac4126c8f28b` ↔ Target `277dbdce667837700bdf5c64fd7d5c0ef805713a` 통합 정적 리뷰(`review.json`)·🐳 로컬 DB 2경로 게이트·`cargo check`(Rust 환경 시)·`next build`(`test.json`)·`main` 병합·문서 마감 수행 예정임.
-
-#### 📝 `t1-t4-desktop-and-followups` Step 1 (Maker) 완료 기록 (Gemini 4 Neon `High`, GPT Codex 1순위 대체, 2026-11-25)
-
-- **Target SHA**: `57acd67b0bbf625ee2df5801628d7b3f93aba84e` (`collab/t1-t4-desktop-and-followups`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
-- **변경 파일 (워크트리 8건)**:
-  - `R106-REV-002` (SQL 4건): 신규 `sql/migrations/MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql` 및 `sql/SCHEMA.sql`에 `complete_push_notification_delivery` `NOT FOUND` 조용한 반환(만료 구독 삭제 + 남은 구독 0건 사용자 `push_enabled=false` 동기화 + 성공 구독 `last_success_at` 갱신, 시그니처·`service_role` 권한 불변) 반영함. `sql/README.md` B표 확인 쿼리·재실행 안내 및 `sql/tests/TESTS.sql` `R96-02` 삭제 알림 ID 스모크 단언 추가함.
-  - `R101-REV-001` (TS 4건): `src/lib/budget-calculations.ts`(`BudgetComparisonExpense.billing_cycle` 추가, `CANCELLED` 행의 `billing_cycle` 우선·귀속월 폴백으로 `coveredTemplateIds` 포함, 금액은 0원 유지), `src/app/dashboard/expenses/page.tsx`(`EXPENSE_COLUMNS`·`ExpenseRow`에 `billing_cycle` 추가), `src/lib/budget-calculations.test.ts`·`src/app/dashboard/expenses/page.test.tsx`(당월 취소·조기 환불 제외 및 익월 유지 테스트) 반영함.
-- **실행 검증 결과**:
-  - 🐳 로컬 Supabase 업그레이드 경로(`MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql` 2회 멱등 → 확인 쿼리 `quiet_on_missing=t, auth_exec=f, sr_exec=t` → `TESTS.sql` 49개 PASS·ROLLBACK) 통과함.
-  - 🐳 로컬 Supabase 신규 설치 경로(`public` 스키마 리셋 → `SCHEMA.sql` 1회 → `MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql` 2회 멱등 → 확인 쿼리 → `TESTS.sql` 49개 PASS·ROLLBACK) 통과함.
-  - 워크트리 `git diff --check` 통과, `npx.cmd tsc --noEmit` 통과, `npm.cmd run lint` 경고·오류 0건, `npx.cmd vitest run --dir src` 76파일 1039개 전체 통과함.
-- **남은 작업**: Step 2(**Gemini 4 Neon (`High` — 도구에서 High 선택)**, Fallback 1: `Claude Opus (High)` / Fallback 2: `GitHub Copilot`)가 `.worktrees/t1-t4-desktop-and-followups`에서 `T1`~`T4`(PKCE Auth Adapter·Tauri `single-instance`/`deep-link`·로그아웃 `/auth` 복귀·빌드) 및 `R106-REV-001`(알림함 `[전체 삭제]` 인라인 2단계 확인) 구현 예정임.
+- **리뷰 범위**: Base `ae56b57d02a72af729d13051d8cecb0dabdeaa26` ↔ Target `2387bcddcf2a60a5705570a220a21e5f8f65ac00`(범위 확인: Target이 워크트리 `HEAD`의 조상이고 `src`·`sql`·`src-tauri` 차이 없음). 구현 변경은 `src-tauri/Cargo.lock` 1개뿐이고 `sql/`·`supabase/` 변경이 없어 로컬 DB 게이트 대상이 아님.
+- **정적 리뷰 (`clean`, 지적 0건)**: `Cargo.lock` 변경은 추가 18줄뿐이며 `tauri-plugin-single-instance v2.5.3` 패키지 항목과 앱 의존성 목록의 한 줄임. 기존 패키지 삭제·버전 하향이 없음. `Cargo.toml`의 `tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }`와 `lib.rs`의 `tauri_plugin_single_instance::init`·`tauri_plugin_deep_link::init` 사용과 일치함. 요구된 `package.json`·`Cargo.toml` 보완은 불필요함(`T1T4-REV-002` 버전 불일치 없음)이라는 Maker 기록이 `npm run tauri build` 통과와 맞음.
+- **검증 (리뷰어가 Target에서 직접 재실행)**: `cargo check --locked --manifest-path src-tauri/Cargo.toml` 통과(`--locked`로 `Cargo.lock`이 `Cargo.toml`과 어긋나지 않음을 확인), `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 77파일 1,050개 통과, `npm run build` 통과(워크트리에 `.env.local`이 없어 더미 Supabase 환경변수로 실행). `npm run tauri build`(릴리스 `app.exe`)는 오래 걸려 리뷰어가 다시 돌리지 않고 Maker 기록을 따름(`skipped`로 기록). 실기기 로그인·딥링크 확인은 하지 않음(`skipped`).
+- **산출물**: `artifacts/t4-rust-build-and-lock/iteration-01/review.json`·`test.json`(스키마 검증 통과)과 `run.json` `target_sha` 갱신, 산출물 커밋 `501b587`. `main` 병합 `2829bb7`(`--no-ff`, 병합 후 `cargo check --locked` 재확인, 미push).
+- **남은 일 (사용자)**: `T4`의 마지막 검증은 사용자 몫임. 빌드한 `app.exe`(또는 `npm run tauri dev`)를 실행해 ① 구글 로그인 후 앱으로 돌아오는지(`chronoledger://auth/callback`, 이미 Supabase Redirect URL 등록 완료), ② 앱이 이미 켜져 있을 때 링크를 열면 두 번째 창이 아니라 기존 창으로 이어지는지(`single-instance`), ③ 캘린더·결제 흐름이 정상인지 확인함.
+- **다음 단계**: 이 Run은 마감함. 활성 Run 없음.

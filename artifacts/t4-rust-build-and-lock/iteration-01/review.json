@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "t4-rust-build-and-lock",
+  "iteration": 1,
+  "agent": "Claude Sonnet",
+  "base_sha": "ae56b57d02a72af729d13051d8cecb0dabdeaa26",
+  "target_sha": "2387bcddcf2a60a5705570a220a21e5f8f65ac00",
+  "created_at": "2026-11-25T19:19:46+09:00",
+  "role": "static-review",
+  "status": "clean",
+  "findings": []
+}
