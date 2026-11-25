@@ -10,7 +10,7 @@
                                 "Step 4 (Orchestrator): close out docs and guide the production migration."
                             ],
     "base_sha":  "328704b7fdd5fc9f908894499a8d82acef0a8169",
-    "target_sha":  null,
+    "target_sha":  "66d4547f7856e3a70c1ab6fbf6a34622c95fc944",
     "branch":  "collab/p4-followups-r107c-r109-r75",
     "worktree_path":  ".worktrees/p4-followups-r107c-r109-r75",
     "max_iterations":  3,
