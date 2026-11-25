@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react"
 import { convertIconSourceToDataUrl } from "@/lib/image-resizer"
+import { isLocalStaticGameAssetUrl, uploadGameAssetFromSource } from "@/lib/game-asset-storage"
 import { formatSchedulePeriod } from "@/lib/schedule-time"
 import { ICON_MIGRATION_PENDING_MESSAGE, isIconRequiredByUnappliedMigration } from "@/lib/pickup-character-registration"
 import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
@@ -278,7 +279,7 @@ export default function AdminRequestsPage() {
           throw new Error("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해 주세요.")
         }
 
-        if (!iconSource.startsWith("data:image/webp;base64,")) {
+        if (!iconSource.startsWith("data:image/webp;base64,") && !isLocalStaticGameAssetUrl(iconSource)) {
           let parsedUrl: URL
           try {
             parsedUrl = new URL(iconSource)
@@ -289,7 +290,7 @@ export default function AdminRequestsPage() {
             throw new Error("게임 기본 아이콘 URL은 http 또는 https 주소여야 합니다.")
           }
         }
-        iconUrl = await convertIconSourceToDataUrl(iconSource)
+        iconUrl = await uploadGameAssetFromSource({ kind: "game" }, iconSource)
       }
 
       if (type === "game") {
@@ -348,14 +349,18 @@ export default function AdminRequestsPage() {
           }
         }
       } else if (type === "character") {
-        let replacementIcon: string | undefined
+        let resolvedIconUrl: string | undefined
         if (isApprove) {
-          const iconSource = defaultIconUrls[id]?.trim()
-          if (iconSource) {
-            if (!iconSource.startsWith("data:image/webp;base64,")) {
+          const targetReq = characterRequests.find((r) => r.id === id)
+          const replacementSource = defaultIconUrls[id]?.trim()
+          if (replacementSource) {
+            if (
+              !replacementSource.startsWith("data:image/webp;base64,") &&
+              !isLocalStaticGameAssetUrl(replacementSource)
+            ) {
               let parsedUrl: URL
               try {
-                parsedUrl = new URL(iconSource)
+                parsedUrl = new URL(replacementSource)
               } catch {
                 throw new Error("캐릭터 아이콘 URL은 http 또는 https 주소여야 합니다.")
               }
@@ -363,14 +368,23 @@ export default function AdminRequestsPage() {
                 throw new Error("캐릭터 아이콘 URL은 http 또는 https 주소여야 합니다.")
               }
             }
-            replacementIcon = await convertIconSourceToDataUrl(iconSource)
+          }
+          const effectiveSource = replacementSource || targetReq?.default_icon_url?.trim() || ""
+          if (effectiveSource) {
+            if (!targetReq?.game_id) {
+              throw new Error("캐릭터 요청의 게임 정보를 찾을 수 없습니다.")
+            }
+            resolvedIconUrl = await uploadGameAssetFromSource(
+              { kind: "character", gameId: targetReq.game_id },
+              effectiveSource,
+            )
           }
         }
         const { error: rpcError } = isApprove
           ? await supabase.rpc(
               "approve_character_request",
-              replacementIcon
-                ? { p_request_id: id, p_default_icon_url: replacementIcon }
+              resolvedIconUrl
+                ? { p_request_id: id, p_default_icon_url: resolvedIconUrl }
                 : { p_request_id: id },
             )
           : await supabase.rpc("reject_character_request", { p_request_id: id, p_admin_memo: null })
@@ -378,9 +392,26 @@ export default function AdminRequestsPage() {
       } else {
         // type === "schedule"
         if (isApprove) {
-          const { error: rpcError } = await supabase.rpc("approve_schedule_request", {
-            p_request_id: id,
-          })
+          const targetReq = scheduleRequests.find((r) => r.id === id)
+          const pickupIconOverrides: Record<string, string> = {}
+          if (targetReq?.game_id && Array.isArray(targetReq.pickup_new_characters)) {
+            for (const proposal of targetReq.pickup_new_characters) {
+              const trimmedName = proposal?.name?.trim()
+              const trimmedIcon = proposal?.icon_url?.trim()
+              if (!trimmedName || !trimmedIcon) continue
+              pickupIconOverrides[trimmedName] = await uploadGameAssetFromSource(
+                { kind: "character", gameId: targetReq.game_id },
+                trimmedIcon,
+              )
+            }
+          }
+          const hasOverrides = Object.keys(pickupIconOverrides).length > 0
+          const { error: rpcError } = await supabase.rpc(
+            "approve_schedule_request",
+            hasOverrides
+              ? { p_request_id: id, p_pickup_icon_overrides: pickupIconOverrides }
+              : { p_request_id: id },
+          )
 
           if (rpcError) {
             // 폴백: 함수 부재(PGRST202/42883)일 때만 game_schedules 직접 삽입/수정 및 schedule_requests 상태 갱신

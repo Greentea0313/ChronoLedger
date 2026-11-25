@@ -18,6 +18,8 @@ function createCaches() {
     return {
       put: async (req: Request, res: Response) => void store.set(req.url, res),
       match: async (req: Request) => store.get(req.url)?.clone(),
+      keys: async () => Array.from(store.keys()).map((url) => new Request(url)),
+      delete: async (req: Request) => store.delete(req.url),
       addAll: async () => undefined,
     }
   }
@@ -100,6 +102,8 @@ describe("service worker 읽기 API 캐시", () => {
         stored.push(req.url)
       },
       match: async () => undefined,
+      keys: async () => [],
+      delete: async () => false,
       addAll: async () => undefined,
     })) as typeof sw.caches.open
 
@@ -128,6 +132,8 @@ describe("service worker 읽기 API 캐시", () => {
         throw new Error("quota")
       },
       match: async () => undefined,
+      keys: async () => [],
+      delete: async () => false,
       addAll: async () => undefined,
     })) as typeof sw.caches.open
     const res = await sw.dispatch(sw.request("/rest/v1/expenses?select=*", userA))
@@ -272,5 +278,81 @@ describe("service worker Web Push (R96)", () => {
 
     expect(navigate).toHaveBeenCalledWith("https://app.example/dashboard/expenses")
     expect(focus).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("service worker 공개 game-assets 이미지 캐시 (R109)", () => {
+  it("공개 game-assets 이미지를 Cache-First로 캐싱해 재요청 및 오프라인에서 즉시 반환한다", async () => {
+    let online = true
+    const fetchSpy = vi.fn(async () => {
+      if (!online) throw new TypeError("offline")
+      return new Response("webp-binary", { status: 200, headers: { "Content-Type": "image/webp" } })
+    })
+    const sw = loadWorker(fetchSpy)
+    const assetPath = `/storage/v1/object/public/game-assets/games/${"a".repeat(64)}.webp`
+
+    const first = await sw.dispatch(sw.request(assetPath))
+    expect(await first?.text()).toBe("webp-binary")
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(sw.caches.stores.get("chronoledger-game-assets-v1")?.size).toBe(1)
+
+    online = false
+    const second = await sw.dispatch(sw.request(assetPath))
+    expect(await second?.text()).toBe("webp-binary")
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it("500개 상한을 초과하면 가장 오래된 항목부터 삭제한다", async () => {
+    const fetchSpy = vi.fn(async (req: Request) => new Response(req.url, { status: 200 }))
+    const sw = loadWorker(fetchSpy)
+    const cache = await sw.caches.open("chronoledger-game-assets-v1")
+    for (let i = 0; i < 500; i += 1) {
+      const hex = i.toString(16).padStart(64, "0")
+      await cache.put(
+        new Request(`${ORIGIN}/storage/v1/object/public/game-assets/games/${hex}.webp`),
+        new Response(`img-${i}`, { status: 200 }),
+      )
+    }
+
+    const newestPath = `/storage/v1/object/public/game-assets/games/${"f".repeat(64)}.webp`
+    await sw.dispatch(sw.request(newestPath))
+
+    const store = sw.caches.stores.get("chronoledger-game-assets-v1")!
+    expect(store.size).toBe(500)
+    expect(store.has(`${ORIGIN}/storage/v1/object/public/game-assets/games/${"0".repeat(64)}.webp`)).toBe(false)
+    expect(store.has(`${ORIGIN}${newestPath}`)).toBe(true)
+  })
+
+  it("activate 시 구 캐시는 정리하되 chronoledger-game-assets-v1은 보존하고 CLEAR_CACHES에서는 삭제한다", async () => {
+    const sw = loadWorker(async () => new Response("ok", { status: 200 }))
+    await sw.caches.open("chronoledger-shell-v7")
+    await sw.caches.open("chronoledger-game-assets-v1")
+    await sw.caches.open("chronoledger-data-v1")
+
+    let activateDone: Promise<unknown> | undefined
+    sw.listeners.activate({ waitUntil: (p: Promise<unknown>) => void (activateDone = p) })
+    await activateDone
+
+    expect(sw.caches.stores.has("chronoledger-shell-v7")).toBe(false)
+    expect(sw.caches.stores.has("chronoledger-game-assets-v1")).toBe(true)
+    expect(sw.caches.stores.has("chronoledger-data-v1")).toBe(true)
+
+    let clearDone: Promise<unknown> | undefined
+    sw.listeners.message({ data: { type: "CLEAR_CACHES" }, waitUntil: (p: Promise<unknown>) => void (clearDone = p) })
+    await clearDone
+    expect(sw.caches.stores.size).toBe(0)
+  })
+
+  it("비공개 user-icons 버킷과 타 출처 game-assets 요청은 절대 가로채거나 캐싱하지 않는다", async () => {
+    const fetchSpy = vi.fn(async () => new Response("secret", { status: 200 }))
+    const sw = loadWorker(fetchSpy)
+
+    expect(await sw.dispatch(sw.request("/storage/v1/object/authenticated/user-icons/u1/icon.webp"))).toBeUndefined()
+    expect(await sw.dispatch(sw.request("/storage/v1/object/sign/user-icons/u1/icon.webp?token=xyz"))).toBeUndefined()
+    expect(
+      await sw.dispatch(new Request(`https://evil.example/storage/v1/object/public/game-assets/games/${"a".repeat(64)}.webp`)),
+    ).toBeUndefined()
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(sw.caches.stores.get("chronoledger-game-assets-v1")?.size ?? 0).toBe(0)
   })
 })

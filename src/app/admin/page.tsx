@@ -20,6 +20,7 @@ import { GameIcon } from "@/components/ui/game-icon"
 import { DefaultAvatar } from "@/components/character/default-avatar"
 import { ScheduleTitleBadges } from "@/components/calendar/hero-sidebar"
 import { assertIconDataUrlSize, convertIconSourceToDataUrl } from "@/lib/image-resizer"
+import { isLocalStaticGameAssetUrl, needsGameAssetMigration, uploadGameAssetFromSource } from "@/lib/game-asset-storage"
 import { ImageSourceDialog } from "@/components/ui/image-source-dialog"
 import { convertIconSourceToDataUrlWithUpscale, isDesktopAiUpscaleAvailable, isLowResolutionFile } from "@/lib/image-upscaler"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
@@ -245,6 +246,8 @@ export default function AdminPage() {
   const [deletingGame, setDeletingGame] = useState<GameOption | null>(null)
   const [isDeletingGame, setIsDeletingGame] = useState(false)
   const [resavingGameIds, setResavingGameIds] = useState<string[]>([])
+  const [isMigratingAssets, setIsMigratingAssets] = useState(false)
+  const [assetMigrationProgress, setAssetMigrationProgress] = useState<{ done: number; total: number } | null>(null)
 
   const filteredSchedules = useMemo(() => {
     return schedules.filter((schedule) => {
@@ -923,9 +926,12 @@ export default function AdminPage() {
     setCharacterFormError(null)
     setIsProcessingIcon(true)
     try {
-      // An oversized pasted WebP skips the resize, so check the size here for a clear message (R52-REV-004).
       const iconUrl = hasIconSource
-        ? assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(characterFormIconUrl.trim(), useAiUpscale))
+        ? await uploadGameAssetFromSource(
+            { kind: "character", gameId: characterFormGameId },
+            characterFormIconUrl.trim(),
+            { useAiUpscale },
+          )
         : null
       const payload: {
         game_id: string
@@ -1130,7 +1136,11 @@ export default function AdminPage() {
       setGameFormError("게임 기본 아이콘 파일을 업로드하거나 URL을 입력해주세요.")
       return
     }
-    if (!isTemplateSave && !trimmedIconUrl.startsWith("data:image/webp;base64,")) {
+    if (
+      !isTemplateSave &&
+      !trimmedIconUrl.startsWith("data:image/webp;base64,") &&
+      !isLocalStaticGameAssetUrl(trimmedIconUrl)
+    ) {
       try {
         const parsed = new URL(trimmedIconUrl)
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -1149,11 +1159,11 @@ export default function AdminPage() {
     let defaultIconUrl = ""
     if (!isTemplateSave) {
       try {
-        defaultIconUrl = await convertIconSourceToDataUrl(trimmedIconUrl)
+        defaultIconUrl = await uploadGameAssetFromSource({ kind: "game" }, trimmedIconUrl)
       } catch (error: unknown) {
         setIsSubmittingGame(false)
         setIsProcessingIcon(false)
-        setGameFormError(error instanceof Error ? error.message : "아이콘 이미지를 변환하지 못했습니다.")
+        setGameFormError(error instanceof Error ? error.message : "아이콘 이미지를 업로드하지 못했습니다.")
         return
       }
     }
@@ -1249,38 +1259,122 @@ export default function AdminPage() {
     }
   }
 
-  const isExternalIconGame = (game: GameOption) =>
-    !!game.default_icon_url && /^https?:\/\//i.test(game.default_icon_url)
+  const needsGameIconMigration = (game: GameOption) => needsGameAssetMigration(game.default_icon_url)
 
-  // 외부 URL 아이콘을 256x256 WebP Data URL로 변환해 재저장하고 로컬 목록에 즉시 반영
-  const resaveGameIcons = async (targets: GameOption[]) => {
+  // R109: 단일 게임 아이콘을 공개 game-assets Storage 버킷으로 이전하고 DB 및 로컬 목록에 반영
+  const migrateSingleGameIcon = async (game: GameOption) => {
     if (isOffline()) {
       setMessage({ type: "error", text: OFFLINE_WRITE_MESSAGE })
       return
     }
-    if (targets.length === 0) return
-    setResavingGameIds((prev) => [...prev, ...targets.map((g) => g.id)])
-    let successCount = 0
-    const failedNames: string[] = []
-    for (const game of targets) {
-      try {
-        const dataUrl = await convertIconSourceToDataUrl(game.default_icon_url as string)
-        const { error } = await supabase.from("games").update({ default_icon_url: dataUrl }).eq("id", game.id)
-        if (error) throw error
-        successCount += 1
-        setGames((prev) => prev.map((g) => (g.id === game.id ? { ...g, default_icon_url: dataUrl } : g)))
-      } catch {
-        failedNames.push(game.name)
-      }
-      setResavingGameIds((prev) => prev.filter((id) => id !== game.id))
-    }
-    if (failedNames.length === 0) {
-      setMessage({ type: "success", text: `${successCount}개 게임 아이콘을 Data URL로 재저장했습니다.` })
-    } else {
+    if (!needsGameIconMigration(game) || !game.default_icon_url) return
+    setResavingGameIds((prev) => [...prev, game.id])
+    try {
+      const publicUrl = await uploadGameAssetFromSource({ kind: "game" }, game.default_icon_url)
+      const { error } = await supabase.from("games").update({ default_icon_url: publicUrl }).eq("id", game.id)
+      if (error) throw error
+      setGames((prev) => prev.map((g) => (g.id === game.id ? { ...g, default_icon_url: publicUrl } : g)))
+      setMessage({ type: "success", text: `'${game.name}' 아이콘을 Storage로 이전했습니다.` })
+    } catch {
       setMessage({
         type: "error",
-        text: `아이콘 재저장 실패: ${failedNames.join(", ")} (성공 ${successCount}개). 파일 업로드나 이미지 붙여넣기로 수정해 주세요.`,
+        text: `아이콘 Storage 이전 실패: ${game.name}. 파일 업로드나 이미지 붙여넣기로 수정해 주세요.`,
       })
+    } finally {
+      setResavingGameIds((prev) => prev.filter((id) => id !== game.id))
+    }
+  }
+
+  // R109: 전체 게임 + 전체 캐릭터의 미이전(Data URL/외부 URL) 아이콘을 공개 game-assets 버킷으로 멱등 일괄 이전
+  const handleBulkMigrateGameAssets = async () => {
+    if (isOffline()) {
+      setMessage({ type: "error", text: OFFLINE_WRITE_MESSAGE })
+      return
+    }
+    setIsMigratingAssets(true)
+    setAssetMigrationProgress(null)
+    try {
+      const [gamesRes, charactersRes] = await Promise.all([
+        supabase.from("games").select("id, name, default_icon_url").order("name", { ascending: true }),
+        supabase.from("game_characters").select("id, game_id, name, default_icon_url").order("name", { ascending: true }),
+      ])
+      if (gamesRes.error) throw new Error(`게임 목록 조회 실패: ${gamesRes.error.message}`)
+      if (charactersRes.error) throw new Error(`캐릭터 목록 조회 실패: ${charactersRes.error.message}`)
+
+      const gameTargets = ((gamesRes.data ?? []) as Array<{ id: string; name: string; default_icon_url?: string | null }>).filter(
+        (game) => needsGameAssetMigration(game.default_icon_url),
+      )
+      const characterTargets = (
+        (charactersRes.data ?? []) as Array<{ id: string; game_id: string; name: string; default_icon_url?: string | null }>
+      ).filter((character) => needsGameAssetMigration(character.default_icon_url))
+
+      const total = gameTargets.length + characterTargets.length
+      if (total === 0) {
+        setMessage({ type: "success", text: "이전할 아이콘이 없습니다." })
+        return
+      }
+
+      setAssetMigrationProgress({ done: 0, total })
+      let done = 0
+      let migratedGames = 0
+      let migratedCharacters = 0
+      const failedLabels: string[] = []
+
+      for (const game of gameTargets) {
+        try {
+          const publicUrl = await uploadGameAssetFromSource({ kind: "game" }, game.default_icon_url as string)
+          const { error } = await supabase.from("games").update({ default_icon_url: publicUrl }).eq("id", game.id)
+          if (error) throw error
+          migratedGames += 1
+          setGames((prev) => prev.map((g) => (g.id === game.id ? { ...g, default_icon_url: publicUrl } : g)))
+        } catch {
+          failedLabels.push(`게임: ${game.name}`)
+        }
+        done += 1
+        setAssetMigrationProgress({ done, total })
+      }
+
+      for (const character of characterTargets) {
+        try {
+          const publicUrl = await uploadGameAssetFromSource(
+            { kind: "character", gameId: character.game_id },
+            character.default_icon_url as string,
+          )
+          const { error } = await supabase
+            .from("game_characters")
+            .update({ default_icon_url: publicUrl })
+            .eq("id", character.id)
+          if (error) throw error
+          migratedCharacters += 1
+          setCharacters((prev) =>
+            prev.map((c) => (c.id === character.id ? { ...c, default_icon_url: publicUrl } : c)),
+          )
+        } catch {
+          failedLabels.push(`캐릭터: ${character.name}`)
+        }
+        done += 1
+        setAssetMigrationProgress({ done, total })
+      }
+
+      if (failedLabels.length === 0) {
+        setMessage({
+          type: "success",
+          text: `아이콘 Storage 이전 완료: 게임 ${migratedGames}건·캐릭터 ${migratedCharacters}건 이전됨.`,
+        })
+      } else {
+        setMessage({
+          type: "error",
+          text: `아이콘 Storage 이전 완료: 게임 ${migratedGames}건·캐릭터 ${migratedCharacters}건 성공, 실패 ${failedLabels.length}건 (${failedLabels.join(", ")}). 실패 항목은 원본이 보존되었습니다.`,
+        })
+      }
+    } catch (error: unknown) {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "아이콘 Storage 일괄 이전에 실패했습니다.",
+      })
+    } finally {
+      setIsMigratingAssets(false)
+      setAssetMigrationProgress(null)
     }
   }
 
@@ -1306,7 +1400,9 @@ export default function AdminPage() {
     }
   }
 
-  const externalIconGames = games.filter(isExternalIconGame)
+  const pendingAssetMigrationCount =
+    games.filter(needsGameIconMigration).length +
+    characters.filter((character) => needsGameAssetMigration(character.default_icon_url)).length
   // R65: the character tab always shows one game (no 모든 게임). Fall back to the first game while the list is still
   // loading or when the selected game was deleted; the rarity filter only offers the selected game's own ranks.
   const activeRarityFilter = getGameSchema(activeCharacterGameId).rarities.includes(characterRarityFilter) ? characterRarityFilter : ""
@@ -1768,17 +1864,21 @@ export default function AdminPage() {
               />
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {externalIconGames.length > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => void resaveGameIcons(externalIconGames)}
-                  disabled={resavingGameIds.length > 0}
-                  className="flex items-center gap-1.5 h-9 border-line-control bg-surface text-content hover:bg-surface-2"
-                >
-                  {resavingGameIds.length > 0 && <Loader2 className="h-4 w-4 animate-spin" />}
-                  외부 아이콘 일괄 변환 ({externalIconGames.length})
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                onClick={() => void handleBulkMigrateGameAssets()}
+                disabled={isMigratingAssets || resavingGameIds.length > 0}
+                className="flex items-center gap-1.5 h-9 border-line-control bg-surface text-content hover:bg-surface-2"
+              >
+                {isMigratingAssets && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isMigratingAssets
+                  ? assetMigrationProgress
+                    ? `이전 중... ${assetMigrationProgress.done} / ${assetMigrationProgress.total}`
+                    : "이전 대상 조회 중..."
+                  : pendingAssetMigrationCount > 0
+                    ? `아이콘 Storage 일괄 이전 (${pendingAssetMigrationCount})`
+                    : "아이콘 Storage 일괄 이전"}
+              </Button>
               <Button onClick={handleOpenAddGame} className="flex items-center gap-1.5 h-9">
                 <Plus className="h-4 w-4" />
                 새 게임 등록
@@ -1831,9 +1931,9 @@ export default function AdminPage() {
                                 <span className="text-[11px] px-2 py-0.5 rounded bg-surface-2 border border-line text-content-secondary">
                                   {scheduleCount}개 일정
                                 </span>
-                                {isExternalIconGame(game) && (
+                                {needsGameIconMigration(game) && (
                                   <span className="text-[11px] px-2 py-0.5 rounded bg-warning/20 border border-warning/30 text-warning">
-                                    외부 URL
+                                    {game.default_icon_url?.startsWith("data:") ? "Data URL" : "외부 URL"}
                                   </span>
                                 )}
                               </div>
@@ -1844,17 +1944,17 @@ export default function AdminPage() {
                           </div>
 
                           <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
-                            {isExternalIconGame(game) && (
+                            {needsGameIconMigration(game) && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => void resaveGameIcons([game])}
-                                disabled={resavingGameIds.includes(game.id)}
+                                onClick={() => void migrateSingleGameIcon(game)}
+                                disabled={isMigratingAssets || resavingGameIds.includes(game.id)}
                                 className="h-8 px-2.5 text-xs flex items-center gap-1 border-line-control bg-surface text-content hover:bg-surface-2"
-                                aria-label={`Data URL 재저장: ${game.name}`}
+                                aria-label={`Storage 이전: ${game.name}`}
                               >
                                 {resavingGameIds.includes(game.id) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                                Data URL 재저장
+                                Storage 이전
                               </Button>
                             )}
                             <Button

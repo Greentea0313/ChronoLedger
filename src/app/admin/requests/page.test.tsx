@@ -4,14 +4,19 @@ import { Simulate } from "react-dom/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import AdminRequestsPage from "./page"
 
-const { from, rpc, useAuth, replace, convertIconSourceToDataUrl, fetchImageFile } = vi.hoisted(() => ({
+const { from, rpc, useAuth, replace, convertIconSourceToDataUrl, fetchImageFile, uploadGameAssetFromSource } = vi.hoisted(() => ({
   fetchImageFile: vi.fn(async () => new File(["fetched"], "fetched.png", { type: "image/png" })),
   from: vi.fn(),
   rpc: vi.fn(),
   useAuth: vi.fn(),
   replace: vi.fn(),
   convertIconSourceToDataUrl: vi.fn(),
+  uploadGameAssetFromSource: vi.fn(),
 }))
+
+const GAME_ASSET_URL = `https://proj.supabase.co/storage/v1/object/public/game-assets/games/${"a".repeat(64)}.webp`
+const charAssetUrl = (gameId: string) =>
+  `https://proj.supabase.co/storage/v1/object/public/game-assets/characters/${gameId}/${"b".repeat(64)}.webp`
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn() }),
@@ -28,6 +33,10 @@ vi.mock("@/lib/image-resizer", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/image-resizer")>(),
   convertIconSourceToDataUrl,
   fetchImageFile,
+}))
+vi.mock("@/lib/game-asset-storage", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/game-asset-storage")>(),
+  uploadGameAssetFromSource,
 }))
 
 interface MockQueryBuilder {
@@ -145,6 +154,10 @@ describe("AdminRequestsPage", () => {
       isLoading: false,
     })
     convertIconSourceToDataUrl.mockResolvedValue("data:image/webp;base64,converted")
+    uploadGameAssetFromSource.mockImplementation(
+      async (target: { kind: "game" } | { kind: "character"; gameId: string }) =>
+        target.kind === "game" ? GAME_ASSET_URL : charAssetUrl(target.gameId),
+    )
     from.mockImplementation((table: string) =>
       table === "game_requests"
         ? gameQuery
@@ -193,13 +206,14 @@ describe("AdminRequestsPage", () => {
 
     expect(rpc).toHaveBeenCalledWith("approve_game_request", {
       p_request_id: "game-request-1",
-      p_default_icon_url: "data:image/webp;base64,converted",
+      p_default_icon_url: GAME_ASSET_URL,
     })
     expect(fetchImageFile).toHaveBeenCalledWith("https://example.test/game.webp", 256)
     expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(expect.any(File))
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith({ kind: "game" }, "data:image/webp;base64,converted")
   })
 
-  it("converts a pasted game image, previews it, and approves with its WebP Data URL", async () => {
+  it("converts a pasted game image, previews it, and approves with its Storage public URL", async () => {
     await renderPage()
 
     const imageFile = new File(["image"], "clipboard.png", { type: "image/png" })
@@ -216,9 +230,10 @@ describe("AdminRequestsPage", () => {
       await Promise.resolve()
     })
 
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith({ kind: "game" }, "data:image/webp;base64,converted")
     expect(rpc).toHaveBeenCalledWith("approve_game_request", {
       p_request_id: "game-request-1",
-      p_default_icon_url: "data:image/webp;base64,converted",
+      p_default_icon_url: GAME_ASSET_URL,
     })
   })
 
@@ -295,12 +310,19 @@ describe("AdminRequestsPage", () => {
     expect(container.querySelector('img[alt="NoIcon 아이콘 미리보기"]')).toBeNull()
   })
 
-  it("approves a character request without sending an icon when the requested icon is kept", async () => {
+  it("uploads the requested character icon to Storage and passes its public URL when kept (R109)", async () => {
     await openCharacterTab()
 
     await click(byLabel("Hero 캐릭터 요청 승인"))
 
-    expect(rpc).toHaveBeenCalledWith("approve_character_request", { p_request_id: "char-req-1" })
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith(
+      { kind: "character", gameId: "game-1" },
+      "data:image/webp;base64,requested",
+    )
+    expect(rpc).toHaveBeenCalledWith("approve_character_request", {
+      p_request_id: "char-req-1",
+      p_default_icon_url: charAssetUrl("game-1"),
+    })
     expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
     expect(container.textContent).toContain("캐릭터 요청을 승인했습니다.")
   })
@@ -312,9 +334,13 @@ describe("AdminRequestsPage", () => {
     await click(byLabel("Hero 캐릭터 요청 승인"))
 
     expect(fetchImageFile).toHaveBeenCalledWith("https://example.test/hero.png", 256)
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith(
+      { kind: "character", gameId: "game-1" },
+      "data:image/webp;base64,converted",
+    )
     expect(rpc).toHaveBeenCalledWith("approve_character_request", {
       p_request_id: "char-req-1",
-      p_default_icon_url: "data:image/webp;base64,converted",
+      p_default_icon_url: charAssetUrl("game-1"),
     })
   })
 
@@ -326,9 +352,13 @@ describe("AdminRequestsPage", () => {
     await click(byLabel("Hero 캐릭터 요청 승인"))
 
     expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(iconFile)
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith(
+      { kind: "character", gameId: "game-1" },
+      "data:image/webp;base64,converted",
+    )
     expect(rpc).toHaveBeenCalledWith("approve_character_request", {
       p_request_id: "char-req-1",
-      p_default_icon_url: "data:image/webp;base64,converted",
+      p_default_icon_url: charAssetUrl("game-1"),
     })
   })
 
@@ -344,6 +374,7 @@ describe("AdminRequestsPage", () => {
     await click(approve)
     expect(rpc).toHaveBeenCalledWith("approve_character_request", { p_request_id: "char-req-2" })
     expect(convertIconSourceToDataUrl).not.toHaveBeenCalled()
+    expect(uploadGameAssetFromSource).not.toHaveBeenCalled()
   })
 
   it("still lets the admin supply an icon for an ADD request without one", async () => {
@@ -354,7 +385,7 @@ describe("AdminRequestsPage", () => {
 
     expect(rpc).toHaveBeenCalledWith("approve_character_request", {
       p_request_id: "char-req-2",
-      p_default_icon_url: "data:image/webp;base64,converted",
+      p_default_icon_url: charAssetUrl("game-1"),
     })
   })
 
@@ -542,6 +573,24 @@ describe("AdminRequestsPage", () => {
 
       expect(scheduleQuery.insert).not.toHaveBeenCalled()
       expect(container.textContent).toContain("function not found")
+    })
+
+    it("uploads proposed new-character icons to Storage and passes p_pickup_icon_overrides to approve_schedule_request (R109)", async () => {
+      mockQueries({ schedules: [proposalRequest], characters: { data: [], error: null } })
+      await openScheduleTab()
+      await clickApprove()
+
+      expect(uploadGameAssetFromSource).toHaveBeenCalledTimes(1)
+      expect(uploadGameAssetFromSource).toHaveBeenCalledWith(
+        { kind: "character", gameId: "game-1" },
+        "data:image/webp;base64,np",
+      )
+      expect(rpc).toHaveBeenCalledWith("approve_schedule_request", {
+        p_request_id: "schedule-request-proposal",
+        p_pickup_icon_overrides: {
+          "신규 캐릭": charAssetUrl("game-1"),
+        },
+      })
     })
 
     it("uses the same 'name 대기열 (n)' heading in all three request tabs", async () => {
