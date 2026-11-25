@@ -21,8 +21,8 @@ Supabase
 └── pg_cron & 원자적 RPC (내부 스케줄러):
     ├── purge_expired_account_deletion_requests: 5분 주기 계정 탈퇴 자동 정리
     ├── purge_expired_notifications: 매일 00:15 UTC 30일 경과 알림 자동 정리 (R84)
-    ├── run_daily_subscription_automation: 매일 23:50 UTC(KST 08:50) 정기 지출 회차 서버 생성 (R107-A)
-    ├── enqueue_daily_notifications: 매일 00:00 UTC(KST 09:00) 일일 알림 적재 (R39)
+    ├── run_daily_subscription_automation: 매일 23:50 UTC(KST 08:50) 정기 지출 회차 서버 생성(R107-A) 및 스토어 자동 확정 템플릿 결제 확정(R107-C)
+    ├── enqueue_daily_notifications: 매일 00:00 UTC(KST 09:00) 일일 알림 적재 (R39·R107-B·R107-C)
     └── request_account_deletion, get_account_deletion_status: SECURITY DEFINER RPC
 ```
 
@@ -40,7 +40,7 @@ Supabase
 - `src/app/`: 인증(`/auth`), 대시보드 홈·캘린더(`/dashboard`), 소비(`/dashboard/expenses`), 게임 관리(`/dashboard/games`), 보유 캐릭터·조합 프리셋(`/dashboard/characters`), 설정(`/dashboard/settings`), 관리자(`/admin`, `/admin/requests`) 화면의 라우팅과 페이지 조립.
 - `src/app/page.tsx`는 단일 로그인 경로 `/auth`로 이동한다. `src/app/dashboard/layout.tsx`는 세션 로딩과 사용자 존재 여부를 확인해 보호 화면 렌더링을 제어한다. 데이터 권한은 Supabase RLS가 강제한다.
 - `src/lib/budget-calculations.ts`: 월별 예산 귀속(PLANNED=종료일 월, CONFIRMED=결제월)과 만료 예정 탐지. `src/components/expense/overdue-planned-modal.tsx`: 만료 항목 결제/예정 취소. `src/lib/use-online-status.ts`, `src/components/ui/offline-banner.tsx`: 오프라인 감지·배너·쓰기 잠금. `public/manifest.json`: PWA 매니페스트. `public/sw.js`, `src/components/pwa/service-worker-register.tsx`: 앱 셸 + 로그인 사용자별 Supabase 읽기 캐시 Service Worker와 등록/로그아웃 캐시 삭제. `src/lib/offline-guard.ts`: 쓰기 핸들러 오프라인 가드.
-- `src/components/wallet/store-wallet-widget.tsx`: 스토어 지갑 설정/수동 보정 위젯(설정 페이지). `src/components/expense/expense-modal.tsx`, `expense-detail-modal.tsx`: 결제(`process_expense_payment`)와 환불(`refund_expense_payment`) 모달. `src/lib/payment-calculations.ts`: 실결제액·적립 추정·검증·RPC 오류 매핑.
+- `src/components/wallet/store-wallet-widget.tsx`: 스토어 지갑 설정/수동 보정 위젯(설정 페이지). `src/components/expense/expense-modal.tsx`, `expense-detail-modal.tsx`: 결제(`process_expense_payment` → 내부 `_process_expense_payment_core`)와 환불(`refund_expense_payment`, `INTERVAL_30` 다음 회차 롤백 원자 포함, R107-C) 모달. `src/lib/payment-calculations.ts`: 실결제액·적립 추정·검증·RPC 오류 매핑.
 - `src/components/calendar/`: 반응형 월간 캘린더, 일정 배너, 메모 도트, 선택 날짜 상세 및 예산 화면. 타일에는 금액을 그리지 않는다.
 - `src/components/calendar/desktop-calendar.tsx`: 6주 월간 그리드와 타일 렌더링(배너/아이콘/메모 도트 전용, 금액 미표시).
 - `src/components/calendar/hero-sidebar.tsx`, `mobile-drawer.tsx`: 선택일 상세, 예산 진행률, 포인트 요약을 데스크톱/모바일 각각의 레이아웃으로 표시한다.

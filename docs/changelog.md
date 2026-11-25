@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-26 (Run `r107c-auto-confirm` 병합 `9268bf0` — `R107-C` 스토어 정기 구독 자동 확정 및 `INTERVAL_30` 환불 롤백 원자화)
+
+- **스토어 정기 구독 자동 확정 (`MIGRATION_R107C_AUTO_CONFIRM.sql`, `SubscriptionModal`, `ExpensesPage`)**: `subscription_templates.auto_confirm`(기본 꺼짐, `GOOGLE_PLAY`·`GALAXY_STORE`만 허용하는 DB `CHECK` 및 모달 토글)을 추가함. 일 배치 `run_daily_subscription_automation()`이 회차 생성 직후 `auto_confirm_due_expenses`(예정일 결제·스냅샷 금액·스토어 적립률 적용·2일 보정 창·당일 생성분 및 `auto_confirm_blocked` 제외·행 단위 실패 격리·다음 회차 즉시 생성)를 실행하며, 결제 로직은 내부 `_process_expense_payment_core`로 일원화해 공개 `process_expense_payment` 시그니처와 동작을 그대로 유지함. 자동 확정된 지출에는 목록·상세 화면에 `'자동 확정'` 배지를 표시하고 매일 09:00 KST 일일 알림에서 `'오늘 자동 확정된 결제 N건'` 요약 알림(`EXPENSE_AUTO_CONFIRMED`, 금액·항목명 미포함)을 보냄.
+- **`INTERVAL_30` 환불 롤백 원자화 및 중복 복구 안내 (`refund_expense_payment`, `restore_cancelled_expense`, `ExpenseDetailModal`)**: 활성 `INTERVAL_30` 템플릿의 최신 확정 결제를 환불하면 같은 트랜잭션 안에서 다음 `PLANNED` 회차 예정일을 충전일수만큼 되돌리고 `auto_confirm_blocked=true`로 표시해 재결제를 막음(`R107A-REV-002` 비활성 템플릿 생략 포함). 클라이언트의 별도 롤백 RPC 호출을 제거했고 구버전 클라이언트가 환불 후 재호출해도 이중 롤백되지 않음. 예정 취소 복구 시에도 `auto_confirm_blocked=true`를 설정하고 `INTERVAL_30` 중복 충돌(`23505`)을 사용자 안내 문구로 표시함.
+- **운영 적용 안내 및 협업 산출물**: **운영 DB 수동 적용**(`MIGRATION_R107C_AUTO_CONFIRM.sql`, 선행 `R107-A`·`R107-B` 적용 상태) → 확인 쿼리 검증 → 앱 배포(`main` push) 순서로 적용 필요함(명세 `docs/r107-recurring-expense-automation-spec.md` §6). 산출물: `artifacts/r107c-auto-confirm/iteration-01/`(`review.json` P4 2건 비차단, `test.json` 로컬 DB 2경로·`TESTS.sql` 54개·`C-5` 2세션 병렬 3종 통과).
+
 ## 2026-11-25 (Run `p4-followups-r108-r109` 병합 `c52705c` — `R109-REV-001·002`·`R108-REV-001` P4 후속)
 
 - **관리자 아이콘 일괄 이전 1,000행 초과 대응 (`src/app/admin/page.tsx`)**: `[아이콘 Storage 일괄 이전]`이 `game_characters`를 이름·id 순 1,000행 단위 `.range()`로 끝까지 읽어 전체 카탈로그를 이전함. 버튼 배지 숫자는 서버 `count` 쿼리(아이콘 있음·`game-assets` 주소 아님)로 선택 게임 밖 미이전 캐릭터까지 반영하고, 일괄 이전 뒤 다시 조회함.
