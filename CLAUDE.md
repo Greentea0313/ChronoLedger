@@ -19,7 +19,7 @@ Project skills live in `.claude/skills/` (copies of `.agents/skills/`). Edit onl
 
 | Skill | Use when |
 | :--- | :--- |
-| `handoff` | The user says **`"인수인계 문서를 확인해"`** (or asks to check the handoff document) — always load it, even if it was not triggered automatically. Also for emergency handover. |
+| `handoff` | The user says **`"인수인계 문서를 확인해"`** (or asks to check the handoff document) — always load it, even if it was not triggered automatically. Also for milestone records and planned handover. |
 | `chronoledger-orchestrator` | Registering, routing or closing out a collaboration Run. |
 | `chronoledger-maker` | A queue row assigns you the Maker role. |
 | `chronoledger-reviewer` | A queue row assigns you the Reviewer role (`review.json`/`test.json`). |

@@ -75,7 +75,7 @@ description: ChronoLedger 6-model AI collaboration roles, default reasoning leve
    - **Dispatch Queue Assignment (`Gemini 4 Hydrogen / Neon / Carbon`, `GPT Codex`, `Claude Sonnet / Opus`, `GitHub Copilot`)**:
      - Register multi-step or cross-model tasks in `## 🎯 Active AI Collaboration Dispatch Queue` at the top of `docs/handoff.md` with status **`▶ READY`** (after running `New-CollaborationRun.ps1` if isolated execution is needed), end the turn, and instruct the user to switch to the assigned model and input **`"인수인계 문서를 확인해"`**.
 
-## 4. Handoff Execution & Emergency Handover
+## 4. Handoff Execution & Planned Handover
 
-- The `"인수인계 문서를 확인해"` procedure, hard-cutoff recovery, Docker precheck and emergency handover checkpoint are defined only in the handoff skill (`.agents/skills/handoff/SKILL.md`).
+- The `"인수인계 문서를 확인해"` procedure, hard-cutoff recovery, milestone records, Docker precheck and the planned handover checkpoint are defined only in the handoff skill (`.agents/skills/handoff/SKILL.md`).
 - Document updates after each step follow `.agents/skills/chronoledger-docs-closeout/SKILL.md`.

@@ -17,4 +17,5 @@ description: Perform a read-only static review of a ChronoLedger change between 
 - Validate both files (the script needs both flags):
   - `python scripts/collaboration/validate_collaboration_artifact.py --artifact <path>/review.json --schema artifacts/schemas/review.schema.json`
   - `python scripts/collaboration/validate_collaboration_artifact.py --artifact <path>/test.json --schema artifacts/schemas/test.schema.json`
-- Commit the artifacts in the worktree, set your row to `✅ DONE (SHA: <artifact commit>)`, set the next step to `▶ READY`, and close out docs with `chronoledger-docs-closeout`.
+- Commit the artifacts in the worktree. Then record the milestone at once (handoff skill §1 step 7): set your row to `🔄 IN_PROGRESS (산출물 커밋 <sha>, 병합 전)` and commit the root `docs/handoff.md` alone. If your row also merges into `main`, record `🔄 IN_PROGRESS (main 병합 <sha>, 재검증·문서 마감 남음)` the same way right after the merge, before the post-merge checks.
+- When everything in the row is done, set your row to `✅ DONE (SHA: <artifact commit>)`, set the next step to `▶ READY`, and close out docs with `chronoledger-docs-closeout`.
