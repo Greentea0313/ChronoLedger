@@ -17,18 +17,10 @@ export interface SubscriptionTemplate {
   is_active?: boolean
 }
 
-function isMissingIsOfficialColumn(error: unknown): boolean {
-  const value = error as { code?: string; message?: string; details?: string } | null
+function isMissingRpcFunction(error: unknown): boolean {
+  const value = error as { code?: string } | null
   const code = value?.code ?? ""
-  const message = `${value?.message ?? ""} ${value?.details ?? ""}`.toLowerCase()
-  return code === "42703" || code === "PGRST204" || (
-    message.includes("is_official") &&
-    (message.includes("column") || message.includes("schema cache") || message.includes("field"))
-  )
-}
-
-export function toBillingCycle(year: number, month: number): string {
-  return `${year}-${String(month).padStart(2, "0")}`
+  return code === "PGRST202" || code === "42883"
 }
 
 export function addDays(dateStr: string, days: number): string {
@@ -42,11 +34,120 @@ export function addDays(dateStr: string, days: number): string {
 }
 
 /**
- * 누적 충전형(INTERVAL_30) 상품의 다음 결제 예정일을 계산합니다.
- * - 결제 예정일보다 이른 날짜에 조기 결제를 확정한 경우: 기존 예정일에 충전 일수를 가산하여 잔여 일수가 온전히 누적 연장됩니다.
- * - 결제 예정일 당일이거나 이미 지난 경우: 결제일에 충전 일수를 가산합니다.
+ * 누적 충전형(INTERVAL_30) 구독 상품 결제 확정 시 다음 회차 예정(PLANNED) 지출을 생성합니다.
+ * R107-A: 서버 RPC(`advance_interval_subscription`)를 호출하고, 마이그레이션 미적용(PGRST202/42883) 시에만 Legacy 폴백을 실행합니다.
  */
-export function calculateNextIntervalTargetDate(
+export async function createNextIntervalSubscriptionExpense({
+  userId,
+  templateId,
+  originalTargetDate,
+  paymentDate,
+}: {
+  userId: string
+  templateId: string
+  originalTargetDate?: string | null
+  paymentDate: string
+}): Promise<boolean> {
+  const { data, error } = await supabase.rpc("advance_interval_subscription", {
+    p_template_id: templateId,
+    p_original_target_date: originalTargetDate ?? null,
+    p_payment_date: paymentDate,
+  })
+
+  if (!error) {
+    return Boolean(data)
+  }
+
+  if (isMissingRpcFunction(error)) {
+    return createNextIntervalSubscriptionExpenseLegacy({
+      userId,
+      templateId,
+      originalTargetDate,
+      paymentDate,
+    })
+  }
+
+  console.warn("누적 충전형 다음 회차 생성 RPC 실패 (비차단):", error)
+  return false
+}
+
+/**
+ * 누적 충전형(INTERVAL_30) 구독 지출 환불 시 다음 회차 예정(PLANNED) 지출의 예정일을 충전 일수만큼 차감(롤백)합니다.
+ * R107-A: 서버 RPC(`rollback_interval_subscription`)를 호출하고, 마이그레이션 미적용(PGRST202/42883) 시에만 Legacy 폴백을 실행합니다.
+ */
+export async function rollbackIntervalSubscriptionExpense({
+  userId,
+  expenseId,
+  templateId,
+}: {
+  userId: string
+  expenseId: string
+  templateId?: string | null
+}): Promise<boolean> {
+  const { data, error } = await supabase.rpc("rollback_interval_subscription", {
+    p_expense_id: expenseId,
+  })
+
+  if (!error) {
+    return Boolean(data)
+  }
+
+  if (isMissingRpcFunction(error)) {
+    return rollbackIntervalSubscriptionExpenseLegacy({
+      userId,
+      expenseId,
+      templateId,
+    })
+  }
+
+  console.warn("누적 충전형 환불 롤백 RPC 실패 (비차단):", error)
+  return false
+}
+
+/**
+ * 활성 정기 구독 템플릿의 누락된 예정(PLANNED) 회차를 생성합니다.
+ * R107-A: 서버 RPC(`ensure_subscription_expenses`, 서버 KST 기준)를 호출하고, 마이그레이션 미적용(PGRST202/42883) 시에만 Legacy 폴백을 실행합니다.
+ */
+export async function ensureMonthlySubscriptionExpenses(
+  userId: string,
+  year: number,
+  month: number,
+  todayStr?: string,
+): Promise<number> {
+  const { data, error } = await supabase.rpc("ensure_subscription_expenses")
+
+  if (!error) {
+    return typeof data === "number" ? data : 0
+  }
+
+  if (isMissingRpcFunction(error)) {
+    return ensureMonthlySubscriptionExpensesLegacy(userId, year, month, todayStr)
+  }
+
+  console.warn("구독 자동 생성 RPC 실패 (비차단):", error)
+  return 0
+}
+
+// ============================================================================
+// R107-A-CLEANUP: 운영 DB에 MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql 적용·관찰 후
+// 아래 Legacy 폴백 구현 일체를 제거합니다 (docs/r107-recurring-expense-automation-spec.md D15·§3.2).
+// ============================================================================
+
+function isMissingIsOfficialColumn(error: unknown): boolean {
+  const value = error as { code?: string; message?: string; details?: string } | null
+  const code = value?.code ?? ""
+  const message = `${value?.message ?? ""} ${value?.details ?? ""}`.toLowerCase()
+  return code === "42703" || code === "PGRST204" || (
+    message.includes("is_official") &&
+    (message.includes("column") || message.includes("schema cache") || message.includes("field"))
+  )
+}
+
+function toBillingCycleLegacy(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`
+}
+
+function calculateNextIntervalTargetDateLegacy(
   originalTargetDate: string | null | undefined,
   paymentDate: string,
   intervalDays: number = 30,
@@ -58,10 +159,15 @@ export function calculateNextIntervalTargetDate(
   return addDays(paymentDate, stepDays)
 }
 
-/**
- * 누적 충전형(INTERVAL_30) 구독 상품 결제 확정 시 다음 회차 예정(PLANNED) 지출을 생성합니다.
- */
-export async function createNextIntervalSubscriptionExpense({
+function calculateRollbackIntervalTargetDateLegacy(
+  currentTargetDate: string,
+  intervalDays: number = 30,
+): string {
+  const stepDays = intervalDays > 0 ? intervalDays : 30
+  return addDays(currentTargetDate, -stepDays)
+}
+
+async function createNextIntervalSubscriptionExpenseLegacy({
   userId,
   templateId,
   originalTargetDate,
@@ -82,7 +188,6 @@ export async function createNextIntervalSubscriptionExpense({
     return false
   }
 
-  // 이미 예정 회차가 존재하는지 확인 (중복 생성 방지)
   const { data: existingPlanned } = await supabase
     .from("expenses")
     .select("id")
@@ -96,7 +201,7 @@ export async function createNextIntervalSubscriptionExpense({
   }
 
   const stepDays = template.interval_days || 30
-  const nextTargetDate = calculateNextIntervalTargetDate(originalTargetDate, paymentDate, stepDays)
+  const nextTargetDate = calculateNextIntervalTargetDateLegacy(originalTargetDate, paymentDate, stepDays)
 
   const row = {
     user_id: userId,
@@ -126,21 +231,7 @@ export async function createNextIntervalSubscriptionExpense({
   return true
 }
 
-/**
- * 누적 충전형(INTERVAL_30) 상품 환불 시 차감(롤백)된 결제 예정일을 계산합니다.
- */
-export function calculateRollbackIntervalTargetDate(
-  currentTargetDate: string,
-  intervalDays: number = 30,
-): string {
-  const stepDays = intervalDays > 0 ? intervalDays : 30
-  return addDays(currentTargetDate, -stepDays)
-}
-
-/**
- * 누적 충전형(INTERVAL_30) 구독 지출 환불 시 다음 회차 예정(PLANNED) 지출의 예정일을 충전 일수만큼 차감(롤백)합니다.
- */
-export async function rollbackIntervalSubscriptionExpense({
+async function rollbackIntervalSubscriptionExpenseLegacy({
   userId,
   expenseId,
   templateId,
@@ -151,7 +242,6 @@ export async function rollbackIntervalSubscriptionExpense({
 }): Promise<boolean> {
   let targetTemplateId = templateId
 
-  // 1. templateId가 주어지지 않은 경우 DB에서 환불된 지출의 template_id 확인
   if (!targetTemplateId) {
     const { data: refundedExpense } = await supabase
       .from("expenses")
@@ -164,7 +254,6 @@ export async function rollbackIntervalSubscriptionExpense({
 
   if (!targetTemplateId) return false
 
-  // 2. 템플릿 정보 조회 (INTERVAL_30 확인)
   const { data: template } = await supabase
     .from("subscription_templates")
     .select("id, cycle_type, interval_days")
@@ -175,7 +264,6 @@ export async function rollbackIntervalSubscriptionExpense({
 
   const stepDays = template.interval_days || 30
 
-  // 3. 해당 템플릿의 현재 미결제(PLANNED) 지출 조회
   const { data: plannedExpense } = await supabase
     .from("expenses")
     .select("id, target_date")
@@ -186,10 +274,8 @@ export async function rollbackIntervalSubscriptionExpense({
 
   if (!plannedExpense) return false
 
-  // 4. 예정일에서 충전 일수(stepDays)만큼 차감
-  const newTargetDate = calculateRollbackIntervalTargetDate(plannedExpense.target_date, stepDays)
+  const newTargetDate = calculateRollbackIntervalTargetDateLegacy(plannedExpense.target_date, stepDays)
 
-  // 5. PLANNED 지출 업데이트
   const { error: updateError } = await supabase
     .from("expenses")
     .update({ target_date: newTargetDate })
@@ -203,9 +289,7 @@ export async function rollbackIntervalSubscriptionExpense({
   return true
 }
 
-
-
-export async function ensureMonthlySubscriptionExpenses(
+async function ensureMonthlySubscriptionExpensesLegacy(
   userId: string,
   year: number,
   month: number,
@@ -224,7 +308,6 @@ export async function ensureMonthlySubscriptionExpenses(
     .eq("is_active", true)
 
   if (templateError) {
-    // DB에 interval_days 컬럼이 아직 없는 경우를 위한 하위 호환 폴백
     const fallbackWithCycle = await supabase
       .from("subscription_templates")
       .select("id, title, category, cycle_type, billing_day, default_price, payment_method, game_id, is_active")
@@ -237,7 +320,6 @@ export async function ensureMonthlySubscriptionExpenses(
         interval_days: 30,
       }))
     } else {
-      // cycle_type 컬럼도 없는 구버전 호환 폴백
       const fallbackOld = await supabase
         .from("subscription_templates")
         .select("id, title, category, billing_day, default_price, payment_method, game_id, is_active")
@@ -257,7 +339,6 @@ export async function ensureMonthlySubscriptionExpenses(
   } else {
     templates = (rawTemplates || []) as SubscriptionTemplate[]
   }
-
 
   if (templates.length === 0) {
     return 0
@@ -306,7 +387,7 @@ export async function ensureMonthlySubscriptionExpenses(
         Number(today.slice(5, 7)),
         template.billing_day || 1,
       )
-      let nextCycle = toBillingCycle(Number(today.slice(0, 4)), Number(today.slice(5, 7)))
+      let nextCycle = toBillingCycleLegacy(Number(today.slice(0, 4)), Number(today.slice(5, 7)))
 
       if (nextDate < today) {
         const nextMonthDate = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 1))
@@ -315,12 +396,12 @@ export async function ensureMonthlySubscriptionExpenses(
           nextMonthDate.getUTCMonth() + 1,
           template.billing_day || 1,
         )
-        nextCycle = toBillingCycle(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth() + 1)
+        nextCycle = toBillingCycleLegacy(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth() + 1)
       }
 
       while (templateExpenses.some((expense) => expense.billing_cycle === nextCycle)) {
         const nextMonthDate = new Date(Date.UTC(Number(nextCycle.slice(0, 4)), Number(nextCycle.slice(5, 7)), 1))
-        nextCycle = toBillingCycle(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth() + 1)
+        nextCycle = toBillingCycleLegacy(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth() + 1)
         nextDate = getAdjustedBillingDate(
           nextMonthDate.getUTCFullYear(),
           nextMonthDate.getUTCMonth() + 1,
@@ -375,7 +456,6 @@ export async function ensureMonthlySubscriptionExpenses(
       (e) => e.status === "PLANNED",
     )
     if (hasPlanned) {
-      // 이미 미결제 예정 회차가 있으면 중복 생성하지 않음
       continue
     }
 
@@ -383,7 +463,6 @@ export async function ensureMonthlySubscriptionExpenses(
       (e) => e.status === "CONFIRMED",
     )
     const targetDate = latestConfirmed ? addDays(latestConfirmed.target_date, stepDays) : today
-
 
     const row = {
       user_id: userId,
@@ -500,7 +579,6 @@ export async function ensureMonthlySubscriptionExpenses(
       }
     }
   }
-
 
   return createdCount
 }

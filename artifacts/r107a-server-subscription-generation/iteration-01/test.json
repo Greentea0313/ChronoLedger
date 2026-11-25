@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "run_id": "r107a-server-subscription-generation",
+  "iteration": 1,
+  "agent": "Gemini 4 Carbon",
+  "role": "dynamic-test",
+  "base_sha": "ff04d84aff929671d77f42380e73217ec5f27a0e",
+  "target_sha": "372b37b5ad124837f4a11dbe150a59b247dd1523",
+  "status": "passed",
+  "created_at": "2026-11-25T16:00:30+09:00",
+  "finished_at": "2026-11-25T16:09:30+09:00",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Upgrade path: Base schema then MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql applied twice on local Supabase",
+      "command": "docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/MIGRATION_R107A.sql (x2)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Upgrade path: sql/README.md section B check queries (idx_expenses_interval_single_planned 1 row; privileges t,f,f,f; cron 50 23 * * * 1 row)",
+      "command": "docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c <README check queries>",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Upgrade path: sql/tests/TESTS.sql full run (48 PASS including R107A-01..03, final rollback PASS)",
+      "command": "docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Fresh install path: supabase db reset, Target SCHEMA.sql x1, user-icons bucket, MIGRATION_R107A.sql x2, TESTS.sql full run (48 PASS, final rollback PASS)",
+      "command": "npx.cmd supabase@2.120.0 db reset && psql -X -v ON_ERROR_STOP=1 -f SCHEMA.sql && psql -f MIGRATION_R107A.sql (x2) && psql -f TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Concurrency check (A-1): 2 parallel psql sessions calling generate_subscription_expenses_core (S1=3, S2 waited 856ms on FOR UPDATE and returned 0, total PLANNED=3)",
+      "command": "parallel docker exec psql BEGIN; SELECT generate_subscription_expenses_core(...); COMMIT;",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Whitespace check",
+      "command": "git diff --check ff04d84aff929671d77f42380e73217ec5f27a0e 372b37b5ad124837f4a11dbe150a59b247dd1523",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck",
+      "command": "npx.cmd tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint",
+      "command": "npm.cmd run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest (76 files / 1026 tests)",
+      "command": "npx.cmd vitest run --dir src",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Next.js static export production build (16/16 pages with placeholder public env)",
+      "command": "npm.cmd run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}

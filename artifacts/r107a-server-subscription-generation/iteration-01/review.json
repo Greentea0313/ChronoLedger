@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r107a-server-subscription-generation",
+  "iteration": 1,
+  "agent": "Gemini 4 Carbon",
+  "role": "static-review",
+  "base_sha": "ff04d84aff929671d77f42380e73217ec5f27a0e",
+  "target_sha": "372b37b5ad124837f4a11dbe150a59b247dd1523",
+  "status": "findings",
+  "created_at": "2026-11-25T16:09:30+09:00",
+  "findings": [
+    {
+      "id": "R107A-REV-001",
+      "severity": "P4",
+      "file": "src/types/database.types.ts",
+      "line": 449,
+      "evidence": "src/types/database.types.ts manually types advance_interval_subscription.Args.p_original_target_date as string | null, whereas MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql:192 declares p_original_target_date DATE without DEFAULT NULL, so supabase gen types typescript emits p_original_target_date: string (non-null).",
+      "impact": "No runtime or current build issue (PostgREST and PostgreSQL accept JSON null for non-STRICT DATE parameters, and tsc/build pass), but a future raw overwrite of database.types.ts via supabase gen types typescript (e.g. in R107-B or R107-C) will drop | null and fail tsc at src/lib/subscription-sync.ts:53.",
+      "recommendation": "Non-blocking. Preserve string | null on advance_interval_subscription.Args.p_original_target_date during R107-B/R107-C type regenerations (same convention as answer_feedback_request.Args.p_admin_answer), or add a trailing DEFAULT NULL signature adjustment in R107-C."
+    },
+    {
+      "id": "R107A-REV-002",
+      "severity": "P4",
+      "file": "sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql",
+      "line": 275,
+      "evidence": "rollback_interval_subscription queries subscription_templates WHERE id = v_template_id AND user_id = v_user_id AND cycle_type = 'INTERVAL_30' FOR UPDATE without AND is_active = true (also in sql/SCHEMA.sql:3520), whereas spec section 3.1-5 states active templates only and advance_interval_subscription checks is_active = true.",
+      "impact": "Deactivating a template deletes its PLANNED row via trg_delete_planned_expenses_on_template_deactivation, so inactive templates normally have 0 PLANNED rows and rollback returns false anyway. Only if a user deactivates an INTERVAL_30 template, restores a cancelled PLANNED row via restore_cancelled_expense, and then refunds an older payment would rollback shift that restored PLANNED row's target_date. No security, ledger, or balance impact.",
+      "recommendation": "Non-blocking; R107-C (D12, section 5.1-6) moves INTERVAL_30 rollback atomically into refund_expense_payment. Ensure R107-C specifies or guards inactive-template behavior explicitly."
+    }
+  ]
+}

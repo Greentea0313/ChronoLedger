@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import ExpensesPage from "./page"
 
 const { from, rpc, useAuth, downloadUserIcon, mockGetKstToday } = vi.hoisted(() => ({
@@ -52,6 +52,11 @@ function createExpenseQueryBuilder(data: unknown[]) {
 
 
 describe("ExpensesPage", () => {
+  beforeEach(() => {
+    rpc.mockReset()
+    rpc.mockResolvedValue({ data: 0, error: null })
+  })
+
   const sampleExpenses = [
     {
       id: "exp-1",
@@ -1203,7 +1208,7 @@ describe("ExpensesPage 수익 내역 (R93)", () => {
     fireEvent.click(within(row).getByRole("button", { name: "수익 1 삭제" }))
     const dialog = screen.getByRole("dialog")
     expect(within(dialog).getByText("'수익 1' 수익 내역을 삭제하시겠습니까? 삭제 시 총 자산에서 1,000원이 차감됩니다.")).toBeTruthy()
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith("delete_income", expect.anything())
 
     fireEvent.click(within(dialog).getByRole("button", { name: "삭제" }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("delete_income", { p_income_id: "inc-1" }))
@@ -1218,7 +1223,7 @@ describe("ExpensesPage 수익 내역 (R93)", () => {
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "취소" }))
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith("delete_income", expect.anything())
   })
 
   it("삭제 RPC가 실패하면 오류를 보여주고 다이얼로그를 유지한다", async () => {
@@ -1240,10 +1245,48 @@ describe("ExpensesPage 수익 내역 (R93)", () => {
     try {
       fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제" }))
       expect((await within(screen.getByRole("dialog")).findByRole("alert")).textContent).toContain("오프라인")
-      expect(rpc).not.toHaveBeenCalled()
+      expect(rpc).not.toHaveBeenCalledWith("delete_income", expect.anything())
     } finally {
       Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
     }
+  })
+})
+
+describe("ExpensesPage R107-A", () => {
+  it("ensure_subscription_expenses RPC가 미적용(PGRST202)이어도 Legacy 폴백 후 지출 페이지가 정상 로드된다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    rpc.mockReset()
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "PGRST202", message: "missing rpc" } })
+    from.mockImplementation((table: string) => {
+      if (table === "expenses") {
+        return createExpenseQueryBuilder([
+          {
+            id: "exp-1",
+            title: "점심 식사",
+            category: "식비",
+            status: "CONFIRMED",
+            target_date: "2026-10-15",
+            end_date: null,
+            game_id: null,
+            original_price: 15000,
+            discount_amount: 0,
+            point_discount_amount: 0,
+            used_points: 0,
+            earned_points: 0,
+            final_amount: 15000,
+            payment_method: "WALLET",
+            games: null,
+          },
+        ])
+      }
+      return createExpenseQueryBuilder([])
+    })
+
+    render(<ExpensesPage />)
+
+    expect(await screen.findByRole("heading", { name: "소비" })).toBeTruthy()
+    expect((await screen.findAllByText("점심 식사")).length).toBeGreaterThan(0)
+    expect(rpc).toHaveBeenCalledWith("ensure_subscription_expenses")
   })
 })
 
