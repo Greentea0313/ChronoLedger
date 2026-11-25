@@ -1576,6 +1576,24 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     })
   })
 
+  it("캐릭터 삭제 성공 후 일괄 이전 대상 건수를 다시 조회해 배지를 갱신한다 (R109-REV-003)", async () => {
+    charactersBuilder.delete.mockReturnValue(charactersBuilder)
+    charactersBuilder.eq.mockResolvedValue({ error: null })
+    await openCharacterTab()
+
+    const countCalls = () =>
+      charactersBuilder.select.mock.calls.filter(
+        (args: unknown[]) => (args[1] as { head?: boolean } | undefined)?.head === true,
+      ).length
+    const before = countCalls()
+
+    const characterRow = screen.getByText("알리스").closest("tr") as HTMLElement
+    fireEvent.click(within(characterRow).getByRole("button", { name: "알리스 삭제" }))
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제" }))
+
+    await waitFor(() => expect(countCalls()).toBeGreaterThan(before))
+  })
+
   it("캐릭터 삭제 확인에서 취소하면 삭제하지 않는다", async () => {
     charactersBuilder.delete.mockReturnValue(charactersBuilder)
     await openCharacterTab()

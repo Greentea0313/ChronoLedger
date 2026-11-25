@@ -153,6 +153,8 @@
 --   R107C-02 authenticated / C    자동 확정 INTERVAL_30 환불 시 자산·포인트 복원과 같은 트랜잭션 롤백(blocked=true, 최신 확정만, 비활성 템플릿 생략),
 --                                  구버전 rollback RPC 재호출 무동작, cron 재확정 없음, restore 시 blocked=true·INTERVAL_30 중복 23505 문구.
 --   R107C-03 DB fixture 역할      EXPENSE_AUTO_CONFIRMED 사용자·일자당 1건·금액/항목명 미포함·expense_due_today=false 제외, 실패 행 DUE_TODAY 포함, 일 배치 실행.
+--   R75-REV-001 DB fixture 역할   검증 트리거를 끈 상태에서 R64 axis_key 형식·빈 옵션 CHECK 제약 이름을 정확히 고정(트리거 경로는 트리거 메시지만 허용).
+--   R107C-REV-002 fixture / C     chk_expense_auto_confirmed_status 검증됨, PLANNED 행 auto_confirmed_at 삽입·본인 수정 -> check_violation.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -3908,13 +3910,14 @@ BEGIN
         END IF;
     END;
 
-    -- Invalid axis_key (uppercase/hyphen and >24 chars) -> rejected with 23514 (trigger runs before CHECK).
+    -- Invalid axis_key (uppercase/hyphen and >24 chars): the BEFORE trigger runs before CHECK constraints, so with the
+    -- trigger enabled the trigger message is the only accepted error. The CHECK guard alone is pinned below (R75-REV-001).
     BEGIN
         INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
         VALUES (v_game_id, 'Bad-Key!', '불', 'data:image/webp;base64,' || repeat('A', 32));
         RAISE EXCEPTION 'FAIL: R64 bad axis_key accepted';
     EXCEPTION WHEN check_violation THEN
-        IF SQLSTATE <> '23514' OR (SQLERRM <> 'classification option not found' AND SQLERRM NOT LIKE '%chk_game_classification_icons_axis_key%') THEN
+        IF SQLSTATE <> '23514' OR SQLERRM <> 'classification option not found' THEN
             RAISE EXCEPTION 'FAIL: R64 bad axis_key unexpected error (% / %)', SQLSTATE, SQLERRM;
         END IF;
     END;
@@ -3924,18 +3927,18 @@ BEGIN
         VALUES (v_game_id, 'a' || repeat('b', 24), '불', 'data:image/webp;base64,' || repeat('A', 32));
         RAISE EXCEPTION 'FAIL: R64 overlong axis_key accepted';
     EXCEPTION WHEN check_violation THEN
-        IF SQLSTATE <> '23514' OR (SQLERRM <> 'classification option not found' AND SQLERRM NOT LIKE '%chk_game_classification_icons_axis_key%') THEN
+        IF SQLSTATE <> '23514' OR SQLERRM <> 'classification option not found' THEN
             RAISE EXCEPTION 'FAIL: R64 overlong axis_key unexpected error (% / %)', SQLSTATE, SQLERRM;
         END IF;
     END;
 
-    -- Blank/whitespace option_value -> rejected with 23514.
+    -- Blank/whitespace option_value: also stopped by the trigger first (not an option of the axis).
     BEGIN
         INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
         VALUES (v_game_id, 'element', '   ', 'data:image/webp;base64,' || repeat('A', 32));
         RAISE EXCEPTION 'FAIL: R64 blank option_value accepted';
     EXCEPTION WHEN check_violation THEN
-        IF SQLSTATE <> '23514' OR (SQLERRM <> 'classification option not found' AND SQLERRM NOT LIKE '%chk_game_classification_icons_option%') THEN
+        IF SQLSTATE <> '23514' OR SQLERRM <> 'classification option not found' THEN
             RAISE EXCEPTION 'FAIL: R64 blank option_value unexpected error (% / %)', SQLSTATE, SQLERRM;
         END IF;
     END;
@@ -3986,6 +3989,38 @@ BEGIN
 END;
 $$;
 RESET ROLE;
+
+-- R75-REV-001: each CHECK guard on its own. The validation trigger is disabled inside this rollback-only transaction so
+-- the axis_key format and blank option CHECK constraints are the only guards left; the constraint name is pinned exactly.
+ALTER TABLE public.game_classification_icons DISABLE TRIGGER trg_validate_game_classification_icon;
+DO $$
+DECLARE
+    v_game_id UUID := current_setting('chronoledger.r64_approved_game_id')::uuid;
+    v_case RECORD;
+    v_constraint TEXT;
+BEGIN
+    FOR v_case IN
+        SELECT * FROM (VALUES
+            ('Bad-Key!', '불', 'chk_game_classification_icons_axis_key'),
+            ('a' || repeat('b', 24), '불', 'chk_game_classification_icons_axis_key'),
+            ('element', '   ', 'chk_game_classification_icons_option')
+        ) AS c(axis_key, option_value, expected)
+    LOOP
+        BEGIN
+            INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+            VALUES (v_game_id, v_case.axis_key, v_case.option_value, 'data:image/webp;base64,' || repeat('A', 32));
+            RAISE EXCEPTION 'FAIL: R64 CHECK guard % accepted axis_key=% option=%', v_case.expected, v_case.axis_key, v_case.option_value;
+        EXCEPTION WHEN check_violation THEN
+            GET STACKED DIAGNOSTICS v_constraint = CONSTRAINT_NAME;
+            IF v_constraint IS DISTINCT FROM v_case.expected THEN
+                RAISE EXCEPTION 'FAIL: R64 expected constraint %, got % (%)', v_case.expected, v_constraint, SQLERRM;
+            END IF;
+        END;
+    END LOOP;
+END;
+$$;
+ALTER TABLE public.game_classification_icons ENABLE TRIGGER trg_validate_game_classification_icon;
+\echo PASS: R75-REV-001 R64 axis_key format and blank option CHECK guards isolated from the validation trigger
 
 -- §7-2, §7-4 (regular authenticated user): can read APPROVED game icons;
 -- INSERT fails with 42501 RLS, UPDATE and DELETE affect 0 rows.
@@ -5813,6 +5848,45 @@ BEGIN
     PERFORM public.run_daily_subscription_automation();
 END $$;
 \echo PASS: R107C-03 EXPENSE_AUTO_CONFIRMED summary once per user/day without amounts, setting off, failed row in DUE_TODAY, daily batch
+
+-- R107C-REV-002) auto_confirmed_at only on non-PLANNED rows. The R107C-01..03 paths above (auto confirm, refund rollback,
+-- restore) already ran with the constraint in place; here a fixture insert and the owner's direct update are rejected.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'public.expenses'::regclass AND conname = 'chk_expense_auto_confirmed_status' AND convalidated
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107C-REV-002 chk_expense_auto_confirmed_status missing or not validated';
+    END IF;
+    BEGIN
+        INSERT INTO public.expenses(user_id, title, category, status, target_date, auto_confirmed_at)
+        VALUES (current_setting('chronoledger.r107c_user_c')::uuid, 'R107C planned spoof', '기타', 'PLANNED', DATE '2026-10-01', NOW());
+        RAISE EXCEPTION 'FAIL: R107C-REV-002 PLANNED row accepted auto_confirmed_at';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLERRM NOT LIKE '%chk_expense_auto_confirmed_status%' THEN RAISE; END IF;
+    END;
+END $$;
+SELECT set_config('request.jwt.claim.sub', :'r107c_user_c', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'r107c_user_c', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_exp UUID;
+BEGIN
+    SELECT id INTO v_exp FROM public.expenses WHERE title = 'R107C due today' AND status = 'PLANNED';
+    IF v_exp IS NULL THEN
+        RAISE EXCEPTION 'FAIL: R107C-REV-002 fixture PLANNED row missing';
+    END IF;
+    BEGIN
+        UPDATE public.expenses SET auto_confirmed_at = NOW() WHERE id = v_exp;
+        RAISE EXCEPTION 'FAIL: R107C-REV-002 owner stamped auto_confirmed_at on a PLANNED row';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLERRM NOT LIKE '%chk_expense_auto_confirmed_status%' THEN RAISE; END IF;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R107C-REV-002 auto_confirmed_at rejected on PLANNED rows (fixture insert, owner update)
 
 SET LOCAL ROLE anon;
 DO $$

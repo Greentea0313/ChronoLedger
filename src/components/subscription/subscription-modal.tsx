@@ -236,6 +236,8 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
               game_id: gameId || null,
               original_price: priceNum,
               final_amount: priceNum,
+              payment_method: paymentMethod,
+              point_platform: paymentMethod === "WALLET" ? null : paymentMethod,
             })
             .eq("template_id", editingTemplate.id)
             .eq("status", "PLANNED")

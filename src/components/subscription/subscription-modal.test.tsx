@@ -2,11 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SubscriptionModal } from "./subscription-modal"
 
-const { from, useAuth, insert, update } = vi.hoisted(() => ({
+const { from, useAuth, insert, update, expenseUpdate } = vi.hoisted(() => ({
   from: vi.fn(),
   useAuth: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
+  expenseUpdate: vi.fn(),
 }))
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
@@ -69,7 +70,10 @@ describe("SubscriptionModal", () => {
           catch: vi.fn().mockImplementation(() => Promise.resolve()),
         }
         return {
-          update: vi.fn().mockReturnValue(expenseUpdateChain),
+          update: vi.fn().mockImplementation((payload: unknown) => {
+            expenseUpdate(payload)
+            return expenseUpdateChain
+          }),
         }
       }
       return query({ data: [], error: null })
@@ -272,6 +276,38 @@ describe("SubscriptionModal", () => {
       }),
     )
     expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it("수정 저장 시 미결제 PLANNED 지출에 결제수단·포인트 플랫폼을 함께 동기화한다 (R107C-REV-001)", async () => {
+    const onCreated = vi.fn()
+    const editingTemplate = {
+      id: "tpl-1",
+      title: "기존 구독",
+      category: "정기 구독",
+      game_id: null,
+      cycle_type: "MONTHLY_DAY" as const,
+      billing_day: 15,
+      interval_days: 30,
+      default_price: 5900,
+      payment_method: "WALLET" as const,
+      is_active: true,
+    }
+    render(<SubscriptionModal open onOpenChange={vi.fn()} onCreated={onCreated} editingTemplate={editingTemplate} />)
+
+    fireEvent.change(screen.getByLabelText("결제수단 *"), { target: { value: "GALAXY_STORE" } })
+    fireEvent.click(screen.getByRole("button", { name: "수정 완료" }))
+    await waitFor(() => expect(onCreated).toHaveBeenCalled())
+    expect(expenseUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ payment_method: "GALAXY_STORE", point_platform: "GALAXY_STORE" }),
+    )
+
+    expenseUpdate.mockClear()
+    fireEvent.change(screen.getByLabelText("결제수단 *"), { target: { value: "WALLET" } })
+    fireEvent.click(screen.getByRole("button", { name: "수정 완료" }))
+    await waitFor(() => expect(expenseUpdate).toHaveBeenCalled())
+    expect(expenseUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ payment_method: "WALLET", point_platform: null }),
+    )
   })
 
   it("스토어 결제수단 선택 시 자동 확정 토글이 활성화되고 WALLET 전환 시 강제 해제된다 (R107-C)", async () => {

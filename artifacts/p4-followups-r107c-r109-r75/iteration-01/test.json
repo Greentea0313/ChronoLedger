@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "run_id": "p4-followups-r107c-r109-r75",
+  "iteration": 1,
+  "agent": "Gemini 4 Carbon",
+  "role": "dynamic-test",
+  "base_sha": "328704b7fdd5fc9f908894499a8d82acef0a8169",
+  "target_sha": "66d4547f7856e3a70c1ab6fbf6a34622c95fc944",
+  "status": "passed",
+  "created_at": "2026-11-26T02:44:45+09:00",
+  "finished_at": "2026-11-26T02:47:19+09:00",
+  "sandbox": "docker",
+  "redactions_applied": true,
+  "tests": [
+    {
+      "name": "git-diff-check",
+      "command": "git diff --check 328704b7fdd5fc9f908894499a8d82acef0a8169..66d4547f7856e3a70c1ab6fbf6a34622c95fc944",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "typecheck",
+      "command": "npx.cmd tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "eslint",
+      "command": "npm.cmd run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "vitest",
+      "command": "npx.cmd vitest run --dir src",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "next-build",
+      "command": "NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key npm.cmd run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "local-db-upgrade-path-notvalid-and-2x-smoke-tests",
+      "command": "npx.cmd supabase@2.120.0 db reset --workdir <localdb> && docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/BASE_SCHEMA.sql && psql -c \"INSERT INTO storage.buckets (id, name, public) VALUES ('user-icons', 'user-icons', false);\" && verify NOT VALID fallback with legacy violating row + cleanup && psql -f sql/migrations/MIGRATION_R107C_REV002_AUTO_CONFIRMED_STATUS_CHECK.sql (x2) && psql -f p4_check.sql && psql -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "local-db-fresh-install-2x-and-smoke-tests",
+      "command": "npx.cmd supabase@2.120.0 db reset --workdir <localdb> && docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/SCHEMA.sql && psql -c \"INSERT INTO storage.buckets (id, name, public) VALUES ('user-icons', 'user-icons', false);\" && psql -f sql/migrations/MIGRATION_R107C_REV002_AUTO_CONFIRMED_STATUS_CHECK.sql (x2) && psql -f p4_check.sql && psql -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}

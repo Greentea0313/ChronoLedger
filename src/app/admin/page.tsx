@@ -979,6 +979,7 @@ export default function AdminPage() {
           : `${characterLabel} '${name}'을(를) 저장했습니다.`,
       })
       await fetchCharacters()
+      void fetchPendingCharacterAssetCount()
     } catch (error: unknown) {
       setCharacterFormError(
         isIconRequiredByUnappliedMigration(error)
@@ -1026,6 +1027,7 @@ export default function AdminPage() {
     } else {
       setMessage({ type: "success", text: `캐릭터 '${deletingCharacter.name}'을(를) 삭제했습니다.` })
       await fetchCharacters()
+      void fetchPendingCharacterAssetCount()
     }
     setDeletingCharacter(null)
   }
@@ -1065,6 +1067,7 @@ export default function AdminPage() {
       setMessage({ type: "success", text: `'${game.name}' 캐릭터 템플릿을 삭제했습니다.` })
       setDeletingTemplateGame(null)
       await fetchCharacters()
+      void fetchPendingCharacterAssetCount()
       void fetchGames()
       setIconRefreshTick((prev) => prev + 1)
     } catch (cause) {
