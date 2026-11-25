@@ -9,7 +9,7 @@
                                 "Step 3 (Reviewer \u0026 Orchestrator): Static review (review.json), 2x idempotent local DB migrations \u0026 TESTS.sql pass (test.json), next build, merge to main, and close out docs."
                             ],
     "base_sha":  "a6f14cc2b519bfba97c06c804082378b1c623558",
-    "target_sha":  null,
+    "target_sha":  "74bece6ecbdc81a81b6b19610852ae18d4b4458e",
     "branch":  "collab/r107b-due-today-notification",
     "worktree_path":  ".worktrees/r107b-due-today-notification",
     "max_iterations":  3,
