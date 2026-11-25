@@ -458,7 +458,7 @@ isOneToOne: false
 { Args: { "p_default_icon_url"?: string | null,"p_request_id": string }; Returns: string
                            },
 "approve_schedule_request":
-{ Args: { "p_request_id": string }; Returns: undefined
+{ Args: { "p_pickup_icon_overrides"?: Json | null,"p_request_id": string }; Returns: undefined
                            },
 "cancel_planned_expense":
 { Args: { "p_expense_id": string }; Returns: undefined

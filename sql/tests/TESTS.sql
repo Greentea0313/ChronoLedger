@@ -136,6 +136,11 @@
 --   R107A-02 DB fixture 역할       run_daily_subscription_automation 사용자 단위 오류 격리, cron 1건 등록, 함수 권한.
 --   R107A-03 authenticated / B     advance/rollback_interval_subscription 조기·정시 결제·환불 롤백, 타인 행 IDOR 거부,
 --                                  내부 함수 실행 거부, ensure_subscription_expenses 호출, anon 실행 거부.
+--   R109-01 DB fixture 역할       game-assets 버킷(공개·102400B·image/webp)·정책 4종·user-icons 비공개/정책 불변,
+--                                  approve_schedule_request (uuid, jsonb) 단일 오버로드·권한, 픽업 제안 https 아이콘 허용·http 거부.
+--   R109-02~06 anon / B / admin   game-assets anon·일반 사용자 쓰기 거부(INSERT 42501, UPDATE/DELETE 0행, user-icons→game-assets 이동 거부),
+--                                  관리자 유효 경로 INSERT/UPDATE/DELETE·잘못된 경로 거부, user-icons 본인 업로드 유지,
+--                                  p_pickup_icon_overrides 적용(URL·빈 문자열 NULL·키 없음 폴백)·1인자 호출 하위호환·잘못된 주소 거부·R84 알림 유지.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -1764,7 +1769,7 @@ BEGIN
  OR public.is_valid_pickup_new_characters('[{"name":" ","icon_url":null}]'::jsonb)
  OR public.is_valid_pickup_new_characters(jsonb_build_array(jsonb_build_object('name',repeat('x',101),'icon_url',NULL)))
  OR public.is_valid_pickup_new_characters('[{"name":"dup","icon_url":null},{"name":" dup ","icon_url":null}]'::jsonb)
- OR public.is_valid_pickup_new_characters('[{"name":"external","icon_url":"https://example.invalid/a.webp"}]'::jsonb)
+ OR public.is_valid_pickup_new_characters('[{"name":"external","icon_url":"http://example.invalid/a.webp"}]'::jsonb)
  OR public.is_valid_pickup_new_characters(jsonb_build_array(jsonb_build_object('name','large','icon_url','data:image/webp;base64,'||repeat('A',150001))))
  THEN RAISE EXCEPTION 'FAIL: pickup proposal validation accepted invalid data'; END IF;
  INSERT INTO public.game_characters(game_id,name,default_icon_url) SELECT v_game,'R52 count '||n,'https://example.invalid/count.webp' FROM generate_series(1,8) n;
@@ -4701,6 +4706,264 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R107A-03 advance/rollback date rules, IDOR, internal function denial, lazy RPC and anon denial
+
+-- ============================================================================
+-- R109: game-assets public bucket, admin-only write policies, pickup https icons,
+-- approve_schedule_request(UUID, JSONB) icon overrides.
+-- ============================================================================
+
+-- R109-01) Fixture role: bucket settings, policy set, single RPC overload, validator, request fixtures.
+DO $$
+DECLARE
+    v_game UUID := current_setting('chronoledger.r13_game_id')::uuid;
+    v_other UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_req UUID;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM storage.buckets
+        WHERE id = 'game-assets' AND public = true AND file_size_limit = 102400 AND allowed_mime_types = ARRAY['image/webp']
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R109 game-assets bucket missing or misconfigured';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'user-icons' AND public = false) THEN
+        RAISE EXCEPTION 'FAIL: R109 user-icons bucket must stay private';
+    END IF;
+    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects'
+        AND policyname IN ('Public read game assets', 'Admins insert game assets', 'Admins update game assets', 'Admins delete game assets')) <> 4 THEN
+        RAISE EXCEPTION 'FAIL: R109 game-assets policies missing';
+    END IF;
+    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects'
+        AND policyname IN ('Users read own icons', 'Users upload own icons', 'Users update own icons', 'Users delete own icons')) <> 4 THEN
+        RAISE EXCEPTION 'FAIL: R109 user-icons policies changed';
+    END IF;
+    IF (SELECT array_agg(oid::regprocedure::text) FROM pg_proc
+        WHERE pronamespace = 'public'::regnamespace AND proname = 'approve_schedule_request')
+       <> ARRAY['approve_schedule_request(uuid,jsonb)'] THEN
+        RAISE EXCEPTION 'FAIL: R109 approve_schedule_request must have only the (uuid, jsonb) overload';
+    END IF;
+    IF has_function_privilege('anon', 'public.approve_schedule_request(uuid, jsonb)', 'EXECUTE')
+       OR NOT has_function_privilege('authenticated', 'public.approve_schedule_request(uuid, jsonb)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'FAIL: R109 approve_schedule_request grants are wrong';
+    END IF;
+    IF NOT public.is_valid_pickup_new_characters('[{"name":"storage","icon_url":"https://example.invalid/a.webp"}]'::jsonb)
+       OR NOT public.is_valid_pickup_new_characters('[{"name":"data","icon_url":"data:image/webp;base64,AAAA"}]'::jsonb)
+       OR public.is_valid_pickup_new_characters('[{"name":"plain","icon_url":"http://example.invalid/a.webp"}]'::jsonb)
+       OR public.is_valid_pickup_new_characters(jsonb_build_array(jsonb_build_object('name','large','icon_url','https://'||repeat('a',150000)))) THEN
+        RAISE EXCEPTION 'FAIL: R109 pickup proposal icon validation is wrong';
+    END IF;
+
+    INSERT INTO public.schedule_requests(user_id, game_id, title, schedule_type, pickup_new_characters, start_date, end_date)
+    VALUES (v_other, v_game, 'R109 override request', 'PICKUP',
+            '[{"name":"R109 override A","icon_url":"data:image/webp;base64,AAAA"},{"name":"R109 override B","icon_url":"data:image/webp;base64,BBBB"},{"name":"R109 override C","icon_url":"data:image/webp;base64,CCCC"}]'::jsonb,
+            CURRENT_DATE, CURRENT_DATE)
+    RETURNING id INTO v_req;
+    PERFORM set_config('chronoledger.r109_override_req', v_req::text, true);
+
+    INSERT INTO public.schedule_requests(user_id, game_id, title, schedule_type, pickup_new_characters, start_date, end_date)
+    VALUES (v_other, v_game, 'R109 legacy request', 'PICKUP',
+            '[{"name":"R109 legacy","icon_url":"data:image/webp;base64,DDDD"}]'::jsonb, CURRENT_DATE, CURRENT_DATE)
+    RETURNING id INTO v_req;
+    PERFORM set_config('chronoledger.r109_legacy_req', v_req::text, true);
+
+    INSERT INTO public.schedule_requests(user_id, game_id, title, schedule_type, pickup_new_characters, start_date, end_date)
+    VALUES (v_other, v_game, 'R109 invalid override request', 'PICKUP',
+            '[{"name":"R109 invalid","icon_url":null}]'::jsonb, CURRENT_DATE, CURRENT_DATE)
+    RETURNING id INTO v_req;
+    PERFORM set_config('chronoledger.r109_invalid_req', v_req::text, true);
+
+    PERFORM set_config('chronoledger.r109_game_path', 'games/' || md5('r109-game') || md5('r109-game-2') || '.webp', true);
+    PERFORM set_config('chronoledger.r109_char_path', 'characters/' || v_game::text || '/' || md5('r109-char') || md5('r109-char-2') || '.webp', true);
+END $$;
+\echo PASS: R109-01 game-assets bucket/policies, single approve_schedule_request overload, pickup https validation
+
+-- R109-02) anon: public read allowed, any write rejected.
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+    PERFORM count(*) FROM storage.objects WHERE bucket_id = 'game-assets';
+    BEGIN
+        INSERT INTO storage.objects(bucket_id, name) VALUES ('game-assets', current_setting('chronoledger.r109_game_path'));
+        RAISE EXCEPTION 'FAIL: R109 anon inserted a game asset';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+
+-- R109-03) Non-admin authenticated user B: game-assets writes rejected, own user-icons upload still allowed.
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated')::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_rows INT;
+BEGIN
+    BEGIN
+        INSERT INTO storage.objects(bucket_id, name) VALUES ('game-assets', current_setting('chronoledger.r109_game_path'));
+        RAISE EXCEPTION 'FAIL: R109 non-admin inserted a game asset';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.approve_schedule_request(
+            current_setting('chronoledger.r109_override_req')::uuid,
+            '{"R109 override A":"https://example.invalid/a.webp"}'::jsonb
+        );
+        RAISE EXCEPTION 'FAIL: R109 non-admin approved a schedule request';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM <> '관리자 권한이 필요합니다.' THEN RAISE; END IF;
+    END;
+    INSERT INTO storage.objects(bucket_id, name)
+    VALUES ('user-icons', current_setting('chronoledger.other_user_id') || '/r109-own.webp');
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN RAISE EXCEPTION 'FAIL: R109 user-icons own-folder upload broke'; END IF;
+END $$;
+RESET ROLE;
+
+-- R109-04) Admin (JWT app_metadata.role=admin): valid paths written, invalid paths rejected.
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'admin'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_game TEXT := current_setting('chronoledger.r13_game_id');
+    v_hash TEXT := md5('r109-bad') || md5('r109-bad-2');
+    v_path TEXT;
+    v_rows INT;
+BEGIN
+    INSERT INTO storage.objects(bucket_id, name) VALUES ('game-assets', current_setting('chronoledger.r109_game_path'));
+    INSERT INTO storage.objects(bucket_id, name) VALUES ('game-assets', current_setting('chronoledger.r109_char_path'));
+    FOREACH v_path IN ARRAY ARRAY[
+        'games/' || left(v_hash, 63) || '.webp',
+        'games/' || upper(v_hash) || '.webp',
+        'games/' || v_hash || '.png',
+        'games/sub/' || v_hash || '.webp',
+        'icons/' || v_hash || '.webp',
+        'characters/' || v_hash || '.webp',
+        'characters/' || v_game || '/../' || v_hash || '.webp',
+        'characters/not-a-game-id-not-a-game-id-not-a-gam/' || v_hash || '.webp'
+    ] LOOP
+        BEGIN
+            INSERT INTO storage.objects(bucket_id, name) VALUES ('game-assets', v_path);
+            RAISE EXCEPTION 'FAIL: R109 admin inserted invalid game asset path %', v_path;
+        EXCEPTION WHEN insufficient_privilege THEN NULL;
+        END;
+    END LOOP;
+
+    UPDATE storage.objects SET metadata = '{"r109":true}'::jsonb
+    WHERE bucket_id = 'game-assets' AND name = current_setting('chronoledger.r109_game_path');
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN RAISE EXCEPTION 'FAIL: R109 admin could not update a game asset'; END IF;
+    BEGIN
+        UPDATE storage.objects SET name = 'games/renamed.webp'
+        WHERE bucket_id = 'game-assets' AND name = current_setting('chronoledger.r109_game_path');
+        RAISE EXCEPTION 'FAIL: R109 admin renamed a game asset to an invalid path';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+
+-- R109-05) Non-admin user B cannot update or delete the admin's game assets (RLS hides them from writes).
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated')::text,
+    true
+);
+SELECT set_config('storage.allow_delete_query', 'true', true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_rows INT;
+BEGIN
+    IF (SELECT count(*) FROM storage.objects WHERE bucket_id = 'game-assets'
+        AND name IN (current_setting('chronoledger.r109_game_path'), current_setting('chronoledger.r109_char_path'))) <> 2 THEN
+        RAISE EXCEPTION 'FAIL: R109 authenticated user cannot read public game assets';
+    END IF;
+    UPDATE storage.objects SET metadata = '{"r109":"hijack"}'::jsonb
+    WHERE bucket_id = 'game-assets' AND name = current_setting('chronoledger.r109_game_path');
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN RAISE EXCEPTION 'FAIL: R109 non-admin updated a game asset'; END IF;
+    DELETE FROM storage.objects
+    WHERE bucket_id = 'game-assets' AND name = current_setting('chronoledger.r109_game_path');
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN RAISE EXCEPTION 'FAIL: R109 non-admin deleted a game asset'; END IF;
+    BEGIN
+        UPDATE storage.objects SET bucket_id = 'game-assets', name = current_setting('chronoledger.r109_game_path') || '.moved'
+        WHERE bucket_id = 'user-icons' AND name = current_setting('chronoledger.other_user_id') || '/r109-own.webp';
+        RAISE EXCEPTION 'FAIL: R109 non-admin moved an own icon into game-assets';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+
+-- R109-06) Admin: delete a game asset; approve_schedule_request applies overrides and stays backward compatible.
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', current_setting('chronoledger.other_user_id'), 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'admin'))::text,
+    true
+);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_rows INT;
+    v_storage_url TEXT := 'https://example.invalid/storage/v1/object/public/game-assets/' || current_setting('chronoledger.r109_char_path');
+BEGIN
+    DELETE FROM storage.objects
+    WHERE bucket_id = 'game-assets' AND name = current_setting('chronoledger.r109_game_path');
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN RAISE EXCEPTION 'FAIL: R109 admin could not delete a game asset'; END IF;
+
+    -- A: override URL, B: empty override -> NULL icon, C: no key -> proposal Data URL.
+    PERFORM public.approve_schedule_request(
+        current_setting('chronoledger.r109_override_req')::uuid,
+        jsonb_build_object('R109 override A', v_storage_url, 'R109 override B', '')
+    );
+    -- Legacy single-argument call keeps the proposal icon.
+    PERFORM public.approve_schedule_request(current_setting('chronoledger.r109_legacy_req')::uuid);
+
+    BEGIN
+        PERFORM public.approve_schedule_request(
+            current_setting('chronoledger.r109_invalid_req')::uuid,
+            '{"R109 invalid":"http://example.invalid/a.webp"}'::jsonb
+        );
+        RAISE EXCEPTION 'FAIL: R109 invalid icon override was accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLERRM <> '픽업 캐릭터 아이콘 주소가 올바르지 않습니다.' THEN RAISE; END IF;
+    END;
+END $$;
+RESET ROLE;
+SELECT set_config('storage.allow_delete_query', 'false', true);
+
+DO $$
+DECLARE
+    v_game UUID := current_setting('chronoledger.r13_game_id')::uuid;
+    v_storage_url TEXT := 'https://example.invalid/storage/v1/object/public/game-assets/' || current_setting('chronoledger.r109_char_path');
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.game_characters WHERE game_id = v_game AND name = 'R109 override A' AND default_icon_url = v_storage_url AND is_pickup_only)
+       OR NOT EXISTS (SELECT 1 FROM public.game_characters WHERE game_id = v_game AND name = 'R109 override B' AND default_icon_url IS NULL)
+       OR NOT EXISTS (SELECT 1 FROM public.game_characters WHERE game_id = v_game AND name = 'R109 override C' AND default_icon_url = 'data:image/webp;base64,CCCC')
+       OR NOT EXISTS (SELECT 1 FROM public.game_characters WHERE game_id = v_game AND name = 'R109 legacy' AND default_icon_url = 'data:image/webp;base64,DDDD') THEN
+        RAISE EXCEPTION 'FAIL: R109 approve_schedule_request icon overrides were not applied';
+    END IF;
+    IF (SELECT cardinality(pickup_character_ids) FROM public.game_schedules WHERE game_id = v_game AND title = 'R109 override request') <> 3 THEN
+        RAISE EXCEPTION 'FAIL: R109 approved schedule did not link all new pickup characters';
+    END IF;
+    IF (SELECT request_status FROM public.schedule_requests WHERE id = current_setting('chronoledger.r109_override_req')::uuid) <> 'APPROVED'
+       OR (SELECT request_status FROM public.schedule_requests WHERE id = current_setting('chronoledger.r109_legacy_req')::uuid) <> 'APPROVED'
+       OR (SELECT request_status FROM public.schedule_requests WHERE id = current_setting('chronoledger.r109_invalid_req')::uuid) <> 'PENDING'
+       OR EXISTS (SELECT 1 FROM public.game_characters WHERE game_id = v_game AND name = 'R109 invalid') THEN
+        RAISE EXCEPTION 'FAIL: R109 request status or invalid-override rollback is wrong';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE source_id = current_setting('chronoledger.r109_override_req')::uuid AND kind = 'REQUEST_APPROVED') THEN
+        RAISE EXCEPTION 'FAIL: R109 approve_schedule_request lost the R84 approval notification';
+    END IF;
+END $$;
+\echo PASS: R109-02~06 anon/non-admin write denial, admin path rules, user-icons unchanged, pickup icon overrides and legacy call
 
 SET LOCAL ROLE anon;
 DO $$
