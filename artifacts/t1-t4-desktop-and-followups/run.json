@@ -9,7 +9,7 @@
                                 "Step 3 (Reviewer \u0026 Orchestrator): Static review (review.json), 2x local DB + TESTS.sql + cargo check + tsc/lint/Vitest/next build (test.json), merge to main, and close out docs."
                             ],
     "base_sha":  "64c431752a972f5af4925653e710ac4126c8f28b",
-    "target_sha":  null,
+    "target_sha":  "277dbdce667837700bdf5c64fd7d5c0ef805713a",
     "branch":  "collab/t1-t4-desktop-and-followups",
     "worktree_path":  ".worktrees/t1-t4-desktop-and-followups",
     "max_iterations":  3,
