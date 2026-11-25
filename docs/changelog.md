@@ -1,5 +1,11 @@
 # 변경 이력
 
+## 2026-11-25 (Run `r107b-due-today-notification` 병합 `a84c6de` — `R107-B` 오늘 결제 예정 알림)
+
+- **`EXPENSE_DUE_TODAY` 요약 알림**: 매일 오전 9시(KST) 일일 알림 배치에서 오늘이 예정일인 `PLANNED` 지출이 있는 사용자에게 `'오늘 결제 예정 N건'` 알림을 사용자·일자당 1건 생성함. 금액·항목명·메모는 알림에 표시하지 않으며, 탈퇴 대기·옵트아웃 사용자는 제외함. 기존 `EXPENSE_D1`(전날 예고)은 그대로 유지함.
+- **알림 설정**: `notification_settings.expense_due_today`(기본 켜짐) 컬럼과 설정 화면 `'오늘 결제 예정'` 토글을 추가함. DB 미적용 환경에서는 토글만 숨기고 오류 없이 동작함.
+- **협업 산출물**: `artifacts/r107b-due-today-notification/iteration-01/`(`review.json` 발견 0건, `test.json` 로컬 DB 2경로·`TESTS.sql` 49개 통과). **운영 DB 수동 적용**(`MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`) 필요함.
+
 ## 2026-11-25 (Run `r107a-server-subscription-generation` 병합 `7aa2984` — `R107-A` 서버 측 정기 지출 생성 통일)
 
 - **서버 측 회차 생성 단일화 및 일 배치(`pg_cron`)**: 정기 지출(`MONTHLY_DAY`·`INTERVAL_30`·`VERSION_PASS`) 생성 규칙을 SQL 내부 함수 `generate_subscription_expenses_core`로 일원화하고, 매일 KST 08:50(`50 23 * * *` UTC, 일일 알림 10분 전)에 `run_daily_subscription_automation`을 실행하는 `chronoledger-subscription-daily` 잡을 등록해 앱을 열지 않아도 예정 회차가 생성되도록 함.

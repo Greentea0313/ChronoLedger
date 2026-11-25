@@ -6,6 +6,26 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 직전 완료 Run 기록: `r107a-server-subscription-generation` *(`R107-A` 서버 측 정기 지출 생성 통일)*
+
+- **Run ID**: `r107a-server-subscription-generation` **(완료, `main` 병합 `7aa2984`, 문서 마감 2026-11-25)** · **Orchestrator**: Claude Opus *(등록)* · Gemini 4 Hydrogen *(Step 4 마감)*
+- **Worktree 경로**: `.worktrees/r107a-server-subscription-generation` (브랜치 `collab/r107a-server-subscription-generation`, 매니페스트 `artifacts/r107a-server-subscription-generation/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `ff04d84aff929671d77f42380e73217ec5f27a0e` · **Target SHA**: `372b37b5ad124837f4a11dbe150a59b247dd1523` *(산출물 `1cd8ad4`, `main` 병합 `7aa2984`)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql`). 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 48개 블록·2세션 병렬 `FOR UPDATE` 검증 PASS. **운영 DB 적용 및 확인 쿼리 검증 완료(사용자, 2026-11-25)**.
+
+| 순서 | 상태 | 담당 모델 (Level) | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: d82f38f)`** | **Claude Opus (`High`)** | `Maker (SQL/RPC/cron)` | `MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`·`SCHEMA.sql`·README B표·`TESTS.sql` `R107A-01~03` 작성(5개 함수, `chronoledger-subscription-daily` `50 23 * * *`, `idx_expenses_interval_single_planned`) |
+| **2** | **`✅ DONE (SHA: 372b37b)`** | **Gemini 4 Neon (`High`)** | `Maker (Client RPC 전환·폴백 & Vitest)` | `subscription-sync.ts` 3종 RPC 전환 + `PGRST202`/`42883` Legacy 폴백, `database.types.ts` 5개 RPC 추가, Vitest 76파일/1,026개 통과 |
+| **3** | **`✅ DONE (SHA: 1cd8ad4, 병합 7aa2984)`** | **Gemini 4 Carbon (`High`)** | `Reviewer` | 정적 리뷰 P4 2건 비차단(`R107A-REV-001·002`), 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 48개·2세션 병렬 `FOR UPDATE` 검증·`next build` 통과, `main` 병합 `7aa2984` |
+| **4** | **`✅ DONE (2026-11-25, 문서 마감)`** | **Gemini 4 Hydrogen (`Medium`)** | `Orchestrator (마감)` | 직전 완료 Run(`r108-review-followups-p4`)을 [`docs/archive/handoff-archive.md`](archive/handoff-archive.md)로 이관하고 `handoff.md`·`progress.md`·`changelog.md` 마감 완료. 운영 적용 절차(§3.3) 및 후속 착수 시점 안내 |
+
+#### 📝 `r107a-server-subscription-generation` Step 3·4 핵심 요약 (2026-11-25)
+
+- **Step 3 (Gemini 4 Carbon `High`)**: Base `ff04d84` ↔ Target `372b37b` 정적 리뷰(`review.json` P4 2건 비차단: `R107A-REV-001`·`002`), 로컬 DB 업그레이드·신규 2경로 2회 멱등·`TESTS.sql` 48개·2세션 병렬 `FOR UPDATE` 직렬화·`next build` 통과(`test.json`), `main` 병합 `7aa2984`(미push).
+- **Step 4 (Gemini 4 Hydrogen `Medium`)**: `r108-review-followups-p4` 아카이브 이관 및 운영 문서 마감 완료. 운영 DB 적용(`MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql` → README B표 확인 쿼리 → `main` push 배포) 및 1주 관찰 후 `R107-A-CLEANUP`·Run 2(`r107b-due-today-notification`) 착수 안내함.
+
+
 ### 🗂️ 직전 완료 Run 기록: `r108-review-followups-p4` *(P4 선택 후속 3건: `R39-REV-01`·`R96-REV-05`·`R97-REV-001`)*
 
 - **Run ID**: `r108-review-followups-p4` **(완료, `main` 병합 `32ea55d`, 2026-11-25)** · **Orchestrator**: Gemini 4 Hydrogen *(2026-11-25 등록)*
