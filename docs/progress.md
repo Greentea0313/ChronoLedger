@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-25 (페이지 전환 가로 흔들림 수정 — Claude Sonnet `Medium`, `main` 직접 수정)**: 스크롤바 유무 차이로 내용이 가로로 밀리던 현상을 `src/app/globals.css` `html`의 `scrollbar-gutter: stable`로 완화함. 사용자 배포 후 확인 필요(미확인).
 - **2026-11-25 (`R109` 운영 적용·일괄 이전 완료 — 사용자)**: 운영 DB 마이그레이션·배포·`/admin` 아이콘 Storage 일괄 이전 완료, `data:%` 잔여 건수 games 0·characters 0, REST 응답 크기 감소 확인함. 남음: 선택 후속 `R109-REV-001·002`·`R109-CLEANUP`(사용자 지목 시).
 - **2026-11-25 (`r109-icon-storage-migration` Step 4 — Claude Sonnet `Medium`, Hydrogen 대체)**: `t4-rust-build-and-lock` 기록과 `R109` Step 1~3 상세 기록을 `handoff-archive.md`로 이관하고 `handoff.md` 마감함(`main` 병합 `7f54ef1`, 미push). 남음: 운영 DB 적용(`MIGRATION_R109_GAME_ASSETS_STORAGE.sql`) → 앱 배포 → `/admin` `[아이콘 Storage 일괄 이전]` 1회 실행(사용자).
 - **2026-11-25 (`r109-icon-storage-migration` Step 3 — Gemini 4 Carbon `High`)**: Base `358fd4b` ↔ Target `8dfd5f1` 통합 정적 리뷰(차단 0건, 비차단 P4 2건: `R109-REV-001·002`)·🐳 로컬 Supabase 업그레이드/신규 설치 2경로 각 2회 멱등·확인 쿼리 4종·`TESTS.sql` 51개 블록 PASS·`tsc`·`lint`·Vitest 78파일/1,067개·`next build`(16페이지) 통과, 산출물 `fe7fbc7`, 선행 문서 보존 `f97b3c0`, `main` 병합 `7f54ef1`(미push). 다음: Step 4 `Gemini 4 Hydrogen (Medium)` 아카이브 마감 및 운영 이전 안내 `▶ READY`.
