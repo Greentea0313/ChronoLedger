@@ -179,6 +179,7 @@ export default function AdminPage() {
   const [currentSchedulePage, setCurrentSchedulePage] = useState(1)
   const [adminTab, setAdminTab] = useState<"schedules" | "games" | "characters">("schedules")
   const [characters, setCharacters] = useState<CharacterItem[]>([])
+  const [pendingCharacterAssetCount, setPendingCharacterAssetCount] = useState<number | null>(null)
   const [characterGameFilter, setCharacterGameFilter] = useState("")
   const [characterSearchQuery, setCharacterSearchQuery] = useState("")
   const [characterRarityFilter, setCharacterRarityFilter] = useState("")
@@ -445,13 +446,29 @@ export default function AdminPage() {
     setIsLoadingPastSchedules(false)
   }, [])
 
+  const fetchPendingCharacterAssetCount = useCallback(async () => {
+    try {
+      const query = supabase.from("game_characters").select("id", { count: "exact", head: true })
+      if (typeof (query as { not?: unknown }).not !== "function") return
+      const res = await query
+        .not("default_icon_url", "is", null)
+        .not("default_icon_url", "like", "%/storage/v1/object/public/game-assets/%")
+      if (!res.error && typeof res.count === "number") {
+        setPendingCharacterAssetCount(res.count)
+      }
+    } catch {
+      // Keep fallback count when query fails or test mock omits filter methods.
+    }
+  }, [])
+
   useEffect(() => {
     if (role === "admin") {
       void fetchGames()
       void fetchCharacters()
+      void fetchPendingCharacterAssetCount()
       void fetchSchedules()
     }
-  }, [fetchCharacters, fetchGames, fetchSchedules, role])
+  }, [fetchCharacters, fetchGames, fetchPendingCharacterAssetCount, fetchSchedules, role])
 
   // R64: classification option icons of one game at a time: the open template editor's game, otherwise the character tab's game.
   // Hoisted above the early returns because the effect below must run unconditionally.
@@ -1294,19 +1311,33 @@ export default function AdminPage() {
     setIsMigratingAssets(true)
     setAssetMigrationProgress(null)
     try {
-      const [gamesRes, charactersRes] = await Promise.all([
-        supabase.from("games").select("id, name, default_icon_url").order("name", { ascending: true }),
-        supabase.from("game_characters").select("id, game_id, name, default_icon_url").order("name", { ascending: true }),
-      ])
+      const BULK_MIGRATION_PAGE_SIZE = 1000
+      const gamesRes = await supabase.from("games").select("id, name, default_icon_url").order("name", { ascending: true })
       if (gamesRes.error) throw new Error(`게임 목록 조회 실패: ${gamesRes.error.message}`)
-      if (charactersRes.error) throw new Error(`캐릭터 목록 조회 실패: ${charactersRes.error.message}`)
+
+      const characterRows: Array<{ id: string; game_id: string; name: string; default_icon_url?: string | null }> = []
+      for (let offset = 0; ; offset += BULK_MIGRATION_PAGE_SIZE) {
+        const charactersRes = await supabase
+          .from("game_characters")
+          .select("id, game_id, name, default_icon_url")
+          .order("name", { ascending: true })
+          .order("id", { ascending: true })
+          .range(offset, offset + BULK_MIGRATION_PAGE_SIZE - 1)
+        if (charactersRes.error) throw new Error(`캐릭터 목록 조회 실패: ${charactersRes.error.message}`)
+        const page = (charactersRes.data ?? []) as Array<{
+          id: string
+          game_id: string
+          name: string
+          default_icon_url?: string | null
+        }>
+        characterRows.push(...page)
+        if (page.length < BULK_MIGRATION_PAGE_SIZE) break
+      }
 
       const gameTargets = ((gamesRes.data ?? []) as Array<{ id: string; name: string; default_icon_url?: string | null }>).filter(
         (game) => needsGameAssetMigration(game.default_icon_url),
       )
-      const characterTargets = (
-        (charactersRes.data ?? []) as Array<{ id: string; game_id: string; name: string; default_icon_url?: string | null }>
-      ).filter((character) => needsGameAssetMigration(character.default_icon_url))
+      const characterTargets = characterRows.filter((character) => needsGameAssetMigration(character.default_icon_url))
 
       const total = gameTargets.length + characterTargets.length
       if (total === 0) {
@@ -1356,6 +1387,11 @@ export default function AdminPage() {
         setAssetMigrationProgress({ done, total })
       }
 
+      if (migratedCharacters > 0) {
+        setPendingCharacterAssetCount((prev) => (prev === null ? null : Math.max(0, prev - migratedCharacters)))
+      }
+      void fetchPendingCharacterAssetCount()
+
       if (failedLabels.length === 0) {
         setMessage({
           type: "success",
@@ -1400,9 +1436,11 @@ export default function AdminPage() {
     }
   }
 
+  const fallbackPendingCharacterCount = characters.filter((character) =>
+    needsGameAssetMigration(character.default_icon_url),
+  ).length
   const pendingAssetMigrationCount =
-    games.filter(needsGameIconMigration).length +
-    characters.filter((character) => needsGameAssetMigration(character.default_icon_url)).length
+    games.filter(needsGameIconMigration).length + (pendingCharacterAssetCount ?? fallbackPendingCharacterCount)
   // R65: the character tab always shows one game (no 모든 게임). Fall back to the first game while the list is still
   // loading or when the selected game was deleted; the rarity filter only offers the selected game's own ranks.
   const activeRarityFilter = getGameSchema(activeCharacterGameId).rarities.includes(characterRarityFilter) ? characterRarityFilter : ""
