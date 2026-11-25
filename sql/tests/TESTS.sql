@@ -128,6 +128,12 @@
 --                                  설정 행 없음 기본 true·expense_due_today=false 및 탈퇴 대기 사용자 제외.
 --   R107B-02 DB fixture 역할       EXPENSE_DUE_TODAY 푸시 선점·완료: 미구독/push_enabled=false -> SKIPPED,
 --                                  push_enabled=true+구독 보유 -> claim 반환 및 SENT 전이.
+--   R64    anon / B / admin        game_classification_icons 관리자 INSERT·UPSERT(updated_at 전진)·DELETE,
+--                                  일반 사용자·user_metadata 스푸핑 쓰기 거부(INSERT 42501·UPDATE/DELETE 0행)·anon 쓰기 거부,
+--                                  승인 게임 조회(anon/일반/관리자)·비승인 게임 차단(games_status_check + APPROVED RLS 정책 정의),
+--                                  CHECK(non-WebP·https·20,001자·axis_key·빈 옵션)·트리거(없는 축/옵션) 23514 메시지 단위 검증,
+--                                  옵션 순서 변경 유지·옵션 제거·축 제거 정리 및 게임 삭제 ON DELETE CASCADE.
+--   R80    authenticated / A       public.users.role=admin(JWT 없음) 분류 아이콘 쓰기 허용, 권한 회수 후 쓰기 거부(42501/0행).
 --   R85-01 DB fixture / B / admin  games.daily_reset_time 분 단위 CHECK, game_schedules/schedule_requests 시각·날짜·순서·분·예상 CHECK,
 --                                  approve_schedule_request 신규/수정 시각·예상 복사(+R84 알림 유지), 시각만 수정 시 예정 지출 날짜 불변, anon 조회.
 --   R107A-01 DB fixture 역할       generate_subscription_expenses_core 날짜 규칙 이식(MONTHLY_DAY 당월·말일 보정·지난 결제일 다음 달·확정 회차 건너뛰기·
@@ -3741,10 +3747,84 @@ END $$;
 -- User A's PENDING account deletion request (R13-07) is only needed up to R35; later blocks write as user A.
 DELETE FROM public.account_deletion_requests WHERE user_id = :'test_user_id'::uuid AND status_token_hash = repeat('a', 64);
 
--- R64 classification option icons: admin write, approved-game guest read, validation, and cleanup.
+-- R64 classification option icons (spec §7 + R80 amendment):
+-- admin CRUD/upsert/updated_at, non-admin & user_metadata spoof denial, anon write denial,
+-- approved/non-approved read scope, SQLSTATE+message-level CHECK/trigger negatives,
+-- reorder keep, option/axis removal cleanup, and game delete ON DELETE CASCADE.
 UPDATE public.games
 SET status = 'APPROVED'
 WHERE id = current_setting('chronoledger.r13_game_id')::uuid;
+
+INSERT INTO public.games (name, default_icon_url, status, classification_schema)
+VALUES (
+    'R64 Approved Test Game',
+    'https://example.invalid/r64-approved.webp',
+    'APPROVED',
+    '{
+        "rarities": ["5성"],
+        "axes": [
+            {"key": "element", "label": "속성", "options": ["불", "물", "바람", "번개"]},
+            {"key": "weapon", "label": "무기", "options": ["검", "활"]}
+        ]
+    }'::jsonb
+)
+RETURNING id AS r64_approved_game_id \gset
+SELECT set_config('chronoledger.r64_approved_game_id', :'r64_approved_game_id', true);
+
+-- Verify R64 CHECK constraints, non-approved game CHECK guard (games_status_check),
+-- and the two RLS policies (APPROVED-only public read + admin ALL).
+DO $$
+DECLARE
+    v_cnt INT;
+    v_read_qual TEXT;
+    v_admin_cmd CHAR(1);
+BEGIN
+    SELECT count(*) INTO v_cnt
+    FROM pg_constraint
+    WHERE conrelid = 'public.game_classification_icons'::regclass
+      AND convalidated = true
+      AND conname IN (
+          'chk_game_classification_icons_axis_key',
+          'chk_game_classification_icons_option',
+          'chk_game_classification_icons_icon'
+      );
+    IF v_cnt <> 3 THEN
+        RAISE EXCEPTION 'FAIL: R64 expected 3 validated CHECK constraints, got %', v_cnt;
+    END IF;
+
+    -- Schema enforces status = 'APPROVED' on public.games (so non-approved rows cannot exist directly);
+    -- verify both that CHECK and the APPROVED filter inside the Read icons of approved games RLS policy.
+    BEGIN
+        INSERT INTO public.games (name, default_icon_url, status)
+        VALUES ('R64 Pending Test Game', 'https://example.invalid/r64-pending.webp', 'PENDING');
+        RAISE EXCEPTION 'FAIL: R64 non-approved game row was unexpectedly accepted by public.games';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLSTATE <> '23514' OR SQLERRM NOT LIKE '%games_status_check%' THEN
+            RAISE EXCEPTION 'FAIL: R64 non-approved game unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
+    END;
+
+    SELECT pg_get_expr(polqual, polrelid) INTO v_read_qual
+    FROM pg_policy
+    WHERE polrelid = 'public.game_classification_icons'::regclass
+      AND polname = 'Read icons of approved games'
+      AND polcmd = 'r';
+    IF v_read_qual IS NULL OR v_read_qual NOT LIKE '%APPROVED%' THEN
+        RAISE EXCEPTION 'FAIL: R64 Read icons of approved games policy missing APPROVED filter (%)', v_read_qual;
+    END IF;
+
+    SELECT polcmd INTO v_admin_cmd
+    FROM pg_policy
+    WHERE polrelid = 'public.game_classification_icons'::regclass
+      AND polname = 'Admin manage classification icons';
+    IF v_admin_cmd IS DISTINCT FROM '*' THEN
+        RAISE EXCEPTION 'FAIL: R64 Admin manage classification icons policy expected cmd=*, got %', v_admin_cmd;
+    END IF;
+END;
+$$;
+
+-- §7-1: Admin (JWT app_metadata.role = admin) inserts icons (including exact 20,000-char boundary),
+-- upserts with updated_at advancing, and deletes an icon.
 SELECT set_config(
     'request.jwt.claims',
     jsonb_build_object(
@@ -3756,54 +3836,257 @@ SELECT set_config(
 );
 SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
 SET LOCAL ROLE authenticated;
+
 INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
-VALUES (
-    current_setting('chronoledger.r13_game_id')::uuid,
-    'element',
-    '불',
-    'data:image/webp;base64,' || repeat('A', 32)
-);
+VALUES
+    (current_setting('chronoledger.r13_game_id')::uuid, 'element', '불', 'data:image/webp;base64,' || repeat('A', 32)),
+    (current_setting('chronoledger.r64_approved_game_id')::uuid, 'element', '불', 'data:image/webp;base64,' || repeat('A', 32)),
+    (current_setting('chronoledger.r64_approved_game_id')::uuid, 'element', '물', 'data:image/webp;base64,' || repeat('B', 20000 - 23)),
+    (current_setting('chronoledger.r64_approved_game_id')::uuid, 'element', '바람', 'data:image/webp;base64,' || repeat('C', 32)),
+    (current_setting('chronoledger.r64_approved_game_id')::uuid, 'weapon', '검', 'data:image/webp;base64,' || repeat('D', 32)),
+    (current_setting('chronoledger.r64_approved_game_id')::uuid, 'weapon', '활', 'data:image/webp;base64,' || repeat('E', 32));
+-- Verify BEFORE INSERT and BEFORE UPDATE trigger enforces NEW.updated_at := NOW() even if caller supplies a stale timestamp.
 DO $$
+DECLARE
+    v_game_id UUID := current_setting('chronoledger.r64_approved_game_id')::uuid;
+    v_stale_ts TIMESTAMPTZ := NOW() - INTERVAL '1 hour';
+    v_new_ts TIMESTAMPTZ;
+    v_new_url TEXT;
+    v_deleted INT;
 BEGIN
+    INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url, updated_at)
+    VALUES (v_game_id, 'element', '불', 'data:image/webp;base64,' || repeat('Z', 32), v_stale_ts)
+    ON CONFLICT (game_id, axis_key, option_value)
+    DO UPDATE SET icon_data_url = EXCLUDED.icon_data_url, updated_at = v_stale_ts
+    RETURNING updated_at, icon_data_url INTO v_new_ts, v_new_url;
+
+    IF v_new_ts <= v_stale_ts OR v_new_ts <> NOW() OR v_new_url <> 'data:image/webp;base64,' || repeat('Z', 32) THEN
+        RAISE EXCEPTION 'FAIL: R64 admin upsert did not refresh updated_at to NOW() or update icon_data_url (stale=%, new=%)', v_stale_ts, v_new_ts;
+    END IF;
+
+    DELETE FROM public.game_classification_icons
+    WHERE game_id = v_game_id AND axis_key = 'weapon' AND option_value = '활';
+    GET DIAGNOSTICS v_deleted = ROW_COUNT;
+    IF v_deleted <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R64 admin delete expected 1 row, got %', v_deleted;
+    END IF;
+
+    -- Restore weapon/활 (with stale updated_at to verify BEFORE INSERT override too) for the axis-removal cleanup check below.
+    INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url, updated_at)
+    VALUES (v_game_id, 'weapon', '활', 'data:image/webp;base64,' || repeat('E', 32), v_stale_ts)
+    RETURNING updated_at INTO v_new_ts;
+    IF v_new_ts <= v_stale_ts OR v_new_ts <> NOW() THEN
+        RAISE EXCEPTION 'FAIL: R64 admin insert did not refresh updated_at to NOW() (stale=%, new=%)', v_stale_ts, v_new_ts;
+    END IF;
+END;
+$$;
+
+-- §7-5, §7-6, §7-8: Negative CHECK and validation-trigger assertions (SQLSTATE + message/constraint).
+DO $$
+DECLARE
+    v_game_id UUID := current_setting('chronoledger.r64_approved_game_id')::uuid;
+BEGIN
+    -- Unknown option -> validation trigger (23514, 'classification option not found').
     BEGIN
         INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
-        VALUES (
-            current_setting('chronoledger.r13_game_id')::uuid,
-            'element',
-            '없는 옵션',
-            'data:image/webp;base64,' || repeat('A', 32)
-        );
+        VALUES (v_game_id, 'element', '없는 옵션', 'data:image/webp;base64,' || repeat('A', 32));
         RAISE EXCEPTION 'FAIL: R64 invalid classification option accepted';
-    EXCEPTION WHEN check_violation THEN NULL;
+    EXCEPTION WHEN check_violation THEN
+        IF SQLSTATE <> '23514' OR SQLERRM <> 'classification option not found' THEN
+            RAISE EXCEPTION 'FAIL: R64 unknown option unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
     END;
+
+    -- Unknown axis -> validation trigger (23514, 'classification option not found').
     BEGIN
         INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
-        VALUES (
-            current_setting('chronoledger.r13_game_id')::uuid,
-            'element',
-            '물',
-            'https://example.invalid/icon.webp'
-        );
+        VALUES (v_game_id, 'unknown_axis', '불', 'data:image/webp;base64,' || repeat('A', 32));
+        RAISE EXCEPTION 'FAIL: R64 unknown axis accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLSTATE <> '23514' OR SQLERRM <> 'classification option not found' THEN
+            RAISE EXCEPTION 'FAIL: R64 unknown axis unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
+    END;
+
+    -- Invalid axis_key (uppercase/hyphen and >24 chars) -> rejected with 23514 (trigger runs before CHECK).
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (v_game_id, 'Bad-Key!', '불', 'data:image/webp;base64,' || repeat('A', 32));
+        RAISE EXCEPTION 'FAIL: R64 bad axis_key accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLSTATE <> '23514' OR (SQLERRM <> 'classification option not found' AND SQLERRM NOT LIKE '%chk_game_classification_icons_axis_key%') THEN
+            RAISE EXCEPTION 'FAIL: R64 bad axis_key unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
+    END;
+
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (v_game_id, 'a' || repeat('b', 24), '불', 'data:image/webp;base64,' || repeat('A', 32));
+        RAISE EXCEPTION 'FAIL: R64 overlong axis_key accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLSTATE <> '23514' OR (SQLERRM <> 'classification option not found' AND SQLERRM NOT LIKE '%chk_game_classification_icons_axis_key%') THEN
+            RAISE EXCEPTION 'FAIL: R64 overlong axis_key unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
+    END;
+
+    -- Blank/whitespace option_value -> rejected with 23514.
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (v_game_id, 'element', '   ', 'data:image/webp;base64,' || repeat('A', 32));
+        RAISE EXCEPTION 'FAIL: R64 blank option_value accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLSTATE <> '23514' OR (SQLERRM <> 'classification option not found' AND SQLERRM NOT LIKE '%chk_game_classification_icons_option%') THEN
+            RAISE EXCEPTION 'FAIL: R64 blank option_value unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
+    END;
+
+    -- Non-WebP Data URL -> chk_game_classification_icons_icon.
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (v_game_id, 'element', '물', 'data:image/png;base64,' || repeat('A', 32))
+        ON CONFLICT (game_id, axis_key, option_value)
+        DO UPDATE SET icon_data_url = EXCLUDED.icon_data_url;
         RAISE EXCEPTION 'FAIL: R64 non-WebP data URL accepted';
-    EXCEPTION WHEN check_violation THEN NULL;
+    EXCEPTION WHEN check_violation THEN
+        IF SQLSTATE <> '23514' OR SQLERRM NOT LIKE '%chk_game_classification_icons_icon%' THEN
+            RAISE EXCEPTION 'FAIL: R64 non-WebP data URL unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
     END;
+
+    -- External https:// URL -> chk_game_classification_icons_icon.
     BEGIN
         INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
-        VALUES (
-            current_setting('chronoledger.r13_game_id')::uuid,
-            'element',
-            '물',
-            'data:image/webp;base64,' || repeat('A', 20000)
-        );
-        RAISE EXCEPTION 'FAIL: R64 oversized icon accepted';
-    EXCEPTION WHEN check_violation THEN NULL;
+        VALUES (v_game_id, 'element', '물', 'https://example.invalid/icon.webp')
+        ON CONFLICT (game_id, axis_key, option_value)
+        DO UPDATE SET icon_data_url = EXCLUDED.icon_data_url;
+        RAISE EXCEPTION 'FAIL: R64 https URL accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLSTATE <> '23514' OR SQLERRM NOT LIKE '%chk_game_classification_icons_icon%' THEN
+            RAISE EXCEPTION 'FAIL: R64 https URL unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
     END;
+
+    -- Exact 20,001-char WebP Data URL -> chk_game_classification_icons_icon.
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (v_game_id, 'element', '물', 'data:image/webp;base64,' || repeat('A', 20001 - 23))
+        ON CONFLICT (game_id, axis_key, option_value)
+        DO UPDATE SET icon_data_url = EXCLUDED.icon_data_url;
+        RAISE EXCEPTION 'FAIL: R64 20001-char icon accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLSTATE <> '23514' OR SQLERRM NOT LIKE '%chk_game_classification_icons_icon%' THEN
+            RAISE EXCEPTION 'FAIL: R64 oversized icon unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
+    END;
+
+    -- §7-4 (admin): Admin can read all 5 icons of the test game.
+    IF (SELECT count(*) FROM public.game_classification_icons WHERE game_id = v_game_id) <> 5 THEN
+        RAISE EXCEPTION 'FAIL: R64 admin could not read approved game icons';
+    END IF;
 END;
 $$;
 RESET ROLE;
 
+-- §7-2, §7-4 (regular authenticated user): can read APPROVED game icons;
+-- INSERT fails with 42501 RLS, UPDATE and DELETE affect 0 rows.
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object(
+        'sub', current_setting('chronoledger.test_user_id'),
+        'role', 'authenticated'
+    )::text,
+    true
+);
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.test_user_id'), true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_approved_id UUID := current_setting('chronoledger.r64_approved_game_id')::uuid;
+    v_rows INT;
+BEGIN
+    IF (SELECT count(*) FROM public.game_classification_icons WHERE game_id = v_approved_id) <> 5 THEN
+        RAISE EXCEPTION 'FAIL: R64 regular user could not read approved-game icons';
+    END IF;
+
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (v_approved_id, 'element', '번개', 'data:image/webp;base64,' || repeat('X', 32));
+        RAISE EXCEPTION 'FAIL: R64 regular user INSERT succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN
+        IF SQLSTATE <> '42501' OR SQLERRM NOT LIKE '%row-level security%' THEN
+            RAISE EXCEPTION 'FAIL: R64 regular user INSERT unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
+    END;
+
+    UPDATE public.game_classification_icons
+    SET icon_data_url = 'data:image/webp;base64,' || repeat('X', 32)
+    WHERE game_id = v_approved_id AND axis_key = 'element' AND option_value = '불';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R64 regular user UPDATE affected % rows', v_rows;
+    END IF;
+
+    DELETE FROM public.game_classification_icons
+    WHERE game_id = v_approved_id AND axis_key = 'element' AND option_value = '불';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R64 regular user DELETE affected % rows', v_rows;
+    END IF;
+END;
+$$;
+RESET ROLE;
+
+-- §7-3 (R80-amended security boundary): user_metadata.role = 'admin' is NEVER accepted as admin.
+-- (Note: public.users.role = 'admin' without JWT is intentionally allowed since R80 and verified in the R80 block below.)
+SELECT set_config(
+    'request.jwt.claims',
+    jsonb_build_object(
+        'sub', current_setting('chronoledger.test_user_id'),
+        'role', 'authenticated',
+        'user_metadata', jsonb_build_object('role', 'admin')
+    )::text,
+    true
+);
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.test_user_id'), true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_approved_id UUID := current_setting('chronoledger.r64_approved_game_id')::uuid;
+    v_rows INT;
+BEGIN
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (v_approved_id, 'element', '번개', 'data:image/webp;base64,' || repeat('S', 32));
+        RAISE EXCEPTION 'FAIL: R64 user_metadata admin spoof INSERT succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN
+        IF SQLSTATE <> '42501' OR SQLERRM NOT LIKE '%row-level security%' THEN
+            RAISE EXCEPTION 'FAIL: R64 user_metadata spoof INSERT unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
+    END;
+
+    UPDATE public.game_classification_icons
+    SET icon_data_url = 'data:image/webp;base64,' || repeat('S', 32)
+    WHERE game_id = v_approved_id AND axis_key = 'element' AND option_value = '불';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R64 user_metadata spoof UPDATE affected % rows', v_rows;
+    END IF;
+
+    DELETE FROM public.game_classification_icons
+    WHERE game_id = v_approved_id AND axis_key = 'element' AND option_value = '불';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R64 user_metadata spoof DELETE affected % rows', v_rows;
+    END IF;
+END;
+$$;
+RESET ROLE;
+
+-- §7-4 (anon): reads APPROVED game icons (both r13 and r64_approved) and cannot write.
 SET LOCAL ROLE anon;
 DO $$
+DECLARE
+    v_approved_id UUID := current_setting('chronoledger.r64_approved_game_id')::uuid;
 BEGIN
     IF NOT EXISTS (
         SELECT 1
@@ -3814,10 +4097,26 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'FAIL: R64 approved-game anon read denied';
     END IF;
+
+    IF (SELECT count(*) FROM public.game_classification_icons WHERE game_id = v_approved_id) <> 5 THEN
+        RAISE EXCEPTION 'FAIL: R64 anon did not read all 5 approved-game icons';
+    END IF;
+
+    BEGIN
+        INSERT INTO public.game_classification_icons (game_id, axis_key, option_value, icon_data_url)
+        VALUES (v_approved_id, 'element', '불', 'data:image/webp;base64,' || repeat('N', 32));
+        RAISE EXCEPTION 'FAIL: R64 anon INSERT succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN
+        IF SQLSTATE <> '42501' OR SQLERRM NOT LIKE '%permission denied%' THEN
+            RAISE EXCEPTION 'FAIL: R64 anon INSERT unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
+    END;
 END;
 $$;
 RESET ROLE;
 
+-- §7-7: Cleanup trigger (reorder keeps all, option removal deletes only that option,
+-- axis removal deletes all icons of that axis) and game delete ON DELETE CASCADE.
 SELECT set_config(
     'request.jwt.claims',
     jsonb_build_object(
@@ -3827,10 +4126,86 @@ SELECT set_config(
     )::text,
     true
 );
+SELECT set_config('request.jwt.claim.sub', current_setting('chronoledger.other_user_id'), true);
 SET LOCAL ROLE authenticated;
+
+-- Reorder options on r64_approved_game_id: all 5 icons must be preserved.
+UPDATE public.games
+SET classification_schema = '{
+    "rarities": ["5성"],
+    "axes": [
+        {"key": "element", "label": "속성", "options": ["바람", "물", "불"]},
+        {"key": "weapon", "label": "무기", "options": ["활", "검"]}
+    ]
+}'::jsonb
+WHERE id = current_setting('chronoledger.r64_approved_game_id')::uuid;
+
+DO $$
+BEGIN
+    IF (SELECT count(*) FROM public.game_classification_icons WHERE game_id = current_setting('chronoledger.r64_approved_game_id')::uuid) <> 5 THEN
+        RAISE EXCEPTION 'FAIL: R64 option reorder dropped classification icons';
+    END IF;
+END;
+$$;
+
+-- Remove one option ('불') from element: only element/불 is deleted, remaining 4 stay.
+UPDATE public.games
+SET classification_schema = '{
+    "rarities": ["5성"],
+    "axes": [
+        {"key": "element", "label": "속성", "options": ["바람", "물"]},
+        {"key": "weapon", "label": "무기", "options": ["활", "검"]}
+    ]
+}'::jsonb
+WHERE id = current_setting('chronoledger.r64_approved_game_id')::uuid;
+
+DO $$
+DECLARE
+    v_game_id UUID := current_setting('chronoledger.r64_approved_game_id')::uuid;
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM public.game_classification_icons
+        WHERE game_id = v_game_id AND axis_key = 'element' AND option_value = '불'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R64 removed option icon was not cleaned';
+    END IF;
+    IF (SELECT count(*) FROM public.game_classification_icons WHERE game_id = v_game_id) <> 4 THEN
+        RAISE EXCEPTION 'FAIL: R64 removing one option affected unrelated icons';
+    END IF;
+END;
+$$;
+
+-- Remove the entire 'weapon' axis: both weapon icons are deleted, 2 element icons remain.
+UPDATE public.games
+SET classification_schema = '{
+    "rarities": ["5성"],
+    "axes": [
+        {"key": "element", "label": "속성", "options": ["바람", "물"]}
+    ]
+}'::jsonb
+WHERE id = current_setting('chronoledger.r64_approved_game_id')::uuid;
+
+DO $$
+DECLARE
+    v_game_id UUID := current_setting('chronoledger.r64_approved_game_id')::uuid;
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM public.game_classification_icons
+        WHERE game_id = v_game_id AND axis_key = 'weapon'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R64 removed axis icons were not cleaned';
+    END IF;
+    IF (SELECT count(*) FROM public.game_classification_icons WHERE game_id = v_game_id) <> 2 THEN
+        RAISE EXCEPTION 'FAIL: R64 removing weapon axis affected element icons';
+    END IF;
+END;
+$$;
+
+-- Keep original r13_game_id cleanup check and state expected by R80/R76 below.
 UPDATE public.games
 SET classification_schema = jsonb_set(classification_schema, '{axes,0,options}', '["물"]'::jsonb)
 WHERE id = current_setting('chronoledger.r13_game_id')::uuid;
+
 DO $$
 BEGIN
     IF EXISTS (
@@ -3845,7 +4220,22 @@ BEGIN
 END;
 $$;
 RESET ROLE;
-\echo PASS: R64 classification option icon validation, approved guest read, admin write, and schema cleanup
+
+-- Deleting the dedicated R64 game must cascade-delete all remaining classification icons.
+DELETE FROM public.games
+WHERE id = current_setting('chronoledger.r64_approved_game_id')::uuid;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM public.game_classification_icons
+        WHERE game_id = current_setting('chronoledger.r64_approved_game_id')::uuid
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R64 game deletion did not cascade-delete classification icons';
+    END IF;
+END;
+$$;
+\echo PASS: R64 classification option icon CRUD, RLS/read scope, SQLSTATE/message validation, cleanup, and CASCADE
 
 -- R80: an admin promoted only through public.users.role (no JWT app_metadata.role) can write icons;
 -- the same user without the role is denied by RLS.
@@ -3888,7 +4278,10 @@ BEGIN
         VALUES (current_setting('chronoledger.r13_game_id')::uuid, 'element', '물', 'data:image/webp;base64,' || repeat('C', 32))
         ON CONFLICT (game_id, axis_key, option_value) DO UPDATE SET icon_data_url = EXCLUDED.icon_data_url;
         RAISE EXCEPTION 'FAIL: R80 non-admin wrote a classification icon';
-    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    EXCEPTION WHEN insufficient_privilege THEN
+        IF SQLSTATE <> '42501' OR SQLERRM NOT LIKE '%row-level security%' THEN
+            RAISE EXCEPTION 'FAIL: R80 non-admin upsert unexpected error (% / %)', SQLSTATE, SQLERRM;
+        END IF;
     END;
 END;
 $$;

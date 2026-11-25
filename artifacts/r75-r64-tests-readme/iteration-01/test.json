@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "run_id": "r75-r64-tests-readme",
+  "iteration": 1,
+  "agent": "Claude Sonnet (Medium)",
+  "role": "dynamic-test",
+  "base_sha": "2d4317b8141a5543b09b1d277cd80f54c9e0cf4a",
+  "target_sha": "d35bf3c0e513a9e80cd51098b81dc5832634d347",
+  "status": "passed",
+  "created_at": "2026-11-26T05:00:00+00:00",
+  "finished_at": "2026-11-26T05:20:00+00:00",
+  "sandbox": "docker",
+  "redactions_applied": true,
+  "tests": [
+    {
+      "name": "Local DB fresh install: Target SCHEMA.sql, TESTS.sql run twice (54 PASS blocks each, incl. R64 and R80, ROLLBACK)",
+      "command": "docker exec supabase_db_chronoledger-local psql -f SCHEMA.sql / TESTS.sql x2",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Migration idempotency (no migration file changed in this Run)",
+      "command": "n/a (sql/migrations unchanged between Base and Target)",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript / ESLint / Vitest / next build (no src or package changes between Base and Target)",
+      "command": "npx tsc --noEmit; npm run lint; npx vitest run; npm run build",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": null
+    }
+  ]
+}
