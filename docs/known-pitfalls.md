@@ -45,7 +45,7 @@
     - 기준 계획은 Tauri v2이며 Phase 1 커밋은 v2 계열 의존성과 `com.chronoledger.app`을 사용한다. 플러그인 변경 후에도 `package.json`, Cargo 의존성, `tauri.conf.json`을 함께 확인하고 Tauri build/dev 검증을 다시 수행한다.
 
 15. **OAuth 딥링크 callback과 PKCE**
-    - 현재 `.worktrees/phase1-setup/src/lib/tauri-auth.ts`는 URL fragment의 access/refresh token만 읽는다. Supabase PKCE callback은 query의 `code`를 `exchangeCodeForSession()`으로 교환해야 한다. Tauri 앱이 딥링크로 처음 열릴 때는 `getCurrent()`를 확인하고, Windows/Linux의 실행 중 URL 이벤트는 single-instance 전달 설정을 확인한다.
+    - 2026-11-25 `t1-t4-desktop-and-followups`(`5e63007`)에서 해소함: 웹·Tauri 모두 PKCE, 콜백은 `src/lib/auth-adapter.ts` `completeOAuthCallbackUrl`이 query `code`만 교환함(해시·`setSession` 금지). 딥링크는 `getCurrent()` 1회 + `onOpenUrl`, Windows/Linux 실행 중 전달은 `tauri-plugin-single-instance`(`deep-link` 기능)를 `deep-link` 플러그인보다 먼저 등록해야 함. Supabase Redirect URLs에 `chronoledger://auth/callback` 등록이 빠지면 데스크톱 로그인이 실패함.
 
 16. **중복 로그인 경로**
     - `/`와 `/auth` 로그인 UI의 OAuth 처리 방식이 다르면 사용자가 어느 경로에 도착하는지에 따라 데스크톱 인증이 달라진다. 인증 진입을 통합하고 `/auth/callback`이 로그인 폼을 다시 보여주지 않는지 확인한다.

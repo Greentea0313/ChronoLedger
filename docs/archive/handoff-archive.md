@@ -6,6 +6,45 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 📥 `t1-t4-desktop-and-followups` 명세 확정·요구사항 접수 기록 (2026-11-25, `docs/handoff.md`에서 이관)
+
+##### 📝 `T1`~`T4` 및 선택 후속 명세 확정 기록 (Gemini 4 Carbon `High`, 2026-11-25)
+
+1. **사용자 확정 결정 (`D1`~`D5`)**: ① 웹·Tauri 모두 PKCE(`flowType: 'pkce'` + `exchangeCodeForSession`)로 단일 통일하고 해시 토큰(`implicit`/`setSession`) 경로를 제거함(Supabase Redirect URLs에 `chronoledger://auth/callback` 등록), ② `R106-REV-002`(SQL, 🐳) + `R101-REV-001` + `R106-REV-001` + `T1`~`T4`를 단일 Run `t1-t4-desktop-and-followups`로 묶어 단계별 진행하고 `DashboardLayout` `[로그아웃]` 클릭 시 `/auth`로 복귀함, ③ `R101-REV-001`은 해당 월 취소·환불(`CANCELLED`) 구독 회차의 `template_id`를 `coveredTemplateIds`에 포함해 당월 고정비 예정에서 제외함(익월은 유지), ④ `R106-REV-001`은 알림함 헤더 `[전체 삭제]` 인라인 2단계 확인(`[삭제 확인]`/`[취소]`) 적용, `R106-REV-002`는 `complete_push_notification_delivery`에서 알림 행 부재 시 `no_data_found` 예외 대신 만료/성공 엔드포인트 갱신 후 조용히 `RETURN`하도록 이번 Run SQL Step에 포함함.
+2. **단계 배정 요약 (명세 §3)**: Step 1 **GPT Codex**(Fallback: `Gemini 4 Neon (High)` / `Claude Opus (High)`, 🐳 `R106-REV-002` SQL + `R101-REV-001` 예산 도메인) → Step 2 **Gemini 4 Neon (`High`)**(Fallback: `Claude Opus (High)`, `T1`~`T4` Auth Adapter·Tauri `single-instance`/`deep-link`·로그아웃 복귀·`R106-REV-001` UI·프로덕션 빌드) → Step 3 **Claude Opus (`High`)**(Fallback: `Gemini 4 Carbon (High)`, 통합 정적 리뷰·🐳 로컬 DB 게이트·`cargo check`·`main` 병합·마감).
+
+##### 📥 요구사항 접수 기록 (`T1`~`T4` Windows 데스크톱 통합 및 정책 판단 필요 후속 — `Gemini 4 Hydrogen` 접수, 2026-11-25)
+
+1. **요청 요지**: Docker 없이 진행 가능한 선택 후속과 Windows 데스크톱 통합(`T1`~`T4`)을 병행 진행하고자 함.
+2. **에스컬레이션 사유 (`.agents/rules/collaboration.md` §1~§2)**:
+   - `T1`~`T4`는 웹/Tauri auth adapter 분리, Tauri v2 custom scheme(`chronoledger://`) 외부 브라우저 OAuth 콜백·single-instance plugin 연동 등 **인증/세션 보안 경계** 및 **3개 이상 모듈**에 걸치며, 상세 설계 문서가 아직 없음 (`Carbon` 승격 조건 ①·②).
+   - `R101-REV-001`(취소된 구독 회차의 고정비 표시 정책)과 `R106-REV-001·002`(`'전체 삭제'` 확인 UI·워커 점유 중 삭제 시 SQL 예외 처리)는 제품·SQL 판단이 필요함.
+3. **확정·결정이 필요한 사항**:
+   - `T1`~`T4`: OAuth flow(PKCE vs implicit·딥링크 state/토큰 검증), `single-instance` 플러그인 연동 시 콜백 URL 전달·세션 복구·로그아웃 복귀 수용 기준 및 Run 분할.
+   - `R101-REV-001`: 취소된 같은 달 `template_id`를 `coveredTemplateIds`에 포함할지 여부.
+   - `R106-REV-001·002`: `'전체 삭제'` 확인 단계 또는 로드 범위 한정 여부, `complete_push_notification_delivery` `no_data_found` 무시 처리 여부.
+4. **관련 파일·문서**: `docs/to-do.md` `T1`~`T4`·`R101-REV-001`·`R106-REV-001·002`, `src/lib/supabase/client.ts`, `src/app/auth/`, `src-tauri/src/lib.rs`, `src-tauri/tauri.conf.json`.
+
+### 🗂️ 직전 완료 Run 기록: `r107b-due-today-notification` *(`R107-B` 오늘 결제 예정 알림 `EXPENSE_DUE_TODAY`)*
+
+- **Run ID**: `r107b-due-today-notification` **(완료, `main` 병합 `a84c6de`, 문서 마감 2026-11-25)** · **Orchestrator**: Gemini 4 Hydrogen *(등록)* · Claude Sonnet `Medium` *(Step 3 리뷰·병합·마감)*
+- **Worktree 경로**: `.worktrees/r107b-due-today-notification` (브랜치 `collab/r107b-due-today-notification`, 매니페스트 `artifacts/r107b-due-today-notification/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `a6f14cc2b519bfba97c06c804082378b1c623558` · **Target SHA**: `74bece6ecbdc81a81b6b19610852ae18d4b4458e` *(산출물 `0589844`, `main` 병합 `a84c6de`)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`, `SCHEMA.sql`). **운영 DB 적용 및 확인 쿼리 3종 검증 완료(사용자, 2026-11-25)**. 미적용 상태에서도 설정 UI는 `42703`/`PGRST204` 폴백으로 토글만 숨김.
+
+| 순서 | 상태 | 담당 모델 (Level) | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: 2e325cf)`** | **Gemini 4 Neon (`High`)** | `Maker (SQL/Migration/Tests)` | 마이그레이션·`SCHEMA.sql`·README·`TESTS.sql` `R107B-01~02`. 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 49개 PASS |
+| **2** | **`✅ DONE (SHA: 74bece6)`** | **Gemini 4 Hydrogen (`Medium`)** | `Maker (설정 UI·타입 & Vitest)` | `'오늘 결제 예정'` 토글·컬럼 미적용 폴백·`database.types.ts`·테스트 3건, Vitest 1,037개 통과 |
+| **3** | **`✅ DONE (SHA: 0589844, 병합 a84c6de)`** | **Claude Sonnet (`Medium`)** | `Reviewer & Orchestrator` | 정적 리뷰 `clean`(발견 0건), `tsc`·`lint`·Vitest 76파일/1,037개·`build`(더미 환경변수) 통과, 🐳 로컬 업그레이드(Base 스키마→마이그레이션)·신규 설치 2경로 각 2회 멱등·확인 쿼리 3종·`TESTS.sql` 49개 PASS, `main` 병합 `a84c6de`(미push) |
+
+#### 📝 `r107b-due-today-notification` 핵심 요약 (2026-11-25)
+
+- **구현**: `notifications_kind_check`에 `'EXPENSE_DUE_TODAY'` 추가, `notification_settings.expense_due_today`(기본 true) 추가, `enqueue_daily_notifications()` 4번 절(오늘 KST `PLANNED` 지출 사용자·일자당 1건 요약, 금액·항목명·메모 비노출, 탈퇴 대기·옵트아웃 제외, `ON CONFLICT DO NOTHING`), 설정 UI 토글과 미적용 컬럼 폴백.
+- **리뷰 메모**: `R107-C`에서 `auto_confirm_blocked` 컬럼 추가 시 4번 절 집계 조건 재검토 필요(명세 §5.1-2). `R107-C` 적용 후 이 마이그레이션을 재실행하면 `MIGRATION_R107C_AUTO_CONFIRM.sql`도 재실행해야 함(README 기재).
+- **검증 환경 메모**: 워크트리에 `.env.local`이 없어 `build`는 더미 `NEXT_PUBLIC_SUPABASE_*` 환경변수로 실행함. 로컬 DB 재설정 시 `storage.objects` 정책도 함께 제거해야 `SCHEMA.sql`이 끝까지 적용됨. `validate_collaboration_artifact.py`는 `jsonschema` 설치 필요(`pip install --user jsonschema`로 설치함).
+- **남은 일**: 앱 배포(`main` push) → 사용자 지목 시 `R107-C`.
+
 ### 🗂️ 직전 완료 Run 기록: `r107a-server-subscription-generation` *(`R107-A` 서버 측 정기 지출 생성 통일)*
 
 - **Run ID**: `r107a-server-subscription-generation` **(완료, `main` 병합 `7aa2984`, 문서 마감 2026-11-25)** · **Orchestrator**: Claude Opus *(등록)* · Gemini 4 Hydrogen *(Step 4 마감)*

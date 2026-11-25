@@ -74,7 +74,7 @@ python scripts/collaboration/validate_collaboration_artifact.py --artifact <json
 **Single Next.js 14 App Router codebase → static export (`output: 'export'`, `images.unoptimized`)**. With no server runtime, all pages are client components, and the backend is entirely Supabase (Auth / PostgreSQL+RLS / Storage / pg_cron). The identical `out/` build output is utilized across three environments:
 
 - **Web/PWA**: Hosted on Cloudflare Pages (`public/_headers`, `public/_redirects`). `public/sw.js` manages the app shell + per-user Supabase read cache, cleared via `CLEAR_CACHES` message upon logout. Bump `SHELL_CACHE` version (`chronoledger-shell-vN`) when shell assets change.
-- **Desktop**: `src-tauri/` (Tauri v2, `frontendDist: ../out`). Auth uses `implicit` flow + deep links (`src/lib/tauri-auth.ts`) in Tauri, and `pkce` flow in browsers.
+- **Desktop**: `src-tauri/` (Tauri v2, `frontendDist: ../out`). Auth uses the `pkce` flow on both web and Tauri (`src/lib/auth-adapter.ts`); Tauri receives the `chronoledger://auth/callback` deep link via `src/lib/tauri-auth.ts` and `tauri-plugin-single-instance`.
 - **Account Deletion**: Handled without server functions via Supabase `SECURITY DEFINER` RPCs (`request_account_deletion`, `get_account_deletion_status`) + `pg_cron` 5-minute cleanup job (`sql/SCHEMA.sql`, or `sql/migrations/MIGRATION_PG_CRON.sql`). Legacy Netlify Functions have been eliminated.
 
 ### Code Structure

@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-11-25 (Run `t1-t4-desktop-and-followups` 병합 `5e63007` — 데스크톱 PKCE 로그인·딥링크, `R101-REV-001`, `R106-REV-001·002`)
+
+- **데스크톱 로그인 PKCE 통일**: 웹과 Windows 데스크톱(Tauri) 모두 PKCE(`code` 교환) 한 가지 방식으로 Google 로그인함. 데스크톱의 해시 토큰(`#access_token`) 경로를 없애고, 외부 브라우저로 여는 인증 주소는 설정된 Supabase 주소(`https:`)일 때만 엶. 플랫폼 차이는 새 `src/lib/auth-adapter.ts`가 맡음.
+- **딥링크·단일 인스턴스**: `chronoledger://auth/callback`으로 돌아오면 실행 중인 앱 창이 앞으로 오고 로그인이 이어짐(`tauri-plugin-single-instance`). 앱이 꺼진 상태에서 링크로 열려도 처리함. 로그인 취소·오류는 로그인 화면 안내로 보여줌.
+- **로그아웃 복귀**: 상단바 `[로그아웃]` 후 로그인 화면(`/auth`)으로 이동함. 데스크톱에서는 서비스 워커를 등록하지 않음.
+- **예산 비교 보정 (`R101-REV-001`)**: 이번 달 회차를 취소·환불한 월간 구독은 이번 달 고정 구독 예정액에 다시 잡히지 않음(다음 달은 그대로 예측).
+- **알림함 전체 삭제 확인 (`R106-REV-001`)**: `[전체 삭제]`를 누르면 `[삭제 확인]`/`[취소]`를 한 번 더 거침.
+- **푸시 완료 처리 보정 (`R106-REV-002`)**: 푸시 발송 중 사용자가 알림을 지워도 `complete_push_notification_delivery`가 오류 없이 끝나고 만료 구독 정리·성공 시각 갱신은 그대로 함. **운영 DB 수동 적용**(`MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql`) 필요함.
+- **배포 전 사용자 설정**: Supabase Redirect URLs에 `chronoledger://auth/callback` 등록 필요함(미등록 시 데스크톱 Google 로그인 실패). Rust 빌드(`cargo check`·`tauri build`)와 Windows 실기기 확인은 아직 안 함.
+- **협업 산출물**: `artifacts/t1-t4-desktop-and-followups/iteration-01/`(`review.json` P4 3건 비차단, `test.json` 로컬 DB 2경로·`TESTS.sql` 49개 통과, Rust 검사 `skipped`).
+
 ## 2026-11-25 (Run `r107b-due-today-notification` 병합 `a84c6de` — `R107-B` 오늘 결제 예정 알림)
 
 - **`EXPENSE_DUE_TODAY` 요약 알림**: 매일 오전 9시(KST) 일일 알림 배치에서 오늘이 예정일인 `PLANNED` 지출이 있는 사용자에게 `'오늘 결제 예정 N건'` 알림을 사용자·일자당 1건 생성함. 금액·항목명·메모는 알림에 표시하지 않으며, 탈퇴 대기·옵트아웃 사용자는 제외함. 기존 `EXPENSE_D1`(전날 예고)은 그대로 유지함.
