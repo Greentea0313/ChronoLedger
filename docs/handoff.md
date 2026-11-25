@@ -92,32 +92,6 @@
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*
 
-#### 🧩 병행 Run: `r108-review-followups-p4` *(P4 선택 후속 3건: `R39-REV-01`·`R96-REV-05`·`R97-REV-001`)*
-
-- **Run ID**: `r108-review-followups-p4` · **Orchestrator**: Gemini 4 Hydrogen *(2026-11-25 등록)*
-- **Worktree 경로**: `.worktrees/r108-review-followups-p4` (브랜치 `collab/r108-review-followups-p4`, 매니페스트 `artifacts/r108-review-followups-p4/run.json`)
-- **Base SHA**: `6c95c0e9b50a72042d5da0448fc0d17d4960b637` · **Target SHA**: `a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9` *(Step 1 완료 기준, 미병합)*
-- **DB 변경**: 없음 (🐳 Docker 불필요)
-
-| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
-| :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (P4 선택 후속 3건 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/types/database.types.ts`, `src/lib/web-push-crypto.test.ts`, `supabase/functions/send-notifications/index.ts`, `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ a1a4ceb`: `R39-REV-01`·`R96-REV-05`·`R97-REV-001` 반영 및 테스트 2건 추가. `tsc`·`lint`·`diff-check`·Vitest 76파일/1,028개 통과 (아래 완료 기록 참고) |
-| **2** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback 1: Gemini 4 Neon (`High`) / Claude Opus (`High`))* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`6c95c0e9b50a72042d5da0448fc0d17d4960b637`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `tsc`·`lint`·`vitest`·`next build`)·`main` 병합·문서 마감 | `▶ Step 1 완료(a1a4ceb). Base 6c95c0e ↔ Target a1a4ceb` |
-
-##### 📋 `r108-review-followups-p4` Step 1 수용 기준
-
-1. **`R39-REV-01`**: `src/types/database.types.ts`의 `notification_settings.Update.user_id`를 선택(`user_id?: string`)으로 맞춤.
-2. **`R96-REV-05`**: `src/lib/web-push-crypto.test.ts`에 RFC 8291 부록 A 고정 벡터 검증 테스트 추가(및 `send-notifications` 워커 암호화 로직 동등성 확인).
-3. **`R97-REV-001`**: `src/lib/tauri-notifications.ts`에서 권한 질의(`ensurePermission()`) IPC 예외 시 `seenIds`를 되돌리거나 권한 확인 성공 뒤에 저장하도록 보완(직렬화 큐 유지) 및 `tauri-notifications.test.ts` 테스트 추가.
-4. **검증 및 커밋**: `npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check` 통과 후 워크트리 커밋, `Target SHA` 기록 및 Step 2(`Claude Sonnet`) `▶ READY` 전환.
-
-##### 📝 `r108-review-followups-p4` Step 1 완료 기록 (Gemini 4 Hydrogen `Medium`, 2026-11-25)
-
-- **Target SHA**: `a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9` (워크트리 브랜치 `collab/r108-review-followups-p4`, 미병합·원격 push 안 함). 변경 파일(4개): `src/types/database.types.ts`, `src/lib/web-push-crypto.test.ts`, `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts` (`run.json` 미수정).
-- **반영 내용**: ① `R39-REV-01`: `notification_settings.Update.user_id`를 선택(`"user_id"?: string`)으로 수정함. ② `R96-REV-05`: RFC 8291 Appendix A 공식 테스트 벡터(고정 `ua_private`/`as_private`/`salt`/`auth_secret`·`140B` 암호문)로 `decryptWebPushPayload` 복호화 및 Edge Function `handleSendNotificationsRequest` 출력 바이너리 비트 단위 일치를 검증하는 테스트를 추가함. ③ `R97-REV-001`: `tauri-notifications.ts`에서 `ensurePermission()` 성공 뒤에 `saveSeenIds()`를 호출하도록 순서를 조정해 IPC 예외 시 다음 폴링에서 재시도되도록 보완하고 단위 테스트를 추가함(직렬화 큐 유지).
-- **검증**: 워크트리에서 `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `git diff --check`, `npx vitest run`(76파일 / 1,028개 통과) 확인함.
-- **다음 단계**: Step 2(`Claude Sonnet (Medium)`, Base `6c95c0e` ↔ Target `a1a4ceb` 정적 리뷰·`next build` 포함 검증·`main` 병합·문서 마감) `▶ READY`임.
-
 #### 📐 Chief Architect 구체화 대기 (`T1`~`T4` Windows 데스크톱 통합 및 `R101-REV-001` · `R106-REV-001·002`)
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
@@ -149,21 +123,39 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 | `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R101-REV-001`·`R106-REV-001·002` (`📐 SPEC_NEEDED` 접수) | `docs/to-do.md` 해당 항목 |
-| `R108` (`R39/96/97-REV`) | **진행 중 · 병행 활성 Run (`r108-review-followups-p4`)** | P4 선택 후속 3건(`R39-REV-01`·`R96-REV-05`·`R97-REV-001`) — Step 1 완료(`a1a4ceb`), Step 2(`Claude Sonnet Medium`) `▶ READY`, DB 변경 없음 | 위 병행 Run 표, `docs/to-do.md` 해당 항목 |
+| `R108` (`R39/96/97-REV`) | 완료 (`r108-review-followups-p4`, `main` 병합 `32ea55d`, 2026-11-25) | P4 선택 후속 3건 반영 완료. 선택 후속 `R108-REV-001`(P4)이 `docs/to-do.md`에 있음 | 아래 직전 완료 Run 기록 |
 | `T1`~`T4` | **`📐 SPEC_NEEDED`** | Windows Tauri 데스크톱 통합(auth adapter, custom scheme OAuth, single-instance, prod 빌드) — `Gemini 4 Carbon (High)` 명세 대기 | 위 `📐 Chief Architect 구체화 대기`, `docs/to-do.md` `T1`~`T4` |
 
-### 🗂️ 직전 완료 Run 기록: 협업 규칙 보정 (Antigravity Gemini 공용 한도 및 Cross-Pool 대체 체인 정정, `main` 직접, 2026-11-25)
+### 🗂️ 직전 완료 Run 기록: `r108-review-followups-p4` *(P4 선택 후속 3건: `R39-REV-01`·`R96-REV-05`·`R97-REV-001`)*
 
-- **과제 구분**: 협업 규칙 보정 — Antigravity 실제 쿼터 구조(Gemini 공용 한도) 반영 및 토큰 소진 대체 체인 정정 (`main` 직접, 문서 전용, 🐳 불필요)
+- **Run ID**: `r108-review-followups-p4` **(완료, `main` 병합 `32ea55d`, 2026-11-25)** · **Orchestrator**: Gemini 4 Hydrogen *(2026-11-25 등록)*
+- **Worktree 경로**: `.worktrees/r108-review-followups-p4` (브랜치 `collab/r108-review-followups-p4`, 매니페스트 `artifacts/r108-review-followups-p4/run.json`)
+- **Base SHA**: `6c95c0e9b50a72042d5da0448fc0d17d4960b637` · **Target SHA**: `a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9` *(Step 1 완료 기준, `main` 병합 완료)*
+- **DB 변경**: 없음 (🐳 Docker 불필요)
 
-| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (2026-11-25)`** | **Gemini 4 Argon (`High`)** *(사용자 지정. Fallback: Gemini 4 Carbon (`High`) / Claude Opus (`High`))* | `Chief Architect (협업 규칙 보정 검토·결정·반영)` | 요구사항 접수 기록의 조사 결과를 검토해 ① 쿼터 설명 정정(`Gemini Models` 주간+5시간 공용 한도) ② 토큰 소진 시 같은 쿼터 묶음 건너뛰기 대체 규칙(Cross-Pool Fallback) ③ 도구 UI 기본 추론 수준(`Medium`) 선택 안내 및 `flash_lite`/`inherit`·`GPT-OSS 120B` 정리를 질문 카드로 확정·반영하고 과제를 마감함 | `✅` 질문 카드 3건 확정, `.agents/rules/collaboration.md`·`handoff/SKILL.md`(`.claude/skills/` 동기화)·`docs/collaboration-guide.md` 반영 및 마감 |
+| **1** | **`✅ DONE (SHA: a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (P4 선택 후속 3건 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/types/database.types.ts`, `src/lib/web-push-crypto.test.ts`, `supabase/functions/send-notifications/index.ts`, `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ a1a4ceb`: `R39-REV-01`·`R96-REV-05`·`R97-REV-001` 반영 및 테스트 2건 추가. `tsc`·`lint`·`diff-check`·Vitest 76파일/1,028개 통과 (아래 완료 기록 참고) |
+| **2** | **`✅ DONE (SHA: 67fc9bf)`** | **Claude Sonnet (`Medium`)** *(Fallback 1: Gemini 4 Neon (`High`) / Claude Opus (`High`))* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`6c95c0e9b50a72042d5da0448fc0d17d4960b637`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `tsc`·`lint`·`vitest`·`next build`)·`main` 병합·문서 마감 | `✅ 67fc9bf`: P4 1건(비차단)·산출물 검증 통과, `main` 병합 `32ea55d` (아래 Step 2 완료 기록 참고) |
 
-#### 📝 협업 규칙 보정 완료 기록 (Gemini 4 Argon, 2026-11-25)
+#### 📋 `r108-review-followups-p4` Step 1 수용 기준
 
-1. **사용자 질문 카드 확정 및 반영 사항**:
-   - **Gemini 공용 한도(`Gemini Models` 주간+5시간 공용) 명시**: `Hydrogen`·`Neon`·`Carbon` 3종이 Antigravity에서 같은 `Gemini Models` 한도를 공유함을 반영하고, `Hydrogen (Medium)` 기본 사용 사유를 **"공용 한도의 턴당 차감량 절약 및 응답 속도 최적화"**로 정정함.
-   - **난이도 승격과 한도 소진 대체(Cross-Pool Quota Fallback) 분리**: Gemini 공용 한도 소진 시 `Hydrogen`·`Neon`·`Carbon`이 동시에 멈추므로, 한도 소진 인계(`⚠️ HANDOVER_NEEDED`)에서는 같은 쿼터 풀을 건너뛰고 즉시 다른 쿼터 풀(`Hydrogen` $\to$ `Claude Sonnet (Medium)` / `GitHub Copilot`, `Neon` $\to$ `Claude Opus (High)` / `GPT Codex`, `Carbon` $\to$ `Claude Opus (High)`)로 넘기도록 `.agents/rules/collaboration.md` §1 및 `.agents/skills/handoff/SKILL.md` §3을 정정함.
-   - **도구 UI 추론 수준 선택 안내 및 기타 정리**: Antigravity 모델 선택기 초기값이 `Medium`이므로 `High`/`XHigh` 모델로 인계·전환 안내 시 **`"도구에서 High(또는 XHigh) 선택"`**을 병기하도록 `collaboration.md` §1·`handoff/SKILL.md` §1.8·§3에 명시함. `Model: "flash_lite"`/`"inherit"`는 `invoke_subagent` 내부 도구 파라미터 enum임을 명시하고, `GPT-OSS 120B (Medium)`는 주력 6대 모델 외 비상 백업 참고로만 기록함.
-2. **검증**: `Sync-Skills.ps1` 동기화 및 `Sync-Skills.ps1 -Check` 통과, `git diff --check` 통과.
+1. **`R39-REV-01`**: `src/types/database.types.ts`의 `notification_settings.Update.user_id`를 선택(`user_id?: string`)으로 맞춤.
+2. **`R96-REV-05`**: `src/lib/web-push-crypto.test.ts`에 RFC 8291 부록 A 고정 벡터 검증 테스트 추가(및 `send-notifications` 워커 암호화 로직 동등성 확인).
+3. **`R97-REV-001`**: `src/lib/tauri-notifications.ts`에서 권한 질의(`ensurePermission()`) IPC 예외 시 `seenIds`를 되돌리거나 권한 확인 성공 뒤에 저장하도록 보완(직렬화 큐 유지) 및 `tauri-notifications.test.ts` 테스트 추가.
+4. **검증 및 커밋**: `npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check` 통과 후 워크트리 커밋, `Target SHA` 기록 및 Step 2(`Claude Sonnet`) `▶ READY` 전환.
+
+#### 📝 `r108-review-followups-p4` Step 1 완료 기록 (Gemini 4 Hydrogen `Medium`, 2026-11-25)
+
+- **Target SHA**: `a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9` (워크트리 브랜치 `collab/r108-review-followups-p4`, 미병합·원격 push 안 함). 변경 파일(4개): `src/types/database.types.ts`, `src/lib/web-push-crypto.test.ts`, `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts` (`run.json` 미수정).
+- **반영 내용**: ① `R39-REV-01`: `notification_settings.Update.user_id`를 선택(`"user_id"?: string`)으로 수정함. ② `R96-REV-05`: RFC 8291 Appendix A 공식 테스트 벡터(고정 `ua_private`/`as_private`/`salt`/`auth_secret`·`140B` 암호문)로 `decryptWebPushPayload` 복호화 및 Edge Function `handleSendNotificationsRequest` 출력 바이너리 비트 단위 일치를 검증하는 테스트를 추가함. ③ `R97-REV-001`: `tauri-notifications.ts`에서 `ensurePermission()` 성공 뒤에 `saveSeenIds()`를 호출하도록 순서를 조정해 IPC 예외 시 다음 폴링에서 재시도되도록 보완하고 단위 테스트를 추가함(직렬화 큐 유지).
+- **검증**: 워크트리에서 `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `git diff --check`, `npx vitest run`(76파일 / 1,028개 통과) 확인함.
+- **다음 단계**: Step 2(`Claude Sonnet (Medium)`, Base `6c95c0e` ↔ Target `a1a4ceb` 정적 리뷰·`next build` 포함 검증·`main` 병합·문서 마감) `▶ READY`임.
+
+#### 📝 `r108-review-followups-p4` Step 2 완료 기록 (Claude Sonnet `Medium`, 2026-11-25)
+
+- **리뷰 범위**: Base `6c95c0e9b50a72042d5da0448fc0d17d4960b637` ↔ Target `a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9`(범위 확인: Target이 워크트리 `HEAD`의 조상이고 `src`·`sql` 차이 없음). 구현 4개 파일이며 `sql/`·`supabase/` 변경이 없어 로컬 DB 게이트 대상이 아님.
+- **정적 리뷰 (`findings`, P4 1건·비차단)**: `R39-REV-01`(`notification_settings.Update.user_id` 선택화)은 `Insert`와 달리 `Update`만 바꿔 올바름. `R97-REV-001`은 `saveSeenIds`를 권한 확인 성공 뒤로 옮겨 권한 질의 예외 시 다음 폴링에서 재시도되며(직렬화 큐 유지), 새 테스트가 예외→재시도 흐름을 검증함. `R96-REV-05`는 RFC 8291 부록 A 고정 벡터로 복호화와 Edge Function 출력의 바이트 단위 일치를 검증해 암호화 로직 동등성을 확인함. `R108-REV-001`(P4): 이 벡터 테스트가 `crypto.getRandomValues`(첫 호출이 salt라는 가정)·`crypto.subtle.generateKey`·`JSON.stringify`를 전역 스파이로 바꿔 구현 세부에 결합돼 있어, 워커가 salt 앞에 난수를 더 뽑거나 키를 추가 생성하면 암호 회귀 없이 테스트가 깨지거나 약해질 수 있음(테스트 전용). 선택 후속으로 `to-do.md`에 등록함.
+- **검증 (리뷰어가 Target에서 직접 재실행)**: `tsc --noEmit`·`npm run lint`·`git diff --check` 통과, Vitest 76파일 1,028개 통과, `npm run build` 통과(워크트리에 `.env.local`이 없어 더미 Supabase 환경변수로 실행). Windows 실기기 토스트 육안 확인은 하지 않음(`skipped`).
+- **산출물**: `artifacts/r108-review-followups-p4/iteration-01/review.json`·`test.json`(스키마 검증 통과)과 `run.json` `target_sha` 갱신, 산출물 커밋 `67fc9bf`. `main` 병합 `32ea55d`(`--no-ff`, 병합 후 `tsc`·관련 테스트 16개 재확인, 미push).
+- **다음 단계**: 이 Run은 마감함. 남은 활성 Run은 `r107a-server-subscription-generation`임.

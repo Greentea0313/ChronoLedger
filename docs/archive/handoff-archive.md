@@ -6,6 +6,22 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 이전 Run 기록 (완료): 협업 규칙 보정 (Antigravity Gemini 공용 한도 및 Cross-Pool 대체 체인 정정, `main` 직접, 2026-11-25)
+
+- **과제 구분**: 협업 규칙 보정 — Antigravity 실제 쿼터 구조(Gemini 공용 한도) 반영 및 토큰 소진 대체 체인 정정 (`main` 직접, 문서 전용, 🐳 불필요)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (2026-11-25)`** | **Gemini 4 Argon (`High`)** *(사용자 지정. Fallback: Gemini 4 Carbon (`High`) / Claude Opus (`High`))* | `Chief Architect (협업 규칙 보정 검토·결정·반영)` | 요구사항 접수 기록의 조사 결과를 검토해 ① 쿼터 설명 정정(`Gemini Models` 주간+5시간 공용 한도) ② 토큰 소진 시 같은 쿼터 묶음 건너뛰기 대체 규칙(Cross-Pool Fallback) ③ 도구 UI 기본 추론 수준(`Medium`) 선택 안내 및 `flash_lite`/`inherit`·`GPT-OSS 120B` 정리를 질문 카드로 확정·반영하고 과제를 마감함 | `✅` 질문 카드 3건 확정, `.agents/rules/collaboration.md`·`handoff/SKILL.md`(`.claude/skills/` 동기화)·`docs/collaboration-guide.md` 반영 및 마감 |
+
+#### 📝 협업 규칙 보정 완료 기록 (Gemini 4 Argon, 2026-11-25)
+
+1. **사용자 질문 카드 확정 및 반영 사항**:
+   - **Gemini 공용 한도(`Gemini Models` 주간+5시간 공용) 명시**: `Hydrogen`·`Neon`·`Carbon` 3종이 Antigravity에서 같은 `Gemini Models` 한도를 공유함을 반영하고, `Hydrogen (Medium)` 기본 사용 사유를 **"공용 한도의 턴당 차감량 절약 및 응답 속도 최적화"**로 정정함.
+   - **난이도 승격과 한도 소진 대체(Cross-Pool Quota Fallback) 분리**: Gemini 공용 한도 소진 시 `Hydrogen`·`Neon`·`Carbon`이 동시에 멈추므로, 한도 소진 인계(`⚠️ HANDOVER_NEEDED`)에서는 같은 쿼터 풀을 건너뛰고 즉시 다른 쿼터 풀(`Hydrogen` $\to$ `Claude Sonnet (Medium)` / `GitHub Copilot`, `Neon` $\to$ `Claude Opus (High)` / `GPT Codex`, `Carbon` $\to$ `Claude Opus (High)`)로 넘기도록 `.agents/rules/collaboration.md` §1 및 `.agents/skills/handoff/SKILL.md` §3을 정정함.
+   - **도구 UI 추론 수준 선택 안내 및 기타 정리**: Antigravity 모델 선택기 초기값이 `Medium`이므로 `High`/`XHigh` 모델로 인계·전환 안내 시 **`"도구에서 High(또는 XHigh) 선택"`**을 병기하도록 `collaboration.md` §1·`handoff/SKILL.md` §1.8·§3에 명시함. `Model: "flash_lite"`/`"inherit"`는 `invoke_subagent` 내부 도구 파라미터 enum임을 명시하고, `GPT-OSS 120B (Medium)`는 주력 6대 모델 외 비상 백업 참고로만 기록함.
+2. **검증**: `Sync-Skills.ps1` 동기화 및 `Sync-Skills.ps1 -Check` 통과, `git diff --check` 통과.
+
 ### 🗂️ 직전 완료 Run 기록: 협업 규칙 개정 (`Argon` $\to$ `Carbon` 인계·`Flash` 대체·기본 추론 수준, `main` 직접, 2026-11-25)
 
 - **과제 구분**: 협업 규칙 개정 — 11월 30일 서비스 종료 예정인 `Gemini 4 Argon` $\to$ `Gemini 4 Carbon` 인계 및 `Gemini 3.8 Flash` 대체 모델·서브에이전트 위임 규칙 정비 (`collaboration.md` §1~§3 및 관련 스킬/에이전트 문서)
