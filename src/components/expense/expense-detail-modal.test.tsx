@@ -144,7 +144,7 @@ describe("ExpenseDetailModal", () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it("누적 충전형 구독 지출 환불 시 rollbackIntervalSubscriptionExpense를 호출한다", async () => {
+  it("누적 충전형 구독 지출 환불 시 클라이언트가 rollbackIntervalSubscriptionExpense를 호출하지 않는다 (R107-C)", async () => {
     rpc.mockResolvedValue({ error: null })
     const intervalExpense: ExpenseDetail = {
       ...confirmed,
@@ -157,10 +157,20 @@ describe("ExpenseDetailModal", () => {
     fireEvent.click(screen.getByRole("button", { name: "취소 확정" }))
 
     await waitFor(() => expect(onRefunded).toHaveBeenCalled())
-    expect(rollbackIntervalSubscriptionExpense).toHaveBeenCalledWith({
-      userId: "user-123",
-      expenseId: "e1",
-      templateId: "tpl-interval-1",
-    })
+    expect(rpc).toHaveBeenCalledWith("refund_expense_payment", { p_expense_id: "e1" })
+    expect(rollbackIntervalSubscriptionExpense).not.toHaveBeenCalled()
+  })
+
+  it("auto_confirmed_at이 있는 지출에는 자동 확정 배지를 표시하고 없으면 숨긴다 (R107-C)", () => {
+    const { rerender } = render(
+      <ExpenseDetailModal
+        expense={{ ...confirmed, auto_confirmed_at: "2026-10-08T00:00:00Z" }}
+        onOpenChange={vi.fn()}
+      />,
+    )
+    expect(screen.getByTestId("auto-confirmed-badge").textContent).toBe("자동 확정")
+
+    rerender(<ExpenseDetailModal expense={{ ...confirmed, auto_confirmed_at: null }} onOpenChange={vi.fn()} />)
+    expect(screen.queryByTestId("auto-confirmed-badge")).toBeNull()
   })
 })

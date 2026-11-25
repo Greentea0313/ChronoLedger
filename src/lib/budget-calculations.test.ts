@@ -214,4 +214,26 @@ describe("budget-calculations", () => {
     expect(breakdown.isOverBudget).toBe(false)
     expect(breakdown.remainingBudget).toBe(-50000)
   })
+
+  it("C-4 월 경계: 11-30 예정 지출을 12-01 보정 확정해도 target_date(11-30) 기준으로 11월에만 귀속된다", () => {
+    const expenses: BudgetComparisonExpense[] = [
+      { status: "CONFIRMED", target_date: "2026-11-30", end_date: null, final_amount: 5900, template_id: "tpl-1" },
+      { status: "CONFIRMED", target_date: "2026-12-05", end_date: null, final_amount: 10000, template_id: null },
+    ]
+    const nov = calculateMonthBudgetBreakdown({
+      month: { year: 2026, month: 11 },
+      budgetAmount: 50000,
+      expenses,
+      templates: [],
+    })
+    const dec = calculateMonthBudgetBreakdown({
+      month: { year: 2026, month: 12 },
+      budgetAmount: 50000,
+      expenses,
+      templates: [],
+    })
+    expect(nov.confirmedAmount).toBe(5900)
+    expect(dec.confirmedAmount).toBe(10000)
+    expect(calculateConfirmedExpense(expenses, { year: 2026, month: 12 })).toBe(10000)
+  })
 })

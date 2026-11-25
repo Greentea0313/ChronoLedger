@@ -11,6 +11,8 @@ import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { ensureMonthlySubscriptionExpenses, type SubscriptionCycleType } from "@/lib/subscription-sync"
 
+export type SubscriptionPaymentMethod = "WALLET" | "GOOGLE_PLAY" | "GALAXY_STORE"
+
 export interface SubscriptionTemplateInput {
   id: string
   title: string
@@ -20,7 +22,17 @@ export interface SubscriptionTemplateInput {
   interval_days?: number
   default_price: number
   payment_method?: string
+  auto_confirm?: boolean
   game_id: string | null
+}
+
+function normalizePaymentMethod(method?: string): SubscriptionPaymentMethod {
+  if (method === "GOOGLE_PLAY" || method === "GALAXY_STORE") return method
+  return "WALLET"
+}
+
+function isStorePaymentMethod(method: SubscriptionPaymentMethod): boolean {
+  return method === "GOOGLE_PLAY" || method === "GALAXY_STORE"
 }
 
 interface SubscriptionModalProps {
@@ -75,7 +87,8 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
   const [billingDay, setBillingDay] = useState("1")
   const [intervalDays, setIntervalDays] = useState("30")
   const [defaultPrice, setDefaultPrice] = useState("")
-  const paymentMethod = "WALLET"
+  const [paymentMethod, setPaymentMethod] = useState<SubscriptionPaymentMethod>("WALLET")
+  const [autoConfirm, setAutoConfirm] = useState(false)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -86,6 +99,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
     if (open && !prevOpenRef.current) {
       setError(null)
       if (editingTemplate) {
+        const nextMethod = normalizePaymentMethod(editingTemplate.payment_method)
         setTitle(editingTemplate.title)
         setCategory(editingTemplate.category || (editingTemplate.game_id ? "게임" : "정기 구독"))
         setGameId(editingTemplate.game_id || "")
@@ -93,6 +107,8 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
         setBillingDay(String(editingTemplate.billing_day || 1))
         setIntervalDays(String(editingTemplate.interval_days || 30))
         setDefaultPrice(String(editingTemplate.default_price ?? 0))
+        setPaymentMethod(nextMethod)
+        setAutoConfirm(isStorePaymentMethod(nextMethod) && Boolean(editingTemplate.auto_confirm))
       } else {
         setTitle("")
         setCategory("정기 구독")
@@ -101,6 +117,8 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
         setBillingDay("1")
         setIntervalDays("30")
         setDefaultPrice("")
+        setPaymentMethod("WALLET")
+        setAutoConfirm(false)
       }
     }
     prevOpenRef.current = open
@@ -169,8 +187,15 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
     setIsSubmitting(true)
     try {
       const targetCategory = gameId ? "게임" : "정기 구독"
+      const effectiveAutoConfirm = isStorePaymentMethod(paymentMethod) ? autoConfirm : false
+      const isMissingColumnErr = (err: { code?: string; message?: string } | null | undefined) =>
+        err?.code === "42703" ||
+        err?.code === "PGRST204" ||
+        Boolean(err?.message?.includes("interval_days")) ||
+        Boolean(err?.message?.includes("auto_confirm"))
+
       if (editingTemplate) {
-        const updatePayload: TablesUpdate<"subscription_templates"> = {
+        const updatePayload: TablesUpdate<"subscription_templates"> & { auto_confirm?: boolean } = {
           title: title.trim(),
           category: targetCategory,
           game_id: gameId || null,
@@ -178,6 +203,8 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
           billing_day: cycleType === "MONTHLY_DAY" ? Number(billingDay) : 1,
           interval_days: cycleType === "INTERVAL_30" ? Number(intervalDays) : 30,
           default_price: priceNum,
+          payment_method: paymentMethod,
+          auto_confirm: effectiveAutoConfirm,
         }
 
         let { error: updateError } = await supabase
@@ -185,7 +212,8 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
           .update(updatePayload)
           .eq("id", editingTemplate.id)
 
-        if (updateError && (updateError.code === "42703" || updateError.message?.includes("interval_days"))) {
+        if (updateError && isMissingColumnErr(updateError)) {
+          delete updatePayload.auto_confirm
           delete updatePayload.interval_days
           const fallbackRes = await supabase
             .from("subscription_templates")
@@ -218,7 +246,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
         const now = new Date()
         await ensureMonthlySubscriptionExpenses(user.id, now.getFullYear(), now.getMonth() + 1).catch(() => {})
       } else {
-        const insertPayload: TablesInsert<"subscription_templates"> = {
+        const insertPayload: TablesInsert<"subscription_templates"> & { auto_confirm?: boolean } = {
           user_id: user.id,
           title: title.trim(),
           category: targetCategory,
@@ -228,6 +256,7 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
           interval_days: cycleType === "INTERVAL_30" ? Number(intervalDays) : 30,
           default_price: priceNum,
           payment_method: paymentMethod,
+          auto_confirm: effectiveAutoConfirm,
           is_active: true,
         }
 
@@ -235,7 +264,8 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
           .from("subscription_templates")
           .insert(insertPayload)
 
-        if (insertError && (insertError.code === "42703" || insertError.message?.includes("interval_days"))) {
+        if (insertError && isMissingColumnErr(insertError)) {
+          delete insertPayload.auto_confirm
           delete insertPayload.interval_days
           const fallbackRes = await supabase.from("subscription_templates").insert(insertPayload)
           insertError = fallbackRes.error
@@ -417,12 +447,47 @@ export function SubscriptionModal({ open, onOpenChange, onCreated, editingTempla
               </label>
               <select
                 id="sub-payment-method"
-                className={`${selectClassName} opacity-60 cursor-not-allowed`}
-                value="WALLET"
-                disabled
+                className={selectClassName}
+                value={paymentMethod}
+                onChange={(e) => {
+                  const nextMethod = normalizePaymentMethod(e.target.value)
+                  setPaymentMethod(nextMethod)
+                  if (!isStorePaymentMethod(nextMethod)) {
+                    setAutoConfirm(false)
+                  }
+                }}
               >
                 <option value="WALLET">내 지갑</option>
+                <option value="GOOGLE_PLAY">Google Play</option>
+                <option value="GALAXY_STORE">Galaxy Store</option>
               </select>
+            </div>
+          </div>
+
+          {/* 7. 자동 확정 옵션 (R107-C: 스토어 결제수단 한정) */}
+          <div className="rounded-md border border-line bg-surface-2 p-3 space-y-1.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-content">자동 확정</p>
+                <p className="text-[11px] text-content-secondary">
+                  {isStorePaymentMethod(paymentMethod)
+                    ? "예정일에 앱 기록이 자동 결제로 확정됩니다. 실제 스토어 결제와 다르면 환불할 수 있으며, 켠 당일 생성분은 다음 날부터 적용됩니다."
+                    : "내 지갑 결제수단은 자동 확정을 지원하지 않습니다. Google Play 또는 Galaxy Store 선택 시 켤 수 있습니다."}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                role="switch"
+                aria-label="자동 확정"
+                aria-checked={isStorePaymentMethod(paymentMethod) && autoConfirm}
+                disabled={!isStorePaymentMethod(paymentMethod)}
+                onClick={() => setAutoConfirm((prev) => !prev)}
+                className="shrink-0"
+              >
+                {isStorePaymentMethod(paymentMethod) && autoConfirm ? "켜짐" : "꺼짐"}
+              </Button>
             </div>
           </div>
 
