@@ -10,7 +10,7 @@
                                 "Step 4 (Orchestrator): Archive closeout and guide production migration + /admin bulk migration."
                             ],
     "base_sha":  "358fd4b61713638d94ff7c7c0c5383a351600ca6",
-    "target_sha":  null,
+    "target_sha":  "8dfd5f1e288a80ef627019a52c4df13cce92f030",
     "branch":  "collab/r109-icon-storage-migration",
     "worktree_path":  ".worktrees/r109-icon-storage-migration",
     "max_iterations":  3,
