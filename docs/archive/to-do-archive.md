@@ -3,6 +3,7 @@
 - `docs/to-do.md`에서 옮긴 완료 구간과 완료 항목임(2026-11-18 분리). 새로 옮기는 항목은 이 머리말 바로 아래(맨 위)에 넣음.
 - 평소 작업에서는 읽지 않음.
 
+- [x] R64. [Run `r64-r72-r73-classification-icons-followups` 구현·리뷰 완료, `main` 병합 `66dd067` · 운영 DB 마이그레이션 적용·확인 쿼리 완료(사용자, 2026-11-10) · **관리자 아이콘 업로드·표시 실브라우저 확인 완료(사용자, 2026-11-26)**] · 명세: `docs/spec/R64_Classification_Option_Icons_Spec.md` · 캐릭터·프리셋 UX · DB 변경 · 명세 선행 · 결정 확정: 분류 옵션만·필터 칩/캐릭터 설정 창/관리자 목록 표시·별도 테이블] 관리자 캐릭터 템플릿 생성 후 분류 옵션별 아이콘 등록 기능 구현 중임. DB 마이그레이션·RLS·검증/정리 트리거 완료함. 레어도 아이콘은 대상에서 제외함 — 검토 문서 §4
 - [x] R37. [→ `R85`로 흡수 (2026-11-11) · 종료 확인(사용자, 2026-11-26) · `R85` 완료·`main` 병합 `6204346`] [우선 낮음 (중간→낮음 조정)] 일정 표시용 시각·예상 여부 필드(`start_time`, `is_estimated`) 도입 검토 (DATE 기반 가계부 핵심 흐름 대비 타임존·관리자 입력 복잡도가 높아 후순위 조정; DB 변경 → Opus 승격 조건 ①, 담당: GPT Codex + Claude Opus)
 - [x] R89. [Run `r89-push-notification-research` 완료(2026-11-18) · 문서 전용 · 산출물 [`docs/push-notification-research.md`](../push-notification-research.md)] 푸시 알림 설계 조사: 웹 푸시(PWA)·iOS·Tauri 알림 지원 범위, Supabase Edge Function + `pg_cron`/`pg_net` 발송 구조, 구독·설정·알림함 테이블 및 RLS/로그아웃·탈퇴 정리 설계 완료. 사용자 결정(2026-11-18): 1차(`R84` 건의 창구 + 앱 내 알림함, 30일 보관) → 2차(`R39` 일일 알림 3종, KST 09:00) → 3차(`R96` Web Push) → 4차(`R97` Tauri 실행 중 OS 알림) 단계별 분리 진행 확정.
 

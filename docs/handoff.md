@@ -13,7 +13,15 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(직전 Run `r107c-auto-confirm`은 `main` 병합 `9268bf0`로 마감함. 다음 후보는 사용자 지목 시 등록: `R107C-REV-001·002`·`R109-REV-003`(P4 선택), `R107-A-CLEANUP`·`R109-CLEANUP`(관찰 후))*
+- **활성 과제**: **`R75` ①·④ R64 SQL 회귀 테스트 보강 (`r75-r64-tests-readme` — Base `2d4317b8141a5543b09b1d277cd80f54c9e0cf4a`, 브랜치 `collab/r75-r64-tests-readme`, 워크트리 `.worktrees/r75-r64-tests-readme`)** *(`docs/to-do.md` `R75` ①·④. 수용 기준은 [`docs/spec/R64_Classification_Option_Icons_Spec.md`](spec/R64_Classification_Option_Icons_Spec.md) §7)*
+- **DB 변경**: 없음(테스트·문서만, 스키마 변경 없음). 🐳 Docker Desktop 필요(로컬 DB에서 `TESTS.sql` 실행).
+- **수용 기준**: 명세 §7 시나리오 중 `TESTS.sql` R64 블록에 없는 것을 추가하고(일반 사용자 쓰기 거부, `users.role` 관리자·JWT 없음 쓰기 거부, 비승인 게임 조회 차단·관리자 조회, 잘못된 `axis_key`·빈 옵션·없는 축, 축 삭제·순서 변경 유지·게임 삭제 CASCADE, `updated_at` 갱신, SQLSTATE·메시지 단위 검증) 로컬 DB에서 전체 `TESTS.sql` PASS. `sql/README.md`에 "아이콘 수정은 upsert 사용" 1줄 추가.
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (R75 ①·④ TESTS.sql·README)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 위 수용 기준 수행. 허용 파일: `sql/tests/TESTS.sql`, `sql/README.md`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High` — 도구에서 High 선택) / Gemini 4 Carbon (`High` — 도구에서 High 선택) — Maker인 Neon 제외)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요**. Base ↔ Target 정적 리뷰(`review.json`)·로컬 DB 게이트(`TESTS.sql` 전체 PASS)·`test.json`·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
