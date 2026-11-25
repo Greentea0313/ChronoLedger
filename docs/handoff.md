@@ -13,7 +13,29 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **현재 활성 Run 없음** *(다음 과제는 아래 예약·보류·안건 요약에서 사용자가 지목하면 등록함)*
+- **과제 구분**: 협업 규칙 보정 — Antigravity 실제 쿼터 구조(Gemini 공용 한도) 반영 및 토큰 소진 대체 체인 정정 (`main` 직접, 문서 전용, 🐳 불필요)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`📐 SPEC_NEEDED`** | **Gemini 4 Argon (`High`)** *(사용자 지정. Fallback: Gemini 4 Carbon (`High`) / Claude Opus (`High`))* | `Chief Architect (협업 규칙 보정 검토·결정·반영)` | 아래 **요구사항 접수 기록**의 조사 결과를 검토해 ① 쿼터 설명 정정 ② 토큰 소진 시 같은 쿼터 묶음 건너뛰기 대체 규칙 ③ 추론 수준 선택 안내 반영 여부와 문구를 결정하고 반영함(제품 결정은 질문 카드). 허용 파일: `.agents/rules/collaboration.md`, `.agents/skills/*`(`Sync-Skills.ps1`로 `.claude/skills/` 동기화), `.github/copilot-instructions.md`, `AGENTS.md`, `CLAUDE.md`, `docs/collaboration-guide.md`, `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md` | `📐 Argon 검토 대기` |
+
+#### 📥 요구사항 접수 기록 (Antigravity 쿼터 구조 반영 — Claude Opus 조사, 2026-11-25)
+
+1. **조사 근거 (사용자 제공 Antigravity 모델 선택·사용량 화면, 2026-11-25)**:
+   - 사용량은 **두 묶음**으로만 표시됨: `Gemini Models`(주간 한도 + 5시간 한도 공용), `Claude and GPT models`(주간 한도 + 5시간 한도 공용). `Gemini 4 Carbon` 전용 주간 쿼터는 따로 표시되지 않음.
+   - 모델 목록: `Gemini 4 Neon`·`Gemini 4 Carbon`·`Gemini 4 Hydrogen`(New), `Gemini 4 Argon`·`Gemini 3.8 Flash`(Leaving Soon), `Orchestrator`(= `Gemini 4 Neon High`), `Claude Opus 5.5`·`Claude Sonnet 5.5`, `GPT-OSS 120B`(Notice).
+   - 기본 표시 추론 수준: `Argon`만 `High`, 나머지(`Neon`·`Carbon`·`Hydrogen`·`Opus`·`Sonnet`)는 `Medium`.
+2. **현재 규칙과 어긋나는 점**:
+   - ① **쿼터 설명 오류**: `collaboration.md` §1이 `Hydrogen`·`Neon`을 "단기 쿼터", `Carbon`을 별도 쿼터처럼 설명하고 `Hydrogen` 기본 사유를 "`Carbon` 쿼터 보호"로 둠. 실제로는 세 모델이 같은 Gemini 주간·5시간 한도를 씀.
+   - ② **토큰 소진 대체 체인 무효 구간**: Gemini 한도가 바닥나면 `Hydrogen`·`Neon`·`Carbon`이 동시에 멈추는데, 1순위 대체에 같은 묶음끼리 넘기는 경로가 있음(`Hydrogen`→`Neon`, `Carbon`→`Neon`, `Neon`→`Hydrogen`, `GPT Codex`→`Neon`). 승격(난이도) 체인은 한도와 무관하므로 유지 가능함.
+   - ③ **추론 수준 기본값 불일치**: 규칙상 `Neon`·`Carbon`·`Opus`는 `High`인데 도구 기본 표시는 `Medium`이라, 사용자가 선택 시 직접 올려야 함.
+3. **검토·결정 필요 사항**:
+   - ① §1 쿼터 문구를 "Gemini 공용 한도(주간 + 5시간)"로 정정하고, `Hydrogen` 기본 사유를 "공용 한도 절약"으로 바꿀지. 모델별 한도 차감 비율(`Carbon`이 더 빨리 줄어드는지)은 화면으로 확인 불가하므로 관찰 후 기록할지.
+   - ② 토큰 소진으로 인한 인계(`⚠️ HANDOVER_NEEDED`)에서는 같은 쿼터 묶음 모델을 건너뛰고 다른 묶음(Claude·GPT Codex·GitHub Copilot)으로 넘기는 규칙을 `collaboration.md` §1과 handoff Skill §3에 넣을지.
+   - ③ Antigravity 안의 Claude·GPT 모델이 Gemini와 별도 한도이고 Claude Code의 Claude Pro 구독과도 별개로 보이는 점을 대체 경로로 명시할지.
+   - ④ 큐 행에 적힌 추론 수준과 도구 기본 표시가 다르면 사용자가 모델 선택 시 수준을 직접 바꾼다는 안내를 넣을지.
+   - ⑤ 미확인 사항: 서브에이전트 `Model: "flash_lite"`·`"inherit"` 실제 이름(이 화면에 없음), `GPT-OSS 120B`의 역할 편입 여부.
+4. **관련 파일·문서**: `.agents/rules/collaboration.md` §1(표·Gemini 운용 기준), `.agents/skills/handoff/SKILL.md` §3, `docs/collaboration-guide.md` §1, `CLAUDE.md`·`.github/copilot-instructions.md`(추론 수준 요약 줄).
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
