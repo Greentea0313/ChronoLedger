@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "t4-rust-build-and-lock",
+  "iteration": 1,
+  "agent": "Claude Sonnet",
+  "base_sha": "ae56b57d02a72af729d13051d8cecb0dabdeaa26",
+  "target_sha": "2387bcddcf2a60a5705570a220a21e5f8f65ac00",
+  "created_at": "2026-11-25T19:19:46+09:00",
+  "role": "dynamic-test",
+  "status": "passed",
+  "finished_at": "2026-11-25T19:19:46+09:00",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Rust/Tauri lock consistency: Cargo.lock matches Cargo.toml (tauri-plugin-single-instance 2.5.3 with deep-link feature)",
+      "command": "cargo check --locked --manifest-path src-tauri/Cargo.toml",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript typecheck on Target",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint on Target",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest suite (77 files, 1050 tests)",
+      "command": "npx vitest run",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "git diff --check Base..Target",
+      "command": "git diff --check ae56b57 2387bcd",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Next.js production build (placeholder Supabase env; worktree has no .env.local)",
+      "command": "npm run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Tauri release build (app.exe) re-run by reviewer",
+      "command": "npm run tauri build (Maker recorded success in handoff; not repeated by reviewer)",
+      "status": "skipped",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Local DB migration/TESTS.sql",
+      "command": "n/a (no sql/ or supabase/ changes between Base and Target)",
+      "status": "skipped",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Real-device desktop OAuth deep-link and single-instance check",
+      "command": "manual user check (not run by reviewer)",
+      "status": "skipped",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}
