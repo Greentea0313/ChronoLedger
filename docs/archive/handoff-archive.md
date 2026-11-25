@@ -6,6 +6,23 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 이전 Run 기록 (완료): `r75-r64-tests-readme` *(`R75` ①·④ R64 SQL 회귀 테스트 보강)*
+
+- **Run ID**: `r75-r64-tests-readme` **(완료, `main` 병합 `35d43b6`, 문서 마감 2026-11-26)** · **Orchestrator**: Claude Sonnet `Medium` *(등록·리뷰·병합·마감)*
+- **Worktree 경로**: `.worktrees/r75-r64-tests-readme` (브랜치 `collab/r75-r64-tests-readme`, 매니페스트 `artifacts/r75-r64-tests-readme/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `2d4317b8141a5543b09b1d277cd80f54c9e0cf4a` · **Target SHA**: `d35bf3c0e513a9e80cd51098b81dc5832634d347` *(산출물 `7e4e989`, `main` 병합 `35d43b6`)*
+- **DB 변경**: 없음(테스트·문서만). 운영 DB 작업 없음.
+
+| 순서 | 상태 | 담당 모델 (Level) | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: d35bf3c)`** | **Gemini 4 Neon (`High`)** | `Maker (TESTS.sql·README)` | `TESTS.sql` R64·R80 블록에 명세 §7 시나리오 보강(관리자 CRUD·`updated_at`, 비관리자·`user_metadata` 스푸핑·`anon` 쓰기 거부, 조회 범위, CHECK·트리거 메시지 단위 검증, 순서 변경·옵션/축 제거 정리, 게임 삭제 CASCADE), `README` B표 R64 행에 upsert 안내 1줄 |
+| **2** | **`✅ DONE (SHA: 7e4e989, 병합 35d43b6)`** | **Claude Sonnet (`Medium`)** | `Reviewer & Orchestrator` | 정적 리뷰 `P4` 2건 비차단(`R75-REV-001·002`), 🐳 로컬 신규 스키마에서 `TESTS.sql` 2회 실행 각 54개 PASS(R64·R80 포함, ROLLBACK), 마이그레이션 변경 없어 멱등 검증·`tsc`·`lint`·Vitest·`build`는 `skipped`(src·package 변경 없음) |
+
+#### 📝 `r75-r64-tests-readme` 핵심 요약 (2026-11-26)
+
+- **리뷰 `P4` (`docs/to-do.md` `R75-REV-001·002`)**: ① 잘못된 `axis_key`·빈 옵션 음성 케이스가 트리거 메시지와 CHECK 이름 둘 중 하나만 맞으면 통과해 개별 방어선 회귀를 못 잡음. ② 비승인 게임 0행 조회를 `games_status_check`(APPROVED 한정)와 정책 정의 문자열(`LIKE %APPROVED%`)로 대체 검증함(현재 비승인 게임이 존재할 수 없어 도달 불가).
+- **검증 환경 메모**: 로컬 DB 재설정 시 `storage.objects` 정책 5종도 함께 제거해야 `SCHEMA.sql`이 끝까지 적용됨. `docker cp` 원본 경로는 Git Bash에서 `MSYS_NO_PATHCONV=1`과 함께 저장소 상대 경로를 써야 함.
+
 ### 🗂️ 상세 완료 기록: `r75-r64-tests-readme` Step 1 *(2026-11-26 이관)*
 
 #### 📝 `r75-r64-tests-readme` Step 1 완료 기록 (Gemini 4 Neon `High`, 2026-11-26)

@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-26 (Run `p4-followups-r107c-r109-r75` 병합 `ac752b6` — `R109-REV-003`·`R107C-REV-001·002`·`R75-REV-001` P4 후속)
+
+- **관리자 미이전 아이콘 배지 즉시 갱신 (`src/app/admin/page.tsx`)**: 캐릭터 저장·삭제·템플릿 삭제 뒤 미이전 캐릭터 수를 다시 조회해 `[아이콘 Storage 일괄 이전 (N)]` 숫자가 새로고침 없이 맞음.
+- **구독 결제수단 변경의 예정 지출 동기화 (`src/components/subscription/subscription-modal.tsx`)**: 구독 수정 저장 시 미결제 `PLANNED` 지출에도 `payment_method`·`point_platform`을 함께 반영함(`WALLET`이면 포인트 플랫폼 없음).
+- **자동 확정 시각 상태 불변식 (`MIGRATION_R107C_REV002_AUTO_CONFIRMED_STATUS_CHECK.sql`)**: `expenses`에 `chk_expense_auto_confirmed_status`를 추가해 예정 행에 자동 확정 시각이 남지 않게 함(기존 위반 행이 있으면 `NOT VALID`로 추가, 운영 적용 완료).
+- **R64 분류 아이콘 음성 테스트 방어선 분리 (`sql/tests/TESTS.sql`)**: 트리거 경로는 트리거 메시지만, 트리거를 끈 경로는 `axis_key` 형식·빈 옵션 CHECK 제약 이름을 정확히 고정함.
+
 ## 2026-11-26 (Run `r75-r64-tests-readme` 병합 `35d43b6` — `R75` R64 분류 아이콘 SQL 회귀 테스트 보강)
 
 - **테스트 보강**: `sql/tests/TESTS.sql` R64·R80 블록에 분류 옵션 아이콘의 관리자 CRUD·`updated_at`, 일반 사용자·`user_metadata` 스푸핑·`anon` 쓰기 거부, 승인 게임 조회 범위, CHECK·검증 트리거 메시지 단위 검증, 순서 변경·옵션/축 제거 정리, 게임 삭제 CASCADE 시나리오를 추가함. 스키마·앱 동작 변경은 없음.
