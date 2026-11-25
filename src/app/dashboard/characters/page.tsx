@@ -165,6 +165,28 @@ export default function CharactersPage() {
     const rows = (data as unknown as UserGameRow[]) ?? []
     preloadImages(rows.map((row) => row.games?.default_icon_url))
 
+    // Publish the game list first so the selected game's catalog starts loading in parallel with the count queries
+    // below (the skeleton still waits for the counts, so unsupported games never flash in the game bar).
+    setUserGameRows(rows)
+
+    // Custom game icons are decoration: download them in the background instead of blocking the first paint.
+    void (async () => {
+      const iconMap: Record<string, string> = {}
+      await Promise.all(
+        rows
+          .filter((row) => !!row.custom_icon_path)
+          .map(async (row) => {
+            try {
+              const url = await downloadUserIcon(userId, row.game_id)
+              if (url) iconMap[row.game_id] = url
+            } catch {
+              // Keep the default game icon.
+            }
+          }),
+      )
+      setGameIcons(iconMap)
+    })()
+
     // Header counts: one cheap count query per game keeps the totals exact beyond the PostgREST row limit.
     const counts: Record<string, number> = {}
     await Promise.all(
@@ -181,24 +203,7 @@ export default function CharactersPage() {
         if (!result.error) counts[row.game_id] = result.count ?? 0
       }),
     )
-    // Set together so the supported-game filter never runs against missing counts.
     setCatalogCounts(counts)
-    setUserGameRows(rows)
-
-    const iconMap: Record<string, string> = {}
-    await Promise.all(
-      rows
-        .filter((row) => !!row.custom_icon_path)
-        .map(async (row) => {
-          try {
-            const url = await downloadUserIcon(userId, row.game_id)
-            if (url) iconMap[row.game_id] = url
-          } catch {
-            // Keep the default game icon.
-          }
-        }),
-    )
-    setGameIcons(iconMap)
   }, [userId])
 
   const loadUserCharacterData = useCallback(async () => {

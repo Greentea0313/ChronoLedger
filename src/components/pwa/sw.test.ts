@@ -50,8 +50,17 @@ function loadWorker(fetchImpl: (req: Request) => Promise<Response>) {
 
   const dispatch = async (req: Request) => {
     let responded: Promise<Response> | undefined
-    listeners.fetch({ request: req, respondWith: (p: Promise<Response>) => void (responded = p) })
-    return responded
+    const pending: Promise<unknown>[] = []
+    listeners.fetch({
+      request: req,
+      respondWith: (p: Promise<Response>) => void (responded = p),
+      waitUntil: (p: Promise<unknown>) => void pending.push(p),
+    })
+    try {
+      return await responded
+    } finally {
+      await Promise.all(pending)
+    }
   }
   return { caches, dispatch, request, listeners, showNotification, matchAll, openWindow }
 }
@@ -78,6 +87,51 @@ describe("service worker 읽기 API 캐시", () => {
     const hit = await sw.dispatch(sw.request("/rest/v1/expenses?select=*", userA))
     expect(await hit?.json()).toEqual([{ id: 1 }])
     await expect(sw.dispatch(sw.request("/rest/v1/expenses?select=*", userB))).rejects.toBeTruthy()
+  })
+
+  it("캐시 저장이 끝나기 전에 응답을 먼저 돌려주고 저장은 waitUntil로 이어간다", async () => {
+    const sw = loadWorker(fetchImpl)
+    let finishPut!: () => void
+    const putDone = new Promise<void>((resolve) => void (finishPut = resolve))
+    const stored: string[] = []
+    sw.caches.open = (async () => ({
+      put: async (req: Request) => {
+        await putDone
+        stored.push(req.url)
+      },
+      match: async () => undefined,
+      addAll: async () => undefined,
+    })) as typeof sw.caches.open
+
+    let responded: Promise<Response> | undefined
+    const pending: Promise<unknown>[] = []
+    sw.listeners.fetch({
+      request: sw.request("/rest/v1/game_characters?select=*", userA),
+      respondWith: (p: Promise<Response>) => void (responded = p),
+      waitUntil: (p: Promise<unknown>) => void pending.push(p),
+    })
+
+    // The response resolves while the cache write is still blocked.
+    expect(await (await responded)?.json()).toEqual([{ id: 1 }])
+    expect(stored).toHaveLength(0)
+    expect(pending).toHaveLength(1)
+
+    finishPut()
+    await Promise.all(pending)
+    expect(stored).toHaveLength(1)
+  })
+
+  it("캐시 저장이 실패해도 응답은 정상으로 돌려준다", async () => {
+    const sw = loadWorker(fetchImpl)
+    sw.caches.open = (async () => ({
+      put: async () => {
+        throw new Error("quota")
+      },
+      match: async () => undefined,
+      addAll: async () => undefined,
+    })) as typeof sw.caches.open
+    const res = await sw.dispatch(sw.request("/rest/v1/expenses?select=*", userA))
+    expect(await res?.json()).toEqual([{ id: 1 }])
   })
 
   it("익명·만료 토큰 응답은 저장하지 않는다", async () => {

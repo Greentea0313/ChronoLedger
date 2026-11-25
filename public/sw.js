@@ -59,15 +59,17 @@ function isSupabaseRead(request, url) {
   )
 }
 
-async function handleDataRead(request) {
+async function handleDataRead(request, event) {
   const sub = sessionKeyFor(request)
   if (!sub) return fetch(request)
   const key = dataCacheRequest(request, sub)
   try {
     const response = await fetch(request)
     if (response.ok) {
-      const cache = await caches.open(DATA_CACHE)
-      await cache.put(key, response.clone())
+      // Offline fallback copy: store it in the background so a large body never delays the page's response.
+      const copy = response.clone()
+      const stored = caches.open(DATA_CACHE).then((cache) => cache.put(key, copy)).catch(() => undefined)
+      if (event && typeof event.waitUntil === "function") event.waitUntil(stored)
     }
     return response
   } catch (error) {
@@ -106,7 +108,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url)
 
   if (isSupabaseRead(request, url)) {
-    event.respondWith(handleDataRead(request))
+    event.respondWith(handleDataRead(request, event))
     return
   }
   if (url.origin !== self.location.origin) return

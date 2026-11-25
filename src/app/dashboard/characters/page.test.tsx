@@ -338,6 +338,52 @@ describe("CharactersPage", () => {
   })
 
   describe("game selector bar", () => {
+    it("starts loading the selected game's catalog while the count queries are still pending", async () => {
+      let releaseCounts!: () => void
+      const countsGate = new Promise<void>((resolve) => void (releaseCounts = resolve))
+      const events: string[] = []
+      from.mockImplementation((table: string) => {
+        const q = createQuery(table) as Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (table === "game_characters") {
+          const originalSelect = q.select
+          const originalThen = q.then
+          let isHead = false
+          q.select = (columns?: string, options?: { head?: boolean }) => {
+            isHead = !!options?.head
+            return originalSelect(columns, options)
+          }
+          q.then = (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) => {
+            if (isHead) return countsGate.then(() => originalThen(resolve, reject))
+            events.push("catalog")
+            return originalThen(resolve, reject)
+          }
+        }
+        return q
+      })
+
+      await renderPage()
+      // Counts are blocked, so the skeleton is still shown, but the catalog request is already out.
+      expect(events).toContain("catalog")
+      expect(gameChip("가나게임")).toBeUndefined()
+
+      releaseCounts()
+      await flush()
+      await flush()
+      expect(gameChip("가나게임")).toBeTruthy()
+      expect(cardNames()).toContain("아케론")
+    })
+
+    it("does not wait for custom game icon downloads before showing the page", async () => {
+      db.userGames[0].custom_icon_path = "user/game-a.webp"
+      downloadUserIcon.mockReturnValue(new Promise(() => undefined))
+
+      await renderPage()
+
+      expect(downloadUserIcon).toHaveBeenCalledWith(USER_ID, "game-a")
+      expect(gameChip("가나게임")).toBeTruthy()
+      expect(cardNames()).toContain("아케론")
+    })
+
     it("shows guest login guidance instead of infinite skeleton when user is null", async () => {
       useAuth.mockReturnValue({ user: null, isLoading: false })
       await renderPage()
