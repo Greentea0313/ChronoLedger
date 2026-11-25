@@ -286,7 +286,7 @@
 - [x] T1. [`main` 병합 `5e63007`, 2026-11-25] 웹/Tauri 플랫폼 차이를 `src/lib/auth-adapter.ts`로 분리하고 웹·데스크톱 모두 PKCE(`flowType: 'pkce'`, `exchangeCodeForSession`) 단일 콜백 계약으로 고정함(해시 토큰 `implicit` 경로 제거, Tauri 내 Service Worker 등록 건너뛰기).
 - [ ] T2. [코드 `main` 병합 `5e63007` · Redirect URL 등록 완료(사용자, 2026-11-25) · **남음: Rust `cargo check`·`Cargo.lock` 갱신, 실기기 확인**] Tauri v2 `chronoledger://auth/callback` 커스텀 스킴 외부 브라우저 OAuth(동일 Supabase origin 검증)를 연결함. cold-start URL은 프로세스당 1회 `getCurrent()`로 처리하고, Windows 실행 중 링크 전달 및 창 포커스 복원을 위해 `tauri-plugin-single-instance`(`features = ["deep-link"]`)를 `deep-link`보다 먼저 등록함.
 - [ ] T3. [단위 테스트 완료 `5e63007` · **남음: Windows 실기기 확인**] OAuth 성공·취소(`access_denied`)·코드 누락/중복·만료 세션 및 상단바 `[로그아웃]` 클릭 시 `/auth` 복귀를 검증함(단위 테스트 + Windows 데스크톱 실기기 확인).
-- [ ] T4. [미실행 · Rust 툴체인 PC 필요, npm 플러그인 버전 맞춤 검토(`T1T4-REV-002`)] Tauri v2 Windows production build(`npm run tauri build`)를 생성하고 단독 실행해 로그인(Supabase Redirect URLs에 `chronoledger://auth/callback` 등록), 캘린더, 결제 흐름을 검증함.
+- [ ] T4. [빌드·`Cargo.lock` 완료(`t4-rust-build-and-lock`, `main` 병합 `2829bb7`, `T1T4-REV-002` 버전 불일치 없음) · 남은 것은 사용자 실기기 확인: `app.exe` 실행 후 로그인 복귀·`single-instance`·캘린더·결제 흐름] Tauri v2 Windows production build(`npm run tauri build`)를 생성하고 단독 실행해 로그인(Supabase Redirect URLs에 `chronoledger://auth/callback` 등록), 캘린더, 결제 흐름을 검증함.
 - 완료 게이트: Web/PWA MVP 조건이 통과되고, 동일 기능의 데스크톱 인증/핵심 흐름 테스트가 통과한 뒤 Windows 앱 배포를 승인한다.
 
 > 열린 항목이 없는 완료 구간과 완료된 `R` 항목은 [`docs/archive/to-do-archive.md`](archive/to-do-archive.md)로 옮김.
