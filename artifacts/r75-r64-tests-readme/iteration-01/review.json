@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r75-r64-tests-readme",
+  "iteration": 1,
+  "agent": "Claude Sonnet (Medium)",
+  "role": "static-review",
+  "base_sha": "2d4317b8141a5543b09b1d277cd80f54c9e0cf4a",
+  "target_sha": "d35bf3c0e513a9e80cd51098b81dc5832634d347",
+  "status": "findings",
+  "created_at": "2026-11-26T05:00:00+00:00",
+  "findings": [
+    {
+      "id": "R75-REV-001",
+      "severity": "P4",
+      "file": "sql/tests/TESTS.sql",
+      "line": 3914,
+      "evidence": "The bad axis_key and blank option negatives accept either the trigger message 'classification option not found' or the CHECK constraint name, so the test does not pin which guard fires (spec section 7 item 8 asks for message-level precision).",
+      "impact": "If the validation trigger stopped running before the CHECK, or the CHECK were removed while the trigger still rejects the same input, the test would still pass; protection against regressions in either single guard is weaker than the other assertions.",
+      "recommendation": "Split each negative into two cases that isolate the guard (for example a syntactically valid axis_key that is absent from the schema for the trigger, and a bad-format axis_key on a game fixture where the trigger is bypassed or the check order is documented) or assert the single observed message and document the trigger-before-CHECK order."
+    },
+    {
+      "id": "R75-REV-002",
+      "severity": "P4",
+      "file": "sql/tests/TESTS.sql",
+      "line": 3813,
+      "evidence": "Spec section 7 item 4 asks that a non-approved game shows 0 icons to anon/non-admin users. Because games_status_check only allows APPROVED rows, the test verifies the CHECK rejection plus the text of the 'Read icons of approved games' policy (LIKE '%APPROVED%') instead of observing 0 rows.",
+      "impact": "A policy that mentions APPROVED but filters incorrectly would not be caught; the guarantee is checked by policy text, not by behavior. Currently unreachable because non-approved games cannot exist.",
+      "recommendation": "Accept as is while games_status_check restricts status to APPROVED, and revisit with a behavioral 0-row test if a non-approved game status is ever introduced."
+    }
+  ]
+}

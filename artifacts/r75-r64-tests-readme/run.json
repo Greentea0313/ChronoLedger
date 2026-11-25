@@ -8,7 +8,7 @@
                                 "Step 2 (Reviewer and Orchestrator): static review (review.json), local DB gate and checks (test.json), merge to main, close out docs."
                             ],
     "base_sha":  "2d4317b8141a5543b09b1d277cd80f54c9e0cf4a",
-    "target_sha":  null,
+    "target_sha":  "d35bf3c0e513a9e80cd51098b81dc5832634d347",
     "branch":  "collab/r75-r64-tests-readme",
     "worktree_path":  ".worktrees/r75-r64-tests-readme",
     "max_iterations":  3,
