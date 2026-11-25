@@ -445,6 +445,9 @@ isOneToOne: false
 "admin_create_game":
 { Args: { "p_default_icon_url": string,"p_name": string }; Returns: string
                            },
+"advance_interval_subscription":
+{ Args: { "p_original_target_date": string | null,"p_payment_date": string,"p_template_id": string }; Returns: boolean
+                           },
 "answer_feedback_request":
 { Args: { "p_admin_answer"?: string | null,"p_request_id": string,"p_status"?: string }; Returns: undefined
                            },
@@ -515,6 +518,12 @@ isOneToOne: false
 "enqueue_daily_notifications":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"ensure_subscription_expenses":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"generate_subscription_expenses_core":
+{ Args: { "p_today": string,"p_user_id": string }; Returns: number
+                           },
 "get_account_deletion_status":
 { Args: { "p_status_token": string }; Returns: Json
                            },
@@ -559,6 +568,12 @@ isOneToOne: false
                            },
 "restore_cancelled_expense":
 { Args: { "p_expense_id": string }; Returns: undefined
+                           },
+"rollback_interval_subscription":
+{ Args: { "p_expense_id": string }; Returns: boolean
+                           },
+"run_daily_subscription_automation":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "set_user_finance_settings":
 { Args: { "p_default_budget": number,"p_total_asset": number }; Returns: undefined

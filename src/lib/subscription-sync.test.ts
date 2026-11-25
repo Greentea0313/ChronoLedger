@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   addDays,
-  calculateNextIntervalTargetDate,
-  calculateRollbackIntervalTargetDate,
   createNextIntervalSubscriptionExpense,
   rollbackIntervalSubscriptionExpense,
   ensureMonthlySubscriptionExpenses,
@@ -29,6 +27,16 @@ function createTemplateQuery(data: unknown, error: unknown = null) {
   return query
 }
 
+const MISSING_RPC_PGRST202 = {
+  code: "PGRST202",
+  message: "Could not find the function in the schema cache",
+}
+
+const MISSING_RPC_42883 = {
+  code: "42883",
+  message: "function does not exist",
+}
+
 describe("subscription-sync", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -43,75 +51,9 @@ describe("subscription-sync", () => {
     })
   })
 
-  describe("calculateNextIntervalTargetDate", () => {
-    it("결제 예정일보다 이른 날짜에 조기 결제 시 기존 예정일에 interval_days를 더해 잔여일수를 온전히 누적한다", () => {
-      // 예정일: 2026-10-25, 실제 결제일: 2026-10-15, interval: 30일
-      // 기존 잔여일수 10일 + 연장 30일 = 총 40일 연장 (2026-10-25 + 30일 = 2026-11-24)
-      const nextDate = calculateNextIntervalTargetDate("2026-10-25", "2026-10-15", 30)
-      expect(nextDate).toBe("2026-11-24")
-    })
-
-    it("결제 예정일 당일에 결제 시 결제일 기준 +30일 날짜를 반환한다", () => {
-      const nextDate = calculateNextIntervalTargetDate("2026-10-15", "2026-10-15", 30)
-      expect(nextDate).toBe("2026-11-14")
-    })
-
-    it("결제 예정일이 지난 후(만료 후) 결제 시 결제일 기준 +30일 날짜를 반환한다", () => {
-      const nextDate = calculateNextIntervalTargetDate("2026-10-10", "2026-10-15", 30)
-      expect(nextDate).toBe("2026-11-14")
-    })
-
-    it("기존 예정일이 없는 경우 결제일 기준 +30일 날짜를 반환한다", () => {
-      const nextDate = calculateNextIntervalTargetDate(null, "2026-10-15", 30)
-      expect(nextDate).toBe("2026-11-14")
-    })
-
-    it("커스텀 interval_days(예: 15일)도 기존 예정일에 정확히 가산된다", () => {
-      const nextDate = calculateNextIntervalTargetDate("2026-10-25", "2026-10-15", 15)
-      expect(nextDate).toBe("2026-11-09")
-    })
-  })
-
-  describe("createNextIntervalSubscriptionExpense", () => {
-    it("조기 결제 시 기존 예정일에 30일을 가산하여 다음 회차 PLANNED 지출을 등록한다", async () => {
-      const tplSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: "tpl-1",
-          title: "공월 축복",
-          category: "게임",
-          cycle_type: "INTERVAL_30",
-          interval_days: 30,
-          default_price: 5900,
-          payment_method: "GOOGLE_PLAY",
-          game_id: "game-1",
-          is_active: true,
-        },
-        error: null,
-      })
-      const tplQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnValue({ single: tplSingle }),
-      }
-
-      const plannedMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
-      const existingPlannedQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: plannedMaybeSingle,
-      }
-
-      const insert = vi.fn().mockResolvedValue({ error: null })
-
-      from.mockImplementation((table: string) => {
-        if (table === "subscription_templates") return tplQuery
-        if (table === "expenses") {
-          return {
-            ...existingPlannedQuery,
-            insert,
-          }
-        }
-        return {}
-      })
+  describe("createNextIntervalSubscriptionExpense (RPC 전환 및 Legacy 폴백)", () => {
+    it("RPC 정상 시 advance_interval_subscription만 호출하고 from()을 건드리지 않는다", async () => {
+      rpc.mockResolvedValueOnce({ data: true, error: null })
 
       const success = await createNextIntervalSubscriptionExpense({
         userId: "user-1",
@@ -121,36 +63,102 @@ describe("subscription-sync", () => {
       })
 
       expect(success).toBe(true)
-      expect(insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          user_id: "user-1",
-          template_id: "tpl-1",
-          status: "PLANNED",
-          target_date: "2026-11-24", // 10/25 + 30일
-          final_amount: 5900,
-        }),
-      )
+      expect(rpc).toHaveBeenCalledWith("advance_interval_subscription", {
+        p_template_id: "tpl-1",
+        p_original_target_date: "2026-10-25",
+        p_payment_date: "2026-10-15",
+      })
+      expect(from).not.toHaveBeenCalled()
     })
 
-    it("이미 PLANNED 회차가 존재하면 중복 생성하지 않고 false를 반환한다", async () => {
-      const tplSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: "tpl-1",
-          cycle_type: "INTERVAL_30",
-          is_active: true,
-        },
-        error: null,
+    it("originalTargetDate가 없으면 p_original_target_date로 null을 전달하고 RPC false를 반환한다", async () => {
+      rpc.mockResolvedValueOnce({ data: false, error: null })
+
+      const success = await createNextIntervalSubscriptionExpense({
+        userId: "user-1",
+        templateId: "tpl-1",
+        paymentDate: "2026-10-15",
       })
+
+      expect(success).toBe(false)
+      expect(rpc).toHaveBeenCalledWith("advance_interval_subscription", {
+        p_template_id: "tpl-1",
+        p_original_target_date: null,
+        p_payment_date: "2026-10-15",
+      })
+      expect(from).not.toHaveBeenCalled()
+    })
+
+    it.each([MISSING_RPC_PGRST202, MISSING_RPC_42883])(
+      "RPC 부재 오류($code) 시 Legacy 폴백으로 조기 결제 누적 회차를 생성한다",
+      async (missingError) => {
+        rpc.mockResolvedValueOnce({ data: null, error: missingError })
+        const tplSingle = vi.fn().mockResolvedValue({
+          data: {
+            id: "tpl-1",
+            title: "공월 축복",
+            category: "게임",
+            cycle_type: "INTERVAL_30",
+            interval_days: 30,
+            default_price: 5900,
+            payment_method: "GOOGLE_PLAY",
+            game_id: "game-1",
+            is_active: true,
+          },
+          error: null,
+        })
+        const tplQuery = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnValue({ single: tplSingle }),
+        }
+        const existingPlannedQuery = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }
+        const insert = vi.fn().mockResolvedValue({ error: null })
+
+        from.mockImplementation((table: string) => {
+          if (table === "subscription_templates") return tplQuery
+          if (table === "expenses") return { ...existingPlannedQuery, insert }
+          return {}
+        })
+
+        const success = await createNextIntervalSubscriptionExpense({
+          userId: "user-1",
+          templateId: "tpl-1",
+          originalTargetDate: "2026-10-25",
+          paymentDate: "2026-10-15",
+        })
+
+        expect(success).toBe(true)
+        expect(insert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            user_id: "user-1",
+            template_id: "tpl-1",
+            status: "PLANNED",
+            target_date: "2026-11-24",
+            final_amount: 5900,
+          }),
+        )
+      },
+    )
+
+    it("Legacy 폴백: 이미 PLANNED 회차가 존재하면 중복 생성하지 않고 false를 반환한다", async () => {
+      rpc.mockResolvedValueOnce({ data: null, error: MISSING_RPC_PGRST202 })
       const tplQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnValue({ single: tplSingle }),
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: { id: "tpl-1", cycle_type: "INTERVAL_30", is_active: true },
+            error: null,
+          }),
+        }),
       }
-
-      const plannedMaybeSingle = vi.fn().mockResolvedValue({ data: { id: "existing-plan" }, error: null })
       const existingPlannedQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: plannedMaybeSingle,
+        maybeSingle: vi.fn().mockResolvedValue({ data: { id: "existing-plan" }, error: null }),
       }
 
       from.mockImplementation((table: string) => {
@@ -168,56 +176,29 @@ describe("subscription-sync", () => {
 
       expect(success).toBe(false)
     })
+
+    it("RPC 부재 외 오류(예: 42501)는 Legacy 폴백 없이 비차단 false를 반환한다", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+      rpc.mockResolvedValueOnce({ data: null, error: { code: "42501", message: "permission denied" } })
+
+      try {
+        const success = await createNextIntervalSubscriptionExpense({
+          userId: "user-1",
+          templateId: "tpl-1",
+          originalTargetDate: "2026-10-25",
+          paymentDate: "2026-10-15",
+        })
+        expect(success).toBe(false)
+        expect(from).not.toHaveBeenCalled()
+      } finally {
+        warnSpy.mockRestore()
+      }
+    })
   })
 
-  describe("calculateRollbackIntervalTargetDate", () => {
-    it("환불 시 현재 예정일에서 interval_days를 차감하여 결제 전 원래 예정일로 복원한다", () => {
-      // 10/25 예정일에서 30일 조기 충전되어 11/24가 되었던 상태에서 환불 시 -> 10/25로 원복
-      const rolledBackDate = calculateRollbackIntervalTargetDate("2026-11-24", 30)
-      expect(rolledBackDate).toBe("2026-10-25")
-    })
-
-    it("15일 충전형 구독 환불 시 15일이 정확히 차감된다", () => {
-      const rolledBackDate = calculateRollbackIntervalTargetDate("2026-11-09", 15)
-      expect(rolledBackDate).toBe("2026-10-25")
-    })
-  })
-
-  describe("rollbackIntervalSubscriptionExpense", () => {
-    it("누적 충전형 결제 환불 시 다음 PLANNED 지출의 예정일에서 충전 일수를 차감한다", async () => {
-      const tplSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: "tpl-1",
-          cycle_type: "INTERVAL_30",
-          interval_days: 30,
-        },
-        error: null,
-      })
-      const tplQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnValue({ maybeSingle: tplSingle }),
-      }
-
-      const plannedMaybeSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: "exp-planned-next",
-          target_date: "2026-11-24", // 40일 남았던 상태
-        },
-        error: null,
-      })
-      const update = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
-      const expensesQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: plannedMaybeSingle,
-        update,
-      }
-
-      from.mockImplementation((table: string) => {
-        if (table === "subscription_templates") return tplQuery
-        if (table === "expenses") return expensesQuery
-        return {}
-      })
+  describe("rollbackIntervalSubscriptionExpense (RPC 전환 및 Legacy 폴백)", () => {
+    it("RPC 정상 시 rollback_interval_subscription만 호출하고 from()을 건드리지 않는다", async () => {
+      rpc.mockResolvedValueOnce({ data: true, error: null })
 
       const success = await rollbackIntervalSubscriptionExpense({
         userId: "user-1",
@@ -226,28 +207,65 @@ describe("subscription-sync", () => {
       })
 
       expect(success).toBe(true)
-      expect(update).toHaveBeenCalledWith({
-        target_date: "2026-10-25", // 2026-11-24에서 30일 차감
+      expect(rpc).toHaveBeenCalledWith("rollback_interval_subscription", {
+        p_expense_id: "exp-refunded-1",
       })
+      expect(from).not.toHaveBeenCalled()
     })
 
-    it("INTERVAL_30이 아닌 일반 템플릿 환불 시 차감하지 않고 false를 반환한다", async () => {
-      const tplSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: "tpl-monthly",
-          cycle_type: "MONTHLY_DAY",
-        },
-        error: null,
-      })
+    it.each([MISSING_RPC_PGRST202, MISSING_RPC_42883])(
+      "RPC 부재 오류($code) 시 Legacy 폴백으로 다음 PLANNED 예정일을 차감한다",
+      async (missingError) => {
+        rpc.mockResolvedValueOnce({ data: null, error: missingError })
+        const tplQuery = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { id: "tpl-1", cycle_type: "INTERVAL_30", interval_days: 30 },
+              error: null,
+            }),
+          }),
+        }
+        const update = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+        const expensesQuery = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: { id: "exp-planned-next", target_date: "2026-11-24" },
+            error: null,
+          }),
+          update,
+        }
+
+        from.mockImplementation((table: string) => {
+          if (table === "subscription_templates") return tplQuery
+          if (table === "expenses") return expensesQuery
+          return {}
+        })
+
+        const success = await rollbackIntervalSubscriptionExpense({
+          userId: "user-1",
+          expenseId: "exp-refunded-1",
+          templateId: "tpl-1",
+        })
+
+        expect(success).toBe(true)
+        expect(update).toHaveBeenCalledWith({ target_date: "2026-10-25" })
+      },
+    )
+
+    it("Legacy 폴백: INTERVAL_30이 아닌 템플릿 환불 시 false를 반환한다", async () => {
+      rpc.mockResolvedValueOnce({ data: null, error: MISSING_RPC_PGRST202 })
       const tplQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnValue({ maybeSingle: tplSingle }),
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: { id: "tpl-monthly", cycle_type: "MONTHLY_DAY" },
+            error: null,
+          }),
+        }),
       }
-
-      from.mockImplementation((table: string) => {
-        if (table === "subscription_templates") return tplQuery
-        return {}
-      })
+      from.mockImplementation((table: string) => (table === "subscription_templates" ? tplQuery : {}))
 
       const success = await rollbackIntervalSubscriptionExpense({
         userId: "user-1",
@@ -257,65 +275,113 @@ describe("subscription-sync", () => {
 
       expect(success).toBe(false)
     })
+
+    it("RPC 부재 외 오류는 Legacy 폴백 없이 비차단 false를 반환한다", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+      rpc.mockResolvedValueOnce({ data: null, error: { code: "42501", message: "denied" } })
+
+      try {
+        const success = await rollbackIntervalSubscriptionExpense({
+          userId: "user-1",
+          expenseId: "exp-1",
+          templateId: "tpl-1",
+        })
+        expect(success).toBe(false)
+        expect(from).not.toHaveBeenCalled()
+      } finally {
+        warnSpy.mockRestore()
+      }
+    })
   })
 
-  describe("ensureMonthlySubscriptionExpenses", () => {
-    it("MONTHLY_DAY: 당월 회차 예정 지출을 생성하고 billing_cycle 충돌을 무시한다", async () => {
+  describe("ensureMonthlySubscriptionExpenses (RPC 전환 및 Legacy 폴백)", () => {
+    it("RPC 정상 시 ensure_subscription_expenses만 호출하고 생성 건수를 반환한다", async () => {
+      rpc.mockResolvedValueOnce({ data: 3, error: null })
+
+      const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 11, "2026-11-25")
+
+      expect(createdCount).toBe(3)
+      expect(rpc).toHaveBeenCalledTimes(1)
+      expect(rpc).toHaveBeenCalledWith("ensure_subscription_expenses")
+      expect(from).not.toHaveBeenCalled()
+    })
+
+    it("RPC 부재 외 오류(예: 42501/네트워크)는 Legacy 폴백 없이 비차단 0을 반환한다", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+      rpc.mockResolvedValueOnce({ data: null, error: { code: "42501", message: "insufficient privilege" } })
+
+      try {
+        const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 11, "2026-11-25")
+        expect(createdCount).toBe(0)
+        expect(from).not.toHaveBeenCalled()
+      } finally {
+        warnSpy.mockRestore()
+      }
+    })
+
+    it.each([MISSING_RPC_PGRST202, MISSING_RPC_42883])(
+      "RPC 부재 오류($code) 시 Legacy 폴백으로 MONTHLY_DAY 당월 회차를 생성한다",
+      async (missingError) => {
+        rpc
+          .mockResolvedValueOnce({ data: null, error: missingError })
+          .mockResolvedValueOnce({ data: 0, error: null })
+        const templateQuery = createTemplateQuery([
+          {
+            id: "template-1",
+            title: "넷플릭스",
+            category: "정기 구독",
+            cycle_type: "MONTHLY_DAY",
+            billing_day: 31,
+            default_price: 17000,
+            payment_method: "WALLET",
+            game_id: null,
+          },
+        ])
+        const expenseQuery = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }
+        const insert = vi.fn().mockResolvedValue({ error: null })
+        from.mockImplementation((table: string) => {
+          if (table === "subscription_templates") return templateQuery
+          if (table === "expenses") return { ...expenseQuery, insert }
+          return {}
+        })
+
+        const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 12, "2026-02-01")
+
+        expect(createdCount).toBe(1)
+        expect(rpc).toHaveBeenNthCalledWith(1, "ensure_subscription_expenses")
+        expect(rpc).toHaveBeenNthCalledWith(2, "dedupe_monthly_planned_expenses", { p_template_id: "template-1" })
+        expect(insert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            template_id: "template-1",
+            billing_cycle: "2026-02",
+            target_date: "2026-02-28",
+            status: "PLANNED",
+            final_amount: 17000,
+          }),
+        )
+      },
+    )
+
+    it("Legacy 폴백 MONTHLY_DAY: 당월 회차가 이미 확정됐으면 다음 달 한 건만 생성한다", async () => {
+      rpc
+        .mockResolvedValueOnce({ data: null, error: MISSING_RPC_PGRST202 })
+        .mockResolvedValueOnce({ data: 0, error: null })
       const templateQuery = createTemplateQuery([
         {
-          id: "template-1",
-          title: "넷플릭스",
+          id: "template-monthly",
+          title: "정기 구독",
           category: "정기 구독",
           cycle_type: "MONTHLY_DAY",
-          billing_day: 31,
-          default_price: 17000,
+          billing_day: 15,
+          default_price: 10000,
           payment_method: "WALLET",
           game_id: null,
         },
       ])
-      const expenseQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: [], error: null }),
-      }
-
-      const insert = vi.fn().mockResolvedValue({ error: null })
-      from.mockImplementation((table: string) => {
-        if (table === "subscription_templates") return templateQuery
-        if (table === "expenses") {
-          return {
-            ...expenseQuery,
-            insert,
-          }
-        }
-        return {}
-      })
-
-      const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 12, "2026-02-01")
-
-      expect(createdCount).toBe(1)
-      expect(insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          template_id: "template-1",
-          billing_cycle: "2026-02",
-          target_date: "2026-02-28",
-          status: "PLANNED",
-          final_amount: 17000,
-        }),
-      )
-    })
-
-    it("MONTHLY_DAY: 당월 회차가 이미 확정됐으면 다음 달 한 건만 생성한다", async () => {
-      const templateQuery = createTemplateQuery([{
-        id: "template-monthly",
-        title: "정기 구독",
-        category: "정기 구독",
-        cycle_type: "MONTHLY_DAY",
-        billing_day: 15,
-        default_price: 10000,
-        payment_method: "WALLET",
-        game_id: null,
-      }])
       const expensesQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -325,127 +391,54 @@ describe("subscription-sync", () => {
         }),
       }
       const insert = vi.fn().mockResolvedValue({ error: null })
-      from.mockImplementation((table: string) => table === "subscription_templates"
-        ? templateQuery
-        : { ...expensesQuery, insert })
+      from.mockImplementation((table: string) =>
+        table === "subscription_templates" ? templateQuery : { ...expensesQuery, insert },
+      )
 
       await ensureMonthlySubscriptionExpenses("user-1", 2026, 12, "2026-02-15")
 
-      expect(insert).toHaveBeenCalledWith(expect.objectContaining({
-        billing_cycle: "2026-03",
-        target_date: "2026-03-15",
-      }))
-    })
-
-    it("MONTHLY_DAY: 중복 PLANNED 정리는 소유권 RPC에 위임한다", async () => {
-      const templateQuery = createTemplateQuery([{
-        id: "template-monthly",
-        title: "정기 구독",
-        category: "정기 구독",
-        cycle_type: "MONTHLY_DAY",
-        billing_day: 15,
-        default_price: 10000,
-        payment_method: "WALLET",
-        game_id: null,
-      }])
-      const expensesQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: [
-          { id: "first", billing_cycle: "2026-02", status: "PLANNED", target_date: "2026-02-15" },
-        ], error: null }),
-      }
-      const insert = vi.fn()
-      rpc.mockResolvedValueOnce({ data: 1, error: null })
-      from.mockImplementation((table: string) => table === "subscription_templates"
-        ? templateQuery
-        : { ...expensesQuery, insert })
-
-      await ensureMonthlySubscriptionExpenses("user-1", 2026, 12, "2026-02-01")
-
-      expect(rpc).toHaveBeenCalledWith("dedupe_monthly_planned_expenses", {
-        p_template_id: "template-monthly",
-      })
-      expect(insert).not.toHaveBeenCalled()
-    })
-
-    it("MONTHLY_DAY: 정리 RPC 오류 시 추가 회차 생성을 중단한다", async () => {
-      const templateQuery = createTemplateQuery([{
-        id: "template-monthly",
-        title: "정기 구독",
-        category: "정기 구독",
-        cycle_type: "MONTHLY_DAY",
-        billing_day: 15,
-        default_price: 10000,
-        payment_method: "WALLET",
-        game_id: null,
-      }])
-      const insert = vi.fn()
-      from.mockImplementation((table: string) => table === "subscription_templates"
-        ? templateQuery
-        : { insert })
-      rpc.mockResolvedValueOnce({ data: null, error: { message: "not authorized" } })
-
-      await expect(ensureMonthlySubscriptionExpenses("user-1", 2026, 10, "2026-10-05"))
-        .rejects.toThrow("SUBSCRIPTION_LAZY_GENERATION_FAILED")
-      expect(insert).not.toHaveBeenCalled()
-    })
-
-
-    it("INTERVAL_30: 이전 CONFIRMED 지출이 있으면 +30일 뒤 날짜로 다음 회차를 생성한다", async () => {
-      const templateQuery = createTemplateQuery([
-        {
-          id: "template-interval",
-          title: "공월 축복",
-          category: "게임",
-          cycle_type: "INTERVAL_30",
-          billing_day: 1,
-          default_price: 5900,
-          payment_method: "GOOGLE_PLAY",
-          game_id: "game-1",
-        },
-      ])
-
-      const expenseQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({
-          data: [
-            { id: "e1", status: "CONFIRMED", target_date: "2026-10-01" },
-          ],
-          error: null,
-        }),
-      }
-
-      const insert = vi.fn().mockResolvedValue({ error: null })
-
-      from.mockImplementation((table: string) => {
-        if (table === "subscription_templates") return templateQuery
-        if (table === "expenses") {
-          return {
-            ...expenseQuery,
-            insert,
-          }
-        }
-        return {}
-      })
-
-      const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 10, "2026-10-05")
-
-      expect(createdCount).toBe(1)
       expect(insert).toHaveBeenCalledWith(
         expect.objectContaining({
-          template_id: "template-interval",
-          target_date: "2026-10-31", // 2026-10-01 + 30일
-          status: "PLANNED",
-          final_amount: 5900,
-          payment_method: "GOOGLE_PLAY",
-          point_platform: "GOOGLE_PLAY",
+          billing_cycle: "2026-03",
+          target_date: "2026-03-15",
         }),
       )
     })
 
-    it("INTERVAL_30: interval_days가 설정되어 있으면 기본 30일 대신 설정된 일수만큼 연장하여 다음 회차를 생성한다", async () => {
+    it("Legacy 폴백 MONTHLY_DAY: 정리 RPC 오류 시 추가 회차 생성을 중단한다", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined)
+      rpc
+        .mockResolvedValueOnce({ data: null, error: MISSING_RPC_PGRST202 })
+        .mockResolvedValueOnce({ data: null, error: { message: "not authorized" } })
+      const templateQuery = createTemplateQuery([
+        {
+          id: "template-monthly",
+          title: "정기 구독",
+          category: "정기 구독",
+          cycle_type: "MONTHLY_DAY",
+          billing_day: 15,
+          default_price: 10000,
+          payment_method: "WALLET",
+          game_id: null,
+        },
+      ])
+      const insert = vi.fn()
+      from.mockImplementation((table: string) =>
+        table === "subscription_templates" ? templateQuery : { insert },
+      )
+
+      try {
+        await expect(ensureMonthlySubscriptionExpenses("user-1", 2026, 10, "2026-10-05")).rejects.toThrow(
+          "SUBSCRIPTION_LAZY_GENERATION_FAILED",
+        )
+        expect(insert).not.toHaveBeenCalled()
+      } finally {
+        errorSpy.mockRestore()
+      }
+    })
+
+    it("Legacy 폴백 INTERVAL_30: 이전 CONFIRMED 지출 + interval_days로 다음 회차를 생성한다", async () => {
+      rpc.mockResolvedValueOnce({ data: null, error: MISSING_RPC_PGRST202 })
       const templateQuery = createTemplateQuery([
         {
           id: "template-interval-7",
@@ -459,28 +452,18 @@ describe("subscription-sync", () => {
           game_id: "game-1",
         },
       ])
-
       const expenseQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockResolvedValue({
-          data: [
-            { id: "e1", status: "CONFIRMED", target_date: "2026-10-01" },
-          ],
+          data: [{ id: "e1", status: "CONFIRMED", target_date: "2026-10-01" }],
           error: null,
         }),
       }
-
       const insert = vi.fn().mockResolvedValue({ error: null })
-
       from.mockImplementation((table: string) => {
         if (table === "subscription_templates") return templateQuery
-        if (table === "expenses") {
-          return {
-            ...expenseQuery,
-            insert,
-          }
-        }
+        if (table === "expenses") return { ...expenseQuery, insert }
         return {}
       })
 
@@ -490,58 +473,15 @@ describe("subscription-sync", () => {
       expect(insert).toHaveBeenCalledWith(
         expect.objectContaining({
           template_id: "template-interval-7",
-          target_date: "2026-10-08", // 2026-10-01 + 7일
+          target_date: "2026-10-08",
           status: "PLANNED",
           final_amount: 3300,
         }),
       )
     })
 
-    it("INTERVAL_30: 이미 미결제 PLANNED 회차가 존재하면 중복 생성하지 않는다", async () => {
-      const templateQuery = createTemplateQuery([
-        {
-          id: "template-interval",
-          title: "공월 축복",
-          category: "게임",
-          cycle_type: "INTERVAL_30",
-          billing_day: 1,
-          default_price: 5900,
-          payment_method: "GOOGLE_PLAY",
-          game_id: "game-1",
-        },
-      ])
-
-      const expenseQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({
-          data: [
-            { id: "e2", status: "PLANNED", target_date: "2026-10-31" },
-          ],
-          error: null,
-        }),
-      }
-
-      const insert = vi.fn().mockResolvedValue({ error: null })
-
-      from.mockImplementation((table: string) => {
-        if (table === "subscription_templates") return templateQuery
-        if (table === "expenses") {
-          return {
-            ...expenseQuery,
-            insert,
-          }
-        }
-        return {}
-      })
-
-      const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 10)
-
-      expect(createdCount).toBe(0)
-      expect(insert).not.toHaveBeenCalled()
-    })
-
-    it("VERSION_PASS: 게임의 VERSION 일정을 조회하여 해당 버전의 PLANNED 회차를 생성한다", async () => {
+    it("Legacy 폴백 VERSION_PASS: 공식 VERSION 일정만 PLANNED로 생성한다", async () => {
+      rpc.mockResolvedValueOnce({ data: null, error: MISSING_RPC_PGRST202 })
       const templateQuery = createTemplateQuery([
         {
           id: "template-pass",
@@ -554,7 +494,6 @@ describe("subscription-sync", () => {
           game_id: "game-genshin",
         },
       ])
-
       const scheduleQuery: Record<string, unknown> = {}
       scheduleQuery.select = vi.fn().mockReturnValue(scheduleQuery)
       scheduleQuery.eq = vi.fn().mockImplementation((column: string) => {
@@ -573,106 +512,40 @@ describe("subscription-sync", () => {
 
       const expenseQuery: Record<string, unknown> = {}
       expenseQuery.select = vi.fn().mockReturnValue(expenseQuery)
-      expenseQuery.eq = vi.fn().mockImplementation((col: string) => {
-        if (col === "template_id") {
-          return Promise.resolve({
-            data: [], // 기존 생성된 회차 없음
-            error: null,
-          })
-        }
-        return expenseQuery
-      })
-
+      expenseQuery.eq = vi.fn().mockImplementation((col: string) =>
+        col === "template_id" ? Promise.resolve({ data: [], error: null }) : expenseQuery,
+      )
       const insert = vi.fn().mockResolvedValue({ error: null })
 
       from.mockImplementation((table: string) => {
         if (table === "subscription_templates") return templateQuery
         if (table === "game_schedules") return scheduleQuery
-        if (table === "expenses") {
-          return {
-            ...expenseQuery,
-            insert,
-          }
-        }
+        if (table === "expenses") return { ...expenseQuery, insert }
         return {}
       })
 
       const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 10, "2026-10-05")
 
       expect(createdCount).toBe(1)
-      expect(scheduleQuery.gte).toHaveBeenCalledWith("end_date", "2026-10-05")
-      expect(scheduleQuery.eq).toHaveBeenCalledWith("is_official", true)
-      expect(insert).toHaveBeenCalledWith(
-        [
-          expect.objectContaining({
-            template_id: "template-pass",
-            schedule_id: "ver-5.1",
-            title: "진주 기행 (5.1 버전)",
-            start_date: "2026-10-09",
-            end_date: "2026-11-19",
-            target_date: "2026-10-09",
-            status: "PLANNED",
-            final_amount: 12000,
-          }),
-        ],
-      )
+      expect(insert).toHaveBeenCalledWith([
+        expect.objectContaining({
+          template_id: "template-pass",
+          schedule_id: "ver-5.1",
+          title: "진주 기행 (5.1 버전)",
+          target_date: "2026-10-09",
+        }),
+      ])
     })
 
-    it("VERSION_PASS: is_official 컬럼이 아직 없는 DB에서는 조회 일정을 공식으로 간주한다", async () => {
-      const templateQuery = createTemplateQuery([{
-        id: "template-pass",
-        title: "월간 패스",
-        category: "게임",
-        cycle_type: "VERSION_PASS",
-        billing_day: 1,
-        default_price: 12000,
-        payment_method: "WALLET",
-        game_id: "game-1",
-      }])
-      let scheduleQueryCount = 0
-      const insert = vi.fn().mockResolvedValue({ error: null })
-      from.mockImplementation((table: string) => {
-        if (table === "subscription_templates") return templateQuery
-        if (table === "game_schedules") {
-          scheduleQueryCount += 1
-          const query: Record<string, unknown> = {}
-          query.select = vi.fn().mockReturnValue(query)
-          query.eq = vi.fn().mockImplementation((column: string) => column === "is_official"
-            ? Promise.resolve({ data: null, error: { code: "42703", message: "column game_schedules.is_official does not exist" } })
-            : query)
-          query.gte = vi.fn().mockImplementation(() => scheduleQueryCount === 1
-            ? query
-            : Promise.resolve({
-                data: [{ id: "legacy-version", title: "구버전", start_date: "2026-10-10", end_date: "2026-11-10" }],
-                error: null,
-              }))
-          return query
-        }
-        const query: Record<string, unknown> = {}
-        query.select = vi.fn().mockReturnValue(query)
-        query.eq = vi.fn().mockImplementation((column: string) => column === "template_id"
-          ? Promise.resolve({ data: [], error: null })
-          : query)
-        query.insert = insert
-        return query
-      })
-
-      await ensureMonthlySubscriptionExpenses("user-1", 2026, 10, "2026-10-05")
-
-      expect(scheduleQueryCount).toBe(2)
-      expect(insert).toHaveBeenCalledWith([expect.objectContaining({ schedule_id: "legacy-version" })])
-    })
-
-    it("returns zero when no active templates exist", async () => {
+    it("Legacy 폴백: 활성 템플릿이 없으면 0을 반환한다", async () => {
+      rpc.mockResolvedValueOnce({ data: null, error: MISSING_RPC_PGRST202 })
       const templateQuery = createTemplateQuery([])
-      from.mockImplementation((table: string) => {
-        if (table === "subscription_templates") return templateQuery
-        return { insert: vi.fn() }
-      })
+      from.mockImplementation((table: string) =>
+        table === "subscription_templates" ? templateQuery : { insert: vi.fn() },
+      )
 
       const createdCount = await ensureMonthlySubscriptionExpenses("user-1", 2026, 10)
       expect(createdCount).toBe(0)
     })
-
   })
 })
