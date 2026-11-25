@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-25 (협업 규칙 개정 2차 검토 보완)
+
+- `collaboration.md`·`collaboration-guide.md`에 Step별 추론 수준 예외 기준(`Low`·`XHigh` 전환 조건, 금액·SQL Step 하향 금지, 승격 우선)과 서브에이전트 위임 금지 범위를 추가하고, Orchestrator Skill의 큐 행 표기를 `Primary Model (Level)`로 명시함.
+
 ## 2026-11-25 (협업 규칙 개정: `Gemini 4 Argon` $\to$ `Gemini 4 Carbon` 인계 및 `Gemini 3.8 Flash` 역할 통합)
 
 - 11월 30일 `Gemini 4 Argon`·`Gemini 3.8 Flash` 서비스 종료에 대비해 Tier-3 수석 아키텍트(`Chief Architect & Final Gatekeeper`, `src/**` 직접 수정 금지, `📐 SPEC_NEEDED` 전담)를 **`Gemini 4 Carbon`**(`Orchestrator (Carbon)`)으로 인계하고, `/swarm` 병렬 에이전트 모드는 자율 시작을 금지하되 필요한 경우 사용자에게 사전 요청 후 승낙 시에만 허용하도록 `.agents/rules/collaboration.md` §3.2에 명시함.

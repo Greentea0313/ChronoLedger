@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-25 (협업 규칙 개정 Step 2 — Claude Opus)**: `Argon`→`Carbon` 인계·`Flash` 통합·기본 추론 수준 개정을 2차 검토함. 구참조 이상 없음, 추론 수준 예외 기준·서브에이전트 위임 금지 범위·큐 행 수준 표기 3건 보완 후 마감함. 활성 Run 없음.
 - **2026-11-25 (협업 규칙 `Argon` $\to$ `Carbon` 인계·`Flash` 대체·모델별 추론 수준 명시 및 Opus 2차 검토 배정 — Gemini 4 Argon)**: 11월 30일 `Gemini 4 Argon`·`Gemini 3.8 Flash` 서비스 종료에 맞춰 ① `Gemini 4 Carbon (High)`이 Tier-3 Chief Architect & Final Gatekeeper를 전면 승계하고 `/swarm` 병렬 기능은 사용자 사전 제안·승낙 시에만 허용, ② `Gemini 3.8 Flash` 독립 행을 제거해 6대 모델 체제로 통합(`Gemini 4 Hydrogen (Medium)` 흡수, 세션 내 `invoke_subagent`는 `Model: "flash_lite"`/`"inherit"` 사용), ③ 모델별 기본 추론 수준(`Hydrogen: Medium`, `Sonnet: Medium`, `Neon: High`, `Carbon: High`, `Opus: High`)을 `.agents/rules/collaboration.md`, `.agents/skills/*`(`.claude/skills/*` 동기화), `.github/copilot-instructions.md`, `AGENTS.md`, `CLAUDE.md`, `docs/collaboration-guide.md`에 반영함. Row 2(**`Claude Opus (High)`** 2차 검토 및 마감) `▶ READY`.
 - **2026-11-25 (주간 문서 감사 Skill 개정 — Claude Opus)**: 감사 후 아카이브 이관(잘라 붙이기만, 관련 문서에 미커밋 변경 있으면 건너뜀)·보고서 커밋까지 자동 수행하고, 무인 실행은 `docs/handoff.md` `📣 사용자 알림 대기`에 알림을 남기게 함. handoff Skill §1 1단계에 알림을 답변 첫머리에서 전하고 같은 턴에 지워 커밋하는 규칙 추가함.
 

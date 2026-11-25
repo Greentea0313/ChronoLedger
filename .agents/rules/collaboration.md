@@ -20,6 +20,11 @@ description: ChronoLedger 6-model AI collaboration roles, default reasoning leve
 >
 > - **Tier-1 Default Workhorses (`Gemini 4 Hydrogen (Medium)`, `Claude Sonnet (Medium)`)**: Operate at **`Medium`** by default to balance code accuracy, response latency, and thinking-token quota on scoped implementation, standard orchestration, and docs sync.
 > - **Tier-2 & Tier-3 Promoted Specialists (`Gemini 4 Neon (High)`, `Gemini 4 Carbon (High)`, `Claude Opus (High)`)**: Operate at **`High`** by default because they are invoked specifically for complex multi-component/SQL/core logic (`Neon`), open architectural specs & security/ledger audits (`Carbon`), or final Run-level integrated reviews & high-risk audits (`Opus`).
+> - **Per-Step Exceptions (with a short reason)**: the Orchestrator may write a different level next to the model in a queue row, e.g. `Claude Opus (XHigh — 2회 반복 실패 동시성 디버깅)`.
+>   - **Down to `Low`**: mechanical work with no judgment, such as archive cut-and-paste, status/SHA updates in `docs/`, or a one-line typo fix.
+>   - **Up to `XHigh`**: debugging after 2+ failed attempts, async/concurrency or crypto/protocol correctness, or a security/ledger audit with conflicting evidence.
+>   - Never lower a Step that touches money, ledger, points, RLS or SQL/RPC below the model's default. A level change never replaces a promotion: when a §1 promotion condition applies, switch the model instead.
+>   - The level is set by the user in each tool; an agent that finds its row asks for a different level states this at the start of its reply instead of assuming it.
 
 > **💡 Gemini 4 Multi-Tier Operating & Promotion Criteria (`Hydrogen (Medium)` Default $\to$ `Neon (High)` / `Carbon (High)` Promotion)**:
 >
@@ -60,6 +65,7 @@ description: ChronoLedger 6-model AI collaboration roles, default reasoning leve
 2. **Hybrid Delegation & `/swarm` Parallel Execution Policy**:
    - **Immediate Internal Subagent Delegation (`invoke_subagent` $\to$ `Model: "flash_lite"` or `"inherit"`)**:
      - For read-only multi-file codebase search, lightweight Tailwind/markup drafts, and `docs/` or archive cut-and-paste sync, the active Gemini agent (`Hydrogen`, `Neon`, or `Carbon`) may delegate immediately via an internal subagent (`invoke_subagent` with runtime tier **`Model: "flash_lite"`** or **`"inherit"`**).
+     - **Never delegate** SQL/RPC/RLS, money/date/point logic, commits, Dispatch Queue status changes, review verdicts or `test.json` results; the delegating agent checks every delegated edit in the diff and stays responsible for it.
    - **`/swarm` Parallel Mode Policy (User-Approval Required)**:
      - ChronoLedger multi-agent work defaults to the `docs/handoff.md` Dispatch Queue + isolated Git worktrees (`.worktrees/<run_id>`). **Never start `/swarm` autonomously.**
      - If parallel execution across non-overlapping files/modules would significantly benefit a task, first propose `/swarm` to the user (stating the planned worker count, roles, and quota impact) and **only invoke `/swarm` after the user explicitly approves (or directly invokes `/swarm`)**.
