@@ -338,4 +338,146 @@ describe("send-notifications Edge Function worker", () => {
       tag: "REQUEST_APPROVED:notif-d",
     })
   })
+
+  it("R96-REV-05: matches RFC 8291 Appendix A fixed test vector in both decryption and Edge Function encryption", async () => {
+    const uaPublicB64 = "BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4"
+    const uaPrivateB64 = "q1dXpw3UpT5VOmu_cf_v6ih07Aems3njxI-JWgLcM94"
+    const asPublicB64 = "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8"
+    const asPrivateB64 = "yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw"
+    const saltB64 = "DGv6ra1nlYgDCS1FRnbzlw"
+    const authB64 = "BTBZMqHH6r4Tts7J_aSIgg"
+    const expectedHeaderB64 = "DGv6ra1nlYgDCS1FRnbzlwAAEABBBP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8"
+    const expectedCiphertextB64 = "8pfeW0KbunFT06SuDKoJH9Ql87S1QUrdirN6GcG7sFz1y1sqLgVi1VhjVkHsUoEsbI_0LpXMuGvnzQ"
+    const expectedHeaderBytes = decodeBase64Url(expectedHeaderB64)
+    const expectedCiphertextBytes = decodeBase64Url(expectedCiphertextB64)
+    const expectedBody = new Uint8Array(expectedHeaderBytes.length + expectedCiphertextBytes.length)
+    expectedBody.set(expectedHeaderBytes, 0)
+    expectedBody.set(expectedCiphertextBytes, expectedHeaderBytes.length)
+
+    const uaPublicBytes = decodeBase64Url(uaPublicB64)
+    const uaPrivateKey = await crypto.subtle.importKey(
+      "jwk",
+      {
+        kty: "EC",
+        crv: "P-256",
+        x: encodeBase64Url(uaPublicBytes.slice(1, 33)),
+        y: encodeBase64Url(uaPublicBytes.slice(33, 65)),
+        d: uaPrivateB64,
+        ext: true,
+      },
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      ["deriveBits"],
+    )
+    const uaPublicKey = await crypto.subtle.importKey(
+      "raw",
+      toArrayBuffer(uaPublicBytes),
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      [],
+    )
+
+    const decrypted = await decryptWebPushPayload({
+      body: expectedBody,
+      uaKeyPair: { privateKey: uaPrivateKey, publicKey: uaPublicKey },
+      auth: authB64,
+    })
+    expect(decrypted).toBe("When I grow up, I want to be a watermelon")
+
+    const asPublicBytes = decodeBase64Url(asPublicB64)
+    const asPrivateKey = await crypto.subtle.importKey(
+      "jwk",
+      {
+        kty: "EC",
+        crv: "P-256",
+        x: encodeBase64Url(asPublicBytes.slice(1, 33)),
+        y: encodeBase64Url(asPublicBytes.slice(33, 65)),
+        d: asPrivateB64,
+        ext: true,
+      },
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      ["deriveBits"],
+    )
+    const asPublicKey = await crypto.subtle.importKey(
+      "raw",
+      toArrayBuffer(asPublicBytes),
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      [],
+    )
+
+    const vapid = await generateVapidKeyPair()
+    const originalGenerateKey = crypto.subtle.generateKey.bind(crypto.subtle)
+    const originalStringify = JSON.stringify.bind(JSON)
+    const getRandomValuesSpy = vi.spyOn(crypto, "getRandomValues").mockImplementationOnce((arr) => {
+      ;(arr as Uint8Array).set(decodeBase64Url(saltB64))
+      return arr
+    })
+    const generateKeySpy = vi.spyOn(crypto.subtle, "generateKey").mockImplementation(async (algorithm, extractable, keyUsages) => {
+      if (typeof algorithm === "object" && algorithm && "name" in algorithm && algorithm.name === "ECDH") {
+        return { privateKey: asPrivateKey, publicKey: asPublicKey }
+      }
+      return originalGenerateKey(algorithm as EcKeyGenParams, extractable, keyUsages)
+    })
+
+    const endpoint = "https://push.example/rfc8291-vector"
+    let workerBody: Uint8Array | undefined
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url
+      if (url.endsWith("/rest/v1/rpc/claim_pending_push_notifications")) {
+        return new Response(
+          originalStringify([
+            {
+              notification_id: "notif-rfc",
+              user_id: "user-rfc",
+              kind: "REQUEST_APPROVED",
+              title: "When I grow up, I want to be a watermelon",
+              body: "",
+              link_path: "/dashboard",
+              push_attempts: 1,
+            },
+          ]),
+          { status: 200 },
+        )
+      }
+      if (url.includes("/rest/v1/push_subscriptions")) {
+        return new Response(originalStringify([{ user_id: "user-rfc", endpoint, p256dh: uaPublicB64, auth: authB64 }]), { status: 200 })
+      }
+      if (url === endpoint) {
+        workerBody = new Uint8Array(init?.body as ArrayBuffer)
+        return new Response("", { status: 201 })
+      }
+      return new Response(null, { status: 204 })
+    })
+
+    const stringifySpy = vi.spyOn(JSON, "stringify").mockImplementation((value, replacer, space) => {
+      if (typeof value === "object" && value !== null && "link_path" in value && "title" in value) {
+        return "When I grow up, I want to be a watermelon"
+      }
+      return originalStringify(value, replacer as never, space)
+    })
+    try {
+      const res = await handleSendNotificationsRequest(
+        new Request("https://edge.example/send-notifications", { method: "POST", headers: { "x-webhook-secret": "hook-secret" } }),
+        {
+          env: {
+            supabaseUrl: "https://proj.supabase.co",
+            serviceRoleKey: "service-role-secret",
+            vapidPublicKey: vapid.publicKey,
+            vapidPrivateKey: vapid.privateKey,
+            vapidSubject: "mailto:ops@chronoledger.example",
+            webhookSecret: "hook-secret",
+          },
+          fetchImpl: fetchMock as unknown as typeof fetch,
+        },
+      )
+      expect(res.status).toBe(200)
+      expect(encodeBase64Url(workerBody as Uint8Array)).toBe(encodeBase64Url(expectedBody))
+    } finally {
+      stringifySpy.mockRestore()
+      generateKeySpy.mockRestore()
+      getRandomValuesSpy.mockRestore()
+    }
+  })
 })

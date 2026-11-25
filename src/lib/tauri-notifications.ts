@@ -69,10 +69,13 @@ async function runNotifyNewTauriNotifications(
 
     const freshUnread = items.filter((item) => item.read_at === null && !seenIds.has(item.id))
     for (const item of items) seenIds.add(item.id)
-    saveSeenIds(userId, seenIds)
-    if (freshUnread.length === 0) return 0
+    if (freshUnread.length === 0) {
+      saveSeenIds(userId, seenIds)
+      return 0
+    }
 
     const granted = await ensurePermission()
+    saveSeenIds(userId, seenIds)
     if (!granted) return 0
 
     let sent = 0
