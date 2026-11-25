@@ -14,15 +14,24 @@
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 과제**: **`P4` 선택 후속 묶음 (`p4-followups-r108-r109` — Base `9efde83f89003f10da4e52dd7c0d992720c19035`, 브랜치 `collab/p4-followups-r108-r109`, 워크트리 `.worktrees/p4-followups-r108-r109`)** *(`docs/to-do.md` `R109-REV-001·002`, `R108-REV-001`. `R107A-REV-001·002`는 `R107-C`와 함께 처리하므로 제외)*
-- **Target SHA**: `750331c69c652c5eea82b1ed1b54c803f80ccd21` *(Step 1 Maker 완료, 미병합, 원격 브랜치: push 안 함)*
+- **Target SHA**: `d7e5139ed1c93bb2fd0bb70192f3e9fba6c8a9f8` *(Step 2 Maker 완료, 미병합, 원격 브랜치: push 안 함)*
 - **DB 변경**: 없음. 🐳 Docker 불필요.
 - **수용 기준**: `docs/to-do.md` 해당 항목. 아래 행은 요지만 둠.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 750331c69c652c5eea82b1ed1b54c803f80ccd21)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R109-REV-001·002 관리자 일괄 이전 보완)` | `R109-REV-001`: `handleBulkMigrateGameAssets`의 `game_characters` 조회를 `.range()` 페이지네이션 또는 미이전 서버 필터로 보완(1,000행 초과 대응). `R109-REV-002`: `pendingAssetMigrationCount`가 선택 게임 밖 미이전 캐릭터도 반영하도록 보완. Vitest 추가, `tsc`·`lint`·Vitest 통과 후 커밋. 허용 파일: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅` 워크트리 커밋 `750331c69c652c5eea82b1ed1b54c803f80ccd21`(2파일). `.range()` 1,000행 페이지네이션·서버 `count` 배지 반영·Vitest 추가. `git diff --check`·`tsc`·`lint`·Vitest 78파일/1068개 통과 |
-| **2** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R108-REV-001 푸시 암호 테스트 결합 제거)` | `handleSendNotificationsRequest`에 salt·임시 키쌍·페이로드를 주입할 수 있게 해 `web-push-crypto.test.ts`의 전역 스파이(`crypto.getRandomValues`·`crypto.subtle.generateKey`·`JSON.stringify`) 제거. 동작 불변. 허용 파일: `supabase/functions/send-notifications/index.ts`, `src/lib/web-push-crypto.test.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **3** | **`⏳ WAITING`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High` — 도구에서 High 선택) / Gemini 4 Carbon (`High` — 도구에서 High 선택) — Maker인 Hydrogen 제외)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base ↔ Target 정적 리뷰(`review.json`)·`test.json`(`tsc`·`lint`·Vitest·`build`)·`main` 병합·문서 마감 | `⏳ Step 2 완료 대기` |
+| **2** | **`✅ DONE (SHA: d7e5139ed1c93bb2fd0bb70192f3e9fba6c8a9f8)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R108-REV-001 푸시 암호 테스트 결합 제거)` | `handleSendNotificationsRequest`에 salt·임시 키쌍·페이로드를 주입할 수 있게 해 `web-push-crypto.test.ts`의 전역 스파이(`crypto.getRandomValues`·`crypto.subtle.generateKey`·`JSON.stringify`) 제거. 동작 불변. 허용 파일: `supabase/functions/send-notifications/index.ts`, `src/lib/web-push-crypto.test.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅` 워크트리 커밋 `d7e5139ed1c93bb2fd0bb70192f3e9fba6c8a9f8`(2파일). `cryptoOverrides` 주입·전역 스파이 제거, `git diff --check`·`tsc`·`lint`·Vitest 78파일/1068개 통과 |
+| **3** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High` — 도구에서 High 선택) / Gemini 4 Carbon (`High` — 도구에서 High 선택) — Maker인 Hydrogen 제외)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. Base ↔ Target 정적 리뷰(`review.json`)·`test.json`(`tsc`·`lint`·Vitest·`build`)·`main` 병합·문서 마감 | 대기 중 |
+
+#### 📝 `p4-followups-r108-r109` Step 2 (Maker) 완료 기록 (Gemini 4 Hydrogen `Medium`, 2026-11-25)
+
+- **Target SHA**: `d7e5139ed1c93bb2fd0bb70192f3e9fba6c8a9f8` (`collab/p4-followups-r108-r109`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (워크트리 2건)**:
+  - `supabase/functions/send-notifications/index.ts`: `encryptWebPushPayload`·`handleSendNotificationsRequest`에 선택적 `cryptoOverrides`(`salt`, `ephemeralKeyPair`, `payloadText`) 옵션을 추가해 기본 동작 변경 없이 테스트 시 결정적 값 주입을 지원함.
+  - `src/lib/web-push-crypto.test.ts`: RFC 8291 Appendix A 벡터 검증 테스트에서 전역 스파이(`crypto.getRandomValues`·`crypto.subtle.generateKey`·`JSON.stringify`)를 모두 제거하고 `cryptoOverrides` 직접 주입으로 대체함.
+- **실행 검증 결과**: 워크트리 `git diff --check` 통과, `npx tsc --noEmit` 통과, `npm run lint` 경고·오류 0건, `npx vitest run --dir src` 78파일 1068개 전체 통과함.
+- **남은 작업**: Step 3(**Claude Sonnet (`Medium`)**, Fallback: `Claude Opus (High)` / `Gemini 4 Carbon (High)`)가 Base `9efde83` ↔ Target `d7e5139` 정적 리뷰·`tsc`/`lint`/Vitest/`next build` 검증·`main` 병합·문서 마감 수행 예정임.
 
 #### 📝 `p4-followups-r108-r109` Step 1 (Maker) 완료 기록 (Gemini 4 Hydrogen `Medium`, 2026-11-25)
 
