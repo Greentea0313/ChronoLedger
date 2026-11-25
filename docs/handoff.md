@@ -33,7 +33,7 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 | `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R108-REV-001` (`R101-REV-001`·`R106-REV-001·002`는 `T1`~`T4` Run에서 완료) | `docs/to-do.md` 해당 항목 |
-| `T1`~`T4` | **`main` 병합 완료 (`5e63007`) · 실기기 확인 대기** | Windows Tauri 데스크톱 통합(PKCE 단일화·auth adapter, `chronoledger://` + `single-instance`, 로그아웃 `/auth` 복귀) + `R101-REV-001` + `R106-REV-001·002` 완료. 남음: 운영 DB `R106-REV-002` 적용·Redirect URL 등록·`main` push(사용자), Rust PC `cargo check`·`tauri build`·`Cargo.lock`·실기기 OAuth 확인(`T4`) | [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §4, 아래 직전 완료 Run 기록 |
+| `T1`~`T4` | **`main` 병합 완료 (`5e63007`) · 운영 DB 적용·Redirect URL 등록 완료 · 실기기 확인 대기** | Windows Tauri 데스크톱 통합(PKCE 단일화·auth adapter, `chronoledger://` + `single-instance`, 로그아웃 `/auth` 복귀) + `R101-REV-001` + `R106-REV-001·002` 완료. 남음: `main` push(사용자), Rust PC `cargo check`·`tauri build`·`Cargo.lock`·실기기 OAuth 확인(`T4`) | [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §4, 아래 직전 완료 Run 기록 |
 
 ### 🗂️ 직전 완료 Run 기록: `t1-t4-desktop-and-followups` *(`T1`~`T4` 데스크톱 PKCE·딥링크·`single-instance` + `R101-REV-001`·`R106-REV-001·002`)*
 
@@ -41,7 +41,7 @@
 - **Worktree 경로**: `.worktrees/t1-t4-desktop-and-followups` (브랜치 `collab/t1-t4-desktop-and-followups`, 매니페스트 `artifacts/t1-t4-desktop-and-followups/run.json`, 미삭제·원격 미push)
 - **Base SHA**: `64c431752a972f5af4925653e710ac4126c8f28b` · **Target SHA**: `277dbdce667837700bdf5c64fd7d5c0ef805713a` *(산출물 `b3467ba`, `main` 병합 `5e63007`)*
 - **명세·결정**: [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §1(`D1`~`D5`)~§4. 명세 확정·요구사항 접수 기록은 `docs/archive/handoff-archive.md`로 옮김.
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql`, `SCHEMA.sql`). **운영 DB 미적용**(사용자 SQL Editor 적용 필요).
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql`, `SCHEMA.sql`). **운영 DB 적용 및 확인 쿼리 검증 완료(사용자, 2026-11-25)**.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
@@ -60,6 +60,7 @@
   - `T1T4-REV-003`: 데스크톱에서 SW 등록은 건너뛰나 예전 데스크톱 빌드가 등록한 SW 해제는 없음(배포된 데스크톱 빌드가 없으면 영향 없음, 선택).
 - **실행 검증 (`test.json` `passed`)**: `git diff --check`·`tsc`·`lint`·Vitest 77파일/1,050개·`next build`(더미 공개 env, 16페이지) 통과. 🐳 로컬 업그레이드 경로(Base `SCHEMA.sql` 적용 시 `quiet_on_missing=f` → 마이그레이션 2회 → `t`/`auth_exec=f`/`anon_exec=f`/`sr_exec=t` → `TESTS.sql` 49개 PASS·ROLLBACK)·신규 설치 경로(Target `SCHEMA.sql` → 마이그레이션 2회 → 확인 쿼리 → `TESTS.sql` 49개 PASS) 통과, `SCHEMA.sql`·마이그레이션 함수 본문 동일 확인. 병합 후 `main` `tsc` 재통과.
 - **미실행 (`skipped`)**: `cargo check`·`npm run tauri build`(이 PC에 Rust 툴체인 없음).
+- **운영 반영 (사용자, 2026-11-25)**: ① 마이그레이션 운영 적용·확인 쿼리 검증 완료, ③ Supabase Redirect URLs에 `chronoledger://auth/callback` 등록 완료. ②·④는 남음.
 - **남은 일 (사용자)**: ① 운영 DB에 `MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql` 적용 후 `sql/README.md` 확인 쿼리(`true, false, true`) 확인, ② `main` push 배포(웹은 기존 PKCE 그대로라 영향 없음), ③ Supabase Redirect URLs에 `chronoledger://auth/callback` 등록, ④ Rust PC에서 `cargo check`·`tauri build` 후 `Cargo.lock` 커밋 및 Windows 실기기 OAuth 왕복·취소·로그아웃 확인(명세 §4). ③ 전에는 데스크톱 Google 로그인이 실패함.
 
 #### 📝 `t1-t4-desktop-and-followups` Step 2 (Maker) 완료 기록 (Gemini 4 Neon `High`, 2026-11-25)
