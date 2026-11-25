@@ -13,7 +13,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **과제 구분**: `R107` 정기·반복 지출 자동화 — 명세 완료(Row 1)·Run 1 등록(Row 2) 후 아래 Run 1 `r107a-server-subscription-generation` Step 1 `▶ READY`
+- **과제 구분**: `R107` 정기·반복 지출 자동화 — 명세 완료(Row 1)·Run 1 등록(Row 2) 후 아래 Run 1 `r107a-server-subscription-generation` Step 1 완료(`d82f38f`, SQL 미실행) → Step 2 `▶ READY`
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
@@ -24,16 +24,26 @@
 
 - **Run ID**: `r107a-server-subscription-generation` · **Orchestrator**: Claude Opus *(Hydrogen 대신 사용자 지시로 등록, 2026-11-25)*
 - **Worktree 경로**: `.worktrees/r107a-server-subscription-generation` (브랜치 `collab/r107a-server-subscription-generation`, 매니페스트 `artifacts/r107a-server-subscription-generation/run.json`)
-- **Base SHA**: `ff04d84aff929671d77f42380e73217ec5f27a0e` · **Target SHA**: *(Step 1 진행 전)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql` — 금전 경로 인접 SQL/RPC·`pg_cron` → Opus 승격 조건 ①). 🐳 **Docker Desktop 필요** (Docker 없는 PC의 Maker는 `⚠️ LOCAL_DB_DEFERRED`, Reviewer는 병합 금지).
+- **Base SHA**: `ff04d84aff929671d77f42380e73217ec5f27a0e` · **Target SHA**: `d82f38f492679b7793a137b0c7075c3d1afd9d7d` *(Step 1 SQL 기준, 미병합·미push)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql` — 금전 경로 인접 SQL/RPC·`pg_cron` → Opus 승격 조건 ①). 🐳 **Docker Desktop 필요** (Docker 없는 PC의 Maker는 `⚠️ LOCAL_DB_DEFERRED`, Reviewer는 병합 금지). ⚠️ `LOCAL_DB_DEFERRED` — Step 1 SQL은 Docker 미설치 PC에서 작성되어 한 번도 실행되지 않음.
 - **수용 기준**: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §3(결정 `D1`~`D5`·`D15`, 인수 기준 `A-1`~`A-9`). 아래 행은 절 포인터만 둠.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Neon (`High`) / GPT Codex)* | `Maker (SQL/RPC/cron)` | 🐳 명세 §3.1 1~7 구현, `A-1`~`A-7`·`A-9`(SQL 측). `subscription-sync.test.ts` 날짜 시나리오를 `TESTS.sql`로 이식하고 TS↔SQL 케이스 대응표를 완료 기록에 남김(`A-3`). 허용 파일: 신규 `sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Sonnet (`Medium`))* | `Maker (Client RPC 전환·폴백 & Vitest)` | Step 1 완료 후 착수. 명세 §3.2, `A-8`·`A-9`(클라이언트 측). 허용 파일: `src/lib/subscription-sync.ts`·`.test.ts`, 호출 페이지·모달의 테스트 모의(`src/app/dashboard/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 구독 모달 테스트), `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (SHA: d82f38f492679b7793a137b0c7075c3d1afd9d7d)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Neon (`High`) / GPT Codex)* | `Maker (SQL/RPC/cron)` | 🐳 명세 §3.1 1~7 구현, `A-1`~`A-7`·`A-9`(SQL 측). `subscription-sync.test.ts` 날짜 시나리오를 `TESTS.sql`로 이식하고 TS↔SQL 케이스 대응표를 완료 기록에 남김(`A-3`). 허용 파일: 신규 `sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ d82f38f`: 마이그레이션·`SCHEMA.sql`(함수 5개 본문 일치)·README B표·`TESTS.sql` `R107A-01~03`. tsc·lint·Vitest 76파일/1026개·`git diff --check` 통과. ⚠️ SQL 미실행(`LOCAL_DB_DEFERRED`), 아래 완료 기록 참고 |
+| **2** | **`▶ READY`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Sonnet (`Medium`))* | `Maker (Client RPC 전환·폴백 & Vitest)` | Step 1 완료 후 착수. 명세 §3.2, `A-8`·`A-9`(클라이언트 측). 허용 파일: `src/lib/subscription-sync.ts`·`.test.ts`, 호출 페이지·모달의 테스트 모의(`src/app/dashboard/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 구독 모달 테스트), `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 (`▶ READY`) |
 | **3** | **`⏳ WAITING`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Step 1·2 Maker인 Opus·Neon은 독립 리뷰 불가)* | `Reviewer` | Base ↔ Target 정적 리뷰(`review.json`, 동시성·권한·TS/SQL 동등성), 🐳 로컬 DB 2회 멱등·`TESTS.sql`(`test.json`), 통과 시 `main` 병합 | `⏳ Step 2 완료 대기` |
 | **4** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (마감)` | 문서 마감, 사용자에게 운영 적용 절차(명세 §3.3) 안내, `R107-A-CLEANUP`·Run 2 등록 시점 안내 | `⏳ Step 3 완료 대기` |
+
+#### 📝 `r107a-server-subscription-generation` Step 1 완료 기록 (Claude Opus, 2026-11-25)
+
+- **Target SHA**: `d82f38f492679b7793a137b0c7075c3d1afd9d7d`(워크트리, 미push). 변경: 신규 `MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`.
+- **구현**: `generate_subscription_expenses_core(p_user_id, p_today)`(템플릿 `FOR UPDATE`, 모든 INSERT `ON CONFLICT DO NOTHING`, 삭제 대기 사용자 0 반환), `ensure_subscription_expenses()`(서버 KST 날짜), `advance_interval_subscription`·`rollback_interval_subscription`(BOOLEAN, 금액 인자 없음), `run_daily_subscription_automation()`(사용자별 예외 격리), cron `chronoledger-subscription-daily` `50 23 * * *`, 인덱스 `idx_expenses_interval_single_planned`.
+- **명세와 다르게 정한 점**: ① 마이그레이션 중복 정리는 "INTERVAL_30 템플릿"이 아니라 인덱스 조건과 같은 행(`template_id` 있고 `billing_cycle`·`schedule_id` 없는 `PLANNED`)을 대상으로 함(조건이 다르면 인덱스 생성이 실패할 수 있음) ② VERSION_PASS 제목은 150자로 자름(TS는 초과 시 조용히 실패, SQL은 실패하면 사용자 단위 생성 전체가 멈춤).
+- **TS↔SQL 대응(`A-3`)**: 당월 생성·확정 회차 건너뛰기·중복 정리(`R107A-01` MONTHLY), 말일 보정·지난 결제일 다음 달(신규), 최근 확정+충전일수·이미 PLANNED면 생략(INTERVAL), 공식·미종료 VERSION 일정만(VERSION_PASS), 조기 결제 누적·정시 결제·커스텀 15일(`R107A-03` advance), 환불 롤백·비INTERVAL 무시(rollback). TS `is_official` 컬럼 부재 폴백은 SQL에서 불필요해 이식하지 않음.
+- **리뷰어 확인 요청**: ① `A-1` 2세션 동시 실행은 `TESTS.sql`로 검증 불가, 🐳 로컬에서 수동 확인 필요 ② 새 유니크 인덱스로 `restore_cancelled_expense`가 다른 `PLANNED`가 있는 INTERVAL 행을 복구하면 `23505`가 남(이전에는 중복 허용) ③ 일 배치 격리 검사는 실패 사용자 생성분 전체가 서브트랜잭션째 롤백되는 동작에 의존함.
+- **검증**: tsc·lint·Vitest 76파일/1026개·`git diff --check` 통과(TS 변경 없음). 정적 점검(달러 인용 7쌍·괄호·BEGIN/END 짝) 통과. **SQL 실행은 하지 않음**(`⚠️ LOCAL_DB_DEFERRED`, Docker 미설치) — Step 3에서 2회 적용·`TESTS.sql` 필수.
+- **원격 브랜치**: push 안 함.
 
 #### 📝 R107 명세 완료 기록 (Claude Opus, 2026-11-25)
 
