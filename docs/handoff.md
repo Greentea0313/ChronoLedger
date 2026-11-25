@@ -13,7 +13,17 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(직전 Run `r75-r64-tests-readme`는 `main` 병합 `35d43b6`로 마감함. 다음 후보는 사용자 지목 시 등록: `R107C-REV-001·002`·`R109-REV-003`·`R75-REV-001·002`(P4 선택), `R107-A-CLEANUP`·`R109-CLEANUP`(관찰 후))*
+- **활성 과제**: **남은 `P4` 선택 후속 일괄 처리 (`p4-followups-r107c-r109-r75` — Base `328704b7fdd5fc9f908894499a8d82acef0a8169`, 브랜치 `collab/p4-followups-r107c-r109-r75`, 워크트리 `.worktrees/p4-followups-r107c-r109-r75`)** *(`docs/to-do.md` `R109-REV-003`·`R107C-REV-001·002`·`R75-REV-001`. `R75-REV-002`는 비승인 게임 상태가 없어 도달 불가이므로 제외·보류)*
+- **DB 변경**: 있음 (Step 2: `R107C-REV-002` `CHECK` 마이그레이션·`SCHEMA.sql`, `TESTS.sql`). 🐳 Docker Desktop 필요. 운영 DB 적용은 Step 4 안내 후 사용자 수동.
+- **수용 기준**: `docs/to-do.md` 해당 항목. 아래 행은 요지만 둠. `R107C-REV-002`는 운영 기존 데이터에 위반 행이 없는지 적용 전 확인 쿼리를 함께 제공하고, 위반 가능성이 있으면 제약을 `NOT VALID`로 추가하는 등 안전한 적용 방식을 택함.
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R109-REV-003·R107C-REV-001 UI 보완)` | `R109-REV-003`: `/admin` 캐릭터 저장·삭제 핸들러에서 `fetchCharacters()`와 함께 `fetchPendingCharacterAssetCount()` 호출. `R107C-REV-001`: 구독 모달 수정 저장 시 미결제 `PLANNED` 지출 동기화 `update`에 `payment_method`·`point_platform` 포함. 각각 Vitest 추가, `tsc`·`lint`·Vitest 통과 후 커밋. 허용 파일: `src/app/admin/page.tsx`·`page.test.tsx`, `src/components/subscription/subscription-modal.tsx`·`subscription-modal.test.tsx`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
+| **2** | **`⏳ WAITING`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Neon (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (R107C-REV-002 CHECK·R75-REV-001 테스트)` | 🐳 **Docker Desktop 필요**. `R107C-REV-002`: 신규 `sql/migrations/MIGRATION_R107C_REV002_AUTO_CONFIRMED_STATUS_CHECK.sql`(멱등 `CHECK (auto_confirmed_at IS NULL OR status <> 'PLANNED')`, 위반 행 사전 확인), `sql/SCHEMA.sql`, `sql/README.md` B표 행·확인 쿼리, `TESTS.sql` 블록. 자동 확정·환불 롤백·`restore_cancelled_expense` 경로가 이 제약을 위반하지 않는지 점검. `R75-REV-001`: `TESTS.sql` R64 블록의 잘못된 `axis_key`·빈 옵션 음성 케이스를 방어선별로 고정. 허용 파일: 위 SQL 파일들, `src/types/database.types.ts`(필요 시), 루트 `docs/handoff.md`, `docs/progress.md` | `⏳ Step 1 완료 대기` |
+| **3** | **`⏳ WAITING`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Maker인 Opus·Hydrogen 제외)* | `Reviewer & Local DB Gate` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요**. 통합 정적 리뷰(`review.json`)·`test.json`(로컬 DB 업그레이드·신규 2경로 2회 멱등·`TESTS.sql`·`tsc`·`lint`·Vitest·`next build`)·`main` 병합 | `⏳ Step 2 완료 대기` |
+| **4** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (마감)` | Step 3 병합 후 착수. 문서 아카이브 마감 및 운영 DB 적용 절차 안내 | `⏳ Step 3 완료 대기` |
+
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
