@@ -13,7 +13,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **과제 구분**: `R107` 정기·반복 지출 자동화 — 명세 완료(Row 1)·Run 1 등록(Row 2) 후 아래 Run 1 `r107a-server-subscription-generation` Step 1 완료(`d82f38f`, SQL 미실행) → Step 2 `▶ READY`
+- **과제 구분**: `R107` 정기·반복 지출 자동화 — 명세 완료(Row 1)·Run 1 등록(Row 2) 후 아래 Run 1 `r107a-server-subscription-generation` Step 1(`d82f38f`, SQL 미실행)·Step 2(`372b37b`) 완료 → Step 3(`Gemini 4 Carbon (High)`, 🐳 Docker 필요) `▶ READY`
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
@@ -24,16 +24,32 @@
 
 - **Run ID**: `r107a-server-subscription-generation` · **Orchestrator**: Claude Opus *(Hydrogen 대신 사용자 지시로 등록, 2026-11-25)*
 - **Worktree 경로**: `.worktrees/r107a-server-subscription-generation` (브랜치 `collab/r107a-server-subscription-generation`, 매니페스트 `artifacts/r107a-server-subscription-generation/run.json`)
-- **Base SHA**: `ff04d84aff929671d77f42380e73217ec5f27a0e` · **Target SHA**: `d82f38f492679b7793a137b0c7075c3d1afd9d7d` *(Step 1 SQL 기준, 미병합·미push)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql` — 금전 경로 인접 SQL/RPC·`pg_cron` → Opus 승격 조건 ①). 🐳 **Docker Desktop 필요** (Docker 없는 PC의 Maker는 `⚠️ LOCAL_DB_DEFERRED`, Reviewer는 병합 금지). ⚠️ `LOCAL_DB_DEFERRED` — Step 1 SQL은 Docker 미설치 PC에서 작성되어 한 번도 실행되지 않음.
+- **Base SHA**: `ff04d84aff929671d77f42380e73217ec5f27a0e` · **Target SHA**: `372b37b5ad124837f4a11dbe150a59b247dd1523` *(Step 1 SQL `d82f38f` + Step 2 Client `372b37b`, 미병합·미push)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql` — 금전 경로 인접 SQL/RPC·`pg_cron` → Opus 승격 조건 ①). 🐳 **Docker Desktop 필요** (Docker 없는 PC의 Maker는 `⚠️ LOCAL_DB_DEFERRED`, Reviewer는 병합 금지). ⚠️ `LOCAL_DB_DEFERRED` — Step 1 SQL은 Docker 미설치 PC에서 작성되어 한 번도 실행되지 않음. Step 3(🐳 Docker 환경)에서 2회 멱등 적용·`TESTS.sql` 검증 필수.
 - **수용 기준**: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §3(결정 `D1`~`D5`·`D15`, 인수 기준 `A-1`~`A-9`). 아래 행은 절 포인터만 둠.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: d82f38f492679b7793a137b0c7075c3d1afd9d7d)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Neon (`High`) / GPT Codex)* | `Maker (SQL/RPC/cron)` | 🐳 명세 §3.1 1~7 구현, `A-1`~`A-7`·`A-9`(SQL 측). `subscription-sync.test.ts` 날짜 시나리오를 `TESTS.sql`로 이식하고 TS↔SQL 케이스 대응표를 완료 기록에 남김(`A-3`). 허용 파일: 신규 `sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ d82f38f`: 마이그레이션·`SCHEMA.sql`(함수 5개 본문 일치)·README B표·`TESTS.sql` `R107A-01~03`. tsc·lint·Vitest 76파일/1026개·`git diff --check` 통과. ⚠️ SQL 미실행(`LOCAL_DB_DEFERRED`), 아래 완료 기록 참고 |
-| **2** | **`▶ READY`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Sonnet (`Medium`))* | `Maker (Client RPC 전환·폴백 & Vitest)` | Step 1 완료 후 착수. 명세 §3.2, `A-8`·`A-9`(클라이언트 측). 허용 파일: `src/lib/subscription-sync.ts`·`.test.ts`, 호출 페이지·모달의 테스트 모의(`src/app/dashboard/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 구독 모달 테스트), `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 (`▶ READY`) |
-| **3** | **`⏳ WAITING`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Step 1·2 Maker인 Opus·Neon은 독립 리뷰 불가)* | `Reviewer` | Base ↔ Target 정적 리뷰(`review.json`, 동시성·권한·TS/SQL 동등성), 🐳 로컬 DB 2회 멱등·`TESTS.sql`(`test.json`), 통과 시 `main` 병합 | `⏳ Step 2 완료 대기` |
+| **2** | **`✅ DONE (SHA: 372b37b5ad124837f4a11dbe150a59b247dd1523)`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Sonnet (`Medium`))* | `Maker (Client RPC 전환·폴백 & Vitest)` | Step 1 완료 후 착수. 명세 §3.2, `A-8`·`A-9`(클라이언트 측). 허용 파일: `src/lib/subscription-sync.ts`·`.test.ts`, 호출 페이지·모달의 테스트 모의(`src/app/dashboard/page.test.tsx`, `src/app/dashboard/expenses/page.test.tsx`, 구독 모달 테스트), `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ 372b37b`: `subscription-sync.ts` 3종 RPC 전환 + `PGRST202`/`42883` Legacy 폴백·비차단 처리, `subscription-sync.test.ts`·`expenses/page.test.tsx` 보강, `database.types.ts` 5개 RPC 추가. `tsc`·`lint`·`diff-check`·Vitest 76파일/1026개 통과 (아래 완료 기록 참고) |
+| **3** | **`▶ READY`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Step 1·2 Maker인 Opus·Neon은 독립 리뷰 불가)* | `Reviewer` | Base(`ff04d84aff929671d77f42380e73217ec5f27a0e`) ↔ Target(`372b37b5ad124837f4a11dbe150a59b247dd1523`) 정적 리뷰(`review.json`, 동시성·권한·TS/SQL 동등성), 🐳 로컬 DB 2회 멱등·`TESTS.sql`(`test.json`), 통과 시 `main` 병합 | 대기 중 (`▶ READY`, 🐳 Docker 필요) |
 | **4** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (마감)` | 문서 마감, 사용자에게 운영 적용 절차(명세 §3.3) 안내, `R107-A-CLEANUP`·Run 2 등록 시점 안내 | `⏳ Step 3 완료 대기` |
+
+#### 📝 `r107a-server-subscription-generation` Step 2 완료 기록 (Gemini 4 Neon `High`, 2026-11-25)
+
+- **Target SHA**: `372b37b5ad124837f4a11dbe150a59b247dd1523` (워크트리 브랜치 `collab/r107a-server-subscription-generation`, 미병합·미push). 변경 파일(4개): `src/lib/subscription-sync.ts`, `src/lib/subscription-sync.test.ts`, `src/app/dashboard/expenses/page.test.tsx`, `src/types/database.types.ts` (허용 범위 내, `run.json` 미수정).
+- **클라이언트 RPC 전환 및 폴백 (`§3.2`, `D15`, `A-8`)**:
+  - `ensureMonthlySubscriptionExpenses`(호출처 시그니처 유지): `supabase.rpc("ensure_subscription_expenses")` 호출 → 정상 시 생성 건수 반환(`from()` 미호출), `PGRST202`/`42883` 시에만 `ensureMonthlySubscriptionExpensesLegacy` 실행, 그 외 오류는 폴백 없이 `console.warn` 후 비차단 `0` 반환함.
+  - `createNextIntervalSubscriptionExpense` / `rollbackIntervalSubscriptionExpense`: 각각 `advance_interval_subscription(p_template_id, p_original_target_date, p_payment_date)` / `rollback_interval_subscription(p_expense_id)` RPC로 전환하고, `PGRST202`/`42883` 시에만 `…Legacy` 폴백, 그 외 오류는 비차단 `false` 반환함.
+  - 화면 공용 순수 헬퍼 `addDays`만 `export` 유지하고, `toBillingCycle`·`calculateNextIntervalTargetDate`·`calculateRollbackIntervalTargetDate`는 외부 미사용을 확인해 `R107-A-CLEANUP` 제거 대상 Legacy 내부 헬퍼로 격리함.
+- **타입 및 테스트**:
+  - `src/types/database.types.ts`: Step 1 신규 SQL 함수 5종(`advance_interval_subscription`, `ensure_subscription_expenses`, `generate_subscription_expenses_core`, `rollback_interval_subscription`, `run_daily_subscription_automation`) 추가함(Docker 미설치로 로컬 DB 재생성 대신 `MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`·`SCHEMA.sql` 시그니처 기준 수동 동기화함).
+  - `src/lib/subscription-sync.test.ts`: 3종 함수별 RPC 정상(`from()` 미호출)·`PGRST202`/`42883` Legacy 폴백·기타 오류 비차단 21개 케이스로 개편함.
+  - `src/app/dashboard/expenses/page.test.tsx`: `beforeEach`에 기본 `rpc` 반환값 설정, R93 수익 삭제 미호출 단언을 `delete_income` 기준으로 보정, `PGRST202` 미적용 환경 비차단 로드 테스트 추가함. (`dashboard/page.test.tsx`·`subscription-modal.test.tsx`·`expense-detail-modal.test.tsx`는 기존 모킹과 충돌 없이 통과함.)
+- **검증**: 워크트리에서 `git diff --check`, `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `npx vitest run`(76파일 / 1,026개 통과) 확인함.
+- **미실행 (`⚠️ LOCAL_DB_DEFERRED` 유지)**: Step 1 SQL의 로컬 Supabase 2회 적용·`TESTS.sql` 실행 및 로컬 DB 기준 `database.types.ts` 재생성은 Docker 미설치로 미수행이며 Step 3(🐳 Docker 환경)에서 필수 검증함.
+- **원격 브랜치**: push 안 함(사용자 승인 필요). 다른 PC(Docker 환경)에서 Step 3를 이어가려면 `git -C .worktrees/r107a-server-subscription-generation push -u origin collab/r107a-server-subscription-generation` 필요함.
+- **다음 단계**: Step 3(**Gemini 4 Carbon (`High` — 도구에서 High 선택)**, Fallback: **GPT Codex** — Base `ff04d84` ↔ Target `372b37b` 통합 정적 리뷰·🐳 로컬 DB 2회 멱등 및 `TESTS.sql` 검증·`main` 병합) `▶ READY`임.
 
 #### 📝 `r107a-server-subscription-generation` Step 1 완료 기록 (Claude Opus, 2026-11-25)
 
