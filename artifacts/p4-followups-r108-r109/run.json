@@ -9,7 +9,7 @@
                                 "Step 3 (Reviewer \u0026 Orchestrator): static review (review.json), tsc/lint/Vitest/build (test.json), merge to main, close out docs."
                             ],
     "base_sha":  "9efde83f89003f10da4e52dd7c0d992720c19035",
-    "target_sha":  null,
+    "target_sha":  "d7e5139ed1c93bb2fd0bb70192f3e9fba6c8a9f8",
     "branch":  "collab/p4-followups-r108-r109",
     "worktree_path":  ".worktrees/p4-followups-r108-r109",
     "max_iterations":  3,

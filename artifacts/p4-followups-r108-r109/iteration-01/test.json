@@ -9,7 +9,7 @@
   "status": "passed",
   "created_at": "2026-11-25T15:20:00+00:00",
   "finished_at": "2026-11-25T15:30:00+00:00",
-  "sandbox": "local",
+  "sandbox": "unavailable",
   "redactions_applied": true,
   "tests": [
     { "name": "git diff --check (Base..Target)", "command": "git diff --check 9efde83 d7e5139", "status": "passed", "exit_code": 0, "log_path": null },
