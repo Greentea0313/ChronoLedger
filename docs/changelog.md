@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-25 (Run `p4-followups-r108-r109` 병합 `c52705c` — `R109-REV-001·002`·`R108-REV-001` P4 후속)
+
+- **관리자 아이콘 일괄 이전 1,000행 초과 대응 (`src/app/admin/page.tsx`)**: `[아이콘 Storage 일괄 이전]`이 `game_characters`를 이름·id 순 1,000행 단위 `.range()`로 끝까지 읽어 전체 카탈로그를 이전함. 버튼 배지 숫자는 서버 `count` 쿼리(아이콘 있음·`game-assets` 주소 아님)로 선택 게임 밖 미이전 캐릭터까지 반영하고, 일괄 이전 뒤 다시 조회함.
+- **푸시 암호 테스트 결합 제거 (`supabase/functions/send-notifications/index.ts`, `src/lib/web-push-crypto.test.ts`)**: 워커에 테스트용 `cryptoOverrides`(salt·임시 키쌍·페이로드)를 받는 선택 인자를 추가하고 RFC 8291 벡터 테스트의 전역 스파이를 없앰. 운영 요청 경로(`Deno.serve`)는 인자를 넘기지 않아 동작 불변(Edge Function 재배포 선택).
+
 ## 2026-11-25 (Run `r109-icon-storage-migration` 병합 `7f54ef1` — `R109` 공용 게임·캐릭터 아이콘 Storage 이전)
 
 - **공개 읽기 `game-assets` 버킷 및 관리자 RLS·승인 RPC (`MIGRATION_R109_GAME_ASSETS_STORAGE.sql`)**: 공용 게임·캐릭터 기본 아이콘용 공개 버킷 `game-assets`(102,400B 상한, `image/webp`)와 `storage.objects` 정책 4종(`anon`·`authenticated` 읽기, 관리자 전용 쓰기 및 `games/{sha256}.webp`·`characters/{game_id}/{sha256}.webp` 경로 강제)을 추가함. 개인 커스텀 아이콘 버킷 `user-icons`의 비공개 정책은 그대로 유지함. `approve_schedule_request(UUID, JSONB DEFAULT NULL)`에 픽업 신규 캐릭터 제안 아이콘 오버라이드(`p_pickup_icon_overrides`)를 추가하고 구 1인자 오버로드를 제거함.

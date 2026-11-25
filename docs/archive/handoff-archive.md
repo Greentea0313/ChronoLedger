@@ -6,6 +6,29 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 이전 Run 기록 (완료): `r109-icon-storage-migration` *(`R109` 공용 게임·캐릭터 아이콘 Storage 이전)*
+
+- **Run ID**: `r109-icon-storage-migration` **(완료, `main` 병합 `7f54ef1`, 문서 마감 2026-11-25)** · **Orchestrator**: Gemini 4 Hydrogen *(등록)* · Claude Sonnet `Medium` *(Step 4 마감 대체 실행)*
+- **Worktree 경로**: `.worktrees/r109-icon-storage-migration` (브랜치 `collab/r109-icon-storage-migration`, 매니페스트 `artifacts/r109-icon-storage-migration/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `358fd4b61713638d94ff7c7c0c5383a351600ca6` · **Target SHA**: `8dfd5f1e288a80ef627019a52c4df13cce92f030` *(Step 1 `5b44d15`, 산출물 `fe7fbc7`, `main` 병합 `7f54ef1`)*
+- **명세**: [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §2~§4. Step 1~3 상세 완료 기록과 명세 확정 기록은 `docs/archive/handoff-archive.md`로 옮김.
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R109_GAME_ASSETS_STORAGE.sql`, `SCHEMA.sql`). **운영 DB 적용·확인 쿼리 검증, 배포, `/admin` 일괄 이전(`data:%` 잔여 games 0·characters 0), REST 응답 크기 감소 확인 완료(사용자, 2026-11-25)**.
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **0** | **`✅ DONE (SHA: 358fd4b, 2026-11-25)`** *(원 상태 `📐 SPEC_NEEDED`)* | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback 1: Claude Opus (`High`) / Gemini 4 Neon (`High`), Fallback 2: Gemini 4 Hydrogen (`Medium`))* | `Chief Architect` | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) 명세·사용자 질문 카드(`D1`~`D4`)·Step 1~4 수용 기준 확정(`src/**`·`sql/**` 미수정) | ✅ `358fd4b` 명세 작성 및 Row 2 `▶ READY` 반환 |
+| **1** | **`✅ DONE (Base 358fd4b)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Orchestrator (R109 Run 등록 및 워크트리 생성)` | `New-CollaborationRun.ps1 -RunId "r109-icon-storage-migration"`로 격리 워크트리 생성 및 Step 1~4 큐 등록 | `✅` `.worktrees/r109-icon-storage-migration`(`collab/r109-icon-storage-migration`, `run.json`) 생성 및 Step 1 `▶ READY` 전환 |
+| **2 (Step 1)** | **`✅ DONE (SHA: 5b44d156afaf5d0ef061230f8a4c090301f1d48b)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback 1: Gemini 4 Neon (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (Storage 버킷·RLS·승인 RPC SQL & 타입)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §2.1~§2.2 및 §3 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R109_GAME_ASSETS_STORAGE.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `CLAUDE.md`, 루트 `docs/handoff.md`, `docs/progress.md` | ✅ 아래 Step 1 완료 기록 |
+| **3 (Step 2)** | **`✅ DONE (SHA: 8dfd5f1e288a80ef627019a52c4df13cce92f030)`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (공용 업로드 모듈·관리자 쓰기/일괄 이전·SW 캐시 & Vitest)` | Step 1 완료 후 착수. 명세 §2.3~§2.5 및 §3 Step 2 수용 기준 수행(허용 파일 목록은 명세 §3 표 참고) | ✅ 아래 Step 2 완료 기록 |
+| **4 (Step 3)** | **`✅ DONE (SHA: fe7fbc7, main 병합 7f54ef1)`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback 1: GPT Codex — Step 1·2 Maker가 아닌 독립 모델)* | `Reviewer & Local DB Gate` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 2회 멱등 및 `TESTS.sql` 검증 병합 게이트). 명세 §3 Step 3 통합 정적 리뷰(`review.json`)·`test.json`·`tsc`·`lint`·Vitest·`next build`·`main` 병합 | ✅ 아래 Step 3 완료 기록 (`P4` 2건 비차단, 로컬 DB 2경로·`TESTS.sql` 51개 PASS, `main` 병합 `7f54ef1`) |
+| **5 (Step 4)** | **`✅ DONE (2026-11-25, 문서 마감)`** | **Gemini 4 Hydrogen (`Medium`)** *(실행: Claude Sonnet `Medium` 대체)* | `Orchestrator (마감)` | `t4-rust-build-and-lock` 기록을 `handoff-archive.md`로 이관하고 `R109` 상세 완료 기록 이관·운영 적용 절차 안내 | `✅` 문서 마감 완료 |
+
+#### 📝 `r109-icon-storage-migration` 핵심 요약 (2026-11-25)
+
+- **구현**: 공개 읽기 `game-assets` 버킷(102,400B·`image/webp`)·관리자 전용 쓰기 정책 4종·`approve_schedule_request(UUID, JSONB DEFAULT NULL)`(픽업 아이콘 오버라이드), 공용 업로드 모듈 `game-asset-storage.ts`, 관리자 등록·승인 경로 전환, `/admin` `[아이콘 Storage 일괄 이전]`, `sw.js` `game-assets` Cache-First(상한 500개).
+- **리뷰·검증**: 정적 리뷰 차단 0건·`P4` 2건 비차단(`R109-REV-001·002`), 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 51개 PASS, `tsc`·`lint`·Vitest 78파일/1,067개·`build` 통과.
+- **사용자 수행 순서(명세 §4)**: ① 운영 DB에 `MIGRATION_R109_GAME_ASSETS_STORAGE.sql` 실행 후 `sql/README.md` B표 확인 쿼리 4종 확인 → ② `main` push 배포(필요 시 Tauri 빌드 갱신) → ③ 배포된 앱 `/admin`에서 `[아이콘 Storage 일괄 이전]` 1회 실행(실패 0건 확인, 재실행 안전) → ④ 선택: 명세 §4-4의 `data:%` 잔여 건수 쿼리가 모두 0인지 확인 → ⑤ `R109-CLEANUP`은 안정화 후 사용자 지목 시.
+
 ### 📥 `t1-t4-desktop-and-followups` 명세 확정·요구사항 접수 기록 (2026-11-25, `docs/handoff.md`에서 이관)
 
 ##### 📝 `T1`~`T4` 및 선택 후속 명세 확정 기록 (Gemini 4 Carbon `High`, 2026-11-25)
