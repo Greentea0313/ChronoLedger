@@ -147,12 +147,61 @@ describe("budget-calculations", () => {
       month: { year: 2026, month: 12 },
       budgetAmount: 120000,
       confirmedAmount: 0,
-      plannedFixedAmount: 17900, // CANCELLED는 제외되므로 tpl-monthly-1(5900) + tpl-monthly-2(12000) 합산, INTERVAL_30/VERSION_PASS/비활성 제외
+      plannedFixedAmount: 12000, // R101-REV-001: 12월 CANCELLED 행이 있는 tpl-monthly-1은 제외되고 미생성 tpl-monthly-2(12000)만 합산
       plannedVariableAmount: 119000,
-      totalExpectedAmount: 136900,
-      remainingBudget: -16900,
+      totalExpectedAmount: 131000,
+      remainingBudget: -11000,
       isOverBudget: true,
     })
+  })
+
+  it("R101-REV-001: 당월 취소·환불된 활성 MONTHLY_DAY 구독은 당월 고정비에서 제외되고 익월에는 정상 합산된다", () => {
+    const expenses: BudgetComparisonExpense[] = [
+      {
+        status: "CANCELLED",
+        target_date: "2026-11-05",
+        end_date: null,
+        final_amount: 5900,
+        template_id: "tpl-cancelled",
+        billing_cycle: "2026-11",
+      },
+      {
+        status: "CANCELLED",
+        target_date: "2026-10-28",
+        end_date: null,
+        final_amount: 12000,
+        template_id: "tpl-early-refunded",
+        billing_cycle: "2026-11",
+      },
+    ]
+    const templates: BudgetSubscriptionTemplate[] = [
+      { id: "tpl-cancelled", is_active: true, cycle_type: "MONTHLY_DAY", default_price: 5900 },
+      { id: "tpl-early-refunded", is_active: true, cycle_type: "MONTHLY_DAY", default_price: 12000 },
+    ]
+
+    const result = calculateTwoMonthBudgetComparison({
+      currentMonth: { year: 2026, month: 11 },
+      currentBudgetAmount: 100000,
+      nextBudgetAmount: 100000,
+      expenses,
+      templates,
+    })
+
+    // 11월은 billing_cycle '2026-11' CANCELLED 행이 존재하므로 두 템플릿 모두 고정 구독 예정에서 제외(0원)
+    expect(result.current.plannedFixedAmount).toBe(0)
+    expect(result.current.totalExpectedAmount).toBe(0)
+    // 12월은 CANCELLED 행이 없으므로 두 활성 템플릿 모두 정상 예측(5900 + 12000)
+    expect(result.next.plannedFixedAmount).toBe(17900)
+    expect(result.next.totalExpectedAmount).toBe(17900)
+
+    // target_date는 10월이지만 billing_cycle이 '2026-11'인 환불 행은 10월 고정비를 제외하지 않음
+    const oct = calculateMonthBudgetBreakdown({
+      month: { year: 2026, month: 10 },
+      budgetAmount: 100000,
+      expenses,
+      templates,
+    })
+    expect(oct.plannedFixedAmount).toBe(17900)
   })
 
   it("예산이 0원(미설정)이면 총 예상 지출이 양수여도 isOverBudget은 false다", () => {

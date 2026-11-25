@@ -76,6 +76,13 @@ export function findOverduePlannedExpenses<T extends BudgetExpense>(expenses: T[
 
 export interface BudgetComparisonExpense extends BudgetExpense {
   template_id?: string | null
+  billing_cycle?: string | null
+}
+
+const BILLING_CYCLE_RE = /^\d{4}-\d{2}$/
+
+function sameBillingCycle(billingCycle: string, { year, month }: MonthKey): boolean {
+  return Number(billingCycle.slice(0, 4)) === year && Number(billingCycle.slice(5, 7)) === month
 }
 
 export interface BudgetSubscriptionTemplate {
@@ -89,7 +96,7 @@ export interface MonthBudgetBreakdown {
   month: MonthKey
   budgetAmount: number
   confirmedAmount: number
-  /** 해당 월 귀속 PLANNED 중 template_id가 있는 지출 + 아직 해당 월 지출(PLANNED/CONFIRMED)이 없는 활성 MONTHLY_DAY 템플릿의 default_price 합계 */
+  /** 해당 월 귀속 PLANNED 중 template_id가 있는 지출 + 아직 해당 월 지출(PLANNED/CONFIRMED/CANCELLED)이 없는 활성 MONTHLY_DAY 템플릿의 default_price 합계 */
   plannedFixedAmount: number
   /** 해당 월 귀속 PLANNED 중 template_id가 없는 일반 예정 지출 합계 */
   plannedVariableAmount: number
@@ -127,6 +134,18 @@ export function calculateMonthBudgetBreakdown(params: {
   const coveredTemplateIds = new Set<string>()
 
   for (const expense of expenses) {
+    if (expense.status === "CANCELLED") {
+      if (expense.template_id) {
+        const belongsToMonth =
+          expense.billing_cycle && BILLING_CYCLE_RE.test(expense.billing_cycle)
+            ? sameBillingCycle(expense.billing_cycle, month)
+            : sameMonth(expense.end_date ?? expense.target_date, month)
+        if (belongsToMonth) {
+          coveredTemplateIds.add(expense.template_id)
+        }
+      }
+      continue
+    }
     if (!isBudgetCounted(expense) || !sameMonth(getBudgetDate(expense), month)) continue
     if (expense.template_id) coveredTemplateIds.add(expense.template_id)
     if (expense.status === "CONFIRMED") {
