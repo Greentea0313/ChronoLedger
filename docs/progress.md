@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-25 (`p4-followups-r108-r109` Step 1 — Gemini 4 Hydrogen `Medium`)**: 워크트리 커밋 `750331c69c652c5eea82b1ed1b54c803f80ccd21`(미병합·미push). `R109-REV-001`·`002`(`admin/page.tsx` `handleBulkMigrateGameAssets` 1,000행 `.range()` 페이지네이션·`fetchPendingCharacterAssetCount` 서버 `count` 배지 반영) 및 Vitest 보강. `git diff --check`·`tsc`·`lint`·Vitest 78파일/1068개 통과. Step 2(`Gemini 4 Hydrogen Medium`, `R108-REV-001`) `▶ READY`.
 - **2026-11-25 (페이지 전환 가로 흔들림 수정 — Claude Sonnet `Medium`, `main` 직접 수정)**: 스크롤바 유무 차이로 내용이 가로로 밀리던 현상을 `src/app/globals.css` `html`의 `scrollbar-gutter: stable`로 완화함. 사용자 배포 후 확인 필요(미확인).
 - **2026-11-25 (`R109` 운영 적용·일괄 이전 완료 — 사용자)**: 운영 DB 마이그레이션·배포·`/admin` 아이콘 Storage 일괄 이전 완료, `data:%` 잔여 건수 games 0·characters 0, REST 응답 크기 감소 확인함. 남음: 선택 후속 `R109-REV-001·002`·`R109-CLEANUP`(사용자 지목 시).
 - **2026-11-25 (`r109-icon-storage-migration` Step 4 — Claude Sonnet `Medium`, Hydrogen 대체)**: `t4-rust-build-and-lock` 기록과 `R109` Step 1~3 상세 기록을 `handoff-archive.md`로 이관하고 `handoff.md` 마감함(`main` 병합 `7f54ef1`, 미push). 남음: 운영 DB 적용(`MIGRATION_R109_GAME_ASSETS_STORAGE.sql`) → 앱 배포 → `/admin` `[아이콘 Storage 일괄 이전]` 1회 실행(사용자).
