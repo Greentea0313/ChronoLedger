@@ -27,7 +27,7 @@
 | :--- | :--- | :--- | :--- |
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
 | `R107` | `R107-A` 운영 적용 완료 · `R107-B` 운영 DB 적용 완료 | 정기·반복 지출 자동화: `R107-A` 운영 적용 완료(1주 관찰 후 `R107-A-CLEANUP`) → `R107-B` 결제 예정 알림 `main` 병합 `a84c6de`·운영 DB 적용 완료(앱 배포 필요) → `R107-C` 자동 확정 옵션(Run 3, `R107-B` 앱 배포 후 사용자 지목 시 등록). 명세 §9 미결 질문 6건은 기본값으로 진행 중 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
-| `R109` | **`main` 병합 완료 (`7f54ef1`) · 운영 DB 적용·배포·`/admin` 일괄 이전 대기** | 아이콘 Storage 이전(공용 `game-assets` 버킷). 사용자 수행 순서는 아래 「직전 완료 Run 기록」 참조. `R109-REV-001·002`(P4)·`R109-CLEANUP`은 사용자 지목 시 | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §4, `docs/to-do.md` R109 |
+| `R109` | **운영 적용·일괄 이전 완료** | 아이콘 Storage 이전(공용 `game-assets` 버킷). 운영 적용·배포·일괄 이전 검증 완료(2026-11-25). `R109-REV-001·002`(P4)·`R109-CLEANUP`은 사용자 지목 시 | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §4, `docs/to-do.md` R109 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
@@ -40,7 +40,7 @@
 - **Worktree 경로**: `.worktrees/r109-icon-storage-migration` (브랜치 `collab/r109-icon-storage-migration`, 매니페스트 `artifacts/r109-icon-storage-migration/run.json`, 미삭제·원격 미push)
 - **Base SHA**: `358fd4b61713638d94ff7c7c0c5383a351600ca6` · **Target SHA**: `8dfd5f1e288a80ef627019a52c4df13cce92f030` *(Step 1 `5b44d15`, 산출물 `fe7fbc7`, `main` 병합 `7f54ef1`)*
 - **명세**: [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §2~§4. Step 1~3 상세 완료 기록과 명세 확정 기록은 `docs/archive/handoff-archive.md`로 옮김.
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R109_GAME_ASSETS_STORAGE.sql`, `SCHEMA.sql`). **운영 DB 미적용(사용자 수동 적용 필요)**.
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R109_GAME_ASSETS_STORAGE.sql`, `SCHEMA.sql`). **운영 DB 적용·확인 쿼리 검증, 배포, `/admin` 일괄 이전(`data:%` 잔여 games 0·characters 0), REST 응답 크기 감소 확인 완료(사용자, 2026-11-25)**.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
