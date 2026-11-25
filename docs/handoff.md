@@ -45,7 +45,7 @@
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
-| `R107` | `R107-A` `main` 병합(`7aa2984`) · 문서 마감 완료 · 운영 DB 적용 대기 | 정기·반복 지출 자동화: `R107-A` 서버 측 생성 통일(`main` 병합·문서 마감 완료, 운영 SQL 적용·1주 관찰 후 `R107-A-CLEANUP`) → `R107-B` 결제 예정 알림(Run 2, `R107-A` 운영 적용 후 등록) → `R107-C` 자동 확정 옵션(Run 3). 명세 §9 미결 질문 6건은 기본값으로 진행 중 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
+| `R107` | `R107-A` 운영 DB 적용·확인 쿼리 완료(2026-11-25) · Run 2 등록 가능 | 정기·반복 지출 자동화: `R107-A` 서버 측 생성 통일(`main` 병합·운영 DB 적용 완료, 앱 배포 및 1주 관찰 후 `R107-A-CLEANUP`) → `R107-B` 결제 예정 알림(Run 2, 사용자 지목 시 등록 가능) → `R107-C` 자동 확정 옵션(Run 3). 명세 §9 미결 질문 6건은 기본값으로 진행 중 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
 | `R109` | `⏸️ 검토 완료 · 착수 결정 전` | 아이콘 Storage 이전(DB base64 → 공용 버킷 파일): 착수 전 §6 측정 쿼리로 크기 확인, 미결 결정 4건 사용자 확인 필요. 사용자가 지목할 때만 Run 등록 | [`docs/icon-storage-migration-review.md`](icon-storage-migration-review.md), `docs/to-do.md` R109 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
@@ -58,7 +58,7 @@
 - **Run ID**: `r107a-server-subscription-generation` **(완료, `main` 병합 `7aa2984`, 문서 마감 2026-11-25)** · **Orchestrator**: Claude Opus *(등록)* · Gemini 4 Hydrogen *(Step 4 마감)*
 - **Worktree 경로**: `.worktrees/r107a-server-subscription-generation` (브랜치 `collab/r107a-server-subscription-generation`, 매니페스트 `artifacts/r107a-server-subscription-generation/run.json`, 미삭제·원격 미push)
 - **Base SHA**: `ff04d84aff929671d77f42380e73217ec5f27a0e` · **Target SHA**: `372b37b5ad124837f4a11dbe150a59b247dd1523` *(산출물 `1cd8ad4`, `main` 병합 `7aa2984`)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql`). 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 48개 블록·2세션 병렬 `FOR UPDATE` 검증 PASS. **운영 적용은 사용자 대기**([명세 §3.3](r107-recurring-expense-automation-spec.md)).
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql`, `SCHEMA.sql`). 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 48개 블록·2세션 병렬 `FOR UPDATE` 검증 PASS. **운영 DB 적용 및 확인 쿼리 검증 완료(사용자, 2026-11-25)**.
 
 | 순서 | 상태 | 담당 모델 (Level) | 역할 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- |
