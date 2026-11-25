@@ -1,6 +1,6 @@
 ---
 name: chronoledger-weekly-doc-audit
-description: Audit the integrity of ChronoLedger documents updated during the last 7 days (cross-doc consistency, archive rules, Git SHA validity, SQL doc sync, broken markdown links, and Korean itemized style). Use weekly or whenever auditing recent documentation changes.
+description: Audit the integrity of ChronoLedger documents updated during the last 7 days (cross-doc consistency, archive rules, Git SHA validity, SQL doc sync, broken markdown links, and Korean itemized style), move overdue records into docs/archive, commit, and leave a user notice in docs/handoff.md. Use weekly or whenever auditing recent documentation changes.
 ---
 
 # ChronoLedger Weekly Document Integrity Audit
@@ -43,10 +43,13 @@ Audit all project documents (`docs/`, `sql/README.md`, `artifacts/`, `.agents/`)
      - Skip text inside backticks or quotation marks before checking: records often quote UI messages verbatim (for example `"DB 업데이트(R39) 적용 후 알림 설정을 저장할 수 있습니다."`), and those are not violations.
      - Confirm no external session paths (e.g., `brain/...`) were written into `docs/`.
 
-3. **Report or apply safe doc fixes**:
-   - By default, output a read-only audit report in Korean itemized style (`~함`, `~임`):
-     - 대상 기간, 갱신 파일 수(미커밋 포함 여부), 원격 동기화 상태
-     - 통과 항목 / 경고·불일치 항목 (파일·라인·근거 포함)
-     - 권장 후속 조치 (예: 아카이브 이동, 깨진 링크 수정, 워크트리 정리, 브랜치 push)
-   - In a scheduled or unattended run, also write the report to `docs/doc-audit-report.md` (overwrite the previous report) so it is not lost in a chat log, and do not commit or push it; the user reviews and commits it.
-   - Only apply direct edits to `docs/` when the user asks to fix/clean up findings, and verify with `git diff --check` before committing.
+3. **Apply archive moves (the only automatic edit)**:
+   - Move the archive candidates found in step 2 following `chronoledger-docs-closeout` §2: extra finished Run records from `docs/handoff.md` to the top of `docs/archive/handoff-archive.md`, entries older than about two weeks from `docs/progress.md` / `docs/changelog.md` to their archive files, and finished `R` items with no open child from `docs/to-do.md` to `docs/archive/to-do-archive.md`. Cut and paste only; never reword, merge or drop text.
+   - Skip the moves (report them as candidates instead) when any of `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md`, `docs/to-do.md` or `docs/archive/*` already has uncommitted changes, because another session or the user may be editing them.
+   - Every other finding (inconsistency, broken link, style, SHA, worktree, SQL sync) stays report-only; fixing those needs judgment and is done only when the user asks.
+
+4. **Write the report and the user notice, then commit**:
+   - Write the report to `docs/doc-audit-report.md` (overwrite the previous one) in Korean itemized style (`~함`, `~임`): 대상 기간, 갱신 파일 수(미커밋 포함 여부), 원격 동기화 상태, 통과 항목, 경고·불일치 항목(파일·라인·근거), 이관한 항목, 확인 필요 항목.
+   - Unattended runs add one line under `### 📣 사용자 알림 대기` near the top of `docs/handoff.md`: date, `주간 문서 감사`, what was moved, how many items need the user's check, a link to `doc-audit-report.md`, and `push 필요` (the audit never pushes). Replace the `현재 알림 없음` line if it is there; keep any other pending notice.
+   - Verify with `git diff --check`, then commit only the files this audit touched (`git commit --only <files>`), with a message such as `docs(audit): weekly doc audit YYYY-MM-DD and archive moves`. Do not push; the user decides when to push.
+   - When the user ran the audit in a conversation, report the result in the reply and skip the notice line, since the user has already been told. Scheduled or unattended runs always write it.
