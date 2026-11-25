@@ -13,20 +13,23 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 과제**: **없음** *(직전 Run `r107b-due-today-notification` 완료·`main` 병합 `a84c6de`, 아래 「직전 완료 Run 기록」 참조)*. 다음 `R107-C`(Run 3 `r107c-auto-confirm`)는 앱 배포 후 사용자가 지목하면 Orchestrator가 등록함(자동 착수 안 함).
-
-*(별도 대기: 하단 `T1`~`T4` 및 `R101-REV-001`·`R106-REV-001·002` `📐 SPEC_NEEDED` — `Gemini 4 Carbon (High)`)*
+- **활성 과제**: `T1`~`T4` Windows 데스크톱 통합 및 선택 후속(`R101-REV-001`·`R106-REV-001·002`) 명세 확정 완료 → 아래 Row 2(`Gemini 4 Hydrogen (Medium)`, 격리 워크트리 `t1-t4-desktop-and-followups` 생성·Run 등록) **`▶ READY`**. 다음 `R107-C`(Run 3 `r107c-auto-confirm`)는 앱 배포 후 사용자가 지목하면 Orchestrator가 등록함(자동 착수 안 함).
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*
 
-#### 📐 Chief Architect 구체화 대기 (`T1`~`T4` Windows 데스크톱 통합 및 `R101-REV-001` · `R106-REV-001·002`)
+#### 📐 Chief Architect 구체화 완료 및 Run 등록 반환 (`T1`~`T4` Windows 데스크톱 통합 및 `R101-REV-001` · `R106-REV-001·002`)
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`📐 SPEC_NEEDED`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High`) / Gemini 4 Neon (`High`))* | `Chief Architect (T1~T4 인증·딥링크 명세 및 선택 후속 정책 확정)` | 아래 **요구사항 접수 기록**을 바탕으로 `T1`~`T4` Windows Tauri 데스크톱 통합 명세·보안 경계·수용 기준 및 `R101-REV-001`·`R106-REV-001·002` 정책 확정 (`src/**` 직접 수정 금지). 허용 파일: 신규 `docs/` 스펙 문서, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | `📐 구체화 대기 (2026-11-25 접수)` |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (T1~T4 Run 등록)` | Step 1 완료 후 확정 명세에 따라 `T1`~`T4`(및 후속 Run) 격리 워크트리 생성·Dispatch Queue 등록 | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (SHA: 아래 커밋 참조, 2026-11-25)`** *(원 상태 `📐 SPEC_NEEDED`)* | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High`) / Gemini 4 Neon (`High`))* | `Chief Architect (T1~T4 인증·딥링크 명세 및 선택 후속 정책 확정)` | 아래 **요구사항 접수 기록**을 바탕으로 `T1`~`T4` Windows Tauri 데스크톱 통합 명세·보안 경계·수용 기준 및 `R101-REV-001`·`R106-REV-001·002` 정책 확정 (`src/**` 직접 수정 금지). 허용 파일: 신규 `docs/` 스펙 문서, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | ✅ [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) 작성 완료(사용자 질문 카드 결정 `D1`~`D5`, §2 상세 설계, §3 Step 1~3 수용 기준·모델 배정, `src/**`·`sql/**` 미수정) |
+| **2** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (t1-t4-desktop-and-followups Run 등록)` | 확정 명세 [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §3에 따라 깨끗한 트리에서 `New-CollaborationRun.ps1 -RunId "t1-t4-desktop-and-followups"`로 격리 워크트리를 생성하고 Dispatch Queue(Step 1 `GPT Codex` 🐳 SQL+예산 `▶ READY` → Step 2 `Gemini 4 Neon (High)` Tauri·Auth·UI·빌드 → Step 3 `Claude Opus (High)` 통합 리뷰·병합) 등록(큐 행에는 명세 절 번호 포인터만 기재) | `▶ READY (명세 확정 완료)` |
+
+##### 📝 `T1`~`T4` 및 선택 후속 명세 확정 기록 (Gemini 4 Carbon `High`, 2026-11-25)
+
+1. **사용자 확정 결정 (`D1`~`D5`)**: ① 웹·Tauri 모두 PKCE(`flowType: 'pkce'` + `exchangeCodeForSession`)로 단일 통일하고 해시 토큰(`implicit`/`setSession`) 경로를 제거함(Supabase Redirect URLs에 `chronoledger://auth/callback` 등록), ② `R106-REV-002`(SQL, 🐳) + `R101-REV-001` + `R106-REV-001` + `T1`~`T4`를 단일 Run `t1-t4-desktop-and-followups`로 묶어 단계별 진행하고 `DashboardLayout` `[로그아웃]` 클릭 시 `/auth`로 복귀함, ③ `R101-REV-001`은 해당 월 취소·환불(`CANCELLED`) 구독 회차의 `template_id`를 `coveredTemplateIds`에 포함해 당월 고정비 예정에서 제외함(익월은 유지), ④ `R106-REV-001`은 알림함 헤더 `[전체 삭제]` 인라인 2단계 확인(`[삭제 확인]`/`[취소]`) 적용, `R106-REV-002`는 `complete_push_notification_delivery`에서 알림 행 부재 시 `no_data_found` 예외 대신 만료/성공 엔드포인트 갱신 후 조용히 `RETURN`하도록 이번 Run SQL Step에 포함함.
+2. **단계 배정 요약 (명세 §3)**: Step 1 **GPT Codex**(Fallback: `Gemini 4 Neon (High)` / `Claude Opus (High)`, 🐳 `R106-REV-002` SQL + `R101-REV-001` 예산 도메인) → Step 2 **Gemini 4 Neon (`High`)**(Fallback: `Claude Opus (High)`, `T1`~`T4` Auth Adapter·Tauri `single-instance`/`deep-link`·로그아웃 복귀·`R106-REV-001` UI·프로덕션 빌드) → Step 3 **Claude Opus (`High`)**(Fallback: `Gemini 4 Carbon (High)`, 통합 정적 리뷰·🐳 로컬 DB 게이트·`cargo check`·`main` 병합·마감).
 
 ##### 📥 요구사항 접수 기록 (`T1`~`T4` Windows 데스크톱 통합 및 정책 판단 필요 후속 — `Gemini 4 Hydrogen` 접수, 2026-11-25)
 
@@ -52,8 +55,8 @@
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
-| `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R101-REV-001`·`R106-REV-001·002` (`📐 SPEC_NEEDED` 접수) | `docs/to-do.md` 해당 항목 |
-| `T1`~`T4` | **`📐 SPEC_NEEDED`** | Windows Tauri 데스크톱 통합(auth adapter, custom scheme OAuth, single-instance, prod 빌드) — `Gemini 4 Carbon (High)` 명세 대기 | 위 `📐 Chief Architect 구체화 대기`, `docs/to-do.md` `T1`~`T4` |
+| `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R108-REV-001` (`R101-REV-001`·`R106-REV-001·002`는 아래 `T1`~`T4` Run에 합류) | `docs/to-do.md` 해당 항목 |
+| `T1`~`T4` | **명세 확정 완료 · Run 등록 `▶ READY`** | Windows Tauri 데스크톱 통합(PKCE 단일화·auth adapter, `chronoledger://` + `single-instance`, 로그아웃 `/auth` 복귀, prod 빌드) + `R101-REV-001` + `R106-REV-001·002` — `Gemini 4 Hydrogen (Medium)` Run 등록 대기 | [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md), `docs/to-do.md` `T1`~`T4` |
 
 ### 🗂️ 직전 완료 Run 기록: `r107b-due-today-notification` *(`R107-B` 오늘 결제 예정 알림 `EXPENSE_DUE_TODAY`)*
 

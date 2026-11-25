@@ -264,11 +264,11 @@
 - [x] R101. [2026-11-24 구현·리뷰·병합 완료(`c942e1e`) · 1차 Run `r101-r103-two-month-budget-and-shortcuts` · DB 변경 없음] 당월 + 익월(2개월) 예산(미설정 시 기본 예산 폴백)·고정 구독비(미생성 활성 `MONTHLY_DAY` 정기 구독 포함, 중복 제외)·`PLANNED` 지출·예상 잔여 예산 나란히 비교 뷰 — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2.1 (담당: Step 1 Gemini 4 Hydrogen → Step 2 Claude Sonnet 리뷰)
 - [x] R102. [Run `r102-expense-presets` 완료·`main` 병합 `9ff2ae6`(2026-11-24, iteration-01 P2 1건 → iteration-02 `56e4ab8` clean, 🐳 R96+R102 로컬 DB 각 2회·`TESTS.sql` 44개 PASS) · 운영 DB 적용(R96 다음)·확인 쿼리 완료(사용자, 2026-11-24) · **남음(사용자): 실브라우저 확인**] 자주 쓰는 과금 프리셋 사용자 DB 저장(`public.user_expense_presets`, 계정당 최대 20개 상한 트리거·본인 CRUD RLS·계정 삭제 대기 차단·탈퇴 정리) 및 `ExpenseModal` 상단 칩 원클릭 적용·삭제·**`[프리셋 저장]`** 버튼 — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3 (담당: Step 1 GPT Codex / Gemini 4 Neon DB → Step 2 Claude Sonnet / Gemini 4 Hydrogen UI → Step 3 Claude Opus 통합 리뷰)
 - [x] R103. [2026-11-24 구현·리뷰·병합 완료(`c942e1e`) · 1차 Run `r101-r103-two-month-budget-and-shortcuts` · DB 변경 없음] 데스크톱 키보드 단축키(`[ / ]` 달 이동·`T` 오늘·`V` 보기 전환·`N` 새 지출 등록·`?` 도움말 토글, 입력창·모달 포커스 가드) 및 선택형 접이식 빠른 시작 안내(`FR-001` 강제 온보딩 금지 준수) — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2.2
-- [ ] R101-REV-001. [P4 · 선택 후속 · 2026-11-24 리뷰] `src/lib/budget-calculations.ts` `calculateMonthBudgetBreakdown`이 `CANCELLED` 지출을 템플릿 "생성됨" 판정에서 제외해, 활성 월간 템플릿의 그 달 회차를 취소하면 고정 구독 예정액이 다시 더해짐(예상 총 지출 과대 표시). 취소된 같은 달 `template_id`도 `coveredTemplateIds`에만 넣거나(금액 제외) 취소 달 표시 정책을 명세에 확정하고 단위 테스트를 추가함(DB 변경 없음, 담당: Claude Sonnet)
+- [ ] R101-REV-001. [명세 확정 2026-11-25(`docs/t1-t4-desktop-and-followups-spec.md` §2.4, `D3`) · Run `t1-t4-desktop-and-followups` Step 1 포함 예정] `src/lib/budget-calculations.ts` `calculateMonthBudgetBreakdown`에서 해당 월(`billing_cycle` 우선, 없으면 귀속월 일치) `CANCELLED` 구독 지출의 `template_id`도 `coveredTemplateIds`에 포함해 당월 고정 구독 예정액에서 제외하고(`EXPENSE_COLUMNS` `billing_cycle` 추가), 익월 예측은 유지함(담당: GPT Codex).
 - [ ] R104. [⏸️ 보류 (2026-11-24 사용자 결정, 직접 호출 시에만 재검토)] 단기(1~2개월) 픽업 재화·과금 계산기(게임별 천장 시스템 차이 검토 안건)
 - [x] R105. [Run `r105-dashboard-summary-bar` 완료·`main` 병합 `fe5bf77`(2026-11-24, 정적 리뷰 clean, `tsc`·`lint`·Vitest 76파일/1021개·`next build` 통과) · DB 변경 없음] 대시보드 홈 상태바(`dashboard-summary`)를 컴팩트 KPI + 월간 예산 페이스 연동 바(오늘 일정·이번 주 관심 일정·이번 주 예정 지출·이번 달 예산 잔여/소진율)로 개편
 - [x] R106. [Run `r106-notification-delete` 완료·`main` 병합 `0ddc229`(2026-11-25, iteration-01 P4 2건 비차단, 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 45개 PASS) · 운영 DB 적용·확인 쿼리·실배포 확인 완료(사용자, 2026-11-25)] 앱 내 알림함(`NotificationBell`) 알림 직접 삭제 기능: `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL)` `SECURITY DEFINER` RPC(본인 알림 개별·전체 하드 `DELETE`, 비로그인·계정 삭제 대기 차단, 테이블 직접 `DELETE` 미부여) + 알림 항목별 개별 삭제 버튼 및 헤더 `'전체 삭제'` 버튼 — 확정 명세 [`docs/push-notification-research.md`](push-notification-research.md) §12 (담당: Step 1 GPT Codex / Gemini 4 Neon DB → Step 2 Gemini 4 Hydrogen / Claude Sonnet UI → Step 3 Claude Opus 통합 리뷰)
-- [ ] R106-REV-001·002. [P4 · 선택 후속 · 리뷰 `artifacts/r106-notification-delete/iteration-01/review.json`] ① `'전체 삭제'` 확인 단계 추가 또는 로드된 ID만 삭제할지 제품 판단, ② 워커 점유 중 알림 삭제 시 `complete_push_notification_delivery`가 `no_data_found` 대신 조용히 끝나도록 할지 판단.
+- [ ] R106-REV-001·002. [명세 확정 2026-11-25(`docs/t1-t4-desktop-and-followups-spec.md` §2.5~§2.6, `D4`·`D5`) · Run `t1-t4-desktop-and-followups` 포함 예정 · 🐳 Docker 필요] ① 알림함 헤더 `[전체 삭제]` 인라인 2단계 확인(`[삭제 확인]` / `[취소]`) 후 전체 삭제(`null`) 실행(Step 2, Gemini 4 Neon `High`), ② 워커 점유 중 알림 삭제 시 `complete_push_notification_delivery`가 `no_data_found` 대신 만료/성공 엔드포인트 갱신 후 조용히 `RETURN`하도록 마이그레이션 반영(Step 1, GPT Codex).
 - [ ] R107. [명세 완료 2026-11-25(Claude Opus) · Run 등록 대기 · SQL/금전 변경 → Opus 승격 조건 ①] 정기·반복 지출 자동화 — 명세 [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), 운영 SQL 적용 순서 §6:
 - [ ] R109. [⏸️ 검토 완료 · 착수 결정 전 (2026-11-25, 사용자 요청으로 검토 문서만 작성) · DB/Storage 변경 → Opus 승격 조건 ① · 🐳 Docker 필요] 게임·캐릭터 아이콘을 DB 데이터 URL(base64)에서 공용 공개 Storage 버킷 `game-assets` 파일 + DB 주소 방식으로 이전해 목록 응답 크기를 줄이고 이미지 브라우저 캐시를 쓰게 함. 착수 전에 [`docs/icon-storage-migration-review.md`](icon-storage-migration-review.md) §6 측정 쿼리로 실제 크기를 확인하고 §9 미결 결정 4건을 사용자에게 확인함. 사용자가 지목하기 전에는 Run으로 등록하지 않음
   - [x] R107-A. [Run `r107a-server-subscription-generation` 완료·`main` 병합 `7aa2984`(2026-11-25, iteration-01 P4 2건 비차단, 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 48개·2세션 동시성 PASS, Vitest 1,026개 통과) · **운영 DB 적용·확인 쿼리 검증 완료(사용자, 2026-11-25)** · **남음: 앱 배포(`main` push) 및 1주 관찰 후 `R107-A-CLEANUP`**] 서버 측 정기 지출 생성 통일(`pg_cron` `chronoledger-subscription-daily`, `INTERVAL_30` 부분 유니크 인덱스, SQL 단일 구현 + 클라이언트 RPC 전환·폴백) — Run `r107a-server-subscription-generation` (인수 기준 `A-1`~`A-9`)
@@ -281,12 +281,12 @@
 
 ---
 
-## 후속 단계: Windows Tauri 데스크톱 통합 (Web/PWA MVP 완료 후)
+## 후속 단계: Windows Tauri 데스크톱 통합 (`t1-t4-desktop-and-followups` 명세 확정 2026-11-25 — [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md))
 
-- [ ] T1. 웹/Tauri 플랫폼 차이를 auth adapter로 분리하고 공통 callback/session 계약을 고정한다.
-- [ ] T2. Tauri v2 custom scheme 및 외부 브라우저 OAuth를 연결한다. cold-start URL은 `getCurrent()`로 처리하고 Windows 실행 중 링크 전달을 위해 single-instance plugin을 구성한다.
-- [ ] T3. OAuth 성공·취소·만료 세션 및 로그아웃 복귀를 Windows 데스크톱에서 검증한다.
-- [ ] T4. Tauri v2 Windows production build를 만들고 단독 실행해 로그인, 캘린더, 결제 흐름을 검증한다.
+- [ ] T1. 웹/Tauri 플랫폼 차이를 `src/lib/auth-adapter.ts`로 분리하고 웹·데스크톱 모두 PKCE(`flowType: 'pkce'`, `exchangeCodeForSession`) 단일 콜백 계약으로 고정함(해시 토큰 `implicit` 경로 제거, Tauri 내 Service Worker 등록 건너뛰기).
+- [ ] T2. Tauri v2 `chronoledger://auth/callback` 커스텀 스킴 외부 브라우저 OAuth(동일 Supabase origin 검증)를 연결함. cold-start URL은 프로세스당 1회 `getCurrent()`로 처리하고, Windows 실행 중 링크 전달 및 창 포커스 복원을 위해 `tauri-plugin-single-instance`(`features = ["deep-link"]`)를 `deep-link`보다 먼저 등록함.
+- [ ] T3. OAuth 성공·취소(`access_denied`)·코드 누락/중복·만료 세션 및 상단바 `[로그아웃]` 클릭 시 `/auth` 복귀를 검증함(단위 테스트 + Windows 데스크톱 실기기 확인).
+- [ ] T4. Tauri v2 Windows production build(`npm run tauri build`)를 생성하고 단독 실행해 로그인(Supabase Redirect URLs에 `chronoledger://auth/callback` 등록), 캘린더, 결제 흐름을 검증함.
 - 완료 게이트: Web/PWA MVP 조건이 통과되고, 동일 기능의 데스크톱 인증/핵심 흐름 테스트가 통과한 뒤 Windows 앱 배포를 승인한다.
 
 > 열린 항목이 없는 완료 구간과 완료된 `R` 항목은 [`docs/archive/to-do-archive.md`](archive/to-do-archive.md)로 옮김.
