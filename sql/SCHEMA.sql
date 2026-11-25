@@ -1036,6 +1036,9 @@ CREATE TABLE public.expenses (
 );
 ALTER TABLE public.expenses ADD CONSTRAINT chk_expense_earned_points_platform
     CHECK (earned_points = 0 OR point_platform IS NOT NULL);
+-- R107C-REV-002: auto confirm timestamps only exist on CONFIRMED rows (and CANCELLED after a refund).
+ALTER TABLE public.expenses ADD CONSTRAINT chk_expense_auto_confirmed_status
+    CHECK (auto_confirmed_at IS NULL OR status <> 'PLANNED');
 
 -- 구독 템플릿 비활성화 시 미결제 예정 회차를 제거한다.
 CREATE OR REPLACE FUNCTION public.delete_planned_expenses_on_template_deactivation()
