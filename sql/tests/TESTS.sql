@@ -122,6 +122,11 @@
 --   R106-02 DB fixture 역할        사용자 B 선택/전체 삭제 이후 사용자 A 알림 보존 검증.
 --   R106-03 authenticated / A      계정 삭제 대기 사용자 delete_notifications(선택/전체) 호출 -> insufficient_privilege.
 --   R106-04 anon                   delete_notifications 호출 -> insufficient_privilege.
+--   R107B-01 DB fixture 역할       EXPENSE_DUE_TODAY 당일 PLANNED N건 요약 1행·N=0 미생성·연체/확정/취소 제외·
+--                                  민감정보(금액/항목명/메모) 비노출·당일 재실행 멱등·다음 날 새 행 생성·
+--                                  설정 행 없음 기본 true·expense_due_today=false 및 탈퇴 대기 사용자 제외.
+--   R107B-02 DB fixture 역할       EXPENSE_DUE_TODAY 푸시 선점·완료: 미구독/push_enabled=false -> SKIPPED,
+--                                  push_enabled=true+구독 보유 -> claim 반환 및 SENT 전이.
 --   R85-01 DB fixture / B / admin  games.daily_reset_time 분 단위 CHECK, game_schedules/schedule_requests 시각·날짜·순서·분·예상 CHECK,
 --                                  approve_schedule_request 신규/수정 시각·예상 복사(+R84 알림 유지), 시각만 수정 시 예정 지출 날짜 불변, anon 조회.
 --   R107A-01 DB fixture 역할       generate_subscription_expenses_core 날짜 규칙 이식(MONTHLY_DAY 당월·말일 보정·지난 결제일 다음 달·확정 회차 건너뛰기·
@@ -3507,6 +3512,185 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R106 delete_notifications RPC selective/all delete, cross-user isolation, direct DELETE denial, pending-deletion and anon checks
+
+-- R107B-01: EXPENSE_DUE_TODAY daily summary notification (N>=1 summary 1 row, N=0 none, excludes overdue/confirmed/cancelled,
+-- no amount/title/memo leak, same-day dedupe, next-day new row, missing settings defaults true, opt-out & pending-deletion excluded).
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_user_b UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_today DATE := (NOW() AT TIME ZONE 'Asia/Seoul')::date;
+    v_e1 UUID;
+    v_e2 UUID;
+    v_e3 UUID;
+    v_e_overdue UUID;
+    v_e_confirmed UUID;
+    v_e_cancelled UUID;
+    v_e_a UUID;
+    v_inserted INTEGER;
+    v_claimed_count INTEGER;
+    v_nt public.notifications%ROWTYPE;
+BEGIN
+    -- Clear prior notifications/settings for user B so R107B assertions are isolated.
+    DELETE FROM public.notifications WHERE user_id IN (v_user_a, v_user_b) AND kind = 'EXPENSE_DUE_TODAY';
+    DELETE FROM public.notification_settings WHERE user_id = v_user_b;
+
+    -- B-1 (N=0): no today PLANNED expenses -> no EXPENSE_DUE_TODAY created.
+    DELETE FROM public.expenses WHERE user_id = v_user_b AND status = 'PLANNED' AND target_date = v_today;
+    PERFORM public.enqueue_daily_notifications();
+    IF EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107B generated EXPENSE_DUE_TODAY when user B had 0 due-today PLANNED expenses';
+    END IF;
+
+    -- Seed 2 due-today PLANNED expenses (with sensitive title/amount/memo), plus overdue, confirmed, cancelled, and pending user A.
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, memo)
+    VALUES (v_user_b, 'R107B 비밀 지출 항목A 88000원', '게임', 'PLANNED', v_today, 88000, 88000, 'R107B 비밀 메모 A')
+    RETURNING id INTO v_e1;
+
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, memo)
+    VALUES (v_user_b, 'R107B 비밀 지출 항목B 12000원', '정기 구독', 'PLANNED', v_today, 12000, 12000, 'R107B 비밀 메모 B')
+    RETURNING id INTO v_e2;
+
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, memo)
+    VALUES (v_user_b, 'R107B 연체 예정', '게임', 'PLANNED', v_today - 1, 5000, 5000, 'overdue')
+    RETURNING id INTO v_e_overdue;
+
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, memo)
+    VALUES (v_user_b, 'R107B 오늘 확정', '게임', 'CONFIRMED', v_today, 5000, 5000, 'confirmed')
+    RETURNING id INTO v_e_confirmed;
+
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, cancellation_kind, memo)
+    VALUES (v_user_b, 'R107B 오늘 취소', '게임', 'CANCELLED', v_today, 5000, 5000, 'PLANNED_CANCEL', 'cancelled')
+    RETURNING id INTO v_e_cancelled;
+
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, memo)
+    VALUES (v_user_a, 'R107B 대기 사용자 지출', '게임', 'PLANNED', v_today, 15000, 15000, 'pending a')
+    RETURNING id INTO v_e_a;
+
+    -- B-1, B-3 (missing settings defaults true, pending-deletion user A excluded), B-4 (privacy & link_path).
+    v_inserted := public.enqueue_daily_notifications();
+    IF v_inserted < 1 THEN
+        RAISE EXCEPTION 'FAIL: R107B first enqueue expected >= 1 row, got %', v_inserted;
+    END IF;
+
+    SELECT * INTO v_nt
+    FROM public.notifications
+    WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today;
+    IF NOT FOUND
+       OR v_nt.source_id <> v_user_b
+       OR v_nt.title <> '오늘 결제 예정 2건'
+       OR v_nt.body <> '오늘 결제 예정인 지출을 지출 관리에서 확인하세요.'
+       OR v_nt.link_path <> '/dashboard/expenses'
+       OR v_nt.link_path !~ '^/' OR v_nt.link_path ~ '^//'
+       OR position('88000' IN v_nt.title || v_nt.body) > 0
+       OR position('12000' IN v_nt.title || v_nt.body) > 0
+       OR position('R107B 비밀' IN v_nt.title || v_nt.body) > 0 THEN
+        RAISE EXCEPTION 'FAIL: R107B EXPENSE_DUE_TODAY notification missing, malformed, or leaked sensitive data (title=%, body=%)',
+            v_nt.title, v_nt.body;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE user_id = v_user_a AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107B generated EXPENSE_DUE_TODAY for pending-deletion user A';
+    END IF;
+
+    -- B-2 (same-day dedupe): adding a 3rd PLANNED row and re-running keeps the original 1 row unchanged.
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount)
+    VALUES (v_user_b, 'R107B 추가 지출 3', '기타', 'PLANNED', v_today, 3000, 3000)
+    RETURNING id INTO v_e3;
+
+    v_inserted := public.enqueue_daily_notifications();
+    IF v_inserted <> 0
+       OR (SELECT count(*) FROM public.notifications WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today) <> 1
+       OR (SELECT title FROM public.notifications WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today) <> '오늘 결제 예정 2건' THEN
+        RAISE EXCEPTION 'FAIL: R107B same-day repeat enqueue was not deduplicated (inserted=%)', v_inserted;
+    END IF;
+
+    -- B-2 (next day creates a new row): shift previous row to v_today - 1, then enqueue inserts a fresh row for v_today.
+    UPDATE public.notifications
+    SET scheduled_for = v_today - 1
+    WHERE id = v_nt.id;
+
+    v_inserted := public.enqueue_daily_notifications();
+    IF v_inserted <> 1
+       OR (SELECT count(*) FROM public.notifications WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY') <> 2
+       OR (SELECT title FROM public.notifications WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today) <> '오늘 결제 예정 3건' THEN
+        RAISE EXCEPTION 'FAIL: R107B next-day enqueue did not create a new summary row (inserted=%)', v_inserted;
+    END IF;
+
+    -- B-3 (opt-out): expense_due_today = false prevents EXPENSE_DUE_TODAY generation.
+    DELETE FROM public.notifications WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY';
+    INSERT INTO public.notification_settings(user_id, expense_due_today)
+    VALUES (v_user_b, false)
+    ON CONFLICT (user_id) DO UPDATE SET expense_due_today = false, updated_at = NOW();
+
+    v_inserted := public.enqueue_daily_notifications();
+    IF EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107B generated EXPENSE_DUE_TODAY despite expense_due_today = false';
+    END IF;
+
+    -- R107B-02 (B-5): Push queue handling for EXPENSE_DUE_TODAY (unsubscribed -> SKIPPED, subscribed + push_enabled -> SENT).
+    UPDATE public.notifications SET push_status = 'SKIPPED', pushed_at = NOW() WHERE push_status = 'PENDING';
+    UPDATE public.notification_settings
+    SET expense_due_today = true, push_enabled = false, updated_at = NOW()
+    WHERE user_id = v_user_b;
+    DELETE FROM public.push_subscriptions WHERE user_id = v_user_b;
+
+    PERFORM public.enqueue_daily_notifications();
+    SELECT * INTO v_nt
+    FROM public.notifications
+    WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'FAIL: R107B failed to re-enqueue EXPENSE_DUE_TODAY after re-enabling setting';
+    END IF;
+
+    SELECT count(*) INTO v_claimed_count FROM public.claim_pending_push_notifications(50);
+    IF v_claimed_count <> 0
+       OR (SELECT push_status FROM public.notifications WHERE id = v_nt.id) <> 'SKIPPED' THEN
+        RAISE EXCEPTION 'FAIL: R107B unsubscribed/disabled EXPENSE_DUE_TODAY was not marked SKIPPED (claimed=%)', v_claimed_count;
+    END IF;
+
+    -- Subscribed + push_enabled=true -> claimed and completed as SENT.
+    DELETE FROM public.notifications WHERE id = v_nt.id;
+    INSERT INTO public.push_subscriptions(user_id, endpoint, p256dh, auth, platform, user_agent_label, created_at)
+    VALUES (v_user_b, 'https://push.example.test/r107b/user-b', repeat('P', 65), repeat('A', 22), 'web', 'Chrome · R107B', NOW() - INTERVAL '1 minute');
+    UPDATE public.notification_settings SET push_enabled = true, updated_at = NOW() WHERE user_id = v_user_b;
+
+    PERFORM public.enqueue_daily_notifications();
+    SELECT * INTO v_nt
+    FROM public.notifications
+    WHERE user_id = v_user_b AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today;
+
+    SELECT count(*) INTO v_claimed_count
+    FROM public.claim_pending_push_notifications(50)
+    WHERE notification_id = v_nt.id AND kind = 'EXPENSE_DUE_TODAY';
+    IF v_claimed_count <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R107B subscribed EXPENSE_DUE_TODAY was not claimed for push delivery (claimed=%)', v_claimed_count;
+    END IF;
+
+    PERFORM public.complete_push_notification_delivery(v_nt.id, 'SENT', '{}'::TEXT[], ARRAY['https://push.example.test/r107b/user-b']::TEXT[]);
+    IF NOT EXISTS (
+        SELECT 1 FROM public.notifications WHERE id = v_nt.id AND push_status = 'SENT' AND pushed_at IS NOT NULL
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107B subscribed EXPENSE_DUE_TODAY did not transition to SENT';
+    END IF;
+
+    -- Clean up R107B fixture rows so subsequent test blocks remain unaffected.
+    DELETE FROM public.notifications WHERE id = v_nt.id;
+    DELETE FROM public.push_subscriptions WHERE user_id = v_user_b AND endpoint = 'https://push.example.test/r107b/user-b';
+    DELETE FROM public.expenses WHERE id IN (v_e1, v_e2, v_e3, v_e_overdue, v_e_confirmed, v_e_cancelled, v_e_a);
+END $$;
+\echo PASS: R107B EXPENSE_DUE_TODAY daily summary, privacy, dedupe, opt-out, pending-deletion, and push SKIPPED/SENT checks
 
 -- User A's PENDING account deletion request (R13-07) is only needed up to R35; later blocks write as user A.
 DELETE FROM public.account_deletion_requests WHERE user_id = :'test_user_id'::uuid AND status_token_hash = repeat('a', 64);
