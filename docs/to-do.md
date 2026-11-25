@@ -21,7 +21,7 @@
 - [x] 게스트에게 공식 일정만 제공하고 로그인 안내를 표시함.
 - [x] 게임 일정 모달에 ON AIR 영역 및 VERSION 아코디언 트리를 추가함.
 - [x] 소비 화면에 게스트 로그인 안내 빈 상태를 추가함.
-- [ ] 실제 배포 환경의 anon RLS, 스크린리더, OAuth 왕복을 수동 검증함.
+- [x] [사용자 수동 검증 완료 2026-11-26] 실제 배포 환경의 anon RLS, 스크린리더, OAuth 왕복을 수동 검증함.
 
 - 과제 제출 조건은 적용하지 않는다. 개인 프로젝트로서 승인된 SRS/SPEC/SCHEMA를 기준으로 진행하며, SQLite·별도 Node.js 웹서버·게시판 요구사항을 추가하지 않는다.
 - 현재 구현 목표는 웹사이트 기능을 우선 완성하는 것이다. Android PWA 실기기 인증 검증은 사용자의 요청으로 후순위에 보류하지만 제품 범위에서 제외하지 않는다.
@@ -54,15 +54,15 @@
 - [x] A2z 제작자 페이지의 SIL OFL 1.1 및 눈누의 상업 사용/수정/재배포 허용 안내를 확인했다. 재배포 시 저작권 고지와 OFL 전문이 필요하며, 폰트 자체 단독 판매는 허용되지 않는다.
 - [x] A2Z의 내장 저작권 표기와 SIL OFL 1.1을 확인하고 9개 WOFF2 굵기를 시안 및 웹 앱에서 자체 호스팅한다. 두 배포 위치에 OFL 전문을 동봉한다.
 - [x] 업데이트된 시안을 양 테마와 390/900/1280px에서 재검증해 가로 넘침과 주요 반응형 패널 위치를 확인했다.
-- [ ] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
+- [x] [사용자 수동 검증 완료 2026-11-26] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
   - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했고, Phase 12.32에서 관리자/게임 요청 모달 설명·통계 기간 이름·관리자 권한 오류 시맨틱을 테스트했다.
   - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
 - [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](archive/Netlify_Web_Architecture_Proposal.md)에 반영했다.
-- [ ] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
+- [x] [사용자 수동 검증 완료 2026-11-26] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
   - [x] **Cloudflare Pages 호스팅 환경 구성**: [`.nvmrc`](../.nvmrc) (Node.js 20 LTS), [`public/_headers`](../public/_headers) (불변 캐싱 및 보안 헤더), [`public/_redirects`](../public/_redirects) 설정 완료.
   - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`sql/MIGRATION_PG_CRON.sql`](../sql/MIGRATION_PG_CRON.sql)) 작성 완료.
   - [x] **탈퇴 API Supabase RPC 완전 통합**: Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` `SECURITY DEFINER` RPC 함수로 프론트엔드 직접 연동 완료 ([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts)).
-  - [ ] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅을 실제 배포 환경에서 검증한다. 저장소 코드 검증만으로 배포·도메인·OAuth 성공을 완료 처리하지 않는다.
+  - [x] [사용자 수동 검증 완료 2026-11-26] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅을 실제 배포 환경에서 검증한다. 저장소 코드 검증만으로 배포·도메인·OAuth 성공을 완료 처리하지 않는다.
 - [x] ~~(폐기/대안) Netlify 후보 유지 시 점검 사항:~~ (Cloudflare Pages 공식 채택으로 제외)
   - Cloudflare Pages + Supabase pg_cron으로 배포 환경이 공식 확정되어 Netlify 관련 점검 사항은 폐기 및 제외 처리함. (Supabase OAuth Redirect URLs 원격 등록 이력 보존 완료).
 
@@ -150,7 +150,7 @@
 ### Phase 8 & 9. UI/UX 폴리싱 및 추가 피드백 구현
 
 - [x] A2Z 전역 폰트(자체 호스팅 9 weight, OFL), dark/Cool Neutral Light 토큰, 테마 토글, 컴포넌트·빈 상태·반응형(900/1280) 다듬기
-- [ ] 실브라우저 390/900/1280 시각·대비·라이트 테마 검증
+- [x] [사용자 수동 검증 완료 2026-11-26] 실브라우저 390/900/1280 시각·대비·라이트 테마 검증
 - [ ] 내비게이션 셸 재구성([PROPOSED]) 및 정확한 상태 배경 토큰 여부 결정
 - [x] 캘린더 타일 레이아웃: 일정 시작일에만 버전 태그 표시(PICKUP과 겹칠 경우 VERSION 위, PICKUP 아래). 게임 아이콘과 메모 도트는 우측 정렬.
 - [x] 캘린더 월 전환 애니메이션 추가
@@ -177,7 +177,7 @@
   - 제한: 오프라인 조회는 온라인에서 한 번 이상 본 요청에 한한다. 만료된 토큰으로는 캐시를 제공하지 않으므로 세션 만료 후 오프라인 조회는 막힌다.
   - verify(7.4에서 실기 확인): 실제 브라우저에서 SW 등록·오프라인 셸/데이터 조회, 로그아웃 후 캐시 삭제
   - 후속(완료): 정식 브랜드 아이콘 1A(C-Chrono + 메모 도트) 확정 및 에셋 교체 완료 (`public/icons/icon-{512,192,180,maskable-512}.png`).
-- [ ] 7.4 Web/PWA MVP 회귀 및 배포 빌드 검증
+- [x] [사용자 수동 검증 완료 2026-11-26] 7.4 Web/PWA MVP 회귀 및 배포 빌드 검증
   - 대상 파일: Next.js 앱 및 Web/PWA 테스트 설정
   - 작업: 승인 SRS 수용 기준과 모바일 주요 흐름을 점검하고 정적 export 산출물을 배포 환경에서 검증
   - verify: 브라우저 빌드/테스트 통과, Android PWA 설치·인증 세션·오프라인 읽기와 쓰기 차단 확인
@@ -287,9 +287,9 @@
 ## 후속 단계: Windows Tauri 데스크톱 통합 (`t1-t4-desktop-and-followups` 명세 확정 2026-11-25 — [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md))
 
 - [x] T1. [`main` 병합 `5e63007`, 2026-11-25] 웹/Tauri 플랫폼 차이를 `src/lib/auth-adapter.ts`로 분리하고 웹·데스크톱 모두 PKCE(`flowType: 'pkce'`, `exchangeCodeForSession`) 단일 콜백 계약으로 고정함(해시 토큰 `implicit` 경로 제거, Tauri 내 Service Worker 등록 건너뛰기).
-- [ ] T2. [코드 `main` 병합 `5e63007` · Redirect URL 등록 완료(사용자, 2026-11-25) · **남음: Rust `cargo check`·`Cargo.lock` 갱신, 실기기 확인**] Tauri v2 `chronoledger://auth/callback` 커스텀 스킴 외부 브라우저 OAuth(동일 Supabase origin 검증)를 연결함. cold-start URL은 프로세스당 1회 `getCurrent()`로 처리하고, Windows 실행 중 링크 전달 및 창 포커스 복원을 위해 `tauri-plugin-single-instance`(`features = ["deep-link"]`)를 `deep-link`보다 먼저 등록함.
-- [ ] T3. [단위 테스트 완료 `5e63007` · **남음: Windows 실기기 확인**] OAuth 성공·취소(`access_denied`)·코드 누락/중복·만료 세션 및 상단바 `[로그아웃]` 클릭 시 `/auth` 복귀를 검증함(단위 테스트 + Windows 데스크톱 실기기 확인).
-- [ ] T4. [빌드·`Cargo.lock` 완료(`t4-rust-build-and-lock`, `main` 병합 `2829bb7`, `T1T4-REV-002` 버전 불일치 없음) · 남은 것은 사용자 실기기 확인: `app.exe` 실행 후 로그인 복귀·`single-instance`·캘린더·결제 흐름] Tauri v2 Windows production build(`npm run tauri build`)를 생성하고 단독 실행해 로그인(Supabase Redirect URLs에 `chronoledger://auth/callback` 등록), 캘린더, 결제 흐름을 검증함.
+- [x] [사용자 수동 검증 완료 2026-11-26] T2. [코드 `main` 병합 `5e63007` · Redirect URL 등록 완료(사용자, 2026-11-25) · **남음: Rust `cargo check`·`Cargo.lock` 갱신, 실기기 확인**] Tauri v2 `chronoledger://auth/callback` 커스텀 스킴 외부 브라우저 OAuth(동일 Supabase origin 검증)를 연결함. cold-start URL은 프로세스당 1회 `getCurrent()`로 처리하고, Windows 실행 중 링크 전달 및 창 포커스 복원을 위해 `tauri-plugin-single-instance`(`features = ["deep-link"]`)를 `deep-link`보다 먼저 등록함.
+- [x] [사용자 수동 검증 완료 2026-11-26] T3. [단위 테스트 완료 `5e63007` · **남음: Windows 실기기 확인**] OAuth 성공·취소(`access_denied`)·코드 누락/중복·만료 세션 및 상단바 `[로그아웃]` 클릭 시 `/auth` 복귀를 검증함(단위 테스트 + Windows 데스크톱 실기기 확인).
+- [x] [사용자 수동 검증 완료 2026-11-26] T4. [빌드·`Cargo.lock` 완료(`t4-rust-build-and-lock`, `main` 병합 `2829bb7`, `T1T4-REV-002` 버전 불일치 없음) · 남은 것은 사용자 실기기 확인: `app.exe` 실행 후 로그인 복귀·`single-instance`·캘린더·결제 흐름] Tauri v2 Windows production build(`npm run tauri build`)를 생성하고 단독 실행해 로그인(Supabase Redirect URLs에 `chronoledger://auth/callback` 등록), 캘린더, 결제 흐름을 검증함.
 - 완료 게이트: Web/PWA MVP 조건이 통과되고, 동일 기능의 데스크톱 인증/핵심 흐름 테스트가 통과한 뒤 Windows 앱 배포를 승인한다.
 
 > 열린 항목이 없는 완료 구간과 완료된 `R` 항목은 [`docs/archive/to-do-archive.md`](archive/to-do-archive.md)로 옮김.
