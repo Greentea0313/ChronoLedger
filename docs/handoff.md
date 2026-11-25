@@ -96,13 +96,13 @@
 
 - **Run ID**: `r108-review-followups-p4` · **Orchestrator**: Gemini 4 Hydrogen *(2026-11-25 등록)*
 - **Worktree 경로**: `.worktrees/r108-review-followups-p4` (브랜치 `collab/r108-review-followups-p4`, 매니페스트 `artifacts/r108-review-followups-p4/run.json`)
-- **Base SHA**: `6c95c0e9b50a72042d5da0448fc0d17d4960b637` · **Target SHA**: *(Step 1 진행 전)*
+- **Base SHA**: `6c95c0e9b50a72042d5da0448fc0d17d4960b637` · **Target SHA**: `a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9` *(Step 1 완료 기준, 미병합)*
 - **DB 변경**: 없음 (🐳 Docker 불필요)
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (P4 선택 후속 3건 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/types/database.types.ts`, `src/lib/web-push-crypto.test.ts`, `supabase/functions/send-notifications/index.ts`, `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `▶ 신규 등록 — Step 1 착수 대기` |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet (`Medium`)** *(Fallback 1: Gemini 4 Neon (`High`) / Claude Opus (`High`))* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`6c95c0e9b50a72042d5da0448fc0d17d4960b637`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `tsc`·`lint`·`vitest`·`next build`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (SHA: a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (P4 선택 후속 3건 & Vitest)` | 아래 **Step 1 수용 기준** 수행. 허용 파일: `src/types/database.types.ts`, `src/lib/web-push-crypto.test.ts`, `supabase/functions/send-notifications/index.ts`, `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅ a1a4ceb`: `R39-REV-01`·`R96-REV-05`·`R97-REV-001` 반영 및 테스트 2건 추가. `tsc`·`lint`·`diff-check`·Vitest 76파일/1,028개 통과 (아래 완료 기록 참고) |
+| **2** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback 1: Gemini 4 Neon (`High`) / Claude Opus (`High`))* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`6c95c0e9b50a72042d5da0448fc0d17d4960b637`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `tsc`·`lint`·`vitest`·`next build`)·`main` 병합·문서 마감 | `▶ Step 1 완료(a1a4ceb). Base 6c95c0e ↔ Target a1a4ceb` |
 
 ##### 📋 `r108-review-followups-p4` Step 1 수용 기준
 
@@ -110,6 +110,13 @@
 2. **`R96-REV-05`**: `src/lib/web-push-crypto.test.ts`에 RFC 8291 부록 A 고정 벡터 검증 테스트 추가(및 `send-notifications` 워커 암호화 로직 동등성 확인).
 3. **`R97-REV-001`**: `src/lib/tauri-notifications.ts`에서 권한 질의(`ensurePermission()`) IPC 예외 시 `seenIds`를 되돌리거나 권한 확인 성공 뒤에 저장하도록 보완(직렬화 큐 유지) 및 `tauri-notifications.test.ts` 테스트 추가.
 4. **검증 및 커밋**: `npx tsc --noEmit`, `npm run lint`, `npx vitest run`, `git diff --check` 통과 후 워크트리 커밋, `Target SHA` 기록 및 Step 2(`Claude Sonnet`) `▶ READY` 전환.
+
+##### 📝 `r108-review-followups-p4` Step 1 완료 기록 (Gemini 4 Hydrogen `Medium`, 2026-11-25)
+
+- **Target SHA**: `a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9` (워크트리 브랜치 `collab/r108-review-followups-p4`, 미병합·원격 push 안 함). 변경 파일(4개): `src/types/database.types.ts`, `src/lib/web-push-crypto.test.ts`, `src/lib/tauri-notifications.ts`, `src/lib/tauri-notifications.test.ts` (`run.json` 미수정).
+- **반영 내용**: ① `R39-REV-01`: `notification_settings.Update.user_id`를 선택(`"user_id"?: string`)으로 수정함. ② `R96-REV-05`: RFC 8291 Appendix A 공식 테스트 벡터(고정 `ua_private`/`as_private`/`salt`/`auth_secret`·`140B` 암호문)로 `decryptWebPushPayload` 복호화 및 Edge Function `handleSendNotificationsRequest` 출력 바이너리 비트 단위 일치를 검증하는 테스트를 추가함. ③ `R97-REV-001`: `tauri-notifications.ts`에서 `ensurePermission()` 성공 뒤에 `saveSeenIds()`를 호출하도록 순서를 조정해 IPC 예외 시 다음 폴링에서 재시도되도록 보완하고 단위 테스트를 추가함(직렬화 큐 유지).
+- **검증**: 워크트리에서 `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `git diff --check`, `npx vitest run`(76파일 / 1,028개 통과) 확인함.
+- **다음 단계**: Step 2(`Claude Sonnet (Medium)`, Base `6c95c0e` ↔ Target `a1a4ceb` 정적 리뷰·`next build` 포함 검증·`main` 병합·문서 마감) `▶ READY`임.
 
 #### 📐 Chief Architect 구체화 대기 (`T1`~`T4` Windows 데스크톱 통합 및 `R101-REV-001` · `R106-REV-001·002`)
 
@@ -142,7 +149,7 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 | `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R101-REV-001`·`R106-REV-001·002` (`📐 SPEC_NEEDED` 접수) | `docs/to-do.md` 해당 항목 |
-| `R108` (`R39/96/97-REV`) | **진행 중 · 병행 활성 Run (`r108-review-followups-p4`)** | P4 선택 후속 3건(`R39-REV-01`·`R96-REV-05`·`R97-REV-001`) — Step 1(`Gemini 4 Hydrogen Medium`) `▶ READY`, DB 변경 없음 | 위 병행 Run 표, `docs/to-do.md` 해당 항목 |
+| `R108` (`R39/96/97-REV`) | **진행 중 · 병행 활성 Run (`r108-review-followups-p4`)** | P4 선택 후속 3건(`R39-REV-01`·`R96-REV-05`·`R97-REV-001`) — Step 1 완료(`a1a4ceb`), Step 2(`Claude Sonnet Medium`) `▶ READY`, DB 변경 없음 | 위 병행 Run 표, `docs/to-do.md` 해당 항목 |
 | `T1`~`T4` | **`📐 SPEC_NEEDED`** | Windows Tauri 데스크톱 통합(auth adapter, custom scheme OAuth, single-instance, prod 빌드) — `Gemini 4 Carbon (High)` 명세 대기 | 위 `📐 Chief Architect 구체화 대기`, `docs/to-do.md` `T1`~`T4` |
 
 ### 🗂️ 직전 완료 Run 기록: 협업 규칙 보정 (Antigravity Gemini 공용 한도 및 Cross-Pool 대체 체인 정정, `main` 직접, 2026-11-25)
