@@ -26,7 +26,7 @@
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
-| `R107` | `R107-A·B` 운영 적용 완료 · **`R107-C` `main` 병합 (`9268bf0`), 운영 DB 적용 대기** | 정기·반복 지출 자동화: `R107-A`·`R107-B` 운영 적용 완료 → `R107-C` 자동 확정·원자 환불 롤백 `main` 병합 완료, 운영 `MIGRATION_R107C_AUTO_CONFIRM.sql` 적용·배포는 사용자 수행(아래 「직전 완료 Run 기록」 참조). 후속: `R107C-REV-001·002`(P4), `R107-A-CLEANUP`(1주 관찰 후) | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §6, `docs/to-do.md` `R107` |
+| `R107` | `R107-A·B` 운영 적용 완료 · **`R107-C` `main` 병합 (`9268bf0`)·운영 DB 적용 완료** | 정기·반복 지출 자동화: `R107-A`·`R107-B` 운영 적용 완료 → `R107-C` 자동 확정·원자 환불 롤백 `main` 병합 완료, 운영 `MIGRATION_R107C_AUTO_CONFIRM.sql` 적용·확인 쿼리 검증 완료(2026-11-26), 앱 배포·구독 모달 동작 1회 확인은 사용자 수행. 후속: `R107C-REV-001·002`(P4), `R107-A-CLEANUP`(1주 관찰 후) | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §6, `docs/to-do.md` `R107` |
 | `R109` | **운영 적용·일괄 이전 완료** | 아이콘 Storage 이전(공용 `game-assets` 버킷). 운영 적용·배포·일괄 이전 검증 완료(2026-11-25). `R109-REV-001·002`는 `p4-followups-r108-r109`(`main` 병합 `c52705c`)에서 완료, `R109-REV-003`(P4 선택)·`R109-CLEANUP`은 사용자 지목 시 | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §4, `docs/to-do.md` R109 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
@@ -40,7 +40,7 @@
 - **Worktree 경로**: `.worktrees/r107c-auto-confirm` (브랜치 `collab/r107c-auto-confirm`, 매니페스트 `artifacts/r107c-auto-confirm/run.json`, 미삭제·원격 미push)
 - **Base SHA**: `3a9e31319fbea82f3b1ab85a26f819e5d904d5af` · **Target SHA**: `451ab5e4292534fc0f5165fceb4bf9875af06a8b` *(Step 1 `1094f84`, 산출물 `f8d9aed`, `main` 병합 `9268bf0`)*
 - **명세**: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §5~§6. Step 1~3 상세 완료 기록은 `docs/archive/handoff-archive.md`로 옮김.
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql`, `SCHEMA.sql`). **운영 DB 미적용(사용자 수동 적용 필요)**.
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql`, `SCHEMA.sql`). **운영 DB 적용 및 확인 쿼리 3종 검증 완료(사용자, 2026-11-26)**.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
@@ -53,4 +53,4 @@
 
 - **구현**: `subscription_templates.auto_confirm`·`expenses.auto_confirmed_at`/`auto_confirm_blocked`, `_process_expense_payment_core` 추출(공개 `process_expense_payment` 시그니처·권한 불변), `auto_confirm_due_expenses`(스토어 결제수단·보정 창 2일·당일 생성 제외)와 일 배치 2단계, `refund_expense_payment`의 `INTERVAL_30` 롤백 원자화, `EXPENSE_AUTO_CONFIRMED` 요약 알림, 구독 모달 `자동 확정` 토글·배지·환불 후 클라이언트 롤백 호출 제거.
 - **리뷰·검증**: 정적 리뷰 차단 0건·`P4` 2건 비차단(`R107C-REV-001·002`), 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 54개 PASS·`C-5` 2세션 병렬 3종, `tsc`·`lint`·Vitest 78파일/1,074개·`build` 통과.
-- **사용자 수행 순서(명세 §6)**: ① 운영 DB에 `MIGRATION_R107C_AUTO_CONFIRM.sql` 실행 → `sql/README.md` B표 `R107C` 확인 쿼리 3종 확인 → ② `main` push 배포(신규 컬럼 미적용 환경 폴백이 있어도 DB 먼저 적용 권장) → ③ 구독 모달에서 스토어 결제수단 템플릿의 `자동 확정` 토글을 켜 보고, 예정일에 자동 확정·`오늘 자동 확정된 결제 N건` 알림·환불 동작을 1회 확인. ⚠️ `R107A`·`R107B` 마이그레이션을 이후 다시 실행하면 `enqueue_daily_notifications`가 구버전으로 돌아가므로 `MIGRATION_R107C_AUTO_CONFIRM.sql`을 다시 실행해야 함.
+- **사용자 수행 순서(명세 §6)**: ① ✅ 완료(2026-11-26): 운영 DB에 `MIGRATION_R107C_AUTO_CONFIRM.sql` 실행 → `sql/README.md` B표 `R107C` 확인 쿼리 3종 기대값 일치 → ② `main` push 배포(신규 컬럼 미적용 환경 폴백이 있어도 DB 먼저 적용 권장) → ③ 구독 모달에서 스토어 결제수단 템플릿의 `자동 확정` 토글을 켜 보고, 예정일에 자동 확정·`오늘 자동 확정된 결제 N건` 알림·환불 동작을 1회 확인. ⚠️ `R107A`·`R107B` 마이그레이션을 이후 다시 실행하면 `enqueue_daily_notifications`가 구버전으로 돌아가므로 `MIGRATION_R107C_AUTO_CONFIRM.sql`을 다시 실행해야 함.
