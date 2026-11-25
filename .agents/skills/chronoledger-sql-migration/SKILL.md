@@ -5,7 +5,7 @@ description: Write or review a ChronoLedger Supabase schema change (table, RLS p
 
 # ChronoLedger SQL Migration
 
-Any change to money, ledger, points, RLS or SQL/RPC is a promotion condition (`.agents/rules/collaboration.md` §1): Claude works as Opus; Gemini implements as Neon (or GPT Codex) and uses Argon only for pre-design or audit, never for `sql/**` edits; Hydrogen, Sonnet, Copilot and Flash hand over. Never touch the production database; migrations are applied by the user in the Supabase SQL Editor.
+Any change to money, ledger, points, RLS or SQL/RPC is a promotion condition (`.agents/rules/collaboration.md` §1): Claude works as Opus; Gemini implements as Neon (or GPT Codex) and uses Carbon only for pre-design or audit, never for `sql/**` edits; Hydrogen, Sonnet and Copilot hand over. Never touch the production database; migrations are applied by the user in the Supabase SQL Editor.
 
 ## 1. Files to change together
 

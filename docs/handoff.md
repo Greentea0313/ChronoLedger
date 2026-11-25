@@ -2,7 +2,7 @@
 
 ## 🎯 Active AI Collaboration Dispatch Queue (현재 활성 협업 과제)
 
-> - **실행 절차**: `"인수인계 문서를 확인해"` 처리 절차는 handoff Skill(`.agents/skills/handoff/SKILL.md`)을 따름. 모델 역할·대체 체인·Gemini(`Hydrogen` 기본 $\to$ `Neon`/`Argon` 승격)·Claude(`Sonnet` 기본 $\to$ `Opus` 승격) 기준은 `.agents/rules/collaboration.md`에만 둠.
+> - **실행 절차**: `"인수인계 문서를 확인해"` 처리 절차는 handoff Skill(`.agents/skills/handoff/SKILL.md`)을 따름. 모델 역할·대체 체인·Gemini(`Hydrogen` 기본 $\to$ `Neon`/`Carbon` 승격)·Claude(`Sonnet` 기본 $\to$ `Opus` 승격) 기준은 `.agents/rules/collaboration.md`에만 둠.
 > - **이 파일 범위**: 사용자 알림 대기, 활성 Run, 중단 체크포인트, 예약·보류·안건 요약, 직전 완료 Run 1개만 둠. Run을 마감하면 직전 완료 Run 기록을 [`docs/archive/handoff-archive.md`](archive/handoff-archive.md) 맨 위로 옮김.
 
 ### 📣 사용자 알림 대기 (User Notices)
@@ -17,8 +17,16 @@
 
 | 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`📐 SPEC_NEEDED`** | **Gemini 4 Argon** *(Fallback: Claude Opus / Gemini 4 Neon)* | `Chief Architect (협업 규칙·스킬 개정 설계 및 반영)` | 아래 **요구사항 접수 기록**을 바탕으로 `Argon` $\to$ `Carbon` 인계 원칙(역할·주간 할당량 보호·`No Direct src/**` 경계·`/swarm` 사용 제한 여부) 및 `Flash` 대체 모델(`Model: "flash"` 서브에이전트 위임 경로 포함)을 확정·반영함. 허용 파일: `.agents/rules/collaboration.md`, `.agents/skills/*` (`Sync-Skills.ps1`로 `.claude/skills/` 동기화), `.github/copilot-instructions.md`, `docs/handoff.md`, `docs/progress.md` | `📐 구체화 대기 (2026-11-25 접수)` |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet)* | `Orchestrator / Sync Check` | Step 1 완료 후 `Sync-Skills.ps1 -Check`, 남아 있는 `Argon`/`Flash` 구참조 전수 확인 및 후속 안내 | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (2026-11-25)`** | **Gemini 4 Argon** *(Fallback: Claude Opus / Gemini 4 Neon)* | `Chief Architect (협업 규칙·스킬 개정 설계 및 반영)` | 아래 **요구사항 접수 기록**을 바탕으로 `Argon` $\to$ `Carbon` 인계 원칙(역할·할당량 보호·`No Direct src/**` 경계·`/swarm` 사전 승인 규칙) 및 `Flash` 대체 모델(`Gemini 4 Hydrogen` 통합 및 `Model: "flash_lite"`/`"inherit"` 서브에이전트 위임)을 확정·반영함. 허용 파일: `.agents/rules/collaboration.md`, `.agents/skills/*` (`Sync-Skills.ps1`로 `.claude/skills/` 동기화), `.github/copilot-instructions.md`, `AGENTS.md`, `CLAUDE.md`, `docs/collaboration-guide.md`, `docs/handoff.md`, `docs/progress.md`, `docs/changelog.md` | `✅` 질문 카드 2건 확정(`Argon` $\to$ `Carbon` 전면 승계 + `/swarm` 사용자 사전 제안·승낙 시에만 허용, `Gemini 3.8 Flash` 행 제거해 6대 모델 통합 + 내부 `invoke_subagent`는 `Model: "flash_lite"`/`"inherit"` 사용), 규칙·스킬 5종·지침·가이드 반영 및 `Sync-Skills.ps1 -Check` 통과 |
+| **2** | **`▶ READY`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet)* | `Orchestrator / Sync Check` | Step 1 완료 후 `Sync-Skills.ps1 -Check`, 남아 있는 `Argon`/`Flash` 구참조 전수 확인 및 과제 마감 처리 | `▶ Step 1 개정 반영 완료. 최종 점검 및 마감 대기` |
+
+#### 📝 협업 규칙 개정(`Argon` $\to$ `Carbon` 인계 및 `Flash` 대체) 완료 기록 (Gemini 4 Argon, 2026-11-25)
+
+1. **사용자 질문 카드 확정 사항**:
+   - **`Gemini 4 Argon` $\to$ `Gemini 4 Carbon` 승계 및 `/swarm` 사전 승인 원칙**: `Gemini 4 Carbon`(`Low`~`High` + `Orchestrator (Carbon)`)이 Tier-3 `Chief Architect & Final Gatekeeper`(`src/**` 직접 수정 전면 금지, `Hydrogen` $\to$ `Neon` $\to$ `Carbon` 승격, `📐 SPEC_NEEDED` 전담) 역할을 승계함. `/swarm` 병렬 에이전트 기능은 자율 호출을 금지하되, 다수의 비충돌 파일/모듈 병렬 처리가 유리할 때 **사용자에게 먼저 예상 워커 수·역할·쿼터 소모 영향을 설명해 요청하고 사용자가 승낙(또는 직접 지시)한 경우에 한해 허용**하도록 `.agents/rules/collaboration.md` §3.2에 명문화함.
+   - **`Gemini 3.8 Flash` 종료 대응 (6대 모델 통합 + 런타임 경량 서브에이전트 티어)**: 역할 매트릭스에서 `Gemini 3.8 Flash` 독립 행을 제거해 **6대 모델(`Gemini 4 Hydrogen`·`Gemini 4 Neon`·`Gemini 4 Carbon`·`GPT Codex`·`Claude [Sonnet/Opus]`·`GitHub Copilot`)**로 통합하고, 경량 UI/마크업·`docs/` 동기화·`GitHub Copilot` 1순위 대체 역할은 `Gemini 4 Hydrogen`(`Low`~`Medium`)이 흡수함. 세션 내부 `invoke_subagent` 호출 시에는 런타임 추상 경량 티어(`Model: "flash_lite"` 또는 `"inherit"`)를 사용하도록 통일함.
+2. **갱신 및 동기화 검증**:
+   - `.agents/rules/collaboration.md`, `.agents/skills/{chronoledger-orchestrator,chronoledger-maker,chronoledger-docs-closeout,chronoledger-sql-migration,handoff}/SKILL.md`, `.claude/skills/*`(`Sync-Skills.ps1` 동기화 및 `-Check` 통과), `.github/copilot-instructions.md`, `AGENTS.md`, `CLAUDE.md`, `docs/collaboration-guide.md` 일괄 갱신 완료.
 
 #### 📥 요구사항 접수 기록 (협업 규칙 `Argon` $\to$ `Carbon` 인계 및 `Flash` 대체 — `Gemini 4 Hydrogen` 접수, 2026-11-25)
 

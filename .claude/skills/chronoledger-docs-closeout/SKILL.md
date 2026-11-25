@@ -28,7 +28,7 @@ Prepend new entries at the top of each file, preserve each file's existing forma
 - `docs/to-do.md`: move finished `R` items (and sections with no open item) to the top of `docs/archive/to-do-archive.md`. Never move an item that still has an open child.
 - Archive files are not read during normal work; search them only when a task points to a section.
 - When archiving a finished Run, keep its step table and completion records; replace long acceptance-criteria blocks with the design-document pointer or a 1–3 line summary.
-- Archive moves are plain cut-and-paste and may be delegated to a cheaper subagent (Antigravity `Model: "flash"`); check the moved text with `git diff` before committing.
+- Archive moves are plain cut-and-paste and may be delegated to a lightweight subagent (Antigravity `invoke_subagent` with `Model: "flash_lite"` or `"inherit"`); check the moved text with `git diff` before committing.
 
 ## 3. Final report
 

@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-25 (협업 규칙 개정: `Gemini 4 Argon` $\to$ `Gemini 4 Carbon` 인계 및 `Gemini 3.8 Flash` 역할 통합)
+
+- 11월 30일 `Gemini 4 Argon`·`Gemini 3.8 Flash` 서비스 종료에 대비해 Tier-3 수석 아키텍트(`Chief Architect & Final Gatekeeper`, `src/**` 직접 수정 금지, `📐 SPEC_NEEDED` 전담)를 **`Gemini 4 Carbon`**(`Orchestrator (Carbon)`)으로 인계하고, `/swarm` 병렬 에이전트 모드는 자율 시작을 금지하되 필요한 경우 사용자에게 사전 요청 후 승낙 시에만 허용하도록 `.agents/rules/collaboration.md` §3.2에 명시함.
+- 모델 역할 매트릭스에서 `Gemini 3.8 Flash` 행을 제거해 **6대 모델(`Hydrogen`·`Neon`·`Carbon`·`GPT Codex`·`Claude`·`GitHub Copilot`)**로 통합하고 경량 UI/문서/`GitHub Copilot` 1순위 대체 역할을 `Gemini 4 Hydrogen`으로 일원화함(세션 내 경량 서브에이전트 위임은 `Model: "flash_lite"` 또는 `"inherit"` 사용).
+
 ## 2026-11-25 (주간 문서 감사 자동 이관·사용자 알림)
 
 - `chronoledger-weekly-doc-audit` Skill이 아카이브 이관과 보고서 커밋까지 수행하도록 바꾸고(그 밖의 발견 사항은 보고만 함), 무인 실행 결과를 `docs/handoff.md` 상단 `📣 사용자 알림 대기` 절에 남기게 함.
