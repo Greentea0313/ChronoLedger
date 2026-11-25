@@ -8,7 +8,7 @@
                                 "Step 2 (Claude Sonnet Medium): Static review (review.json), verify cargo check/tsc/lint/vitest/build (test.json), merge into main, and close out docs with T4 manual OAuth checklist"
                             ],
     "base_sha":  "ae56b57d02a72af729d13051d8cecb0dabdeaa26",
-    "target_sha":  null,
+    "target_sha":  "2387bcddcf2a60a5705570a220a21e5f8f65ac00",
     "branch":  "collab/t4-rust-build-and-lock",
     "worktree_path":  ".worktrees/t4-rust-build-and-lock",
     "max_iterations":  3,
