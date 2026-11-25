@@ -849,6 +849,23 @@ describe("ExpenseModal", () => {
       expect(update).toHaveBeenCalledWith(expect.objectContaining({ schedule_id: "v-old", target_date: "2030-01-10" }))
     })
 
+    it("links the next VERSION on the shared boundary day when the date is picked manually", async () => {
+      setupVersions(boundaryVersions)
+      const onCompleted = vi.fn()
+      render(
+        <ExpenseModal
+          open
+          onOpenChange={vi.fn()}
+          onCompleted={onCompleted}
+          prefill={{ game_id: "g1", title: "버전 1.0", target_date: "2030-01-10", start_date: "2030-01-01", end_date: "2030-01-15" }}
+        />,
+      )
+
+      await screen.findByRole("option", { name: "버전 1.0" })
+      fireEvent.change(screen.getByLabelText("결제일 / 예정일"), { target: { value: "2030-01-15" } })
+      await screen.findByRole("option", { name: "버전 1.1" })
+    })
+
     it("falls back to date matching when the date leaves the prefilled VERSION period", async () => {
       setupVersions(boundaryVersions)
       const onCompleted = vi.fn()

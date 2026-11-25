@@ -538,7 +538,7 @@ export function ExpenseModal({
         )
         setSchedules(versionSchedules)
         if (isGameChanged && !isEditMode && !isPlannedPayment && paymentDate) {
-          const matched = versionSchedules.find(
+          const matched = [...versionSchedules].reverse().find(
             (s) => s.start_date <= paymentDate && paymentDate <= s.end_date
           )
           if (matched) {
@@ -560,7 +560,9 @@ export function ExpenseModal({
     const preferred = preferredScheduleId
       ? schedules.find((s) => s.id === preferredScheduleId && covers(s))
       : undefined
-    return preferred ?? schedules.find(covers) ?? null
+    // 이전 버전 종료일 = 다음 버전 시작일인 경계일에는 start_date 오름차순 목록의 마지막(다음 버전)을 선택함.
+    const lastCovering = [...schedules].reverse().find(covers)
+    return preferred ?? lastCovering ?? null
   }, [paymentDate, schedules, preferredScheduleId])
 
   const updateCalculatedFinal = (orig: number, disc: number, pts: number) => {
