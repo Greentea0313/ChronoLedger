@@ -1,0 +1,18 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r107c-auto-confirm",
+    "created_at":  "2026-11-25T15:04:58.4861444+00:00",
+    "objective":  "R107-C: per-template auto-confirm of store-payment recurring expenses (auto_confirm, process_expense_payment core extraction, auto_confirm_due_expenses, INTERVAL_30 refund rollback atomicity, EXPENSE_AUTO_CONFIRMED notification, subscription modal toggle and badge)",
+    "acceptance_criteria":  [
+                                "Step 1 (Maker, Opus): MIGRATION_R107C_AUTO_CONFIRM.sql, SCHEMA.sql, README and TESTS.sql per docs/r107-recurring-expense-automation-spec.md section 5.1 and C-1..C-10, plus R107A-REV-001/002; local Docker DB upgrade and fresh paths applied twice and TESTS.sql passing.",
+                                "Step 2 (Maker): subscription modal auto_confirm toggle, auto-confirmed badge, refund flow without client rollback call, unmigrated-column fallback, Vitest per spec section 5.2 and C-11; pass tsc, lint, Vitest.",
+                                "Step 3 (Reviewer): integrated static review of money/ledger/concurrency/permissions (review.json), test.json (local DB gate, tsc, lint, Vitest, build per C-12), merge to main.",
+                                "Step 4 (Orchestrator): close out docs and guide production rollout order (spec section 6)."
+                            ],
+    "base_sha":  "3a9e31319fbea82f3b1ab85a26f819e5d904d5af",
+    "target_sha":  "451ab5e4292534fc0f5165fceb4bf9875af06a8b",
+    "branch":  "collab/r107c-auto-confirm",
+    "worktree_path":  ".worktrees/r107c-auto-confirm",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}

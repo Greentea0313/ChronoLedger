@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
-import { useAuth } from "@/lib/auth-context"
 import { useOnlineStatus } from "@/lib/use-online-status"
 import { OFFLINE_WRITE_MESSAGE, isOffline } from "@/lib/offline-guard"
 import { mapPaymentError } from "@/lib/payment-calculations"
-import { rollbackIntervalSubscriptionExpense } from "@/lib/subscription-sync"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
 
 export interface ExpenseDetail {
@@ -30,6 +28,7 @@ export interface ExpenseDetail {
   gameName?: string | null
   memo?: string | null
   template_id?: string | null
+  auto_confirmed_at?: string | null
 }
 
 interface ExpenseDetailModalProps {
@@ -57,7 +56,6 @@ function won(value: number | undefined): string {
 }
 
 export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdated }: ExpenseDetailModalProps) {
-  const { user } = useAuth()
   const isOnline = useOnlineStatus()
   const [isConfirming, setIsConfirming] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -154,17 +152,6 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
       return
     }
 
-    // 누적 충전형 구독 상품의 환불인 경우 다음 예정 지출의 일수를 충전 일수만큼 차감(롤백)
-    if (user?.id) {
-      await rollbackIntervalSubscriptionExpense({
-        userId: user.id,
-        expenseId: expense.id,
-        templateId: expense.template_id,
-      }).catch((err) => {
-        console.warn("누적 충전형 환불 차감 실패 (비차단):", err)
-      })
-    }
-
     onRefunded?.()
     close(false)
   }
@@ -175,7 +162,17 @@ export function ExpenseDetailModal({ expense, onOpenChange, onRefunded, onUpdate
         {expense && (
           <>
             <DialogHeader>
-              <DialogTitle>{expense.title}</DialogTitle>
+              <DialogTitle className="flex items-center gap-2 flex-wrap">
+                <span>{expense.title}</span>
+                {expense.auto_confirmed_at && (
+                  <span
+                    data-testid="auto-confirmed-badge"
+                    className="inline-block rounded px-2 py-0.5 text-[11px] font-medium bg-primary/15 text-primary"
+                  >
+                    자동 확정
+                  </span>
+                )}
+              </DialogTitle>
               <DialogDescription>{`${STATUS_LABELS[expense.status]} · ${expense.target_date}`}</DialogDescription>
             </DialogHeader>
 

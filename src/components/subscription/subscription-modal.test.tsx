@@ -83,8 +83,11 @@ describe("SubscriptionModal", () => {
     expect(screen.getByLabelText("구독 제목 *")).toBeTruthy()
     expect(screen.getByLabelText("결제 주기 유형 *")).toBeTruthy()
     expect(screen.getByLabelText("매월 결제일 (1~31일) *")).toBeTruthy()
-    expect(screen.getByLabelText("결제수단 *")).toHaveProperty("disabled", true)
+    expect(screen.getByLabelText("결제수단 *")).toHaveProperty("disabled", false)
     expect((screen.getByLabelText("결제수단 *") as HTMLSelectElement).value).toBe("WALLET")
+    const autoConfirmSwitch = screen.getByRole("switch", { name: "자동 확정" })
+    expect(autoConfirmSwitch).toHaveProperty("disabled", true)
+    expect(autoConfirmSwitch.getAttribute("aria-checked")).toBe("false")
     expect(screen.getByLabelText(/연관 게임/)).toBeTruthy()
   })
 
@@ -169,6 +172,7 @@ describe("SubscriptionModal", () => {
       interval_days: 30,
       default_price: 17000,
       payment_method: "WALLET",
+      auto_confirm: false,
       is_active: true,
     })
     expect(onOpenChange).toHaveBeenCalledWith(false)
@@ -268,6 +272,60 @@ describe("SubscriptionModal", () => {
       }),
     )
     expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it("스토어 결제수단 선택 시 자동 확정 토글이 활성화되고 WALLET 전환 시 강제 해제된다 (R107-C)", async () => {
+    const onCreated = vi.fn()
+    render(<SubscriptionModal open onOpenChange={vi.fn()} onCreated={onCreated} />)
+
+    const methodSelect = screen.getByLabelText("결제수단 *") as HTMLSelectElement
+    const autoSwitch = screen.getByRole("switch", { name: "자동 확정" }) as HTMLButtonElement
+    expect(autoSwitch.disabled).toBe(true)
+
+    fireEvent.change(methodSelect, { target: { value: "GOOGLE_PLAY" } })
+    expect(autoSwitch.disabled).toBe(false)
+    expect(autoSwitch.getAttribute("aria-checked")).toBe("false")
+    expect(screen.getByText(/켠 당일 생성분은 다음 날부터 적용/)).toBeTruthy()
+
+    fireEvent.click(autoSwitch)
+    expect(autoSwitch.getAttribute("aria-checked")).toBe("true")
+
+    fireEvent.change(methodSelect, { target: { value: "WALLET" } })
+    expect(autoSwitch.disabled).toBe(true)
+    expect(autoSwitch.getAttribute("aria-checked")).toBe("false")
+
+    fireEvent.change(methodSelect, { target: { value: "GALAXY_STORE" } })
+    fireEvent.click(autoSwitch)
+    fireEvent.change(screen.getByLabelText("구독 제목 *"), { target: { value: "갤럭시 월정액" } })
+    fireEvent.change(screen.getByLabelText("기본 금액 (원) *"), { target: { value: "5900" } })
+    fireEvent.click(screen.getByRole("button", { name: "구독 추가" }))
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalled())
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "갤럭시 월정액",
+        payment_method: "GALAXY_STORE",
+        auto_confirm: true,
+      }),
+    )
+  })
+
+  it("auto_confirm 컬럼 미적용 DB(42703)에서는 auto_confirm을 제외하고 재저장한다 (R107-C D15)", async () => {
+    insert
+      .mockResolvedValueOnce({ error: { code: "42703", message: "column auto_confirm does not exist" } })
+      .mockResolvedValueOnce({ error: null })
+    const onCreated = vi.fn()
+    render(<SubscriptionModal open onOpenChange={vi.fn()} onCreated={onCreated} />)
+
+    fireEvent.change(screen.getByLabelText("구독 제목 *"), { target: { value: "호환 구독" } })
+    fireEvent.change(screen.getByLabelText("기본 금액 (원) *"), { target: { value: "5900" } })
+    fireEvent.change(screen.getByLabelText("결제수단 *"), { target: { value: "GOOGLE_PLAY" } })
+    fireEvent.click(screen.getByRole("switch", { name: "자동 확정" }))
+    fireEvent.click(screen.getByRole("button", { name: "구독 추가" }))
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalled())
+    expect(insert).toHaveBeenCalledTimes(2)
+    expect(insert.mock.calls[1][0]).not.toHaveProperty("auto_confirm")
   })
 })
 

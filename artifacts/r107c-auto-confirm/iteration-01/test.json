@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "run_id": "r107c-auto-confirm",
+  "iteration": 1,
+  "agent": "Gemini 4 Carbon",
+  "role": "dynamic-test",
+  "base_sha": "3a9e31319fbea82f3b1ab85a26f819e5d904d5af",
+  "target_sha": "451ab5e4292534fc0f5165fceb4bf9875af06a8b",
+  "status": "passed",
+  "created_at": "2026-11-26T00:40:10+09:00",
+  "finished_at": "2026-11-26T00:45:46+09:00",
+  "sandbox": "docker",
+  "redactions_applied": true,
+  "tests": [
+    {
+      "name": "git-diff-check",
+      "command": "git diff --check 3a9e31319fbea82f3b1ab85a26f819e5d904d5af..451ab5e4292534fc0f5165fceb4bf9875af06a8b",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "typecheck",
+      "command": "npx.cmd tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "eslint",
+      "command": "npm.cmd run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "vitest",
+      "command": "npx.cmd vitest run --dir src",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "next-build",
+      "command": "NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key npm.cmd run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "local-db-upgrade-path-2x-and-smoke-tests",
+      "command": "npx.cmd supabase@2.120.0 db reset --workdir <localdb> && docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/BASE_SCHEMA.sql && psql -c \"INSERT INTO storage.buckets (id, name, public) VALUES ('user-icons', 'user-icons', false);\" && psql -f sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql (x2) && psql -f r107c_check.sql && psql -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "local-db-fresh-install-2x-and-smoke-tests",
+      "command": "npx.cmd supabase@2.120.0 db reset --workdir <localdb> && docker exec supabase_db_chronoledger-local psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f sql/SCHEMA.sql && psql -c \"INSERT INTO storage.buckets (id, name, public) VALUES ('user-icons', 'user-icons', false);\" && psql -f sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql (x2) && psql -f r107c_check.sql && psql -f sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "local-db-c5-two-session-concurrency-3-scenarios",
+      "command": "2-session parallel psql verification: (1) manual process_expense_payment FOR UPDATE vs auto_confirm_due_expenses SKIP LOCKED, (2) auto_confirm_due_expenses FOR UPDATE vs manual process_expense_payment rejected, (3) auto_confirm_due_expenses vs auto_confirm_due_expenses template FOR UPDATE serialized",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}

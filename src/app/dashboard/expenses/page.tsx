@@ -110,6 +110,7 @@ interface SubscriptionTemplateRow {
   interval_days?: number
   default_price: number
   payment_method: string
+  auto_confirm?: boolean
   is_active: boolean
   game_id: string | null
   games?: { name?: string; default_icon_url?: string } | null
@@ -209,6 +210,8 @@ export default function ExpensesPage() {
   const [payingExpense, setPayingExpense] = useState<PlannedExpenseInput | null>(null)
   const [editingPlannedExpense, setEditingPlannedExpense] = useState<PlannedExpenseEditInput | null>(null)
   const [detailExpense, setDetailExpense] = useState<ExpenseDetail | null>(null)
+  const [autoConfirmedMap, setAutoConfirmedMap] = useState<Record<string, string>>({})
+  const [restoreError, setRestoreError] = useState<string | null>(null)
   const [editingIntervalTemplate, setEditingIntervalTemplate] = useState<SubscriptionTemplateRow | null>(null)
   const [intervalRemainingDays, setIntervalRemainingDays] = useState("30")
   const [isSavingIntervalDays, setIsSavingIntervalDays] = useState(false)
@@ -283,6 +286,29 @@ export default function ExpensesPage() {
       setExpenses(rows)
       preloadImages(rows.map((e) => e.games?.default_icon_url).filter(Boolean) as string[])
       void loadCustomIconsForGameIds(rows.map((e) => e.game_id).filter(Boolean) as string[])
+
+      const confirmedIds = rows.filter((e) => e.status === "CONFIRMED").map((e) => e.id)
+      if (confirmedIds.length > 0) {
+        try {
+          const q = supabase.from("expenses").select("id, auto_confirmed_at")
+          if (typeof (q as { in?: unknown }).in === "function") {
+            const autoRes = await q.in("id", confirmedIds)
+            if (!autoRes.error && Array.isArray(autoRes.data)) {
+              const nextMap: Record<string, string> = {}
+              for (const item of autoRes.data as Array<{ id: string; auto_confirmed_at?: string | null }>) {
+                if (item.auto_confirmed_at) nextMap[item.id] = item.auto_confirmed_at
+              }
+              setAutoConfirmedMap(nextMap)
+            } else {
+              setAutoConfirmedMap({})
+            }
+          }
+        } catch {
+          setAutoConfirmedMap({})
+        }
+      } else {
+        setAutoConfirmedMap({})
+      }
     }
     hasLoadedInitialRef.current = true
     setIsLoading(false)
@@ -342,7 +368,21 @@ export default function ExpensesPage() {
         void loadCustomIconsForGameIds(rows.map((t) => t.game_id).filter(Boolean) as string[])
       }
     } else if (data) {
-      const rows = data as unknown as SubscriptionTemplateRow[]
+      let rows = data as unknown as SubscriptionTemplateRow[]
+      try {
+        const q = supabase.from("subscription_templates").select("id, auto_confirm")
+        if (typeof (q as { eq?: unknown }).eq === "function") {
+          const autoRes = await q.eq("user_id", userId)
+          if (!autoRes.error && Array.isArray(autoRes.data)) {
+            const map = new Map(
+              (autoRes.data as Array<{ id: string; auto_confirm?: boolean }>).map((r) => [r.id, Boolean(r.auto_confirm)]),
+            )
+            rows = rows.map((r) => (map.has(r.id) ? { ...r, auto_confirm: map.get(r.id) } : r))
+          }
+        }
+      } catch {
+        // ignore when unmigrated
+      }
       setTemplates(rows)
       preloadImages(rows.map((t) => t.games?.default_icon_url).filter(Boolean) as string[])
       void loadCustomIconsForGameIds(rows.map((t) => t.game_id).filter(Boolean) as string[])
@@ -912,8 +952,19 @@ export default function ExpensesPage() {
   }
 
   const handleRestoreCancelled = async (expenseId: string) => {
+    setRestoreError(null)
     const { error } = await supabase.rpc("restore_cancelled_expense", { p_expense_id: expenseId })
     if (error) {
+      const code = (error as { code?: string }).code ?? ""
+      const msg = (error as { message?: string }).message ?? ""
+      if (code === "23505" || msg.includes("23505")) {
+        setRestoreError("이미 진행 중인 예정 회차가 있어 취소된 지출을 복구할 수 없습니다.")
+        return
+      }
+      if (code !== "42883" && code !== "PGRST202") {
+        setRestoreError("취소된 지출을 복구하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+        return
+      }
       await supabase
         .from("expenses")
         .update({ status: "PLANNED", cancellation_kind: null })
@@ -945,6 +996,7 @@ export default function ExpensesPage() {
       gameName: expense.games?.name ?? null,
       memo: expense.memo ?? null,
       template_id: expense.template_id ?? null,
+      auto_confirmed_at: autoConfirmedMap[expense.id] ?? null,
     })
   }
 
@@ -1615,6 +1667,11 @@ export default function ExpensesPage() {
             </CardContent>
             ) : (
             <CardContent className="pt-4">
+              {restoreError && (
+                <p role="alert" className="mb-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
+                  {restoreError}
+                </p>
+              )}
               {displayedExpenses.length === 0 ? (
                 <EmptyState
                   message={showPastExpenses ? "과거 지출 내역이 없습니다." : "최근 지출 내역이 없습니다."}
@@ -1670,17 +1727,24 @@ export default function ExpensesPage() {
                               {expense.final_amount.toLocaleString()} 원
                             </td>
                             <td className="py-3 text-center">
-                              <span
-                                className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                  expense.status === "CONFIRMED"
-                                    ? "bg-success/15 text-success"
-                                    : expense.status === "PLANNED"
-                                    ? "bg-warning/15 text-warning"
-                                    : "bg-danger/15 text-danger"
-                                }`}
-                              >
-                                {STATUS_LABELS[expense.status] || expense.status}
-                              </span>
+                              <div className="inline-flex items-center justify-center gap-1 flex-wrap">
+                                <span
+                                  className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                                    expense.status === "CONFIRMED"
+                                      ? "bg-success/15 text-success"
+                                      : expense.status === "PLANNED"
+                                      ? "bg-warning/15 text-warning"
+                                      : "bg-danger/15 text-danger"
+                                  }`}
+                                >
+                                  {STATUS_LABELS[expense.status] || expense.status}
+                                </span>
+                                {expense.status === "CONFIRMED" && autoConfirmedMap[expense.id] && (
+                                  <span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/15 text-primary">
+                                    자동 확정
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="py-3 text-right whitespace-nowrap">
                               {expense.status === "PLANNED" && (
@@ -1781,17 +1845,24 @@ export default function ExpensesPage() {
                               {METHOD_LABELS[expense.payment_method] || expense.payment_method}
                             </p>
                           </div>
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium shrink-0 ${
-                              expense.status === "CONFIRMED"
-                                ? "bg-success/15 text-success"
-                                : expense.status === "PLANNED"
-                                ? "bg-warning/15 text-warning"
-                                : "bg-danger/15 text-danger"
-                            }`}
-                          >
-                            {STATUS_LABELS[expense.status] || expense.status}
-                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${
+                                expense.status === "CONFIRMED"
+                                  ? "bg-success/15 text-success"
+                                  : expense.status === "PLANNED"
+                                  ? "bg-warning/15 text-warning"
+                                  : "bg-danger/15 text-danger"
+                              }`}
+                            >
+                              {STATUS_LABELS[expense.status] || expense.status}
+                            </span>
+                            {expense.status === "CONFIRMED" && autoConfirmedMap[expense.id] && (
+                              <span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/15 text-primary">
+                                자동 확정
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-line/60 relative z-10">
                           <p className="font-bold text-info text-base">

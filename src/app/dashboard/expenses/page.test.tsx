@@ -1452,4 +1452,91 @@ describe("ExpensesPage R101", () => {
       expect(within(card).getByText("95,900원")).toBeTruthy()
     })
   })
+
+  it("자동 확정 지출에 배지를 표시하고 auto_confirmed_at 컬럼 미적용 환경에서도 정상 로드된다 (R107-C)", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const confirmedRow = {
+      id: "exp-auto-1",
+      title: "스토어 자동 결제",
+      category: "게임",
+      status: "CONFIRMED",
+      target_date: "2026-10-10",
+      end_date: null,
+      game_id: null,
+      template_id: "tpl-1",
+      original_price: 5900,
+      discount_amount: 0,
+      point_discount_amount: 0,
+      used_points: 0,
+      earned_points: 5,
+      final_amount: 5900,
+      payment_method: "GOOGLE_PLAY",
+      games: null,
+    }
+
+    from.mockImplementation((table: string) => {
+      if (table === "expenses") {
+        const q = createExpenseQueryBuilder([confirmedRow])
+        return {
+          ...q,
+          select: vi.fn((cols: string) => {
+            if (cols.includes("auto_confirmed_at")) {
+              return {
+                in: vi.fn().mockResolvedValue({
+                  data: [{ id: "exp-auto-1", auto_confirmed_at: "2026-10-10T00:00:00Z" }],
+                  error: null,
+                }),
+              }
+            }
+            return q
+          }),
+        }
+      }
+      return createExpenseQueryBuilder([])
+    })
+
+    render(<ExpensesPage />)
+    expect((await screen.findAllByText("자동 확정")).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it("restore_cancelled_expense 23505 오류 시 안내 문구를 표시하고 목록 상태를 유지한다 (R107-C)", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+    const cancelledRow = {
+      id: "exp-cancelled-1",
+      title: "중복 충돌 회차",
+      category: "게임",
+      status: "CANCELLED",
+      cancellation_kind: "CANCELLED",
+      target_date: "2026-10-12",
+      end_date: null,
+      game_id: null,
+      template_id: "tpl-interval",
+      original_price: 5900,
+      discount_amount: 0,
+      point_discount_amount: 0,
+      used_points: 0,
+      earned_points: 0,
+      final_amount: 5900,
+      payment_method: "WALLET",
+      games: null,
+    }
+    from.mockImplementation((table: string) => {
+      if (table === "expenses") return createExpenseQueryBuilder([cancelledRow])
+      return createExpenseQueryBuilder([])
+    })
+    rpc.mockImplementation(async (fn: string) => {
+      if (fn === "restore_cancelled_expense") {
+        return { error: { code: "23505", message: "duplicate key value violates unique constraint" } }
+      }
+      return { data: 0, error: null }
+    })
+
+    render(<ExpensesPage />)
+    fireEvent.click(await screen.findByLabelText("취소 내역 숨기기"))
+    const restoreBtn = (await screen.findAllByRole("button", { name: "되돌리기" }))[0]
+    fireEvent.click(restoreBtn)
+
+    expect((await screen.findByRole("alert")).textContent).toContain("이미 진행 중인 예정 회차가 있어")
+    expect(screen.getAllByRole("button", { name: "되돌리기" }).length).toBeGreaterThanOrEqual(1)
+  })
 })
