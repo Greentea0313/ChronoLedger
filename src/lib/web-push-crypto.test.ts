@@ -408,26 +408,13 @@ describe("send-notifications Edge Function worker", () => {
     )
 
     const vapid = await generateVapidKeyPair()
-    const originalGenerateKey = crypto.subtle.generateKey.bind(crypto.subtle)
-    const originalStringify = JSON.stringify.bind(JSON)
-    const getRandomValuesSpy = vi.spyOn(crypto, "getRandomValues").mockImplementationOnce((arr) => {
-      ;(arr as Uint8Array).set(decodeBase64Url(saltB64))
-      return arr
-    })
-    const generateKeySpy = vi.spyOn(crypto.subtle, "generateKey").mockImplementation(async (algorithm, extractable, keyUsages) => {
-      if (typeof algorithm === "object" && algorithm && "name" in algorithm && algorithm.name === "ECDH") {
-        return { privateKey: asPrivateKey, publicKey: asPublicKey }
-      }
-      return originalGenerateKey(algorithm as EcKeyGenParams, extractable, keyUsages)
-    })
-
     const endpoint = "https://push.example/rfc8291-vector"
     let workerBody: Uint8Array | undefined
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url
       if (url.endsWith("/rest/v1/rpc/claim_pending_push_notifications")) {
         return new Response(
-          originalStringify([
+          JSON.stringify([
             {
               notification_id: "notif-rfc",
               user_id: "user-rfc",
@@ -442,7 +429,7 @@ describe("send-notifications Edge Function worker", () => {
         )
       }
       if (url.includes("/rest/v1/push_subscriptions")) {
-        return new Response(originalStringify([{ user_id: "user-rfc", endpoint, p256dh: uaPublicB64, auth: authB64 }]), { status: 200 })
+        return new Response(JSON.stringify([{ user_id: "user-rfc", endpoint, p256dh: uaPublicB64, auth: authB64 }]), { status: 200 })
       }
       if (url === endpoint) {
         workerBody = new Uint8Array(init?.body as ArrayBuffer)
@@ -451,33 +438,26 @@ describe("send-notifications Edge Function worker", () => {
       return new Response(null, { status: 204 })
     })
 
-    const stringifySpy = vi.spyOn(JSON, "stringify").mockImplementation((value, replacer, space) => {
-      if (typeof value === "object" && value !== null && "link_path" in value && "title" in value) {
-        return "When I grow up, I want to be a watermelon"
-      }
-      return originalStringify(value, replacer as never, space)
-    })
-    try {
-      const res = await handleSendNotificationsRequest(
-        new Request("https://edge.example/send-notifications", { method: "POST", headers: { "x-webhook-secret": "hook-secret" } }),
-        {
-          env: {
-            supabaseUrl: "https://proj.supabase.co",
-            serviceRoleKey: "service-role-secret",
-            vapidPublicKey: vapid.publicKey,
-            vapidPrivateKey: vapid.privateKey,
-            vapidSubject: "mailto:ops@chronoledger.example",
-            webhookSecret: "hook-secret",
-          },
-          fetchImpl: fetchMock as unknown as typeof fetch,
+    const res = await handleSendNotificationsRequest(
+      new Request("https://edge.example/send-notifications", { method: "POST", headers: { "x-webhook-secret": "hook-secret" } }),
+      {
+        env: {
+          supabaseUrl: "https://proj.supabase.co",
+          serviceRoleKey: "service-role-secret",
+          vapidPublicKey: vapid.publicKey,
+          vapidPrivateKey: vapid.privateKey,
+          vapidSubject: "mailto:ops@chronoledger.example",
+          webhookSecret: "hook-secret",
         },
-      )
-      expect(res.status).toBe(200)
-      expect(encodeBase64Url(workerBody as Uint8Array)).toBe(encodeBase64Url(expectedBody))
-    } finally {
-      stringifySpy.mockRestore()
-      generateKeySpy.mockRestore()
-      getRandomValuesSpy.mockRestore()
-    }
+        fetchImpl: fetchMock as unknown as typeof fetch,
+        cryptoOverrides: {
+          salt: decodeBase64Url(saltB64),
+          ephemeralKeyPair: { privateKey: asPrivateKey, publicKey: asPublicKey },
+          payloadText: "When I grow up, I want to be a watermelon",
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    expect(encodeBase64Url(workerBody as Uint8Array)).toBe(encodeBase64Url(expectedBody))
   })
 })

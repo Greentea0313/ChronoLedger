@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "p4-followups-r108-r109",
+  "iteration": 1,
+  "agent": "Claude Opus (High)",
+  "role": "static-review",
+  "base_sha": "9efde83f89003f10da4e52dd7c0d992720c19035",
+  "target_sha": "d7e5139ed1c93bb2fd0bb70192f3e9fba6c8a9f8",
+  "status": "findings",
+  "created_at": "2026-11-25T15:30:00+00:00",
+  "findings": [
+    {
+      "id": "P4F-REV-001",
+      "severity": "P4",
+      "file": "src/app/admin/page.tsx",
+      "line": 449,
+      "evidence": "pendingAssetMigrationCount now prefers the server count from fetchPendingCharacterAssetCount, which runs only on admin load and after handleBulkMigrateGameAssets. The character save/delete handlers (await fetchCharacters() at lines 981, 1028, 1062, 1067) refresh the character list but not this count, while before this change the badge was derived live from the characters state.",
+      "impact": "Badge-only staleness: after deleting an unmigrated character or replacing its icon on the same page, the '아이콘 Storage 일괄 이전 (N)' count stays one higher until reload or the next bulk run. The bulk migration itself re-reads all rows and is unaffected.",
+      "recommendation": "Optional: call fetchPendingCharacterAssetCount() next to fetchCharacters() in the character write handlers."
+    }
+  ]
+}

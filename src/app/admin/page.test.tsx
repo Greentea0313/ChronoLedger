@@ -55,6 +55,8 @@ function createQueryBuilder() {
     update: vi.fn(),
     delete: vi.fn(),
     eq: vi.fn(),
+    not: vi.fn(),
+    range: vi.fn(),
     gte: vi.fn(),
     lt: vi.fn(),
   }
@@ -64,6 +66,8 @@ function createQueryBuilder() {
   query.update.mockReturnValue(query)
   query.delete.mockReturnValue(query)
   query.eq.mockReturnValue(query)
+  query.not.mockReturnValue(query)
+  query.range.mockReturnValue(query)
   query.gte.mockReturnValue(query)
   query.lt.mockReturnValue(query)
   return query
@@ -977,14 +981,13 @@ describe("AdminPage - 일정 관리", () => {
 
   it("아이콘 Storage 일괄 이전 버튼은 게임과 캐릭터의 미이전 아이콘을 이전하고 이미 이전된 항목을 건너뛰며 실패 원본을 보존한다 (R109)", async () => {
     const charactersBuilder = createQueryBuilder()
-    charactersBuilder.order.mockResolvedValue({
-      data: [
-        { id: "char-1", game_id: "game-1", name: "알리스", default_icon_url: "data:image/webp;base64,char1" },
-        { id: "char-2", game_id: "game-1", name: "이미이전됨", default_icon_url: charAssetUrl("game-1") },
-        { id: "char-3", game_id: "game-1", name: "아이콘없음", default_icon_url: null },
-      ],
-      error: null,
-    })
+    const initialChars = [
+      { id: "char-1", game_id: "game-1", name: "알리스", default_icon_url: "data:image/webp;base64,char1" },
+      { id: "char-2", game_id: "game-1", name: "이미이전됨", default_icon_url: charAssetUrl("game-1") },
+      { id: "char-3", game_id: "game-1", name: "아이콘없음", default_icon_url: null },
+    ]
+    charactersBuilder.order.mockResolvedValueOnce({ data: initialChars, error: null })
+    charactersBuilder.range.mockResolvedValueOnce({ data: initialChars, error: null })
     charactersBuilder.update.mockReturnValue(charactersBuilder)
     charactersBuilder.eq.mockResolvedValue({ error: null })
 
@@ -1038,10 +1041,9 @@ describe("AdminPage - 일정 관리", () => {
 
   it("아이콘 Storage 일괄 이전 대상이 0건이면 안내 메시지를 표시하고 오프라인에서는 차단한다 (R109)", async () => {
     const charactersBuilder = createQueryBuilder()
-    charactersBuilder.order.mockResolvedValue({
-      data: [{ id: "char-1", game_id: "game-1", name: "이전완료", default_icon_url: charAssetUrl("game-1") }],
-      error: null,
-    })
+    const cleanChars = [{ id: "char-1", game_id: "game-1", name: "이전완료", default_icon_url: charAssetUrl("game-1") }]
+    charactersBuilder.order.mockResolvedValueOnce({ data: cleanChars, error: null })
+    charactersBuilder.range.mockResolvedValueOnce({ data: cleanChars, error: null })
     gamesBuilder.order.mockResolvedValue({
       data: [
         { id: "game-1", name: "원신", default_icon_url: GAME_ASSET_URL },
@@ -1067,6 +1069,68 @@ describe("AdminPage - 일정 관리", () => {
     fireEvent.click(screen.getByRole("button", { name: "아이콘 Storage 일괄 이전" }))
     expect(await screen.findByText(/오프라인 상태에서는 저장할 수 없습니다/)).toBeTruthy()
     Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+  })
+
+  it("1,000행 초과 캐릭터를 .range() 페이지네이션으로 조회하고 선택 게임 밖 미이전 캐릭터 수를 배지에 반영한다 (R109-REV-001·002)", async () => {
+    const charactersBuilder = createQueryBuilder()
+    const firstPage = Array.from({ length: 1000 }, (_, i) => ({
+      id: `char-migrated-${i}`,
+      game_id: "game-1",
+      name: `캐릭터 ${i}`,
+      default_icon_url: charAssetUrl("game-1"),
+    }))
+    const secondPage = [
+      {
+        id: "char-beyond-1000",
+        game_id: "game-2",
+        name: "천번째 이후 캐릭터",
+        default_icon_url: "data:image/webp;base64,beyond1000",
+      },
+    ]
+    charactersBuilder.order.mockResolvedValueOnce({ data: firstPage.slice(0, 1), error: null })
+    charactersBuilder.not.mockReturnValue({
+      not: vi
+        .fn()
+        .mockResolvedValueOnce({ count: 1, error: null })
+        .mockResolvedValueOnce({ count: 0, error: null }),
+    })
+    charactersBuilder.range
+      .mockResolvedValueOnce({ data: firstPage, error: null })
+      .mockResolvedValueOnce({ data: secondPage, error: null })
+    charactersBuilder.update.mockReturnValue(charactersBuilder)
+    charactersBuilder.eq.mockResolvedValue({ error: null })
+
+    gamesBuilder.order.mockResolvedValue({
+      data: [
+        { id: "game-1", name: "원신", default_icon_url: GAME_ASSET_URL },
+        { id: "game-2", name: "스타레일", default_icon_url: GAME_ASSET_URL },
+      ],
+      error: null,
+    })
+
+    from.mockImplementation((table: string) => {
+      if (table === "games") return gamesBuilder
+      if (table === "game_characters") return charactersBuilder
+      if (table === "game_schedules") return schedulesBuilder
+      return createQueryBuilder()
+    })
+
+    uploadGameAssetFromSource.mockResolvedValueOnce(charAssetUrl("game-2"))
+
+    render(<AdminPage />)
+    fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
+    const bulkBtn = await screen.findByRole("button", { name: "아이콘 Storage 일괄 이전 (1)" })
+    fireEvent.click(bulkBtn)
+
+    expect(await screen.findByText(/게임 0건·캐릭터 1건 이전됨/)).toBeTruthy()
+    expect(charactersBuilder.range).toHaveBeenNthCalledWith(1, 0, 999)
+    expect(charactersBuilder.range).toHaveBeenNthCalledWith(2, 1000, 1999)
+    expect(uploadGameAssetFromSource).toHaveBeenCalledTimes(1)
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith(
+      { kind: "character", gameId: "game-2" },
+      "data:image/webp;base64,beyond1000",
+    )
+    expect(screen.getByRole("button", { name: "아이콘 Storage 일괄 이전" })).toBeTruthy()
   })
 
   it("등록된 게임을 삭제 모달을 통해 안전하게 삭제할 수 있다", async () => {

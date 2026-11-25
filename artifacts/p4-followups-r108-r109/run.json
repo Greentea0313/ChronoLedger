@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "p4-followups-r108-r109",
+    "created_at":  "2026-11-25T14:38:25.4705276+00:00",
+    "objective":  "P4 follow-ups: R109-REV-001/002 (admin bulk icon migration pagination and pending badge) and R108-REV-001 (web-push-crypto test dependency injection instead of global spies)",
+    "acceptance_criteria":  [
+                                "Step 1 (Maker): R109-REV-001 paginate or server-filter game_characters in handleBulkMigrateGameAssets (beyond 1000 rows) and R109-REV-002 make pendingAssetMigrationCount reflect un-migrated characters outside the selected game, with Vitest; pass tsc, lint, Vitest.",
+                                "Step 2 (Maker): R108-REV-001 inject salt, ephemeral key pair and payload into handleSendNotificationsRequest so web-push-crypto.test.ts needs no global crypto/JSON spies; behavior unchanged; pass tsc, lint, Vitest.",
+                                "Step 3 (Reviewer \u0026 Orchestrator): static review (review.json), tsc/lint/Vitest/build (test.json), merge to main, close out docs."
+                            ],
+    "base_sha":  "9efde83f89003f10da4e52dd7c0d992720c19035",
+    "target_sha":  "d7e5139ed1c93bb2fd0bb70192f3e9fba6c8a9f8",
+    "branch":  "collab/p4-followups-r108-r109",
+    "worktree_path":  ".worktrees/p4-followups-r108-r109",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
