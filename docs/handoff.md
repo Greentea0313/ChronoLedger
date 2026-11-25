@@ -13,12 +13,17 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 과제**: **`R109` 아이콘 이미지 Storage 이전 (`📐 SPEC_NEEDED` — Chief Architect 설계·미결 결정·수용 기준 확정 대기)** *(T1~T4 `npm run tauri dev` 테스트에서 구글 로그인은 안정적이나 페이지 전환 지연 체감에 따른 사용자 착수 지목, 2026-11-25. 검토 초안: [`docs/icon-storage-migration-review.md`](icon-storage-migration-review.md))*
+- **활성 과제**: **`R109` 아이콘 이미지 Storage 이전 — 명세 확정 완료 (`64c4317` 이후 신규 커밋 참조)** → 아래 Row 2(**`Gemini 4 Hydrogen (Medium)`**, 격리 워크트리 `r109-icon-storage-migration` 생성 및 Dispatch Queue 등록) **`▶ READY`**. 확정 명세: [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md)
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`📐 SPEC_NEEDED`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback 1: Claude Opus (`High` — 도구에서 High 선택) / Gemini 4 Neon (`High` — 도구에서 High 선택), Fallback 2: Gemini 4 Hydrogen (`Medium`))* | `Chief Architect` | 아래 **요구사항 접수 기록 (`R109`)** 및 [`docs/icon-storage-migration-review.md`](icon-storage-migration-review.md)를 검토해 질문 카드(§9 미결 결정 4건) 확정, 정식 명세·보안 경계(`game-assets` 버킷·`storage.objects` RLS·`CLAUDE.md` 예외)·단계별 수용 기준 확정(`src/**`·`sql/**` 직접 수정 금지) 및 Row 2(`Gemini 4 Hydrogen`) `▶ READY` 전환 | 대기 중 |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Orchestrator (R109 Run 등록 및 워크트리 생성)` | Row 1 명세 확정 후 착수. 깨끗한 `main`에서 `New-CollaborationRun.ps1`로 격리 워크트리 생성 및 Step별 Dispatch Queue(`▶ READY`) 등록함 | 대기 중 |
+| **1** | **`✅ DONE (2026-11-25, 명세 확정)`** *(원 상태 `📐 SPEC_NEEDED`)* | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback 1: Claude Opus (`High` — 도구에서 High 선택) / Gemini 4 Neon (`High` — 도구에서 High 선택), Fallback 2: Gemini 4 Hydrogen (`Medium`))* | `Chief Architect` | 아래 **요구사항 접수 기록 (`R109`)** 및 [`docs/icon-storage-migration-review.md`](icon-storage-migration-review.md)를 검토해 질문 카드(§9 미결 결정 4건) 확정, 정식 명세·보안 경계(`game-assets` 버킷·`storage.objects` RLS·`CLAUDE.md` 예외)·단계별 수용 기준 확정(`src/**`·`sql/**` 직접 수정 금지) 및 Row 2(`Gemini 4 Hydrogen`) `▶ READY` 전환 | ✅ [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) 작성 완료(사용자 질문 카드 결정 `D1`~`D4`, §2 보안·모듈·SW 설계, §3 Step 1~4 수용 기준·모델 배정, `src/**`·`sql/**` 미수정) |
+| **2** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Orchestrator (R109 Run 등록 및 워크트리 생성)` | 확정 명세 [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §3에 따라 깨끗한 `main`에서 `New-CollaborationRun.ps1 -RunId "r109-icon-storage-migration"`로 격리 워크트리 생성 및 Dispatch Queue(Step 1 `Claude Opus (High — 도구에서 High 선택)` 🐳 SQL·Storage RLS `▶ READY` → Step 2 `Gemini 4 Neon (High — 도구에서 High 선택)` 업로드·관리자/일괄 이전·SW 캐시 → Step 3 `Gemini 4 Carbon (High — 도구에서 High 선택)` 🐳 통합 리뷰·병합 → Step 4 `Gemini 4 Hydrogen (Medium)` 마감) 등록(큐 행에는 명세 절 번호 포인터만 기재) | `▶ READY (명세 확정 완료)` |
+
+#### 📝 `R109` 명세 확정 기록 (Gemini 4 Carbon `High`, 2026-11-25)
+
+1. **사용자 확정 결정 (`D1`~`D4`)**: ① 별도 측정 대기 없이 공개 읽기 공용 버킷 `game-assets`(SHA-256 해시 파일명 `games/{hash}.webp`·`characters/{game_id}/{hash}.webp`, 1년 불변 캐시, 관리자 전용 쓰기 RLS)로 즉시 착수하며 비공개 `user-icons` 규칙은 유지함(`CLAUDE.md`에 `game-assets` 예외 명시), ② `public/sw.js`에 `game-assets` 공개 경로 전용 Cache-First 런타임 캐시(`chronoledger-game-assets-v1`, 상한 500개)를 추가해 Web/PWA 오프라인 아이콘 표시를 지원함, ③ 사용자 요청(`character_requests`·`pickup_new_characters`)은 기존 Data URL로 받고 관리자 승인 시점에 Storage로 업로드(`approve_schedule_request`에 `p_pickup_icon_overrides JSONB DEFAULT NULL` 추가, 구 1인자 오버로드 `DROP`)하며 기존 운영 DB 아이콘은 `/admin` `[아이콘 Storage 일괄 이전]` 버튼(멱등, 기존 R30 역변환 대체)으로 이전함, ④ 과도기 Data URL·`https://` 공존을 유지하고 소용량 `game_classification_icons`(64×64)는 제외하며 전체 이전 완료 후 `R109-CLEANUP`은 사용자 지목 시 진행함.
+2. **단계 배정 요약 (명세 §3)**: Step 1 **Claude Opus (`High`)**(🐳 Storage 버킷·RLS·`approve_schedule_request` 마이그레이션·`TESTS.sql`·타입·`CLAUDE.md`) → Step 2 **Gemini 4 Neon (`High`)**(`game-asset-storage.ts`·관리자 등록/승인 전환·일괄 이전 버튼·`sw.js` 캐시·Vitest) → Step 3 **Gemini 4 Carbon (`High`)**(🐳 통합 정적 리뷰·로컬 DB 게이트·병합) → Step 4 **Gemini 4 Hydrogen (`Medium`)**(문서 마감·운영 이전 안내).
 
 #### 📥 요구사항 접수 기록 (`R109` 아이콘 이미지 Storage 이전 — `Gemini 4 Hydrogen` 접수, 2026-11-25)
 
@@ -49,7 +54,7 @@
 | :--- | :--- | :--- | :--- |
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
 | `R107` | `R107-A` 운영 적용 완료 · `R107-B` 운영 DB 적용 완료 | 정기·반복 지출 자동화: `R107-A` 운영 적용 완료(1주 관찰 후 `R107-A-CLEANUP`) → `R107-B` 결제 예정 알림 `main` 병합 `a84c6de`·운영 DB 적용 완료(앱 배포 필요) → `R107-C` 자동 확정 옵션(Run 3, `R107-B` 앱 배포 후 사용자 지목 시 등록). 명세 §9 미결 질문 6건은 기본값으로 진행 중 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
-| `R109` | **`📐 SPEC_NEEDED`** *(착수 요청 접수, 2026-11-25)* | 아이콘 Storage 이전(DB base64 → 공용 버킷 파일): `T1`~`T4` 페이지 전환 지연으로 사용자 착수 지목. `Gemini 4 Carbon (High)` 명세·미결 결정 4건 확정 대기 | [`docs/icon-storage-migration-review.md`](icon-storage-migration-review.md), `docs/to-do.md` R109 |
+| `R109` | **명세 확정 완료 · Run 등록 `▶ READY`** | 아이콘 Storage 이전(DB base64 → 공용 `game-assets` 버킷 해시 파일 + 관리자 일괄 이전 + `sw.js` 오프라인 이미지 캐시): `Gemini 4 Hydrogen (Medium)` Run 등록 대기(후속 `R109-CLEANUP`은 운영 이전 완료 후 사용자 지목 시) | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md), `docs/to-do.md` R109 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
