@@ -8,7 +8,7 @@
                                 "Step 2 (Claude Sonnet Medium): Static review (review.json), tsc/lint/vitest/next build verification (test.json), main merge, and docs closeout"
                             ],
     "base_sha":  "6c95c0e9b50a72042d5da0448fc0d17d4960b637",
-    "target_sha":  null,
+    "target_sha":  "a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9",
     "branch":  "collab/r108-review-followups-p4",
     "worktree_path":  ".worktrees/r108-review-followups-p4",
     "max_iterations":  3,
