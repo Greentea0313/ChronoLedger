@@ -40,7 +40,7 @@ describe("Supabase browser client", () => {
     )
   })
 
-  it("uses the implicit flow in the Tauri runtime", async () => {
+  it("uses the PKCE flow in the Tauri runtime as well", async () => {
     Object.defineProperty(window, "__TAURI_INTERNALS__", { value: {} })
 
     await import("./client")
@@ -50,7 +50,7 @@ describe("Supabase browser client", () => {
       "test-anon-key",
       {
         auth: {
-          flowType: "implicit",
+          flowType: "pkce",
           detectSessionInUrl: false,
         },
       },

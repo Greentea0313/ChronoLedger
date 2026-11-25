@@ -10,12 +10,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-const isTauriRuntime =
-  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
-
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    flowType: isTauriRuntime ? 'implicit' : 'pkce',
+    flowType: 'pkce',
     detectSessionInUrl: false,
   },
 })

@@ -2,12 +2,17 @@ import { act, cleanup, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { AuthProvider, useAuth } from "./auth-context"
 
-const { getSession, onAuthStateChange, maybeSingle, unsubscribe, setupDeepLink } = vi.hoisted(() => ({
+const { getSession, onAuthStateChange, maybeSingle, unsubscribe, setupDeepLink, replace } = vi.hoisted(() => ({
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
   maybeSingle: vi.fn(),
   unsubscribe: vi.fn(),
   setupDeepLink: vi.fn(),
+  replace: vi.fn(),
+}))
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace }),
 }))
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -43,8 +48,9 @@ describe("AuthProvider", () => {
       return { data: { subscription: { unsubscribe } } }
     })
     maybeSingle.mockReset().mockResolvedValue({ data: null, error: null })
-    setupDeepLink.mockReset().mockResolvedValue(undefined)
+    setupDeepLink.mockReset().mockResolvedValue(vi.fn())
     unsubscribe.mockReset()
+    replace.mockReset()
     window.localStorage.clear()
   })
 
@@ -108,5 +114,45 @@ describe("AuthProvider", () => {
     expect(window.localStorage.getItem('chronoledger:game-order:user-2')).toBeNull()
     expect(window.localStorage.getItem('chronoledger:game-onboarding-dismissed:user-2')).toBeNull()
     expect(window.localStorage.getItem('chronoledger:game-order:other')).toBe('["g2"]')
+  })
+
+  it("wires deep-link success/error navigation and unsubscribes deep-link listener on unmount", async () => {
+    const unlistenDeepLink = vi.fn()
+    let capturedHandlers: { onSuccess: () => void; onError: (msg: string) => void } | undefined
+    setupDeepLink.mockImplementation(async (handlers: { onSuccess: () => void; onError: (msg: string) => void }) => {
+      capturedHandlers = handlers
+      return unlistenDeepLink
+    })
+
+    const view = render(<AuthProvider><AuthState /></AuthProvider>)
+    await act(async () => { await Promise.resolve() })
+
+    capturedHandlers?.onSuccess()
+    expect(replace).toHaveBeenCalledWith("/dashboard")
+
+    capturedHandlers?.onError("Google 로그인이 취소되었습니다.")
+    expect(replace).toHaveBeenCalledWith(
+      `/auth?oauthError=${encodeURIComponent("Google 로그인이 취소되었습니다.")}`,
+    )
+
+    view.unmount()
+    expect(unlistenDeepLink).toHaveBeenCalledTimes(1)
+  })
+
+  it("clears session state and finishes loading when getSession returns an expired-session error", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    getSession.mockResolvedValue({ data: { session: null }, error: { message: "Invalid Refresh Token" } })
+
+    try {
+      render(<AuthProvider><AuthState /></AuthProvider>)
+      await act(async () => { await Promise.resolve() })
+
+      expect(screen.getByTestId("user").textContent).toBe("signed-out")
+      expect(screen.getByTestId("session").textContent).toBe("no-session")
+      expect(screen.getByTestId("loading").textContent).toBe("false")
+      expect(screen.getByTestId("status-loading").textContent).toBe("false")
+    } finally {
+      errorSpy.mockRestore()
+    }
   })
 })

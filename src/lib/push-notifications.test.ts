@@ -210,6 +210,7 @@ describe("logout push cleanup integration (dashboard, admin, account deletion)",
       p_endpoint: "https://fcm.googleapis.com/fcm/send/shared-logout",
     })
     expect(unsubscribe).toHaveBeenCalledTimes(1)
+    expect(replace).toHaveBeenCalledWith("/auth")
   })
 
   it("cleans up push subscription before signOut in AdminLayout", async () => {
@@ -228,6 +229,7 @@ describe("logout push cleanup integration (dashboard, admin, account deletion)",
       p_endpoint: "https://fcm.googleapis.com/fcm/send/shared-logout",
     })
     expect(unsubscribe).toHaveBeenCalledTimes(1)
+    expect(replace).toHaveBeenCalledWith("/auth")
   })
 
   it("cleans up push subscription before local signOut when account deletion completes", async () => {

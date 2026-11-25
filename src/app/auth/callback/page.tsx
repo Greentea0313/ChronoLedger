@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { AlertCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { supabase } from "@/lib/supabase/client"
+import { completeOAuthCallbackUrl } from "@/lib/auth-adapter"
 
 export default function AuthCallbackPage() {
   const router = useRouter()
@@ -18,30 +18,17 @@ export default function AuthCallbackPage() {
     started.current = true
 
     const completeSignIn = async () => {
-      const callbackUrl = new URL(window.location.href)
-      const oauthError = callbackUrl.searchParams.get("error")
-
-      if (oauthError) {
-        const description = callbackUrl.searchParams.get("error_description")
-        setError(description || `Google 인증이 완료되지 않았습니다 (${oauthError}).`)
+      const result = await completeOAuthCallbackUrl(window.location.href)
+      if (result.status === "success") {
+        setMessage("인증이 완료되었습니다. 대시보드로 이동합니다...")
+        router.replace("/dashboard")
         return
       }
-
-      const code = callbackUrl.searchParams.get("code")
-      if (!code) {
-        setError("인증 응답에 코드가 없습니다. 로그인 화면으로 돌아가 다시 시도해주세요.")
+      if (result.status === "error") {
+        setError(result.message)
         return
       }
-
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-
-      if (exchangeError) {
-        setError(`로그인 세션을 만들지 못했습니다: ${exchangeError.message}`)
-        return
-      }
-
-      setMessage("인증이 완료되었습니다. 대시보드로 이동합니다...")
-      router.replace("/dashboard")
+      setError("유효하지 않은 인증 콜백 요청입니다. 로그인 화면으로 돌아가 다시 시도해주세요.")
     }
 
     completeSignIn().catch((cause: unknown) => {

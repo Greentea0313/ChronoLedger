@@ -210,7 +210,7 @@ describe("NotificationBell", () => {
     expect(rpc).not.toHaveBeenCalledWith("mark_notifications_read", expect.anything())
   })
 
-  it("deletes all notifications with 전체 삭제 and disables the button when empty", async () => {
+  it("requires inline two-step confirmation for 전체 삭제 and resets confirmation on cancel or close (R106-REV-001)", async () => {
     mockInbox({ data: [row("a"), row("b", { read_at: "2026-11-18T02:00:00Z" })], error: null })
     render(<NotificationBell userId="u1" />)
     await waitFor(() => expect(screen.getByTestId("notification-badge").textContent).toBe("1"))
@@ -218,7 +218,29 @@ describe("NotificationBell", () => {
 
     const deleteAllButton = screen.getByRole("button", { name: "전체 삭제" }) as HTMLButtonElement
     expect(deleteAllButton.disabled).toBe(false)
+
+    // 1st click enters inline confirmation without calling RPC
     fireEvent.click(deleteAllButton)
+    expect(rpc).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "삭제 확인" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "취소" })).toBeTruthy()
+
+    // Cancel returns to default header without calling RPC
+    fireEvent.click(screen.getByRole("button", { name: "취소" }))
+    expect(rpc).not.toHaveBeenCalled()
+    expect(screen.queryByRole("button", { name: "삭제 확인" })).toBeNull()
+    expect(screen.getByRole("button", { name: "전체 삭제" })).toBeTruthy()
+
+    // Closing popover resets confirmation state
+    fireEvent.click(screen.getByRole("button", { name: "전체 삭제" }))
+    expect(screen.getByRole("button", { name: "삭제 확인" })).toBeTruthy()
+    fireEvent.keyDown(document, { key: "Escape" })
+    openBell()
+    expect(screen.queryByRole("button", { name: "삭제 확인" })).toBeNull()
+
+    // Confirming deletes all notifications and disables button when empty
+    fireEvent.click(screen.getByRole("button", { name: "전체 삭제" }))
+    fireEvent.click(screen.getByRole("button", { name: "삭제 확인" }))
 
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("delete_notifications", { p_notification_ids: null }))
     expect(await screen.findByText("새 알림이 없습니다.")).toBeTruthy()
@@ -252,6 +274,7 @@ describe("NotificationBell", () => {
     expect(rpc).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole("button", { name: "전체 삭제" }))
+    fireEvent.click(screen.getByRole("button", { name: "삭제 확인" }))
     expect((await screen.findByRole("alert")).textContent).toContain("오프라인 상태에서는 알림을 삭제할 수 없습니다")
     expect(rpc).not.toHaveBeenCalled()
   })

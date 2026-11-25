@@ -1,6 +1,7 @@
 "use client"
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 import { setupDeepLink } from '@/lib/tauri-auth'
@@ -38,6 +39,9 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter()
+  const routerRef = useRef(router)
+  routerRef.current = router
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [role, setRole] = useState<string | null>(null)
@@ -62,7 +66,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user, fetchProfile])
 
   useEffect(() => {
-    void setupDeepLink().catch((error: unknown) => console.error("딥링크 초기화 실패:", error))
+    let mounted = true
+    let cleanupDeepLink: (() => void) | null = null
+
+    void setupDeepLink({
+      onSuccess: () => {
+        routerRef.current.replace("/dashboard")
+      },
+      onError: (message) => {
+        routerRef.current.replace(`/auth?oauthError=${encodeURIComponent(message)}`)
+      },
+    })
+      .then((unlisten) => {
+        if (!mounted) {
+          unlisten?.()
+          return
+        }
+        cleanupDeepLink = unlisten ?? null
+      })
+      .catch((error: unknown) => console.error("딥링크 초기화 실패:", error))
 
     let authEventReceived = false
     let lastUserId: string | null = null
@@ -97,6 +119,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error("세션 에러:", error)
+        if (!authEventReceived) {
+          if (lastUserId) clearUserGameOrderStorage(lastUserId)
+          lastUserId = null
+          setSession(null)
+          setUser(null)
+          setRole(null)
+          setNickname(null)
+          setIsAccountDeletionStatusLoading(false)
+        }
         return
       }
       if (!authEventReceived) {
@@ -107,11 +138,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }).catch((err) => {
       console.error("Supabase 에러:", err)
+      if (!authEventReceived) {
+        setSession(null)
+        setUser(null)
+        setRole(null)
+        setNickname(null)
+        setIsAccountDeletionStatusLoading(false)
+      }
     }).finally(() => {
       setIsLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      cleanupDeepLink?.()
+      subscription.unsubscribe()
+    }
   }, [fetchProfile])
 
   const refreshAccountDeletionStatus = useCallback(async () => {

@@ -57,6 +57,7 @@ export function NotificationBell({ userId, className }: { userId: string; classN
   const [popoverTop, setPopoverTop] = useState(0)
   const [items, setItems] = useState<NotificationRow[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [confirmingDeleteAll, setConfirmingDeleteAll] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
@@ -100,7 +101,10 @@ export function NotificationBell({ userId, className }: { userId: string; classN
   }, [load])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setConfirmingDeleteAll(false)
+      return
+    }
     const handlePointerDown = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false)
     }
@@ -115,9 +119,14 @@ export function NotificationBell({ userId, className }: { userId: string; classN
     }
   }, [open])
 
+  useEffect(() => {
+    if (items.length === 0) setConfirmingDeleteAll(false)
+  }, [items.length])
+
   const unreadCount = items.filter((item) => item.read_at === null).length
 
   const markRead = async (ids: string[] | null): Promise<boolean> => {
+    setConfirmingDeleteAll(false)
     if (isOffline()) {
       setError("오프라인 상태에서는 읽음 처리를 할 수 없습니다.")
       return false
@@ -138,6 +147,7 @@ export function NotificationBell({ userId, className }: { userId: string; classN
   }
 
   const deleteNotifications = async (ids: string[] | null): Promise<boolean> => {
+    setConfirmingDeleteAll(false)
     setError(null)
     if (isOffline()) {
       setError("오프라인 상태에서는 알림을 삭제할 수 없습니다.")
@@ -164,6 +174,7 @@ export function NotificationBell({ userId, className }: { userId: string; classN
 
   const handleToggle = () => {
     setError(null)
+    setConfirmingDeleteAll(false)
     if (!open) {
       updatePopoverTop()
       void load()
@@ -210,22 +221,46 @@ export function NotificationBell({ userId, className }: { userId: string; classN
           <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
             <h2 className="text-sm font-semibold text-content">알림</h2>
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                disabled={unreadCount === 0}
-                onClick={() => void markRead(null)}
-                className="rounded-md px-2 py-1 text-xs text-primary hover:bg-surface-2 disabled:opacity-40"
-              >
-                모두 읽음
-              </button>
-              <button
-                type="button"
-                disabled={items.length === 0}
-                onClick={() => void deleteNotifications(null)}
-                className="rounded-md px-2 py-1 text-xs text-danger hover:bg-surface-2 disabled:opacity-40"
-              >
-                전체 삭제
-              </button>
+              {confirmingDeleteAll ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void deleteNotifications(null)}
+                    className="rounded-md bg-danger px-2 py-1 text-xs font-semibold text-primary-foreground transition-opacity duration-fast hover:opacity-90"
+                  >
+                    삭제 확인
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDeleteAll(false)}
+                    className="rounded-md px-2 py-1 text-xs text-content-secondary hover:bg-surface-2"
+                  >
+                    취소
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={unreadCount === 0}
+                    onClick={() => void markRead(null)}
+                    className="rounded-md px-2 py-1 text-xs text-primary hover:bg-surface-2 disabled:opacity-40"
+                  >
+                    모두 읽음
+                  </button>
+                  <button
+                    type="button"
+                    disabled={items.length === 0}
+                    onClick={() => {
+                      setError(null)
+                      setConfirmingDeleteAll(true)
+                    }}
+                    className="rounded-md px-2 py-1 text-xs text-danger hover:bg-surface-2 disabled:opacity-40"
+                  >
+                    전체 삭제
+                  </button>
+                </>
+              )}
             </div>
           </div>
           {error && (

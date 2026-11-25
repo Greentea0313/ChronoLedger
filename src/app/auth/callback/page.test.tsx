@@ -1,6 +1,7 @@
 import { act, StrictMode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { resetOAuthExchangeCacheForTests } from '@/lib/auth-adapter'
 import AuthCallbackPage from './page'
 
 const { exchangeCodeForSession, replace } = vi.hoisted(() => ({
@@ -27,6 +28,7 @@ describe('AuthCallbackPage', () => {
   beforeEach(() => {
     // @ts-expect-error React act environment flag
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    resetOAuthExchangeCacheForTests()
     exchangeCodeForSession.mockReset()
     replace.mockReset()
     container = document.createElement('div')
@@ -85,7 +87,7 @@ describe('AuthCallbackPage', () => {
     expect(replace).toHaveBeenCalledWith('/dashboard')
   })
 
-  it('shows the provider error and does not exchange a code', async () => {
+  it('shows a friendly cancellation error when access_denied is returned', async () => {
     window.history.replaceState({}, '', '/auth/callback?error=access_denied&error_description=User%20cancelled')
 
     await act(async () => {
@@ -93,9 +95,21 @@ describe('AuthCallbackPage', () => {
       await Promise.resolve()
     })
 
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('User cancelled')
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Google 로그인이 취소되었습니다')
     expect(exchangeCodeForSession).not.toHaveBeenCalled()
     expect(container.querySelector('a')?.getAttribute('href')).toBe('/auth')
+  })
+
+  it('shows the provider error description for other OAuth errors', async () => {
+    window.history.replaceState({}, '', '/auth/callback?error=server_error&error_description=Provider%20unavailable')
+
+    await act(async () => {
+      root.render(<AuthCallbackPage />)
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Provider unavailable')
+    expect(exchangeCodeForSession).not.toHaveBeenCalled()
   })
 
   it('shows an error when the callback has no code', async () => {
