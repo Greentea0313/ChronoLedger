@@ -15,12 +15,34 @@
 
 - **활성 과제**: **`R75` ①·④ R64 SQL 회귀 테스트 보강 (`r75-r64-tests-readme` — Base `2d4317b8141a5543b09b1d277cd80f54c9e0cf4a`, 브랜치 `collab/r75-r64-tests-readme`, 워크트리 `.worktrees/r75-r64-tests-readme`)** *(`docs/to-do.md` `R75` ①·④. 수용 기준은 [`docs/spec/R64_Classification_Option_Icons_Spec.md`](spec/R64_Classification_Option_Icons_Spec.md) §7)*
 - **DB 변경**: 없음(테스트·문서만, 스키마 변경 없음). 🐳 Docker Desktop 필요(로컬 DB에서 `TESTS.sql` 실행).
+- **Target SHA (Step 1)**: `d35bf3c0e513a9e80cd51098b81dc5832634d347`
 - **수용 기준**: 명세 §7 시나리오 중 `TESTS.sql` R64 블록에 없는 것을 추가하고(일반 사용자 쓰기 거부, `users.role` 관리자·JWT 없음 쓰기 거부, 비승인 게임 조회 차단·관리자 조회, 잘못된 `axis_key`·빈 옵션·없는 축, 축 삭제·순서 변경 유지·게임 삭제 CASCADE, `updated_at` 갱신, SQLSTATE·메시지 단위 검증) 로컬 DB에서 전체 `TESTS.sql` PASS. `sql/README.md`에 "아이콘 수정은 upsert 사용" 1줄 추가.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (R75 ①·④ TESTS.sql·README)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 위 수용 기준 수행. 허용 파일: `sql/tests/TESTS.sql`, `sql/README.md`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **2** | **`⏳ WAITING`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High` — 도구에서 High 선택) / Gemini 4 Carbon (`High` — 도구에서 High 선택) — Maker인 Neon 제외)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요**. Base ↔ Target 정적 리뷰(`review.json`)·로컬 DB 게이트(`TESTS.sql` 전체 PASS)·`test.json`·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (SHA: d35bf3c0e513a9e80cd51098b81dc5832634d347)`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (R75 ①·④ TESTS.sql·README)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 위 수용 기준 수행. 허용 파일: `sql/tests/TESTS.sql`, `sql/README.md`, 루트 `docs/handoff.md`, `docs/progress.md` | ✅ 아래 Step 1 완료 기록 |
+| **2** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High` — 도구에서 High 선택) / Gemini 4 Carbon (`High` — 도구에서 High 선택) — Maker인 Neon 제외)* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요**. Base ↔ Target 정적 리뷰(`review.json`)·로컬 DB 게이트(`TESTS.sql` 전체 PASS)·`test.json`·`main` 병합·문서 마감 | 대기 중 |
+
+#### 📝 `r75-r64-tests-readme` Step 1 완료 기록 (Gemini 4 Neon `High`, 2026-11-26)
+
+1. **Target SHA**: `d35bf3c0e513a9e80cd51098b81dc5832634d347` (워크트리 `.worktrees/r75-r64-tests-readme`, 브랜치 `collab/r75-r64-tests-readme`, `run.json` 미수정). 원격 브랜치: push 안 함.
+2. **변경 파일 (2개)**: `sql/tests/TESTS.sql`, `sql/README.md`.
+3. **구현 내용**:
+   - `sql/tests/TESTS.sql` R64·R80 블록 및 상단 헤더 표 보강:
+     - **관리자 CRUD·`updated_at` 검증 (§7-1)**: 전용 테스트 게임(`r64_approved_game_id`, 2축 `element`/`weapon`)에서 관리자(JWT `app_metadata.role = 'admin'`) INSERT(20,000자 경계 포함)·UPSERT·DELETE 검증 및 과거 `updated_at` 투입 시 `BEFORE INSERT`/`BEFORE UPDATE` 트리거가 `NOW()`로 강제 갱신함을 검증함.
+     - **비관리자·스푸핑·`anon` 쓰기 거부 (§7-2, §7-3 R80 개정 반영)**: 일반 `authenticated` 사용자와 `user_metadata.role = 'admin'` 스푸핑 사용자의 INSERT(`42501` `row-level security`)·UPDATE(0행)·DELETE(0행) 거부, `anon` INSERT(`42501` `permission denied`) 거부 검증. 기존 R80 블록의 비관리자 거부 예외도 `42501`·`row-level security` 메시지 단위 검증으로 강화함.
+     - **조회 범위 (§7-4)**: `anon`·일반 `authenticated`·관리자 모두 승인 게임 아이콘 5건 조회 확인. `public.games`의 `games_status_check`(`status = 'APPROVED'`)로 비승인 게임 INSERT가 `23514`로 차단됨과 동시에 `pg_policy`에서 `"Read icons of approved games"`의 `APPROVED` 조건과 `"Admin manage classification icons"`의 `ALL`(`*`) 정책 존재를 검증함.
+     - **부정 CHECK·검증 트리거 메시지 단위 검증 (§7-5, §7-6, §7-8)**: `chk_game_classification_icons_*` 3종 검증 완료 상태(`convalidated = true`) 확인, non-WebP Data URL(`data:image/png;base64,...`)·`https://`·정확히 20,001자 초과(`chk_game_classification_icons_icon`), 잘못된 `axis_key`(`Bad-Key!`, 25자 초과)·공백 `option_value`·없는 축(`unknown_axis`)·없는 옵션(`없는 옵션`) 모두 `23514`와 기대 메시지/제약명으로 검증함.
+     - **정리 트리거·CASCADE (§7-7)**: 옵션 순서 변경 시 5건 전부 유지, 옵션 1개(`불`) 제거 시 해당 아이콘만 삭제(4건 유지), 축 1개(`weapon`) 제거 시 해당 축 아이콘 전부 삭제(2건 유지), 게임 삭제 시 `ON DELETE CASCADE`로 0건 정리 확인(기존 `r13_game_id` 상태 유지).
+   - `sql/README.md` B표 `MIGRATION_R64_CLASSIFICATION_OPTION_ICONS.sql` 행에 `"아이콘 수정은 (game_id, axis_key, option_value) 기준 upsert(ON CONFLICT DO UPDATE)를 사용함."` 안내 1줄 추가함.
+4. **결정·가정 (현행 스키마 정합 확인)**:
+   - **`users.role = 'admin'` (JWT 없음) 정책 (R80 개정 반영)**: 명세 §2.4(`Amended by R80 (2026-11-11)`)·`SCHEMA.sql`·`MIGRATION_R80_CLASSIFICATION_ICON_ADMIN_POLICY.sql`에서 `public.users.role = 'admin'`(JWT 없음)은 쓰기 **허용**으로 개정되어 기존 R80 블록이 이를 검증함. 따라서 R64 블록에서는 충돌하는 과거 "거부" 단언 대신 보안 불변식인 `user_metadata.role = 'admin'` 스푸핑 거부 및 일반 사용자 쓰기 거부를 검증함.
+   - **비승인 게임 행 생성 불가 (`games_status_check`)**: `SCHEMA.sql` `public.games.status`가 `CHECK (status = 'APPROVED')`를 강제해 비승인 게임 행을 직접 삽입할 수 없으므로, DDL 변경 없이 `games_status_check` `23514` 차단 + `pg_policy`의 `Read icons of approved games`(`APPROVED` 필터)·`Admin manage classification icons`(`ALL`) 정의 검증으로 대체함.
+5. **검증 (실제 실행, 워크트리 기준)**:
+   - `git diff --check` 및 `git diff --cached --check`: 통과.
+   - 🐳 로컬 Supabase(`supabase_db_chronoledger-local`, 현행 `SCHEMA.sql` 최신 스키마 적용 DB): `TESTS.sql` 전체 **54개 PASS + ROLLBACK** 통과. `MIGRATION_R64` + `MIGRATION_R80` 재실행 멱등·README R64/R80 확인 쿼리 4종 일치(`game_classification_icons/t/2`, `triggers=2`, `anon_select=t/auth_insert=t`, `users_role_allowed=t`)·`TESTS.sql` **54개 PASS + ROLLBACK** 재확인. (스키마 DDL 변경 없는 테스트·문서 전용 작업이므로 기존 컨테이너 파괴적 DB reset은 수행하지 않음.)
+   - `npx.cmd tsc --noEmit`·`npm.cmd run lint`: 오류·경고 0건 통과 (`src/**` 변경 없어 Vitest 미실행).
+6. **다음 단계**: Row 2 Step 2(**Claude Sonnet `Medium`**, Fallback: `Claude Opus (High — 도구에서 High 선택)` / `Gemini 4 Carbon (High — 도구에서 High 선택)`, 🐳 Docker Desktop 필요) Base `2d4317b` ↔ Target `d35bf3c0e513a9e80cd51098b81dc5832634d347` 정적 리뷰(`review.json`)·로컬 DB 게이트(`test.json`)·`main` 병합·문서 마감 `▶ READY`임.
 
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
