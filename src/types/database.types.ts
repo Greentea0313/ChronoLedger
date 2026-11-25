@@ -21,14 +21,14 @@ export type Database = {
                   ]
                 },"expenses": {
                   Row: {
-                    "billing_cycle": string | null,"cancellation_kind": string | null,"category": string,"created_at": string | null,"deduct_from_asset": boolean,"discount_amount": number,"earned_points": number,"end_date": string | null,"final_amount": number,"game_id": string | null,"id": string,"memo": string | null,"original_price": number,"payment_method": string,"pickup_schedule_id": string | null,"point_discount_amount": number,"point_platform": string | null,"schedule_id": string | null,"start_date": string | null,"status": string,"target_date": string,"template_id": string | null,"title": string,"used_points": number,"user_id": string
+                    "auto_confirm_blocked": boolean,"auto_confirmed_at": string | null,"billing_cycle": string | null,"cancellation_kind": string | null,"category": string,"created_at": string | null,"deduct_from_asset": boolean,"discount_amount": number,"earned_points": number,"end_date": string | null,"final_amount": number,"game_id": string | null,"id": string,"memo": string | null,"original_price": number,"payment_method": string,"pickup_schedule_id": string | null,"point_discount_amount": number,"point_platform": string | null,"schedule_id": string | null,"start_date": string | null,"status": string,"target_date": string,"template_id": string | null,"title": string,"used_points": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category": string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date": string,"template_id"?: string | null,"title": string,"used_points"?: number,"user_id": string
+                    "auto_confirm_blocked"?: boolean,"auto_confirmed_at"?: string | null,"billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category": string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date": string,"template_id"?: string | null,"title": string,"used_points"?: number,"user_id": string
                   }
                   Update: {
-                    "billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category"?: string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date"?: string,"template_id"?: string | null,"title"?: string,"used_points"?: number,"user_id"?: string
+                    "auto_confirm_blocked"?: boolean,"auto_confirmed_at"?: string | null,"billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category"?: string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date"?: string,"template_id"?: string | null,"title"?: string,"used_points"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -87,14 +87,14 @@ isOneToOne: false
                   Relationships: []
                 },"notifications": {
                   Row: {
-                    "body": string,"created_at": string,"id": string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts": number,"push_claimed_at": string | null,"push_status": "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at": string | null,"read_at": string | null,"scheduled_for": string | null,"source_id": string | null,"title": string,"user_id": string
+                    "body": string,"created_at": string,"id": string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "EXPENSE_AUTO_CONFIRMED" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts": number,"push_claimed_at": string | null,"push_status": "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at": string | null,"read_at": string | null,"scheduled_for": string | null,"source_id": string | null,"title": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body": string,"created_at"?: string,"id"?: string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title": string,"user_id": string
+                    "body": string,"created_at"?: string,"id"?: string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "EXPENSE_AUTO_CONFIRMED" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title": string,"user_id": string
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"id"?: string,"kind"?: "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title"?: string,"user_id"?: string
+                    "body"?: string,"created_at"?: string,"id"?: string,"kind"?: "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "EXPENSE_AUTO_CONFIRMED" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title"?: string,"user_id"?: string
                   }
                   Relationships: []
                 },"notification_settings": {
@@ -307,14 +307,14 @@ isOneToOne: false
                   ]
                 },"subscription_templates": {
                   Row: {
-                    "billing_day": number | null,"category": string,"created_at": string | null,"cycle_type": string,"default_price": number,"game_id": string | null,"id": string,"interval_days": number | null,"is_active": boolean,"payment_method": string,"title": string,"user_id": string
+                    "auto_confirm": boolean,"billing_day": number | null,"category": string,"created_at": string | null,"cycle_type": string,"default_price": number,"game_id": string | null,"id": string,"interval_days": number | null,"is_active": boolean,"payment_method": string,"title": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "billing_day"?: number | null,"category"?: string,"created_at"?: string | null,"cycle_type"?: string,"default_price"?: number,"game_id"?: string | null,"id"?: string,"interval_days"?: number | null,"is_active"?: boolean,"payment_method"?: string,"title": string,"user_id": string
+                    "auto_confirm"?: boolean,"billing_day"?: number | null,"category"?: string,"created_at"?: string | null,"cycle_type"?: string,"default_price"?: number,"game_id"?: string | null,"id"?: string,"interval_days"?: number | null,"is_active"?: boolean,"payment_method"?: string,"title": string,"user_id": string
                   }
                   Update: {
-                    "billing_day"?: number | null,"category"?: string,"created_at"?: string | null,"cycle_type"?: string,"default_price"?: number,"game_id"?: string | null,"id"?: string,"interval_days"?: number | null,"is_active"?: boolean,"payment_method"?: string,"title"?: string,"user_id"?: string
+                    "auto_confirm"?: boolean,"billing_day"?: number | null,"category"?: string,"created_at"?: string | null,"cycle_type"?: string,"default_price"?: number,"game_id"?: string | null,"id"?: string,"interval_days"?: number | null,"is_active"?: boolean,"payment_method"?: string,"title"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -436,7 +436,16 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "account_deletion_is_pending":
+            "_advance_interval_subscription_core":
+{ Args: { "p_original_target_date": string | null,"p_payment_date": string,"p_template_id": string,"p_user_id": string }; Returns: boolean
+                           },
+"_process_expense_payment_core":
+{ Args: { "p_custom_earned_points"?: number | null,"p_deduct_asset": boolean,"p_discount_amount": number,"p_expense_id": string,"p_memo"?: string | null,"p_original_price": number,"p_payment_date": string,"p_payment_method": string,"p_point_discount_amount": number,"p_point_platform": string | null,"p_used_points": number,"p_user_id": string }; Returns: undefined
+                           },
+"_rollback_interval_subscription_core":
+{ Args: { "p_template_id": string,"p_user_id": string }; Returns: boolean
+                           },
+"account_deletion_is_pending":
 { Args: { "p_user_id": string }; Returns: boolean
                            },
 "adjust_wallet_balance":
@@ -459,6 +468,9 @@ isOneToOne: false
                            },
 "approve_schedule_request":
 { Args: { "p_pickup_icon_overrides"?: Json | null,"p_request_id": string }; Returns: undefined
+                           },
+"auto_confirm_due_expenses":
+{ Args: { "p_today": string,"p_user_id": string }; Returns: number
                            },
 "cancel_planned_expense":
 { Args: { "p_expense_id": string }; Returns: undefined

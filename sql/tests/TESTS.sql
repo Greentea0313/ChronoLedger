@@ -141,6 +141,12 @@
 --   R109-02~06 anon / B / admin   game-assets anon·일반 사용자 쓰기 거부(INSERT 42501, UPDATE/DELETE 0행, user-icons→game-assets 이동 거부),
 --                                  관리자 유효 경로 INSERT/UPDATE/DELETE·잘못된 경로 거부, user-icons 본인 업로드 유지,
 --                                  p_pickup_icon_overrides 적용(URL·빈 문자열 NULL·키 없음 폴백)·1인자 호출 하위호환·잘못된 주소 거부·R84 알림 유지.
+--   R107C-01 DB fixture / C       auto_confirm 컬럼·WALLET CHECK, 내부 함수(core·auto_confirm·run_daily) service_role 전용·공개 RPC 권한 불변,
+--                                  자동 확정 매트릭스(옵션·스토어·blocked·창 2일·당일 생성·강제 실패 격리·탈퇴 대기·타 사용자), 예정일 결제(월 경계),
+--                                  스냅샷 금액·스토어 적립·EARN 원장·자산 차감이 수동 결제와 동일, 다음 회차(MONTHLY·INTERVAL_30, VERSION_PASS 추가 없음), 재실행 멱등.
+--   R107C-02 authenticated / C    자동 확정 INTERVAL_30 환불 시 자산·포인트 복원과 같은 트랜잭션 롤백(blocked=true, 최신 확정만, 비활성 템플릿 생략),
+--                                  구버전 rollback RPC 재호출 무동작, cron 재확정 없음, restore 시 blocked=true·INTERVAL_30 중복 23505 문구.
+--   R107C-03 DB fixture 역할      EXPENSE_AUTO_CONFIRMED 사용자·일자당 1건·금액/항목명 미포함·expense_due_today=false 제외, 실패 행 DUE_TODAY 포함, 일 배치 실행.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -4964,6 +4970,456 @@ BEGIN
     END IF;
 END $$;
 \echo PASS: R109-02~06 anon/non-admin write denial, admin path rules, user-icons unchanged, pickup icon overrides and legacy call
+
+-- ============================================================================
+-- R107-C: per-template auto confirm (spec docs/r107-recurring-expense-automation-spec.md §5, C-1..C-10).
+-- Fresh fixture users C (auto confirm owner), D (pending deletion) and E (expense_due_today=false) keep the matrix
+-- independent from users A/B. Fixed past dates (p_today 2026-10-01) keep window/month checks deterministic.
+-- ============================================================================
+SELECT gen_random_uuid() AS r107c_user_c \gset
+SELECT gen_random_uuid() AS r107c_user_d \gset
+SELECT gen_random_uuid() AS r107c_user_e \gset
+SELECT set_config('chronoledger.r107c_user_c', :'r107c_user_c', true);
+SELECT set_config('chronoledger.r107c_user_d', :'r107c_user_d', true);
+SELECT set_config('chronoledger.r107c_user_e', :'r107c_user_e', true);
+INSERT INTO auth.users (id, aud, role, email, encrypted_password, raw_app_meta_data, raw_user_meta_data)
+SELECT u.id, 'authenticated', 'authenticated', 'codex-sqltest-' || replace(u.id::text, '-', '') || '@example.invalid',
+       '', '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb
+FROM (VALUES (:'r107c_user_c'::uuid), (:'r107c_user_d'::uuid), (:'r107c_user_e'::uuid)) AS u(id);
+
+-- R107C-01) Fixture role: schema, constraint, privileges (C-10) and the eligibility matrix (C-2..C-4, C-6, C-8).
+DO $$
+DECLARE
+    v_c UUID := current_setting('chronoledger.r107c_user_c')::uuid;
+    v_d UUID := current_setting('chronoledger.r107c_user_d')::uuid;
+    v_b UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_cut TIMESTAMPTZ := TIMESTAMPTZ '2026-09-01 09:00:00+09';
+    v_game UUID;
+    v_sched UUID;
+    v_tpl UUID;
+    v_exp UUID;
+    v_n INTEGER;
+    v_fn TEXT;
+BEGIN
+    UPDATE public.user_finances SET total_asset = 100000 WHERE user_id = v_c;
+    UPDATE public.user_finances SET total_asset = 100000 WHERE user_id = v_d;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'subscription_templates'
+                   AND column_name = 'auto_confirm' AND column_default = 'false' AND is_nullable = 'NO')
+       OR (SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'expenses'
+           AND column_name IN ('auto_confirmed_at', 'auto_confirm_blocked')) <> 2 THEN
+        RAISE EXCEPTION 'FAIL: R107C columns missing';
+    END IF;
+    BEGIN
+        INSERT INTO public.subscription_templates(user_id, title, cycle_type, billing_day, default_price, payment_method, auto_confirm)
+        VALUES (v_c, 'R107C wallet auto', 'MONTHLY_DAY', 1, 1000, 'WALLET', true);
+        RAISE EXCEPTION 'FAIL: R107C WALLET template accepted auto_confirm';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+
+    -- C-10: internal functions are service_role only; public RPC grants are unchanged.
+    FOREACH v_fn IN ARRAY ARRAY[
+        'public._process_expense_payment_core(uuid,uuid,bigint,bigint,bigint,bigint,character varying,character varying,boolean,date,bigint,text)',
+        'public._advance_interval_subscription_core(uuid,uuid,date,date)',
+        'public._rollback_interval_subscription_core(uuid,uuid)',
+        'public.auto_confirm_due_expenses(uuid,date)',
+        'public.run_daily_subscription_automation()'
+    ] LOOP
+        IF has_function_privilege('authenticated', v_fn, 'EXECUTE') OR has_function_privilege('anon', v_fn, 'EXECUTE')
+           OR NOT has_function_privilege('service_role', v_fn, 'EXECUTE') THEN
+            RAISE EXCEPTION 'FAIL: R107C privileges of %', v_fn;
+        END IF;
+    END LOOP;
+    IF NOT has_function_privilege('authenticated', 'public.process_expense_payment(uuid,bigint,bigint,bigint,bigint,character varying,character varying,boolean,date,bigint,text)', 'EXECUTE')
+       OR has_function_privilege('anon', 'public.process_expense_payment(uuid,bigint,bigint,bigint,bigint,character varying,character varying,boolean,date,bigint,text)', 'EXECUTE')
+       OR NOT has_function_privilege('authenticated', 'public.refund_expense_payment(uuid)', 'EXECUTE')
+       OR NOT has_function_privilege('authenticated', 'public.advance_interval_subscription(uuid,date,date)', 'EXECUTE')
+       OR NOT has_function_privilege('authenticated', 'public.rollback_interval_subscription(uuid)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'FAIL: R107C public RPC privileges changed';
+    END IF;
+
+    INSERT INTO public.games(name, default_icon_url) VALUES ('R107C game ' || v_c::text, 'https://example.invalid/r107c.webp') RETURNING id INTO v_game;
+    INSERT INTO public.game_schedules(game_id, title, schedule_type, is_official, start_date, end_date)
+    VALUES (v_game, 'R107C version', 'VERSION', true, DATE '2026-09-30', DATE '2026-10-20') RETURNING id INTO v_sched;
+    PERFORM set_config('chronoledger.r107c_schedule', v_sched::text, true);
+
+    -- Helper rows: every template gets exactly one PLANNED row created before the cutoff unless the case says otherwise.
+    -- m1: MONTHLY_DAY GOOGLE_PLAY auto, due 09-30 (month boundary, C-4) -> confirmed, next cycle 2026-10 (C-6).
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, billing_day, default_price, payment_method, auto_confirm)
+    VALUES (v_c, 'R107C m1', 'MONTHLY_DAY', 30, 10000, 'GOOGLE_PLAY', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, billing_cycle, title, category, status, target_date, original_price, final_amount,
+                                payment_method, point_platform, deduct_from_asset, created_at)
+    VALUES (v_c, v_tpl, '2026-09', 'R107C m1', '정기 구독', 'PLANNED', DATE '2026-09-30', 10000, 10000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', true, v_cut)
+    RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_m1_tpl', v_tpl::text, true);
+    PERFORM set_config('chronoledger.r107c_m1', v_exp::text, true);
+    -- i1: INTERVAL_30 GALAXY_STORE auto, due 09-29 (window start) -> confirmed, next 10-29 (C-6).
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, interval_days, default_price, payment_method, auto_confirm)
+    VALUES (v_c, 'R107C i1', 'INTERVAL_30', 30, 5000, 'GALAXY_STORE', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, original_price, final_amount,
+                                payment_method, point_platform, deduct_from_asset, created_at)
+    VALUES (v_c, v_tpl, 'R107C i1', '정기 구독', 'PLANNED', DATE '2026-09-29', 5000, 5000, 'GALAXY_STORE', 'GALAXY_STORE', true, v_cut)
+    RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_i1_tpl', v_tpl::text, true);
+    PERFORM set_config('chronoledger.r107c_i1', v_exp::text, true);
+    -- v1: VERSION_PASS GOOGLE_PLAY auto for the schedule above -> confirmed, no extra row (C-6).
+    INSERT INTO public.subscription_templates(user_id, game_id, title, category, cycle_type, default_price, payment_method, auto_confirm)
+    VALUES (v_c, v_game, 'R107C v1', '게임', 'VERSION_PASS', 3000, 'GOOGLE_PLAY', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, game_id, schedule_id, title, category, status, start_date, end_date, target_date,
+                                original_price, final_amount, payment_method, point_platform, deduct_from_asset, created_at)
+    VALUES (v_c, v_tpl, v_game, v_sched, 'R107C v1', '게임', 'PLANNED', DATE '2026-09-30', DATE '2026-10-20', DATE '2026-09-30',
+            3000, 3000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', true, v_cut)
+    RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_v1_tpl', v_tpl::text, true);
+    PERFORM set_config('chronoledger.r107c_v1', v_exp::text, true);
+    -- Not confirmed (C-2): WALLET, option off, blocked, outside the window, created on p_today, forced failure (C-8).
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, billing_day, default_price, payment_method)
+    VALUES (v_c, 'R107C wallet', 'MONTHLY_DAY', 1, 1000, 'WALLET') RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, billing_cycle, title, category, status, target_date, original_price, final_amount, payment_method, created_at)
+    VALUES (v_c, v_tpl, '2026-10', 'R107C wallet', '정기 구독', 'PLANNED', DATE '2026-10-01', 1000, 1000, 'WALLET', v_cut);
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, billing_day, default_price, payment_method)
+    VALUES (v_c, 'R107C off', 'MONTHLY_DAY', 1, 1000, 'GOOGLE_PLAY') RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, billing_cycle, title, category, status, target_date, original_price, final_amount, payment_method, point_platform, created_at)
+    VALUES (v_c, v_tpl, '2026-10', 'R107C off', '정기 구독', 'PLANNED', DATE '2026-10-01', 1000, 1000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', v_cut);
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, interval_days, default_price, payment_method, auto_confirm)
+    VALUES (v_c, 'R107C blocked', 'INTERVAL_30', 30, 1000, 'GOOGLE_PLAY', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, original_price, final_amount, payment_method, point_platform, auto_confirm_blocked, created_at)
+    VALUES (v_c, v_tpl, 'R107C blocked', '정기 구독', 'PLANNED', DATE '2026-10-01', 1000, 1000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', true, v_cut);
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, interval_days, default_price, payment_method, auto_confirm)
+    VALUES (v_c, 'R107C old', 'INTERVAL_30', 30, 1000, 'GOOGLE_PLAY', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, original_price, final_amount, payment_method, point_platform, created_at)
+    VALUES (v_c, v_tpl, 'R107C old', '정기 구독', 'PLANNED', DATE '2026-09-28', 1000, 1000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', v_cut);
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, interval_days, default_price, payment_method, auto_confirm)
+    VALUES (v_c, 'R107C sameday', 'INTERVAL_30', 30, 1000, 'GOOGLE_PLAY', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, original_price, final_amount, payment_method, point_platform, created_at)
+    VALUES (v_c, v_tpl, 'R107C sameday', '정기 구독', 'PLANNED', DATE '2026-10-01', 1000, 1000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', TIMESTAMPTZ '2026-10-01 00:00:00+09');
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, billing_day, default_price, payment_method, auto_confirm)
+    VALUES (v_c, 'R107C fail', 'MONTHLY_DAY', 30, 2000, 'GOOGLE_PLAY', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, billing_cycle, title, category, status, target_date, original_price, final_amount, payment_method, point_platform, created_at)
+    VALUES (v_c, v_tpl, '2026-09', 'R107C fail', '정기 구독', 'PLANNED', DATE '2026-09-30', 2000, 2000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', v_cut)
+    RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_fail', v_exp::text, true);
+    -- C-3 manual comparison row: same price/store as m1, option off, paid by user C through process_expense_payment below.
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, billing_day, default_price, payment_method)
+    VALUES (v_c, 'R107C manual', 'MONTHLY_DAY', 30, 10000, 'GOOGLE_PLAY') RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, billing_cycle, title, category, status, target_date, original_price, final_amount,
+                                payment_method, point_platform, deduct_from_asset, created_at)
+    VALUES (v_c, v_tpl, '2026-09', 'R107C manual', '정기 구독', 'PLANNED', DATE '2026-09-30', 10000, 10000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', true, v_cut)
+    RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_manual', v_exp::text, true);
+
+    -- IDOR (C-10): user B's eligible row and pending-deletion user D's row stay PLANNED.
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, interval_days, default_price, payment_method, auto_confirm)
+    VALUES (v_b, 'R107C other user', 'INTERVAL_30', 30, 1000, 'GOOGLE_PLAY', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, original_price, final_amount, payment_method, point_platform, created_at)
+    VALUES (v_b, v_tpl, 'R107C other user', '정기 구독', 'PLANNED', DATE '2026-10-01', 1000, 1000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', v_cut)
+    RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_other', v_exp::text, true);
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, interval_days, default_price, payment_method, auto_confirm)
+    VALUES (v_d, 'R107C pending', 'INTERVAL_30', 30, 1000, 'GOOGLE_PLAY', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, original_price, final_amount, payment_method, point_platform, created_at)
+    VALUES (v_d, v_tpl, 'R107C pending', '정기 구독', 'PLANNED', DATE '2026-10-01', 1000, 1000, 'GOOGLE_PLAY', 'GOOGLE_PLAY', v_cut)
+    RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_pending', v_exp::text, true);
+    INSERT INTO public.account_deletion_requests(user_id, status_token_hash, status) VALUES (v_d, repeat('c', 64), 'PENDING');
+END $$;
+
+-- C-8: force one row to fail inside the payment (trigger dropped by the final ROLLBACK).
+CREATE FUNCTION public.r107c_test_fail_one() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.id = current_setting('chronoledger.r107c_fail')::uuid AND NEW.status = 'CONFIRMED' THEN
+        RAISE EXCEPTION 'R107C forced failure';
+    END IF;
+    RETURN NEW;
+END $$;
+CREATE TRIGGER r107c_test_fail_one BEFORE UPDATE ON public.expenses FOR EACH ROW EXECUTE FUNCTION public.r107c_test_fail_one();
+
+DO $$
+DECLARE
+    v_c UUID := current_setting('chronoledger.r107c_user_c')::uuid;
+    v_d UUID := current_setting('chronoledger.r107c_user_d')::uuid;
+    v_n INTEGER;
+BEGIN
+    v_n := public.auto_confirm_due_expenses(v_c, DATE '2026-10-01');
+    IF v_n <> 3 THEN
+        RAISE EXCEPTION 'FAIL: R107C expected 3 auto confirmed rows, got %', v_n;
+    END IF;
+    IF public.auto_confirm_due_expenses(v_d, DATE '2026-10-01') <> 0
+       OR (SELECT status FROM public.expenses WHERE id = current_setting('chronoledger.r107c_pending')::uuid) <> 'PLANNED' THEN
+        RAISE EXCEPTION 'FAIL: R107C confirmed a pending-deletion user row';
+    END IF;
+    -- Idempotent: a second run (cron retry) confirms nothing new.
+    IF public.auto_confirm_due_expenses(v_c, DATE '2026-10-01') <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R107C second run confirmed again';
+    END IF;
+END $$;
+DROP TRIGGER r107c_test_fail_one ON public.expenses;
+DROP FUNCTION public.r107c_test_fail_one();
+
+-- C-3 manual comparison: user C pays the twin row through the public wrapper (C-1).
+SELECT set_config('request.jwt.claim.sub', :'r107c_user_c', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'r107c_user_c', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    PERFORM public.process_expense_payment(
+        current_setting('chronoledger.r107c_manual')::uuid, 10000, 0, 0, 0, 'GOOGLE_PLAY', 'GOOGLE_PLAY', true, DATE '2026-09-30'
+    );
+    BEGIN
+        PERFORM public.process_expense_payment(
+            current_setting('chronoledger.r107c_other')::uuid, 1000, 0, 0, 0, 'GOOGLE_PLAY', 'GOOGLE_PLAY', true, DATE '2026-09-30'
+        );
+        RAISE EXCEPTION 'FAIL: R107C wrapper paid another user expense';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM <> '결제할 수 있는 본인 소유의 예정 지출이 아닙니다.' THEN RAISE; END IF;
+    END;
+    BEGIN
+        PERFORM public._process_expense_payment_core(
+            auth.uid(), current_setting('chronoledger.r107c_manual')::uuid, 1, 0, 0, 0, NULL, 'WALLET', true, DATE '2026-09-30', NULL, NULL
+        );
+        RAISE EXCEPTION 'FAIL: R107C authenticated executed the payment core';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.auto_confirm_due_expenses(auth.uid(), DATE '2026-10-01');
+        RAISE EXCEPTION 'FAIL: R107C authenticated executed auto_confirm_due_expenses';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+SELECT set_config('request.jwt.claims', '{"role":"anon"}', true);
+SELECT set_config('request.jwt.claim.sub', '', true);
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.auto_confirm_due_expenses(gen_random_uuid(), DATE '2026-10-01');
+        RAISE EXCEPTION 'FAIL: R107C anon executed auto_confirm_due_expenses';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+
+DO $$
+DECLARE
+    v_c UUID := current_setting('chronoledger.r107c_user_c')::uuid;
+    v_auto public.expenses%ROWTYPE;
+    v_manual public.expenses%ROWTYPE;
+    v_row public.expenses%ROWTYPE;
+    v_asset BIGINT;
+    v_n INTEGER;
+BEGIN
+    SELECT * INTO v_auto FROM public.expenses WHERE id = current_setting('chronoledger.r107c_m1')::uuid;
+    SELECT * INTO v_manual FROM public.expenses WHERE id = current_setting('chronoledger.r107c_manual')::uuid;
+    -- C-3/C-4: confirmed on the planned date (09-30 stays in September), snapshot price, store earn rate, asset deduction.
+    IF v_auto.status <> 'CONFIRMED' OR v_auto.target_date <> DATE '2026-09-30' OR v_auto.auto_confirmed_at IS NULL
+       OR v_auto.final_amount <> 10000 OR v_auto.earned_points <> 10 OR v_auto.used_points <> 0
+       OR v_auto.payment_method <> 'WALLET' OR v_auto.point_platform <> 'GOOGLE_PLAY' OR NOT v_auto.deduct_from_asset THEN
+        RAISE EXCEPTION 'FAIL: R107C auto confirmed values (status %, date %, final %, earned %)',
+            v_auto.status, v_auto.target_date, v_auto.final_amount, v_auto.earned_points;
+    END IF;
+    IF (v_auto.final_amount, v_auto.earned_points, v_auto.payment_method, v_auto.point_platform, v_auto.deduct_from_asset, v_auto.target_date,
+        v_auto.discount_amount, v_auto.point_discount_amount, v_auto.used_points)
+       IS DISTINCT FROM
+       (v_manual.final_amount, v_manual.earned_points, v_manual.payment_method, v_manual.point_platform, v_manual.deduct_from_asset, v_manual.target_date,
+        v_manual.discount_amount, v_manual.point_discount_amount, v_manual.used_points)
+       OR v_manual.auto_confirmed_at IS NOT NULL THEN
+        RAISE EXCEPTION 'FAIL: R107C auto confirm differs from the manual payment of the same input';
+    END IF;
+    IF (SELECT count(*) FROM public.store_point_transactions WHERE expense_id = v_auto.id AND transaction_type = 'EARN' AND amount = 10) <> 1
+       OR (SELECT count(*) FROM public.store_point_transactions WHERE expense_id = v_manual.id AND transaction_type = 'EARN' AND amount = 10) <> 1
+       OR EXISTS (SELECT 1 FROM public.store_point_transactions WHERE expense_id = v_auto.id AND transaction_type <> 'EARN') THEN
+        RAISE EXCEPTION 'FAIL: R107C ledger rows of the auto confirmed payment';
+    END IF;
+    -- Assets: 100000 - m1 10000 - i1 5000 - v1 3000 - manual 10000 = 72000.
+    SELECT total_asset INTO v_asset FROM public.user_finances WHERE user_id = v_c;
+    IF v_asset <> 72000 THEN
+        RAISE EXCEPTION 'FAIL: R107C total_asset % (expected 72000)', v_asset;
+    END IF;
+    IF (SELECT current_balance FROM public.store_wallets WHERE user_id = v_c AND platform = 'GOOGLE_PLAY') <> 20 + 3 THEN
+        RAISE EXCEPTION 'FAIL: R107C GOOGLE_PLAY wallet balance';
+    END IF;
+
+    -- C-6: next cycles.
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE template_id = current_setting('chronoledger.r107c_m1_tpl')::uuid
+                   AND status = 'PLANNED' AND billing_cycle = '2026-10' AND target_date = DATE '2026-10-30') THEN
+        RAISE EXCEPTION 'FAIL: R107C MONTHLY_DAY next cycle missing';
+    END IF;
+    SELECT * INTO v_row FROM public.expenses WHERE id = current_setting('chronoledger.r107c_i1')::uuid;
+    IF v_row.status <> 'CONFIRMED' OR v_row.earned_points <> 5 OR v_row.point_platform <> 'GALAXY_STORE'
+       OR NOT EXISTS (SELECT 1 FROM public.expenses WHERE template_id = current_setting('chronoledger.r107c_i1_tpl')::uuid
+                      AND status = 'PLANNED' AND target_date = DATE '2026-10-29' AND NOT auto_confirm_blocked) THEN
+        RAISE EXCEPTION 'FAIL: R107C INTERVAL_30 confirm or next cycle';
+    END IF;
+    IF (SELECT status FROM public.expenses WHERE id = current_setting('chronoledger.r107c_v1')::uuid) <> 'CONFIRMED'
+       OR (SELECT count(*) FROM public.expenses WHERE template_id = current_setting('chronoledger.r107c_v1_tpl')::uuid) <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R107C VERSION_PASS confirm created extra rows';
+    END IF;
+
+    -- C-2/C-8: excluded rows and the failed row stay PLANNED; other users are untouched (C-10).
+    SELECT count(*) INTO v_n FROM public.expenses
+    WHERE user_id = v_c AND title IN ('R107C wallet', 'R107C off', 'R107C blocked', 'R107C old', 'R107C sameday', 'R107C fail')
+      AND status = 'PLANNED' AND auto_confirmed_at IS NULL;
+    IF v_n <> 6 THEN
+        RAISE EXCEPTION 'FAIL: R107C excluded or failed rows changed (% of 6 still PLANNED)', v_n;
+    END IF;
+    IF (SELECT status FROM public.expenses WHERE id = current_setting('chronoledger.r107c_other')::uuid) <> 'PLANNED' THEN
+        RAISE EXCEPTION 'FAIL: R107C touched another user row';
+    END IF;
+END $$;
+\echo PASS: R107C-01 auto confirm matrix, snapshot/earn/asset equal to manual payment, month boundary, next cycles, failure isolation, privileges
+
+-- R107C-02) User C refunds the auto confirmed INTERVAL_30 payment: assets and points restored, PLANNED rolled back and blocked
+-- in the same transaction (C-7, D12). The legacy client rollback call does nothing afterwards. Restore marks rows blocked (D11).
+DO $$
+DECLARE
+    v_c UUID := current_setting('chronoledger.r107c_user_c')::uuid;
+    v_tpl UUID;
+    v_old UUID;
+    v_new UUID;
+    v_inactive UUID;
+    v_exp UUID;
+BEGIN
+    -- Non-latest refund: two CONFIRMED rows (09-01, 09-15) and PLANNED 10-15. Refunding the older one keeps the PLANNED date.
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, interval_days, default_price, payment_method)
+    VALUES (v_c, 'R107C latest', 'INTERVAL_30', 30, 0, 'GOOGLE_PLAY') RETURNING id INTO v_tpl;
+    PERFORM set_config('chronoledger.r107c_latest_tpl', v_tpl::text, true);
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, payment_method, deduct_from_asset)
+    VALUES (v_c, v_tpl, 'R107C latest old', '정기 구독', 'CONFIRMED', DATE '2026-09-01', 'WALLET', false) RETURNING id INTO v_old;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, payment_method, deduct_from_asset)
+    VALUES (v_c, v_tpl, 'R107C latest new', '정기 구독', 'CONFIRMED', DATE '2026-09-15', 'WALLET', false) RETURNING id INTO v_new;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, payment_method)
+    VALUES (v_c, v_tpl, 'R107C latest planned', '정기 구독', 'PLANNED', DATE '2026-10-15', 'WALLET');
+    PERFORM set_config('chronoledger.r107c_latest_old', v_old::text, true);
+    PERFORM set_config('chronoledger.r107c_latest_new', v_new::text, true);
+    -- Inactive template (R107A-REV-002): refund works and no rollback is attempted.
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, interval_days, default_price, payment_method, is_active)
+    VALUES (v_c, 'R107C inactive', 'INTERVAL_30', 30, 0, 'GOOGLE_PLAY', false) RETURNING id INTO v_inactive;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, payment_method, deduct_from_asset)
+    VALUES (v_c, v_inactive, 'R107C inactive paid', '정기 구독', 'CONFIRMED', DATE '2026-09-10', 'WALLET', false) RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_inactive_paid', v_exp::text, true);
+    -- Restore cases: MONTHLY planned cancel (restorable, blocked) and INTERVAL planned cancel while another PLANNED exists (23505).
+    INSERT INTO public.expenses(user_id, template_id, billing_cycle, title, category, status, cancellation_kind, target_date, payment_method)
+    VALUES (v_c, current_setting('chronoledger.r107c_m1_tpl')::uuid, '2026-11', 'R107C restore monthly', '정기 구독', 'CANCELLED', 'PLANNED_CANCEL', DATE '2026-11-30', 'GOOGLE_PLAY')
+    RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_restore_monthly', v_exp::text, true);
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, cancellation_kind, target_date, payment_method)
+    VALUES (v_c, current_setting('chronoledger.r107c_i1_tpl')::uuid, 'R107C restore interval', '정기 구독', 'CANCELLED', 'PLANNED_CANCEL', DATE '2026-11-28', 'GALAXY_STORE')
+    RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107c_restore_interval', v_exp::text, true);
+END $$;
+
+SELECT set_config('request.jwt.claim.sub', :'r107c_user_c', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'r107c_user_c', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    PERFORM public.refund_expense_payment(current_setting('chronoledger.r107c_i1')::uuid);
+    -- Older client still calls the rollback RPC after a refund: it must not roll back a second time.
+    IF public.rollback_interval_subscription(current_setting('chronoledger.r107c_i1')::uuid) THEN
+        RAISE EXCEPTION 'FAIL: R107C legacy rollback ran after an atomic refund rollback';
+    END IF;
+    PERFORM public.refund_expense_payment(current_setting('chronoledger.r107c_latest_old')::uuid);
+    PERFORM public.refund_expense_payment(current_setting('chronoledger.r107c_inactive_paid')::uuid);
+    PERFORM public.restore_cancelled_expense(current_setting('chronoledger.r107c_restore_monthly')::uuid);
+    BEGIN
+        PERFORM public.restore_cancelled_expense(current_setting('chronoledger.r107c_restore_interval')::uuid);
+        RAISE EXCEPTION 'FAIL: R107C restored a second INTERVAL_30 PLANNED row';
+    EXCEPTION WHEN unique_violation THEN
+        IF SQLERRM <> '같은 구독의 예정 지출이 이미 있어 복구할 수 없습니다.' THEN RAISE; END IF;
+    END;
+END $$;
+RESET ROLE;
+
+DO $$
+DECLARE
+    v_c UUID := current_setting('chronoledger.r107c_user_c')::uuid;
+    v_planned public.expenses%ROWTYPE;
+BEGIN
+    IF (SELECT status || '/' || cancellation_kind FROM public.expenses WHERE id = current_setting('chronoledger.r107c_i1')::uuid) <> 'CANCELLED/PAYMENT_REFUND'
+       OR (SELECT total_asset FROM public.user_finances WHERE user_id = v_c) <> 72000 + 5000 THEN
+        RAISE EXCEPTION 'FAIL: R107C refund of the auto confirmed payment did not restore assets';
+    END IF;
+    SELECT * INTO v_planned FROM public.expenses
+    WHERE template_id = current_setting('chronoledger.r107c_i1_tpl')::uuid AND status = 'PLANNED';
+    IF v_planned.target_date <> DATE '2026-09-29' OR NOT v_planned.auto_confirm_blocked THEN
+        RAISE EXCEPTION 'FAIL: R107C refund rollback date % / blocked %', v_planned.target_date, v_planned.auto_confirm_blocked;
+    END IF;
+    -- The rolled-back row is inside the window and old enough, yet the next cron run must not pay it again.
+    UPDATE public.expenses SET created_at = TIMESTAMPTZ '2026-09-01 09:00:00+09' WHERE id = v_planned.id;
+    PERFORM public.auto_confirm_due_expenses(v_c, DATE '2026-10-01');
+    IF (SELECT status FROM public.expenses WHERE id = v_planned.id) <> 'PLANNED' THEN
+        RAISE EXCEPTION 'FAIL: R107C cron re-confirmed a rolled-back PLANNED row';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE template_id = current_setting('chronoledger.r107c_latest_tpl')::uuid
+                   AND status = 'PLANNED' AND target_date = DATE '2026-10-15' AND NOT auto_confirm_blocked) THEN
+        RAISE EXCEPTION 'FAIL: R107C refunding a non-latest payment rolled the PLANNED row back';
+    END IF;
+    IF (SELECT status FROM public.expenses WHERE id = current_setting('chronoledger.r107c_inactive_paid')::uuid) <> 'CANCELLED' THEN
+        RAISE EXCEPTION 'FAIL: R107C inactive template refund';
+    END IF;
+    IF (SELECT status || '/' || auto_confirm_blocked::text FROM public.expenses WHERE id = current_setting('chronoledger.r107c_restore_monthly')::uuid) <> 'PLANNED/true'
+       OR (SELECT status FROM public.expenses WHERE id = current_setting('chronoledger.r107c_restore_interval')::uuid) <> 'CANCELLED' THEN
+        RAISE EXCEPTION 'FAIL: R107C restore blocking or unique mapping';
+    END IF;
+END $$;
+\echo PASS: R107C-02 refund restores assets and atomically rolls back INTERVAL_30 (blocked, latest only, inactive skipped), legacy rollback no-op, restore blocked/23505
+
+-- R107C-03) Daily notifications (C-8, C-9): one EXPENSE_AUTO_CONFIRMED summary per user and day without amounts or titles,
+-- none when expense_due_today=false, and a failed row due today still counts in EXPENSE_DUE_TODAY.
+DO $$
+DECLARE
+    v_c UUID := current_setting('chronoledger.r107c_user_c')::uuid;
+    v_e UUID := current_setting('chronoledger.r107c_user_e')::uuid;
+    v_today DATE := (NOW() AT TIME ZONE 'Asia/Seoul')::date;
+    v_tpl UUID;
+    v_exp UUID;
+    v_notif public.notifications%ROWTYPE;
+    v_expected INTEGER;
+BEGIN
+    -- A due-today row of user C whose payment fails stays PLANNED: the asset deduction needs the user_finances row removed here.
+    INSERT INTO public.subscription_templates(user_id, title, cycle_type, interval_days, default_price, payment_method, auto_confirm)
+    VALUES (v_c, 'R107C due today', 'INTERVAL_30', 30, 700, 'GOOGLE_PLAY', true) RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date, original_price, final_amount, payment_method, point_platform, created_at)
+    VALUES (v_c, v_tpl, 'R107C due today', '정기 구독', 'PLANNED', v_today, 700, 700, 'GOOGLE_PLAY', 'GOOGLE_PLAY', NOW() - INTERVAL '3 days')
+    RETURNING id INTO v_exp;
+    DELETE FROM public.user_finances WHERE user_id = v_c;
+    IF public.auto_confirm_due_expenses(v_c, v_today) <> 0 OR (SELECT status FROM public.expenses WHERE id = v_exp) <> 'PLANNED' THEN
+        RAISE EXCEPTION 'FAIL: R107C failing due-today row was confirmed';
+    END IF;
+
+    -- User E: an auto confirmed row today but the summary setting is off.
+    INSERT INTO public.notification_settings(user_id, expense_due_today) VALUES (v_e, false)
+    ON CONFLICT (user_id) DO UPDATE SET expense_due_today = false;
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, payment_method, deduct_from_asset, auto_confirmed_at)
+    VALUES (v_e, 'R107C E secret title', '정기 구독', 'CONFIRMED', v_today - 1, 'WALLET', false, NOW());
+
+    PERFORM public.enqueue_daily_notifications();
+    PERFORM public.enqueue_daily_notifications();
+
+    SELECT count(*) INTO v_expected FROM public.expenses
+    WHERE user_id = v_c AND auto_confirmed_at IS NOT NULL AND (auto_confirmed_at AT TIME ZONE 'Asia/Seoul')::date = v_today;
+    IF (SELECT count(*) FROM public.notifications WHERE user_id = v_c AND kind = 'EXPENSE_AUTO_CONFIRMED') <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R107C EXPENSE_AUTO_CONFIRMED is not one row per user and day';
+    END IF;
+    SELECT * INTO v_notif FROM public.notifications WHERE user_id = v_c AND kind = 'EXPENSE_AUTO_CONFIRMED';
+    IF v_notif.title <> '오늘 자동 확정된 결제 ' || v_expected::text || '건'
+       OR v_notif.body <> '자동 확정된 결제를 지출 관리에서 확인하세요. 잘못된 항목은 환불할 수 있습니다.'
+       OR v_notif.link_path <> '/dashboard/expenses' OR v_notif.source_id <> v_c OR v_notif.scheduled_for <> v_today
+       OR v_notif.title LIKE '%R107C%' OR v_notif.body LIKE '%10000%' OR v_notif.body LIKE '%R107C%' THEN
+        RAISE EXCEPTION 'FAIL: R107C EXPENSE_AUTO_CONFIRMED content (%: %)', v_notif.title, v_notif.body;
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_e AND kind = 'EXPENSE_AUTO_CONFIRMED') THEN
+        RAISE EXCEPTION 'FAIL: R107C summary created although expense_due_today=false';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_c AND kind = 'EXPENSE_DUE_TODAY' AND scheduled_for = v_today) THEN
+        RAISE EXCEPTION 'FAIL: R107C failed due-today row is missing from EXPENSE_DUE_TODAY';
+    END IF;
+
+    -- The daily batch runs generation then auto confirm without raising (failing rows only warn).
+    PERFORM public.run_daily_subscription_automation();
+END $$;
+\echo PASS: R107C-03 EXPENSE_AUTO_CONFIRMED summary once per user/day without amounts, setting off, failed row in DUE_TODAY, daily batch
 
 SET LOCAL ROLE anon;
 DO $$

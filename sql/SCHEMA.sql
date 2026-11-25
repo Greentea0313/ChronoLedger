@@ -50,7 +50,7 @@ CREATE TABLE public.notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     kind VARCHAR(40) NOT NULL CONSTRAINT notifications_kind_check CHECK (
-        kind IN ('FAVORITE_START', 'FAVORITE_END_D1', 'EXPENSE_D1', 'EXPENSE_DUE_TODAY', 'REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED')
+        kind IN ('FAVORITE_START', 'FAVORITE_END_D1', 'EXPENSE_D1', 'EXPENSE_DUE_TODAY', 'EXPENSE_AUTO_CONFIRMED', 'REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED')
     ),
     title VARCHAR(120) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 120),
     body VARCHAR(300) NOT NULL CHECK (length(btrim(body)) BETWEEN 1 AND 300),
@@ -956,10 +956,13 @@ CREATE TABLE public.subscription_templates (
     default_price BIGINT NOT NULL DEFAULT 0 CHECK (default_price >= 0),
     payment_method VARCHAR(30) NOT NULL DEFAULT 'WALLET' CHECK (payment_method IN ('WALLET', 'GOOGLE_PLAY', 'GALAXY_STORE')),
     is_active BOOLEAN NOT NULL DEFAULT true,
+    auto_confirm BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT chk_subscription_template_version_pass CHECK (
         cycle_type <> 'VERSION_PASS' OR (category = '게임' AND game_id IS NOT NULL)
-    )
+    ),
+    -- R107-C (D7): auto confirm only for store payment methods.
+    CONSTRAINT chk_subscription_template_auto_confirm_store CHECK (NOT auto_confirm OR payment_method IN ('GOOGLE_PLAY', 'GALAXY_STORE'))
 );
 
 -- 9. 스토어 포인트 및 페이 지갑
@@ -1015,6 +1018,8 @@ CREATE TABLE public.expenses (
     payment_method VARCHAR(30) NOT NULL DEFAULT 'WALLET' CHECK (payment_method IN ('WALLET', 'GOOGLE_PLAY', 'GALAXY_STORE', 'NAVER_PAY')),
     deduct_from_asset BOOLEAN NOT NULL DEFAULT true,
     memo TEXT,
+    auto_confirmed_at TIMESTAMPTZ, -- R107-C: set when pg_cron auto confirmed the row (D11)
+    auto_confirm_blocked BOOLEAN NOT NULL DEFAULT false, -- R107-C: rolled back or restored rows are never auto confirmed (D11)
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT chk_expense_period CHECK (
         (start_date IS NULL AND end_date IS NULL) OR 
@@ -1148,8 +1153,10 @@ CREATE INDEX idx_game_requests_status ON public.game_requests(request_status);
 -- 결제/환불, 지갑, 요청 승인 RPC 및 일정 동기화 트리거
 -- ==============================================================================
 
--- 1. 결제 전담 RPC (IDOR 방어 및 expenses 상태 갱신 일원화)
-CREATE OR REPLACE FUNCTION public.process_expense_payment(
+-- R107-C (D6): payment body shared by process_expense_payment (auth.uid()) and auto_confirm_due_expenses (pg_cron).
+--    Internal only: PUBLIC/anon/authenticated cannot execute it.
+CREATE OR REPLACE FUNCTION public._process_expense_payment_core(
+    p_user_id UUID,
     p_expense_id UUID,
     p_original_price BIGINT,
     p_discount_amount BIGINT,
@@ -1163,7 +1170,7 @@ CREATE OR REPLACE FUNCTION public.process_expense_payment(
     p_memo TEXT DEFAULT NULL
 ) RETURNS VOID AS $$
 DECLARE
-    v_user_id UUID := auth.uid();
+    v_user_id UUID := p_user_id;
     v_expense public.expenses%ROWTYPE;
     v_wallet_balance BIGINT;
     v_earn_rate NUMERIC(5, 2);
@@ -1368,7 +1375,62 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+REVOKE ALL ON FUNCTION public._process_expense_payment_core(UUID, UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE, BIGINT, TEXT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public._process_expense_payment_core(UUID, UUID, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, VARCHAR, BOOLEAN, DATE, BIGINT, TEXT) TO service_role;
+
+-- 1. 결제 전담 RPC (IDOR 방어 및 expenses 상태 갱신 일원화). R107-C: 본문은 _process_expense_payment_core로 옮기고 auth.uid()만 넘긴다.
+CREATE OR REPLACE FUNCTION public.process_expense_payment(
+    p_expense_id UUID,
+    p_original_price BIGINT,
+    p_discount_amount BIGINT,
+    p_point_discount_amount BIGINT,
+    p_used_points BIGINT,
+    p_point_platform VARCHAR(30),
+    p_payment_method VARCHAR(30),
+    p_deduct_asset BOOLEAN,
+    p_payment_date DATE,
+    p_custom_earned_points BIGINT DEFAULT NULL,
+    p_memo TEXT DEFAULT NULL
+) RETURNS VOID AS $$
+BEGIN
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION '인증되지 않은 사용자입니다.';
+    END IF;
+    PERFORM public._process_expense_payment_core(
+        auth.uid(), p_expense_id, p_original_price, p_discount_amount, p_point_discount_amount, p_used_points,
+        p_point_platform, p_payment_method, p_deduct_asset, p_payment_date, p_custom_earned_points, p_memo
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- 2. 결제 취소/환불 전담 RPC (포인트 회수 검증 및 자산 복원)
+-- R107-C: user-scoped INTERVAL_30 rollback shared by refund_expense_payment (atomic, D12) and the legacy RPC below.
+--    The rolled-back PLANNED row is marked auto_confirm_blocked so the next pg_cron run does not pay it again (D11).
+CREATE OR REPLACE FUNCTION public._rollback_interval_subscription_core(p_user_id UUID, p_template_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_tpl public.subscription_templates%ROWTYPE;
+BEGIN
+    SELECT * INTO v_tpl
+    FROM public.subscription_templates
+    WHERE id = p_template_id AND user_id = p_user_id AND cycle_type = 'INTERVAL_30'
+    FOR UPDATE;
+    IF NOT FOUND THEN
+        RETURN false;
+    END IF;
+
+    UPDATE public.expenses
+    SET target_date = target_date - COALESCE(NULLIF(v_tpl.interval_days, 0), 30),
+        auto_confirm_blocked = true
+    WHERE user_id = p_user_id AND template_id = v_tpl.id AND status = 'PLANNED';
+
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public._rollback_interval_subscription_core(UUID, UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public._rollback_interval_subscription_core(UUID, UUID) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.refund_expense_payment(
     p_expense_id UUID
 ) RETURNS VOID AS $$
@@ -1387,6 +1449,13 @@ BEGIN
 
     IF v_expense.id IS NULL OR v_expense.status <> 'CONFIRMED' THEN
         RAISE EXCEPTION '취소할 수 있는 확정 결제 내역이 아닙니다.';
+    END IF;
+
+    -- R107-C: lock the template before wallets/assets, the same order as auto_confirm_due_expenses (template -> expense -> wallet).
+    IF v_expense.template_id IS NOT NULL THEN
+        PERFORM 1 FROM public.subscription_templates
+        WHERE id = v_expense.template_id AND user_id = v_user_id
+        FOR UPDATE;
     END IF;
 
     -- 네이버페이 환불 처리 (네이버페이 지갑 잔액으로 실결제액 복원)
@@ -1446,6 +1515,23 @@ BEGIN
 
     UPDATE public.expenses SET status = 'CANCELLED', cancellation_kind = 'PAYMENT_REFUND'
     WHERE id = p_expense_id AND user_id = v_user_id;
+
+    -- R107-C (D12, R107A-REV-002): INTERVAL_30 rollback in the same transaction. Only an active template's latest CONFIRMED
+    -- payment moves the PLANNED row back; an inactive template has no PLANNED row (deleted on deactivation) and is skipped.
+    IF v_expense.template_id IS NOT NULL
+       AND EXISTS (
+           SELECT 1 FROM public.subscription_templates AS t
+           WHERE t.id = v_expense.template_id AND t.user_id = v_user_id AND t.cycle_type = 'INTERVAL_30' AND t.is_active
+       )
+       AND NOT EXISTS (
+           SELECT 1 FROM public.expenses AS o
+           WHERE o.user_id = v_user_id AND o.template_id = v_expense.template_id AND o.status = 'CONFIRMED'
+             AND o.id <> v_expense.id
+             AND (o.target_date, coalesce(o.created_at, '-infinity'::timestamptz), o.id)
+                 > (v_expense.target_date, coalesce(v_expense.created_at, '-infinity'::timestamptz), v_expense.id)
+       ) THEN
+        PERFORM public._rollback_interval_subscription_core(v_user_id, v_expense.template_id);
+    END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -1518,12 +1604,15 @@ DECLARE v_user_id UUID := auth.uid();
 BEGIN
     IF v_user_id IS NULL THEN RAISE EXCEPTION '인증되지 않은 사용자입니다.'; END IF;
     UPDATE public.expenses AS e
-    SET status = 'PLANNED', cancellation_kind = NULL
+    SET status = 'PLANNED', cancellation_kind = NULL, auto_confirm_blocked = true
     WHERE e.id = p_expense_id AND e.user_id = v_user_id AND e.status = 'CANCELLED'
       AND (
           e.cancellation_kind = 'PLANNED_CANCEL'
       );
     IF NOT FOUND THEN RAISE EXCEPTION '복구 가능한 예정 취소 항목이 아닙니다.'; END IF;
+EXCEPTION WHEN unique_violation THEN
+    -- R107-C: an INTERVAL_30 template keeps one PLANNED row (idx_expenses_interval_single_planned).
+    RAISE EXCEPTION '같은 구독의 예정 지출이 이미 있어 복구할 수 없습니다.' USING ERRCODE = 'unique_violation';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -2090,6 +2179,28 @@ BEGIN
     LEFT JOIN public.notification_settings ns ON ns.user_id = e.user_id
     WHERE e.status = 'PLANNED'
       AND e.target_date = v_today
+      AND coalesce(ns.expense_due_today, true) = true
+      AND NOT public.account_deletion_is_pending(e.user_id)
+    GROUP BY e.user_id
+    HAVING count(*) >= 1
+    ON CONFLICT (user_id, kind, source_id, scheduled_for) WHERE scheduled_for IS NOT NULL DO NOTHING;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    v_inserted_count := v_inserted_count + v_rows;
+
+    -- 5) 오늘 자동 확정된 결제 요약 (EXPENSE_AUTO_CONFIRMED, R107-C): 사용자·일자당 1건, 금액·항목명·메모 원문 미포함
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id, scheduled_for)
+    SELECT
+        e.user_id,
+        'EXPENSE_AUTO_CONFIRMED',
+        '오늘 자동 확정된 결제 ' || count(*)::text || '건',
+        '자동 확정된 결제를 지출 관리에서 확인하세요. 잘못된 항목은 환불할 수 있습니다.',
+        '/dashboard/expenses',
+        e.user_id,
+        v_today
+    FROM public.expenses e
+    LEFT JOIN public.notification_settings ns ON ns.user_id = e.user_id
+    WHERE e.auto_confirmed_at IS NOT NULL
+      AND (e.auto_confirmed_at AT TIME ZONE 'Asia/Seoul')::date = v_today
       AND coalesce(ns.expense_due_today, true) = true
       AND NOT public.account_deletion_is_pending(e.user_id)
     GROUP BY e.user_id
@@ -3531,24 +3642,20 @@ GRANT EXECUTE ON FUNCTION public.ensure_subscription_expenses() TO authenticated
 
 -- 5. INTERVAL_30 next cycle after a payment (calculateNextIntervalTargetDate): an early payment keeps the remaining days
 --    (original date + interval), otherwise payment date + interval. No amount arguments; the template price is used.
-CREATE OR REPLACE FUNCTION public.advance_interval_subscription(
+-- R107-C: user-scoped body of advance_interval_subscription, also called by auto_confirm_due_expenses (pg_cron).
+CREATE OR REPLACE FUNCTION public._advance_interval_subscription_core(
+    p_user_id UUID,
     p_template_id UUID,
     p_original_target_date DATE,
     p_payment_date DATE
 )
 RETURNS BOOLEAN AS $$
 DECLARE
-    v_user_id UUID := auth.uid();
+    v_user_id UUID := p_user_id;
     v_tpl public.subscription_templates%ROWTYPE;
     v_step INTEGER;
     v_next_date DATE;
 BEGIN
-    IF v_user_id IS NULL THEN
-        RAISE EXCEPTION '로그인이 필요합니다.' USING ERRCODE = 'insufficient_privilege';
-    END IF;
-    IF public.account_deletion_is_pending(v_user_id) THEN
-        RAISE EXCEPTION '계정 삭제 대기 중에는 구독 회차를 변경할 수 없습니다.' USING ERRCODE = 'insufficient_privilege';
-    END IF;
     IF p_payment_date IS NULL THEN
         RAISE EXCEPTION 'p_payment_date is required' USING ERRCODE = 'invalid_parameter_value';
     END IF;
@@ -3589,6 +3696,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+REVOKE ALL ON FUNCTION public._advance_interval_subscription_core(UUID, UUID, DATE, DATE) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public._advance_interval_subscription_core(UUID, UUID, DATE, DATE) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.advance_interval_subscription(
+    p_template_id UUID,
+    p_original_target_date DATE,
+    p_payment_date DATE
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION '로그인이 필요합니다.' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    IF public.account_deletion_is_pending(v_user_id) THEN
+        RAISE EXCEPTION '계정 삭제 대기 중에는 구독 회차를 변경할 수 없습니다.' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    IF p_payment_date IS NULL THEN
+        RAISE EXCEPTION 'p_payment_date is required' USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+
+    RETURN public._advance_interval_subscription_core(v_user_id, p_template_id, p_original_target_date, p_payment_date);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 REVOKE ALL ON FUNCTION public.advance_interval_subscription(UUID, DATE, DATE) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.advance_interval_subscription(UUID, DATE, DATE) TO authenticated;
 
@@ -3598,7 +3731,8 @@ RETURNS BOOLEAN AS $$
 DECLARE
     v_user_id UUID := auth.uid();
     v_template_id UUID;
-    v_tpl public.subscription_templates%ROWTYPE;
+    v_status VARCHAR(20);
+    v_cancellation_kind VARCHAR(30);
 BEGIN
     IF v_user_id IS NULL THEN
         RAISE EXCEPTION '로그인이 필요합니다.' USING ERRCODE = 'insufficient_privilege';
@@ -3607,26 +3741,19 @@ BEGIN
         RAISE EXCEPTION '계정 삭제 대기 중에는 구독 회차를 변경할 수 없습니다.' USING ERRCODE = 'insufficient_privilege';
     END IF;
 
-    SELECT template_id INTO v_template_id
+    SELECT template_id, status, cancellation_kind INTO v_template_id, v_status, v_cancellation_kind
     FROM public.expenses
     WHERE id = p_expense_id AND user_id = v_user_id;
     IF v_template_id IS NULL THEN
         RETURN false;
     END IF;
-
-    SELECT * INTO v_tpl
-    FROM public.subscription_templates
-    WHERE id = v_template_id AND user_id = v_user_id AND cycle_type = 'INTERVAL_30'
-    FOR UPDATE;
-    IF NOT FOUND THEN
+    -- R107-C: refund_expense_payment already rolled back in the same transaction; older clients still call this
+    -- RPC after a refund, so a refunded expense must not be rolled back a second time.
+    IF v_status = 'CANCELLED' AND v_cancellation_kind = 'PAYMENT_REFUND' THEN
         RETURN false;
     END IF;
 
-    UPDATE public.expenses
-    SET target_date = target_date - COALESCE(NULLIF(v_tpl.interval_days, 0), 30)
-    WHERE user_id = v_user_id AND template_id = v_tpl.id AND status = 'PLANNED';
-
-    RETURN FOUND;
+    RETURN public._rollback_interval_subscription_core(v_user_id, v_template_id);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -3634,6 +3761,84 @@ REVOKE ALL ON FUNCTION public.rollback_interval_subscription(UUID) FROM PUBLIC, 
 GRANT EXECUTE ON FUNCTION public.rollback_interval_subscription(UUID) TO authenticated;
 
 -- 7. Daily batch for every user with an active template; one user's failure never stops the others (A-5).
+-- R107-C (§5.1-4): confirm due PLANNED rows of auto_confirm store templates for one user (D7-D10). Internal, service_role only.
+--    Lock order template -> expense -> wallet/assets matches generate_subscription_expenses_core and refund_expense_payment.
+CREATE OR REPLACE FUNCTION public.auto_confirm_due_expenses(p_user_id UUID, p_today DATE)
+RETURNS INTEGER AS $$
+DECLARE
+    v_candidate_id UUID;
+    v_exp public.expenses%ROWTYPE;
+    v_tpl public.subscription_templates%ROWTYPE;
+    v_cutoff TIMESTAMPTZ;
+    v_confirmed INTEGER := 0;
+BEGIN
+    IF p_user_id IS NULL OR p_today IS NULL THEN
+        RAISE EXCEPTION 'p_user_id and p_today are required' USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+    IF public.account_deletion_is_pending(p_user_id) THEN
+        RETURN 0;
+    END IF;
+    -- Rows created on p_today (KST) or later are skipped (D9).
+    v_cutoff := p_today::timestamp AT TIME ZONE 'Asia/Seoul';
+
+    PERFORM 1
+    FROM public.subscription_templates
+    WHERE user_id = p_user_id AND is_active = true
+    ORDER BY created_at ASC, id ASC
+    FOR UPDATE;
+
+    FOR v_candidate_id IN
+        SELECT e.id
+        FROM public.expenses AS e
+        JOIN public.subscription_templates AS t ON t.id = e.template_id AND t.user_id = e.user_id
+        WHERE e.user_id = p_user_id
+          AND e.status = 'PLANNED'
+          AND NOT e.auto_confirm_blocked
+          AND t.auto_confirm
+          AND t.is_active
+          AND t.payment_method IN ('GOOGLE_PLAY', 'GALAXY_STORE')
+          AND e.target_date BETWEEN p_today - 2 AND p_today
+          AND e.created_at < v_cutoff
+        ORDER BY e.target_date ASC, e.id ASC
+    LOOP
+        BEGIN
+            -- A concurrent manual payment holds the row: skip it, the other side wins (§5.3).
+            SELECT * INTO v_exp
+            FROM public.expenses
+            WHERE id = v_candidate_id AND user_id = p_user_id
+            FOR UPDATE SKIP LOCKED;
+            CONTINUE WHEN NOT FOUND OR v_exp.status <> 'PLANNED' OR v_exp.auto_confirm_blocked;
+
+            SELECT * INTO v_tpl FROM public.subscription_templates WHERE id = v_exp.template_id;
+
+            -- D8: pay on the planned date with the generated snapshot price, no discount or point use; earn by the store rate.
+            PERFORM public._process_expense_payment_core(
+                p_user_id, v_exp.id, v_exp.original_price, 0, 0, 0,
+                v_tpl.payment_method, v_tpl.payment_method, v_exp.deduct_from_asset, v_exp.target_date, NULL, NULL
+            );
+            UPDATE public.expenses SET auto_confirmed_at = NOW() WHERE id = v_exp.id;
+
+            -- Next cycle in the same subtransaction (C-6).
+            IF v_tpl.cycle_type = 'INTERVAL_30' THEN
+                PERFORM public._advance_interval_subscription_core(p_user_id, v_tpl.id, v_exp.target_date, v_exp.target_date);
+            ELSE
+                PERFORM public.generate_subscription_expenses_core(p_user_id, p_today);
+            END IF;
+
+            v_confirmed := v_confirmed + 1;
+        EXCEPTION WHEN OTHERS THEN
+            -- D10: one failing row stays PLANNED and does not stop the others; it is retried while inside the window.
+            RAISE WARNING 'R107-C: auto confirm failed for expense % (SQLSTATE %)', v_candidate_id, SQLSTATE;
+        END;
+    END LOOP;
+
+    RETURN v_confirmed;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.auto_confirm_due_expenses(UUID, DATE) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.auto_confirm_due_expenses(UUID, DATE) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.run_daily_subscription_automation()
 RETURNS INTEGER AS $$
 DECLARE
@@ -3651,6 +3856,20 @@ BEGIN
             v_total := v_total + public.generate_subscription_expenses_core(v_user_id, v_today);
         EXCEPTION WHEN OTHERS THEN
             RAISE WARNING 'R107-A: subscription generation failed for user % (SQLSTATE %)', v_user_id, SQLSTATE;
+        END;
+    END LOOP;
+
+    -- R107-C: auto confirm runs after generation (D2) for users with an active auto_confirm template.
+    FOR v_user_id IN
+        SELECT DISTINCT t.user_id
+        FROM public.subscription_templates AS t
+        WHERE t.is_active = true AND t.auto_confirm = true
+          AND NOT public.account_deletion_is_pending(t.user_id)
+    LOOP
+        BEGIN
+            v_total := v_total + public.auto_confirm_due_expenses(v_user_id, v_today);
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'R107-C: auto confirm failed for user % (SQLSTATE %)', v_user_id, SQLSTATE;
         END;
     END LOOP;
     RETURN v_total;
