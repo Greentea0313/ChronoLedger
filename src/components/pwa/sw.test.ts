@@ -107,8 +107,8 @@ describe("service worker 읽기 API 캐시", () => {
 })
 
 describe("PWA 정적 매니페스트 및 서비스 워커 셸 캐시 설정", () => {
-  it("SHELL_CACHE 버전이 v7(chronoledger-shell-v7)로 선언되어 있다", () => {
-    expect(source).toContain('const SHELL_CACHE = "chronoledger-shell-v7"')
+  it("SHELL_CACHE 버전이 v8(chronoledger-shell-v8)로 선언되어 있다", () => {
+    expect(source).toContain('const SHELL_CACHE = "chronoledger-shell-v8"')
   })
 
   it("푸시 배지 아이콘은 투명 배경 RGBA PNG이고 셸 캐시에 포함된다 (Android 흰 사각형 방지)", () => {
@@ -117,6 +117,15 @@ describe("PWA 정적 매니페스트 및 서비스 워커 셸 캐시 설정", ()
     expect(png.readUInt32BE(20)).toBe(96)
     expect(png[25]).toBe(6) // color type 6 = RGBA
     expect(source).toContain('"/icons/badge-96.png",')
+  })
+
+  it("푸시 알림 큰 아이콘은 투명 배경 RGBA PNG이고 셸 캐시에 포함된다 (알림창 우측 검은 사각형 방지)", () => {
+    const png = readFileSync(join(process.cwd(), "public", "icons", "push-icon-192.png"))
+    expect(png.readUInt32BE(16)).toBe(192)
+    expect(png.readUInt32BE(20)).toBe(192)
+    expect(png[25]).toBe(6) // color type 6 = RGBA
+    expect(source).toContain('"/icons/push-icon-192.png",')
+    expect(source).toContain('icon: "/icons/push-icon-192.png"')
   })
 
   it("manifest.json의 name과 short_name이 모두 ChroLog로 설정되어 Android WebAPK/홈 화면 말줄임을 방지한다", () => {
@@ -150,7 +159,7 @@ describe("service worker Web Push (R96)", () => {
 
     expect(sw.showNotification).toHaveBeenCalledWith("오늘 시작하는 관심 일정이 있습니다", {
       body: "테스트 일정이 오늘 시작합니다.",
-      icon: "/icons/icon-192.png",
+      icon: "/icons/push-icon-192.png",
       badge: "/icons/badge-96.png",
       tag: "FAVORITE_START:1",
       data: { link_path: "/dashboard?date=2026-11-24" },
@@ -169,7 +178,7 @@ describe("service worker Web Push (R96)", () => {
 
     expect(sw.showNotification).toHaveBeenCalledWith("ChronoLedger 알림", {
       body: "",
-      icon: "/icons/icon-192.png",
+      icon: "/icons/push-icon-192.png",
       badge: "/icons/badge-96.png",
       data: { link_path: "/dashboard" },
     })
