@@ -193,12 +193,19 @@ async function createVapidAuthorizationHeader(
   return `vapid t=${signingInput}.${encodeBase64Url(signature)}, k=${normalizedPublicKey}`
 }
 
-async function encryptWebPushPayload(payloadJson: string, p256dh: string, auth: string): Promise<Uint8Array> {
+async function encryptWebPushPayload(
+  payloadJson: string,
+  p256dh: string,
+  auth: string,
+  encryptOptions?: { salt?: Uint8Array; ephemeralKeyPair?: CryptoKeyPair },
+): Promise<Uint8Array> {
   const subtle = globalThis.crypto.subtle
   const uaPublicBytes = decodeBase64Url(p256dh)
   const authSecret = decodeBase64Url(auth)
-  const salt = globalThis.crypto.getRandomValues(new Uint8Array(16))
-  const serverKeyPair = await subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"])
+  const salt = encryptOptions?.salt ?? globalThis.crypto.getRandomValues(new Uint8Array(16))
+  const serverKeyPair =
+    encryptOptions?.ephemeralKeyPair ??
+    (await subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]))
   const serverPublicBytes = new Uint8Array(await subtle.exportKey("raw", serverKeyPair.publicKey))
 
   const uaPublicKey = await subtle.importKey(
@@ -265,7 +272,15 @@ function jsonResponse(body: Record<string, unknown>, status = 200): Response {
 
 export async function handleSendNotificationsRequest(
   req: Request,
-  options?: { env?: SendNotificationsEnv; fetchImpl?: typeof fetch },
+  options?: {
+    env?: SendNotificationsEnv
+    fetchImpl?: typeof fetch
+    cryptoOverrides?: {
+      salt?: Uint8Array
+      ephemeralKeyPair?: CryptoKeyPair
+      payloadText?: string
+    }
+  },
 ): Promise<Response> {
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405)
@@ -360,14 +375,16 @@ export async function handleSendNotificationsRequest(
       continue
     }
 
-    const payloadJson = JSON.stringify(
-      buildSafePushPayload({
-        title: notif.title,
-        body: notif.body,
-        link_path: notif.link_path,
-        tag: `${notif.kind}:${notif.notification_id}`,
-      }),
-    )
+    const payloadJson =
+      options?.cryptoOverrides?.payloadText ??
+      JSON.stringify(
+        buildSafePushPayload({
+          title: notif.title,
+          body: notif.body,
+          link_path: notif.link_path,
+          tag: `${notif.kind}:${notif.notification_id}`,
+        }),
+      )
 
     for (const sub of userSubs) {
       try {
@@ -377,7 +394,10 @@ export async function handleSendNotificationsRequest(
           env.vapidPublicKey,
           env.vapidPrivateKey,
         )
-        const encryptedBody = await encryptWebPushPayload(payloadJson, sub.p256dh, sub.auth)
+        const encryptedBody = await encryptWebPushPayload(payloadJson, sub.p256dh, sub.auth, {
+          salt: options?.cryptoOverrides?.salt,
+          ephemeralKeyPair: options?.cryptoOverrides?.ephemeralKeyPair,
+        })
         const pushRes = await fetchImpl(sub.endpoint, {
           method: "POST",
           headers: {
