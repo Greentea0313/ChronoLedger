@@ -124,6 +124,12 @@
 --   R106-04 anon                   delete_notifications 호출 -> insufficient_privilege.
 --   R85-01 DB fixture / B / admin  games.daily_reset_time 분 단위 CHECK, game_schedules/schedule_requests 시각·날짜·순서·분·예상 CHECK,
 --                                  approve_schedule_request 신규/수정 시각·예상 복사(+R84 알림 유지), 시각만 수정 시 예정 지출 날짜 불변, anon 조회.
+--   R107A-01 DB fixture 역할       generate_subscription_expenses_core 날짜 규칙 이식(MONTHLY_DAY 당월·말일 보정·지난 결제일 다음 달·확정 회차 건너뛰기·
+--                                  중복 PLANNED 정리, INTERVAL_30 첫 회차·최근 확정+충전일수·단일 PLANNED 유니크, VERSION_PASS 공식·미종료만),
+--                                  재실행 멱등, 계정 삭제 대기 사용자 생성 없음.
+--   R107A-02 DB fixture 역할       run_daily_subscription_automation 사용자 단위 오류 격리, cron 1건 등록, 함수 권한.
+--   R107A-03 authenticated / B     advance/rollback_interval_subscription 조기·정시 결제·환불 롤백, 타인 행 IDOR 거부,
+--                                  내부 함수 실행 거부, ensure_subscription_expenses 호출, anon 실행 거부.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -4167,6 +4173,315 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R85 schedule times, estimated flags, games.daily_reset_time, approve RPC copy, expense trigger immunity, and anon read
+
+-- R107-A: server-side subscription generation core (TS scenario port with fixed p_today), INTERVAL_30 single-PLANNED index,
+-- advance/rollback RPCs, privileges/IDOR, pending-deletion skip, daily batch isolation and cron registration.
+INSERT INTO public.games (name, default_icon_url, created_by)
+VALUES ('R107 test game ' || :'other_user_id', 'https://example.invalid/r107.webp', :'test_user_id'::uuid)
+RETURNING id AS r107_game_id \gset
+SELECT set_config('chronoledger.r107_game_id', :'r107_game_id', true);
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+
+-- R107A-01: DB fixture role ports the subscription-sync.test.ts date scenarios onto generate_subscription_expenses_core.
+DO $$
+DECLARE
+    v_b UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_game UUID := current_setting('chronoledger.r107_game_id')::uuid;
+    v_tpl UUID;
+    v_exp UUID;
+    v_n INTEGER;
+    v_date DATE;
+    v_cycle TEXT;
+    v_title TEXT;
+BEGIN
+    -- Only this block's templates stay active for user B so each core call is deterministic.
+    UPDATE public.subscription_templates SET is_active = false WHERE user_id = v_b AND is_active;
+
+    -- MONTHLY_DAY: this month's cycle (TS "당월 회차 예정 지출을 생성").
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, billing_day, default_price, payment_method)
+    VALUES (v_b, 'R107 monthly 15', '정기 구독', 'MONTHLY_DAY', 15, 9900, 'GOOGLE_PLAY') RETURNING id INTO v_tpl;
+    v_n := public.generate_subscription_expenses_core(v_b, DATE '2026-03-10');
+    SELECT target_date, billing_cycle INTO v_date, v_cycle FROM public.expenses WHERE template_id = v_tpl AND status = 'PLANNED';
+    IF v_n <> 1 OR v_date <> DATE '2026-03-15' OR v_cycle <> '2026-03' THEN
+        RAISE EXCEPTION 'FAIL: R107A monthly current cycle (n=%, date=%, cycle=%)', v_n, v_date, v_cycle;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM public.expenses
+        WHERE template_id = v_tpl AND user_id = v_b AND final_amount = 9900 AND original_price = 9900
+          AND payment_method = 'GOOGLE_PLAY' AND point_platform = 'GOOGLE_PLAY' AND deduct_from_asset
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107A monthly row does not copy the template price and payment method';
+    END IF;
+    -- Idempotent re-run.
+    v_n := public.generate_subscription_expenses_core(v_b, DATE '2026-03-10');
+    IF v_n <> 0 OR (SELECT count(*) FROM public.expenses WHERE template_id = v_tpl AND status = 'PLANNED') <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R107A monthly re-run created another row (n=%)', v_n;
+    END IF;
+    -- Current cycle confirmed -> only next month (TS "당월 회차가 이미 확정됐으면 다음 달 한 건만").
+    UPDATE public.expenses SET status = 'CONFIRMED' WHERE template_id = v_tpl AND status = 'PLANNED' RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107_monthly_confirmed_id', v_exp::text, true);
+    v_n := public.generate_subscription_expenses_core(v_b, DATE '2026-03-10');
+    SELECT target_date, billing_cycle INTO v_date, v_cycle FROM public.expenses WHERE template_id = v_tpl AND status = 'PLANNED';
+    IF v_n <> 1 OR v_date <> DATE '2026-04-15' OR v_cycle <> '2026-04' THEN
+        RAISE EXCEPTION 'FAIL: R107A monthly next month after confirmed cycle (n=%, date=%, cycle=%)', v_n, v_date, v_cycle;
+    END IF;
+    -- Duplicate PLANNED rows are cleaned to the earliest one (TS dedupe_monthly_planned_expenses delegation).
+    INSERT INTO public.expenses(user_id, template_id, billing_cycle, title, category, status, target_date)
+    VALUES (v_b, v_tpl, '2026-05', 'R107 monthly dup', '정기 구독', 'PLANNED', DATE '2026-05-15');
+    PERFORM public.generate_subscription_expenses_core(v_b, DATE '2026-03-10');
+    IF (SELECT count(*) FROM public.expenses WHERE template_id = v_tpl AND status = 'PLANNED') <> 1
+       OR NOT EXISTS (SELECT 1 FROM public.expenses WHERE template_id = v_tpl AND status = 'PLANNED' AND target_date = DATE '2026-04-15') THEN
+        RAISE EXCEPTION 'FAIL: R107A monthly duplicate PLANNED cleanup did not keep the earliest row';
+    END IF;
+    UPDATE public.subscription_templates SET is_active = false WHERE id = v_tpl;
+
+    -- MONTHLY_DAY: billing day 31 clamps to the month's last day.
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, billing_day, default_price, payment_method)
+    VALUES (v_b, 'R107 monthly 31', '정기 구독', 'MONTHLY_DAY', 31, 1000, 'WALLET') RETURNING id INTO v_tpl;
+    PERFORM public.generate_subscription_expenses_core(v_b, DATE '2026-02-10');
+    IF NOT EXISTS (
+        SELECT 1 FROM public.expenses
+        WHERE template_id = v_tpl AND status = 'PLANNED' AND target_date = DATE '2026-02-28' AND billing_cycle = '2026-02'
+          AND payment_method = 'WALLET' AND point_platform IS NULL
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107A monthly last-day clamp or WALLET point_platform';
+    END IF;
+    UPDATE public.subscription_templates SET is_active = false WHERE id = v_tpl;
+
+    -- MONTHLY_DAY: billing day already passed this month -> next month.
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, billing_day, default_price, payment_method)
+    VALUES (v_b, 'R107 monthly 5', '정기 구독', 'MONTHLY_DAY', 5, 1000, 'WALLET') RETURNING id INTO v_tpl;
+    PERFORM public.generate_subscription_expenses_core(v_b, DATE '2026-03-10');
+    IF NOT EXISTS (
+        SELECT 1 FROM public.expenses
+        WHERE template_id = v_tpl AND status = 'PLANNED' AND target_date = DATE '2026-04-05' AND billing_cycle = '2026-04'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107A monthly passed billing day did not move to next month';
+    END IF;
+    UPDATE public.subscription_templates SET is_active = false WHERE id = v_tpl;
+
+    -- INTERVAL_30: nothing paid yet -> today; re-run keeps one PLANNED; a second PLANNED is rejected by the index.
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, interval_days, default_price, payment_method)
+    VALUES (v_b, 'R107 interval 30', '정기 구독', 'INTERVAL_30', 30, 3300, 'GALAXY_STORE') RETURNING id INTO v_tpl;
+    v_n := public.generate_subscription_expenses_core(v_b, DATE '2026-03-10');
+    v_n := v_n + public.generate_subscription_expenses_core(v_b, DATE '2026-03-10');
+    IF v_n <> 1 OR NOT EXISTS (
+        SELECT 1 FROM public.expenses
+        WHERE template_id = v_tpl AND status = 'PLANNED' AND target_date = DATE '2026-03-10' AND billing_cycle IS NULL
+          AND point_platform = 'GALAXY_STORE'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107A interval first cycle or re-run (n=%)', v_n;
+    END IF;
+    BEGIN
+        INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date)
+        VALUES (v_b, v_tpl, 'R107 interval dup', '정기 구독', 'PLANNED', DATE '2026-04-09');
+        RAISE EXCEPTION 'FAIL: R107A second interval PLANNED row was accepted';
+    EXCEPTION WHEN unique_violation THEN NULL;
+    END;
+    UPDATE public.subscription_templates SET is_active = false WHERE id = v_tpl;
+
+    -- INTERVAL_30 with interval_days 15: latest CONFIRMED + 15 days (TS "설정된 일수만큼 연장").
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, interval_days, default_price, payment_method)
+    VALUES (v_b, 'R107 interval 15', '정기 구독', 'INTERVAL_30', 15, 1100, 'WALLET') RETURNING id INTO v_tpl;
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date)
+    VALUES (v_b, v_tpl, 'R107 interval old', '정기 구독', 'CONFIRMED', DATE '2026-02-01'),
+           (v_b, v_tpl, 'R107 interval latest', '정기 구독', 'CONFIRMED', DATE '2026-03-01');
+    PERFORM public.generate_subscription_expenses_core(v_b, DATE '2026-03-10');
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE template_id = v_tpl AND status = 'PLANNED' AND target_date = DATE '2026-03-16') THEN
+        RAISE EXCEPTION 'FAIL: R107A interval latest CONFIRMED + interval_days';
+    END IF;
+    UPDATE public.subscription_templates SET is_active = false WHERE id = v_tpl;
+
+    -- VERSION_PASS: only official VERSION schedules that have not ended; one row per schedule.
+    INSERT INTO public.game_schedules(game_id, title, schedule_type, start_date, end_date, is_official)
+    VALUES (v_game, 'R107 v1', 'VERSION', DATE '2026-03-20', DATE '2026-04-30', true),
+           (v_game, 'R107 ended', 'VERSION', DATE '2026-01-01', DATE '2026-03-01', true),
+           (v_game, 'R107 unofficial', 'VERSION', DATE '2026-03-20', DATE '2026-05-01', false),
+           (v_game, 'R107 pickup', 'PICKUP', DATE '2026-03-20', DATE '2026-04-01', true);
+    INSERT INTO public.subscription_templates(user_id, game_id, title, category, cycle_type, default_price, payment_method)
+    VALUES (v_b, v_game, 'R107 pass', '게임', 'VERSION_PASS', 22000, 'GOOGLE_PLAY') RETURNING id INTO v_tpl;
+    v_n := public.generate_subscription_expenses_core(v_b, DATE '2026-03-10');
+    SELECT title INTO v_title FROM public.expenses WHERE template_id = v_tpl;
+    IF v_n <> 1 OR v_title <> 'R107 pass (R107 v1)' OR NOT EXISTS (
+        SELECT 1 FROM public.expenses
+        WHERE template_id = v_tpl AND game_id = v_game AND target_date = DATE '2026-03-20'
+          AND start_date = DATE '2026-03-20' AND end_date = DATE '2026-04-30' AND billing_cycle IS NULL
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107A version pass rows (n=%, title=%)', v_n, v_title;
+    END IF;
+    IF public.generate_subscription_expenses_core(v_b, DATE '2026-03-10') <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R107A version pass re-run created another row';
+    END IF;
+    UPDATE public.subscription_templates SET is_active = false WHERE id = v_tpl;
+
+    -- Pending account deletion: the core does nothing for that user.
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, billing_day, default_price, payment_method)
+    VALUES (v_b, 'R107 pending', '정기 구독', 'MONTHLY_DAY', 15, 1000, 'WALLET') RETURNING id INTO v_tpl;
+    INSERT INTO public.account_deletion_requests(user_id, status_token_hash, status) VALUES (v_b, repeat('7', 64), 'PENDING');
+    IF public.generate_subscription_expenses_core(v_b, DATE '2026-03-10') <> 0
+       OR EXISTS (SELECT 1 FROM public.expenses WHERE template_id = v_tpl) THEN
+        RAISE EXCEPTION 'FAIL: R107A core generated rows for a pending-deletion user';
+    END IF;
+    DELETE FROM public.account_deletion_requests WHERE user_id = v_b AND status_token_hash = repeat('7', 64);
+    UPDATE public.subscription_templates SET is_active = false WHERE id = v_tpl;
+
+    -- Templates for the authenticated RPC checks below (no PLANNED row yet: created after the last core call).
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, interval_days, default_price, payment_method)
+    VALUES (v_b, 'R107 advance 30', '정기 구독', 'INTERVAL_30', 30, 5500, 'GOOGLE_PLAY') RETURNING id INTO v_tpl;
+    PERFORM set_config('chronoledger.r107_advance30_tpl', v_tpl::text, true);
+    INSERT INTO public.expenses(user_id, template_id, title, category, status, target_date)
+    VALUES (v_b, v_tpl, 'R107 advance paid', '정기 구독', 'CONFIRMED', DATE '2026-04-01') RETURNING id INTO v_exp;
+    PERFORM set_config('chronoledger.r107_advance30_paid', v_exp::text, true);
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, interval_days, default_price, payment_method)
+    VALUES (v_b, 'R107 advance 15', '정기 구독', 'INTERVAL_30', 15, 1500, 'WALLET') RETURNING id INTO v_tpl;
+    PERFORM set_config('chronoledger.r107_advance15_tpl', v_tpl::text, true);
+END $$;
+\echo PASS: R107A-01 core ports MONTHLY_DAY/INTERVAL_30/VERSION_PASS date rules, idempotency, interval unique index and pending skip
+
+-- R107A-02: DB fixture role runs the daily batch: user A is processed even when user B's template fails (A-5, A-7).
+DO $$
+DECLARE
+    v_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_b UUID := current_setting('chronoledger.other_user_id')::uuid;
+    v_tpl_a UUID;
+    v_tpl_a_interval UUID;
+    v_tpl_bad UUID;
+    v_a_planned UUID;
+BEGIN
+    UPDATE public.subscription_templates SET is_active = false WHERE user_id = v_a AND is_active;
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, billing_day, default_price, payment_method)
+    VALUES (v_a, 'R107 batch A', '정기 구독', 'MONTHLY_DAY', 1, 1000, 'WALLET') RETURNING id INTO v_tpl_a;
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, interval_days, default_price, payment_method)
+    VALUES (v_a, 'R107 batch A interval', '정기 구독', 'INTERVAL_30', 30, 1000, 'WALLET') RETURNING id INTO v_tpl_a_interval;
+    -- expenses.category CHECK rejects this category, so user B's generation fails inside the batch and the batch's
+    -- per-user subtransaction rolls back every row it created for B (B's other active templates included).
+    INSERT INTO public.subscription_templates(user_id, title, category, cycle_type, billing_day, default_price, payment_method)
+    VALUES (v_b, 'R107 batch bad', 'R107 invalid category', 'MONTHLY_DAY', 1, 1000, 'WALLET') RETURNING id INTO v_tpl_bad;
+
+    PERFORM public.run_daily_subscription_automation();
+
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE template_id = v_tpl_a AND status = 'PLANNED')
+       OR NOT EXISTS (SELECT 1 FROM public.expenses WHERE template_id = v_tpl_a_interval AND status = 'PLANNED') THEN
+        RAISE EXCEPTION 'FAIL: R107A batch did not generate user A rows after user B failed';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.expenses WHERE template_id = v_tpl_bad) THEN
+        RAISE EXCEPTION 'FAIL: R107A batch kept a partial row for the failing user';
+    END IF;
+    UPDATE public.subscription_templates SET is_active = false WHERE id = v_tpl_bad;
+    SELECT id INTO v_a_planned FROM public.expenses WHERE template_id = v_tpl_a_interval AND status = 'PLANNED';
+    PERFORM set_config('chronoledger.r107_a_interval_planned', v_a_planned::text, true);
+
+    IF (SELECT count(*) FROM cron.job WHERE jobname = 'chronoledger-subscription-daily' AND schedule = '50 23 * * *') <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R107A cron job chronoledger-subscription-daily missing or duplicated';
+    END IF;
+    IF has_function_privilege('authenticated', 'public.generate_subscription_expenses_core(uuid,date)', 'EXECUTE')
+       OR has_function_privilege('authenticated', 'public.run_daily_subscription_automation()', 'EXECUTE')
+       OR NOT has_function_privilege('authenticated', 'public.ensure_subscription_expenses()', 'EXECUTE')
+       OR NOT has_function_privilege('authenticated', 'public.advance_interval_subscription(uuid,date,date)', 'EXECUTE')
+       OR NOT has_function_privilege('authenticated', 'public.rollback_interval_subscription(uuid)', 'EXECUTE')
+       OR has_function_privilege('anon', 'public.ensure_subscription_expenses()', 'EXECUTE') THEN
+        RAISE EXCEPTION 'FAIL: R107A function privileges';
+    END IF;
+END $$;
+\echo PASS: R107A-02 daily batch isolates a failing user, cron registered once, function privileges
+
+-- R107A-03: authenticated user B: advance/rollback rules (TS calculateNext/Rollback ports), IDOR, internal functions denied.
+SELECT set_config('request.jwt.claim.sub', :'other_user_id', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'other_user_id', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_tpl30 UUID := current_setting('chronoledger.r107_advance30_tpl')::uuid;
+    v_tpl15 UUID := current_setting('chronoledger.r107_advance15_tpl')::uuid;
+    v_paid UUID := current_setting('chronoledger.r107_advance30_paid')::uuid;
+    v_a_planned UUID := current_setting('chronoledger.r107_a_interval_planned')::uuid;
+    v_date DATE;
+BEGIN
+    -- Early payment keeps the remaining days: original 04-10 paid 04-01 -> 05-10.
+    IF NOT public.advance_interval_subscription(v_tpl30, DATE '2026-04-10', DATE '2026-04-01') THEN
+        RAISE EXCEPTION 'FAIL: R107A advance returned false for an early payment';
+    END IF;
+    SELECT target_date INTO v_date FROM public.expenses WHERE template_id = v_tpl30 AND status = 'PLANNED';
+    IF v_date <> DATE '2026-05-10' THEN
+        RAISE EXCEPTION 'FAIL: R107A advance early payment date %', v_date;
+    END IF;
+    IF public.advance_interval_subscription(v_tpl30, DATE '2026-05-10', DATE '2026-05-10') THEN
+        RAISE EXCEPTION 'FAIL: R107A advance created a second PLANNED row';
+    END IF;
+    -- Refund rollback moves the PLANNED row back by interval_days: 05-10 -> 04-10.
+    IF NOT public.rollback_interval_subscription(v_paid) THEN
+        RAISE EXCEPTION 'FAIL: R107A rollback returned false';
+    END IF;
+    SELECT target_date INTO v_date FROM public.expenses WHERE template_id = v_tpl30 AND status = 'PLANNED';
+    IF v_date <> DATE '2026-04-10' THEN
+        RAISE EXCEPTION 'FAIL: R107A rollback date %', v_date;
+    END IF;
+    -- On-time payment with interval 15: payment date + 15.
+    IF NOT public.advance_interval_subscription(v_tpl15, DATE '2026-04-01', DATE '2026-04-01') THEN
+        RAISE EXCEPTION 'FAIL: R107A advance returned false for an on-time payment';
+    END IF;
+    SELECT target_date INTO v_date FROM public.expenses WHERE template_id = v_tpl15 AND status = 'PLANNED';
+    IF v_date <> DATE '2026-04-16' THEN
+        RAISE EXCEPTION 'FAIL: R107A advance interval 15 date %', v_date;
+    END IF;
+    -- Non-interval expense: rollback does nothing.
+    IF public.rollback_interval_subscription(current_setting('chronoledger.r107_monthly_confirmed_id')::uuid) THEN
+        RAISE EXCEPTION 'FAIL: R107A rollback changed a non-interval template';
+    END IF;
+    -- IDOR: user A's interval row is not touched.
+    SELECT target_date INTO v_date FROM public.expenses WHERE id = v_a_planned;
+    IF v_date IS NOT NULL THEN
+        RAISE EXCEPTION 'FAIL: R107A user B can read user A expenses';
+    END IF;
+    IF public.rollback_interval_subscription(v_a_planned) THEN
+        RAISE EXCEPTION 'FAIL: R107A user B rolled back user A interval row';
+    END IF;
+
+    BEGIN
+        PERFORM public.generate_subscription_expenses_core(auth.uid(), DATE '2026-03-10');
+        RAISE EXCEPTION 'FAIL: R107A authenticated executed generate_subscription_expenses_core';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.run_daily_subscription_automation();
+        RAISE EXCEPTION 'FAIL: R107A authenticated executed run_daily_subscription_automation';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+
+    -- The lazy RPC runs with the server's KST date and needs no arguments.
+    PERFORM public.ensure_subscription_expenses();
+END $$;
+RESET ROLE;
+
+DO $$
+DECLARE
+    v_a_planned UUID := current_setting('chronoledger.r107_a_interval_planned')::uuid;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.expenses
+        WHERE id = v_a_planned AND status = 'PLANNED' AND target_date = (NOW() AT TIME ZONE 'Asia/Seoul')::date
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R107A user A interval row changed after user B rollback attempt';
+    END IF;
+END $$;
+
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.ensure_subscription_expenses();
+        RAISE EXCEPTION 'FAIL: R107A anon executed ensure_subscription_expenses';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
+        PERFORM public.advance_interval_subscription(gen_random_uuid(), NULL, DATE '2026-04-01');
+        RAISE EXCEPTION 'FAIL: R107A anon executed advance_interval_subscription';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R107A-03 advance/rollback date rules, IDOR, internal function denial, lazy RPC and anon denial
 
 SET LOCAL ROLE anon;
 DO $$
