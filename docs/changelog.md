@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-26 (Run `r75-r64-tests-readme` 병합 `35d43b6` — `R75` R64 분류 아이콘 SQL 회귀 테스트 보강)
+
+- **테스트 보강**: `sql/tests/TESTS.sql` R64·R80 블록에 분류 옵션 아이콘의 관리자 CRUD·`updated_at`, 일반 사용자·`user_metadata` 스푸핑·`anon` 쓰기 거부, 승인 게임 조회 범위, CHECK·검증 트리거 메시지 단위 검증, 순서 변경·옵션/축 제거 정리, 게임 삭제 CASCADE 시나리오를 추가함. 스키마·앱 동작 변경은 없음.
+- **문서**: `sql/README.md`에 아이콘 수정이 upsert 기준임을 한 줄 추가함. 협업 산출물은 `artifacts/r75-r64-tests-readme/iteration-01/`(`review.json` P4 2건 비차단, `test.json` 로컬 `TESTS.sql` 54개 2회 통과)임.
+
 ## 2026-11-26 (Run `r107c-auto-confirm` 병합 `9268bf0` — `R107-C` 스토어 정기 구독 자동 확정 및 `INTERVAL_30` 환불 롤백 원자화)
 
 - **스토어 정기 구독 자동 확정 (`MIGRATION_R107C_AUTO_CONFIRM.sql`, `SubscriptionModal`, `ExpensesPage`)**: `subscription_templates.auto_confirm`(기본 꺼짐, `GOOGLE_PLAY`·`GALAXY_STORE`만 허용하는 DB `CHECK` 및 모달 토글)을 추가함. 일 배치 `run_daily_subscription_automation()`이 회차 생성 직후 `auto_confirm_due_expenses`(예정일 결제·스냅샷 금액·스토어 적립률 적용·2일 보정 창·당일 생성분 및 `auto_confirm_blocked` 제외·행 단위 실패 격리·다음 회차 즉시 생성)를 실행하며, 결제 로직은 내부 `_process_expense_payment_core`로 일원화해 공개 `process_expense_payment` 시그니처와 동작을 그대로 유지함. 자동 확정된 지출에는 목록·상세 화면에 `'자동 확정'` 배지를 표시하고 매일 09:00 KST 일일 알림에서 `'오늘 자동 확정된 결제 N건'` 요약 알림(`EXPENSE_AUTO_CONFIRMED`, 금액·항목명 미포함)을 보냄.
