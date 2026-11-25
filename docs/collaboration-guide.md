@@ -6,16 +6,19 @@
 
 ---
 
-## 1. 6대 AI 모델 역할 분배, 기본 추론 수준 및 Fallback 매트릭스
+## 1. 6대 AI 모델 역할 분배, 기본 추론 수준 및 쿼터 풀 Fallback 매트릭스
 
-| 주력 모델 / 에이전트 (기본 추론 수준) | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
+> **쿼터 풀(Quota Pools) 구조**: ① **`Gemini Pool`**(Antigravity `Gemini Models` **주간 + 5시간 공용 한도**): `Gemini 4 Hydrogen`, `Gemini 4 Neon`, `Gemini 4 Carbon`. ② **`Claude Pool`**(Claude Code `Claude Pro` 구독 및 Antigravity `Claude and GPT models` 한도): `Claude Sonnet`, `Claude Opus`. ③ **`GPT Codex Pool`**: `GPT Codex`. ④ **`GitHub Copilot Pool`**: `GitHub Copilot` *(Antigravity `GPT-OSS 120B (Medium)`는 주력 6대 모델 외 비상 백업 참고로만 둠)*.
+> **쿼터(한도) 소진으로 인한 인계(`⚠️ HANDOVER_NEEDED`) 시에는 같은 소진된 쿼터 풀 모델을 건너뛰고 즉시 다른 풀의 Fallback으로 전환**함(동일 Gemini 풀 내 `Hydrogen` $\to$ `Neon`/`Carbon` 이동은 한도가 남아 있을 때의 난이도 승격 또는 단일 세션 컨텍스트 한도 인계에만 사용).
+
+| 주력 모델 / 에이전트 (기본 추론 수준) | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Cross-Pool Quota Fallback)** | **2순위 대체 (Fallback 2)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Hydrogen (`Medium`)** *(Gemini 기본)* | `Default Maker (Feature·UI·Test·Fast Docs) & Default Orchestrator / Reviewer` | 단기 쿼터 주기 올라운더(**기본 `Medium`**, `Low`~`XHigh` 지원). 일반·표준 기능 및 UI 컴포넌트(`src/app/`, `src/components/`, `src/lib/`), 경량 Tailwind/마크업·`docs/` 동기화(구 `Gemini 3.8 Flash` 역할 통합), Vitest 단위/통합 테스트, 표준 Run 등록/배정/마감(`New-CollaborationRun.ps1`), 표준 정적 리뷰(`review.json`); Claude Sonnet·GitHub Copilot의 기본 1순위 대체 모델 | **Gemini 4 Neon (`High`)** / **Claude Sonnet (`Medium`)** | **GitHub Copilot** |
-| **Gemini 4 Neon (`High`)** *(1차 승격)* | `Maker (Complex·Core) & Multi-Step Orchestrator` | 단기 쿼터 주기 심층 코딩·조율 모델(**기본 `High`**, 난해한 디버깅 시 `XHigh` + `Orchestrator (Neon)`). 다중 컴포넌트 복합 상태·생명주기 구현, 코어 수식/날짜/SQL/RPC 구현(GPT Codex 1순위 Gemini 대체), 반복 실패 디버깅 해결, 다단계 복합 Run 오케스트레이션 | **Claude Opus (`High`)** / **Gemini 4 Hydrogen (`Medium`)** | **GitHub Copilot** |
-| **Gemini 4 Carbon (`High`)** *(2차 최상위 승격)* | `Chief Architect & Final Gatekeeper (src/** 직접 구현 금지)` | 최상위 수석 아키텍트(**기본 `High`** + `Orchestrator (Carbon)`, 구 `Argon` 승계). 오픈 아키텍처·공식 명세(`docs/spec/*.md`) 수립, 금전/원장/포인트/RLS/`SECURITY DEFINER` RPC 심층 감사, 고위험 Run 최종 통합 리뷰(`review.json`), 메타 오케스트레이션 및 규칙 설계 | **Claude Opus (`High`)** / **Gemini 4 Neon (`High`)** | **Gemini 4 Hydrogen (`Medium`)** |
+| **Gemini 4 Hydrogen (`Medium`)** *(Gemini 기본)* | `Default Maker (Feature·UI·Test·Fast Docs) & Default Orchestrator / Reviewer` | `Gemini Models` 공용 한도 올라운더(**기본 `Medium`**, `Low`~`XHigh` 지원). 일반·표준 기능 및 UI 컴포넌트(`src/app/`, `src/components/`, `src/lib/`), 경량 Tailwind/마크업·`docs/` 동기화(구 `Gemini 3.8 Flash` 역할 통합), Vitest 단위/통합 테스트, 표준 Run 등록/배정/마감(`New-CollaborationRun.ps1`), 표준 정적 리뷰(`review.json`); Claude Sonnet·GitHub Copilot의 기본 1순위 대체 모델 | **Claude Sonnet (`Medium`)** *(Gemini 한도 잔여 시 난이도/컨텍스트 인계는 **Gemini 4 Neon (`High`)**)* | **GitHub Copilot** / **GPT Codex** |
+| **Gemini 4 Neon (`High`)** *(1차 승격)* | `Maker (Complex·Core) & Multi-Step Orchestrator` | `Gemini Models` 공용 한도 심층 코딩·조율 모델(**기본 `High`**, 난해한 디버깅 시 `XHigh` + `Orchestrator (Neon)`). 다중 컴포넌트 복합 상태·생명주기 구현, 코어 수식/날짜/SQL/RPC 구현(GPT Codex 1순위 Gemini 대체), 반복 실패 디버깅 해결, 다단계 복합 Run 오케스트레이션 | **Claude Opus (`High`)** / **GPT Codex** *(코어·SQL/RPC)* | **Claude Sonnet (`Medium`)** / **GitHub Copilot** |
+| **Gemini 4 Carbon (`High`)** *(2차 최상위 승격)* | `Chief Architect & Final Gatekeeper (src/** 직접 구현 금지)` | `Gemini Models` 공용 한도 최상위 수석 아키텍트(**기본 `High`** + `Orchestrator (Carbon)`, 구 `Argon` 승계). 오픈 아키텍처·공식 명세(`docs/spec/*.md`) 수립, 금전/원장/포인트/RLS/`SECURITY DEFINER` RPC 심층 감사, 고위험 Run 최종 통합 리뷰(`review.json`), 메타 오케스트레이션 및 규칙 설계 | **Claude Opus (`High`)** *(Gemini 한도 잔여 시 **Gemini 4 Neon (`High`)**)* | **Claude Sonnet (`Medium`)** / **Gemini 4 Hydrogen (`Medium`)** |
 | **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜 계산(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Gemini 4 Neon (`High`)** / **Claude Opus (`High`)** | **Gemini 4 Hydrogen (`Medium`)** / **GitHub Copilot** |
-| **Claude (Claude Pro: `Sonnet (Medium)` / `Opus (High)`)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 (**`Sonnet (Medium)`** 기본 Maker/표준 리뷰; **`Opus (High)`** 심층 감사/통합 리뷰) | **Gemini 4 Hydrogen (`Medium`)** *(Sonnet)* / **Gemini 4 Neon·Carbon (`High`)** *(Opus)* | **GitHub Copilot** |
-| **GitHub Copilot** | `Maker (General) & Fallback Hub` | 일반 기능, 라우팅 및 UI 컴포넌트(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 4 Hydrogen (`Medium`)** | **GPT Codex** |
+| **Claude (Claude Pro: `Sonnet (Medium)` / `Opus (High)`)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 (**`Sonnet (Medium)`** 기본 Maker/표준 리뷰; **`Opus (High)`** 심층 감사/통합 리뷰) | **Gemini 4 Hydrogen (`Medium`)** *(Sonnet)* / **Gemini 4 Neon·Carbon (`High`)** *(Opus)* | **GitHub Copilot** / **GPT Codex** |
+| **GitHub Copilot** | `Maker (General) & Fallback Hub` | 일반 기능, 라우팅 및 UI 컴포넌트(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 4 Hydrogen (`Medium`)** / **Claude Sonnet (`Medium`)** | **GPT Codex** |
 
 ### 모델별 기본 추론 수준(Reasoning Level) 운용 기준
 
@@ -25,11 +28,11 @@
   - **`Low`로 낮춤**: 아카이브 잘라 붙이기, `docs/`의 상태·SHA 갱신, 한 줄 오타 수정처럼 판단이 필요 없는 작업.
   - **`XHigh`로 올림**: 2회 이상 실패 후 디버깅, 비동기·동시성 또는 암호화·프로토콜 정확성, 근거가 엇갈리는 보안·원장 감사.
   - 금액·원장·포인트·RLS·SQL/RPC를 건드리는 Step은 기본 수준 아래로 낮추지 않음. 수준 조정은 승격을 대신하지 않으며, §1 승격 조건에 해당하면 모델을 바꿈.
-  - 수준은 사용자가 각 도구에서 정함. 행에 다른 수준이 적힌 것을 본 에이전트는 추측하지 말고 답변 첫머리에서 알림.
+  - **도구 UI 추론 수준 선택 안내**: Antigravity 모델 선택 UI의 기본 표시값이 `Medium`이므로, `High`(또는 `XHigh`) 모델로 전환을 안내할 때는 **`"Claude Opus (High — 도구에서 High 선택)"`**처럼 목표 추론 수준을 항상 함께 표기함. 행에 다른 수준이 적힌 것을 본 에이전트는 추측하지 말고 답변 첫머리에서 알림.
 
 ### Gemini 4 다단계 운용 및 승격 기준 (`Hydrogen` 기본 $\to$ `Neon` / `Carbon` 조건부 승격)
 
-최상위 모델인 **`Gemini 4 Carbon`**의 쿼터 조기 소진을 방지하기 위해, **`Gemini 4 Hydrogen`**을 Gemini 계열의 기본(Default) 모델로 두고, 작업 난이도와 특화 방향에 따라 **`Gemini 4 Neon`**(1차 승격) 또는 **`Gemini 4 Carbon`**(2차 최상위 승격)으로 승격함.
+`Hydrogen`, `Neon`, `Carbon` 3종은 Antigravity의 **`Gemini Models` 공용 한도(주간 + 5시간)**를 함께 사용함. 따라서 공용 한도의 **턴당 차감량을 절약하고 응답 속도를 최적화**하기 위해 **`Gemini 4 Hydrogen (Medium)`**을 기본(Default) 모델로 두고, 작업 난이도와 특화 방향에 따라 **`Gemini 4 Neon (High)`**(1차 승격) 또는 **`Gemini 4 Carbon (High)`**(2차 최상위 승격)으로 승격함.
 
 1. **`Gemini 4 Hydrogen` (기본 Maker · 기본 Orchestrator · 표준 Reviewer)**:
    - 명시적 수용 기준과 대상 파일이 지정된 표준 기능·UI·유틸(`src/app/`, `src/components/`, `src/lib/`), 경량 스타일/마크업·문서 동기화 구현 및 Vitest 테스트 작성.

@@ -6,6 +6,20 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 직전 완료 Run 기록: 협업 규칙 개정 (`Argon` $\to$ `Carbon` 인계·`Flash` 대체·기본 추론 수준, `main` 직접, 2026-11-25)
+
+- **과제 구분**: 협업 규칙 개정 — 11월 30일 서비스 종료 예정인 `Gemini 4 Argon` $\to$ `Gemini 4 Carbon` 인계 및 `Gemini 3.8 Flash` 대체 모델·서브에이전트 위임 규칙 정비 (`collaboration.md` §1~§3 및 관련 스킬/에이전트 문서)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- |
+| **1** | **`✅ DONE (2026-11-25)`** | **Gemini 4 Argon (`High`)** *(Fallback: Claude Opus / Gemini 4 Neon)* | `Chief Architect (협업 규칙·스킬 개정 설계 및 반영)` | `✅` 질문 카드 2건 및 모델별 추론 수준(`Hydrogen/Sonnet: Medium`, `Neon/Carbon/Opus: High`) 반영 완료(`9fd2728`, `665efb3`), `Sync-Skills.ps1 -Check` 통과 |
+| **2** | **`✅ DONE (2026-11-25)`** | **Claude Opus (`High`)** *(Fallback: Gemini 4 Neon (`High`))* | `Reviewer & Architect (협업 규칙 개정·추론 수준 2차 검토 및 마감)` | `✅` 구참조 점검 통과(이력·승계 설명만 남음), 보완 3건 반영(추론 수준 예외 기준, 서브에이전트 위임 금지 범위, 큐 행 수준 표기, `99b998d`), `Sync-Skills.ps1 -Check` 통과 |
+
+#### 📝 협업 규칙 개정 Step 1·2 완료 기록 요약 (Gemini 4 Argon · Claude Opus, 2026-11-25)
+
+- **Step 1 (Gemini 4 Argon)**: `Gemini 4 Carbon`(`High` + `Orchestrator (Carbon)`)이 Tier-3 `Chief Architect & Final Gatekeeper`를 승계하고 `/swarm` 병렬 모드는 사용자 사전 제안·승낙 시에만 허용함. `Gemini 3.8 Flash` 행을 제거해 6대 모델로 통합(`Gemini 4 Hydrogen (Medium)` 흡수, 내부 `invoke_subagent`는 `Model: "flash_lite"`/`"inherit"` 사용)하고 모델별 기본 추론 수준(`Hydrogen/Sonnet: Medium`, `Neon/Carbon/Opus: High`)을 명시함.
+- **Step 2 (Claude Opus)**: Step별 추론 수준 예외 기준(`Low` 기계적 문서 작업, `XHigh` 2회 실패 디버깅·동시성·암호화·근거 충돌 감사, 금액·SQL Step 하향 금지), 서브에이전트 위임 금지 범위, Orchestrator 큐 행 `Primary Model (Level)` 표기를 보완 반영함.
+
 ### 🗂️ 직전 완료 Run 기록: `r106-notification-delete`
 
 - **Run ID**: `r106-notification-delete` **(완료, `main` 병합 `0ddc229`, 2026-11-25)** *(`R106` 알림 직접 삭제: `public.delete_notifications(UUID[])` `SECURITY DEFINER` RPC 하드 삭제 + `NotificationBell` 항목별 삭제·헤더 `'전체 삭제'` 버튼. 명세 [`docs/push-notification-research.md`](push-notification-research.md) §12)*

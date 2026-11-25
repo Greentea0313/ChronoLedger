@@ -21,7 +21,7 @@ Run these steps immediately, without clarifying questions:
 5. **Restore the workspace** (multi-PC): if `.worktrees/<run_id>` or the recorded Target SHA is missing locally, run `git fetch origin collab/<run_id>` before blocking. If the remote branch exists, recreate the worktree with `git worktree add --track -b collab/<run_id> .worktrees/<run_id> origin/collab/<run_id>` (when the local branch is missing too), or update an existing clean worktree with `git -C .worktrees/<run_id> pull --ff-only`. Never reset, force or overwrite local changes; a dirty worktree or a non-fast-forward pull is `🛑 BLOCKED`. If the remote branch or Target SHA is still missing, set `🛑 BLOCKED` and ask the user to run `git -C .worktrees/<run_id> push -u origin collab/<run_id>` on the previous PC.
 6. **Respect scope**: work only in the row's worktree and allowed files, against its acceptance criteria. Edits, tests and commits happen inside `.worktrees/<run_id>`; queue updates go to the root `docs/handoff.md`.
 7. **Baton touch**: when done (Maker: after the commit), set your row to `✅ DONE (SHA: <sha>)` and the next `⏳ WAITING` row to `▶ READY`. On an unresolvable blocker set `🛑 BLOCKED` and report.
-8. **Close out docs** with the `chronoledger-docs-closeout` skill, then report: what was done, verification evidence, and the next model (with fallbacks) to call with `"인수인계 문서를 확인해"`.
+8. **Close out docs** with the `chronoledger-docs-closeout` skill, then report: what was done, verification evidence, and the next model (with fallbacks and target reasoning level, adding `"도구에서 High 선택"` when the target level is `High` or `XHigh`) to call with `"인수인계 문서를 확인해"`.
 
 ## 2. Docker Desktop precheck
 
@@ -35,6 +35,6 @@ For tasks that need local Supabase (marked `🐳`), check Docker before starting
 - Track whether the remaining budget is likely to be enough; never claim an exact remaining amount.
 - If completion is at risk, tell the user early, save all file edits, then in `docs/handoff.md`:
   1. set the row to `⚠️ HANDOVER_NEEDED`;
-  2. change the assigned model to `~~Current Model~~ ➡️ [Fallback Model]` (fallback chain: `.agents/rules/collaboration.md` §1);
+  2. change the assigned model to `~~Current Model~~ ➡️ [Fallback Model (Level)]` (fallback chain: `.agents/rules/collaboration.md` §1 — **when handing over due to quota exhaustion, skip models in the same exhausted quota pool**, e.g. if `Gemini Models` shared quota is exhausted, do not hand over from `Hydrogen`/`Neon`/`Carbon` to another Gemini model; route directly to the cross-pool Fallback such as `Claude Sonnet (Medium)`, `Claude Opus (High)`, `GPT Codex`, or `GitHub Copilot`);
   3. under `### 📌 중단 체크포인트 (Handover Checkpoint)` record ① completed files/tasks, ② remaining concrete tasks, ③ decisions/assumptions, ④ tests run.
-- Final message: "토큰/컨텍스트 한도로 체크포인트 남김. **[대체 모델명]**으로 전환 후 `'인수인계 문서를 확인해'` 입력 필요."
+- Final message: "토큰/컨텍스트 한도로 체크포인트 남김. **[대체 모델명 (추론 수준 — High/XHigh면 '도구에서 High 선택' 병기)]**으로 전환 후 `'인수인계 문서를 확인해'` 입력 필요."

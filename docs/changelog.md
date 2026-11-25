@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-25 (Antigravity 공용 쿼터 풀 반영 및 한도 소진 대체 체인 보정)
+
+- `Gemini 4 Hydrogen`·`Neon`·`Carbon`이 Antigravity의 `Gemini Models` 주간·5시간 공용 한도를 공유하는 구조를 `.agents/rules/collaboration.md`·`docs/collaboration-guide.md`에 반영하고, `Hydrogen (Medium)` 기본 운용 사유를 공용 한도 절약 및 응답 속도 최적화로 정정함.
+- 난이도 승격(`Hydrogen` $\to$ `Neon` / `Carbon`)과 한도 소진 인계(Cross-Pool Quota Fallback)를 분리해, 공용 한도 소진 시 같은 쿼터 묶음을 건너뛰고 다른 한도 풀(`Claude`·`GPT Codex`·`GitHub Copilot`)로 넘기도록 대체 표와 `handoff` Skill을 보정함. 도구 UI의 기본 추론 수준(`Medium`)을 고려해 `High`/`XHigh` 모델 전환 안내 시 `'도구에서 High 선택'`을 함께 표기하도록 명시함.
+
 ## 2026-11-25 (협업 규칙 개정 2차 검토 보완)
 
 - `collaboration.md`·`collaboration-guide.md`에 Step별 추론 수준 예외 기준(`Low`·`XHigh` 전환 조건, 금액·SQL Step 하향 금지, 승격 우선)과 서브에이전트 위임 금지 범위를 추가하고, Orchestrator Skill의 큐 행 표기를 `Primary Model (Level)`로 명시함.
