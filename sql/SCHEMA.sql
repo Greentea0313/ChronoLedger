@@ -49,8 +49,8 @@ CREATE INDEX idx_feedback_requests_user_id ON public.feedback_requests(user_id, 
 CREATE TABLE public.notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    kind VARCHAR(40) NOT NULL CHECK (
-        kind IN ('FAVORITE_START', 'FAVORITE_END_D1', 'EXPENSE_D1', 'REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED')
+    kind VARCHAR(40) NOT NULL CONSTRAINT notifications_kind_check CHECK (
+        kind IN ('FAVORITE_START', 'FAVORITE_END_D1', 'EXPENSE_D1', 'EXPENSE_DUE_TODAY', 'REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED')
     ),
     title VARCHAR(120) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 120),
     body VARCHAR(300) NOT NULL CHECK (length(btrim(body)) BETWEEN 1 AND 300),
@@ -75,6 +75,7 @@ CREATE TABLE public.notification_settings (
     favorite_schedule_start BOOLEAN NOT NULL DEFAULT true,
     favorite_schedule_end_d1 BOOLEAN NOT NULL DEFAULT true,
     planned_expense_d1 BOOLEAN NOT NULL DEFAULT true,
+    expense_due_today BOOLEAN NOT NULL DEFAULT true,
     request_result BOOLEAN NOT NULL DEFAULT true,
     push_enabled BOOLEAN NOT NULL DEFAULT false,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -2071,6 +2072,28 @@ BEGIN
       AND e.target_date = v_tomorrow
       AND coalesce(ns.planned_expense_d1, true) = true
       AND NOT public.account_deletion_is_pending(e.user_id)
+    ON CONFLICT (user_id, kind, source_id, scheduled_for) WHERE scheduled_for IS NOT NULL DO NOTHING;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    v_inserted_count := v_inserted_count + v_rows;
+
+    -- 4) 오늘 결제 예정 지출 요약 (EXPENSE_DUE_TODAY, R107-B): 사용자·일자당 1건, 금액·항목명·메모 원문 미포함
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id, scheduled_for)
+    SELECT
+        e.user_id,
+        'EXPENSE_DUE_TODAY',
+        '오늘 결제 예정 ' || count(*)::text || '건',
+        '오늘 결제 예정인 지출을 지출 관리에서 확인하세요.',
+        '/dashboard/expenses',
+        e.user_id,
+        v_today
+    FROM public.expenses e
+    LEFT JOIN public.notification_settings ns ON ns.user_id = e.user_id
+    WHERE e.status = 'PLANNED'
+      AND e.target_date = v_today
+      AND coalesce(ns.expense_due_today, true) = true
+      AND NOT public.account_deletion_is_pending(e.user_id)
+    GROUP BY e.user_id
+    HAVING count(*) >= 1
     ON CONFLICT (user_id, kind, source_id, scheduled_for) WHERE scheduled_for IS NOT NULL DO NOTHING;
     GET DIAGNOSTICS v_rows = ROW_COUNT;
     v_inserted_count := v_inserted_count + v_rows;

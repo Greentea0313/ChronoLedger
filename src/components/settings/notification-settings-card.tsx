@@ -18,6 +18,7 @@ type SettingKey =
   | "favorite_schedule_start"
   | "favorite_schedule_end_d1"
   | "planned_expense_d1"
+  | "expense_due_today"
   | "request_result"
   | "push_enabled"
 type SettingValues = Record<SettingKey, boolean>
@@ -48,6 +49,11 @@ const DAILY_AND_EVENT_OPTIONS: { key: Exclude<SettingKey, "push_enabled">; label
     description: "내일 결제 예정인 지출이 있으면 오늘 오전 9시(KST)에 알려줌. 금액은 알림에 표시하지 않음.",
   },
   {
+    key: "expense_due_today",
+    label: "오늘 결제 예정",
+    description: "오늘 결제 예정인 지출이 있으면 오전 9시(KST)에 요약 알림으로 알려줌. 금액과 항목명은 표시하지 않음.",
+  },
+  {
     key: "request_result",
     label: "요청 처리 결과 알림",
     description: "요청 승인·반려 및 건의 답변 시 웹 푸시 알림을 받습니다. (앱 내 알림함에는 항상 표시됨)",
@@ -58,9 +64,14 @@ const DEFAULT_VALUES: SettingValues = {
   favorite_schedule_start: true,
   favorite_schedule_end_d1: true,
   planned_expense_d1: true,
+  expense_due_today: true,
   request_result: true,
   push_enabled: false,
 }
+
+const BASE_SETTINGS_COLUMNS = "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, request_result, push_enabled"
+const EXTENDED_SETTINGS_COLUMNS =
+  "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, expense_due_today, request_result, push_enabled"
 
 const MIGRATION_PENDING_MESSAGE = "DB 업데이트(R39) 적용 후 알림 설정을 저장할 수 있습니다."
 const PUSH_MIGRATION_PENDING_MESSAGE = "DB 업데이트(R96) 적용 후 웹 푸시 기기를 관리할 수 있습니다."
@@ -74,6 +85,11 @@ const PLATFORM_LABELS: Record<PushPlatform, string> = {
 function isMissingTableOrFunction(error: { code?: string } | null | undefined): boolean {
   const code = error?.code ?? ""
   return code === "42P01" || code === "PGRST205" || code === "42883" || code === "PGRST202"
+}
+
+function isMissingColumn(error: { code?: string } | null | undefined): boolean {
+  const code = error?.code ?? ""
+  return code === "42703" || code === "PGRST204"
 }
 
 function formatKstDate(value: string | null): string {
@@ -98,6 +114,7 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
   const [values, setValues] = useState<SettingValues>(DEFAULT_VALUES)
   const [isLoading, setIsLoading] = useState(true)
   const [isAvailable, setIsAvailable] = useState(true)
+  const [isExpenseDueTodayAvailable, setIsExpenseDueTodayAvailable] = useState(true)
   const [savingKey, setSavingKey] = useState<SettingKey | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -147,11 +164,25 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
     setSupportState(getPushSupportState())
     setPermission(readNotificationPermission())
     try {
-      const { data, error: loadError } = await supabase
+      let { data, error: loadError } = await supabase
         .from("notification_settings")
-        .select("favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, request_result, push_enabled")
+        .select(EXTENDED_SETTINGS_COLUMNS)
         .eq("user_id", userId)
         .maybeSingle()
+
+      if (loadError && isMissingColumn(loadError)) {
+        setIsExpenseDueTodayAvailable(false)
+        const fallbackRes = await supabase
+          .from("notification_settings")
+          .select(BASE_SETTINGS_COLUMNS)
+          .eq("user_id", userId)
+          .maybeSingle()
+        data = fallbackRes.data ? { ...fallbackRes.data, expense_due_today: true } : null
+        loadError = fallbackRes.error
+      } else if (!loadError) {
+        setIsExpenseDueTodayAvailable(true)
+      }
+
       if (loadError) {
         if (isMissingTableOrFunction(loadError)) {
           setIsAvailable(false)
@@ -166,6 +197,7 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
           favorite_schedule_start: data?.favorite_schedule_start ?? true,
           favorite_schedule_end_d1: data?.favorite_schedule_end_d1 ?? true,
           planned_expense_d1: data?.planned_expense_d1 ?? true,
+          expense_due_today: data?.expense_due_today ?? true,
           request_result: data?.request_result ?? true,
           push_enabled: data?.push_enabled ?? false,
         })
@@ -203,7 +235,9 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
         )
       if (saveError) {
         setValues((prev) => ({ ...prev, [key]: previous }))
-        if (isMissingTableOrFunction(saveError)) {
+        if (key === "expense_due_today" && isMissingColumn(saveError)) {
+          setIsExpenseDueTodayAvailable(false)
+        } else if (isMissingTableOrFunction(saveError)) {
           setIsAvailable(false)
           setError(MIGRATION_PENDING_MESSAGE)
         } else {
@@ -291,7 +325,7 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
             매일 오전 9시(KST)에 앱 안의 알림함(상단 벨)으로 전달되는 일일 알림과 요청 결과 웹 푸시 알림을 종류별로 켜고 끕니다.
           </p>
           <ul className="space-y-3">
-            {DAILY_AND_EVENT_OPTIONS.map((option) => (
+            {DAILY_AND_EVENT_OPTIONS.filter((option) => option.key !== "expense_due_today" || isExpenseDueTodayAvailable).map((option) => (
               <li key={option.key} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-content">{option.label}</p>

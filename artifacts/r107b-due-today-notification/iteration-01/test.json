@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r107b-due-today-notification",
+  "iteration": 1,
+  "agent": "Claude Sonnet (Medium)",
+  "role": "dynamic-test",
+  "base_sha": "a6f14cc2b519bfba97c06c804082378b1c623558",
+  "target_sha": "74bece6ecbdc81a81b6b19610852ae18d4b4458e",
+  "status": "passed",
+  "created_at": "2026-11-25T08:00:00+00:00",
+  "finished_at": "2026-11-25T08:12:00+00:00",
+  "sandbox": "docker",
+  "redactions_applied": true,
+  "tests": [
+    { "name": "TypeScript", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest (76 files, 1037 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Next build (static export)", "command": "npm run build (dummy NEXT_PUBLIC_SUPABASE_* env)", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Local DB upgrade path: Base SCHEMA.sql, R107B migration x2, 3 check queries, TESTS.sql (49 PASS, ROLLBACK)", "command": "docker exec supabase_db_chronoledger-local psql -f SCHEMA(Base) / MIGRATION_R107B x2 / TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Local DB fresh-install path: Target SCHEMA.sql, R107B migration x2, 3 check queries, TESTS.sql (49 PASS, ROLLBACK)", "command": "docker exec supabase_db_chronoledger-local psql -f SCHEMA(Target) / MIGRATION_R107B x2 / TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}
