@@ -15,15 +15,26 @@
 
 - **활성 과제**: **`R107-C` 템플릿별 자동 확정 (`r107c-auto-confirm` — Base `3a9e31319fbea82f3b1ab85a26f819e5d904d5af`, 브랜치 `collab/r107c-auto-confirm`, 워크트리 `.worktrees/r107c-auto-confirm`)** *(확정 명세: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §5 — `auto_confirm`·`_process_expense_payment_core` 추출·`auto_confirm_due_expenses`·`INTERVAL_30` 환불 롤백 원자화·`EXPENSE_AUTO_CONFIRMED` 알림·구독 모달 토글. `R107A-REV-001·002` 포함)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql`, `SCHEMA.sql`). 🐳 Docker Desktop 필요. 금전·원장·환불 변경이라 Step 1은 `Opus` 승격 조건 ①. Step 1에서 로컬 업그레이드·신규 설치 2경로 각 2회 멱등·`TESTS.sql` 54개 PASS·2세션 병렬 3시나리오 확인함(Step 3 병합 게이트에서 재검증 필요). 운영 DB 미적용.
-- **Target SHA (Step 1)**: `1094f84cb2324dc10ca78b9e62c567a2e2233dba` *(워크트리 커밋, 미병합, 원격 브랜치: push 안 함)*
+- **Target SHA (Step 2)**: `451ab5e4292534fc0f5165fceb4bf9875af06a8b` *(Step 1 `1094f84cb2324dc10ca78b9e62c567a2e2233dba` + Step 2 `451ab5e4292534fc0f5165fceb4bf9875af06a8b`, 미병합, 원격 브랜치: push 안 함)*
 - **수용 기준**: 명세 §5.4(`C-1`~`C-12`). 명세 §9 미결 질문 6건은 기본값으로 진행(사용자 이견 시 중단 후 재확인).
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 1094f84cb2324dc10ca78b9e62c567a2e2233dba)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Neon (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (R107-C SQL/RPC/Tests)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §5.1·`C-1`~`C-10`, `R107A-REV-001·002`(`supabase gen types` 시 `p_original_target_date` `\| null` 보존, 환불 롤백의 비활성 템플릿 처리 명시). 허용 파일: 신규 `sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | ✅ 아래 Step 1 완료 기록 |
-| **2** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R107-C 구독 모달·배지·환불 흐름 & Vitest)` | Step 1 완료 후 착수. 명세 §5.2·`C-11`. 허용 파일: 구독 모달·지출 목록/상세·환불 흐름 관련 `src/**`와 테스트(범위는 명세 §5.2), 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **3** | **`⏳ WAITING`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Maker인 Opus·Hydrogen 제외)* | `Reviewer & Local DB Gate` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요**. 금전·원장·동시성·권한 통합 정적 리뷰(`review.json`), `test.json`(로컬 DB 2경로 2회 멱등·`TESTS.sql`·2세션 병렬·`tsc`·`lint`·Vitest·`next build`, `C-5`·`C-12`), `main` 병합 | `⏳ Step 2 완료 대기` |
+| **2** | **`✅ DONE (SHA: 451ab5e4292534fc0f5165fceb4bf9875af06a8b)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R107-C 구독 모달·배지·환불 흐름 & Vitest)` | Step 1 완료 후 착수. 명세 §5.2·`C-11`. 허용 파일: 구독 모달·지출 목록/상세·환불 흐름 관련 `src/**`와 테스트(범위는 명세 §5.2), 루트 `docs/handoff.md`, `docs/progress.md` | `✅` 워크트리 커밋 `451ab5e4292534fc0f5165fceb4bf9875af06a8b`(7파일). `git diff --check`·`tsc`·`lint`·Vitest 78파일/1,074개 통과 (아래 Step 2 완료 기록 참고) |
+| **3** | **`▶ READY`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Maker인 Opus·Hydrogen 제외)* | `Reviewer & Local DB Gate` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요**. 금전·원장·동시성·권한 통합 정적 리뷰(`review.json`), `test.json`(로컬 DB 2경로 2회 멱등·`TESTS.sql`·2세션 병렬·`tsc`·`lint`·Vitest·`next build`, `C-5`·`C-12`), `main` 병합 | 대기 중 |
 | **4** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (마감)` | Step 3 병합 후 착수. 문서 아카이브 마감 및 명세 §6 운영 적용 순서 안내 | `⏳ Step 3 완료 대기` |
+
+#### 📝 `r107c-auto-confirm` Step 2 (Maker) 완료 기록 (Gemini 4 Hydrogen `Medium`, 2026-11-26)
+
+- **Target SHA**: `451ab5e4292534fc0f5165fceb4bf9875af06a8b` (`collab/r107c-auto-confirm`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (워크트리 7건)**:
+  - `src/components/subscription/subscription-modal.tsx`: 결제수단 선택(`WALLET`·`GOOGLE_PLAY`·`GALAXY_STORE`) 활성화 및 스토어 선택 시 `'자동 확정'` 토글 활성(기본 꺼짐, 안내 문구 3항목)·`WALLET` 전환 시 강제 해제·비활성, `42703`/`PGRST204` 미적용 DB에서 `auto_confirm` 제외 재저장 폴백 구현함.
+  - `src/components/expense/expense-detail-modal.tsx`: 환불 후 클라이언트 `rollbackIntervalSubscriptionExpense` 호출 제거(DB RPC 원자 처리), `auto_confirmed_at` 보유 시 `'자동 확정'` 배지 표시함.
+  - `src/app/dashboard/expenses/page.tsx`: 공용 `select`와 분리된 `auto_confirmed_at`·`auto_confirm` 보조 조회(D15 폴백), 목록 데스크톱/모바일 `'자동 확정'` 배지 표시, `restore_cancelled_expense` `23505` 충돌 시 fallback `update` 차단 및 안내 문구(`role="alert"`) 표시함.
+  - 테스트 4건(`subscription-modal.test.tsx`·`expense-detail-modal.test.tsx`·`expenses/page.test.tsx`·`budget-calculations.test.ts`): 스토어 토글/강제 해제/`42703` 폴백, 환불 시 롤백 RPC 미호출·배지 표시, `23505` 안내, `C-4` 11-30↔12-01 월 경계 케이스 추가함.
+- **실행 검증 결과**: 워크트리 `git diff --check` 통과, `npx tsc --noEmit` 통과, `npm run lint` 경고·오류 0건, `npx vitest run --dir src` 78파일 1,074개 전체 통과함.
+- **남은 작업**: Step 3(**Gemini 4 Carbon (`High` — 도구에서 High 선택)**, Fallback: `GPT Codex`)이 Base `3a9e313` ↔ Target `451ab5e` 통합 정적 리뷰·🐳 로컬 DB 2경로·2세션 병렬 검증·`next build`·`main` 병합 수행 예정임.
 
 
 #### 📝 `r107c-auto-confirm` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
