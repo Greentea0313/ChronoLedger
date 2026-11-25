@@ -268,6 +268,12 @@
 - [x] R105. [Run `r105-dashboard-summary-bar` 완료·`main` 병합 `fe5bf77`(2026-11-24, 정적 리뷰 clean, `tsc`·`lint`·Vitest 76파일/1021개·`next build` 통과) · DB 변경 없음] 대시보드 홈 상태바(`dashboard-summary`)를 컴팩트 KPI + 월간 예산 페이스 연동 바(오늘 일정·이번 주 관심 일정·이번 주 예정 지출·이번 달 예산 잔여/소진율)로 개편
 - [x] R106. [Run `r106-notification-delete` 완료·`main` 병합 `0ddc229`(2026-11-25, iteration-01 P4 2건 비차단, 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 45개 PASS) · 운영 DB 적용·확인 쿼리·실배포 확인 완료(사용자, 2026-11-25)] 앱 내 알림함(`NotificationBell`) 알림 직접 삭제 기능: `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL)` `SECURITY DEFINER` RPC(본인 알림 개별·전체 하드 `DELETE`, 비로그인·계정 삭제 대기 차단, 테이블 직접 `DELETE` 미부여) + 알림 항목별 개별 삭제 버튼 및 헤더 `'전체 삭제'` 버튼 — 확정 명세 [`docs/push-notification-research.md`](push-notification-research.md) §12 (담당: Step 1 GPT Codex / Gemini 4 Neon DB → Step 2 Gemini 4 Hydrogen / Claude Sonnet UI → Step 3 Claude Opus 통합 리뷰)
 - [ ] R106-REV-001·002. [P4 · 선택 후속 · 리뷰 `artifacts/r106-notification-delete/iteration-01/review.json`] ① `'전체 삭제'` 확인 단계 추가 또는 로드된 ID만 삭제할지 제품 판단, ② 워커 점유 중 알림 삭제 시 `complete_push_notification_delivery`가 `no_data_found` 대신 조용히 끝나도록 할지 판단.
+- [ ] R107. [명세 완료 2026-11-25(Claude Opus) · Run 등록 대기 · SQL/금전 변경 → Opus 승격 조건 ①] 정기·반복 지출 자동화 — 명세 [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), 운영 SQL 적용 순서 §6:
+  - [ ] R107-A. 서버 측 정기 지출 생성 통일(`pg_cron` `chronoledger-subscription-daily`, `INTERVAL_30` 부분 유니크 인덱스, SQL 단일 구현 + 클라이언트 RPC 전환·폴백) — Run `r107a-server-subscription-generation` (인수 기준 `A-1`~`A-9`)
+  - [ ] R107-A-CLEANUP. `R107-A` 운영 적용·1주 관찰 후 `subscription-sync.ts` 폴백 TS 제거 (사용자 지목 시)
+  - [ ] R107-B. "오늘 결제 예정 N건" 알림(`EXPENSE_DUE_TODAY`, `notification_settings.expense_due_today`) — Run `r107b-due-today-notification` (`R107-A` 운영 적용 후, 인수 기준 `B-1`~`B-6`)
+  - [ ] R107-C. 템플릿별 자동 확정(`auto_confirm`, 스토어 결제수단 한정, `process_expense_payment` core 추출, 환불 롤백 원자화) — Run `r107c-auto-confirm` (`R107-B` 운영 적용 후, 인수 기준 `C-1`~`C-12`)
+  - [ ] R107 미결 질문 6건 사용자 확인 (명세 §9, 기본값으로 진행 가능)
 - [ ] R40. [우선 낮음] R13 후속: 엔드 콘텐츠별 다중 파티 편성(콘텐츠별 팀 수 제한·캐릭터 중복 금지) 확장 검토 (R13 Phase 13.3 완료 후, 담당: Claude Opus 설계 → GPT Codex / Claude Sonnet)
 
 ---

@@ -13,7 +13,39 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **현재 활성 Run 없음** *(직전 `협업 규칙 보정: Antigravity Gemini 공용 한도 및 Cross-Pool 대체 체인 정정` 완료, 2026-11-25. 다음 Run은 예약 요약표에서 사용자가 지목하거나 신규 요구사항을 입력하면 착수함)*
+- **과제 구분**: 요구사항 정리 — 정기·반복 지출 자동화 확장(서버 측 생성·확정 알림·자동 확정) 스펙·인수 기준 작성 (문서 전용, `src/**`·`sql/**` 수정 없음, 🐳 불필요)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (2026-11-25, 명세 완료)`** *(원 상태 `📐 SPEC_NEEDED`)* | **Claude Opus (`High`)** *(사용자 직접 지정 인계, 2026-11-25. Fallback: Gemini 4 Carbon (`High`))* | `Chief Architect Fallback 1 (스펙·결정·인수 기준 작성)` | 아래 요구사항 접수 기록을 검토해 ① 서버 측 정기 지출 생성(`pg_cron`) 통일 방안 ② 예정일 확정 알림 ③ 템플릿별 자동 확정 옵션의 스펙·결정 사항과 단계별 인수 기준을 작성함. 허용 범위: `docs/handoff.md`·`docs/to-do.md` 및 신규 `docs/` 스펙 문서 | ✅ [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) (결정 `D1`~`D15`, 인수 기준 `A-1`~`C-12`, §6 운영 SQL 적용 순서, §7 모델 배정·Run 분할, §9 미결 질문 6건). `src/**`·`sql/**` 수정 없음, 커밋 없음 |
+| **2** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (Run 등록·반환)` | 명세 §7 Run 1 `r107a-server-subscription-generation`을 등록함(깨끗한 트리에서 `New-CollaborationRun.ps1`, 큐 행에는 명세 절 번호·인수 기준 번호 포인터만 기재, SQL Step은 `Claude Opus (High — 도구에서 High 선택)`, 🐳 필요 표기). Run 2·3은 선행 Run의 운영 적용 후 사용자 지목 시 등록함. 사용자에게 명세 §9 미결 질문 6건 확인을 요청함 | 미착수 |
+
+#### 📝 R107 명세 완료 기록 (Claude Opus, 2026-11-25)
+
+1. **결정 요약**: SQL 단일 구현 + lazy 경로는 같은 RPC(`ensure_subscription_expenses`) 호출(`D1`·`D3`), cron `chronoledger-subscription-daily` KST 08:50로 기존 알림 cron(KST 09:00)보다 앞섬(`D2`), `INTERVAL_30` 중복은 부분 유니크 인덱스 `ON expenses(template_id) WHERE status='PLANNED' AND billing_cycle IS NULL AND schedule_id IS NULL`로 DB 보장(`D4`), `INTERVAL_30` 다음 회차·환불 롤백도 SQL RPC로 이관(`D5`), `process_expense_payment`는 `_process_expense_payment_core(p_user_id, …)`로 추출해 재사용(`D6`).
+2. **자동 확정 규칙**: 대상 결제수단은 `GOOGLE_PLAY`·`GALAXY_STORE`만이며 `WALLET`은 v1 제외(`D7`). 결제일은 예정일(`target_date`)이라 `PLANNED`·`CONFIRMED` 월 귀속이 같음(`D8`). 보정 창은 예정일 오늘-2일~오늘, 생성 당일 행 제외(`D9`). 행 단위 실패 격리(`D10`). 환불 롤백된 `INTERVAL_30` `PLANNED`는 `auto_confirm_blocked`로 재확정 차단, 환불 RPC 내부로 롤백 원자화(`D11`·`D12`).
+3. **알림 규칙**: `EXPENSE_DUE_TODAY`·`EXPENSE_AUTO_CONFIRMED` 사용자·일자당 1건 요약, `source_id=user_id`로 기존 유니크 인덱스 재사용, 금액·항목명 미포함, 설정 컬럼 `expense_due_today` 1개로 제어(`D13`·`D14`).
+4. **운영 SQL 적용 순서**: `MIGRATION_R107A_*` → 앱 배포 → `MIGRATION_R107B_*` → 앱 배포 → `MIGRATION_R107C_*` → 앱 배포. 미적용 환경 폴백은 `D15`, 폴백 TS 제거는 `R107-A-CLEANUP`로 분리함.
+5. **모델 배정(요약)**: Run 1 SQL `Opus (High)`·TS `Neon (High)`·리뷰 `Carbon (High)`, Run 2 SQL `Neon (High)`·UI `Hydrogen`·리뷰 `Sonnet`, Run 3 금전 SQL `Opus (High)`·UI `Hydrogen`·리뷰 `Carbon`/`Opus` 교차. 순차 실행, `/swarm` 불필요. 상세는 명세 §7.
+6. **미결 질문 (명세 §9, 기본값으로 진행 가능)**: ① `WALLET` 자동 확정 제외 ② 보정 창 2일·당일 생성 제외 ③ 알림 시각 KST 09:00 고정 ④ `EXPENSE_D1`·`EXPENSE_DUE_TODAY` 병행 ⑤ `INTERVAL_30` lazy 경로의 조기 결제 누적 한계 ⑥ Opus Maker 배정 쿼터 적절성.
+
+#### 📝 요구사항 접수 기록 (Claude Sonnet → Claude Opus 인계, 2026-11-25)
+
+1. **요구사항 이해**: 수동 입력 마찰 완화를 위해 정기·반복 지출 자동화를 확장함. 사용자 승인 우선순위는 다음과 같음.
+   - **서버 측 생성 통일(`pg_cron`)**: 현재 `ensureMonthlySubscriptionExpenses`(`src/lib/subscription-sync.ts`)가 앱 진입 시 lazy 생성함. 앱을 열지 않으면 회차가 생기지 않아 알림·예산 집계에서 누락됨. 일 1회 cron으로 `MONTHLY_DAY`·`INTERVAL_30`·`VERSION_PASS` 회차를 생성함.
+   - **확정 알림**: 예정일 도래 시 "오늘 결제 예정 N건" 알림. 기존 `notifications`·`push_subscriptions` 재사용함.
+   - **자동 확정 옵션**: 템플릿별 옵션이며 기본값은 알림만임. 예정일 도래 시 SECURITY DEFINER RPC(`process_expense_payment` 계열)로 확정함.
+2. **에스컬레이션 조건**: `Carbon` 승격 조건에 해당함 — 돈·원장·SECURITY DEFINER RPC 사전 설계, 신규 기능 스펙 필요, 승인 문서로 인수 기준 확정 불가. 사용자가 Claude Opus(Fallback 1)를 직접 지정함.
+3. **미결 질문·결정 필요 사항**:
+   - `INTERVAL_30`은 DB 유니크 제약 없이 PLANNED 존재 확인만 사용하므로 동시 실행 시 중복 가능함. DB 측 보장 방식 결정 필요함.
+   - 클라이언트 lazy 경로와 cron 경로의 공존·통일 방식(TS/SQL 로직 이중화 방지) 결정 필요함.
+   - 자동 확정 대상 결제수단: `GOOGLE_PLAY`·`GALAXY_STORE`는 외부 자동결제와 일치함. `WALLET`은 잔액 부족 시 처리(건너뜀·알림·음수 허용) 결정 필요함.
+   - `INTERVAL_30` 자동 확정의 날짜 기준(예정일 당일 고정 여부)과 조기·지연 결제 누적 로직 정합성 확인 필요함.
+   - 환불(`refund_expense_payment`)·롤백 정합성 및 예산 귀속 규칙(PLANNED=종료일 월, CONFIRMED=결제월)의 월 경계 정합 확인 필요함.
+   - 마이그레이션은 SQL Editor 수동 적용이므로 적용 순서와 미적용 환경 폴백(`interval_days`·`cycle_type` 패턴) 규정 필요함.
+4. **관련 파일·문서**: `src/lib/subscription-sync.ts`, `sql/SCHEMA.sql`(`subscription_templates`·`expenses`·`notifications`·`push_subscriptions`·`dedupe_monthly_planned_expenses`·`process_expense_payment`), `docs/push-notification-research.md`, `docs/to-do.md`.
+5. **범위 제외(근거 부족으로 보류)**: 이벤트 연동형 일반화(`PICKUP`은 가변 지출, `CONTENTS`·`BROADCAST`는 무료라 정기결제와 부합하지 않음), 주간·연간·종료 조건 주기 추가.
+6. **권장 진행 순서**: 서버 측 생성 통일 → 확정 알림 → 자동 확정 옵션. 서버 스케줄러가 알림·자동 확정의 선행 조건임.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -26,6 +58,7 @@
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
+| `R107` | 명세 완료 · Run 등록 대기 | 정기·반복 지출 자동화: `R107-A` 서버 측 생성 통일 → `R107-B` 결제 예정 알림 → `R107-C` 자동 확정 옵션. Run 1 등록은 위 접수 표 순서 2(Hydrogen), Run 2·3은 선행 운영 적용 후 사용자 지목 시 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |

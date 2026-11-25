@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-25 (R107 정기·반복 지출 자동화 명세, 문서 전용)
+
+- `docs/r107-recurring-expense-automation-spec.md`를 추가해 서버 측 정기 지출 생성 통일(`pg_cron`·`INTERVAL_30` 부분 유니크 인덱스·SQL 단일 구현), "오늘 결제 예정 N건" 알림, 템플릿별 자동 확정(스토어 결제수단 한정·예정일 결제일 기준·환불 롤백 원자화)의 결정 `D1`~`D15`, 단계별 인수 기준, 운영 SQL 적용 순서, 모델 배정·Run 3분할안을 확정함. `src/**`·`sql/**` 변경 없음. `docs/handoff.md`에 접수 기록·Run 등록 대기 행, `docs/to-do.md`에 `R107` 항목 추가함.
+
 ## 2026-11-25 (Antigravity 공용 쿼터 풀 반영 및 한도 소진 대체 체인 보정)
 
 - `Gemini 4 Hydrogen`·`Neon`·`Carbon`이 Antigravity의 `Gemini Models` 주간·5시간 공용 한도를 공유하는 구조를 `.agents/rules/collaboration.md`·`docs/collaboration-guide.md`에 반영하고, `Hydrogen (Medium)` 기본 운용 사유를 공용 한도 절약 및 응답 속도 최적화로 정정함.
