@@ -13,7 +13,17 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 과제**: **`R107-A` (`r107a-server-subscription-generation`) 마감 완료 (2026-11-25, `main` 병합 `7aa2984`)**. 현재 활성 대기 과제는 아래 `T1`~`T4` 및 후속 `📐 SPEC_NEEDED` (`Gemini 4 Carbon (High)`)임. `R107-A-CLEANUP`(운영 적용·1주 관찰 후) 및 `R107` Run 2(`r107b-due-today-notification`, `R107-A` 운영 적용 후)는 사용자 지목 시 등록함.
+- **활성 과제**: **`R107-B` 결제 예정 알림 (`r107b-due-today-notification` — Base `a6f14cc`, 브랜치 `collab/r107b-due-today-notification`, 워크트리 `.worktrees/r107b-due-today-notification`)** *(확정 명세: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §4 — `'EXPENSE_DUE_TODAY'` 요약 알림 + `notification_settings.expense_due_today` + 설정 UI 토글)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`, `SCHEMA.sql`). 🐳 **Docker Desktop 필요**.
+- **수용 기준**: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §4(`B-1`~`B-6`). 아래 행은 절 포인터만 둠.
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High`) / GPT Codex)* | `Maker (R107-B SQL/Migration/Tests)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §4.1-1~3, `B-1`~`B-5`(SQL 측). 허용 파일: 신규 `sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R107-B 알림 설정 UI·타입 & Vitest)` | Step 1 완료 후 착수. 명세 §4.1-1·4·5, `B-5`·`B-6`(UI·타입 측). 허용 파일: `src/components/settings/notification-settings-card.tsx`, `src/app/dashboard/settings/page.test.tsx`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
+| **3** | **`⏳ WAITING`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High`) / Gemini 4 Carbon (`High`) — Maker인 Neon·Hydrogen 제외)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 멱등 적용 및 `TESTS.sql` 검증 병합 게이트). Base ↔ Target 정적 리뷰(`review.json`), 로컬 DB 검증(`test.json`), `next build`, `main` 병합, 문서 마감 | 대기 중 |
+
+*(별도 대기: 하단 `T1`~`T4` 및 `R101-REV-001`·`R106-REV-001·002` `📐 SPEC_NEEDED` — `Gemini 4 Carbon (High)`)*
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -45,7 +55,7 @@
 | ID | 상태 | 요지 | 상세 위치 |
 | :--- | :--- | :--- | :--- |
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
-| `R107` | `R107-A` 운영 DB 적용·확인 쿼리 완료(2026-11-25) · Run 2 등록 가능 | 정기·반복 지출 자동화: `R107-A` 서버 측 생성 통일(`main` 병합·운영 DB 적용 완료, 앱 배포 및 1주 관찰 후 `R107-A-CLEANUP`) → `R107-B` 결제 예정 알림(Run 2, 사용자 지목 시 등록 가능) → `R107-C` 자동 확정 옵션(Run 3). 명세 §9 미결 질문 6건은 기본값으로 진행 중 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
+| `R107` | `R107-A` 운영 적용 완료 · **`R107-B` Run 2 진행 중** | 정기·반복 지출 자동화: `R107-A` 운영 DB 적용·확인 완료(앱 배포·1주 관찰 후 `R107-A-CLEANUP`) → `R107-B` 결제 예정 알림(Run 2 `r107b-due-today-notification` `▶ READY`) → `R107-C` 자동 확정 옵션(Run 3). 명세 §9 미결 질문 6건은 기본값으로 진행 중 | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), `docs/to-do.md` `R107` |
 | `R109` | `⏸️ 검토 완료 · 착수 결정 전` | 아이콘 Storage 이전(DB base64 → 공용 버킷 파일): 착수 전 §6 측정 쿼리로 크기 확인, 미결 결정 4건 사용자 확인 필요. 사용자가 지목할 때만 Run 등록 | [`docs/icon-storage-migration-review.md`](icon-storage-migration-review.md), `docs/to-do.md` R109 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
