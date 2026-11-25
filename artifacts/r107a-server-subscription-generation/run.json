@@ -9,7 +9,7 @@
                                 "Step 3 (Gemini 4 Carbon High): Base to Target static review and local Supabase run twice plus TESTS.sql; Step 4 (Gemini 4 Hydrogen): merge and docs closeout"
                             ],
     "base_sha":  "ff04d84aff929671d77f42380e73217ec5f27a0e",
-    "target_sha":  null,
+    "target_sha":  "372b37b5ad124837f4a11dbe150a59b247dd1523",
     "branch":  "collab/r107a-server-subscription-generation",
     "worktree_path":  ".worktrees/r107a-server-subscription-generation",
     "max_iterations":  3,
