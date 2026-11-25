@@ -1,0 +1,16 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r75-r64-tests-readme",
+    "created_at":  "2026-11-25T16:19:30.4140994+00:00",
+    "objective":  "R75 items 1 and 4: add missing R64 classification option icon scenarios (spec section 7) to sql/tests/TESTS.sql and add a one-line upsert note to sql/README.md; tests only, no schema change",
+    "acceptance_criteria":  [
+                                "Step 1 (Maker): extend the R64 block in sql/tests/TESTS.sql with docs/spec/R64_Classification_Option_Icons_Spec.md section 7 scenarios not yet covered (regular user write denied, users.role admin without JWT denied, non-approved game read blocked and admin read, bad axis_key/blank option/unknown axis, axis deletion and reorder keep, game delete CASCADE, updated_at advance, SQLSTATE/message-level negatives) and add one README line that icon edits use upsert; run on local Docker DB (upgrade and fresh paths) with all TESTS.sql blocks passing.",
+                                "Step 2 (Reviewer and Orchestrator): static review (review.json), local DB gate and checks (test.json), merge to main, close out docs."
+                            ],
+    "base_sha":  "2d4317b8141a5543b09b1d277cd80f54c9e0cf4a",
+    "target_sha":  null,
+    "branch":  "collab/r75-r64-tests-readme",
+    "worktree_path":  ".worktrees/r75-r64-tests-readme",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
