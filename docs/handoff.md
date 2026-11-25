@@ -14,14 +14,41 @@
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 과제**: **`R107-B` 결제 예정 알림 (`r107b-due-today-notification` — Base `a6f14cc`, 브랜치 `collab/r107b-due-today-notification`, 워크트리 `.worktrees/r107b-due-today-notification`)** *(확정 명세: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §4 — `'EXPENSE_DUE_TODAY'` 요약 알림 + `notification_settings.expense_due_today` + 설정 UI 토글)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`, `SCHEMA.sql`). 🐳 **Docker Desktop 필요**.
+- **Target SHA**: `74bece6ecbdc81a81b6b19610852ae18d4b4458e` *(Step 2 Maker 완료, 미병합, 원격 브랜치: push 안 함)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`, `SCHEMA.sql`). 🐳 로컬 Supabase 업그레이드·신규 설치 2경로 2회 멱등·확인 쿼리 3종·`TESTS.sql` 49개 PASS 완료(Step 3 병합 게이트 재검증 대기).
 - **수용 기준**: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §4(`B-1`~`B-6`). 아래 행은 절 포인터만 둠.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High`) / GPT Codex)* | `Maker (R107-B SQL/Migration/Tests)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §4.1-1~3, `B-1`~`B-5`(SQL 측). 허용 파일: 신규 `sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R107-B 알림 설정 UI·타입 & Vitest)` | Step 1 완료 후 착수. 명세 §4.1-1·4·5, `B-5`·`B-6`(UI·타입 측). 허용 파일: `src/components/settings/notification-settings-card.tsx`, `src/app/dashboard/settings/page.test.tsx`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **3** | **`⏳ WAITING`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High`) / Gemini 4 Carbon (`High`) — Maker인 Neon·Hydrogen 제외)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 멱등 적용 및 `TESTS.sql` 검증 병합 게이트). Base ↔ Target 정적 리뷰(`review.json`), 로컬 DB 검증(`test.json`), `next build`, `main` 병합, 문서 마감 | 대기 중 |
+| **1** | **`✅ DONE (SHA: 2e325cfb5fd2051eba3d62493bdb805ab258aa3a)`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High`) / GPT Codex)* | `Maker (R107-B SQL/Migration/Tests)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §4.1-1~3, `B-1`~`B-5`(SQL 측). 허용 파일: 신규 `sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅` 워크트리 커밋 `2e325cfb5fd2051eba3d62493bdb805ab258aa3a`(SQL 4파일). 🐳 로컬 2경로 2회 멱등·확인 쿼리 3종·`TESTS.sql` 49개 PASS·`git diff --check`·`tsc`·`lint`·Vitest 76파일/1034개 통과 |
+| **2** | **`✅ DONE (SHA: 74bece6ecbdc81a81b6b19610852ae18d4b4458e)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R107-B 알림 설정 UI·타입 & Vitest)` | Step 1 완료 후 착수. 명세 §4.1-1·4·5, `B-5`·`B-6`(UI·타입 측). 허용 파일: `src/components/settings/notification-settings-card.tsx`, `src/app/dashboard/settings/page.test.tsx`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | `✅` 워크트리 커밋 `74bece6ecbdc81a81b6b19610852ae18d4b4458e`(UI·테스트·타입 3파일). `git diff --check`·`tsc`·`lint`·Vitest 76파일/1037개 통과 |
+| **3** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High`) / Gemini 4 Carbon (`High`) — Maker인 Neon·Hydrogen 제외)* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 멱등 적용 및 `TESTS.sql` 검증 병합 게이트). Base ↔ Target 정적 리뷰(`review.json`), 로컬 DB 검증(`test.json`), `next build`, `main` 병합, 문서 마감 | 대기 중 |
+
+#### 📝 `r107b-due-today-notification` Step 2 (Maker) 완료 기록 (Gemini 4 Hydrogen `Medium`, 2026-11-25)
+
+- **Target SHA**: `74bece6ecbdc81a81b6b19610852ae18d4b4458e` (`collab/r107b-due-today-notification`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (워크트리 3건)**:
+  - `src/components/settings/notification-settings-card.tsx`: `'오늘 결제 예정'`(`expense_due_today`) 토글 추가, 컬럼 미적용 오류(`42703`·`PGRST204`) 시 기존 5개 컬럼 재조회 폴백 및 해당 토글 숨김(오류 알림 없음) 구현함.
+  - `src/types/database.types.ts`: `notifications` `kind`에 `'EXPENSE_DUE_TODAY'` 추가, `notification_settings` `Row`/`Insert`/`Update`에 `expense_due_today` 추가함.
+  - `src/app/dashboard/settings/page.test.tsx`: 기본/기존 값 복원·`expense_due_today` upsert·`42703`/`PGRST204` 폴백 숨김 테스트 3건 추가함.
+- **실행 검증 결과**: 워커·Edge Function·`sw.js`·Tauri 토스트에서 `kind` 하드코딩 차단 없음 확인함. 워크트리 `git diff --check`, `npx tsc --noEmit`, `npm run lint`(0건), `npx vitest run --dir src`(76파일 1037개) 통과함.
+- **남은 작업**: Step 3(**Claude Sonnet (`Medium`)**, Fallback: `Claude Opus (High)` / `Gemini 4 Carbon (High)`)가 Base `a6f14cc` ↔ Target `74bece6` 정적 리뷰·🐳 로컬 DB 게이트·`next build`·`main` 병합·문서 마감 수행 예정임.
+
+#### 📝 `r107b-due-today-notification` Step 1 (Maker) 완료 기록 (Gemini 4 Neon `High`, 2026-11-25)
+
+- **Target SHA**: `2e325cfb5fd2051eba3d62493bdb805ab258aa3a` (`collab/r107b-due-today-notification`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (워크트리 4건)**:
+  - 신규 `sql/migrations/MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql` · `sql/SCHEMA.sql`: `public.notifications`의 `notifications_kind_check`에 `'EXPENSE_DUE_TODAY'` 추가(7종), `public.notification_settings.expense_due_today BOOLEAN NOT NULL DEFAULT true` 추가, `public.enqueue_daily_notifications()` 4번 절(오늘 KST `PLANNED` 지출 사용자·일자당 1건 요약 `'오늘 결제 예정 N건'` / `'오늘 결제 예정인 지출을 지출 관리에서 확인하세요.'`, `link_path='/dashboard/expenses'`, `source_id=user_id`, `scheduled_for=v_today`, 연체·확정·취소·탈퇴 대기·`expense_due_today=false` 제외, `ON CONFLICT DO NOTHING`) 반영함.
+  - `sql/README.md`: B표에 `MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql` 행과 확인 쿼리 3종(`expense_due_today, true` / `has_kind = true` / `fn_updated = true, auth_exec = false, anon_exec = false`) 및 `R39`·`R107-C` 재실행 주의사항 추가함.
+  - `sql/tests/TESTS.sql`: 헤더 표 및 `R107B-01`~`R107B-02` 블록(N=0 미생성·N=2 요약 1행·연체/확정/취소 제외·금액/항목명/메모 비노출·당일 재실행 멱등·다음 날 새 행 생성·설정 행 없음 기본 true·`expense_due_today=false` 및 탈퇴 대기 사용자 A 제외·푸시 미구독 `SKIPPED` 및 구독+`push_enabled=true` `claim`→`SENT`) 추가함.
+- **결정·전제 사항**:
+  - `auto_confirm_blocked` 컬럼은 `R107-C`(§5.1-2)에서 추가 예정이므로 본 단계 `enqueue_daily_notifications()` 4번 절에서는 `status = 'PLANNED' AND target_date = v_today`로 집계함.
+  - `src/types/database.types.ts`는 Step 2 허용 파일이므로 Step 1에서 미수정함.
+- **실행 검증 결과**:
+  - 🐳 로컬 Supabase 업그레이드 경로(`MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql` 2회 멱등 → 확인 쿼리 3종 `expense_due_today, true` / `t` / `t, f, f` → `TESTS.sql` 49개 PASS·ROLLBACK) 통과함.
+  - 🐳 로컬 Supabase 신규 설치 경로(`public` 스키마 리셋 → `SCHEMA.sql` 1회 → `MIGRATION_R107B_DUE_TODAY_NOTIFICATION.sql` 2회 멱등 → 확인 쿼리 3종 → `TESTS.sql` 49개 PASS·ROLLBACK) 통과함.
+  - 워크트리 `git diff --check` 통과, `npx.cmd tsc --noEmit` 통과, `npm.cmd run lint` 경고·오류 0건, `npx.cmd vitest run --dir src` 76파일 1034개 전체 통과함.
+- **남은 작업**: Step 2(**Gemini 4 Hydrogen (`Medium`)**, Fallback: `Claude Sonnet (Medium)` / `GitHub Copilot`)가 `.worktrees/r107b-due-today-notification`에서 `NotificationSettingsCard` 토글·미적용 컬럼 폴백·kind 목록·`database.types.ts` 및 Vitest 테스트 구현 예정임.
 
 *(별도 대기: 하단 `T1`~`T4` 및 `R101-REV-001`·`R106-REV-001·002` `📐 SPEC_NEEDED` — `Gemini 4 Carbon (High)`)*
 
