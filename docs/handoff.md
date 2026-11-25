@@ -14,16 +14,28 @@
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 과제**: **`R107-C` 템플릿별 자동 확정 (`r107c-auto-confirm` — Base `3a9e31319fbea82f3b1ab85a26f819e5d904d5af`, 브랜치 `collab/r107c-auto-confirm`, 워크트리 `.worktrees/r107c-auto-confirm`)** *(확정 명세: [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §5 — `auto_confirm`·`_process_expense_payment_core` 추출·`auto_confirm_due_expenses`·`INTERVAL_30` 환불 롤백 원자화·`EXPENSE_AUTO_CONFIRMED` 알림·구독 모달 토글. `R107A-REV-001·002` 포함)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql`, `SCHEMA.sql`). 🐳 Docker Desktop 필요. 금전·원장·환불 변경이라 Step 1은 `Opus` 승격 조건 ①.
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql`, `SCHEMA.sql`). 🐳 Docker Desktop 필요. 금전·원장·환불 변경이라 Step 1은 `Opus` 승격 조건 ①. Step 1에서 로컬 업그레이드·신규 설치 2경로 각 2회 멱등·`TESTS.sql` 54개 PASS·2세션 병렬 3시나리오 확인함(Step 3 병합 게이트에서 재검증 필요). 운영 DB 미적용.
+- **Target SHA (Step 1)**: `1094f84cb2324dc10ca78b9e62c567a2e2233dba` *(워크트리 커밋, 미병합, 원격 브랜치: push 안 함)*
 - **수용 기준**: 명세 §5.4(`C-1`~`C-12`). 명세 §9 미결 질문 6건은 기본값으로 진행(사용자 이견 시 중단 후 재확인).
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Neon (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (R107-C SQL/RPC/Tests)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §5.1·`C-1`~`C-10`, `R107A-REV-001·002`(`supabase gen types` 시 `p_original_target_date` `\| null` 보존, 환불 롤백의 비활성 템플릿 처리 명시). 허용 파일: 신규 `sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R107-C 구독 모달·배지·환불 흐름 & Vitest)` | Step 1 완료 후 착수. 명세 §5.2·`C-11`. 허용 파일: 구독 모달·지출 목록/상세·환불 흐름 관련 `src/**`와 테스트(범위는 명세 §5.2), 루트 `docs/handoff.md`, `docs/progress.md` | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (SHA: 1094f84cb2324dc10ca78b9e62c567a2e2233dba)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Neon (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (R107-C SQL/RPC/Tests)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §5.1·`C-1`~`C-10`, `R107A-REV-001·002`(`supabase gen types` 시 `p_original_target_date` `\| null` 보존, 환불 롤백의 비활성 템플릿 처리 명시). 허용 파일: 신규 `sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 루트 `docs/handoff.md`, `docs/progress.md` | ✅ 아래 Step 1 완료 기록 |
+| **2** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R107-C 구독 모달·배지·환불 흐름 & Vitest)` | Step 1 완료 후 착수. 명세 §5.2·`C-11`. 허용 파일: 구독 모달·지출 목록/상세·환불 흐름 관련 `src/**`와 테스트(범위는 명세 §5.2), 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
 | **3** | **`⏳ WAITING`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Maker인 Opus·Hydrogen 제외)* | `Reviewer & Local DB Gate` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요**. 금전·원장·동시성·권한 통합 정적 리뷰(`review.json`), `test.json`(로컬 DB 2경로 2회 멱등·`TESTS.sql`·2세션 병렬·`tsc`·`lint`·Vitest·`next build`, `C-5`·`C-12`), `main` 병합 | `⏳ Step 2 완료 대기` |
 | **4** | **`⏳ WAITING`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (마감)` | Step 3 병합 후 착수. 문서 아카이브 마감 및 명세 §6 운영 적용 순서 안내 | `⏳ Step 3 완료 대기` |
 
+
+#### 📝 `r107c-auto-confirm` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `1094f84cb2324dc10ca78b9e62c567a2e2233dba` (`collab/r107c-auto-confirm`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일**: 신규 `sql/migrations/MIGRATION_R107C_AUTO_CONFIRM.sql`, `sql/SCHEMA.sql`, `sql/README.md`(R107C 행·R107A 재실행 경고), `sql/tests/TESTS.sql`(R107C-01~03), `src/types/database.types.ts`.
+- **구현 (명세 §5.1)**: 컬럼 3개·`chk_subscription_template_auto_confirm_store`·`EXPENSE_AUTO_CONFIRMED` kind. `_process_expense_payment_core(p_user_id, …)` 추출 후 공개 결제 함수는 `auth.uid()` 래퍼(시그니처·권한·오류 문구 불변). `auto_confirm_due_expenses`·`run_daily_…` 2단계·`refund_expense_payment` 원자 롤백·`restore_cancelled_expense` blocked/23505·`enqueue_daily_notifications` 5번 절.
+- **명세 밖 구현 결정 (Step 3 확인 대상)**: ① cron(JWT 없음)에서도 쓰도록 `advance/rollback_interval_subscription`도 `_advance_…_core`·`_rollback_…_core(p_user_id, …)`로 추출함(공개 RPC 동작 동일). ② 배포 전환기 구버전 앱이 환불 뒤 `rollback_interval_subscription`을 또 부르면 이중 롤백되므로, 이미 환불(`PAYMENT_REFUND`)된 지출에는 공개 RPC가 아무것도 하지 않게 함. ③ 잠금 순서를 템플릿 → 지출 → 지갑·자산으로 맞춤(자동 확정은 시작 시 사용자 활성 템플릿을 생성 함수와 같은 순서로 잠금, 환불은 지갑 전에 템플릿 잠금). ④ 환불 롤백은 활성 `INTERVAL_30` 템플릿의 최신 확정 결제(`target_date`·`created_at`·`id` 순)일 때만 수행, 비활성 템플릿은 생략(`R107A-REV-002`). ⑤ `EXPENSE_AUTO_CONFIRMED` 집계는 명세 문구대로 오늘 `auto_confirmed_at`이 찍힌 행 전체(이후 환불된 행 포함)를 셈.
+- **`R107A-REV-001`**: `database.types.ts` `advance_interval_subscription.p_original_target_date`의 `string | null` 유지 확인함(타입은 수작업 갱신, `supabase gen types` 미실행).
+- **검증 (실제 실행)**: 🐳 업그레이드(Base `3a9e313` `SCHEMA.sql` → R107C 2회 → `TESTS.sql` 54개 PASS)·신규(Target `SCHEMA.sql` → R107C 2회 → 54개 PASS), `SCHEMA.sql`↔마이그레이션 함수 11종 본문 일치(끝 공백 제외), README 확인 쿼리 3종 기대값 일치. 변이 검사 2종(원자 롤백 제거·blocked 필터 제거) 모두 `FAIL`로 잡힘. C-5 2세션 병렬(자동↔수동, 수동↔자동, 자동↔자동) 모두 결제 1회·EARN 원장 1행·자산 1회 차감. `tsc`·`lint`·Vitest 78파일/1,068개·`git diff --cached --check` 통과(Node v24.22.2).
+- **참고 (리뷰 판단 필요)**: 기존 RLS상 사용자가 본인 `PLANNED` 행의 `auto_confirmed_at`·`auto_confirm_blocked`·`created_at`을 직접 쓸 수 있음(본인 데이터 한정, 배지 위장·당일 제외 우회 수준). 정책은 이번 범위에서 바꾸지 않음.
+- **남은 작업 (Step 2, Gemini 4 Hydrogen `Medium`)**: 명세 §5.2·`C-11` — 구독 모달 `auto_confirm` 토글(스토어만, 기본 꺼짐, 미적용 폴백), "자동 확정" 배지(별도 조회), `expense-detail-modal.tsx`의 환불 뒤 `rollbackIntervalSubscriptionExpense` 호출 제거, `restore_cancelled_expense` 23505 문구 표시, `C-4` `budget-calculations.test.ts` 월 경계 케이스.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
