@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r107a-server-subscription-generation",
+    "created_at":  "2026-11-25T01:57:44.1081832+00:00",
+    "objective":  "Implement R107-A server-side subscription expense generation (single SQL core, INTERVAL_30 partial unique index, advance/rollback RPCs, daily pg_cron batch) and switch the client lazy path to the RPC with legacy fallback, per docs/r107-recurring-expense-automation-spec.md section 3",
+    "acceptance_criteria":  [
+                                "Step 1 (Claude Opus High): spec section 3.1 migration MIGRATION_R107A_SERVER_SUBSCRIPTION_GENERATION.sql with SCHEMA.sql, sql/README.md and sql/tests/TESTS.sql sync; acceptance A-1 to A-7 and A-9 (SQL side)",
+                                "Step 2 (Gemini 4 Neon High): spec section 3.2 subscription-sync.ts RPC switch with Legacy fallback, Vitest update and database.types.ts; acceptance A-8 and A-9 (client side)",
+                                "Step 3 (Gemini 4 Carbon High): Base to Target static review and local Supabase run twice plus TESTS.sql; Step 4 (Gemini 4 Hydrogen): merge and docs closeout"
+                            ],
+    "base_sha":  "ff04d84aff929671d77f42380e73217ec5f27a0e",
+    "target_sha":  null,
+    "branch":  "collab/r107a-server-subscription-generation",
+    "worktree_path":  ".worktrees/r107a-server-subscription-generation",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
