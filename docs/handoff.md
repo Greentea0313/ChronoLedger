@@ -13,18 +13,23 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 과제**: `T1`~`T4` Windows 데스크톱 통합 및 선택 후속(`R101-REV-001`·`R106-REV-001·002`) 명세 확정 완료 → 아래 Row 2(`Gemini 4 Hydrogen (Medium)`, 격리 워크트리 `t1-t4-desktop-and-followups` 생성·Run 등록) **`▶ READY`**. 다음 `R107-C`(Run 3 `r107c-auto-confirm`)는 앱 배포 후 사용자가 지목하면 Orchestrator가 등록함(자동 착수 안 함).
+- **활성 과제**: **`T1`~`T4` Windows 데스크톱 통합 및 선택 후속 (`t1-t4-desktop-and-followups` — Base `64c4317`, 브랜치 `collab/t1-t4-desktop-and-followups`, 워크트리 `.worktrees/t1-t4-desktop-and-followups`)** *(확정 명세: [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §2~§3 — PKCE Auth Adapter·`chronoledger://` + `single-instance`·로그아웃 `/auth` 복귀 + `R101-REV-001`·`R106-REV-001·002`)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql`, `SCHEMA.sql`). 🐳 **Docker Desktop 필요**.
+- **수용 기준**: [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §2~§3. 아래 행은 절 포인터만 둠.
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **0** | **`✅ DONE (SHA: 64c4317, 2026-11-25)`** *(원 상태 `📐 SPEC_NEEDED`)* | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High`) / Gemini 4 Neon (`High`))* | `Chief Architect (T1~T4 인증·딥링크 명세 및 선택 후속 정책 확정)` | [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) 명세·사용자 질문 카드(`D1`~`D5`)·Step 1~3 수용 기준 확정(`src/**`·`sql/**` 미수정) | ✅ `64c4317` 명세 작성 및 Row 2 `▶ READY` 반환 |
+| **1** | **`✅ DONE (Base 64c4317)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (t1-t4-desktop-and-followups Run 등록)` | `New-CollaborationRun.ps1 -RunId "t1-t4-desktop-and-followups"`로 격리 워크트리 생성 및 Step 1~3 큐 등록 | `✅` `.worktrees/t1-t4-desktop-and-followups`(`collab/t1-t4-desktop-and-followups`, `run.json`) 생성 및 Step 1 `▶ READY` 전환 |
+| **2 (Step 1)** | **`▶ READY`** | **GPT Codex** *(Fallback 1: Gemini 4 Neon (`High` — 도구에서 High 선택) / Claude Opus (`High` — 도구에서 High 선택))* | `Maker (SQL & 도메인 계산)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 3 이관). 명세 §2.4(`R101-REV-001`) + §2.6(`R106-REV-002`) 및 §3 Step 1 수용 기준 수행. 허용 파일: 신규 `sql/migrations/MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/budget-calculations.ts`·`.test.ts`, `src/app/dashboard/expenses/page.tsx`·`.test.tsx`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
+| **3 (Step 2)** | **`⏳ WAITING`** | **Gemini 4 Neon (`High` — 도구에서 High 선택)** *(Fallback 1: Claude Opus (`High` — 도구에서 High 선택), Fallback 2: GitHub Copilot)* | `Maker (T1~T4 Auth·Tauri·알림 UI & 빌드)` | Step 1 완료 후 착수. 명세 §2.1~§2.3(`T1`~`T4`) + §2.5(`R106-REV-001`) 및 §3 Step 2 수용 기준 수행(허용 파일 목록은 명세 §3 표 참고) | 대기 중 |
+| **4 (Step 3)** | **`⏳ WAITING`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Carbon (`High` — 도구에서 High 선택))* | `Reviewer & Orchestrator` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요** (로컬 DB 2경로 멱등 적용 및 `TESTS.sql` 검증 병합 게이트). 명세 §3 Step 3 통합 정적 리뷰(`review.json`)·`test.json`·`cargo check`·`next build`·`main` 병합·문서 마감 | 대기 중 |
+
+*(참고: 다음 `R107-C` Run 3 `r107c-auto-confirm`는 `R107-B` 앱 배포 후 사용자가 지목할 때 등록함.)*
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*
-
-#### 📐 Chief Architect 구체화 완료 및 Run 등록 반환 (`T1`~`T4` Windows 데스크톱 통합 및 `R101-REV-001` · `R106-REV-001·002`)
-
-| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
-| :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: 아래 커밋 참조, 2026-11-25)`** *(원 상태 `📐 SPEC_NEEDED`)* | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: Claude Opus (`High`) / Gemini 4 Neon (`High`))* | `Chief Architect (T1~T4 인증·딥링크 명세 및 선택 후속 정책 확정)` | 아래 **요구사항 접수 기록**을 바탕으로 `T1`~`T4` Windows Tauri 데스크톱 통합 명세·보안 경계·수용 기준 및 `R101-REV-001`·`R106-REV-001·002` 정책 확정 (`src/**` 직접 수정 금지). 허용 파일: 신규 `docs/` 스펙 문서, `docs/handoff.md`, `docs/to-do.md`, `docs/progress.md` | ✅ [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) 작성 완료(사용자 질문 카드 결정 `D1`~`D5`, §2 상세 설계, §3 Step 1~3 수용 기준·모델 배정, `src/**`·`sql/**` 미수정) |
-| **2** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (t1-t4-desktop-and-followups Run 등록)` | 확정 명세 [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §3에 따라 깨끗한 트리에서 `New-CollaborationRun.ps1 -RunId "t1-t4-desktop-and-followups"`로 격리 워크트리를 생성하고 Dispatch Queue(Step 1 `GPT Codex` 🐳 SQL+예산 `▶ READY` → Step 2 `Gemini 4 Neon (High)` Tauri·Auth·UI·빌드 → Step 3 `Claude Opus (High)` 통합 리뷰·병합) 등록(큐 행에는 명세 절 번호 포인터만 기재) | `▶ READY (명세 확정 완료)` |
 
 ##### 📝 `T1`~`T4` 및 선택 후속 명세 확정 기록 (Gemini 4 Carbon `High`, 2026-11-25)
 
@@ -56,7 +61,7 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 | `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R108-REV-001` (`R101-REV-001`·`R106-REV-001·002`는 아래 `T1`~`T4` Run에 합류) | `docs/to-do.md` 해당 항목 |
-| `T1`~`T4` | **명세 확정 완료 · Run 등록 `▶ READY`** | Windows Tauri 데스크톱 통합(PKCE 단일화·auth adapter, `chronoledger://` + `single-instance`, 로그아웃 `/auth` 복귀, prod 빌드) + `R101-REV-001` + `R106-REV-001·002` — `Gemini 4 Hydrogen (Medium)` Run 등록 대기 | [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md), `docs/to-do.md` `T1`~`T4` |
+| `T1`~`T4` | **Run 등록 완료 (`t1-t4-desktop-and-followups` 진행 중)** | Windows Tauri 데스크톱 통합(PKCE 단일화·auth adapter, `chronoledger://` + `single-instance`, 로그아웃 `/auth` 복귀, prod 빌드) + `R101-REV-001` + `R106-REV-001·002` — Step 1 `GPT Codex` `▶ READY` | [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md), `docs/to-do.md` `T1`~`T4` |
 
 ### 🗂️ 직전 완료 Run 기록: `r107b-due-today-notification` *(`R107-B` 오늘 결제 예정 알림 `EXPENSE_DUE_TODAY`)*
 
