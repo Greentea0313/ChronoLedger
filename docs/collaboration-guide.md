@@ -6,16 +6,21 @@
 
 ---
 
-## 1. 6대 AI 모델 역할 분배 및 Fallback 매트릭스
+## 1. 6대 AI 모델 역할 분배, 기본 추론 수준 및 Fallback 매트릭스
 
-| 주력 모델 / 에이전트 | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
+| 주력 모델 / 에이전트 (기본 추론 수준) | 기본 역할 (Role) | ChronoLedger 담당 도메인 | **1순위 대체 (Fallback 1)** | **2순위 대체 (Fallback 2)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Gemini 4 Hydrogen** *(Gemini 기본)* | `Default Maker (Feature·UI·Test·Fast Docs) & Default Orchestrator / Reviewer` | 단기 쿼터 주기 올라운더(`Low`~`XHigh`). 일반·표준 기능 및 UI 컴포넌트(`src/app/`, `src/components/`, `src/lib/`), 경량 Tailwind/마크업·`docs/` 동기화(구 `Gemini 3.8 Flash` 역할 통합), Vitest 단위/통합 테스트, 표준 Run 등록/배정/마감(`New-CollaborationRun.ps1`), 표준 정적 리뷰(`review.json`); Claude Sonnet·GitHub Copilot의 기본 1순위 대체 모델 | **Gemini 4 Neon** / **Claude Sonnet** | **GitHub Copilot** |
-| **Gemini 4 Neon** *(1차 승격)* | `Maker (Complex·Core) & Multi-Step Orchestrator` | 단기 쿼터 주기 심층 코딩·조율 모델(`Low`~`XHigh` + `Orchestrator (Neon)`). 다중 컴포넌트 복합 상태·생명주기 구현, 코어 수식/날짜/SQL/RPC 구현(GPT Codex 1순위 Gemini 대체), 반복 실패 디버깅 해결, 다단계 복합 Run 오케스트레이션 | **Claude Opus** / **Gemini 4 Hydrogen** | **GitHub Copilot** |
-| **Gemini 4 Carbon** *(2차 최상위 승격)* | `Chief Architect & Final Gatekeeper (src/** 직접 구현 금지)` | 최상위 수석 아키텍트(`Low`~`High` + `Orchestrator (Carbon)`, 구 `Argon` 승계). 오픈 아키텍처·공식 명세(`docs/spec/*.md`) 수립, 금전/원장/포인트/RLS/`SECURITY DEFINER` RPC 심층 감사, 고위험 Run 최종 통합 리뷰(`review.json`), 메타 오케스트레이션 및 규칙 설계 | **Claude Opus** / **Gemini 4 Neon** | **Gemini 4 Hydrogen** |
-| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜 계산(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Gemini 4 Neon** / **Claude Opus** | **Gemini 4 Hydrogen** / **GitHub Copilot** |
-| **Claude (Claude Pro: Sonnet / Opus)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 | **Gemini 4 Hydrogen** *(Sonnet)* / **Gemini 4 Neon·Carbon** *(Opus)* | **GitHub Copilot** |
-| **GitHub Copilot** | `Maker (General) & Fallback Hub` | 일반 기능, 라우팅 및 UI 컴포넌트(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 4 Hydrogen** | **GPT Codex** |
+| **Gemini 4 Hydrogen (`Medium`)** *(Gemini 기본)* | `Default Maker (Feature·UI·Test·Fast Docs) & Default Orchestrator / Reviewer` | 단기 쿼터 주기 올라운더(**기본 `Medium`**, `Low`~`XHigh` 지원). 일반·표준 기능 및 UI 컴포넌트(`src/app/`, `src/components/`, `src/lib/`), 경량 Tailwind/마크업·`docs/` 동기화(구 `Gemini 3.8 Flash` 역할 통합), Vitest 단위/통합 테스트, 표준 Run 등록/배정/마감(`New-CollaborationRun.ps1`), 표준 정적 리뷰(`review.json`); Claude Sonnet·GitHub Copilot의 기본 1순위 대체 모델 | **Gemini 4 Neon (`High`)** / **Claude Sonnet (`Medium`)** | **GitHub Copilot** |
+| **Gemini 4 Neon (`High`)** *(1차 승격)* | `Maker (Complex·Core) & Multi-Step Orchestrator` | 단기 쿼터 주기 심층 코딩·조율 모델(**기본 `High`**, 난해한 디버깅 시 `XHigh` + `Orchestrator (Neon)`). 다중 컴포넌트 복합 상태·생명주기 구현, 코어 수식/날짜/SQL/RPC 구현(GPT Codex 1순위 Gemini 대체), 반복 실패 디버깅 해결, 다단계 복합 Run 오케스트레이션 | **Claude Opus (`High`)** / **Gemini 4 Hydrogen (`Medium`)** | **GitHub Copilot** |
+| **Gemini 4 Carbon (`High`)** *(2차 최상위 승격)* | `Chief Architect & Final Gatekeeper (src/** 직접 구현 금지)` | 최상위 수석 아키텍트(**기본 `High`** + `Orchestrator (Carbon)`, 구 `Argon` 승계). 오픈 아키텍처·공식 명세(`docs/spec/*.md`) 수립, 금전/원장/포인트/RLS/`SECURITY DEFINER` RPC 심층 감사, 고위험 Run 최종 통합 리뷰(`review.json`), 메타 오케스트레이션 및 규칙 설계 | **Claude Opus (`High`)** / **Gemini 4 Neon (`High`)** | **Gemini 4 Hydrogen (`Medium`)** |
+| **GPT Codex** | `Maker (Core) & Test` | 원장/결제/환불 수식(`payment-calculations.ts`), 구독/KST 날짜 계산(`subscription-sync.ts`), Supabase SQL/RPC, Vitest 단위 테스트 | **Gemini 4 Neon (`High`)** / **Claude Opus (`High`)** | **Gemini 4 Hydrogen (`Medium`)** / **GitHub Copilot** |
+| **Claude (Claude Pro: `Sonnet (Medium)` / `Opus (High)`)** | `Reviewer & Maker (Complex)` | Base $\leftrightarrow$ Target SHA 정적 코드 리뷰(`review.json`), 보안/RLS/원장 무결성 검증, 다중 컴포넌트 복합 상태·인터랙션 구현 및 리팩토링 (**`Sonnet (Medium)`** 기본 Maker/표준 리뷰; **`Opus (High)`** 심층 감사/통합 리뷰) | **Gemini 4 Hydrogen (`Medium`)** *(Sonnet)* / **Gemini 4 Neon·Carbon (`High`)** *(Opus)* | **GitHub Copilot** |
+| **GitHub Copilot** | `Maker (General) & Fallback Hub` | 일반 기능, 라우팅 및 UI 컴포넌트(`src/app/`, `src/components/`) 구현 및 타 모델 토큰 소진 시 전천후 백업 | **Gemini 4 Hydrogen (`Medium`)** | **GPT Codex** |
+
+### 모델별 기본 추론 수준(Reasoning Level) 운용 기준
+
+- **기본 주력 티어 (`Gemini 4 Hydrogen: Medium`, `Claude Sonnet: Medium`)**: 수용 기준과 대상 파일이 명확한 표준 기능·UI·테스트 구현, 일상 Run 등록/마감, 문서 동기화에서 **응답 속도·생각 토큰(Thinking tokens) 절약·정확도의 균형이 가장 좋은 `Medium`**을 기본으로 운용함.
+- **심층 구현·수석 아키텍트·최종 감사 티어 (`Gemini 4 Neon: High`, `Gemini 4 Carbon: High`, `Claude Opus: High`)**: 복합 상태·코어 수식·SQL/RPC 구현(`Neon`), 신규 명세·보안/원장 설계 감사(`Carbon`), Run 단위 최종 통합 리뷰 및 병합 게이트(`Opus`)는 한 번의 판단에서 엣지 케이스와 보안 결함을 빠짐없이 검출해야 하므로 **`High`**를 기본으로 고정함.
 
 ### Gemini 4 다단계 운용 및 승격 기준 (`Hydrogen` 기본 $\to$ `Neon` / `Carbon` 조건부 승격)
 
