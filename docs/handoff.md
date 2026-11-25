@@ -13,8 +13,16 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(직전 `t1-t4-desktop-and-followups`는 2026-11-25 `main` 병합 `5e63007`·문서 마감 완료, 미push)*
-- **다음 후보 (사용자 지목 시 등록)**: `T4` 후속(Rust 툴체인 PC에서 `cargo check`·`tauri build`·`Cargo.lock` 커밋) · `R107-C` Run 3 `r107c-auto-confirm`(`R107-B` 앱 배포 후)
+- **Run ID**: `t4-rust-build-and-lock` *(`T4` 후속: Rust 툴체인 PC에서 `cargo check`·`npm run tauri build`·`src-tauri/Cargo.lock` 갱신 및 `T1T4-REV-002` 확인 — DB 변경 없음, 🐳 Docker 불필요)*
+- **Orchestrator**: Gemini 4 Hydrogen *(2026-11-25 등록)*
+- **Worktree 경로**: `.worktrees/t4-rust-build-and-lock` (브랜치 `collab/t4-rust-build-and-lock`, 매니페스트 `artifacts/t4-rust-build-and-lock/run.json`)
+- **Base SHA**: `ae56b57d02a72af729d13051d8cecb0dabdeaa26` · **Target SHA**: *(Step 1 진행 전)*
+- **DB 변경**: 없음 (Rust/Cargo 및 npm 버전 정합 확인 전용)
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback 1: Claude Sonnet (`Medium`), Fallback 2: GitHub Copilot)* | `Maker (T4 Rust 빌드 & Cargo.lock 갱신)` | `.worktrees/t4-rust-build-and-lock`에서 `cargo check`·`npm run tauri build` 실행 및 `src-tauri/Cargo.lock` 갱신(`T1T4-REV-002` 버전 불일치로 빌드 실패 시 `package.json`·`package-lock.json` 또는 `src-tauri/Cargo.toml` 정합 보완), `tsc`·`lint`·`vitest`·`diff-check` 통과 후 커밋. 허용 파일: `src-tauri/Cargo.lock`, `src-tauri/Cargo.toml`, `package.json`, `package-lock.json`, `docs/to-do.md`, 루트 `docs/handoff.md`, `docs/progress.md` | `▶ 신규 등록 — Step 1 착수 대기` |
+| **2** | **`⏳ WAITING`** | **Claude Sonnet (`Medium`)** *(Fallback 1: Gemini 4 Neon (`High` — 도구에서 High 선택) / Claude Opus (`High` — 도구에서 High 선택))* | `Reviewer & Orchestrator` | Step 1 완료 후 착수. Base(`ae56b57d02a72af729d13051d8cecb0dabdeaa26`) $\leftrightarrow$ Target SHA 정적 리뷰(`review.json`)·검증(`test.json`, `cargo check`·`tsc`·`lint`·`vitest`·`build`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -33,7 +41,7 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 | `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 🐳)·`R99`(건의 첨부 🐳)·`R108-REV-001` (`R101-REV-001`·`R106-REV-001·002`는 `T1`~`T4` Run에서 완료) | `docs/to-do.md` 해당 항목 |
-| `T1`~`T4` | **`main` 병합 완료 (`5e63007`) · 운영 DB 적용·Redirect URL 등록 완료 · 실기기 확인 대기** | Windows Tauri 데스크톱 통합(PKCE 단일화·auth adapter, `chronoledger://` + `single-instance`, 로그아웃 `/auth` 복귀) + `R101-REV-001` + `R106-REV-001·002` 완료. 남음: `main` push(사용자), Rust PC `cargo check`·`tauri build`·`Cargo.lock`·실기기 OAuth 확인(`T4`) | [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §4, 아래 직전 완료 Run 기록 |
+| `T1`~`T4` | **`T1`~`T3` 병합 완료 (`5e63007`) · `T4` Rust 빌드 Run 진행 중 (`t4-rust-build-and-lock`)** | Windows Tauri 데스크톱 통합 병합 및 운영 DB·Redirect URL 등록 완료. 현재 `t4-rust-build-and-lock` Step 1(`Gemini 4 Hydrogen Medium`) `▶ READY` (Rust `cargo check`·`tauri build`·`Cargo.lock` 커밋 후 실기기 OAuth 확인) | 위 활성 Run 표, [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §4 |
 
 ### 🗂️ 직전 완료 Run 기록: `t1-t4-desktop-and-followups` *(`T1`~`T4` 데스크톱 PKCE·딥링크·`single-instance` + `R101-REV-001`·`R106-REV-001·002`)*
 
