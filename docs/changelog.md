@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-25 (Run `r109-icon-storage-migration` 병합 `7f54ef1` — `R109` 공용 게임·캐릭터 아이콘 Storage 이전)
+
+- **공개 읽기 `game-assets` 버킷 및 관리자 RLS·승인 RPC (`MIGRATION_R109_GAME_ASSETS_STORAGE.sql`)**: 공용 게임·캐릭터 기본 아이콘용 공개 버킷 `game-assets`(102,400B 상한, `image/webp`)와 `storage.objects` 정책 4종(`anon`·`authenticated` 읽기, 관리자 전용 쓰기 및 `games/{sha256}.webp`·`characters/{game_id}/{sha256}.webp` 경로 강제)을 추가함. 개인 커스텀 아이콘 버킷 `user-icons`의 비공개 정책은 그대로 유지함. `approve_schedule_request(UUID, JSONB DEFAULT NULL)`에 픽업 신규 캐릭터 제안 아이콘 오버라이드(`p_pickup_icon_overrides`)를 추가하고 구 1인자 오버로드를 제거함.
+- **공용 업로드 모듈 및 관리자 등록·승인·일괄 이전 (`src/lib/game-asset-storage.ts`, `/admin`, `/admin/requests`)**: 이미지를 256×256 WebP(≤100KB)로 정규화해 SHA-256 해시 파일명과 1년 불변 캐시(`cacheControl: "31536000"`)로 업로드하며 이미 이전된 URL과 로컬 정적 경로(`/assets/games/`)는 재업로드를 건너뜀. 관리자 게임·캐릭터 등록/수정, 요청 승인 대기열(게임·캐릭터·일정 픽업 제안), `/admin` `[아이콘 Storage 일괄 이전]` 버튼(기존 R30 Data URL 역변환 대체, 게임+캐릭터 멱등 일괄 이전·실패 원본 보존)을 모두 Storage 공개 URL 기반으로 전환함.
+- **서비스 워커 이미지 캐시 (`public/sw.js`)**: 동일 Supabase 출처의 `/storage/v1/object/public/game-assets/` `GET` 요청만 `chronoledger-game-assets-v1` 캐시에 Cache-First(상한 500개 FIFO 정리)로 보관해 재방문·오프라인 표시를 지원함(비공개 `user-icons` 경로 미개입).
+- **운영 적용 안내 및 협업 산출물**: **운영 DB 수동 적용**(`MIGRATION_R109_GAME_ASSETS_STORAGE.sql`) → 앱 배포(`main` push) → `/admin` `[아이콘 Storage 일괄 이전]` 실행 순서로 적용 필요함(명세 `docs/r109-icon-storage-migration-spec.md` §4). 산출물: `artifacts/r109-icon-storage-migration/iteration-01/`(`review.json` P4 2건 비차단, `test.json` 로컬 DB 2경로·`TESTS.sql` 51개 통과).
+
 ## 2026-11-25 (`t4` Rust 빌드·`Cargo.lock` 갱신 병합 `2829bb7`)
 
 - 데스크톱 앱의 단일 실행(`tauri-plugin-single-instance`) 의존성을 `src-tauri/Cargo.lock`에 반영함. Windows 릴리스 빌드(`app.exe`)가 오류 없이 만들어지는 것을 확인했고 `package.json`·`Cargo.toml` 수정은 필요 없었음. 사용자 화면·DB 변경 없음. 실기기 로그인·단일 창 동작 확인은 남아 있음.

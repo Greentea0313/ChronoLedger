@@ -17,7 +17,7 @@ Next.js App Router
 Supabase
 ├── Auth: 이메일 및 Google OAuth
 ├── PostgreSQL: RLS 격리, 원자적 RPC, 일정 동기화 트리거
-├── Storage: 소유자 전용 비공개 커스텀 아이콘
+├── Storage: 소유자 전용 비공개 커스텀 아이콘(`user-icons`) + 관리자 쓰기 전용 공개 카탈로그 아이콘(`game-assets`, R109)
 └── pg_cron & 원자적 RPC (내부 스케줄러):
     ├── purge_expired_account_deletion_requests: 5분 주기 계정 탈퇴 자동 정리
     ├── purge_expired_notifications: 매일 00:15 UTC 30일 경과 알림 자동 정리 (R84)
@@ -49,7 +49,7 @@ Supabase
 - `src/components/layout/notification-bell.tsx`: 로그인 사용자 상단바 앱 내 알림함(최근 30건·미읽음 배지·KST 시각·`mark_notifications_read` RPC·상대 경로 이동, R84).
 - `src/lib/schedule-preferences.ts`: `users.show_unofficial_schedules` 설정 조회·저장 및 마이그레이션 미적용 상태 처리. 공식 여부는 `game_schedules.is_official`/`schedule_requests.is_official`로 관리하며, 사용자 설정에 따라 일정 화면에서 비공식 일정을 필터링한다.
 - `src/app/admin/requests/`: 관리자 전용 게임/일정/캐릭터 요청 승인·반려 및 기타 건의 대기열 답변/종료(`answer_feedback_request`) 화면. DB 변경은 승인된 RPC 경로를 사용한다.
-- `src/lib/`: 단일 Supabase client(웹·Tauri 모두 PKCE, callback URL 자동 감지 비활성화), `auth-adapter.ts`(데스크톱 판정·OAuth 시작/콜백 `code` 교환 공용 계약, 외부 인증 URL origin 검증), `tauri-auth.ts`(`getCurrent` 1회 + `onOpenUrl` 딥링크 처리), 인증 상태, KST 날짜 범위·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
+- `src/lib/`: 단일 Supabase client(웹·Tauri 모두 PKCE, callback URL 자동 감지 비활성화), `auth-adapter.ts`(데스크톱 판정·OAuth 시작/콜백 `code` 교환 공용 계약, 외부 인증 URL origin 검증), `tauri-auth.ts`(`getCurrent` 1회 + `onOpenUrl` 딥링크 처리), `game-asset-storage.ts`(공용 게임·캐릭터 기본 아이콘 SHA-256 해시 경로 `game-assets` 업로드·기이전 URL 단락 반환, R109), 인증 상태, KST 날짜 범위·예산 계산, 이미지 변환, 캐시 및 오프라인 쓰기 차단.
 - `src/lib/pickup-character-registration.ts`: 픽업 전용 캐릭터(`is_pickup_only = true`) 등록 공용 함수 `registerPickupOnlyCharacter`. 관리자 일정 폼의 `[+ 새 픽업 캐릭터]`와 캐릭터 탭(템플릿 없는 게임)의 `[+ 캐릭터 추가]`가 함께 사용함(R66). 프리셋 탭(R76, R62 작업 공간·편집 창 대체): `src/components/character/preset-board.tsx`(`@dnd-kit` `DndContext`, 900px 이상 캐릭터 사이드바 + 전체 프리셋 카드 그리드, 900px 미만은 `preset-character-picker.tsx` 하단 선택 창), `preset-board-card.tsx`(카드·슬롯 정렬, 제목·메모 인라인 편집). `src/lib/preset-board.ts`: 드래그 id·드롭 판정·저장 페이로드 순수 함수. `src/lib/use-preset-board.ts`: 단일 FIFO 쓰기 큐 즉시 저장(낙관적 갱신, 실패 시 재조회, `update_character_preset_slots`·`reorder_character_presets` RPC, 미적용 폴백). `src/lib/use-board-sensors.ts`: 마우스 6px·터치 200ms·키보드 센서(입력란·`data-no-dnd` 제외), 프리셋 보드·즐겨찾기 정렬 공용. `src/lib/use-media-query.ts`: `matchMedia` 기반 `useMediaQuery`(미지원·SSR은 false). `character-roster.tsx`와 프리셋 보드 사이드바·선택 창은 `buildCharacterSections`로 즐겨찾기/보유/미보유 3구역을 표시하고, 즐겨찾기 순서는 dnd-kit 카드 전체 드래그로 바꾸고 `reorder_favorite_characters` RPC로 저장함(컬럼·RPC 미적용 DB에서는 이름순 폴백, R63).
 - `src/lib/calendar-utils.ts`: 캘린더 그리드와 말일 보정 날짜 계산. `src/lib/subscription-sync.ts`: 정기 구독 회차 생성·연장·환불 롤백 서버 RPC(`ensure_subscription_expenses`·`advance_interval_subscription`·`rollback_interval_subscription`) 호출 및 마이그레이션 미적용(`PGRST202`/`42883`) 시 Legacy 폴백 경계(R107-A).
 - `src/components/ui/`: 공통 Button, Card, Input, Dialog, Select, Progress, Drawer UI 컴포넌트. Progress는 Radix UI, Drawer는 Vaul 기반이며 alias는 `components.json`에 정의한다.
@@ -72,7 +72,8 @@ Supabase
 
 - `user-icons`는 비공개 버킷이다. 키는 게임 커스텀 아이콘 `{user_id}/{game_id}.webp`, 캐릭터 커스텀 아이콘 `{user_id}/characters/{character_id}.webp`이며 Storage RLS는 인증된 소유자 경로만 허용한다.
 - 업로드 전 원본(최대 5 MiB)을 256×256 WebP로 변환한다. 결과가 100 KiB를 넘으면 업로드를 거부하고 안내한다.
-- 앱은 소유자 세션으로 객체를 가져와 표시한다. 공개 URL은 만들지 않는다.
+- 앱은 `user-icons` 객체를 소유자 세션으로 가져와 표시하며 공개 URL은 만들지 않는다.
+- `game-assets`는 공용 게임·캐릭터 기본 아이콘 전용 공개 읽기 버킷임(R109, 100 KiB 상한, `image/webp`). 키는 `games/{sha256}.webp`·`characters/{game_id}/{sha256}.webp`이며 Storage RLS로 `anon`·`authenticated` 읽기와 관리자 전용 쓰기만 허용함(`getPublicUrl` 호출이 허용되는 유일한 버킷임). `public/sw.js`는 동일 Supabase 출처의 `game-assets` 공개 경로를 `chronoledger-game-assets-v1` 캐시에 Cache-First(상한 500개 FIFO)로 보관해 오프라인 표시를 지원함.
 - 계정 삭제 요청에서는 소유자의 Storage 아이콘 객체를 정리한 뒤 Auth 계정 삭제를 완료해야 한다. 사용자 테이블의 cascade 삭제만으로 Storage 객체가 제거된다고 가정하지 않는다.
 - 오프라인 캐시는 유효 세션에서 읽기 전용이다. 만료 예정 지출 모달은 오프라인에서 닫을 수 있고, 온라인 복귀 때 미해결 항목을 재조회해 다시 처리를 요구한다. 세션 만료 시 개인 데이터 캐시를 표시하지 않는다.
 
