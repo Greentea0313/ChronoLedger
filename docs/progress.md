@@ -1,5 +1,10 @@
 # 프로젝트 진행 현황
 
+## 협업 규칙 개정(`Argon` $\to$ `Carbon` · `Flash` 대체) 요구사항 접수 (2026-11-25)
+
+- **수행 주체**: Gemini 4 Hydrogen (`Intake`)임.
+- **내용**: 11월 30일 `Gemini 4 Argon`·`Gemini 3.8 Flash` 서비스 종료에 대비해 `Argon` $\to$ `Carbon` 인계 적합성 검토 후 `docs/handoff.md`에 `📐 SPEC_NEEDED`(`Gemini 4 Argon`, Fallback: `Claude Opus` / `Gemini 4 Neon`)를 접수함.
+
 ## `R106` Run `r106-notification-delete` Step 3 리뷰·병합 완료 (2026-11-25)
 
 - **수행 주체**: Claude Opus (`Reviewer & Orchestrator`, Step 3)임.

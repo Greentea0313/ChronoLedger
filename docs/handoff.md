@@ -7,7 +7,27 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 과제**: **없음** *(`r106-notification-delete` 병합 완료, 2026-11-25. 새 과제는 사용자가 지목하면 `Gemini 4 Hydrogen`이 접수·등록함)*
+- **과제 구분**: 협업 규칙 개정 — 11월 30일 서비스 종료 예정인 `Gemini 4 Argon` $\to$ `Gemini 4 Carbon` 인계 및 `Gemini 3.8 Flash` 대체 모델·서브에이전트 위임 규칙 정비 (`collaboration.md` §1~§3 및 관련 스킬/에이전트 문서)
+
+| 순서 | 상태 | 담당 모델 (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`📐 SPEC_NEEDED`** | **Gemini 4 Argon** *(Fallback: Claude Opus / Gemini 4 Neon)* | `Chief Architect (협업 규칙·스킬 개정 설계 및 반영)` | 아래 **요구사항 접수 기록**을 바탕으로 `Argon` $\to$ `Carbon` 인계 원칙(역할·주간 할당량 보호·`No Direct src/**` 경계·`/swarm` 사용 제한 여부) 및 `Flash` 대체 모델(`Model: "flash"` 서브에이전트 위임 경로 포함)을 확정·반영함. 허용 파일: `.agents/rules/collaboration.md`, `.agents/skills/*` (`Sync-Skills.ps1`로 `.claude/skills/` 동기화), `.github/copilot-instructions.md`, `docs/handoff.md`, `docs/progress.md` | `📐 구체화 대기 (2026-11-25 접수)` |
+| **2** | **`⏳ WAITING`** | **Gemini 4 Hydrogen** *(Fallback: Claude Sonnet)* | `Orchestrator / Sync Check` | Step 1 완료 후 `Sync-Skills.ps1 -Check`, 남아 있는 `Argon`/`Flash` 구참조 전수 확인 및 후속 안내 | `⏳ Step 1 완료 대기` |
+
+#### 📥 요구사항 접수 기록 (협업 규칙 `Argon` $\to$ `Carbon` 인계 및 `Flash` 대체 — `Gemini 4 Hydrogen` 접수, 2026-11-25)
+
+1. **요청 요지**:
+   - 11월 30일부터 `Gemini 4 Argon`과 `Gemini 3.8 Flash`가 서비스 종료되므로, 기존 `Argon`의 역할을 `Gemini 4 Carbon`으로 인계하고 `Flash` 종료에 따른 대체 구성을 협업 규칙에 반영하고자 함.
+2. **에스컬레이션 사유 (`.agents/rules/collaboration.md` §1~§2)**:
+   - **메타 오케스트레이션 및 협업 규칙·스킬 재설계**는 `Gemini 4 Argon` (Fallback: `Claude Opus` / `Gemini 4 Neon`) 승격 조건 ④에 해당함.
+3. **검토·결정 필요 사항**:
+   - ① **`Argon` $\to$ `Carbon` 인계 규칙**: `Gemini 4 Carbon`을 3티어 Chief Architect & Final Gatekeeper(`No Direct src/**`, 주간 할당량 보호, `Hydrogen` $\to$ `Neon` $\to$ `Carbon` 승격)로 교체하고, `Carbon`의 `/swarm` 등 병렬 기능을 ChronoLedger `Dispatch Queue` 워크플로와 어떻게 구분/제한할지 확정.
+   - ② **`Gemini 3.8 Flash` 대체 모델 확정**: 기존 `Flash` 역할(Tailwind/마크업, `Model: "flash"` 고속 검색 서브에이전트, `docs/`·아카이브 이동 보조)을 어떤 후속 경량 모델(또는 `Gemini 4 Hydrogen` / `Model: "flash_lite"` 등)로 대체할지 확정(필요 시 사용자 확인).
+   - ③ **일괄 동기화**: `.agents/rules/collaboration.md`, `.agents/skills/` 5개 스킬(`Sync-Skills.ps1`로 `.claude/skills/` 동기화 포함), `.github/copilot-instructions.md` 일괄 갱신.
+4. **관련 파일·문서**:
+   - `.agents/rules/collaboration.md` (20곳)
+   - `.agents/skills/chronoledger-orchestrator/SKILL.md` (3곳), `chronoledger-maker/SKILL.md` (2곳), `chronoledger-docs-closeout/SKILL.md` (1곳), `chronoledger-sql-migration/SKILL.md` (1곳), `handoff/SKILL.md` (1곳)
+   - `.github/copilot-instructions.md` (2곳)
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
