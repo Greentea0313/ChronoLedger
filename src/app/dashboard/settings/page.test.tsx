@@ -219,6 +219,7 @@ describe("SettingsPage", () => {
       favorite_schedule_start?: boolean
       favorite_schedule_end_d1?: boolean
       planned_expense_d1?: boolean
+      expense_due_today?: boolean
       request_result?: boolean
       push_enabled?: boolean
     } | null
@@ -275,12 +276,12 @@ describe("SettingsPage", () => {
       const { builder } = mockNotificationSettings({ row: null })
       render(<SettingsPage />)
 
-      for (const label of ["관심 일정 시작 당일", "관심 일정 종료 1일 전", "예정 지출 결제일 1일 전", "요청 처리 결과 알림"]) {
+      for (const label of ["관심 일정 시작 당일", "관심 일정 종료 1일 전", "예정 지출 결제일 1일 전", "오늘 결제 예정", "요청 처리 결과 알림"]) {
         expect((await toggle(label)).getAttribute("aria-checked")).toBe("true")
       }
       expect((await toggle("웹 푸시 전체 수신")).getAttribute("aria-checked")).toBe("false")
       expect(builder.select).toHaveBeenCalledWith(
-        "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, request_result, push_enabled",
+        "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, expense_due_today, request_result, push_enabled",
       )
       expect(builder.eq).toHaveBeenCalledWith("user_id", "user-123")
     })
@@ -291,6 +292,7 @@ describe("SettingsPage", () => {
           favorite_schedule_start: false,
           favorite_schedule_end_d1: true,
           planned_expense_d1: false,
+          expense_due_today: false,
           request_result: false,
           push_enabled: true,
         },
@@ -302,6 +304,7 @@ describe("SettingsPage", () => {
       })
       expect((await toggle("관심 일정 종료 1일 전")).getAttribute("aria-checked")).toBe("true")
       expect((await toggle("예정 지출 결제일 1일 전")).getAttribute("aria-checked")).toBe("false")
+      expect((await toggle("오늘 결제 예정")).getAttribute("aria-checked")).toBe("false")
       expect((await toggle("요청 처리 결과 알림")).getAttribute("aria-checked")).toBe("false")
       expect((await toggle("웹 푸시 전체 수신")).getAttribute("aria-checked")).toBe("true")
     })
@@ -442,5 +445,50 @@ describe("SettingsPage", () => {
       expect(await screen.findByText("DB 업데이트(R96) 적용 후 웹 푸시 기기를 관리할 수 있습니다.")).toBeTruthy()
       expect((await screen.findByRole("button", { name: "이 기기에서 푸시 알림 켜기" }) as HTMLButtonElement).disabled).toBe(true)
     })
+
+    it("upserts expense_due_today when 오늘 결제 예정 is toggled (R107-B)", async () => {
+      const { builder } = mockNotificationSettings({ row: null })
+      render(<SettingsPage />)
+      const target = await toggle("오늘 결제 예정")
+      await waitFor(() => expect((target as HTMLButtonElement).disabled).toBe(false))
+
+      fireEvent.click(target)
+
+      await waitFor(() => expect(target.getAttribute("aria-checked")).toBe("false"))
+      expect(builder.upsert).toHaveBeenCalledTimes(1)
+      const [payload, options] = builder.upsert.mock.calls[0]
+      expect(payload).toMatchObject({ user_id: "user-123", expense_due_today: false })
+      expect(Object.keys(payload).sort()).toEqual(["expense_due_today", "updated_at", "user_id"])
+      expect(options).toEqual({ onConflict: "user_id" })
+    })
+
+    it.each(["42703", "PGRST204"])(
+      "hides 오늘 결제 예정 without error and keeps other settings working when the column is missing (%s)",
+      async (code) => {
+        const { builder } = mockNotificationSettings({ row: null })
+        builder.maybeSingle
+          .mockResolvedValueOnce({ data: null, error: { code, message: "missing column" } })
+          .mockResolvedValueOnce({
+            data: {
+              favorite_schedule_start: true,
+              favorite_schedule_end_d1: false,
+              planned_expense_d1: true,
+              request_result: true,
+              push_enabled: false,
+            },
+            error: null,
+          })
+
+        render(<SettingsPage />)
+
+        expect((await toggle("관심 일정 종료 1일 전")).getAttribute("aria-checked")).toBe("false")
+        expect(screen.queryByRole("switch", { name: "오늘 결제 예정 알림" })).toBeNull()
+        expect(screen.queryByRole("alert")).toBeNull()
+        expect(builder.select).toHaveBeenNthCalledWith(
+          2,
+          "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, request_result, push_enabled",
+        )
+      },
+    )
   })
 })
