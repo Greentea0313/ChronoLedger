@@ -2326,6 +2326,7 @@ RETURNS VOID AS $$
 DECLARE
     v_notif public.notifications%ROWTYPE;
     v_final_status VARCHAR(20);
+    v_affected_user_ids UUID[];
 BEGIN
     IF p_notification_id IS NULL THEN
         RAISE EXCEPTION 'p_notification_id is required' USING ERRCODE = 'invalid_parameter_value';
@@ -2336,7 +2337,34 @@ BEGIN
 
     SELECT * INTO v_notif FROM public.notifications WHERE id = p_notification_id FOR UPDATE;
     IF NOT FOUND THEN
-        RAISE EXCEPTION '알림을 찾을 수 없습니다.' USING ERRCODE = 'no_data_found';
+        -- R106-REV-002: Notification was deleted before worker completion; still clean endpoints and return quietly.
+        IF p_expired_endpoints IS NOT NULL AND cardinality(p_expired_endpoints) > 0 THEN
+            WITH deleted_subs AS (
+                DELETE FROM public.push_subscriptions
+                WHERE endpoint = ANY(p_expired_endpoints)
+                RETURNING user_id
+            )
+            SELECT array_agg(DISTINCT user_id) INTO v_affected_user_ids FROM deleted_subs;
+
+            IF v_affected_user_ids IS NOT NULL AND cardinality(v_affected_user_ids) > 0 THEN
+                UPDATE public.notification_settings ns
+                SET push_enabled = false,
+                    updated_at = NOW()
+                WHERE ns.user_id = ANY(v_affected_user_ids)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM public.push_subscriptions ps WHERE ps.user_id = ns.user_id
+                  );
+            END IF;
+        END IF;
+
+        IF p_succeeded_endpoints IS NOT NULL AND cardinality(p_succeeded_endpoints) > 0 THEN
+            UPDATE public.push_subscriptions
+            SET last_success_at = NOW(),
+                updated_at = NOW()
+            WHERE endpoint = ANY(p_succeeded_endpoints);
+        END IF;
+
+        RETURN;
     END IF;
 
     IF p_status = 'PENDING' AND v_notif.push_attempts >= 3 THEN

@@ -1363,4 +1363,93 @@ describe("ExpensesPage R101", () => {
       expect(within(card).getByText("예산 초과")).toBeTruthy()
     })
   })
+
+  it("R101-REV-001: 당월 취소된 월간 구독 회차는 당월 고정 구독 예정에서 제외하고 익월은 유지한다", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } })
+    from.mockImplementation((table: string) => {
+      if (table === "expenses") {
+        return createExpenseQueryBuilder([
+          {
+            id: "exp-oct-confirmed",
+            title: "10월 확정",
+            category: "게임",
+            status: "CONFIRMED",
+            target_date: "2026-10-15",
+            end_date: null,
+            game_id: null,
+            template_id: null,
+            billing_cycle: null,
+            original_price: 20000,
+            final_amount: 20000,
+            payment_method: "WALLET",
+            games: null,
+          },
+          {
+            id: "exp-oct-cancelled-sub",
+            title: "공월 축복",
+            category: "게임",
+            status: "CANCELLED",
+            cancellation_kind: "PLANNED_CANCEL",
+            target_date: "2026-10-05",
+            end_date: null,
+            game_id: null,
+            template_id: "tpl-1",
+            billing_cycle: "2026-10",
+            original_price: 5900,
+            final_amount: 5900,
+            payment_method: "WALLET",
+            games: null,
+          },
+          {
+            id: "exp-nov",
+            title: "11월 픽업 예정",
+            category: "게임",
+            status: "PLANNED",
+            target_date: "2026-11-10",
+            end_date: "2026-11-10",
+            game_id: null,
+            template_id: null,
+            billing_cycle: null,
+            original_price: 90000,
+            final_amount: 90000,
+            payment_method: "WALLET",
+            games: null,
+          },
+        ])
+      }
+      if (table === "subscription_templates") {
+        return createExpenseQueryBuilder([
+          {
+            id: "tpl-1",
+            title: "공월 축복",
+            category: "게임",
+            cycle_type: "MONTHLY_DAY",
+            billing_day: 5,
+            default_price: 5900,
+            payment_method: "WALLET",
+            is_active: true,
+            game_id: null,
+            games: null,
+          },
+        ])
+      }
+      if (table === "user_finances") {
+        return createExpenseQueryBuilder([{ default_budget: 80000 }])
+      }
+      if (table === "monthly_budgets") {
+        return createExpenseQueryBuilder([{ year: 2026, month: 10, budget_amount: 100000 }])
+      }
+      return createExpenseQueryBuilder([])
+    })
+
+    render(<ExpensesPage />)
+
+    const card = await screen.findByTestId("two-month-budget-card")
+    await waitFor(() => {
+      // 10월은 CANCELLED 구독 회차(billing_cycle: 2026-10)로 인해 고정 구독 예정이 0원 → 총 예상 20,000원, 잔여 80,000원
+      expect(within(card).getAllByText("20,000원").length).toBeGreaterThanOrEqual(2)
+      // 11월은 활성 구독료 5,900원이 정상 합산되어 총 예상 95,900원
+      expect(within(card).getByText("95,900원")).toBeTruthy()
+    })
+  })
 })

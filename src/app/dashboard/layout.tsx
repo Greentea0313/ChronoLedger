@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { unsubscribeCurrentDevicePush } from '@/lib/push-notifications'
 import { supabase } from '@/lib/supabase/client'
@@ -8,6 +9,7 @@ import { AccountDeletionStatusScreen } from '@/components/auth/account-deletion-
 import { Topbar } from '@/components/layout/topbar'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const {
     isLoading,
     isAccountDeletionStatusLoading,
@@ -27,6 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setLogoutError(`로그아웃하지 못했습니다: ${error.message}`)
         return
       }
+      router.replace('/auth')
     } catch (cause: unknown) {
       const description = cause instanceof Error ? cause.message : String(cause)
       setLogoutError(`로그아웃 중 오류가 발생했습니다: ${description}`)

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "run_id": "t1-t4-desktop-and-followups",
+  "iteration": 1,
+  "agent": "Claude Opus (High)",
+  "role": "dynamic-test",
+  "base_sha": "64c431752a972f5af4925653e710ac4126c8f28b",
+  "target_sha": "277dbdce667837700bdf5c64fd7d5c0ef805713a",
+  "status": "passed",
+  "created_at": "2026-11-25T09:05:00+00:00",
+  "finished_at": "2026-11-25T09:16:00+00:00",
+  "sandbox": "docker",
+  "redactions_applied": true,
+  "tests": [
+    { "name": "git diff --check (Base..Target)", "command": "git diff --check 64c4317 277dbdc", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "TypeScript", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "ESLint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest (77 files, 1050 tests)", "command": "npx vitest run --dir src", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Next build (static export, 16 pages)", "command": "npm run build (dummy NEXT_PUBLIC_SUPABASE_* env)", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Local DB upgrade path: Base SCHEMA.sql (quiet_on_missing=f), R106-REV-002 migration x2, check query (quiet_on_missing=t, auth_exec=f, anon_exec=f, sr_exec=t), TESTS.sql (49 PASS, ROLLBACK)", "command": "docker exec supabase_db_chronoledger-local psql -f SCHEMA(Base) / MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET x2 / TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Local DB fresh-install path: Target SCHEMA.sql, R106-REV-002 migration x2, check query, TESTS.sql (49 PASS, ROLLBACK)", "command": "docker exec supabase_db_chronoledger-local psql -f SCHEMA(Target) / MIGRATION_R106_REV002_COMPLETE_PUSH_QUIET x2 / TESTS.sql", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "SCHEMA.sql vs migration function body (complete_push_notification_delivery)", "command": "diff of extracted CREATE OR REPLACE FUNCTION blocks", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Rust cargo check (src-tauri)", "command": "cargo check (no Rust toolchain on this PC)", "status": "skipped", "exit_code": null, "log_path": null },
+    { "name": "Tauri production build", "command": "npm run tauri build (no Rust toolchain on this PC)", "status": "skipped", "exit_code": null, "log_path": null }
+  ]
+}

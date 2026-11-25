@@ -107,7 +107,8 @@
 --                                  push_enabled 자동 true, 타인 행 은닉, delete_push_subscription 삭제·0건 시 push_enabled false,
 --                                  service_role 전용 claim/complete RPC 및 push_webhook_config/set_push_webhook_config 접근 -> insufficient_privilege.
 --   R96-02 DB fixture 역할         claim_pending_push_notifications(request_result=false/push_enabled=false/구독 0건/계정 삭제 대기 SKIPPED),
---                                  complete_push_notification_delivery(만료 endpoint 삭제·last_success_at·3회 재시도 후 FAILED),
+--                                  complete_push_notification_delivery(만료 endpoint 삭제·last_success_at·3회 재시도 후 FAILED·
+--                                  삭제 알림 ID 무예외 종료 및 만료/성공 구독 정리 R106-REV-002),
 --                                  claim 5분 점유(재선점 금지)·1일 초과/첫 구독 이전 알림 SKIPPED·재시도 cron 등록,
 --                                  set_push_webhook_config 유효성·등록·NULL 시크릿 갱신·service_role 차단,
 --                                  pg_net 웹훅 트리거 예외 격리, 탈퇴 purge 연동 및 차단 트리거 검증.
@@ -2994,6 +2995,40 @@ BEGIN
     IF EXISTS (SELECT 1 FROM public.push_subscriptions WHERE user_id = v_user_b)
        OR NOT EXISTS (SELECT 1 FROM public.notification_settings WHERE user_id = v_user_b AND push_enabled = false) THEN
         RAISE EXCEPTION 'FAIL: R96 expiring last endpoint did not disable push_enabled';
+    END IF;
+
+    -- R106-REV-002: Calling complete_push_notification_delivery on a deleted/missing notification ID
+    -- must not raise; it still updates succeeded endpoints and cleans expired endpoints (+ push_enabled sync).
+    INSERT INTO public.push_subscriptions(user_id, endpoint, p256dh, auth, platform, user_agent_label)
+    VALUES
+        (v_user_b, 'https://push.example.test/r106-rev002/ok', repeat('P', 65), repeat('A', 22), 'web', 'Chrome · Quiet OK'),
+        (v_user_b, 'https://push.example.test/r106-rev002/expired', repeat('P', 65), repeat('A', 22), 'web', 'Chrome · Quiet Expired');
+    UPDATE public.notification_settings SET push_enabled = true, updated_at = NOW() WHERE user_id = v_user_b;
+
+    PERFORM public.complete_push_notification_delivery(
+        gen_random_uuid(),
+        'SENT',
+        ARRAY['https://push.example.test/r106-rev002/expired']::TEXT[],
+        ARRAY['https://push.example.test/r106-rev002/ok']::TEXT[]
+    );
+    IF EXISTS (SELECT 1 FROM public.push_subscriptions WHERE endpoint = 'https://push.example.test/r106-rev002/expired')
+       OR NOT EXISTS (
+           SELECT 1 FROM public.push_subscriptions
+           WHERE endpoint = 'https://push.example.test/r106-rev002/ok' AND last_success_at IS NOT NULL
+       )
+       OR NOT EXISTS (SELECT 1 FROM public.notification_settings WHERE user_id = v_user_b AND push_enabled = true) THEN
+        RAISE EXCEPTION 'FAIL: R106-REV-002 missing-notification completion did not clean expired or update succeeded endpoint';
+    END IF;
+
+    PERFORM public.complete_push_notification_delivery(
+        gen_random_uuid(),
+        'FAILED',
+        ARRAY['https://push.example.test/r106-rev002/ok']::TEXT[],
+        '{}'::TEXT[]
+    );
+    IF EXISTS (SELECT 1 FROM public.push_subscriptions WHERE user_id = v_user_b)
+       OR NOT EXISTS (SELECT 1 FROM public.notification_settings WHERE user_id = v_user_b AND push_enabled = false) THEN
+        RAISE EXCEPTION 'FAIL: R106-REV-002 missing-notification final endpoint expiry did not disable push_enabled';
     END IF;
 
     -- With push_enabled=false / 0 subscriptions, new notification is immediately SKIPPED.

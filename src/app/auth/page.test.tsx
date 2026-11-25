@@ -118,5 +118,22 @@ describe("AuthPage", () => {
       await Promise.resolve()
     })
   })
+
+  it("shows oauthError query parameter and deep-link error event in an alert banner", async () => {
+    window.history.replaceState({}, "", `/auth?oauthError=${encodeURIComponent("Google 로그인이 취소되었습니다.")}`)
+    render(<AuthPage />)
+
+    expect(screen.getByRole("alert").textContent).toContain("Google 로그인이 취소되었습니다.")
+
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent("chronoledger:oauth-callback-error", {
+          detail: { message: "인증 응답에 코드가 없습니다." },
+        }),
+      )
+    })
+
+    expect(screen.getByRole("alert").textContent).toContain("인증 응답에 코드가 없습니다.")
+  })
 })
 

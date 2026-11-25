@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { OAUTH_CALLBACK_ERROR_EVENT, startGoogleOAuth } from "@/lib/auth-adapter"
 import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 
@@ -23,10 +24,34 @@ export default function AuthPage() {
     if (!isLoading && user) {
       router.replace("/dashboard")
     }
-    if (new URLSearchParams(window.location.search).get("accountDeleted") === "1") {
-      setMessage("계정 삭제가 완료되었습니다.")
-    }
   }, [user, isLoading, router])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("accountDeleted") === "1") {
+      setMessage("계정 삭제가 완료되었습니다.")
+      setMessageIsError(false)
+    }
+    const oauthError = params.get("oauthError")?.trim()
+    if (oauthError) {
+      setMessage(oauthError)
+      setMessageIsError(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleOAuthCallbackError = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail
+      if (detail?.message) {
+        setMessage(detail.message)
+        setMessageIsError(true)
+      }
+    }
+    window.addEventListener(OAUTH_CALLBACK_ERROR_EVENT, handleOAuthCallbackError)
+    return () => {
+      window.removeEventListener(OAUTH_CALLBACK_ERROR_EVENT, handleOAuthCallbackError)
+    }
+  }, [])
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -61,28 +86,14 @@ export default function AuthPage() {
     setMessageIsError(false)
 
     try {
-      const isDesktop = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
-      const redirectUrl = isDesktop
-        ? "chronoledger://auth/callback"
-        : `${window.location.origin}/auth/callback`
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: isDesktop,
-        },
-      })
-
-      if (error) {
-        setMessage(`Google 인증 오류: ${error.message}`)
+      const result = await startGoogleOAuth()
+      if (result.error) {
+        setMessage(result.error)
         setMessageIsError(true)
         return
       }
 
-      if (isDesktop && data.url) {
-        const { open } = await import("@tauri-apps/plugin-shell")
-        await open(data.url)
+      if (result.mode === "external-browser") {
         setMessage("외부 브라우저에서 Google 로그인을 완료해주세요.")
       }
     } catch (cause: unknown) {

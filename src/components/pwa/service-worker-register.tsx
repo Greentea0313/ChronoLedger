@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { isDesktopRuntime } from "@/lib/auth-adapter"
 import { useAuth } from "@/lib/auth-context"
 
 export async function clearAppCaches() {
@@ -13,7 +14,7 @@ export function ServiceWorkerRegister() {
   const { user, isLoading } = useAuth()
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return
+    if (process.env.NODE_ENV !== "production" || isDesktopRuntime() || !("serviceWorker" in navigator)) return
     const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
     void navigator.serviceWorker
       .register(`/sw.js?supabaseOrigin=${encodeURIComponent(supabaseOrigin)}`)

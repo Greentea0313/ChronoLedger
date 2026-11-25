@@ -72,7 +72,7 @@ import {
 } from "recharts"
 
 const EXPENSE_COLUMNS =
-  "id, title, final_amount, status, cancellation_kind, target_date, start_date, end_date, game_id, schedule_id, pickup_schedule_id, template_id, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, point_platform, deduct_from_asset, memo, games(name, default_icon_url)"
+  "id, title, final_amount, status, cancellation_kind, target_date, start_date, end_date, game_id, schedule_id, pickup_schedule_id, template_id, billing_cycle, category, original_price, discount_amount, point_discount_amount, used_points, earned_points, payment_method, point_platform, deduct_from_asset, memo, games(name, default_icon_url)"
 
 interface ExpenseRow {
   id: string
@@ -87,6 +87,7 @@ interface ExpenseRow {
   schedule_id?: string | null
   pickup_schedule_id?: string | null
   template_id?: string | null
+  billing_cycle?: string | null
   category: string
   original_price: number
   discount_amount?: number
