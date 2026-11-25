@@ -96,4 +96,16 @@ describe("notifyNewTauriNotifications", () => {
     expect(sent).toBe(1)
     expect(sendNotification).toHaveBeenCalledWith({ title: "ChronoLedger" })
   })
+
+  it("R97-REV-001: does not mark items as seen when ensurePermission throws so the next poll retries", async () => {
+    await notifyNewTauriNotifications("u1", [])
+    isPermissionGranted.mockRejectedValueOnce(new Error("ipc timeout"))
+
+    expect(await notifyNewTauriNotifications("u1", [item("n1")])).toBe(0)
+    expect(sendNotification).not.toHaveBeenCalled()
+
+    isPermissionGranted.mockResolvedValueOnce(true)
+    expect(await notifyNewTauriNotifications("u1", [item("n1")])).toBe(1)
+    expect(sendNotification).toHaveBeenCalledWith({ title: "제목 n1", body: "본문 n1" })
+  })
 })

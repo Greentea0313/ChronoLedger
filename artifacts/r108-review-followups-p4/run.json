@@ -1,0 +1,16 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r108-review-followups-p4",
+    "created_at":  "2026-11-25T02:48:21.6672033+00:00",
+    "objective":  "Resolve low-risk P4 review follow-ups R39-REV-01, R96-REV-05, and R97-REV-001 (no DB changes)",
+    "acceptance_criteria":  [
+                                "Step 1 (Gemini 4 Hydrogen Medium): Fix R39-REV-01 (database.types.ts notification_settings.Update.user_id optional), R96-REV-05 (RFC 8291 Appendix A test vector verification in web-push-crypto/worker), and R97-REV-001 (tauri-notifications.ts rollback or post-permission seenIds save) with tsc/lint/vitest passing",
+                                "Step 2 (Claude Sonnet Medium): Static review (review.json), tsc/lint/vitest/next build verification (test.json), main merge, and docs closeout"
+                            ],
+    "base_sha":  "6c95c0e9b50a72042d5da0448fc0d17d4960b637",
+    "target_sha":  "a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9",
+    "branch":  "collab/r108-review-followups-p4",
+    "worktree_path":  ".worktrees/r108-review-followups-p4",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}

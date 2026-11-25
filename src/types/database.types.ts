@@ -106,7 +106,7 @@ isOneToOne: false
                     "favorite_schedule_end_d1"?: boolean,"favorite_schedule_start"?: boolean,"planned_expense_d1"?: boolean,"push_enabled"?: boolean,"request_result"?: boolean,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "favorite_schedule_end_d1"?: boolean,"favorite_schedule_start"?: boolean,"planned_expense_d1"?: boolean,"push_enabled"?: boolean,"request_result"?: boolean,"updated_at"?: string,"user_id": string
+                    "favorite_schedule_end_d1"?: boolean,"favorite_schedule_start"?: boolean,"planned_expense_d1"?: boolean,"push_enabled"?: boolean,"request_result"?: boolean,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: []
                 },"game_characters": {

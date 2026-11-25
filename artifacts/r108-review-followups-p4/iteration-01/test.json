@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "run_id": "r108-review-followups-p4",
+  "iteration": 1,
+  "agent": "Claude Sonnet",
+  "base_sha": "6c95c0e9b50a72042d5da0448fc0d17d4960b637",
+  "target_sha": "a1a4cebf72b6d26abd7879fc207e88b1f67fe9e9",
+  "created_at": "2026-11-25T11:58:46+09:00",
+  "role": "dynamic-test",
+  "status": "passed",
+  "finished_at": "2026-11-25T11:58:46+09:00",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "TypeScript typecheck on Target",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint on Target",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest suite (76 files, 1028 tests, includes RFC 8291 vector test and R97-REV-001 retry test)",
+      "command": "npx vitest run",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "git diff --check Base..Target",
+      "command": "git diff --check 6c95c0e a1a4ceb",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Next.js production build (placeholder Supabase env; worktree has no .env.local)",
+      "command": "npm run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Local DB migration/TESTS.sql",
+      "command": "n/a (no sql/ or supabase/ changes between Base and Target)",
+      "status": "skipped",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Windows OS toast visual check of the retry behaviour",
+      "command": "manual user check (not run by reviewer)",
+      "status": "skipped",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}
