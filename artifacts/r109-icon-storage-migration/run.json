@@ -1,0 +1,18 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r109-icon-storage-migration",
+    "created_at":  "2026-11-25T12:34:19.0488332+00:00",
+    "objective":  "R109: Migrate game/character icons from DB Data URLs to public game-assets Storage bucket (RLS, approval RPC, admin bulk migration, SW Cache-First)",
+    "acceptance_criteria":  [
+                                "Step 1 (Maker): Add MIGRATION_R109_GAME_ASSETS_STORAGE.sql (game-assets bucket, RLS, is_valid_pickup_new_characters, approve_schedule_request) and sync SCHEMA.sql, README, TESTS.sql, database.types.ts, CLAUDE.md per §2.1-§2.2 \u0026 §3.",
+                                "Step 2 (Maker): Implement game-asset-storage.ts, admin/requests Storage upload, /admin bulk migration button, and sw.js game-assets Cache-First + Vitest per §2.3-§2.5 \u0026 §3.",
+                                "Step 3 (Reviewer \u0026 Gate): Static review (review.json), 2x local DB + TESTS.sql pass (test.json), tsc, lint, Vitest, next build, and merge to main.",
+                                "Step 4 (Orchestrator): Archive closeout and guide production migration + /admin bulk migration."
+                            ],
+    "base_sha":  "358fd4b61713638d94ff7c7c0c5383a351600ca6",
+    "target_sha":  null,
+    "branch":  "collab/r109-icon-storage-migration",
+    "worktree_path":  ".worktrees/r109-icon-storage-migration",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
