@@ -2,13 +2,18 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import AdminPage from "./page"
 
-const { from, useAuth, mockGetKstToday, convertIconSourceToDataUrl, fetchImageFile } = vi.hoisted(() => ({
+const { from, useAuth, mockGetKstToday, convertIconSourceToDataUrl, fetchImageFile, uploadGameAssetFromSource } = vi.hoisted(() => ({
   fetchImageFile: vi.fn(async () => new File(["fetched"], "fetched.png", { type: "image/png" })),
   from: vi.fn(),
   useAuth: vi.fn(),
   mockGetKstToday: vi.fn(() => "2026-09-01"),
   convertIconSourceToDataUrl: vi.fn(),
+  uploadGameAssetFromSource: vi.fn(),
 }))
+
+const GAME_ASSET_URL = `https://proj.supabase.co/storage/v1/object/public/game-assets/games/${"a".repeat(64)}.webp`
+const charAssetUrl = (gameId: string) =>
+  `https://proj.supabase.co/storage/v1/object/public/game-assets/characters/${gameId}/${"b".repeat(64)}.webp`
 
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
@@ -17,6 +22,10 @@ vi.mock("@/lib/image-resizer", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/image-resizer")>(),
   convertIconSourceToDataUrl,
   fetchImageFile,
+}))
+vi.mock("@/lib/game-asset-storage", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/game-asset-storage")>(),
+  uploadGameAssetFromSource,
 }))
 // jsdom has WebAssembly but cannot decode images, so the AI path is bypassed: icons go straight to the resizer mock.
 vi.mock("@/lib/image-upscaler", async (importOriginal) => ({
@@ -96,6 +105,10 @@ describe("AdminPage - 일정 관리", () => {
     vi.clearAllMocks()
     mockGetKstToday.mockReturnValue("2026-09-01")
     convertIconSourceToDataUrl.mockResolvedValue("data:image/webp;base64,converted")
+    uploadGameAssetFromSource.mockImplementation(
+      async (target: { kind: "game" } | { kind: "character"; gameId: string }) =>
+        target.kind === "game" ? GAME_ASSET_URL : charAssetUrl(target.gameId),
+    )
     useAuth.mockReturnValue({
       user: { id: "admin-1", app_metadata: { role: "admin" } },
       role: "admin",
@@ -569,7 +582,7 @@ describe("AdminPage - 일정 관리", () => {
       convertIconSourceToDataUrl.mockResolvedValue("data:image/webp;base64,new256")
       renderWithCharacters([])
       const chain = mockNewPickupInsert({
-        data: { id: "np1", game_id: "game-2", name: "신규 캐릭", rarity: null, default_icon_url: "data:image/webp;base64,new256", is_pickup_only: true },
+        data: { id: "np1", game_id: "game-2", name: "신규 캐릭", rarity: null, default_icon_url: charAssetUrl("game-2"), is_pickup_only: true },
         error: null,
       })
       await openNewPickupForm("game-2")
@@ -582,11 +595,16 @@ describe("AdminPage - 일정 관리", () => {
       expect(charactersBuilder.insert).toHaveBeenCalledWith({
         game_id: "game-2",
         name: "신규 캐릭",
-        default_icon_url: "data:image/webp;base64,new256",
+        default_icon_url: charAssetUrl("game-2"),
         is_pickup_only: true,
       })
       expect(fetchImageFile).toHaveBeenCalledWith("https://example.com/new.png", 256)
       expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(expect.any(File))
+      expect(uploadGameAssetFromSource).toHaveBeenCalledWith(
+        { kind: "character", gameId: "game-2" },
+        "data:image/webp;base64,new256",
+        { useAiUpscale: true },
+      )
       expect(chain.select).toHaveBeenCalledWith("id, game_id, name, rarity, attributes, default_icon_url, is_pickup_only")
       const added = await screen.findByRole("button", { name: /신규 캐릭/ })
       expect(added.getAttribute("aria-pressed")).toBe("true")
@@ -918,18 +936,18 @@ describe("AdminPage - 일정 관리", () => {
       expect(gamesBuilder.update).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "원신 (수정됨)",
-          default_icon_url: "data:image/webp;base64,converted",
+          default_icon_url: GAME_ASSET_URL,
         })
       )
       expect(gamesBuilder.eq).toHaveBeenCalledWith("id", "game-1")
     })
   })
 
-  it("외부 URL 아이콘 게임에 배지를 표시하고 Data URL 재저장 시 DB 갱신 및 목록에 반영한다", async () => {
+  it("미이전 게임 아이콘에 배지를 표시하고 개별 Storage 이전 시 공개 URL로 DB 갱신 및 배지를 제거한다 (R109)", async () => {
     gamesBuilder.order.mockResolvedValue({
       data: [
         { id: "game-1", name: "원신", default_icon_url: "https://i.namu.wiki/a.png" },
-        { id: "game-2", name: "붕괴: 스타레일", default_icon_url: "data:image/webp;base64,own" },
+        { id: "game-2", name: "붕괴: 스타레일", default_icon_url: GAME_ASSET_URL },
         { id: "game-3", name: "로컬 아이콘 게임", default_icon_url: "/assets/games/local.webp" },
       ],
       error: null,
@@ -941,46 +959,114 @@ describe("AdminPage - 일정 관리", () => {
     fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
 
     expect(screen.getAllByText("외부 URL")).toHaveLength(1)
-    expect(screen.queryByRole("button", { name: "Data URL 재저장: 붕괴: 스타레일" })).toBeNull()
-    expect(screen.queryByRole("button", { name: "Data URL 재저장: 로컬 아이콘 게임" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Storage 이전: 붕괴: 스타레일" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Storage 이전: 로컬 아이콘 게임" })).toBeNull()
 
-    fireEvent.click(screen.getByRole("button", { name: "Data URL 재저장: 원신" }))
+    fireEvent.click(screen.getByRole("button", { name: "Storage 이전: 원신" }))
 
     await waitFor(() => {
-      expect(convertIconSourceToDataUrl).toHaveBeenCalledWith("https://i.namu.wiki/a.png")
-      expect(gamesBuilder.update).toHaveBeenCalledWith({ default_icon_url: "data:image/webp;base64,converted" })
+      expect(uploadGameAssetFromSource).toHaveBeenCalledWith({ kind: "game" }, "https://i.namu.wiki/a.png")
+      expect(gamesBuilder.update).toHaveBeenCalledWith({ default_icon_url: GAME_ASSET_URL })
       expect(gamesBuilder.eq).toHaveBeenCalledWith("id", "game-1")
     })
     await waitFor(() => {
       expect(screen.queryByText("외부 URL")).toBeNull()
-      expect(screen.queryByRole("button", { name: /외부 아이콘 일괄 변환/ })).toBeNull()
+      expect(screen.queryByRole("button", { name: "Storage 이전: 원신" })).toBeNull()
     })
   })
 
-  it("외부 아이콘 일괄 변환 버튼은 외부 URL 게임 수를 표시하고 변환 실패를 보고한다", async () => {
+  it("아이콘 Storage 일괄 이전 버튼은 게임과 캐릭터의 미이전 아이콘을 이전하고 이미 이전된 항목을 건너뛰며 실패 원본을 보존한다 (R109)", async () => {
+    const charactersBuilder = createQueryBuilder()
+    charactersBuilder.order.mockResolvedValue({
+      data: [
+        { id: "char-1", game_id: "game-1", name: "알리스", default_icon_url: "data:image/webp;base64,char1" },
+        { id: "char-2", game_id: "game-1", name: "이미이전됨", default_icon_url: charAssetUrl("game-1") },
+        { id: "char-3", game_id: "game-1", name: "아이콘없음", default_icon_url: null },
+      ],
+      error: null,
+    })
+    charactersBuilder.update.mockReturnValue(charactersBuilder)
+    charactersBuilder.eq.mockResolvedValue({ error: null })
+
     gamesBuilder.order.mockResolvedValue({
       data: [
         { id: "game-1", name: "원신", default_icon_url: "https://a.example/1.png" },
-        { id: "game-2", name: "붕괴: 스타레일", default_icon_url: "https://a.example/2.png" },
+        { id: "game-2", name: "붕괴: 스타레일", default_icon_url: "data:image/webp;base64,broken" },
         { id: "game-3", name: "로컬 아이콘 게임", default_icon_url: "/assets/games/local.webp" },
+        { id: "game-4", name: "이미이전게임", default_icon_url: GAME_ASSET_URL },
       ],
       error: null,
     })
     gamesBuilder.update.mockReturnValue(gamesBuilder)
     gamesBuilder.eq.mockResolvedValue({ error: null })
-    convertIconSourceToDataUrl
-      .mockResolvedValueOnce("data:image/webp;base64,ok")
-      .mockRejectedValueOnce(new Error("fail"))
+
+    from.mockImplementation((table: string) => {
+      if (table === "games") return gamesBuilder
+      if (table === "game_characters") return charactersBuilder
+      if (table === "game_schedules") return schedulesBuilder
+      return createQueryBuilder()
+    })
+
+    uploadGameAssetFromSource
+      .mockResolvedValueOnce(GAME_ASSET_URL)
+      .mockRejectedValueOnce(new Error("upload failed"))
+      .mockResolvedValueOnce(charAssetUrl("game-1"))
 
     render(<AdminPage />)
     fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
-    fireEvent.click(screen.getByRole("button", { name: "외부 아이콘 일괄 변환 (2)" }))
+    fireEvent.click(screen.getByRole("button", { name: "아이콘 Storage 일괄 이전 (3)" }))
 
-    expect(await screen.findByText(/아이콘 재저장 실패: 붕괴: 스타레일 \(성공 1개\)/)).toBeTruthy()
+    expect(
+      await screen.findByText(/게임 1건·캐릭터 1건 성공, 실패 1건 \(게임: 붕괴: 스타레일\)\. 실패 항목은 원본이 보존되었습니다/),
+    ).toBeTruthy()
+    expect(uploadGameAssetFromSource).toHaveBeenCalledTimes(3)
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith({ kind: "game" }, "https://a.example/1.png")
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith({ kind: "game" }, "data:image/webp;base64,broken")
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith(
+      { kind: "character", gameId: "game-1" },
+      "data:image/webp;base64,char1",
+    )
+    expect(uploadGameAssetFromSource).not.toHaveBeenCalledWith(expect.anything(), "/assets/games/local.webp")
+    expect(uploadGameAssetFromSource).not.toHaveBeenCalledWith(expect.anything(), GAME_ASSET_URL)
+    expect(uploadGameAssetFromSource).not.toHaveBeenCalledWith(expect.anything(), charAssetUrl("game-1"))
     expect(gamesBuilder.update).toHaveBeenCalledTimes(1)
-    expect(convertIconSourceToDataUrl).toHaveBeenCalledTimes(2)
-    expect(convertIconSourceToDataUrl).not.toHaveBeenCalledWith("/assets/games/local.webp")
-    expect(screen.getByRole("button", { name: "외부 아이콘 일괄 변환 (1)" })).toBeTruthy()
+    expect(gamesBuilder.update).toHaveBeenCalledWith({ default_icon_url: GAME_ASSET_URL })
+    expect(charactersBuilder.update).toHaveBeenCalledTimes(1)
+    expect(charactersBuilder.update).toHaveBeenCalledWith({ default_icon_url: charAssetUrl("game-1") })
+    expect(screen.getByRole("button", { name: "아이콘 Storage 일괄 이전 (1)" })).toBeTruthy()
+  })
+
+  it("아이콘 Storage 일괄 이전 대상이 0건이면 안내 메시지를 표시하고 오프라인에서는 차단한다 (R109)", async () => {
+    const charactersBuilder = createQueryBuilder()
+    charactersBuilder.order.mockResolvedValue({
+      data: [{ id: "char-1", game_id: "game-1", name: "이전완료", default_icon_url: charAssetUrl("game-1") }],
+      error: null,
+    })
+    gamesBuilder.order.mockResolvedValue({
+      data: [
+        { id: "game-1", name: "원신", default_icon_url: GAME_ASSET_URL },
+        { id: "game-2", name: "로컬", default_icon_url: "/assets/games/genshin.png" },
+      ],
+      error: null,
+    })
+    from.mockImplementation((table: string) => {
+      if (table === "games") return gamesBuilder
+      if (table === "game_characters") return charactersBuilder
+      if (table === "game_schedules") return schedulesBuilder
+      return createQueryBuilder()
+    })
+
+    render(<AdminPage />)
+    fireEvent.click(await screen.findByRole("tab", { name: /등록된 게임 목록/ }))
+    fireEvent.click(screen.getByRole("button", { name: "아이콘 Storage 일괄 이전" }))
+
+    expect(await screen.findByText("이전할 아이콘이 없습니다.")).toBeTruthy()
+    expect(uploadGameAssetFromSource).not.toHaveBeenCalled()
+
+    Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+    fireEvent.click(screen.getByRole("button", { name: "아이콘 Storage 일괄 이전" }))
+    expect(await screen.findByText(/오프라인 상태에서는 저장할 수 없습니다/)).toBeTruthy()
+    Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
   })
 
   it("등록된 게임을 삭제 모달을 통해 안전하게 삭제할 수 있다", async () => {
@@ -1036,7 +1122,7 @@ describe("AdminPage - 일정 관리", () => {
       expect(gamesBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "명조: 워더링 웨이브",
-          default_icon_url: "data:image/webp;base64,converted",
+          default_icon_url: GAME_ASSET_URL,
           status: "APPROVED",
         })
       )
@@ -1070,7 +1156,7 @@ describe("AdminPage - 일정 관리", () => {
       expect(gamesBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "클립보드 테스트 게임",
-          default_icon_url: "data:image/webp;base64,converted",
+          default_icon_url: GAME_ASSET_URL,
         }),
       )
     })
@@ -1248,6 +1334,10 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
     vi.clearAllMocks()
     mockGetKstToday.mockReturnValue("2026-09-01")
     convertIconSourceToDataUrl.mockResolvedValue("data:image/webp;base64,converted")
+    uploadGameAssetFromSource.mockImplementation(
+      async (target: { kind: "game" } | { kind: "character"; gameId: string }) =>
+        target.kind === "game" ? GAME_ASSET_URL : charAssetUrl(target.gameId),
+    )
     useAuth.mockReturnValue({
       user: { id: "admin-1", app_metadata: { role: "admin" } },
       role: "admin",
@@ -1491,11 +1581,16 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         name: "신규",
         rarity: "5★",
         attributes: { element: "물" },
-        default_icon_url: "data:image/webp;base64,converted",
+        default_icon_url: charAssetUrl("game-1"),
       })
     })
     expect(fetchImageFile).toHaveBeenCalledWith("https://example.com/new.png", 256)
     expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(expect.any(File))
+    expect(uploadGameAssetFromSource).toHaveBeenCalledWith(
+      { kind: "character", gameId: "game-1" },
+      "data:image/webp;base64,converted",
+      { useAiUpscale: true },
+    )
   })
 
   describe("R52 동적 캐릭터 템플릿", () => {
@@ -1821,10 +1916,10 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         expect(screen.queryByRole("dialog")).toBeNull()
       })
 
-      it("이미지 URL은 256×256 WebP Data URL로 변환해 저장한다", async () => {
+      it("이미지 URL은 256×256 WebP Storage 공개 URL로 업로드해 저장한다", async () => {
         await openCharacterTabWith([schemaGame, emptyGame], mockCharacters)
         mockPickupOnlyInsert({
-          data: { id: "po-10", game_id: "game-2", name: "이미지 캐릭", rarity: null, default_icon_url: "data:image/webp;base64,converted", is_pickup_only: true },
+          data: { id: "po-10", game_id: "game-2", name: "이미지 캐릭", rarity: null, default_icon_url: charAssetUrl("game-2"), is_pickup_only: true },
           error: null,
         })
         const dialog = await openDialog()
@@ -1833,9 +1928,14 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         await registerImageInDialog({ url: "https://example.com/p.png" })
         fireEvent.click(within(dialog).getByRole("button", { name: "등록" }))
 
-        await waitFor(() => expect(charactersBuilder.insert).toHaveBeenCalledWith({ game_id: "game-2", name: "이미지 캐릭", default_icon_url: "data:image/webp;base64,converted", is_pickup_only: true }))
+        await waitFor(() => expect(charactersBuilder.insert).toHaveBeenCalledWith({ game_id: "game-2", name: "이미지 캐릭", default_icon_url: charAssetUrl("game-2"), is_pickup_only: true }))
         expect(fetchImageFile).toHaveBeenCalledWith("https://example.com/p.png", 256)
         expect(convertIconSourceToDataUrl).toHaveBeenCalledWith(expect.any(File))
+        expect(uploadGameAssetFromSource).toHaveBeenCalledWith(
+          { kind: "character", gameId: "game-2" },
+          "data:image/webp;base64,converted",
+          { useAiUpscale: true },
+        )
       })
 
       it("이름 필수·같은 게임 내 중복 이름·오프라인·중복 키 오류를 막고 저장하지 않는다", async () => {
@@ -2126,7 +2226,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         await waitFor(() => {
           expect(gamesBuilder.update).toHaveBeenCalledWith({
             name: "원신 리뉴얼",
-            default_icon_url: "data:image/webp;base64,converted",
+            default_icon_url: GAME_ASSET_URL,
           })
         })
       })
@@ -2305,7 +2405,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
           rarity: "4성",
           attributes: { element: "기류", weapon: "권총" },
           is_pickup_only: false,
-          default_icon_url: "data:image/webp;base64,converted",
+          default_icon_url: charAssetUrl("game-1"),
         }))
         expect(await screen.findByText(/정식 공명자\(으\)로 승격했습니다/)).toBeTruthy()
       })

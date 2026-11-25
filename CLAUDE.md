@@ -95,7 +95,7 @@ python scripts/collaboration/validate_collaboration_artifact.py --artifact <json
 - **Financial Changes Must Use `SECURITY DEFINER` RPCs**: `process_expense_payment`, `refund_expense_payment`, `adjust_wallet_balance`, `update_store_wallet_settings`, `set_user_finance_settings`, `cancel_planned_expense`, `approve_*/reject_*_request`, etc. Never split payments, refunds, or balance adjustments into multiple client `update` calls. Final amounts and earned points are calculated by RPCs.
 - Monetary values are integer KRW (`BIGINT`), points are separate integers. Budget attribution: PLANNED = end date month, CONFIRMED = payment month. Schedule date change triggers only update PLANNED.
 - Admin role check uses DB-side JWT claim `app_metadata.role=admin`. Never decide permissions using `user_metadata` or client-side values.
-- `user-icons` Storage bucket is private (`{user_id}/{game_id}.webp`, 256×256 WebP ≤ 100KiB). Never call `getPublicUrl`.
+- `user-icons` Storage bucket is private (`{user_id}/{game_id}.webp`, 256×256 WebP ≤ 100KiB). Never call `getPublicUrl` on it. The only exception is the public, admin-write-only catalog bucket `game-assets` (`games/{sha256}.webp`, `characters/{game_id}/{sha256}.webp`, R109), where `getPublicUrl` is allowed.
 
 ### UI Rules
 

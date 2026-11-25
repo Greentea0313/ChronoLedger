@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabase/client"
-import { assertIconDataUrlSize } from "@/lib/image-resizer"
-import { convertIconSourceToDataUrlWithUpscale } from "@/lib/image-upscaler"
+import { uploadGameAssetFromSource } from "@/lib/game-asset-storage"
 import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
 
 export interface RegisteredPickupCharacter {
@@ -63,7 +62,11 @@ export async function registerPickupOnlyCharacter(input: RegisterPickupCharacter
   }
 
   const source = typeof input.imageSource === "string" ? input.imageSource.trim() : input.imageSource
-  const iconUrl = source ? assertIconDataUrlSize(await convertIconSourceToDataUrlWithUpscale(source, input.useAiUpscale)) : null
+  const iconUrl = source
+    ? await uploadGameAssetFromSource({ kind: "character", gameId: input.gameId }, source, {
+        useAiUpscale: input.useAiUpscale,
+      })
+    : null
 
   const { data, error } = await supabase
     .from("game_characters")

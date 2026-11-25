@@ -3,9 +3,13 @@
  * 2) 읽기 API: Supabase REST GET 응답을 "로그인 사용자별"로 캐시하고 오프라인에서만 사용한다.
  *    - 키: 요청 URL + JWT sub. 익명(anon) 토큰·만료 토큰 요청은 저장/제공하지 않는다.
  *    - 로그아웃/세션 없음 시 클라이언트가 CLEAR_CACHES를 보내 전부 삭제한다.
+ * 3) 공개 게임·캐릭터 아이콘: Supabase Storage public/game-assets GET 응답만 Cache-First(상한 500)로 캐시한다.
+ *    - 비공개 버킷(user-icons 등)은 절대 가로채거나 캐시하지 않는다.
  * 쓰기(비-GET) 요청은 절대 가로채지 않는다. */
 const SHELL_CACHE = "chronoledger-shell-v8"
 const DATA_CACHE = "chronoledger-data-v1"
+const GAME_ASSET_CACHE = "chronoledger-game-assets-v1"
+const GAME_ASSET_CACHE_LIMIT = 500
 const PRECACHE_URLS = [
   "/manifest.json",
   "/icons/icon-192.png",
@@ -59,6 +63,39 @@ function isSupabaseRead(request, url) {
   )
 }
 
+function isSupabasePublicGameAsset(request, url) {
+  return (
+    request.method === "GET" &&
+    SUPABASE_ORIGIN !== "" &&
+    url.origin === SUPABASE_ORIGIN &&
+    url.pathname.startsWith("/storage/v1/object/public/game-assets/")
+  )
+}
+
+async function trimGameAssetCache(cache) {
+  if (typeof cache.keys !== "function" || typeof cache.delete !== "function") return
+  const keys = await cache.keys()
+  const excess = keys.length - GAME_ASSET_CACHE_LIMIT
+  if (excess <= 0) return
+  await Promise.all(keys.slice(0, excess).map((oldKey) => cache.delete(oldKey)))
+}
+
+async function handleGameAssetRead(request, event) {
+  const cache = await caches.open(GAME_ASSET_CACHE)
+  const cached = await cache.match(request)
+  if (cached) return cached
+  const response = await fetch(request)
+  if (response.ok) {
+    const copy = response.clone()
+    const stored = cache
+      .put(request, copy)
+      .then(() => trimGameAssetCache(cache))
+      .catch(() => undefined)
+    if (event && typeof event.waitUntil === "function") event.waitUntil(stored)
+  }
+  return response
+}
+
 async function handleDataRead(request, event) {
   const sub = sessionKeyFor(request)
   if (!sub) return fetch(request)
@@ -90,7 +127,11 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== SHELL_CACHE && key !== DATA_CACHE).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter((key) => key !== SHELL_CACHE && key !== DATA_CACHE && key !== GAME_ASSET_CACHE)
+            .map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   )
@@ -109,6 +150,10 @@ self.addEventListener("fetch", (event) => {
 
   if (isSupabaseRead(request, url)) {
     event.respondWith(handleDataRead(request, event))
+    return
+  }
+  if (isSupabasePublicGameAsset(request, url)) {
+    event.respondWith(handleGameAssetRead(request, event))
     return
   }
   if (url.origin !== self.location.origin) return

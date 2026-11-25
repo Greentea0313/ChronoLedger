@@ -1,17 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DuplicatePickupNameError, ICON_MIGRATION_PENDING_MESSAGE, isIconRequiredByUnappliedMigration, registerPickupOnlyCharacter } from "./pickup-character-registration"
 
-const { from, convertIconSourceToDataUrlWithUpscale } = vi.hoisted(() => ({
+const { from, uploadGameAssetFromSource } = vi.hoisted(() => ({
   from: vi.fn(),
-  convertIconSourceToDataUrlWithUpscale: vi.fn(),
+  uploadGameAssetFromSource: vi.fn(),
 }))
 
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
-vi.mock("@/lib/image-upscaler", () => ({ convertIconSourceToDataUrlWithUpscale }))
+vi.mock("@/lib/game-asset-storage", () => ({ uploadGameAssetFromSource }))
 
 describe("registerPickupOnlyCharacter", () => {
   let insert: ReturnType<typeof vi.fn>
   let single: ReturnType<typeof vi.fn>
+  const PUBLIC_ICON_URL = `https://proj.supabase.co/storage/v1/object/public/game-assets/characters/game-1/${"a".repeat(64)}.webp`
 
   const input = (overrides: Partial<Parameters<typeof registerPickupOnlyCharacter>[0]> = {}) => ({
     gameId: "game-1",
@@ -39,25 +40,25 @@ describe("registerPickupOnlyCharacter", () => {
 
     expect(from).toHaveBeenCalledWith("game_characters")
     expect(insert).toHaveBeenCalledWith({ game_id: "game-1", name: "신규 픽업", default_icon_url: null, is_pickup_only: true })
-    expect(convertIconSourceToDataUrlWithUpscale).not.toHaveBeenCalled()
+    expect(uploadGameAssetFromSource).not.toHaveBeenCalled()
     expect(created).toEqual({ id: "c1", game_id: "game-1", name: "신규 픽업", rarity: null, attributes: {}, default_icon_url: null, is_pickup_only: true })
   })
 
-  it("converts a file or URL source with the AI upscale flag and stores the WebP data URL", async () => {
-    convertIconSourceToDataUrlWithUpscale.mockResolvedValue("data:image/webp;base64,ok")
+  it("uploads a file or URL source to game-assets Storage with the AI upscale flag and stores its public URL", async () => {
+    uploadGameAssetFromSource.mockResolvedValue(PUBLIC_ICON_URL)
     const file = new File(["x"], "icon.png", { type: "image/png" })
 
     await registerPickupOnlyCharacter(input({ imageSource: file, useAiUpscale: false }))
     await registerPickupOnlyCharacter(input({ imageSource: "  https://example.com/a.png  " }))
 
-    expect(convertIconSourceToDataUrlWithUpscale).toHaveBeenNthCalledWith(1, file, false)
-    expect(convertIconSourceToDataUrlWithUpscale).toHaveBeenNthCalledWith(2, "https://example.com/a.png", true)
-    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ default_icon_url: "data:image/webp;base64,ok" }))
+    expect(uploadGameAssetFromSource).toHaveBeenNthCalledWith(1, { kind: "character", gameId: "game-1" }, file, { useAiUpscale: false })
+    expect(uploadGameAssetFromSource).toHaveBeenNthCalledWith(2, { kind: "character", gameId: "game-1" }, "https://example.com/a.png", { useAiUpscale: true })
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ default_icon_url: PUBLIC_ICON_URL }))
   })
 
   it("treats a blank image string as no image", async () => {
     await registerPickupOnlyCharacter(input({ imageSource: "   " }))
-    expect(convertIconSourceToDataUrlWithUpscale).not.toHaveBeenCalled()
+    expect(uploadGameAssetFromSource).not.toHaveBeenCalled()
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({ default_icon_url: null }))
   })
 
@@ -80,9 +81,9 @@ describe("registerPickupOnlyCharacter", () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
-  it("rejects an oversized converted icon before saving", async () => {
-    convertIconSourceToDataUrlWithUpscale.mockResolvedValue(`data:image/webp;base64,${"A".repeat(150_000)}`)
-    await expect(registerPickupOnlyCharacter(input({ imageSource: "https://example.com/big.png" }))).rejects.toThrow(/이미지 용량이 너무 큽니다/)
+  it("propagates Storage upload errors before inserting into the database", async () => {
+    uploadGameAssetFromSource.mockRejectedValueOnce(new Error("변환된 이미지 용량이 100KB를 초과합니다."))
+    await expect(registerPickupOnlyCharacter(input({ imageSource: "https://example.com/big.png" }))).rejects.toThrow(/100KB를 초과/)
     expect(insert).not.toHaveBeenCalled()
   })
 

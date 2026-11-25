@@ -834,7 +834,7 @@ BEGIN
         IF v_item ? 'icon_url' AND jsonb_typeof(v_item -> 'icon_url') <> 'null' THEN
             IF jsonb_typeof(v_item -> 'icon_url') <> 'string' THEN RETURN false; END IF;
             v_icon := v_item ->> 'icon_url';
-            IF length(v_icon) > 150000 OR v_icon NOT LIKE 'data:image/webp;base64,%' THEN RETURN false; END IF;
+            IF length(v_icon) > 150000 OR NOT (v_icon LIKE 'data:image/webp;base64,%' OR v_icon LIKE 'https://%') THEN RETURN false; END IF;
         END IF;
     END LOOP;
     RETURN true;
@@ -2880,7 +2880,7 @@ AFTER UPDATE ON public.game_schedules
 FOR EACH ROW EXECUTE FUNCTION public.sync_version_expenses_trigger();
 
 -- 관리자 전용 요청 승인/반려 RPC. 일정 반영과 요청 상태 전환은 한 트랜잭션으로 처리한다.
-CREATE OR REPLACE FUNCTION public.approve_schedule_request(p_request_id UUID)
+CREATE OR REPLACE FUNCTION public.approve_schedule_request(p_request_id UUID, p_pickup_icon_overrides JSONB DEFAULT NULL)
 RETURNS VOID AS $$
 DECLARE
     v_request public.schedule_requests%ROWTYPE;
@@ -2889,6 +2889,7 @@ DECLARE
     v_proposal JSONB;
     v_character_id UUID;
     v_character_name TEXT;
+    v_icon_url TEXT;
 BEGIN
     v_is_admin := (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
         OR EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin');
@@ -2908,11 +2909,24 @@ BEGIN
 
         FOR v_proposal IN SELECT value FROM jsonb_array_elements(v_request.pickup_new_characters) AS item(value) LOOP
             v_character_name := btrim(v_proposal ->> 'name');
+            -- R109: an admin-uploaded Storage URL replaces the proposal's Data URL icon.
+            IF jsonb_typeof(p_pickup_icon_overrides) = 'object'
+               AND jsonb_typeof(p_pickup_icon_overrides -> v_character_name) = 'string' THEN
+                v_icon_url := nullif(p_pickup_icon_overrides ->> v_character_name, '');
+                IF v_icon_url IS NOT NULL AND NOT (
+                    length(v_icon_url) <= 150000
+                    AND (v_icon_url LIKE 'https://%' OR v_icon_url LIKE 'data:image/webp;base64,%')
+                ) THEN
+                    RAISE EXCEPTION '픽업 캐릭터 아이콘 주소가 올바르지 않습니다.' USING ERRCODE = 'check_violation';
+                END IF;
+            ELSE
+                v_icon_url := v_proposal ->> 'icon_url';
+            END IF;
             SELECT id INTO v_character_id FROM public.game_characters
             WHERE game_id = v_request.game_id AND name = v_character_name;
             IF NOT FOUND THEN
                 INSERT INTO public.game_characters(game_id, name, default_icon_url, is_pickup_only, created_by)
-                VALUES (v_request.game_id, v_character_name, v_proposal ->> 'icon_url', true, auth.uid())
+                VALUES (v_request.game_id, v_character_name, v_icon_url, true, auth.uid())
                 ON CONFLICT (game_id, name) DO NOTHING
                 RETURNING id INTO v_character_id;
                 IF v_character_id IS NULL THEN
@@ -3209,6 +3223,56 @@ CREATE POLICY "Users update own icons" ON storage.objects FOR UPDATE TO authenti
 CREATE POLICY "Users delete own icons" ON storage.objects FOR DELETE TO authenticated
     USING (bucket_id = 'user-icons' AND (storage.foldername(name))[1] = auth.uid()::text);
 
+-- R109: 공용 게임·캐릭터 기본 아이콘 버킷 game-assets는 공개 읽기(getPublicUrl 허용)이며 관리자만 쓴다.
+-- 경로: games/{sha256}.webp, characters/{game_id}/{sha256}.webp. 설정: 최대 102,400 bytes, 허용 MIME `image/webp`.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('game-assets', 'game-assets', true, 102400, ARRAY['image/webp'])
+ON CONFLICT (id) DO UPDATE
+SET public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+CREATE POLICY "Public read game assets" ON storage.objects FOR SELECT TO anon, authenticated
+    USING (bucket_id = 'game-assets');
+
+CREATE POLICY "Admins insert game assets" ON storage.objects FOR INSERT TO authenticated
+    WITH CHECK (
+        bucket_id = 'game-assets'
+        AND (coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false)
+             OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin'))
+        AND position('..' IN name) = 0
+        AND (((storage.foldername(name))[1] = 'games' AND array_length(storage.foldername(name), 1) = 1 AND name ~ '^games/[0-9a-f]{64}\.webp$')
+             OR ((storage.foldername(name))[1] = 'characters' AND array_length(storage.foldername(name), 1) = 2 AND name ~ '^characters/[0-9a-f-]{36}/[0-9a-f]{64}\.webp$'))
+    );
+
+CREATE POLICY "Admins update game assets" ON storage.objects FOR UPDATE TO authenticated
+    USING (
+        bucket_id = 'game-assets'
+        AND (coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false)
+             OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin'))
+        AND position('..' IN name) = 0
+        AND (((storage.foldername(name))[1] = 'games' AND array_length(storage.foldername(name), 1) = 1 AND name ~ '^games/[0-9a-f]{64}\.webp$')
+             OR ((storage.foldername(name))[1] = 'characters' AND array_length(storage.foldername(name), 1) = 2 AND name ~ '^characters/[0-9a-f-]{36}/[0-9a-f]{64}\.webp$'))
+    )
+    WITH CHECK (
+        bucket_id = 'game-assets'
+        AND (coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false)
+             OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin'))
+        AND position('..' IN name) = 0
+        AND (((storage.foldername(name))[1] = 'games' AND array_length(storage.foldername(name), 1) = 1 AND name ~ '^games/[0-9a-f]{64}\.webp$')
+             OR ((storage.foldername(name))[1] = 'characters' AND array_length(storage.foldername(name), 1) = 2 AND name ~ '^characters/[0-9a-f-]{36}/[0-9a-f]{64}\.webp$'))
+    );
+
+CREATE POLICY "Admins delete game assets" ON storage.objects FOR DELETE TO authenticated
+    USING (
+        bucket_id = 'game-assets'
+        AND (coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false)
+             OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin'))
+        AND position('..' IN name) = 0
+        AND (((storage.foldername(name))[1] = 'games' AND array_length(storage.foldername(name), 1) = 1 AND name ~ '^games/[0-9a-f]{64}\.webp$')
+             OR ((storage.foldername(name))[1] = 'characters' AND array_length(storage.foldername(name), 1) = 2 AND name ~ '^characters/[0-9a-f-]{36}/[0-9a-f]{64}\.webp$'))
+    );
+
 CREATE POLICY "Users insert own game requests" ON public.game_requests FOR INSERT TO authenticated
     WITH CHECK (auth.uid() = user_id AND request_status = 'PENDING' AND admin_memo IS NULL AND approved_game_id IS NULL);
 CREATE POLICY "Users read own game requests" ON public.game_requests FOR SELECT TO authenticated
@@ -3289,7 +3353,7 @@ REVOKE ALL ON FUNCTION public.adjust_wallet_balance(VARCHAR, BIGINT, TEXT) FROM 
 REVOKE ALL ON FUNCTION public.set_user_finance_settings(BIGINT, BIGINT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.record_income(VARCHAR, VARCHAR, BIGINT, DATE, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.delete_income(UUID) FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.approve_schedule_request(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.approve_schedule_request(UUID, JSONB) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.reject_schedule_request(UUID, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.approve_game_request(UUID, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.reject_game_request(UUID, TEXT) FROM PUBLIC, anon;
@@ -3305,7 +3369,7 @@ GRANT EXECUTE ON FUNCTION public.adjust_wallet_balance(VARCHAR, BIGINT, TEXT) TO
 GRANT EXECUTE ON FUNCTION public.set_user_finance_settings(BIGINT, BIGINT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.record_income(VARCHAR, VARCHAR, BIGINT, DATE, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_income(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.approve_schedule_request(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.approve_schedule_request(UUID, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reject_schedule_request(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.approve_game_request(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reject_game_request(UUID, TEXT) TO authenticated;

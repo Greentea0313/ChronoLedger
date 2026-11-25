@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r109-icon-storage-migration",
+  "iteration": 1,
+  "agent": "Gemini 4 Carbon",
+  "role": "static-review",
+  "base_sha": "358fd4b61713638d94ff7c7c0c5383a351600ca6",
+  "target_sha": "8dfd5f1e288a80ef627019a52c4df13cce92f030",
+  "status": "findings",
+  "created_at": "2026-11-25T22:12:30+09:00",
+  "findings": [
+    {
+      "id": "R109-REV-001",
+      "severity": "P4",
+      "file": "src/app/admin/page.tsx",
+      "line": 1299,
+      "evidence": "In handleBulkMigrateGameAssets, supabase.from(\"game_characters\").select(\"id, game_id, name, default_icon_url\").order(\"name\", { ascending: true }) fetches rows in a single unpaginated request without a server-side filter on unmigrated default_icon_url values.",
+      "impact": "Non-blocking at current catalog scale, but once total game_characters across all games exceed PostgREST's default 1,000-row response cap, unmigrated characters ordered after row 1,000 would be omitted from a single bulk migration pass.",
+      "recommendation": "Paginate the game_characters query with .range(from, to) loops or add a server-side filter for non-null default_icon_url values not yet pointing to the game-assets public prefix before the catalog approaches 1,000 characters."
+    },
+    {
+      "id": "R109-REV-002",
+      "severity": "P4",
+      "file": "src/app/admin/page.tsx",
+      "line": 1403,
+      "evidence": "pendingAssetMigrationCount sums games.filter(needsGameIconMigration).length and characters.filter((character) => needsGameAssetMigration(character.default_icon_url)).length, where characters in AdminPage state holds only the currently selected character-tab game's characters.",
+      "impact": "Cosmetic badge count inaccuracy only: if unmigrated character icons exist solely in games other than the active character-tab game, the bulk migration button omits the (N) count suffix, although the button remains enabled and handleBulkMigrateGameAssets queries all game_characters from the database on click.",
+      "recommendation": "Optionally compute a global unmigrated character count via a lightweight count query or clarify in a tooltip that the badge count reflects all games plus the currently selected game's loaded characters."
+    }
+  ]
+}
