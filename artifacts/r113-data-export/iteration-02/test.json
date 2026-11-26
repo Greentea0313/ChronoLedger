@@ -2,16 +2,23 @@
   "schema_version": 1,
   "run_id": "r113-data-export",
   "iteration": 2,
-  "agent": "GPT Codex",
+  "agent": "Claude Opus (High)",
   "base_sha": "57c76645d4595348d865af321c447b6adcd84464",
   "target_sha": "2a446e72f329ed479c01e1344182c0d0f8d3e2ad",
   "role": "dynamic-test",
-  "status": "failed",
-  "created_at": "2026-11-26T18:40:00+09:00",
-  "finished_at": "2026-11-26T18:43:30+09:00",
+  "status": "passed",
+  "created_at": "2026-11-26T18:45:00+09:00",
+  "finished_at": "2026-11-26T18:52:00+09:00",
   "sandbox": "unavailable",
-  "redactions_applied": false,
+  "redactions_applied": true,
   "tests": [
+    {
+      "name": "git diff --check (Base..Target)",
+      "command": "git diff --check 57c7664 2a446e7",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
     {
       "name": "TypeScript",
       "command": "npx tsc --noEmit",
@@ -27,24 +34,24 @@
       "log_path": null
     },
     {
-      "name": "Vitest",
-      "command": "npx vitest run (82 files, 1,109 tests)",
+      "name": "Vitest (82 files, 1109 tests)",
+      "command": "npx vitest run --dir src",
       "status": "passed",
       "exit_code": 0,
       "log_path": null
     },
     {
-      "name": "Production build",
-      "command": "npm run build (dummy public Supabase env; EPERM creating .next/types/app)",
-      "status": "failed",
-      "exit_code": 1,
+      "name": "Production build (static export, 16/16 pages)",
+      "command": "npm run build with the worktree's own node_modules (dummy NEXT_PUBLIC_SUPABASE_* env); the earlier EPERM on .next/types/app did not reproduce",
+      "status": "passed",
+      "exit_code": 0,
       "log_path": null
     },
     {
-      "name": "Artifact schema validation",
-      "command": "python scripts/collaboration/validate_collaboration_artifact.py (review.json and test.json)",
-      "status": "skipped",
-      "exit_code": null,
+      "name": "Artifact schema validation (review.json, test.json)",
+      "command": "python scripts/collaboration/validate_collaboration_artifact.py --artifact <file> --schema artifacts/schemas/<review|test>.schema.json",
+      "status": "passed",
+      "exit_code": 0,
       "log_path": null
     }
   ]
