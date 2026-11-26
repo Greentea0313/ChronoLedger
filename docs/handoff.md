@@ -13,7 +13,30 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함. 다음 후보는 사용자 지목 시 등록: `R109-CLEANUP`, `R107-A-CLEANUP`, `R107` 미결 질문 6건 확인)*
+- **활성 Run 없음** *(직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함. 아래 `📐 SPEC_NEEDED` 1건은 Run 등록 전 명세 단계임)*
+
+| Step | 상태 | 담당 모델 | 작업 | 비고 |
+| :--- | :--- | :--- | :--- | :--- |
+| `R110-SPEC` | **`📐 SPEC_NEEDED`** | **Gemini 4 Carbon (`High`)** *(Fallback: Claude Opus `High` / Gemini 4 Neon `High`)* | Tauri 데스크톱 앱 자동 업데이트(`R110`) 명세·결정 기록과 Step별 인수 기준 작성(`src/**` 수정 없음). 완료 후 Run 등록은 Gemini 4 Hydrogen에 반환함 | 아래 요구사항 접수 기록 참고 |
+
+#### 📐 `R110-SPEC` 요구사항 접수 기록 (Claude Sonnet `Medium`, 2026-11-26)
+
+1. **요청 이해**: 설치된 Tauri 데스크톱 앱이 새 빌드 배포를 감지해 사용자가 업데이트할 수 있게 함. 앱이 시작될 때 자동으로 새 버전을 확인하고, 있으면 배너로 알리며 버튼으로 다운로드·설치·재시작함.
+2. **에스컬레이션 조건**: 서명 키 보안 설계, 릴리스 배포 파이프라인(CI) 신규 도입, Rust·설정·프런트·CI 4개 영역에 걸친 변경임. 승인된 문서로 인수 기준을 확정할 수 없음.
+3. **사용자 결정 (2026-11-26, 질문 카드 응답)**:
+   - 업데이트 파일 배포 위치: **GitHub Releases**.
+   - 알림 방식: **앱 시작 시 자동 확인 후 배너 알림**.
+   - 서명 개인 키 보관: **GitHub Actions Secrets**.
+   - 릴리스 빌드 방식: **GitHub Actions 자동 빌드**(태그 push 시 빌드·서명·릴리스 업로드).
+4. **현재 상태 (확인함)**: `src-tauri/tauri.conf.json`에 updater 설정과 공개 키가 없음. `Cargo.toml`에 `tauri-plugin-updater`·`tauri-plugin-process`가 없음. `frontendDist: ../out`이라 웹 배포만으로는 설치된 앱이 갱신되지 않음. `.github/workflows` 존재 여부는 미확인임.
+5. **열린 질문 (Carbon이 결정)**:
+   - 저장소 공개 여부(비공개면 `latest.json` 접근 방식이 달라짐), 업데이트 endpoint URL 형식, `latest.json` 생성 방식(`tauri-action` 사용 여부).
+   - 서명 개인 키 분실·유출 시 복구 절차와 키 교체 정책, Windows 코드 서명(SmartScreen) 도입 여부.
+   - 버전 번호 관리(`package.json`·`Cargo.toml`·`tauri.conf.json` 동기화 규칙), 릴리스 태그 규칙, 웹(Cloudflare Pages) 배포와의 순서.
+   - 배너 UI 위치·문구·"나중에" 동작, 확인 실패·오프라인 시 처리, 웹/PWA에서는 배너를 숨기는 조건(Tauri 환경 감지).
+   - 검증 방법: 낮은 버전 설치본으로 실제 업데이트를 받아 보는 절차.
+6. **관련 문서·파일**: `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `src-tauri/src/lib.rs`, `src/lib/tauri-auth.ts`, `docs/t1-t4-desktop-and-followups-spec.md`, `docs/to-do.md` T4(실기기 확인 대기 중).
+7. **선행 조건**: `T4` 실기기 확인(로그인 복귀·`single-instance`)은 사용자 확인 대기임. 업데이트 기능 구현 착수 전에 끝내는 것을 권장함.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -28,6 +51,7 @@
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
 | `R107` | `R107-A·B` 운영 적용 완료 · **`R107-C` `main` 병합 (`9268bf0`)·운영 DB 적용 완료** | 정기·반복 지출 자동화: `R107-A`·`R107-B` 운영 적용 완료 → `R107-C` 자동 확정·원자 환불 롤백 `main` 병합 완료, 운영 `MIGRATION_R107C_AUTO_CONFIRM.sql` 적용·확인 쿼리 검증 완료(2026-11-26), 앱 배포·구독 모달 동작 1회 확인은 사용자 수행. 후속: `R107C-REV-001·002`(P4), `R107-A-CLEANUP`(1주 관찰 후) | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §6, `docs/to-do.md` `R107` |
 | `R109` | **운영 적용·일괄 이전 완료** | 아이콘 Storage 이전(공용 `game-assets` 버킷). 운영 적용·배포·일괄 이전 검증 완료(2026-11-25). `R109-REV-001·002`는 `p4-followups-r108-r109`(`main` 병합 `c52705c`)에서 완료, `R109-REV-003`(P4 선택)·`R109-CLEANUP`은 사용자 지목 시 | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §4, `docs/to-do.md` R109 |
+| `R110` | **`📐 SPEC_NEEDED` 명세 대기** | Tauri 데스크톱 앱 자동 업데이트(GitHub Releases·Actions 자동 빌드·Secrets 서명 키·시작 시 확인 후 배너). Carbon 명세 후 Hydrogen이 Run 등록 | 위 활성 과제 표 `R110-SPEC` 요구사항 접수 기록 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
