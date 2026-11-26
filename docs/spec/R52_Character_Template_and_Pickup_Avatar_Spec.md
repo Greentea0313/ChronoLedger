@@ -147,7 +147,7 @@ ALTER TABLE public.game_schedules
    - 템플릿이 생성된 게임을 선택하면:
      - 상단 액션 버튼이 **`[+ {character_label} 추가]`** (예: `+ 공명자 추가`)와 **`[템플릿 설정 수정]`**으로 표시됨.
      - **성급(`character_rank`)별 분리 표시**: 템플릿의 `rarities` 순서에 따라 성급별 필터 탭(`전체` / `5성 (N)` / `4성 (M)`) 및 성급 그룹 구분이 적용됨.
-     - **동적 컬럼 헤더**: 테이블 헤더가 **`[아이콘 | {character_label} 이름 | 등급 | {class1.label} | {class2.label} | 관리]`**로 동적 구성됨(설정되지 않은 분류 기준 컬럼은 숨김).
+     - **동적 컬럼 헤더**: 테이블 헤더가 **`[아이콘 | {character_label} 이름 | 등급 | {class1.label} | {class2.label} | {class3.label} | 관리]`**로 동적 구성됨(설정되지 않은 분류 기준 컬럼은 숨김, `{class3.label}`은 `R117`부터).
 2. **맞춤형 `{character_label}` 추가/수정 모달**:
    - 모달 제목: **`{게임명} {character_label} 추가`** (수정 시 **`{게임명} {character_label} 수정`**).
    - 입력 필드:
@@ -155,6 +155,7 @@ ALTER TABLE public.game_schedules
      - **`등급 *` (`character_rank`)**: 템플릿의 `rarities` 목록이 드롭다운(`<select>`)으로 제공되며 **필수 선택**임.
      - **`{class1.label} *` (`character_class1`)**: 템플릿에 분류 기준 1이 정의된 경우 해당 `options` 목록이 드롭다운(`<select>`)으로 제공되며 **필수 선택**임.
      - **`{class2.label} *` (`character_class2`)**: 템플릿에 분류 기준 2가 정의된 경우 해당 `options` 목록이 드롭다운(`<select>`)으로 제공되며 **필수 선택**임.
+     - **`{class3.label} *` (`character_class3`, `R117`)**: 템플릿에 분류 기준 3이 정의된 경우 해당 `options` 목록이 드롭다운(`<select>`)으로 제공되며 **필수 선택**임.
      - **`{character_label} 아이콘 *`**: 파일 업로드 / 외부 이미지 URL(CORS 프록시 폴백) / 클립보드 이미지 붙여넣기(`Ctrl+V`) → 256×256 WebP Data URL.
 
 ---
@@ -177,7 +178,7 @@ ALTER TABLE public.game_schedules
 ### 4.2 `RequestSubmissionModal` (`+ 추가 요청` → `캐릭터`)
 
 - 사용자가 `캐릭터 추가/수정 요청`을 선택했을 때, **관리자가 캐릭터 템플릿을 활성화한 게임(`rarities.length >= 1`)**만 게임 선택 드롭다운에서 선택 가능하도록 필터링함.
-- 게임 선택 시 해당 게임의 `character_label`, `등급 *` 드롭다운(`rarities`), `{class1.label} *` 드롭다운, `{class2.label} *` 드롭다운으로 입력 폼이 동적으로 재구성됨.
+- 게임 선택 시 해당 게임의 `character_label`, `등급 *` 드롭다운(`rarities`), `{class1.label} *`·`{class2.label} *`·`{class3.label} *` 드롭다운(설정된 분류 기준만, 세 번째는 `R117`부터)으로 입력 폼이 동적으로 재구성됨.
 
 ---
 

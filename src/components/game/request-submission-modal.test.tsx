@@ -607,6 +607,48 @@ describe("RequestSubmissionModal", () => {
     }))
   })
 
+  it("requires and submits all three classification axes (R117)", async () => {
+    from.mockImplementation((table: string) => {
+      const q = createQuery(table)
+      if (table === "games") {
+        q.order.mockResolvedValue({
+          data: [{
+            id: "game-1",
+            name: "Sample RPG",
+            classification_schema: {
+              rarities: ["5★"],
+              axes: [
+                { key: "element", label: "속성", options: ["불", "물"] },
+                { key: "weapon", label: "무기", options: ["검", "활"] },
+                { key: "role", label: "역할", options: ["딜러", "힐러"] },
+              ],
+            },
+          }],
+          error: null,
+        })
+      }
+      return q
+    })
+    await openModal()
+    await change("#request-kind", "character")
+    await change("#character-game", "game-1")
+    await change("#character-name", "Cleric")
+    await change("#character-rarity", "5★")
+    await change("#character-axis-element", "물")
+    await change("#character-axis-weapon", "활")
+    await submit()
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("역할을(를) 선택해 주세요.")
+    expect(insertCharacter).not.toHaveBeenCalled()
+
+    await change("#character-axis-role", "힐러")
+    await submit()
+    expect(insertCharacter).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Cleric",
+      rarity: "5★",
+      attributes: { element: "물", weapon: "활", role: "힐러" },
+    }))
+  })
+
   it("lists only games with an active character template in the character request form", async () => {
     from.mockImplementation((table: string) => {
       const q = createQuery(table)
