@@ -50,7 +50,7 @@ CREATE TABLE public.notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     kind VARCHAR(40) NOT NULL CONSTRAINT notifications_kind_check CHECK (
-        kind IN ('FAVORITE_START', 'FAVORITE_END_D1', 'EXPENSE_D1', 'EXPENSE_DUE_TODAY', 'EXPENSE_AUTO_CONFIRMED', 'REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED')
+        kind IN ('FAVORITE_START', 'FAVORITE_END_D1', 'EXPENSE_D1', 'EXPENSE_DUE_TODAY', 'EXPENSE_AUTO_CONFIRMED', 'GAME_BUDGET_80', 'GAME_BUDGET_100', 'MONTHLY_REPORT', 'REQUEST_APPROVED', 'REQUEST_REJECTED', 'FEEDBACK_ANSWERED')
     ),
     title VARCHAR(120) NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 120),
     body VARCHAR(300) NOT NULL CHECK (length(btrim(body)) BETWEEN 1 AND 300),
@@ -77,6 +77,8 @@ CREATE TABLE public.notification_settings (
     planned_expense_d1 BOOLEAN NOT NULL DEFAULT true,
     expense_due_today BOOLEAN NOT NULL DEFAULT true,
     request_result BOOLEAN NOT NULL DEFAULT true,
+    game_budget_alert BOOLEAN NOT NULL DEFAULT true, -- R114
+    monthly_report BOOLEAN NOT NULL DEFAULT true, -- R114
     push_enabled BOOLEAN NOT NULL DEFAULT false,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -800,9 +802,11 @@ CREATE TABLE public.user_games (
     game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     custom_icon_path TEXT,
     memo TEXT,
+    monthly_budget BIGINT, -- R114: 게임별 월 예산(NULL이면 없음), 경고·알림만
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(user_id, game_id)
+    UNIQUE(user_id, game_id),
+    CONSTRAINT chk_user_games_monthly_budget CHECK (monthly_budget IS NULL OR monthly_budget > 0)
 );
 
 CREATE OR REPLACE FUNCTION public.validate_schedule_pickup_characters()
@@ -2098,6 +2102,135 @@ CREATE POLICY "Update own notification settings" ON public.notification_settings
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
 
+-- R114 (B4·B8): 게임별 월 예산 알림. p_today(KST)가 속한 달 기준, 예정+확정 final_amount 합(예정은 end_date가 있으면 end_date 달)을
+--   user_games.monthly_budget과 비교함. 100% 이상이면 GAME_BUDGET_100만, 80% 이상 100% 미만이면 GAME_BUDGET_80.
+--   source_id = game_id, scheduled_for = 이번 달 1일로 종류별 한 달 1회. 금액은 본문에 넣지 않음(잠금 화면 보호).
+CREATE OR REPLACE FUNCTION public.enqueue_game_budget_notifications(p_today DATE)
+RETURNS INTEGER AS $$
+DECLARE
+    v_month_start DATE := date_trunc('month', p_today)::date;
+    v_next_month DATE := (date_trunc('month', p_today) + INTERVAL '1 month')::date;
+    v_rows INTEGER := 0;
+BEGIN
+    IF p_today IS NULL THEN
+        RAISE EXCEPTION 'p_today is required' USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id, scheduled_for)
+    SELECT
+        u.user_id,
+        CASE WHEN u.used >= u.monthly_budget THEN 'GAME_BUDGET_100' ELSE 'GAME_BUDGET_80' END,
+        CASE WHEN u.used >= u.monthly_budget THEN '게임 월 예산을 모두 사용했습니다' ELSE '게임 월 예산의 80%를 사용했습니다' END,
+        left(coalesce(nullif(btrim(u.game_name), ''), '게임'), 100)
+            || CASE WHEN u.used >= u.monthly_budget
+                    THEN ' 이번 달 지출(예정 포함)이 월 예산에 도달했습니다. 지출 관리에서 확인하세요.'
+                    ELSE ' 이번 달 지출(예정 포함)이 월 예산의 80%를 넘었습니다. 지출 관리에서 확인하세요.' END,
+        '/dashboard/expenses',
+        u.game_id,
+        v_month_start
+    FROM (
+        SELECT ug.user_id, ug.game_id, ug.monthly_budget, g.name AS game_name, coalesce(sum(e.final_amount), 0) AS used
+        FROM public.user_games ug
+        JOIN public.games g ON g.id = ug.game_id
+        LEFT JOIN public.notification_settings ns ON ns.user_id = ug.user_id
+        LEFT JOIN public.expenses e
+            ON e.user_id = ug.user_id
+           AND e.game_id = ug.game_id
+           AND e.status IN ('PLANNED', 'CONFIRMED')
+           AND (CASE WHEN e.status = 'PLANNED' AND e.end_date IS NOT NULL THEN e.end_date ELSE e.target_date END) >= v_month_start
+           AND (CASE WHEN e.status = 'PLANNED' AND e.end_date IS NOT NULL THEN e.end_date ELSE e.target_date END) < v_next_month
+        WHERE ug.monthly_budget IS NOT NULL
+          AND coalesce(ns.game_budget_alert, true) = true
+          AND NOT public.account_deletion_is_pending(ug.user_id)
+        GROUP BY ug.user_id, ug.game_id, ug.monthly_budget, g.name
+    ) AS u
+    WHERE u.used * 100 >= u.monthly_budget * 80
+    ON CONFLICT (user_id, kind, source_id, scheduled_for) WHERE scheduled_for IS NOT NULL DO NOTHING;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    RETURN v_rows;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.enqueue_game_budget_notifications(DATE) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.enqueue_game_budget_notifications(DATE) TO service_role;
+
+-- R114 (B9): 월간 리포트. p_today(KST)가 1일일 때만 전월 CONFIRMED 지출이 1건 이상인 사용자에게 1건.
+--   본문: 'N월 확정 지출 X원(전월 대비 ±Y%) · 예산 초과 게임 K개'. 전전월 확정 합이 0이면 '(전월 기록 없음)'.
+--   예산 초과 = 전월 귀속 예정+확정 합 > monthly_budget(B2 규칙). source_id = user_id, scheduled_for = 전월 1일.
+CREATE OR REPLACE FUNCTION public.enqueue_monthly_report_notifications(p_today DATE)
+RETURNS INTEGER AS $$
+DECLARE
+    v_month_start DATE := date_trunc('month', p_today)::date;
+    v_prev_start DATE := (date_trunc('month', p_today) - INTERVAL '1 month')::date;
+    v_prev2_start DATE := (date_trunc('month', p_today) - INTERVAL '2 month')::date;
+    v_rows INTEGER := 0;
+BEGIN
+    IF p_today IS NULL THEN
+        RAISE EXCEPTION 'p_today is required' USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+    IF extract(day FROM p_today) <> 1 THEN
+        RETURN 0;
+    END IF;
+
+    INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id, scheduled_for)
+    SELECT
+        r.user_id,
+        'MONTHLY_REPORT',
+        extract(month FROM v_prev_start)::int::text || '월 지출 리포트',
+        extract(month FROM v_prev_start)::int::text || '월 확정 지출 ' || to_char(r.prev_total, 'FM999,999,999,999,990') || '원('
+            || CASE
+                   WHEN r.prev2_total = 0 THEN '전월 기록 없음'
+                   ELSE '전월 대비 '
+                        || CASE WHEN round((r.prev_total - r.prev2_total) * 100.0 / r.prev2_total) > 0 THEN '+' ELSE '' END
+                        || round((r.prev_total - r.prev2_total) * 100.0 / r.prev2_total)::bigint::text || '%'
+               END
+            || ') · 예산 초과 게임 ' || r.over_count::text || '개',
+        '/dashboard/expenses',
+        r.user_id,
+        v_prev_start
+    FROM (
+        SELECT
+            p.user_id,
+            p.prev_total,
+            coalesce((
+                SELECT sum(e2.final_amount) FROM public.expenses e2
+                WHERE e2.user_id = p.user_id AND e2.status = 'CONFIRMED'
+                  AND e2.target_date >= v_prev2_start AND e2.target_date < v_prev_start
+            ), 0) AS prev2_total,
+            (
+                SELECT count(*) FROM (
+                    SELECT ug.game_id
+                    FROM public.user_games ug
+                    LEFT JOIN public.expenses e3
+                        ON e3.user_id = ug.user_id
+                       AND e3.game_id = ug.game_id
+                       AND e3.status IN ('PLANNED', 'CONFIRMED')
+                       AND (CASE WHEN e3.status = 'PLANNED' AND e3.end_date IS NOT NULL THEN e3.end_date ELSE e3.target_date END) >= v_prev_start
+                       AND (CASE WHEN e3.status = 'PLANNED' AND e3.end_date IS NOT NULL THEN e3.end_date ELSE e3.target_date END) < v_month_start
+                    WHERE ug.user_id = p.user_id AND ug.monthly_budget IS NOT NULL
+                    GROUP BY ug.game_id, ug.monthly_budget
+                    HAVING coalesce(sum(e3.final_amount), 0) > ug.monthly_budget
+                ) AS over_games
+            ) AS over_count
+        FROM (
+            SELECT e.user_id, sum(e.final_amount) AS prev_total
+            FROM public.expenses e
+            WHERE e.status = 'CONFIRMED' AND e.target_date >= v_prev_start AND e.target_date < v_month_start
+            GROUP BY e.user_id
+        ) AS p
+        LEFT JOIN public.notification_settings ns ON ns.user_id = p.user_id
+        WHERE coalesce(ns.monthly_report, true) = true
+          AND NOT public.account_deletion_is_pending(p.user_id)
+    ) AS r
+    ON CONFLICT (user_id, kind, source_id, scheduled_for) WHERE scheduled_for IS NOT NULL DO NOTHING;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    RETURN v_rows;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.enqueue_monthly_report_notifications(DATE) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.enqueue_monthly_report_notifications(DATE) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.enqueue_daily_notifications()
 RETURNS INTEGER AS $$
 DECLARE
@@ -2212,6 +2345,10 @@ BEGIN
     ON CONFLICT (user_id, kind, source_id, scheduled_for) WHERE scheduled_for IS NOT NULL DO NOTHING;
     GET DIAGNOSTICS v_rows = ROW_COUNT;
     v_inserted_count := v_inserted_count + v_rows;
+
+    -- 6) 게임별 월 예산 80%·100% (GAME_BUDGET_80·GAME_BUDGET_100, R114) / 7) 매월 1일 월간 리포트 (MONTHLY_REPORT, R114)
+    v_inserted_count := v_inserted_count + public.enqueue_game_budget_notifications(v_today);
+    v_inserted_count := v_inserted_count + public.enqueue_monthly_report_notifications(v_today);
 
     RETURN v_inserted_count;
 END;

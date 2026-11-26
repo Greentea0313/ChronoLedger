@@ -220,6 +220,8 @@ describe("SettingsPage", () => {
       favorite_schedule_end_d1?: boolean
       planned_expense_d1?: boolean
       expense_due_today?: boolean
+      game_budget_alert?: boolean
+      monthly_report?: boolean
       request_result?: boolean
       push_enabled?: boolean
     } | null
@@ -276,12 +278,20 @@ describe("SettingsPage", () => {
       const { builder } = mockNotificationSettings({ row: null })
       render(<SettingsPage />)
 
-      for (const label of ["관심 일정 시작 당일", "관심 일정 종료 1일 전", "예정 지출 결제일 1일 전", "오늘 결제 예정", "요청 처리 결과 알림"]) {
+      for (const label of [
+        "관심 일정 시작 당일",
+        "관심 일정 종료 1일 전",
+        "예정 지출 결제일 1일 전",
+        "오늘 결제 예정",
+        "게임 예산 알림",
+        "월간 지출 리포트",
+        "요청 처리 결과 알림",
+      ]) {
         expect((await toggle(label)).getAttribute("aria-checked")).toBe("true")
       }
       expect((await toggle("웹 푸시 전체 수신")).getAttribute("aria-checked")).toBe("false")
       expect(builder.select).toHaveBeenCalledWith(
-        "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, expense_due_today, request_result, push_enabled",
+        "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, expense_due_today, request_result, push_enabled, game_budget_alert, monthly_report",
       )
       expect(builder.eq).toHaveBeenCalledWith("user_id", "user-123")
     })
@@ -468,6 +478,7 @@ describe("SettingsPage", () => {
         const { builder } = mockNotificationSettings({ row: null })
         builder.maybeSingle
           .mockResolvedValueOnce({ data: null, error: { code, message: "missing column" } })
+          .mockResolvedValueOnce({ data: null, error: { code, message: "missing column" } })
           .mockResolvedValueOnce({
             data: {
               favorite_schedule_start: true,
@@ -484,11 +495,58 @@ describe("SettingsPage", () => {
         expect((await toggle("관심 일정 종료 1일 전")).getAttribute("aria-checked")).toBe("false")
         expect(screen.queryByRole("switch", { name: "오늘 결제 예정 알림" })).toBeNull()
         expect(screen.queryByRole("alert")).toBeNull()
+        expect(screen.queryByRole("switch", { name: "게임 예산 알림" })).toBeNull()
         expect(builder.select).toHaveBeenNthCalledWith(
-          2,
+          3,
           "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, request_result, push_enabled",
         )
       },
     )
+
+    it.each(["42703", "PGRST204"])(
+      "R114: hides only the game budget and monthly report toggles when their columns are missing (%s)",
+      async (code) => {
+        const { builder } = mockNotificationSettings({ row: null })
+        builder.maybeSingle
+          .mockResolvedValueOnce({ data: null, error: { code, message: "missing column" } })
+          .mockResolvedValueOnce({
+            data: {
+              favorite_schedule_start: true,
+              favorite_schedule_end_d1: true,
+              planned_expense_d1: true,
+              expense_due_today: false,
+              request_result: true,
+              push_enabled: false,
+            },
+            error: null,
+          })
+
+        render(<SettingsPage />)
+
+        expect((await toggle("오늘 결제 예정")).getAttribute("aria-checked")).toBe("false")
+        expect(screen.queryByRole("switch", { name: "게임 예산 알림" })).toBeNull()
+        expect(screen.queryByRole("switch", { name: "월간 지출 리포트 알림" })).toBeNull()
+        expect(screen.queryByRole("alert")).toBeNull()
+        expect(builder.select).toHaveBeenNthCalledWith(
+          2,
+          "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, expense_due_today, request_result, push_enabled",
+        )
+      },
+    )
+
+    it("R114: upserts only the toggled game budget / monthly report column", async () => {
+      const { builder } = mockNotificationSettings({ row: { game_budget_alert: true, monthly_report: true } })
+      render(<SettingsPage />)
+
+      fireEvent.click(await toggle("게임 예산 알림"))
+      await waitFor(() => expect(builder.upsert).toHaveBeenCalledTimes(1))
+      const [payload] = builder.upsert.mock.calls[0]
+      expect(payload).toMatchObject({ user_id: "user-123", game_budget_alert: false })
+      expect(Object.keys(payload).sort()).toEqual(["game_budget_alert", "updated_at", "user_id"])
+
+      fireEvent.click(await toggle("월간 지출 리포트"))
+      await waitFor(() => expect(builder.upsert).toHaveBeenCalledTimes(2))
+      expect(Object.keys(builder.upsert.mock.calls[1][0]).sort()).toEqual(["monthly_report", "updated_at", "user_id"])
+    })
   })
 })

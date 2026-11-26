@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import ExpensesPage from "./page"
+import { calculateGameBudgetUsage } from "@/lib/budget-calculations"
 
 const { from, rpc, useAuth, downloadUserIcon, mockGetKstToday } = vi.hoisted(() => ({
   from: vi.fn(),
@@ -1538,5 +1539,83 @@ describe("ExpensesPage R101", () => {
 
     expect((await screen.findByRole("alert")).textContent).toContain("이미 진행 중인 예정 회차가 있어")
     expect(screen.getAllByRole("button", { name: "되돌리기" }).length).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe("ExpensesPage 게임별 예산 (R114)", () => {
+  const base = {
+    pickup_schedule_id: null,
+    discount_amount: 0,
+    point_discount_amount: 0,
+    used_points: 0,
+    earned_points: 0,
+    payment_method: "GOOGLE_PLAY",
+  }
+  const rows = [
+    { ...base, id: "a1", title: "월정액", category: "게임", status: "CONFIRMED", target_date: "2026-10-03", start_date: null, end_date: null, game_id: "game-1", original_price: 6000, final_amount: 6000, games: { name: "원신", default_icon_url: null } },
+    { ...base, id: "a2", title: "연차", category: "게임", status: "CONFIRMED", target_date: "2026-10-05", start_date: null, end_date: null, game_id: "game-1", original_price: 33000, final_amount: 33000, games: { name: "원신", default_icon_url: null } },
+    { ...base, id: "b1", title: "패키지", category: "게임", status: "CONFIRMED", target_date: "2026-10-07", start_date: null, end_date: null, game_id: "game-2", original_price: 10000, final_amount: 10000, games: { name: "명일방주", default_icon_url: null } },
+    { ...base, id: "b2", title: "예정", category: "게임", status: "PLANNED", target_date: "2026-10-20", start_date: null, end_date: null, game_id: "game-2", original_price: 99000, final_amount: 99000, games: { name: "명일방주", default_icon_url: null } },
+    { ...base, id: "b3", title: "9월 패키지", category: "게임", status: "CONFIRMED", target_date: "2026-09-10", start_date: null, end_date: null, game_id: "game-2", original_price: 20000, final_amount: 20000, games: { name: "명일방주", default_icon_url: null } },
+  ]
+  const budgetRows = [
+    { game_id: "game-1", monthly_budget: 40000, games: { name: "원신" } },
+    { game_id: "game-2", monthly_budget: 100000, games: { name: "명일방주" } },
+    { game_id: "game-3", monthly_budget: null, games: { name: "예산 없음" } },
+  ]
+
+  beforeEach(() => {
+    rpc.mockReset()
+    rpc.mockResolvedValue({ data: 0, error: null })
+    useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+  })
+
+  function mockTables(userGames: { data: unknown; error: unknown }) {
+    const expenseBuilder = createExpenseQueryBuilder(rows)
+    const subscriptionBuilder = createExpenseQueryBuilder([])
+    const userGamesBuilder = createExpenseQueryBuilder([])
+    const promise = Promise.resolve(userGames)
+    Object.assign(userGamesBuilder, { then: promise.then.bind(promise), catch: promise.catch.bind(promise) })
+    from.mockImplementation((table: string) => {
+      if (table === "subscription_templates") return subscriptionBuilder
+      if (table === "user_games") return userGamesBuilder
+      return expenseBuilder
+    })
+  }
+
+  it("114-5: 이번 달 게임별 예산이 calculateGameBudgetUsage 결과와 같고 기존 게임별 과금 분석 합계는 그대로다", async () => {
+    mockTables({ data: budgetRows, error: null })
+    render(<ExpensesPage />)
+
+    const list = await screen.findByTestId("game-budget-list")
+    const expected = calculateGameBudgetUsage(
+      rows as never,
+      { year: 2026, month: 10 },
+      [
+        { game_id: "game-1", monthly_budget: 40000 },
+        { game_id: "game-2", monthly_budget: 100000 },
+      ],
+    )
+    expect(expected.map((item) => [item.game_id, item.used])).toEqual([
+      ["game-1", 39000],
+      ["game-2", 109000],
+    ])
+    expect(within(list).getByTestId("game-budget-game-1").textContent).toContain("39,000 / 40,000 원 (98%)")
+    expect(within(list).getByTestId("game-budget-game-2").textContent).toContain("109,000 / 100,000 원 (109%)")
+    expect(within(list).queryByText("예산 없음")).toBeNull()
+    expect(within(list).getByText(/예정 포함/)).toBeTruthy()
+    // Existing analysis (confirmed + '게임' only) is unchanged: 6000 + 33000 + 10000.
+    expect(screen.getByText("총 49,000 원")).toBeTruthy()
+    // October confirmed game total 49000 vs September 20000.
+    expect(screen.getByTestId("game-spend-month-over-month").textContent).toBe("게임 확정 결제 전월 대비 +29,000원 (+145%)")
+  })
+
+  it("114-6: monthly_budget 열이 없으면(42703) 예산 목록만 숨기고 페이지는 그대로 표시한다", async () => {
+    mockTables({ data: null, error: { code: "42703", message: "column user_games.monthly_budget does not exist" } })
+    render(<ExpensesPage />)
+
+    expect(await screen.findByText("총 49,000 원")).toBeTruthy()
+    await waitFor(() => expect(from).toHaveBeenCalledWith("user_games"))
+    expect(screen.queryByTestId("game-budget-list")).toBeNull()
   })
 })

@@ -1168,4 +1168,121 @@ describe("GamesPage", () => {
       })
     })
   })
+
+  describe("게임별 월 예산 (R114)", () => {
+    const gamesWithBudget = [
+      { ...mockUserGames[0], memo: null, monthly_budget: 50000 },
+      { ...mockUserGames[1], memo: null, monthly_budget: null },
+    ]
+
+    function mockBudgetGames(options: { selectError?: { code: string; message: string } } = {}) {
+      const secondEq = vi.fn().mockResolvedValue({ error: null })
+      const firstEq = vi.fn().mockReturnValue({ eq: secondEq })
+      const update = vi.fn().mockReturnValue({ eq: firstEq })
+      const selects: string[] = []
+      from.mockImplementation((table: string) => {
+        if (table === "user_games") {
+          const query = createQuery("user_games") as ReturnType<typeof createQuery> & { update?: typeof update }
+          let columns = ""
+          query.select = vi.fn((cols: string) => {
+            columns = cols
+            selects.push(cols)
+            return query
+          })
+          query.then = vi.fn((resolve: (val: unknown) => unknown) => {
+            if (options.selectError && columns.includes("monthly_budget")) {
+              return Promise.resolve({ data: null, error: options.selectError }).then(resolve)
+            }
+            const rows = columns.includes("monthly_budget") ? gamesWithBudget : mockUserGames
+            return Promise.resolve({ data: rows, error: null }).then(resolve)
+          })
+          query.update = update
+          return query
+        }
+        return createQuery(table)
+      })
+      return { update, firstEq, secondEq, selects }
+    }
+
+    const buttonsByText = (text: string) =>
+      Array.from(document.body.querySelectorAll("button")).filter((b) => b.textContent?.trim() === text)
+
+    async function click(el: Element) {
+      await act(async () => {
+        Simulate.click(el)
+        await Promise.resolve()
+      })
+    }
+
+    async function typeBudget(gameName: string, value: string) {
+      const input = document.body.querySelector(`input[aria-label="${gameName} 월 예산 입력"]`) as HTMLInputElement
+      expect(input).not.toBeNull()
+      await act(async () => {
+        Simulate.change(input, { target: { value } as unknown as EventTarget })
+      })
+    }
+
+    it("114-4: 예산을 저장하고 비우면 해제하며 카드에 바로 반영한다", async () => {
+      const { update, firstEq, secondEq } = mockBudgetGames()
+      await act(async () => root.render(<GamesPage />))
+
+      expect(buttonsByText("월 예산 50,000원")).toHaveLength(1)
+      await click(buttonsByText("월 예산 설정")[0])
+      await typeBudget("붕괴: 스타레일", "30,000")
+      await click(buttonsByText("저장")[0])
+      expect(update).toHaveBeenCalledWith({ monthly_budget: 30000 })
+      expect(firstEq).toHaveBeenCalledWith("id", "user-game-2")
+      expect(secondEq).toHaveBeenCalledWith("user_id", "test-user-id")
+      expect(buttonsByText("월 예산 30,000원")).toHaveLength(1)
+
+      await click(buttonsByText("월 예산 50,000원")[0])
+      await typeBudget("원신", "")
+      await click(buttonsByText("저장")[0])
+      expect(update).toHaveBeenLastCalledWith({ monthly_budget: null })
+      expect(buttonsByText("월 예산 설정")).toHaveLength(1)
+    })
+
+    it("114-4: 범위 밖·숫자가 아닌 값은 저장 요청 없이 거부한다", async () => {
+      const { update } = mockBudgetGames()
+      await act(async () => root.render(<GamesPage />))
+      await click(buttonsByText("월 예산 설정")[0])
+
+      await typeBudget("붕괴: 스타레일", "0")
+      await click(buttonsByText("저장")[0])
+      expect(document.body.textContent).toContain("1원 이상 1,000억 원 이하로 입력하세요.")
+      await typeBudget("붕괴: 스타레일", "100000000001")
+      await click(buttonsByText("저장")[0])
+      expect(document.body.textContent).toContain("1원 이상 1,000억 원 이하로 입력하세요.")
+      await typeBudget("붕괴: 스타레일", "12.5")
+      await click(buttonsByText("저장")[0])
+      expect(document.body.textContent).toContain("숫자만 입력하세요.")
+      expect(update).not.toHaveBeenCalled()
+    })
+
+    it("114-4: 오프라인이면 저장을 막는다", async () => {
+      const { update } = mockBudgetGames()
+      await act(async () => root.render(<GamesPage />))
+      await click(buttonsByText("월 예산 설정")[0])
+      await typeBudget("붕괴: 스타레일", "1000")
+      Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true })
+      try {
+        await click(buttonsByText("저장")[0])
+      } finally {
+        Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true })
+      }
+      expect(update).not.toHaveBeenCalled()
+      expect(document.body.textContent).toContain("오프라인 상태에서는 저장할 수 없습니다.")
+    })
+
+    it("114-6: monthly_budget 열이 없으면(42703) 열 없이 다시 조회하고 예산 UI만 숨긴다", async () => {
+      const { selects } = mockBudgetGames({ selectError: { code: "42703", message: "column user_games.monthly_budget does not exist" } })
+      await act(async () => root.render(<GamesPage />))
+
+      expect(selects.some((cols) => cols.includes("monthly_budget"))).toBe(true)
+      expect(selects.some((cols) => !cols.includes("monthly_budget") && cols.includes("memo"))).toBe(true)
+      expect(container.textContent).toContain("원신")
+      expect(buttonsByText("월 예산 설정")).toHaveLength(0)
+      expect(Array.from(document.body.querySelectorAll("button")).some((b) => b.textContent?.includes("월 예산"))).toBe(false)
+    })
+  })
 })

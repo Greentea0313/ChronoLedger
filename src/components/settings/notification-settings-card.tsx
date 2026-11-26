@@ -19,6 +19,8 @@ type SettingKey =
   | "favorite_schedule_end_d1"
   | "planned_expense_d1"
   | "expense_due_today"
+  | "game_budget_alert"
+  | "monthly_report"
   | "request_result"
   | "push_enabled"
 type SettingValues = Record<SettingKey, boolean>
@@ -54,6 +56,16 @@ const DAILY_AND_EVENT_OPTIONS: { key: Exclude<SettingKey, "push_enabled">; label
     description: "오늘 결제 예정인 지출이 있으면 오전 9시(KST)에 요약 알림으로 알려줌. 금액과 항목명은 표시하지 않음.",
   },
   {
+    key: "game_budget_alert",
+    label: "게임 예산 알림",
+    description: "게임별 월 예산의 80%·100%에 도달하면 오전 9시(KST)에 게임마다 한 번씩 알려줌(최대 하루 늦을 수 있음). 금액은 표시하지 않음.",
+  },
+  {
+    key: "monthly_report",
+    label: "월간 지출 리포트",
+    description: "매월 1일 오전 9시(KST)에 전월 확정 지출 합계·전월 대비 변화·예산 초과 게임 수를 알려줌.",
+  },
+  {
     key: "request_result",
     label: "요청 처리 결과 알림",
     description: "요청 승인·반려 및 건의 답변 시 웹 푸시 알림을 받습니다. (앱 내 알림함에는 항상 표시됨)",
@@ -65,6 +77,8 @@ const DEFAULT_VALUES: SettingValues = {
   favorite_schedule_end_d1: true,
   planned_expense_d1: true,
   expense_due_today: true,
+  game_budget_alert: true,
+  monthly_report: true,
   request_result: true,
   push_enabled: false,
 }
@@ -72,6 +86,10 @@ const DEFAULT_VALUES: SettingValues = {
 const BASE_SETTINGS_COLUMNS = "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, request_result, push_enabled"
 const EXTENDED_SETTINGS_COLUMNS =
   "favorite_schedule_start, favorite_schedule_end_d1, planned_expense_d1, expense_due_today, request_result, push_enabled"
+
+// R114: 게임 예산·월간 리포트 토글 열. 없으면(마이그레이션 미적용) 두 토글을 숨긴다.
+const R114_SETTINGS_COLUMNS = `${EXTENDED_SETTINGS_COLUMNS}, game_budget_alert, monthly_report`
+const R114_SETTING_KEYS: readonly SettingKey[] = ["game_budget_alert", "monthly_report"]
 
 const MIGRATION_PENDING_MESSAGE = "DB 업데이트(R39) 적용 후 알림 설정을 저장할 수 있습니다."
 const PUSH_MIGRATION_PENDING_MESSAGE = "DB 업데이트(R96) 적용 후 웹 푸시 기기를 관리할 수 있습니다."
@@ -115,6 +133,7 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isAvailable, setIsAvailable] = useState(true)
   const [isExpenseDueTodayAvailable, setIsExpenseDueTodayAvailable] = useState(true)
+  const [isGameBudgetSettingsAvailable, setIsGameBudgetSettingsAvailable] = useState(true)
   const [savingKey, setSavingKey] = useState<SettingKey | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -166,9 +185,22 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
     try {
       let { data, error: loadError } = await supabase
         .from("notification_settings")
-        .select(EXTENDED_SETTINGS_COLUMNS)
+        .select(R114_SETTINGS_COLUMNS)
         .eq("user_id", userId)
         .maybeSingle()
+
+      if (loadError && isMissingColumn(loadError)) {
+        setIsGameBudgetSettingsAvailable(false)
+        const extendedRes = await supabase
+          .from("notification_settings")
+          .select(EXTENDED_SETTINGS_COLUMNS)
+          .eq("user_id", userId)
+          .maybeSingle()
+        data = extendedRes.data ? { ...extendedRes.data, game_budget_alert: true, monthly_report: true } : null
+        loadError = extendedRes.error
+      } else if (!loadError) {
+        setIsGameBudgetSettingsAvailable(true)
+      }
 
       if (loadError && isMissingColumn(loadError)) {
         setIsExpenseDueTodayAvailable(false)
@@ -177,7 +209,7 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
           .select(BASE_SETTINGS_COLUMNS)
           .eq("user_id", userId)
           .maybeSingle()
-        data = fallbackRes.data ? { ...fallbackRes.data, expense_due_today: true } : null
+        data = fallbackRes.data ? { ...fallbackRes.data, expense_due_today: true, game_budget_alert: true, monthly_report: true } : null
         loadError = fallbackRes.error
       } else if (!loadError) {
         setIsExpenseDueTodayAvailable(true)
@@ -198,6 +230,8 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
           favorite_schedule_end_d1: data?.favorite_schedule_end_d1 ?? true,
           planned_expense_d1: data?.planned_expense_d1 ?? true,
           expense_due_today: data?.expense_due_today ?? true,
+          game_budget_alert: data?.game_budget_alert ?? true,
+          monthly_report: data?.monthly_report ?? true,
           request_result: data?.request_result ?? true,
           push_enabled: data?.push_enabled ?? false,
         })
@@ -237,6 +271,8 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
         setValues((prev) => ({ ...prev, [key]: previous }))
         if (key === "expense_due_today" && isMissingColumn(saveError)) {
           setIsExpenseDueTodayAvailable(false)
+        } else if (R114_SETTING_KEYS.includes(key) && isMissingColumn(saveError)) {
+          setIsGameBudgetSettingsAvailable(false)
         } else if (isMissingTableOrFunction(saveError)) {
           setIsAvailable(false)
           setError(MIGRATION_PENDING_MESSAGE)
@@ -325,7 +361,11 @@ export function NotificationSettingsCard({ userId }: { userId: string }) {
             매일 오전 9시(KST)에 앱 안의 알림함(상단 벨)으로 전달되는 일일 알림과 요청 결과 웹 푸시 알림을 종류별로 켜고 끕니다.
           </p>
           <ul className="space-y-3">
-            {DAILY_AND_EVENT_OPTIONS.filter((option) => option.key !== "expense_due_today" || isExpenseDueTodayAvailable).map((option) => (
+            {DAILY_AND_EVENT_OPTIONS.filter(
+              (option) =>
+                (option.key !== "expense_due_today" || isExpenseDueTodayAvailable) &&
+                (!R114_SETTING_KEYS.includes(option.key) || isGameBudgetSettingsAvailable),
+            ).map((option) => (
               <li key={option.key} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-content">{option.label}</p>
