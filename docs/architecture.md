@@ -11,7 +11,7 @@
 ```text
 Next.js App Router
 ├── 모바일: PWA (SRS 제품 범위; 앱 버전/첫 릴리스 미결정)
-└── 데스크톱: Windows Tauri v2 정적 export (SRS 상위 방향; 앱 릴리스 버전 미결정)
+└── 데스크톱: Windows Tauri v2 정적 export (자동 업데이트: GitHub Releases `latest.json`, R110)
         │ Supabase SDK / 인증 세션
         ▼
 Supabase
@@ -79,7 +79,8 @@ Supabase
 
 ## 5. 배포 및 미검증 사항
 
-- SRS는 Android PWA와 Windows Tauri v2, 단일 Next.js 코드베이스 및 Tauri 정적 export 방향을 정한다. Android PWA 실기기 검증은 웹사이트 우선 요청에 따라 보류됐으나 제품 범위는 유지한다. 앱 릴리스 버전은 미결정이다.
+- SRS는 Android PWA와 Windows Tauri v2, 단일 Next.js 코드베이스 및 Tauri 정적 export 방향을 정한다. Android PWA 실기기 검증은 웹사이트 우선 요청에 따라 보류됐으나 제품 범위는 유지한다. 앱 릴리스 버전은 `0.2.0`(첫 자동 업데이트 릴리스)이며 원천은 `package.json`이다.
+- 데스크톱 자동 업데이트(R110): `tauri-plugin-updater`·`process`, 서명 공개 키는 `tauri.conf.json`, 개인 키는 GitHub Secrets에만 둔다. 태그 `desktop-vX.Y.Z` push가 `.github/workflows/desktop-release.yml`로 빌드·서명·Release 업로드를 실행하고, 앱은 `src/lib/desktop-updater.ts`(동적 import 래퍼)와 루트 레이아웃의 `desktop-update-banner.tsx`로 시작 시 1회 확인한다. 절차는 [desktop-release.md](desktop-release.md)를 따른다.
 - 웹 호스팅 플랫폼은 **Cloudflare Pages**로 최종 확정되었으며, 이전 Netlify 배포 방식은 완전히 폐기되었다. Next.js 단일 정적 export(`output: 'export'` -> `out/`) 산출물을 Cloudflare Pages에 배포하며(트래픽 무제한, 월 500회 빌드), 불변 캐시/보안 헤더(`public/_headers`) 및 SPA 라우팅(`public/_redirects`)을 통해 호스팅된다.
 - UI 설계는 [UI Design Sheet](spec/ChronoLedger_UI_Design_Sheet.md)를 따른다. 이는 SRS가 정한 동작을 보존하며, `[PROPOSED]`로 표시된 시각/배치 선택은 구현 전에 확정한다. [한국어 HTML 목업](design-previews/design-v1-ko.html)은 단일 대시보드의 정적 시각 참고 자료다.
 - DDL/RPC/RLS는 [SCHEMA.sql](../sql/SCHEMA.sql)(신규 설치용 통합 마스터)에 둔다. `sql/`은 `migrations/`(기존 DB 동기화, 재실행 안전), `seed/`, `tests/`, `archive/`(실행 금지)로 나뉘며 실행 순서와 반영 확인 쿼리는 [sql/README.md](../sql/README.md)를 따른다. 사용자는 전용 테스트 프로젝트에서 rollback-only smoke suite의 최종 PASS 및 fixture 롤백을 확인했다. 이는 전체 SRS 수용 기준 또는 Production 배포 검증을 뜻하지 않는다.

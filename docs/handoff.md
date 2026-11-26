@@ -36,12 +36,13 @@
 
 > **다음 단계**: **사용자**가 명세 §4 Step 4(`main` push → `desktop-v0.2.0` 태그 push → Actions 확인 → 0.1.0 제거 후 수동 설치 → 0.2.1 업데이트 확인)를 진행함. 배포 순서는 U9(DB → 웹 → 태그)임. 원격 push 전이라 `main` push는 사용자 승인 필요함. `docs/desktop-release.md`(릴리스 절차 문서)는 아직 없음.
 
-#### 📝 `r110-desktop-auto-update` Step 3 검증 기록 (GPT Codex, 2026-11-26, 병합 보류)
+#### 📝 `r110-desktop-auto-update` Step 3 검증 기록 (GPT Codex 리뷰 → Claude Sonnet 재검증·병합, 2026-11-26, 병합 `a83503a`)
 
 - **범위**: Base `9096cd10d30188f7cb850cdffebbdab4609e05f4` ↔ Target `29e94dadf5f1fb327d610fa256c01743903f300ba`. 정적 리뷰 결과 `clean`; 공개 서명 키·단일 endpoint 정합, capability 최소 권한, updater 동적 import 및 웹 경로 비실행, 개인 키/암호 값 노출 없음 확인함.
 - **산출물**: `artifacts/r110-desktop-auto-update/iteration-01/review.json`·`test.json`, `run.json`의 `target_sha` 기록. 커밋 `46dd615cb978171015a2896713ddf37d640c4270`; 두 JSON 스키마 검증 통과함.
 - **검증**: `npx tsc --noEmit`·`npm run lint`·R110 배너 Vitest 8개·`cargo check`·`git diff --check` 통과함. 전체 Vitest는 1,084개 중 1,083개 통과, 기존 대시보드 예산 요약 테스트 1개가 대시보드 데이터 로드 실패로 실패함(단독 실행에서도 재현). `npm run build`는 `.next/server/app/dashboard` 생성 시 `EPERM`으로 실패함.
-- **남은 작업**: 실패 원인을 해소하고 Step 3 재검증 후 통과하면 `main` 병합, 병합 후 재검증·문서 마감함. 이번 턴에는 구현 파일 변경 및 병합 없음.
+- **후속(iteration-02)**: Codex가 대시보드 테스트 픽스처를 고쳐 Target `4030220`으로 갱신, 산출물 `05f4d8e`(`clean`·`passed`). Sonnet이 워크트리에서 tsc·Vitest 1084개·`next build`·`git diff --check` 재실행 통과 후 `main` 병합 `a83503a`. 병합 후 `main` 재검증 통과(루트 `npm ci` 필요했음). 원격 push 안 함.
+- **남은 작업**: 사용자 Step 4(명세 §4)와 [`docs/desktop-release.md`](desktop-release.md) 절차 수행함.
 
 #### 📝 `r110-desktop-auto-update` Step 1 완료 기록 (Claude Opus, 2026-11-26)
 

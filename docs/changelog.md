@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-26 (Run `r110-desktop-auto-update` 병합 `a83503a` — `R110` 데스크톱 자동 업데이트)
+
+- **자동 업데이트 플러그인·서명 (`src-tauri/`)**: `tauri-plugin-updater`·`tauri-plugin-process` 등록, capability는 `updater:default`·`process:allow-restart`만 추가함. NSIS 단일 번들·서명된 업데이트 산출물·공개 키·단일 endpoint(GitHub Releases `latest.json`)를 설정하고 앱 버전을 `0.2.0`으로 올림.
+- **릴리스 워크플로 (`.github/workflows/desktop-release.yml`)**: `desktop-vX.Y.Z` 태그 push 때만 실행, 빌드 전 태그·`package.json`·`Cargo.toml` 버전 일치 검사, 개인 서명 키는 GitHub Secrets로만 주입함.
+- **업데이트 배너 (`src/components/layout/desktop-update-banner.tsx`, `src/lib/desktop-updater.ts`)**: Tauri 데스크톱에서만 앱 시작 시 1회 확인해 `[지금 업데이트]`·`[나중에]` 배너를 표시함. 진행률 표시 후 자동 재시작, 실패 시 `[다시 시도]`, 오프라인이면 설치 차단함. 웹·PWA에서는 렌더링도 플러그인 import도 하지 않음.
+- **미검증**: 서명 포함 빌드와 실제 Actions 실행·업데이트 동작은 사용자 Step 4에서 확인함.
+
 ## 2026-11-26 (Run `p4-followups-r107c-r109-r75` 병합 `ac752b6` — `R109-REV-003`·`R107C-REV-001·002`·`R75-REV-001` P4 후속)
 
 - **관리자 미이전 아이콘 배지 즉시 갱신 (`src/app/admin/page.tsx`)**: 캐릭터 저장·삭제·템플릿 삭제 뒤 미이전 캐릭터 수를 다시 조회해 `[아이콘 Storage 일괄 이전 (N)]` 숫자가 새로고침 없이 맞음.
