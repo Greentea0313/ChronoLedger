@@ -1,3 +1,4 @@
+- **2026-11-26 (`r114-game-budgets` Step 2 Iteration 01 — GPT Codex)**: 정적 리뷰 P2 1건(`R114-REV-001`: 지출 단일 조회가 1,000행 상한에서 잘려 게임별 예산 사용액 누락 가능), artifact `b8e3f62`. 업그레이드·신규 로컬 DB 양 경로 migration 2회·SQL 테스트 통과, tsc·lint·Vitest 1,121개·build 통과. 다음: Claude Opus가 페이지네이션 수정 후 Codex 재리뷰.
 # 프로젝트 진행 현황
 - **2026-11-26 (`r114-game-budgets` Step 1 — Claude Opus `High`)**: 워크트리 커밋 `692ea97`(미병합·미push). 게임별 월 예산(`user_games.monthly_budget`)·80%/100% 알림·월간 리포트 SQL, `calculateGameBudgetUsage`, 게임 카드 예산 모달·지출 페이지 게임별 예산 목록·설정 토글 2개·미적용 폴백 구현. 🐳 로컬 2경로 각 2회 멱등·`TESTS.sql` 59개 PASS, Vitest 1,121개·`build` 통과. 다음: Step 2 `GPT Codex`.
 - **2026-11-26 (`R114` Run 등록·`T1`~`T4` 예약 행 정리 — Claude Sonnet `Medium`)**: Run `r114-game-budgets` 워크트리(Base `85d8adc`) 생성·Step 1(`Claude Opus`, 🐳) `▶ READY` 등록, `T1`~`T4` 예약 행을 완료·종료로 갱신하고 참조를 아카이브로 바꿈. 이 PC는 Docker 엔진이 꺼져 있어 Step 1 시작 전 Docker Desktop 실행 필요함.
