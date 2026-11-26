@@ -6,6 +6,66 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 상세 완료 기록: `r115-csv-import` Step 1~2 *(2026-11-27 이관)*
+
+#### 📝 `r115-csv-import` Step 1 Iteration 02 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `a01d312dbaf835d33c27b21beb3bd0c32094240e` (`collab/r115-csv-import`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (3개)**: `sql/migrations/MIGRATION_R115_EXPENSE_IMPORT.sql`, `sql/SCHEMA.sql`(두 파일의 `delete_import_batch` 본문 일치 확인), `sql/tests/TESTS.sql`. `src/**` 변경 없음.
+- **`R115-REV-001` (P2)**: `delete_import_batch` 삭제 조건에 `original_price = final_amount`를 더해 I1 값을 모두 명시함. 참고로 기존 조건(할인·포인트 할인 0)과 `chk_expense_math` 때문에 정가와 실결제액이 다른 행은 이미 지워지지 않았고, 확정 행의 금액을 바꾸는 경로(정책·RPC)도 없음. `TESTS.sql` R115-03에 같은 배치의 "정가 500·할인 200·실결제 300" 행을 넣고 취소 뒤 남는지 확인함.
+- **`R115-REV-002` (P4)**: R115-03 `\echo` 문구에서 apostrophe를 뺌. 새 실행 로그에 `unterminated quoted string` 없음(이전 로그 6373행에는 있었음).
+- **검증 (실제 실행)**: 🐳 업그레이드(Base `a04237f` → R115 2회 → `TESTS.sql` 62개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 62개 PASS), 두 로그 모두 `ERROR`·`unterminated` 0건. 변이(할인 0·정가=실결제 조건을 함께 제거) 시 R115-03 `FAIL`. `tsc`·`lint`·Vitest 85파일/1,146개·`git diff --check` 통과. `src/**` 변경이 없어 `next build`는 다시 돌리지 않음(Iteration 01 16/16).
+- **완료**: Step 2 GPT Codex Iteration 02 재리뷰·🐳 DB 게이트·`main` 병합 완료함. 다음은 Step 3 사용자 운영 적용·실제 CSV 확인임.
+
+#### 📝 `r115-csv-import` Step 2 Iteration 02 완료 기록 (GPT Codex, 2026-11-26)
+
+- **Base ↔ Target**: `a04237f3da787e33dd37a6ca80e4d97322c575cc` ↔ `a01d312dbaf835d33c27b21beb3bd0c32094240e`; artifact commit `4f162821ba59ced29e27c30c18d22b3eb09acc3f`; `main` merge `35f446188b4971059e83c492b03d9b46949e4e05`.
+- **정적 결과**: `clean`, Iteration 01 `R115-REV-001`·`002` 수정 확인, 새 finding 없음. 가져오기·환불 시 자산/지갑/포인트 불변, 배치 소유권·anon 권한, 결제/환불 RPC와 기존 정책 미변경 확인함.
+- **DB 검증**: 격리 Docker Supabase 업그레이드(Base `SCHEMA.sql` → migration 2회 → 전체 `TESTS.sql`) 및 깨끗한 신규 설치(Target `SCHEMA.sql` → migration 2회 → 전체 `TESTS.sql`) 모두 R115-01~03 및 최종 rollback PASS, `ERROR` 없음. README 전제인 비공개 `user-icons` 버킷을 테스트 DB에 구성함.
+- **앱 검증**: Target 및 병합 후 `main`에서 tsc·lint·Vitest 85파일/1,146개·`next build` 16/16 통과함. Python `jsonschema` 부재로 artifact schema는 Node Ajv 6.15.0의 Draft 7 `$defs` 변환 검증으로 확인함. `.next` 쓰기 오류는 승격 재실행에서 통과함.
+- **사용자 후속**: 운영 DB `MIGRATION_R115_EXPENSE_IMPORT.sql` 적용 후 README 확인 쿼리 실행, 배포, 실제 CSV 1개 가져오기와 취소를 확인해야 함. 운영 DB는 변경하지 않음.
+
+#### 📝 `r115-csv-import` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-26)
+
+- **Base ↔ Target**: `a04237f3da787e33dd37a6ca80e4d97322c575cc` ↔ `b8aa935c6bd1065fbf6d9ba053cb56d3edfb7eb6`; artifact commit `db1997d9204b7a4f203d6220c3cee476c8ece1fd`.
+- **정적 결과**: `findings` 2건임. `R115-REV-001` P2 — `delete_import_batch`가 `original_price = final_amount` 불변을 확인하지 않아 금액 편집 행도 배치 취소로 삭제할 수 있음. `R115-REV-002` P4 — `TESTS.sql`의 psql `\echo` 문구 apostrophe가 `unterminated quoted string` 경고를 출력함.
+- **검증**: 격리 Docker Supabase 업그레이드(Base 스키마 → migration 2회 → 전체 `TESTS.sql`) 및 깨끗한 격리 신규 설치(Target `SCHEMA.sql` → migration 2회 → 전체 `TESTS.sql`)의 R115 assertion·최종 rollback 통과함. Storage `user-icons` 버킷은 README 전제에 따라 테스트 DB에 구성함. psql meta-command 경고는 기록된 P4임. tsc·lint·Vitest 85파일/1,146개·`next build` 16/16·diff check 통과, artifact schema는 Ajv 6.15.0으로 검증함. 운영 DB는 건드리지 않음.
+- **남음**: Claude Opus가 Iteration 02에서 P2 predicate 및 회귀 테스트, P4 출력 문구를 보완함. 이후 GPT Codex가 별도 Iteration 02 리뷰·DB 전체 게이트를 다시 수행함. 병합하지 않음.
+
+#### 📝 `r115-csv-import` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `b8aa935c6bd1065fbf6d9ba053cb56d3edfb7eb6` (`collab/r115-csv-import`, 커밋 `f0ab294` SQL·`b8aa935` UI, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (14개)**: 신규 `sql/migrations/MIGRATION_R115_EXPENSE_IMPORT.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`(R115-01~03), `src/types/database.types.ts`, 신규 `src/lib/csv.ts`·`.test.ts`, 신규 `src/lib/expense-import.ts`·`.test.ts`, 신규 `src/components/expense/expense-import-modal.tsx`·`.test.tsx`, `src/app/dashboard/expenses/page.tsx`·`.test.tsx`.
+- **SQL (§5.2)**: `expenses.import_batch_id`·부분 인덱스, `import_confirmed_expenses(JSONB)`(I1 값 강제·I4 검증·행 번호 오류·전체 거부·`{batch_id, inserted}`)·`delete_import_batch(UUID)`(본인·I1 값 행만, 환불된 행 포함). 둘 다 `SECURITY DEFINER`·`anon` 회수·탈퇴 대기 거부. `SCHEMA.sql`은 추가만 있음(삭제 줄 0), 결제·환불 RPC·정책 diff 없음(115-8).
+- **클라이언트**: `csv.ts`(RFC 4180 읽기·UTF-8 실패 시 EUC-KR), `expense-import.ts`(자체 형식 감지·`결제 완료` 행만·실결제액·이미 있는 ID 제외, 일반 CSV 열 지정·기본 분류 `게임`, 날짜·금액 해석, 제외 사유, 개수 기준 중복 의심), 지출 페이지 `CSV 가져오기` 버튼과 단계형 모달(파일 → 열 지정 → 미리보기 → 완료, 최근 가져오기 5건 취소, 오프라인 차단, 미적용 시 안내 문구·파일 선택 비활성).
+- **판단**: ① 제목 150자 초과 행은 제외 사유 `항목명 150자 초과`를 하나 더 둠(서버가 거부하는 값, 잘라 넣지 않음). ② 메모 500자를 넘으면 원래 메모를 줄이고 `[가져오기] …` 줄은 남김. ③ 메모에 붙이는 정보는 결제수단(`내 지갑` 외)·정가(실결제액과 다를 때)·미매칭 게임 이름. ④ 날짜는 월·일 한 자리도 받음(`2026/1/5`). ⑤ 최근 가져오기 목록은 RPC를 늘리지 않고 `expenses`를 1,000행씩 읽어 묶음. ⑥ `import_batch_id`는 기존 `PLANNED` 정책으로 클라이언트가 넣을 수는 있으나, 취소 RPC가 I1 값 행만 지우므로 원장에 흔적 있는 행은 지워지지 않음.
+- **검증 (실제 실행)**: 🐳 업그레이드(Base `a04237f` `SCHEMA.sql` → R115 2회 → `TESTS.sql` 62개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 62개 PASS). 변이 2건(가져오기를 자산 차감으로 바꿈, 취소 RPC의 본인 조건 제거) 모두 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 85파일/1,146개(신규 25개)·`next build` 16/16(더미 공개 Supabase 값)·`git diff --check` 통과. **미검증**: 실제 브라우저 화면·실제 CSV 파일은 Step 3 사용자 확인.
+- **남음**: Step 2 GPT Codex 리뷰·🐳 DB 게이트·통과 시 `main` 병합 → Step 3 사용자 운영 DB 적용·배포·실제 CSV 가져오기·취소 확인.
+
+> **다음 단계**: 사용자가 Step 3 운영 DB 마이그레이션·README 확인 쿼리 적용, 배포 후 실제 CSV 가져오기 및 취소를 확인함. 완료 후 R115를 마감하고 R116을 등록함.
+
+
+### 🗂️ 직전 완료 Run 기록: `r114-game-budgets` *(`R114` 게임별 월 예산·월간 리포트·알림)*
+
+- **Run ID**: `r114-game-budgets` **(완료, `main` 병합 `b161592`, 문서 마감 2026-11-26)** · **Orchestrator**: Claude Sonnet `Medium` *(등록·마감)*
+- **Worktree 경로**: `.worktrees/r114-game-budgets` (브랜치 `collab/r114-game-budgets`, 매니페스트 `artifacts/r114-game-budgets/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `85d8adcb294bcd4622eb90df3bb826b94a4445d6` · **Target SHA**: `f577f6d5fb3fabcb7c777905dfea5402cc070c81` *(Iteration 02, 산출물 `e47928f`, `main` 병합 `b161592`)*
+- **명세**: [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §4. Step 1~2 상세 완료·검토 기록은 `docs/archive/handoff-archive.md`로 옮김.
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `SCHEMA.sql`). **운영 DB 적용·확인 쿼리 3종·배포·실기기 예산 목록 확인 완료(사용자, 2026-11-26)**.
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (Iteration 02, SHA: f577f6d5fb3fabcb7c777905dfea5402cc070c81)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R114 SQL·알림·예산 UI)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 명세 §4 전부(마이그레이션·`SCHEMA.sql`·README 확인 쿼리·`TESTS.sql`·`database.types.ts`·`calculateGameBudgetUsage`·게임 카드 월 예산 모달·지출 페이지 "게임별 예산" 목록·설정 알림 토글 2개·미적용 폴백)·인수 기준 114-1~114-8. 허용 파일: 신규 `sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `src/lib/budget-calculations.ts`·`.test.ts`, `src/app/dashboard/games/**`, `src/app/dashboard/expenses/**`, `src/components/settings/notification-settings-card.tsx`·관련 테스트, 루트 `docs/handoff.md`, `docs/progress.md` | `R114-REV-001` 수정함(지출 1,000행 단위 페이지 조회·초과 테스트) |
+| **2** | **`✅ DONE (artifact e47928f8911ee61b9587210c336193bb6e53b2cb; main 병합 b161592d6eb707e37f14f4de1a6b53e16bcf9f40)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 02 정적 재리뷰·격리 DB 게이트·병합 후 전체 검증 | clean, 업그레이드·신규 경로 통과 |
+| **3** | **`✅ DONE (2026-11-26, 사용자 확인)`** | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 예산 UI·알림 확인 | 운영 DB `MIGRATION_R114_GAME_BUDGETS.sql` 적용·README 확인 쿼리 3종 확인·배포 후 지출 페이지 "게임별 예산" 목록 실기기 확인 완료(화면 캡처로 사용량·한도·진행 막대·초과 경고색 확인). 80%·100% 알림·월간 리포트 수신은 사용자 별도 언급 없음(확인 필요 시 다음 09:00 KST 배치 이후 확인) |
+
+#### 📝 `r114-game-budgets` 핵심 요약 (2026-11-26)
+
+- **구현**: `user_games.monthly_budget`(`CHECK > 0`), `notification_settings.game_budget_alert`·`monthly_report`, `GAME_BUDGET_80`·`GAME_BUDGET_100`·`MONTHLY_REPORT` 알림(`enqueue_daily_notifications()` 6·7번 절, 금액 미포함), `calculateGameBudgetUsage`(TS·SQL 귀속 규칙 일치), 게임 카드 월 예산 모달, 지출 페이지 "게임별 예산" 목록, 미적용 DB 폴백. 결제·환불 RPC·`expenses` 제약 불변.
+- **리뷰**: Iteration 01에서 `R114-REV-001`(P2, 지출 페이지가 1,000행 상한으로 예산 집계 누락 가능) 확인 → Iteration 02에서 `loadExpenses`를 1,000행 단위 `.range()` 페이지 조회로 수정, 재리뷰 clean. 🐳 격리 DB 업그레이드·신규 경로 각 2회 멱등·`TESTS.sql` 59개 PASS, Vitest 1,122개 통과.
+- **미확인**: 80%·100% 알림과 월간 리포트 실제 수신(매일 09:00 KST 배치 이후 확인, 선택).
+
+
 ### 🗂️ 상세 완료 기록: `r114-game-budgets` Step 1~2 *(2026-11-26 이관)*
 
 #### 📝 `r114-game-budgets` Step 1 Iteration 02 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
