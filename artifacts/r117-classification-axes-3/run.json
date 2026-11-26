@@ -1,17 +1,17 @@
-﻿{
-    "schema_version":  1,
-    "run_id":  "r117-classification-axes-3",
-    "created_at":  "2026-11-26T16:13:02.7115104+00:00",
-    "objective":  "R117: raise the per-game character classification axis limit from 2 to 3 (user decision 2026-11-27): relax the is_valid_classification_schema CHECK (axes length \u003c= 3) via an idempotent migration, update SCHEMA.sql, raise TEMPLATE_AXIS_MAX_COUNT and the normalization slice in character-utils, verify filter bar, roster, settings dialog, request modal and admin form handle 3 axes including mobile 390px layout, and sync the R13/R52 specs",
-    "acceptance_criteria":  [
-                                "Step 1 (Maker, Opus, local Docker DB): MIGRATION_R117_CLASSIFICATION_AXES_3.sql idempotent (redefine is_valid_classification_schema with axes \u003c= 3, keep every other rule, existing data stays valid), SCHEMA.sql, README B-table row and check queries, TESTS.sql blocks (3 axes accepted, 4 rejected, 2-axis games unchanged, game_classification_icons trigger and character attribute validation work with a third axis), database types if needed; src/lib/character-utils.ts TEMPLATE_AXIS_MAX_COUNT 3 and normalization slice(0,3) with Vitest; filter bar/roster/preset/request modal/admin form verified with 3 axes (Vitest) and layout checked at 390/900/1280; R13 and R52 spec text updated from 2 to 3; migration-unapplied fallback so the app does not break before the DB change is applied.",
-                                "Step 2 (Reviewer and Local DB Gate, different model from Maker): review (review.json), local Docker DB upgrade and fresh paths applied twice with TESTS.sql passing, tsc/lint/Vitest/build (test.json), merge to main, docs closeout.",
-                                "Step 3 (User): apply the production migration and check queries, deploy, add a third axis to one game and confirm filters."
-                            ],
-    "base_sha":  "123a70b699b80398999d171140eec6e471d2cc53",
-    "target_sha":  null,
-    "branch":  "collab/r117-classification-axes-3",
-    "worktree_path":  ".worktrees/r117-classification-axes-3",
-    "max_iterations":  3,
-    "status":  "in_progress"
+{
+  "schema_version": 1,
+  "run_id": "r117-classification-axes-3",
+  "created_at": "2026-11-27T01:13:02.7115104+09:00",
+  "objective": "R117: raise the per-game character classification axis limit from 2 to 3 (user decision 2026-11-27): relax the is_valid_classification_schema CHECK (axes length <= 3) via an idempotent migration, update SCHEMA.sql, raise TEMPLATE_AXIS_MAX_COUNT and the normalization slice in character-utils, verify filter bar, roster, settings dialog, request modal and admin form handle 3 axes including mobile 390px layout, and sync the R13/R52 specs",
+  "acceptance_criteria": [
+    "Step 1 (Maker, Opus, local Docker DB): MIGRATION_R117_CLASSIFICATION_AXES_3.sql idempotent (redefine is_valid_classification_schema with axes <= 3, keep every other rule, existing data stays valid), SCHEMA.sql, README B-table row and check queries, TESTS.sql blocks (3 axes accepted, 4 rejected, 2-axis games unchanged, game_classification_icons trigger and character attribute validation work with a third axis), database types if needed; src/lib/character-utils.ts TEMPLATE_AXIS_MAX_COUNT 3 and normalization slice(0,3) with Vitest; filter bar/roster/preset/request modal/admin form verified with 3 axes (Vitest) and layout checked at 390/900/1280; R13 and R52 spec text updated from 2 to 3; migration-unapplied fallback so the app does not break before the DB change is applied.",
+    "Step 2 (Reviewer and Local DB Gate, different model from Maker): review (review.json), local Docker DB upgrade and fresh paths applied twice with TESTS.sql passing, tsc/lint/Vitest/build (test.json), merge to main, docs closeout.",
+    "Step 3 (User): apply the production migration and check queries, deploy, add a third axis to one game and confirm filters."
+  ],
+  "base_sha": "123a70b699b80398999d171140eec6e471d2cc53",
+  "target_sha": "c5c5a1c1004424fff8c496d0e55a7b18726e8ebc",
+  "branch": "collab/r117-classification-axes-3",
+  "worktree_path": ".worktrees/r117-classification-axes-3",
+  "max_iterations": 3,
+  "status": "in_progress"
 }

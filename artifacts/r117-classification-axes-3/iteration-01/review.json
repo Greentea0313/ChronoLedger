@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "r117-classification-axes-3",
+  "iteration": 1,
+  "agent": "GPT Codex",
+  "base_sha": "123a70b699b80398999d171140eec6e471d2cc53",
+  "target_sha": "c5c5a1c1004424fff8c496d0e55a7b18726e8ebc",
+  "role": "static-review",
+  "status": "findings",
+  "created_at": "2026-11-27T01:35:00+09:00",
+  "findings": [
+    {
+      "id": "R117-REV-001",
+      "severity": "P3",
+      "file": "src/components/game/request-submission-modal.test.tsx",
+      "line": 582,
+      "evidence": "R117 수용 기준은 캐릭터 요청 모달에서 3축을 Vitest로 확인하도록 함. 현재 게임 fixture(line 36)는 axes 1개뿐이고 “every classification axis” 테스트도 그 한 축만 검증하므로 세 번째 축 입력·필수 검증·제출 payload를 회귀 검증하지 않음. 구현은 axes 반복문을 사용하지만 3축 회귀 증거는 없음.",
+      "impact": "요청 모달이 세 번째 축 값을 누락하거나 요구하지 않는 회귀가 테스트에서 탐지되지 않음.",
+      "recommendation": "fixture에 세 번째 축을 추가하고 세 번째 select의 필수 검증과 attributes payload 포함을 확인하는 Vitest를 추가함."
+    },
+    {
+      "id": "R117-REV-002",
+      "severity": "P3",
+      "file": "docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md",
+      "line": 180,
+      "evidence": "R117이 분류 축 최대값을 3개로 갱신했으나 현재 UI 명세 §3.3 line 150은 동적 컬럼을 class1/class2로만 나열하고 §4.2 line 180도 요청 폼을 class1/class2까지만 설명함. 같은 문서 §4.1은 최대 3개라고 기재해 현재 명세끼리 불일치함.",
+      "impact": "관리자·요청 폼의 세 번째 분류 축이 요구사항 문서상 누락되어 후속 구현·검증 기준이 모호함.",
+      "recommendation": "현재 UI 명세 §3.3·§4.2를 class1~class3 및 세 번째 축 선택 필드까지 반영함. 역사적 R52 결정 문구는 당시 맥락으로 구분해 보존함."
+    }
+  ]
+}
