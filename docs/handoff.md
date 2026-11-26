@@ -28,6 +28,15 @@
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 예산 UI·알림 확인 | Step 2 병합 후 안내함 |
 
 
+#### 📝 `r114-game-budgets` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `692ea97b731f7ca171005be3348c8302e16ab59a` (`collab/r114-game-budgets`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (13개)**: 신규 `sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`(R114 행·R107C 재실행 경고), `sql/tests/TESTS.sql`(R114-01·02), `src/types/database.types.ts`, `src/lib/budget-calculations.ts`·`.test.ts`, `src/app/dashboard/games/page.tsx`·`.test.tsx`, `src/app/dashboard/expenses/page.tsx`·`.test.tsx`, `src/components/settings/notification-settings-card.tsx`, `src/app/dashboard/settings/page.test.tsx`(카드 테스트가 이 파일에 있음).
+- **SQL (§4.2)**: `user_games.monthly_budget`(> 0)·설정 열 2개·알림 종류 3개. 새 알림은 날짜를 받는 내부 함수 `enqueue_game_budget_notifications(p_today)`·`enqueue_monthly_report_notifications(p_today)`(service_role 전용)로 만들고 `enqueue_daily_notifications()` 6·7번 절에서 오늘 날짜로 호출함 — 기존 1~5번 절 불변, 테스트에서 날짜 고정 가능. 결제·환불 RPC·`expenses` 제약 변경 없음(114-8, diff 확인).
+- **판단**: ① 예산 알림 본문에 게임 이름만 넣고 금액은 뺌(잠금 화면 보호, 기존 `EXPENSE_*` 선례). ② 월간 리포트의 "예산 초과"는 사용액 > 예산(같으면 초과 아님), 100% 알림은 ≥ 100%. ③ 지출 페이지 예산 목록은 '전체 기간'에서는 숨기고 선택한 달에만 표시, 전월 대비는 기존 분석과 같은 확정·`게임` 분류 기준. ④ 예산 조회는 `user_games`를 따로 읽어 공용 `EXPENSE_COLUMNS`에 넣지 않음.
+- **검증 (실제 실행)**: 🐳 업그레이드(Base `85d8adc` `SCHEMA.sql` → R114 2회 → `TESTS.sql` 59개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 59개 PASS), 함수 3종 본문 일치, README 확인 쿼리 기대값 일치. 귀속 규칙 변이(예정 행을 `target_date`로 귀속)가 처음에 통과해 경계 금액을 고친 뒤 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 82파일/1,121개·`next build` 16/16·`git diff --cached --check` 통과.
+- **남은 작업**: Step 2(**GPT Codex**, 🐳, Fallback Claude Sonnet `Medium`)가 TS·SQL 귀속 규칙 일치 리뷰·로컬 DB 게이트·`main` 병합 수행. 이후 Step 3 사용자 운영 DB 적용·배포·UI 확인.
+
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*

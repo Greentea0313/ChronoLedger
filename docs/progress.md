@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-26 (`r114-game-budgets` Step 1 — Claude Opus `High`)**: 워크트리 커밋 `692ea97`(미병합·미push). 게임별 월 예산(`user_games.monthly_budget`)·80%/100% 알림·월간 리포트 SQL, `calculateGameBudgetUsage`, 게임 카드 예산 모달·지출 페이지 게임별 예산 목록·설정 토글 2개·미적용 폴백 구현. 🐳 로컬 2경로 각 2회 멱등·`TESTS.sql` 59개 PASS, Vitest 1,121개·`build` 통과. 다음: Step 2 `GPT Codex`.
 - **2026-11-26 (`R114` Run 등록·`T1`~`T4` 예약 행 정리 — Claude Sonnet `Medium`)**: Run `r114-game-budgets` 워크트리(Base `85d8adc`) 생성·Step 1(`Claude Opus`, 🐳) `▶ READY` 등록, `T1`~`T4` 예약 행을 완료·종료로 갱신하고 참조를 아카이브로 바꿈. 이 PC는 Docker 엔진이 꺼져 있어 Step 1 시작 전 Docker Desktop 실행 필요함.
 - **2026-11-26 (`r113-data-export` 마감 — 사용자 확인·Claude Opus `High`)**: 사용자가 웹·Windows 설치본에서 내보내기 3종 저장·열기를 확인함(113-7). 피드백에 따라 지출·수익 CSV를 날짜순(같으면 생성시각·ID)으로 정렬하도록 `main`에서 바로 고침(`e0e3f84`, Vitest 1,110개·`build` 통과). 다음: `R114` Run 등록(사용자 지목 시).
 - **2026-11-26 (`r113-data-export` Step 2 — Claude Opus `High`, GPT Codex 대체)**: Codex가 멈춘 빌드·스키마 검증을 이어받음. 워크트리 자체 `node_modules`로 `next build` 16/16 통과(EPERM 재현 안 됨), 산출물 스키마 검증 통과, `test.json` 갱신 `bb4a898`, `main` 병합 `7f2e4d9`, 병합 후 재검증 통과. 새 중간 기록 규칙대로 산출물 커밋·병합 직후 큐를 먼저 갱신함. 다음: 사용자 Step 3 저장 확인(113-7).
