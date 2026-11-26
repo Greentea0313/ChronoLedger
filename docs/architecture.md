@@ -29,6 +29,7 @@ Supabase
 ## 2. 데이터 및 권한 경계
 
 - 클라이언트는 Supabase SDK를 통해 데이터 조회와 허용된 사용자 요청을 수행한다. 비밀 키를 포함하지 않는다.
+- `public.users`(역할·닉네임)는 본인 행만 조회한다. 가입 닉네임은 메타데이터 `nickname`(최대 20자) 또는 `NULL`이며 이메일에서 만들지 않는다(`MIGRATION_USERS_PROFILE_PRIVACY.sql`).
 - PostgreSQL RLS는 개인 데이터 소유권을 강제한다. 관리자 권한은 JWT `app_metadata.role=admin`을 기준으로 하며 값은 Supabase 관리 콘솔/서버에서만 부여한다.
 - 공용 `games` 카탈로그와 `game_schedules`는 인증 사용자가 읽는다. 직접 변경은 관리자만 가능하다. 사용자 제안은 `game_requests`·`schedule_requests`·`character_requests`·`feedback_requests`(기타 건의, 본인 조회·`PENDING` 등록만 허용)에 저장하고 관리자 승인·반려·답변 RPC(`answer_feedback_request` 등)로 반영한다.
 - `public.notifications`는 본인 `SELECT`만 허용하며 직접 쓰기를 원천 차단함. 알림 행은 관리자 승인·반려·건의 답변 RPC 내부에서 같은 트랜잭션으로 생성하고, 읽음 처리는 `mark_notifications_read` `SECURITY DEFINER` RPC만 허용함(R84).
@@ -81,7 +82,9 @@ Supabase
 
 - SRS는 Android PWA와 Windows Tauri v2, 단일 Next.js 코드베이스 및 Tauri 정적 export 방향을 정한다. Android PWA 실기기 검증은 웹사이트 우선 요청에 따라 보류됐으나 제품 범위는 유지한다. 앱 릴리스 버전은 `0.2.0`(첫 자동 업데이트 릴리스)이며 원천은 `package.json`이다.
 - 데스크톱 자동 업데이트(R110): `tauri-plugin-updater`·`process`, 서명 공개 키는 `tauri.conf.json`, 개인 키는 GitHub Secrets에만 둔다. 태그 `desktop-vX.Y.Z` push가 `.github/workflows/desktop-release.yml`로 빌드·서명·Release 업로드를 실행하고, 앱은 `src/lib/desktop-updater.ts`(동적 import 래퍼)와 루트 레이아웃의 `desktop-update-banner.tsx`로 시작 시 1회 확인한다. 절차는 [desktop-release.md](desktop-release.md)를 따른다.
-- 웹 호스팅 플랫폼은 **Cloudflare Pages**로 최종 확정되었으며, 이전 Netlify 배포 방식은 완전히 폐기되었다. Next.js 단일 정적 export(`output: 'export'` -> `out/`) 산출물을 Cloudflare Pages에 배포하며(트래픽 무제한, 월 500회 빌드), 불변 캐시/보안 헤더(`public/_headers`) 및 SPA 라우팅(`public/_redirects`)을 통해 호스팅된다.
+- 웹 호스팅 플랫폼은 **Cloudflare Pages**로 최종 확정되었으며, 이전 Netlify 배포 방식은 완전히 폐기되었다. Next.js 단일 정적 export(`output: 'export'` -> `out/`) 산출물을 Cloudflare Pages에 배포하며(트래픽 무제한, 월 500회 빌드), 불변 캐시/보안 헤더(`public/_headers`: HSTS·Permissions-Policy·`frame-ancestors 'none'` 포함) 및 SPA 라우팅(`public/_redirects`)을 통해 호스팅된다.
+- CSP: `npm run build`의 `postbuild`(`scripts/inject-csp.mjs`)가 `out/**/*.html`마다 인라인 스크립트 SHA-256 해시 기반 CSP `<meta>`를 넣는다. 같은 `out/`이 웹과 Tauri에 쓰이므로 `tauri.conf.json` `security.csp`는 `null`로 둔다.
+- CI: `.github/workflows/ci.yml`이 PR·`main` push마다 `tsc`·lint·Vitest·`npm run build`를 실행한다(Supabase 값은 자리표시자).
 - UI 설계는 [UI Design Sheet](spec/ChronoLedger_UI_Design_Sheet.md)를 따른다. 이는 SRS가 정한 동작을 보존하며, `[PROPOSED]`로 표시된 시각/배치 선택은 구현 전에 확정한다. [한국어 HTML 목업](design-previews/design-v1-ko.html)은 단일 대시보드의 정적 시각 참고 자료다.
 - DDL/RPC/RLS는 [SCHEMA.sql](../sql/SCHEMA.sql)(신규 설치용 통합 마스터)에 둔다. `sql/`은 `migrations/`(기존 DB 동기화, 재실행 안전), `seed/`, `tests/`, `archive/`(실행 금지)로 나뉘며 실행 순서와 반영 확인 쿼리는 [sql/README.md](../sql/README.md)를 따른다. 사용자는 전용 테스트 프로젝트에서 rollback-only smoke suite의 최종 PASS 및 fixture 롤백을 확인했다. 이는 전체 SRS 수용 기준 또는 Production 배포 검증을 뜻하지 않는다.
 - Excalidraw 다이어그램 자산(VS Code Excalidraw 확장 또는 [excalidraw.com](https://excalidraw.com)에서 열람 가능):

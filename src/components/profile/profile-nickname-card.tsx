@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase/client"
 import { useOnlineStatus } from "@/lib/use-online-status"
 
+const NICKNAME_MAX_LENGTH = 20
+
 export function ProfileNicknameCard() {
   const { user, nickname, refreshProfile } = useAuth()
   const isOnline = useOnlineStatus()
@@ -30,7 +32,7 @@ export function ProfileNicknameCard() {
     try {
       const { error } = await supabase
         .from('users')
-        .update({ nickname: currentNickname })
+        .update({ nickname: currentNickname.trim() })
         .eq('id', user.id)
 
       if (error) throw error
@@ -63,7 +65,8 @@ export function ProfileNicknameCard() {
               onChange={(e) => setCurrentNickname(e.target.value)}
               disabled={isBusy || !isOnline}
               className="max-w-sm"
-              placeholder="닉네임을 입력하세요"
+              maxLength={NICKNAME_MAX_LENGTH}
+              placeholder={`닉네임을 입력하세요 (최대 ${NICKNAME_MAX_LENGTH}자)`}
             />
             <Button type="submit" disabled={isBusy || !isOnline || currentNickname === nickname || currentNickname.trim() === ""}>
               {isBusy ? "저장 중..." : "변경"}

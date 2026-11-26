@@ -176,3 +176,13 @@
     - 증상: 새 아이콘으로 빌드·설치해도 작업표시줄이나 바로가기가 이전(기본) 아이콘을 보임.
     - 원인: Windows 아이콘 캐시. 아이콘은 `src-tauri/icons/`가 exe에 박히며, 파일 교체는 재빌드·재설치로만 반영됨.
     - 방어책: `npx tauri icon <1024px 원본>`으로 `icons/`를 재생성하고(Windows 전용이므로 `android/`·`ios/`·`64x64.png`는 삭제), 반영이 늦으면 탐색기를 재시작함. 필요하면 작업표시줄 고정을 해제 후 다시 고정함.
+
+49. **CSP는 빌드 후처리로만 들어가며 새 외부 출처는 직접 추가해야 함**
+    - 증상: 새 외부 API·스크립트·웹소켓이 배포본에서만 `Refused to connect/load` 오류로 막힘. 개발 서버(`npm run dev`)에서는 재현되지 않음.
+    - 원인: `npm run build`의 `postbuild`(`scripts/inject-csp.mjs`)가 각 HTML에 인라인 스크립트 SHA-256 해시 기반 CSP `<meta>`를 넣음. 허용 출처는 `'self'`·Supabase URL·`wsrv.nl`·Tauri IPC뿐임.
+    - 방어책: 새 출처는 `inject-csp.mjs`의 `buildPolicy`에 추가함. `next build`를 직접 실행하면 CSP가 빠지므로 배포·CI는 `npm run build`를 씀. `tauri.conf.json`의 `security.csp`는 `null`로 두어야 Tauri가 정책을 덮어쓰지 않음. 사용자 입력 외부 이미지 URL은 직접 `fetch`가 차단되고 `wsrv.nl` 폴백으로 처리됨.
+
+50. **`public.users`는 본인 행만 조회됨**
+    - 증상: 다른 사용자의 닉네임·역할을 조회하는 화면이 빈 값이나 0행을 받음.
+    - 원인: `MIGRATION_USERS_PROFILE_PRIVACY.sql`부터 `users` SELECT 정책이 `auth.uid() = id`임(이메일 앞부분 닉네임·관리자 목록 노출 차단).
+    - 방어책: 타인 표시명이 필요하면 공개 범위를 정한 `SECURITY DEFINER` RPC로 필요한 컬럼만 반환함. 정책을 다시 `USING (true)`로 넓히지 않음.

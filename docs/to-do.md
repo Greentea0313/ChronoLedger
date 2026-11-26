@@ -234,6 +234,15 @@
 
 - [ ] R50. [보안 검토 안건 · `📝 AGENDA` (`auth-security-settings-review`, 사용자 별도 요청 시에만 `▶ READY` 전환)] 인증 보안 설정 점검: 클라이언트 인증 흐름·키 관리·RLS/`SECURITY DEFINER` 권한 경계 읽기 전용 점검, Supabase 대시보드 Auth 설정 체크리스트(사용자 확인용) 작성, 문자열 컬럼 암호화 미도입 권장 근거 기록 → `docs/auth-security-review.md` (담당: Claude Opus, Fallback: Gemini 4 Argon / GitHub Copilot, 코드 수정은 별도 R 항목으로 분리)
 
+### 보안·경쟁력 검토 후속 (2026-11-26 등록 · Claude Opus · [`docs/security-and-competitiveness-review.md`](security-and-competitiveness-review.md))
+
+- [ ] R111. [2026-11-26 `main` 직접 커밋(사용자 지시, 로컬 DB 통과 전 병합 예외) · 운영 DB 적용·확인 쿼리 완료(사용자) · 🐳 로컬 `TESTS.sql` 미실행(`⚠️ LOCAL_DB_DEFERRED`, 이 PC에 Docker 없음)] 보안 상위 3건: ① S1 `MIGRATION_USERS_PROFILE_PRIVACY.sql`(`users` 본인 행 SELECT, 가입 닉네임 이메일 미사용, 닉네임 64자 CHECK) ② S2 빌드 후 인라인 스크립트 해시 기반 CSP 메타 주입(`scripts/inject-csp.mjs`)·HSTS·Permissions-Policy ③ S3 CI 워크플로(`.github/workflows/ci.yml`)
+  - [ ] 🐳 로컬 Supabase에서 마이그레이션 2회 멱등·`TESTS.sql` `PRIV-01` 포함 전체 PASS 확인
+  - [x] 운영 DB `MIGRATION_USERS_PROFILE_PRIVACY.sql` 적용·README 확인 쿼리 확인(사용자, 2026-11-26)
+  - [ ] 데스크톱(Tauri) 설치본에서 CSP 적용 후 로그인·알림·업데이트 배너 동작 확인(사용자, 미검증)
+  - [ ] Cloudflare Pages 빌드 명령이 `npm run build`인지 확인(`next build` 직접 실행 시 CSP 미주입)
+- [ ] R112. [후보 · 사용자 지목 시] 보안·경쟁력 검토 나머지 항목(S4~S7, F1~F5, A1~A4, C1~C10) — 우선순위는 문서 §5
+
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)
 
 > 근거: [`docs/competitive-analysis-pickupgg.md`](competitive-analysis-pickupgg.md). 실행 순서: 현재 진행 중인 R13 UI Run(`r13-phase13-2-and-13-3-ui`)을 1순위로 완수·병합한 직후, **차기 Run 1(`R32 + R34`)** → **차기 Run 2(`R33`)** 순으로 착수함.

@@ -155,6 +155,8 @@
 --   R107C-03 DB fixture 역할      EXPENSE_AUTO_CONFIRMED 사용자·일자당 1건·금액/항목명 미포함·expense_due_today=false 제외, 실패 행 DUE_TODAY 포함, 일 배치 실행.
 --   R75-REV-001 DB fixture 역할   검증 트리거를 끈 상태에서 R64 axis_key 형식·빈 옵션 CHECK 제약 이름을 정확히 고정(트리거 경로는 트리거 메시지만 허용).
 --   R107C-REV-002 fixture / C     chk_expense_auto_confirmed_status 검증됨, PLANNED 행 auto_confirmed_at 삽입·본인 수정 -> check_violation.
+--   PRIV-01 fixture / B           users SELECT 본인 행만(B는 A 프로필 조회 불가), 가입 닉네임은 메타데이터 nickname 공백 제거·20자(없으면 NULL),
+--                                  65자·공백 닉네임 -> chk_users_nickname_length check_violation.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -5887,6 +5889,70 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R107C-REV-002 auto_confirmed_at rejected on PLANNED rows (fixture insert, owner update)
+
+-- PRIV-01) public.users: own-row SELECT only, signup nickname from metadata (never the email prefix), nickname CHECK.
+DO $$
+DECLARE
+    v_named UUID := gen_random_uuid();
+    v_plain UUID := gen_random_uuid();
+    v_nick TEXT;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'users' AND policyname = 'Users read own profile' AND cmd = 'SELECT'
+    ) OR EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'users' AND policyname = 'Anyone can view user profiles'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: PRIV-01 users SELECT policy is not own-row only';
+    END IF;
+
+    INSERT INTO auth.users (id, aud, role, email, encrypted_password, raw_app_meta_data, raw_user_meta_data)
+    VALUES
+        (v_named, 'authenticated', 'authenticated', 'priv01-named-' || replace(v_named::text, '-', '') || '@example.invalid', '',
+         '{"provider":"email","providers":["email"]}'::jsonb, jsonb_build_object('nickname', '  ' || repeat('n', 25) || '  ')),
+        (v_plain, 'authenticated', 'authenticated', 'priv01-plain-' || replace(v_plain::text, '-', '') || '@example.invalid', '',
+         '{"provider":"google","providers":["google"]}'::jsonb, '{}'::jsonb);
+
+    SELECT nickname INTO v_nick FROM public.users WHERE id = v_named;
+    IF v_nick IS DISTINCT FROM repeat('n', 20) THEN
+        RAISE EXCEPTION 'FAIL: PRIV-01 signup nickname should be trimmed metadata capped at 20 chars, got %', v_nick;
+    END IF;
+    SELECT nickname INTO v_nick FROM public.users WHERE id = v_plain;
+    IF v_nick IS NOT NULL THEN
+        RAISE EXCEPTION 'FAIL: PRIV-01 signup without metadata nickname should store NULL, got %', v_nick;
+    END IF;
+
+    BEGIN
+        UPDATE public.users SET nickname = repeat('x', 65) WHERE id = v_named;
+        RAISE EXCEPTION 'FAIL: PRIV-01 65-char nickname accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLERRM NOT LIKE '%chk_users_nickname_length%' THEN RAISE; END IF;
+    END;
+    BEGIN
+        UPDATE public.users SET nickname = '   ' WHERE id = v_named;
+        RAISE EXCEPTION 'FAIL: PRIV-01 blank nickname accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLERRM NOT LIKE '%chk_users_nickname_length%' THEN RAISE; END IF;
+    END;
+END $$;
+
+SELECT set_config('request.jwt.claim.sub', :'other_user_id', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'other_user_id', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE v_count INTEGER;
+BEGIN
+    SELECT count(*) INTO v_count FROM public.users;
+    IF v_count <> 1 OR NOT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid()) THEN
+        RAISE EXCEPTION 'FAIL: PRIV-01 user B should see only own users row, saw % rows', v_count;
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.users WHERE id = current_setting('chronoledger.test_user_id')::uuid) THEN
+        RAISE EXCEPTION 'FAIL: PRIV-01 user B can read user A profile';
+    END IF;
+END $$;
+RESET ROLE;
+\echo PASS: PRIV-01 users profiles are own-row only, signup nickname never derives from email, nickname CHECK enforced
 
 SET LOCAL ROLE anon;
 DO $$

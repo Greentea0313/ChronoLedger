@@ -1,5 +1,12 @@
 # 변경 이력
 
+## 2026-11-26 (`R111` 보안 검토 상위 3건)
+
+- **사용자 프로필 노출 축소 (`MIGRATION_USERS_PROFILE_PRIVACY.sql`)**: `public.users`를 본인 행만 조회하도록 바꾸고, 가입 기본 닉네임을 이메일 앞부분 대신 가입 입력 닉네임(최대 20자) 또는 빈 값으로 바꿈. 닉네임 64자·공백 금지 제약 추가, 설정 화면 닉네임 20자 제한. 운영 DB 적용 완료.
+- **CSP·보안 헤더 (`scripts/inject-csp.mjs`, `public/_headers`)**: 빌드 후 각 페이지에 인라인 스크립트 해시 기반 CSP를 넣어 웹·데스크톱 모두 외부 스크립트·허용 외 연결을 차단함. HSTS·Permissions-Policy·`frame-ancestors 'none'` 추가.
+- **CI (`.github/workflows/ci.yml`)**: PR·`main` push마다 타입 검사·lint·Vitest·빌드 실행.
+- **분석 문서**: 나머지 보안·기능·구조·경쟁력 항목을 [`security-and-competitiveness-review.md`](security-and-competitiveness-review.md)에 정리함.
+
 ## 2026-11-26 (`R110` 후속 — 데스크톱 릴리스 수정·아이콘)
 
 - **릴리스 빌드 수정 (`package.json`)**: `@tauri-apps/plugin-deep-link`를 `^2.6.3`으로 올려 Rust crate와 minor 버전을 맞춤(`tauri build` 중단 해소).

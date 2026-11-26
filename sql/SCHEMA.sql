@@ -137,17 +137,18 @@ FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_setup();
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-  nickname TEXT,
+  nickname TEXT CONSTRAINT chk_users_nickname_length
+    CHECK (nickname IS NULL OR (char_length(nickname) <= 64 AND btrim(nickname) <> '')),
   show_unofficial_schedules BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
--- 자기 참조 서브쿼리로 인한 무한 재귀를 피하기 위해 SELECT는 인증 사용자 전체 허용
-CREATE POLICY "Anyone can view user profiles"
+-- 본인 행만 조회 허용(MIGRATION_USERS_PROFILE_PRIVACY.sql). 다른 테이블의 관리자 판정 EXISTS도 본인 행만 읽는다.
+CREATE POLICY "Users read own profile"
 ON public.users FOR SELECT TO authenticated
-USING (true);
+USING (auth.uid() = id);
 
 CREATE POLICY "Users can update their own profile"
 ON public.users FOR UPDATE TO authenticated
@@ -171,12 +172,12 @@ CREATE TRIGGER trg_prevent_users_role_self_change
 BEFORE UPDATE OF role ON public.users
 FOR EACH ROW EXECUTE FUNCTION public.prevent_users_role_self_change();
 
--- 신규 가입 시 public.users 레코드 자동 생성 (이메일 앞부분을 기본 닉네임으로 사용)
+-- 신규 가입 시 public.users 레코드 자동 생성 (가입 메타데이터 nickname 최대 20자, 없으면 NULL. 이메일은 쓰지 않는다)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.users (id, role, nickname)
-  VALUES (new.id, 'user', split_part(new.email, '@', 1))
+  VALUES (new.id, 'user', NULLIF(left(btrim(coalesce(new.raw_user_meta_data ->> 'nickname', '')), 20), ''))
   ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
@@ -189,7 +190,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- 스키마 적용 전에 이미 가입된 auth.users 백필
 INSERT INTO public.users (id, role, nickname)
-SELECT id, 'user', split_part(email, '@', 1) FROM auth.users
+SELECT id, 'user', NULLIF(left(btrim(coalesce(raw_user_meta_data ->> 'nickname', '')), 20), '') FROM auth.users
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. 월별 소비 예산
