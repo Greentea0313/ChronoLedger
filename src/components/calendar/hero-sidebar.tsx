@@ -367,13 +367,15 @@ export function HeroSidebarContent({
                 scheduleGroups.map((group) => {
                   const isSingle = group.start_date === group.end_date
                   const isGrouped = group.items.length > 1
-                  // R85: when today is selected, a schedule whose end time already passed is dimmed and marked 종료.
-                  const isEndedToday = selectedDateLabel === today && hasScheduleEnded(group, clock)
+                  // R85 (amended 2026-11-27): a schedule that has already ended (relative to now) is dimmed whatever date is
+                  // selected; the badge reads 종료 only when today is selected, otherwise the normal D+n label stays.
+                  const isEnded = hasScheduleEnded(group, clock)
+                  const isEndedToday = isEnded && selectedDateLabel === today
                   return (
                     <div
                       key={group.key}
-                      data-ended={isEndedToday ? "true" : undefined}
-                      className={`relative overflow-hidden rounded-md border border-line bg-surface-2 p-3 text-sm flex flex-col gap-1 transition-colors hover:border-line-control${isEndedToday ? " opacity-60" : ""}`}
+                      data-ended={isEnded ? "true" : undefined}
+                      className={`relative overflow-hidden rounded-md border border-line bg-surface-2 p-3 text-sm flex flex-col gap-1 transition-colors hover:border-line-control${isEnded ? " opacity-60" : ""}`}
                     >
                       {group.iconUrl && (
                         <div className="absolute right-0 top-0 bottom-0 w-28 overflow-hidden z-0 pointer-events-none">

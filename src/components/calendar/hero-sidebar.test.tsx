@@ -70,8 +70,15 @@ describe("HeroSidebarContent schedule times (R85)", () => {
     expect(document.querySelector('[data-ended="true"]')?.className).toContain("opacity-60")
   })
 
-  it("does not dim a schedule when a past date is selected", () => {
+  it("dims an already ended schedule even when a past date is selected and keeps the D+n label", () => {
     render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-20" todayDate="2026-11-25" now={new Date("2026-11-25T12:00:00+09:00")} schedules={[dawn]} expenses={[]} />)
+    expect(document.querySelector('[data-ended="true"]')?.className).toContain("opacity-60")
+    expect(screen.getByTestId("dday-badge").textContent).toBe("D+5")
+  })
+
+  it("does not dim a schedule that is still ongoing when a past date is selected", () => {
+    const ongoing: HeroScheduleItem = { ...dawn, id: "ongoing", title: "진행 중 이벤트", end_date: "2026-12-05", end_at: at("2026-12-05", "04:59") }
+    render(<HeroSidebarContent {...base} selectedDateLabel="2026-11-20" todayDate="2026-11-25" now={new Date("2026-11-25T12:00:00+09:00")} schedules={[ongoing]} expenses={[]} />)
     expect(document.querySelector('[data-ended="true"]')).toBeNull()
   })
 
