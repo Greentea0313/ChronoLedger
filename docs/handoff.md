@@ -17,7 +17,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run**: `r110-desktop-auto-update` *(Step U0 완료, Step 1 `▶ READY`. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
+- **활성 Run**: `r110-desktop-auto-update` *(Step U0·1 완료, Step 2 `▶ READY`. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
 
 #### 🧩 Run: `r110-desktop-auto-update` *(데스크톱 자동 업데이트)* · **Orchestrator**: Claude Sonnet `Medium` *(2026-11-26 등록, Gemini 주간 한도 소진으로 Hydrogen 대체)*
 
@@ -30,11 +30,21 @@
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
 | `U0` | **`✅ DONE (2026-11-26, 공개 키 수령)`** | **사용자** | 서명 키 쌍 생성·저장소 밖 백업, GitHub Secrets 5개 등록, **공개 키만** Step 1 Maker에게 전달 | 명세 §4 U0-1~U0-3. 개인 키는 저장소 밖(`C:\Users\junha\keys\chronoledger\`)에 생성함. **Secrets 5개 등록은 Step 4(태그 push) 전까지 사용자가 확인함**(Step 1~3에는 불필요) |
-| **1** | **`▶ READY`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | Rust·설정·CI: `updater`·`process` 플러그인, `tauri.conf.json`(`pubkey`·`endpoints`), 최소 capability, 릴리스 워크플로 | 명세 §4 Step 1(1-1~1-5). **`pubkey`(U0-3, 공개 키 값)**: `dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAwOTkwNkI0QzJBNEM0M0IKUldRN3hLVEN0QWFaQUQ4Z1dUbnNtVUIzTWp4emV2OWgwcGIrZnZ1TTFNcnBFMUR0alpkVVY0WHQK` *(`updater.key.pub` 파일 내용 그대로, 개인 키 파일은 열지 않음)*. 허용 파일: `src-tauri/**`, `.github/workflows/**`, `package.json`·`package-lock.json`(플러그인 JS 패키지) |
-| **2** | `⏳ WAITING` | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 배너·updater 래퍼·Vitest (Tauri에서만 동작, 웹은 updater import 없음) | 명세 §4 Step 2(2-1~2-6). 허용 파일: `src/**`(배너·래퍼·테스트·레이아웃 연결) |
+| **1** | **`✅ DONE (SHA: 20034756e09d1f326f2f59459c86f0fb6061ac61)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | Rust·설정·CI: `updater`·`process` 플러그인, `tauri.conf.json`(`pubkey`·`endpoints`), 최소 capability, 릴리스 워크플로 | 명세 §4 Step 1(1-1~1-5). **`pubkey`(U0-3, 공개 키 값)**: `dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAwOTkwNkI0QzJBNEM0M0IKUldRN3hLVEN0QWFaQUQ4Z1dUbnNtVUIzTWp4emV2OWgwcGIrZnZ1TTFNcnBFMUR0alpkVVY0WHQK` *(`updater.key.pub` 파일 내용 그대로, 개인 키 파일은 열지 않음)*. 허용 파일: `src-tauri/**`, `.github/workflows/**`, `package.json`·`package-lock.json`(플러그인 JS 패키지) |
+| **2** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 배너·updater 래퍼·Vitest (Tauri에서만 동작, 웹은 updater import 없음) | 명세 §4 Step 2(2-1~2-6). 허용 파일: `src/**`(배너·래퍼·테스트·레이아웃 연결) |
 | **3** | `⏳ WAITING` | **GPT Codex** *(Fallback: Claude Sonnet `Medium`)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 명세 §4 Step 3(3-1·3-2). Maker(Opus·Sonnet)와 다른 모델로 둠 |
 
-> **다음 단계**: **Claude Opus (High)**로 바꾸고 도구에서 High를 선택한 뒤 `"인수인계 문서를 확인해"`를 입력함. Step 1 완료 후 Step 2는 Claude Sonnet(Medium)임.
+> **다음 단계**: **Claude Sonnet (Medium)**(Fallback: GitHub Copilot)으로 `"인수인계 문서를 확인해"`를 입력해 Step 2를 진행함. 워크트리에 `node_modules`가 없으면 `npm install`로 새 플러그인 패키지(`@tauri-apps/plugin-updater`·`plugin-process`)를 먼저 설치함.
+
+#### 📝 `r110-desktop-auto-update` Step 1 완료 기록 (Claude Opus, 2026-11-26)
+
+- **SHA**: `20034756e09d1f326f2f59459c86f0fb6061ac61`(워크트리, 미push). 변경: `src-tauri/Cargo.toml`·`Cargo.lock`·`src/lib.rs`·`capabilities/default.json`·`tauri.conf.json`, 신규 `.github/workflows/desktop-release.yml`, `package.json`·`package-lock.json`.
+- **구현**: `tauri-plugin-updater 2.14.1`·`tauri-plugin-process 2.4.0` 등록, capability는 `updater:default`·`process:allow-restart`만 추가(1-5). `tauri.conf.json`: `version: "../package.json"`, NSIS 단일 번들·`createUpdaterArtifacts`, `pubkey`(U0-3 값, minisign 공개 키임을 디코딩으로 확인)·endpoint 1개·`installMode: passive`(1-1). 앱 버전을 첫 updater 릴리스 `0.2.0`으로 올림(`package.json`·`Cargo.toml`).
+- **워크플로(1-4)**: `desktop-v*` 태그만, 빌드 전 태그·`package.json`·`Cargo.toml` 버전 일치 검사, 권한 `contents: write`만, 액션 버전 고정(`checkout@v7.0.1`·`setup-node@v7.1.0`·`rust-cache@v2.9.3`·`tauri-action@v1.0.0`), Rust는 러너 기본 rustup 사용, Secrets는 `env`로만 전달.
+- **명세와 다른 점**: `tauri-action` v1.0.0에서 명세의 `includeUpdaterJson`이 `uploadUpdaterJson`으로 바뀌어 그 이름을 씀(기본값 `true`). NSIS 단일 대상이라 `updaterJsonPreferNsis: true`도 지정함.
+- **검증**: `cargo check` 통과(임시 빈 `out/`로 경로 검사 통과 후 삭제, capability 권한 이름도 빌드 단계에서 검증됨), tsc·lint·Vitest 78파일/1076개·`git diff --check`·JSON 파싱 통과. **서명 포함 `tauri build`와 실제 Actions 실행은 미검증**(서명 키는 CI Secrets에만 있음, 1-3 허용 범위). 워크플로 첫 실행은 Step 4 태그 push에서 확인됨.
+- **원격 브랜치**: push 안 함.
+
 
 #### 📝 `R110-SPEC` 명세 완료 기록 (Claude Opus, 2026-11-26)
 
