@@ -6,6 +6,110 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 상세 완료 기록: `r114-game-budgets` Step 1~2 *(2026-11-26 이관)*
+
+#### 📝 `r114-game-budgets` Step 1 Iteration 02 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `f577f6d5fb3fabcb7c777905dfea5402cc070c81` (`collab/r114-game-budgets`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (2개)**: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`. SQL 변경 없음(Iteration 01과 같음).
+- **수정 (`R114-REV-001`)**: 지출 페이지 `loadExpenses`를 1,000행 단위 `.range()` 페이지 조회로 바꿈. `target_date` 내림차순 → `id` 내림차순으로 정렬해 페이지 경계를 고정하고, 1,000행 미만 페이지에서 멈춤. 한 페이지라도 실패하면 일부만 반영하지 않고 이전 상태를 유지함(기존 오류 처리와 같음). 예산 목록뿐 아니라 같은 `expenses` 상태를 쓰는 기존 통계·목록도 전체 행으로 계산됨.
+- **판단**: 서버 집계 대신 페이지 조회를 고름. 예산 규칙(`calculateGameBudgetUsage`)을 그대로 쓰고 새 RPC·SQL이 필요 없어서임.
+- **검증 (실제 실행)**: 게임 행을 모두 2페이지(1,000행 뒤)에 둔 테스트 추가 — 수정 전 코드에서는 이 테스트 `FAIL` 확인, 수정 후 통과. `tsc`·`lint`·Vitest 82파일/1,122개·`next build` 16/16(워크트리에 `.env.local`이 없어 더미 공개 Supabase 값 사용)·`git diff --check` 통과. SQL 변경이 없어 로컬 DB는 다시 돌리지 않음(Step 2 DB 게이트에서 Base ↔ Target 전체로 확인).
+- **남은 관찰 (수정 안 함)**: 같은 함수의 자동 확정 표시 조회 `.in("id", confirmedIds)`는 확정 ID를 한 번에 URL로 보냄. ID가 많으면 URL이 길어져 실패할 수 있으나, 실패 시 자동 확정 배지만 숨겨짐(예산·금액 영향 없음). R107-C 기존 코드라 이번 범위 밖임.
+- **완료**: Step 2 재리뷰·DB 게이트·`main` 병합 완료함. 다음은 Step 3 사용자 운영 DB 적용·배포·UI 확인임.
+
+#### 📝 `r114-game-budgets` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `692ea97b731f7ca171005be3348c8302e16ab59a` (`collab/r114-game-budgets`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (13개)**: 신규 `sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`(R114 행·R107C 재실행 경고), `sql/tests/TESTS.sql`(R114-01·02), `src/types/database.types.ts`, `src/lib/budget-calculations.ts`·`.test.ts`, `src/app/dashboard/games/page.tsx`·`.test.tsx`, `src/app/dashboard/expenses/page.tsx`·`.test.tsx`, `src/components/settings/notification-settings-card.tsx`, `src/app/dashboard/settings/page.test.tsx`(카드 테스트가 이 파일에 있음).
+- **SQL (§4.2)**: `user_games.monthly_budget`(> 0)·설정 열 2개·알림 종류 3개. 새 알림은 날짜를 받는 내부 함수 `enqueue_game_budget_notifications(p_today)`·`enqueue_monthly_report_notifications(p_today)`(service_role 전용)로 만들고 `enqueue_daily_notifications()` 6·7번 절에서 오늘 날짜로 호출함 — 기존 1~5번 절 불변, 테스트에서 날짜 고정 가능. 결제·환불 RPC·`expenses` 제약 변경 없음(114-8, diff 확인).
+- **판단**: ① 예산 알림 본문에 게임 이름만 넣고 금액은 뺌(잠금 화면 보호, 기존 `EXPENSE_*` 선례). ② 월간 리포트의 "예산 초과"는 사용액 > 예산(같으면 초과 아님), 100% 알림은 ≥ 100%. ③ 지출 페이지 예산 목록은 '전체 기간'에서는 숨기고 선택한 달에만 표시, 전월 대비는 기존 분석과 같은 확정·`게임` 분류 기준. ④ 예산 조회는 `user_games`를 따로 읽어 공용 `EXPENSE_COLUMNS`에 넣지 않음.
+- **검증 (실제 실행)**: 🐳 업그레이드(Base `85d8adc` `SCHEMA.sql` → R114 2회 → `TESTS.sql` 59개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 59개 PASS), 함수 3종 본문 일치, README 확인 쿼리 기대값 일치. 귀속 규칙 변이(예정 행을 `target_date`로 귀속)가 처음에 통과해 경계 금액을 고친 뒤 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 82파일/1,121개·`next build` 16/16·`git diff --cached --check` 통과.
+- **후속**: Step 2 Iteration 01에서 `R114-REV-001` 확인됨 → Iteration 02에서 수정함(위 기록).
+
+#### 📝 `r114-game-budgets` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-26)
+
+- **범위·결과**: Base `85d8adcb294bcd4622eb90df3bb826b94a4445d6` ↔ Target `692ea97b731f7ca171005be3348c8302e16ab59a`. `R114-REV-001` P2: 지출 페이지가 `.range()` 없이 단일 조회 결과를 예산 합산에 재사용해 PostgREST 기본 1,000행을 넘을 때 사용액을 누락할 수 있음(114-5). 정적 리뷰 `findings`, artifact 커밋 `b8e3f6296369ffa89aaca8d90f119995be71d52d`.
+- **검증**: 원본 로컬 Target DB migration 2회·전체 `TESTS.sql` 통과. 격리 스택에서 Base 업그레이드와 Target 신규 설치 경로 각각 migration 2회·`TESTS.sql` R114-01/02·ROLLBACK 통과. tsc·lint·Vitest 82파일/1,121개·`next build` 16/16·artifact schema(Ajv)·`git diff --check` 통과.
+- **남음**: 지출 전량 페이지네이션 또는 동등한 합산 경로와 1,000행 초과 테스트 추가 → 재리뷰·전체 검증 → 통과 시 `main` 병합 → 사용자 운영 적용·배포 확인.
+
+#### 📝 `r114-game-budgets` Step 2 Iteration 02 (Reviewer & Local DB Gate) 완료 기록 (GPT Codex, 2026-11-26)
+
+- **Base ↔ Target**: `85d8adcb294bcd4622eb90df3bb826b94a4445d6` ↔ `f577f6d5fb3fabcb7c777905dfea5402cc070c81`; artifact commit `e47928f8911ee61b9587210c336193bb6e53b2cb`; `main` merge `b161592d6eb707e37f14f4de1a6b53e16bcf9f40`.
+- **정적 리뷰**: 결과 `clean`, finding 없음. artifact schema를 Ajv 6.15.0으로 검증함.
+- **DB 검증**: 원본 `chronoledger-local`을 유지하고 임시 격리 Supabase에서 Base 스키마 업그레이드 경로와 Target 신규 설치 경로를 각각 실행함. 양쪽 모두 migration 2회, R114-01/02 및 rollback 통과함.
+- **앱 검증**: Target 및 병합 후 `main`에서 tsc·lint·Vitest 82파일/1,122개·`next build` 16페이지 통과함.
+- **변경 요약**: 1,000행 상한으로 예산 사용액이 누락될 수 있던 조회를 안정 정렬 페이지네이션으로 고치고 2페이지 회귀 테스트를 추가함. 결제·환불 RPC 및 `expenses` 제약은 바꾸지 않음.
+- **사용자 후속**: 운영 DB에 `MIGRATION_R114_GAME_BUDGETS.sql` 적용 후 `sql/README.md` R114 확인 쿼리 실행, 배포, 예산 모달·게임별 월 예산 목록·80%/100% 알림·월간 리포트를 확인해야 함.
+
+> **다음 단계**: Step 3 완료(2026-11-26). 남은 일은 `R114` 문서 마감(직전 완료 Run 기록 교체·아카이브 이관)과 `R115` 🐳 Run 등록임. 사용자가 지목하면 Orchestrator가 처리함.
+
+
+### 🗂️ 직전 완료 Run 기록: `r113-data-export` *(`R113` 데이터 내보내기·백업, 완료)*
+
+- **Run ID**: `r113-data-export` **(완료, `main` 병합 `7f2e4d9`, 후속 정렬 수정 `e0e3f84`, 문서 마감 2026-11-26)** · **Orchestrator**: Claude Sonnet `Medium` *(등록)* · Claude Opus `High` *(Step 2 대체·마감)*
+
+- **`✅ DONE (2026-11-26, Claude Opus High)` — 기능 후보 4종 명세(`R113`~`R116`)**: 명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) 작성함(사용자 질문 카드 결정 8건, 결정표·단계별 인수 기준·모델 배정 권고·위험). Run 순서는 `R113` 내보내기 → `R114` 게임별 예산 🐳 → `R115` CSV 가져오기 🐳 → `R116` 공개 일정 페이지임.
+- **`✅ DONE (2026-11-26, Claude Sonnet Medium)` — `R113-REG` Run 등록**: Run `r113-data-export` 워크트리 생성·Step 배정 완료(Gemini 4 Hydrogen 대체). `R114`~`R116`은 `R113` 마감 뒤 차례로 등록함(사용자가 순서를 바꾸면 그에 따름).
+
+#### 🧩 Run: `r113-data-export` *(`R113` 데이터 내보내기·백업)* · **Orchestrator**: Claude Sonnet `Medium` *(2026-11-26 등록, Gemini 한도 소진으로 Hydrogen 대체)*
+
+- **워크트리·브랜치**: `.worktrees/r113-data-export`, `collab/r113-data-export` *(매니페스트 `artifacts/r113-data-export/run.json`)*
+- **명세**: [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §3(결정 E1~E7·JSON/CSV 형식·인수 기준 113-1~113-7)·§7(모델 배정). 세부는 명세를 따름.
+- **리뷰 범위**: Base `57c76645d4595348d865af321c447b6adcd84464` ↔ Target `773af3702f1c0cad0628499246f1e41fcc670790` *(Step 1)*.
+- **모델 배정 근거**: 명세 §7 원안대로 Step 2는 `GPT Codex`임(다른 계정으로 로그인해 사용 가능, 사용자 확인 2026-11-26). Gemini 한도는 소진 상태라 Step 1은 Sonnet임.
+- 🐳 Docker 불필요(DB 변경 없음). Tauri 플러그인·Rust 변경 없음(E7).
+
+| Step | 상태 | 담당 모델 | 작업 | 비고 |
+| :--- | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (Iteration 02, SHA: 2a446e72f329ed479c01e1344182c0d0f8d3e2ad)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 리뷰 finding 수정: 다운로드 클릭 직후 Blob URL을 해제하는 순서 보완, 수정 커밋 기록 | 허용 파일: `src/lib/data-export.ts` 및 관련 테스트만. DB·Tauri 설정 변경 금지. 명세 §3.1~3.4(113-1~113-6) 유지 |
+| **2** | **`✅ DONE (SHA: bb4a898, main 병합 7f2e4d9 — Claude Opus 대체)`** | **GPT Codex** *(Fallback: Claude Opus `High` — 도구에서 High 선택)* | Base↔Target 정적 리뷰·재검증 완료, 빌드 통과 후 `main` 병합 | Iteration 02 artifact `68b73e5`; 리뷰 `clean`, tsc·lint·Vitest 통과. `next build` 2회 `.next/types/app` 생성에서 EPERM, 스키마 검증은 Python `jsonschema` 모듈 부재로 미실행. 재검증 환경에서 빌드·스키마 검증 후 병합 판단 |
+| **3** | **`✅ DONE (2026-11-26, 사용자 확인)`** | **사용자** | 웹·Windows 설치본에서 파일 저장 1회씩 확인(113-7) | JSON·지출 CSV·수익 CSV 모두 웹·설치본 저장·열기 확인. `R113-TAURI-SAVE` 불필요 |
+
+> **마감**: Step 3 확인 후 사용자 피드백(지출 CSV 정렬 기준 불명확)으로 CSV 정렬을 날짜순으로 바꿈(아래 후속 수정 기록).
+
+#### 📝 `r113-data-export` 마감·후속 수정 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Step 3 (사용자)**: 웹·Windows 설치본에서 JSON·지출 CSV·수익 CSV 저장과 파일 열기를 모두 확인함(113-7 통과).
+- **후속 수정 (`main` 직접, `e0e3f84`)**: 지출 CSV가 '날짜'가 아니라 생성시각·ID 순이라 읽기 어렵다는 피드백에 따라 CSV 조회 정렬을 지출 `target_date`→`created_at`→`id`, 수익 `income_date`→`created_at`→`id`로 바꿈. 끝에 `id`가 있어 1,000행 페이지 조회 순서도 안정적임. JSON 백업은 기존 `created_at, id` 유지. 정렬 열을 확인하는 Vitest 1건 추가. `tsc`·`lint`·Vitest 82파일/1,110개·`next build` 16/16·`diff --check` 통과.
+- **남음**: `main` push로 웹 배포(데스크톱 설치본 반영은 다음 데스크톱 릴리스 때).
+
+#### 📝 `r113-data-export` Step 2 완료 기록 (Claude Opus `High` — GPT Codex 1순위 대체, 2026-11-26)
+
+- **이어받은 지점**: Codex Iteration 02 리뷰 `clean`·산출물 `68b73e5` 이후 `next build` EPERM과 스키마 검증 미실행으로 멈춘 상태. Target `2a446e7` 조상 확인, Target 이후 `src`·`sql` 변경 없음.
+- **원인·재검증**: 워크트리에 자체 `node_modules`가 있어 루트 `next` 실행 파일로 빌드하면 React가 두 벌 로드돼 `useContext` 오류가 남. 워크트리 자체 `next`로 빌드하니 16/16 통과, EPERM은 재현 안 됨. `tsc`·`lint`·Vitest 82파일/1,109개·`diff --check` 재통과, `review.json`·`test.json` 스키마 검증 통과.
+- **산출물·병합**: `test.json`을 재실행 결과로 갱신(`passed`) 후 커밋 `bb4a898`, 중간 기록 `df14ef0` → `main` 병합 `7f2e4d9`(no-ff) → 중간 기록 `4f179be`. 병합 후 `main` 재검증 `tsc`·`lint`·Vitest 1,109개·`next build` 16/16 통과.
+- **남음**: Step 3 사용자 저장 확인(113-7), `main` push. 원격 브랜치 `collab/r113-data-export`: 수정·산출물 커밋은 push 안 함.
+
+#### 📝 `r113-data-export` Step 2 Iteration 02 검토 기록 (GPT Codex, 2026-11-26)
+
+- **범위**: Base `57c76645d4595348d865af321c447b6adcd84464` ↔ Target `2a446e72f329ed479c01e1344182c0d0f8d3e2ad`. R113-REV-001 수정 확인, 본인 행 필터·제외 테이블·CSV 수식 방지·웹 경로 의존성 검토 결과 `clean`임. 산출물·매니페스트 커밋 `68b73e5681d5f3622dc27afb4d146cbf66de3464`.
+- **검증**: tsc·lint·Vitest 82파일/1,109개 통과, `git diff --check` 통과함. `next build`는 두 번 `.next/types/app` 디렉터리 생성에서 `EPERM`으로 실패함. 스키마 검증 스크립트는 Python `jsonschema` 모듈 부재로 실행하지 못함(BOM 제거 후 run/review/test JSON 파싱 통과).
+- **남음**: 빌드·스키마 검증을 지원하는 환경에서 재실행 후 통과 시 Step 2 병합, 이후 사용자 웹·Windows 설치본 저장 확인(113-7).
+
+#### 📝 `r113-data-export` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-26)
+
+- **범위**: Base `57c76645d4595348d865af321c447b6adcd84464` ↔ Target `773af3702f1c0cad0628499246f1e41fcc670790`. Target은 워크트리 HEAD였고 이후 `src`·`sql` 차이 없음.
+- **결과**: `R113-REV-001` P2 1건 기록함. `src/lib/data-export.ts`에서 다운로드 앵커 클릭 직후 Blob URL을 동기 해제함. 클라이언트에 따라 저장 시작 전에 URL이 폐기될 수 있어 지연 해제 또는 완료 신호가 필요함. 실제 웹·Windows 저장은 113-7에서 확인 필요함.
+- **검증**: TypeScript·lint·Vitest 82파일/1,109개·`next build` 16/16 통과함. 빌드에는 더미 공개 Supabase 환경값을 사용함. 리뷰·검증 아티팩트는 커밋 `aebb3855c67d5d776f7a1c900470d9f7e800a72c`에 기록함.
+- **남음**: Sonnet Iteration 02 수정 → GPT Codex 재리뷰·재검증 → 통과 시 `main` 병합 → 사용자 웹·Windows 설치본 저장 확인(113-7).
+
+#### 📝 `r113-data-export` Step 1 완료 기록 (Claude Sonnet `Medium`, 2026-11-26)
+
+- **SHA**: `773af3702f1c0cad0628499246f1e41fcc670790`(워크트리, 미push). 신규 `src/lib/export-format.ts`·`data-export.ts`, `src/components/settings/data-export-card.tsx`, 각 Vitest 3종, 수정 `src/app/dashboard/settings/page.tsx`(카드 1줄).
+- **구현**: 설정 페이지 "데이터 내보내기" 카드(버튼 3개, 진행 중 전체 비활성, 완료·실패 안내). JSON은 §3.2 형식(19개 본인 테이블, `skipped`·`catalog` 포함), CSV는 §3.3(BOM·CRLF·따옴표·수식 방지, 숫자 열은 숫자로 출력). 1,000행 단위 `.range()` 조회, 오프라인이면 조회 없이 안내.
+- **판단**: `catalog`는 참조된 게임·일정 이름만 담고 실패 시 `skipped`에 `catalog`로 기록함. 일정 테이블 이름은 `game_schedules`임(명세의 `schedules`는 논리명). 알 수 없는 코드는 원문 코드로 내보냄.
+- **검증(실행함)**: `tsc` 0, lint 0, Vitest 82파일/1109개(신규 25개), `next build` 16/16, `git diff --check` 통과. 113-1~113-6 대응. **미검증**: 113-7(웹·설치본 실제 저장)은 사용자 Step 3임.
+- **남음**: Step 2 리뷰(`GPT Codex`)·병합. 원격 브랜치: push 안 함.
+
+#### 📝 `R113`~`R116` 명세 완료 기록 (Claude Opus, 2026-11-26)
+
+- **사용자 결정**: 내보내기는 JSON 전체+CSV·복원 제외, 게임 예산은 경고·알림만·매달 같은 한도·예정+확정 합산, 가져오기는 확정 기록·자산·포인트 미반영·자체 형식+일반 CSV 열 지정, 공개 페이지는 빌드 생성·배포 때만 갱신·진행/예정+최근 3개월.
+- **핵심 설계 판단**: 가져온 행은 `WALLET`·`deduct_from_asset = false`·포인트 0으로 고정함. 기존 `refund_expense_payment`는 `NAVER_PAY`면 자산 차감 여부와 무관하게 네이버페이 잔액을 늘리므로, 원본 결제수단을 그대로 넣으면 환불 시 원장이 틀어짐(원본 수단은 메모에 보존).
+- **기타 판단**: 게임 예산은 `user_games.monthly_budget` 열(RLS 직접 쓰기)·알림은 기존 `enqueue_daily_notifications()` 확장, 공개 페이지는 빌드 시점 서버 컴포넌트 + anon REST `fetch`(supabase-js 미사용)·`NEXT_PUBLIC_SITE_URL` 없으면 sitemap만 생략.
+- **미결(기본값 진행 가능)**: 명세 §9 4건. `src/**`·`sql/**` 변경 없음.
+
+
 ### 🗂️ 이전 Run 기록 (완료): `r110-desktop-auto-update` *(`R110` 데스크톱 자동 업데이트, 완료)* · **Orchestrator**: Claude Sonnet `Medium` *(2026-11-26 등록, Gemini 주간 한도 소진으로 Hydrogen 대체)*
 
 - **워크트리·브랜치**: `.worktrees/r110-desktop-auto-update`, `collab/r110-desktop-auto-update`
