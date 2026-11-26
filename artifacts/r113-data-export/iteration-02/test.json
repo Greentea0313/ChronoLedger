@@ -39,6 +39,13 @@
       "status": "failed",
       "exit_code": 1,
       "log_path": null
+    },
+    {
+      "name": "Artifact schema validation",
+      "command": "python scripts/collaboration/validate_collaboration_artifact.py (review.json and test.json)",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": null
     }
   ]
 }
