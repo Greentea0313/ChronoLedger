@@ -9,7 +9,7 @@
                                 "Step 3 (User): apply production migration and verify check queries, deploy, confirm budget UI and a notification."
                             ],
     "base_sha":  "85d8adcb294bcd4622eb90df3bb826b94a4445d6",
-    "target_sha":  null,
+    "target_sha":  "692ea97b731f7ca171005be3348c8302e16ab59a",
     "branch":  "collab/r114-game-budgets",
     "worktree_path":  ".worktrees/r114-game-budgets",
     "max_iterations":  3,
