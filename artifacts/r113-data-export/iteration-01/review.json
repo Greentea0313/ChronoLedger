@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r113-data-export",
+  "iteration": 1,
+  "agent": "GPT Codex",
+  "role": "static-review",
+  "base_sha": "57c76645d4595348d865af321c447b6adcd84464",
+  "target_sha": "773af3702f1c0cad0628499246f1e41fcc670790",
+  "status": "findings",
+  "created_at": "2026-11-26T15:30:12+09:00",
+  "findings": [
+    {
+      "id": "R113-REV-001",
+      "severity": "P2",
+      "file": "src/lib/data-export.ts",
+      "line": 170,
+      "evidence": "downloadTextFile calls anchor.click() at line 168 and immediately calls URL.revokeObjectURL(url) at line 170 in the same synchronous task.",
+      "impact": "The browser or WebView may not have consumed the Blob URL for its download before it is revoked, causing the requested export to fail on some supported clients. Automated tests stub the click and therefore do not verify that a file is actually saved; acceptance criterion 113-7 remains unverified.",
+      "recommendation": "Defer URL revocation until after the download has had an opportunity to start (or use a supported completion signal), and confirm one file save in both web and the Windows installer before closing R113."
+    }
+  ]
+}
