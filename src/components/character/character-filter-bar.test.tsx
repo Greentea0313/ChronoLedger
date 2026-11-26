@@ -43,4 +43,23 @@ describe("CharacterFilterBar", () => {
     fireEvent.click(within(third).getByRole("button", { name: "힐러" }))
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_CHARACTER_FILTERS, axes: { class3: "힐러" } })
   })
+
+  it("resets a group to 전체 when its selected chip is pressed again", () => {
+    const onChange = vi.fn()
+    const selected = { ...EMPTY_CHARACTER_FILTERS, ownership: "owned" as const, rarity: "5★", axes: { class1: "냉기" } }
+    render(<CharacterFilterBar characters={[]} schema={schema} filters={selected} onChange={onChange} idPrefix="roster" />)
+
+    fireEvent.click(screen.getByRole("button", { name: "보유" }))
+    expect(onChange).toHaveBeenLastCalledWith({ ...selected, ownership: "all" })
+    fireEvent.click(within(screen.getByTestId("roster-rarity-filter")).getByRole("button", { name: "5★" }))
+    expect(onChange).toHaveBeenLastCalledWith({ ...selected, rarity: "" })
+    fireEvent.click(within(screen.getByTestId("roster-axis-class1")).getByRole("button", { name: "냉기" }))
+    expect(onChange).toHaveBeenLastCalledWith({ ...selected, axes: { class1: "" } })
+
+    // An unselected chip still selects; 전체 stays 전체.
+    fireEvent.click(within(screen.getByTestId("roster-rarity-filter")).getByRole("button", { name: "6★" }))
+    expect(onChange).toHaveBeenLastCalledWith({ ...selected, rarity: "6★" })
+    fireEvent.click(within(screen.getByTestId("roster-axis-class1")).getByRole("button", { name: "전체" }))
+    expect(onChange).toHaveBeenLastCalledWith({ ...selected, axes: { class1: "" } })
+  })
 })

@@ -75,9 +75,13 @@ interface CharacterFilterBarProps {
   stacked?: boolean
 }
 
-/** Ownership, rarity, classification-axis and name filters shared by the roster and the preset picker. */
+/**
+ * Ownership, rarity, classification-axis and name filters shared by the roster and the preset picker.
+ * Pressing an already selected chip again resets that group to `전체`.
+ */
 export function CharacterFilterBar({ characters, schema, filters, onChange, idPrefix, classificationIcons, stacked = false }: CharacterFilterBarProps) {
   const showOtherRarity = hasOtherRarity(characters, schema)
+  const setRarity = (value: string) => onChange({ ...filters, rarity: filters.rarity === value ? "" : value })
 
   return (
     <div className={stacked ? "space-y-3" : "space-y-2"} data-testid={`${idPrefix}-filter-bar`}>
@@ -86,7 +90,7 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
           <Chip
             key={option.value}
             active={filters.ownership === option.value}
-            onClick={() => onChange({ ...filters, ownership: option.value })}
+            onClick={() => onChange({ ...filters, ownership: filters.ownership === option.value ? "all" : option.value })}
           >
             {option.label}
           </Chip>
@@ -95,16 +99,16 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
 
       {schema.rarities.length > 0 && (
         <FilterRow label="희귀도" stacked={stacked} testId={`${idPrefix}-rarity-filter`}>
-          <Chip active={filters.rarity === ""} onClick={() => onChange({ ...filters, rarity: "" })}>전체</Chip>
+          <Chip active={filters.rarity === ""} onClick={() => setRarity("")}>전체</Chip>
           {schema.rarities.map((rarity) => (
-            <Chip key={rarity} active={filters.rarity === rarity} onClick={() => onChange({ ...filters, rarity })}>
+            <Chip key={rarity} active={filters.rarity === rarity} onClick={() => setRarity(rarity)}>
               {rarity}
             </Chip>
           ))}
           {showOtherRarity && (
             <Chip
               active={filters.rarity === OTHER_FILTER_VALUE}
-              onClick={() => onChange({ ...filters, rarity: OTHER_FILTER_VALUE })}
+              onClick={() => setRarity(OTHER_FILTER_VALUE)}
             >
               {OTHER_FILTER_LABEL}
             </Chip>
@@ -114,7 +118,8 @@ export function CharacterFilterBar({ characters, schema, filters, onChange, idPr
 
       {schema.axes.map((axis) => {
         const selected = filters.axes[axis.key] ?? ""
-        const setAxis = (value: string) => onChange({ ...filters, axes: { ...filters.axes, [axis.key]: value } })
+        const setAxis = (value: string) =>
+          onChange({ ...filters, axes: { ...filters.axes, [axis.key]: selected === value ? "" : value } })
         return (
           <FilterRow key={axis.key} label={axis.label} stacked={stacked} testId={`${idPrefix}-axis-${axis.key}`}>
             <Chip active={selected === ""} onClick={() => setAxis("")}>전체</Chip>
