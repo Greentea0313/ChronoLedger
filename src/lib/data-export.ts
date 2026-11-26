@@ -158,6 +158,9 @@ export async function buildIncomesCsvForUser(userId: string): Promise<string> {
   return buildIncomesCsv(rows)
 }
 
+/** 저장 시작 전에 Blob URL이 폐기되지 않도록 클릭 후 일정 시간 뒤에 해제한다(R113-REV-001). */
+const BLOB_URL_REVOKE_DELAY_MS = 10_000
+
 /** `Blob` + `<a download>`로 파일을 저장한다(웹·Tauri WebView2 공통). */
 export function downloadTextFile(fileName: string, mimeType: string, content: string): void {
   const url = URL.createObjectURL(new Blob([content], { type: mimeType }))
@@ -167,5 +170,5 @@ export function downloadTextFile(fileName: string, mimeType: string, content: st
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS)
 }

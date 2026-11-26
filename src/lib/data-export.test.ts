@@ -105,16 +105,25 @@ describe("data-export", () => {
     await expect(buildIncomesCsvForUser("u1")).rejects.toThrow("boom")
   })
 
-  it("downloadTextFile은 앵커 다운로드를 한 번 실행하고 URL을 해제한다", () => {
-    const createObjectURL = vi.fn(() => "blob:test")
-    const revokeObjectURL = vi.fn()
-    Object.assign(URL, { createObjectURL, revokeObjectURL })
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
-    downloadTextFile("a.csv", "text/csv", "x")
-    expect(createObjectURL).toHaveBeenCalledTimes(1)
-    expect(click).toHaveBeenCalledTimes(1)
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:test")
-    expect(document.querySelector("a[download]")).toBeNull()
-    click.mockRestore()
+  it("downloadTextFile은 앵커 다운로드를 한 번 실행하고 URL은 클릭 직후가 아니라 지연 후 해제한다 (R113-REV-001)", () => {
+    vi.useFakeTimers()
+    try {
+      const createObjectURL = vi.fn(() => "blob:test")
+      const revokeObjectURL = vi.fn()
+      Object.assign(URL, { createObjectURL, revokeObjectURL })
+      const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
+      downloadTextFile("a.csv", "text/csv", "x")
+      expect(createObjectURL).toHaveBeenCalledTimes(1)
+      expect(click).toHaveBeenCalledTimes(1)
+      expect(document.querySelector("a[download]")).toBeNull()
+      // 클릭 직후에는 해제하지 않아 저장이 시작되기 전에 URL이 폐기되지 않음.
+      expect(revokeObjectURL).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(10_000)
+      expect(revokeObjectURL).toHaveBeenCalledTimes(1)
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:test")
+      click.mockRestore()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
