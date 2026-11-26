@@ -24,10 +24,17 @@
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: b8aa935c6bd1065fbf6d9ba053cb56d3edfb7eb6)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R115 SQL RPC·CSV 파서·가져오기 UI)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 명세 §5 전부(마이그레이션·`SCHEMA.sql`·README 확인 쿼리·`TESTS.sql`·`database.types.ts`·`src/lib/csv.ts`·해석 로직·지출 페이지 `CSV 가져오기` 단계형 모달·미적용 폴백)·인수 기준 115-1~115-9. 허용 파일: 신규 `sql/migrations/MIGRATION_R115_EXPENSE_IMPORT.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 신규 `src/lib/csv.ts`·`.test.ts`와 가져오기 해석 모듈·테스트, `src/lib/export-format.ts`(파서 공유 시), `src/app/dashboard/expenses/**`, 신규 `src/components/expense/**` 가져오기 모달, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **2** | **`▶ READY`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외, 불가 시 다른 세션의 Claude Opus)* | `Reviewer & Local DB Gate` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요**. 원장 불변·권한(IDOR)·검증 정적 리뷰(`review.json`)·`test.json`(로컬 DB 업그레이드·신규 2경로 2회 멱등·`TESTS.sql`·`tsc`·`lint`·Vitest·`next build`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+| **1** | **`▶ READY (Iteration 02: R115-REV-001 P2·R115-REV-002 P4 수정)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R115 SQL RPC·CSV 파서·가져오기 UI)` | 🐳 **Docker Desktop 필요**. `delete_import_batch`가 편집된 가져오기 행을 지우지 않도록 I1 전체 불변 확인·회귀 테스트 추가, `TESTS.sql` psql 출력 경고 수정. 기존 합의 범위만 보완 | Maker Iteration 02 요청됨 |
+| **2** | **`⏳ WAITING (Iteration 01 산출물 db1997d9204b7a4f203d6220c3cee476c8ece1fd; Maker 수정 후 재리뷰)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외, 불가 시 다른 세션의 Claude Opus)* | `Reviewer & Local DB Gate` | Iteration 02 Target 정적 재리뷰·업그레이드/신규 DB 경로·전체 검사 재검증, 통과 시에만 `main` 병합 | Iteration 01에서 P2 1건·P4 1건 발견함 |
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 실제 CSV 1개 가져오기·가져오기 취소 확인 | Step 2 병합 후 안내함 |
 
+
+#### 📝 `r115-csv-import` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-26)
+
+- **Base ↔ Target**: `a04237f3da787e33dd37a6ca80e4d97322c575cc` ↔ `b8aa935c6bd1065fbf6d9ba053cb56d3edfb7eb6`; artifact commit `db1997d9204b7a4f203d6220c3cee476c8ece1fd`.
+- **정적 결과**: `findings` 2건임. `R115-REV-001` P2 — `delete_import_batch`가 `original_price = final_amount` 불변을 확인하지 않아 금액 편집 행도 배치 취소로 삭제할 수 있음. `R115-REV-002` P4 — `TESTS.sql`의 psql `\echo` 문구 apostrophe가 `unterminated quoted string` 경고를 출력함.
+- **검증**: 격리 Docker Supabase 업그레이드(Base 스키마 → migration 2회 → 전체 `TESTS.sql`) 및 깨끗한 격리 신규 설치(Target `SCHEMA.sql` → migration 2회 → 전체 `TESTS.sql`)의 R115 assertion·최종 rollback 통과함. Storage `user-icons` 버킷은 README 전제에 따라 테스트 DB에 구성함. psql meta-command 경고는 기록된 P4임. tsc·lint·Vitest 85파일/1,146개·`next build` 16/16·diff check 통과, artifact schema는 Ajv 6.15.0으로 검증함. 운영 DB는 건드리지 않음.
+- **남음**: Claude Opus가 Iteration 02에서 P2 predicate 및 회귀 테스트, P4 출력 문구를 보완함. 이후 GPT Codex가 별도 Iteration 02 리뷰·DB 전체 게이트를 다시 수행함. 병합하지 않음.
 
 #### 📝 `r115-csv-import` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
 
@@ -39,7 +46,7 @@
 - **검증 (실제 실행)**: 🐳 업그레이드(Base `a04237f` `SCHEMA.sql` → R115 2회 → `TESTS.sql` 62개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 62개 PASS). 변이 2건(가져오기를 자산 차감으로 바꿈, 취소 RPC의 본인 조건 제거) 모두 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 85파일/1,146개(신규 25개)·`next build` 16/16(더미 공개 Supabase 값)·`git diff --check` 통과. **미검증**: 실제 브라우저 화면·실제 CSV 파일은 Step 3 사용자 확인.
 - **남음**: Step 2 GPT Codex 리뷰·🐳 DB 게이트·통과 시 `main` 병합 → Step 3 사용자 운영 DB 적용·배포·실제 CSV 가져오기·취소 확인.
 
-> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 `"인수인계 문서를 확인해"`로 Step 2 리뷰(Base `a04237f` ↔ Target `b8aa935`)·🐳 DB 게이트·통과 시 `main` 병합함.
+> **다음 단계**: **Claude Opus (`High` — 도구에서 High 선택)**가 `"인수인계 문서를 확인해"`로 Step 1 Iteration 02에서 R115-REV-001·002를 수정함. 이후 **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 Step 2 Iteration 02 리뷰·🐳 DB 게이트를 재수행함.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
