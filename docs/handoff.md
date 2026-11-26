@@ -31,9 +31,11 @@
 
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY (Iteration 02, P2 수정)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 리뷰 finding 수정: 다운로드 클릭 직후 Blob URL을 해제하는 순서 보완, 수정 커밋 기록 | 허용 파일: `src/lib/data-export.ts` 및 관련 테스트만. DB·Tauri 설정 변경 금지. 명세 §3.1~3.4(113-1~113-6) 유지 |
+| **1** | **`🛑 BLOCKED (Target 773af37·브랜치 없음)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 리뷰 finding 수정: 다운로드 클릭 직후 Blob URL을 해제하는 순서 보완, 수정 커밋 기록 | 허용 파일: `src/lib/data-export.ts` 및 관련 테스트만. DB·Tauri 설정 변경 금지. 명세 §3.1~3.4(113-1~113-6) 유지 |
 | **2** | **`⏳ WAITING (수정 Target 재리뷰)`** | **GPT Codex** *(Fallback: Claude Opus `High` — 도구에서 High 선택)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | Iteration 01 finding `R113-REV-001` 수정 확인 필요. 개인 데이터 노출 범위·수식 주입 방지·웹 번들 영향 확인 |
 | **3** | `⏳ WAITING` | **사용자** | 웹·Windows 설치본에서 파일 저장 1회씩 확인(113-7) | 설치본 저장 실패 시 `R113-TAURI-SAVE` 후속 등록 |
+
+> **🛑 2026-11-26 Claude Sonnet**: 이 PC에 `.worktrees/r113-data-export`·브랜치 `collab/r113-data-export`·Target `773af37`·산출물 `aebb385`가 없고 `origin`에도 브랜치가 없음. 작업을 수행한 PC에서 `git -C .worktrees/r113-data-export push -u origin collab/r113-data-export` 실행 후 이 PC에서 다시 `"인수인계 문서를 확인해"` 입력 필요. 그 PC에서 바로 Iteration 02를 처리해도 됨.
 
 > **다음 단계**: **Claude Sonnet (`Medium`)**(Fallback: GitHub Copilot)으로 `"인수인계 문서를 확인해"`를 입력해 Iteration 02에서 `R113-REV-001`을 수정함. 수정 Target 커밋 후 **GPT Codex**가 Step 2를 재개함. 원격 브랜치는 push 안 함(같은 PC면 불필요).
 
