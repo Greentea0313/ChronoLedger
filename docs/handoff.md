@@ -17,7 +17,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run**: `r110-desktop-auto-update` *(Step U0·1·2 완료, Step 3 `🛑 BLOCKED`—Vitest 1건·`next build` `EPERM`. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
+- **활성 Run**: `r110-desktop-auto-update` *(Step U0·1·2 완료, Step 3 완료·`main` 병합 `a83503a`, Step 4(사용자 실기기 확인) 남음. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
 
 #### 🧩 Run: `r110-desktop-auto-update` *(데스크톱 자동 업데이트)* · **Orchestrator**: Claude Sonnet `Medium` *(2026-11-26 등록, Gemini 주간 한도 소진으로 Hydrogen 대체)*
 
@@ -32,9 +32,9 @@
 | `U0` | **`✅ DONE (2026-11-26, 공개 키 수령)`** | **사용자** | 서명 키 쌍 생성·저장소 밖 백업, GitHub Secrets 5개 등록, **공개 키만** Step 1 Maker에게 전달 | 명세 §4 U0-1~U0-3. 개인 키는 저장소 밖(`C:\Users\junha\keys\chronoledger\`)에 생성함. **Secrets 5개 등록 완료(사용자 확인, 2026-11-26)** |
 | **1** | **`✅ DONE (SHA: 20034756e09d1f326f2f59459c86f0fb6061ac61)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | Rust·설정·CI: `updater`·`process` 플러그인, `tauri.conf.json`(`pubkey`·`endpoints`), 최소 capability, 릴리스 워크플로 | 명세 §4 Step 1(1-1~1-5). **`pubkey`(U0-3, 공개 키 값)**: `dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAwOTkwNkI0QzJBNEM0M0IKUldRN3hLVEN0QWFaQUQ4Z1dUbnNtVUIzTWp4emV2OWgwcGIrZnZ1TTFNcnBFMUR0alpkVVY0WHQK` *(`updater.key.pub` 파일 내용 그대로, 개인 키 파일은 열지 않음)*. 허용 파일: `src-tauri/**`, `.github/workflows/**`, `package.json`·`package-lock.json`(플러그인 JS 패키지) |
 | **2** | **`✅ DONE (SHA: 29e94dad5f1fb327d610fa256c01743903f300ba)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 배너·updater 래퍼·Vitest (Tauri에서만 동작, 웹은 updater import 없음) | 명세 §4 Step 2(2-1~2-6). 허용 파일: `src/**`(배너·래퍼·테스트·레이아웃 연결) |
-| **3** | **`🛑 BLOCKED (검증 실패: Vitest 1건·next build EPERM)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium`)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 정적 리뷰 clean. 전체 Vitest에서 기존 대시보드 테스트 1건 실패, `next build`는 `.next` 디렉터리 생성 권한 오류. 스키마 검증된 산출물 커밋 `46dd615`; 실패 원인 해소 후 재검증 필요 |
+| **3** | **`✅ DONE (SHA: 05f4d8efc60e15102a1c02e5130a6c8f449d9862, main 병합 a83503a)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium`)* *(실행: Codex 정적 리뷰·산출물, 한도 소진 후 Claude Sonnet `Medium`이 재검증·병합)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | iteration-02 `clean`·`passed`(Target `4030220`). 병합 후 `main`: tsc·lint·Vitest 79파일/1084개·`next build` 통과 |
 
-> **다음 단계**: Step 3은 `🛑 BLOCKED`임. 대시보드 Vitest 실패와 `next build`의 `.next` `EPERM`을 해소한 뒤 **GPT Codex**(Fallback: Claude Sonnet `Medium`)로 `"인수인계 문서를 확인해"`를 입력해 재검증함. 통과 후에만 `main` 병합함. 워크트리 원격 브랜치는 push 안 함(같은 PC 사용 시 불필요).
+> **다음 단계**: **사용자**가 명세 §4 Step 4(`main` push → `desktop-v0.2.0` 태그 push → Actions 확인 → 0.1.0 제거 후 수동 설치 → 0.2.1 업데이트 확인)를 진행함. 배포 순서는 U9(DB → 웹 → 태그)임. 원격 push 전이라 `main` push는 사용자 승인 필요함. `docs/desktop-release.md`(릴리스 절차 문서)는 아직 없음.
 
 #### 📝 `r110-desktop-auto-update` Step 3 검증 기록 (GPT Codex, 2026-11-26, 병합 보류)
 
