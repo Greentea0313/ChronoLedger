@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { OfflineBanner } from "@/components/ui/offline-banner";
+import { DesktopUpdateBanner } from "@/components/layout/desktop-update-banner";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 export const metadata: Metadata = {
@@ -45,6 +46,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-app text-content">
         {/* AuthProvider로 감싸기 */}
         <AuthProvider>
+          <DesktopUpdateBanner />
           <OfflineBanner />
           <ServiceWorkerRegister />
           {children}

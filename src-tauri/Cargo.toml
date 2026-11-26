@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Tauri App"
 authors = ["you"]
 license = ""
@@ -28,3 +28,5 @@ tauri-plugin-deep-link = "2.0.0"
 tauri-plugin-notification = "2.0.0"
 tauri-plugin-shell = "2.0.0"
 tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"

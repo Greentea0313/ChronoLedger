@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "run_id": "r110-desktop-auto-update",
+  "iteration": 2,
+  "agent": "GPT Codex",
+  "role": "dynamic-test",
+  "base_sha": "9096cd10d30188f7cb850cdffebbdab4609e05f4",
+  "target_sha": "40302207017d40e64617e2e3e7864a48d8bf4b1c",
+  "status": "passed",
+  "created_at": "2026-11-26T01:56:56Z",
+  "finished_at": "2026-11-26T01:56:56Z",
+  "sandbox": "unavailable",
+  "redactions_applied": true,
+  "tests": [
+    { "name": "TypeScript", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Lint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Full Vitest suite", "command": "npx vitest run", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Next production build", "command": "npm run build with dummy NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and NEXT_PUBLIC_VAPID_PUBLIC_KEY; elevated for .next writes", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Rust cargo check", "command": "cargo check", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Diff whitespace check", "command": "git diff --check Base Target", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Dashboard budget warning test", "command": "npx vitest run src/app/dashboard/page.test.tsx -t 'turns the bar warning at 80%'", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}

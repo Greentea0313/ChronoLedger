@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "run_id": "r110-desktop-auto-update",
+  "iteration": 1,
+  "agent": "GPT Codex",
+  "role": "dynamic-test",
+  "base_sha": "9096cd10d30188f7cb850cdffebbdab4609e05f4",
+  "target_sha": "29e94dadf5f1fb327d610fa256c01743903f300ba",
+  "status": "failed",
+  "created_at": "2026-11-26T01:46:45Z",
+  "finished_at": "2026-11-26T01:46:45Z",
+  "sandbox": "unavailable",
+  "redactions_applied": true,
+  "tests": [
+    { "name": "TypeScript", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Lint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "R110 updater banner", "command": "npx vitest run src/components/layout/desktop-update-banner.test.tsx", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Full Vitest suite", "command": "npx vitest run", "status": "failed", "exit_code": 1, "log_path": null },
+    { "name": "Existing dashboard summary test isolation", "command": "npx vitest run src/app/dashboard/page.test.tsx -t 'turns the bar warning at 80%'", "status": "failed", "exit_code": 1, "log_path": null },
+    { "name": "Next production build", "command": "npm run build", "status": "failed", "exit_code": 1, "log_path": null },
+    { "name": "Rust cargo check", "command": "cargo check", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Diff whitespace check", "command": "git diff --check Base Target", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}

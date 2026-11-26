@@ -1,0 +1,74 @@
+# R110: build, sign and publish the Windows desktop app when a desktop-vX.Y.Z tag is pushed.
+# Spec: docs/r110-desktop-auto-update-spec.md (U3, U4, U5, U7, U8, U10).
+# Tag only commits that are already on main, after DB migrations and the web deploy (U9).
+name: Desktop release
+
+on:
+  push:
+    tags:
+      - 'desktop-v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Check that the tag, package.json and Cargo.toml versions match
+        shell: pwsh
+        run: |
+          $tagVersion = "${{ github.ref_name }}" -replace '^desktop-v', ''
+          if ($tagVersion -notmatch '^\d+\.\d+\.\d+$') { throw "Tag must look like desktop-vX.Y.Z (got ${{ github.ref_name }})" }
+          $packageVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $cargoVersion = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "(.+)"$' | Select-Object -First 1).Matches[0].Groups[1].Value
+          if ($tagVersion -ne $packageVersion -or $tagVersion -ne $cargoVersion) {
+            throw "Version mismatch: tag=$tagVersion package.json=$packageVersion Cargo.toml=$cargoVersion"
+          }
+          Write-Output "Releasing version $tagVersion"
+
+      - name: Setup Node
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust (stable, MSRV 1.95 or newer)
+        shell: pwsh
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          rustc --version
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build, sign and publish release
+        uses: tauri-apps/tauri-action@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: ChronoLedger Desktop v__VERSION__
+          releaseBody: Windows 데스크톱 앱 v__VERSION__. 설치된 앱은 다음 실행 때 업데이트 배너로 이 버전을 안내함.
+          releaseDraft: false
+          prerelease: false
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
