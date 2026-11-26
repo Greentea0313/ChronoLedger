@@ -38,6 +38,7 @@ function createExpenseQueryBuilder(data: unknown[]) {
     eq: vi.fn(),
     in: vi.fn(),
     order: vi.fn(),
+    range: vi.fn(),
     update: vi.fn(),
     insert: vi.fn().mockResolvedValue({ data: null, error: null }),
     then: promise.then.bind(promise),
@@ -47,6 +48,7 @@ function createExpenseQueryBuilder(data: unknown[]) {
   query.eq.mockReturnValue(query)
   query.in.mockReturnValue(query)
   query.order.mockReturnValue(query)
+  query.range.mockReturnValue(query)
   query.update.mockReturnValue(query)
   return query
 }
@@ -1608,6 +1610,45 @@ describe("ExpensesPage 게임별 예산 (R114)", () => {
     expect(screen.getByText("총 49,000 원")).toBeTruthy()
     // October confirmed game total 49000 vs September 20000.
     expect(screen.getByTestId("game-spend-month-over-month").textContent).toBe("게임 확정 결제 전월 대비 +29,000원 (+145%)")
+  })
+
+  it("R114-REV-001: 지출이 1,000행을 넘으면 range로 끝까지 읽어 예산 사용액에 2페이지 행도 합산한다", async () => {
+    const filler = Array.from({ length: 1000 }, (_, i) => ({
+      ...base,
+      id: `f${String(i).padStart(4, "0")}`,
+      title: `식비 ${i}`,
+      category: "식비",
+      status: "CONFIRMED",
+      target_date: "2026-10-10",
+      start_date: null,
+      end_date: null,
+      game_id: null,
+      original_price: 100,
+      final_amount: 100,
+      payment_method: "WALLET",
+      games: null,
+    }))
+    const allRows = [...filler, ...rows]
+    const expenseBuilder = createExpenseQueryBuilder([])
+    expenseBuilder.range.mockImplementation((from: number, to: number) => Promise.resolve({ data: allRows.slice(from, to + 1), error: null }))
+    const userGamesBuilder = createExpenseQueryBuilder([])
+    const promise = Promise.resolve({ data: budgetRows, error: null })
+    Object.assign(userGamesBuilder, { then: promise.then.bind(promise), catch: promise.catch.bind(promise) })
+    from.mockImplementation((table: string) => {
+      if (table === "user_games") return userGamesBuilder
+      if (table === "expenses") return expenseBuilder
+      return createExpenseQueryBuilder([])
+    })
+
+    render(<ExpensesPage />)
+
+    const list = await screen.findByTestId("game-budget-list")
+    // Every game row sits on the second page (offset 1000); a single 1,000-row read would show 0 used.
+    expect(within(list).getByTestId("game-budget-game-1").textContent).toContain("39,000 / 40,000 원 (98%)")
+    expect(within(list).getByTestId("game-budget-game-2").textContent).toContain("109,000 / 100,000 원 (109%)")
+    expect(expenseBuilder.range).toHaveBeenCalledWith(0, 999)
+    expect(expenseBuilder.range).toHaveBeenCalledWith(1000, 1999)
+    expect(expenseBuilder.order).toHaveBeenCalledWith("id", { ascending: false })
   })
 
   it("114-6: monthly_budget 열이 없으면(42703) 예산 목록만 숨기고 페이지는 그대로 표시한다", async () => {

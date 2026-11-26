@@ -27,6 +27,8 @@ import { calculateGameBudgetUsage, calculateTwoMonthBudgetComparison, getNextMon
 import { formatAmountAxisTick, getGameTooltipLabel } from "@/lib/chart-format"
 
 const EXPENSES_PER_PAGE = 10
+/** PostgREST 기본 최대 행 수. 지출은 이 단위로 끝까지 나눠 읽는다(R114-REV-001). */
+const EXPENSE_FETCH_PAGE_SIZE = 1000
 const INCOMES_PER_PAGE = 10
 
 interface IncomeRow {
@@ -288,15 +290,26 @@ export default function ExpensesPage() {
       }
     }
 
-    const { data, error } = await supabase
-      .from("expenses")
-      .select(EXPENSE_COLUMNS)
-      .eq("user_id", userId)
-      .order("target_date", { ascending: false })
+    // 1,000행을 넘는 사용자도 예산·통계가 전체 지출로 계산되도록 페이지를 끝까지 읽는다.
+    // id를 보조 정렬로 두어 페이지 경계가 흔들리지 않게 하고, 한 페이지라도 실패하면 일부만 반영하지 않는다.
+    let rows: ExpenseRow[] | null = []
+    for (let offset = 0; ; offset += EXPENSE_FETCH_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select(EXPENSE_COLUMNS)
+        .eq("user_id", userId)
+        .order("target_date", { ascending: false })
+        .order("id", { ascending: false })
+        .range(offset, offset + EXPENSE_FETCH_PAGE_SIZE - 1)
+      if (error || !data) {
+        rows = null
+        break
+      }
+      rows.push(...(data as unknown as ExpenseRow[]))
+      if (data.length < EXPENSE_FETCH_PAGE_SIZE) break
+    }
 
-
-    if (!error && data) {
-      const rows = data as unknown as ExpenseRow[]
+    if (rows) {
       setExpenses(rows)
       preloadImages(rows.map((e) => e.games?.default_icon_url).filter(Boolean) as string[])
       void loadCustomIconsForGameIds(rows.map((e) => e.game_id).filter(Boolean) as string[])
