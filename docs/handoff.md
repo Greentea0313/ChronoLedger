@@ -36,7 +36,7 @@
    - 배너 UI 위치·문구·"나중에" 동작, 확인 실패·오프라인 시 처리, 웹/PWA에서는 배너를 숨기는 조건(Tauri 환경 감지).
    - 검증 방법: 낮은 버전 설치본으로 실제 업데이트를 받아 보는 절차.
 6. **관련 문서·파일**: `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `src-tauri/src/lib.rs`, `src/lib/tauri-auth.ts`, `docs/t1-t4-desktop-and-followups-spec.md`, `docs/to-do.md` T4(실기기 확인 대기 중).
-7. **선행 조건**: `T4` 실기기 확인(로그인 복귀·`single-instance`)은 사용자 확인 대기임. 업데이트 기능 구현 착수 전에 끝내는 것을 권장함.
+7. **선행 조건**: `T4` 실기기 확인(로그인 복귀·`single-instance`·캘린더·결제)은 사용자가 2026-11-26 완료함. 선행 조건 충족됨.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
@@ -56,7 +56,7 @@
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
 | `R40`·`R75`·`R99`·후속 | 후속 · 우선 낮음 | `R40`(다중 파티)·`R75`(①·④ 완료 `35d43b6`, `R75-REV-001`은 `p4-followups-r107c-r109-r75`에서 완료, `R75-REV-002`는 비승인 게임 상태 도입 시까지 보류)·`R99`(건의 첨부 🐳) (`R101-REV-001`·`R106-REV-001·002`는 `T1`~`T4` Run, `R108-REV-001`은 `p4-followups-r108-r109` Run에서 완료) | `docs/to-do.md` 해당 항목 |
-| `T1`~`T4` | **완료** (`t1-t4-desktop-and-followups` `main` 병합 `5e63007`, `t4-rust-build-and-lock` `main` 병합 `2829bb7`) | Windows Tauri 데스크톱 통합 병합과 Rust 빌드·`Cargo.lock` 갱신 완료. **사용자 확인 대기**: `app.exe` 실행 후 구글 로그인 복귀·`single-instance`·캘린더·결제 흐름(`docs/to-do.md` T4) | 아래 직전 완료 Run 기록, [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §4 |
+| `T1`~`T4` | **완료** (`t1-t4-desktop-and-followups` `main` 병합 `5e63007`, `t4-rust-build-and-lock` `main` 병합 `2829bb7`) | Windows Tauri 데스크톱 통합 병합과 Rust 빌드·`Cargo.lock` 갱신 완료. 사용자 실기기 확인(로그인 복귀·`single-instance`·캘린더·결제)도 2026-11-26 완료(`docs/to-do.md` T4) | 아래 직전 완료 Run 기록, [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md) §4 |
 
 ### 🗂️ 직전 완료 Run 기록: `p4-followups-r107c-r109-r75` *(`R109-REV-003`·`R107C-REV-001·002`·`R75-REV-001` P4 후속 일괄 처리)*
 
