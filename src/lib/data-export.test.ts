@@ -2,16 +2,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 type Row = Record<string, unknown>
 
-const { tableRows, failing, queried, from } = vi.hoisted(() => {
+const { tableRows, failing, queried, orders, from } = vi.hoisted(() => {
   const tableRows = new Map<string, Row[]>()
   const failing = new Set<string>()
   const queried: string[] = []
+  const orders: string[] = []
   const from = (table: string) => {
     const state: { from?: number; to?: number; ids?: string[] } = {}
     const builder = {
       select: () => builder,
       eq: () => builder,
-      order: () => builder,
+      order: (column: string) => {
+        orders.push(`${table}.${column}`)
+        return builder
+      },
       in: (_column: string, ids: string[]) => {
         state.ids = ids
         return builder
@@ -33,7 +37,7 @@ const { tableRows, failing, queried, from } = vi.hoisted(() => {
     }
     return builder
   }
-  return { tableRows, failing, queried, from }
+  return { tableRows, failing, queried, orders, from }
 })
 
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
@@ -45,6 +49,7 @@ describe("data-export", () => {
     tableRows.clear()
     failing.clear()
     queried.length = 0
+    orders.length = 0
   })
 
   it("1,000행을 넘는 테이블을 끝까지 페이지 조회한다", async () => {
@@ -98,6 +103,14 @@ describe("data-export", () => {
     const csv = await buildExpensesCsvForUser("u1")
     expect(csv.split("\r\n").filter(Boolean)).toHaveLength(1002)
     expect(csv).toContain("게임A")
+  })
+
+  it("지출·수익 CSV는 날짜 오름차순(같으면 생성시각·ID)으로 조회한다", async () => {
+    await buildExpensesCsvForUser("u1")
+    expect(orders).toEqual(["expenses.target_date", "expenses.created_at", "expenses.id"])
+    orders.length = 0
+    await buildIncomesCsvForUser("u1")
+    expect(orders).toEqual(["incomes.income_date", "incomes.created_at", "incomes.id"])
   })
 
   it("수익 CSV 조회가 실패하면 오류를 던진다", async () => {

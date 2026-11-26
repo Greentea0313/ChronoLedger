@@ -143,8 +143,9 @@ export async function buildBackup(userId: string, now: Date = new Date()): Promi
   }
 }
 
+// CSV는 사람이 읽는 파일이라 '날짜' 열 오름차순으로 낸다. 같은 날짜는 생성시각·ID 순이며 ID가 있어 페이지 조회 순서도 안정적이다.
 export async function buildExpensesCsvForUser(userId: string): Promise<string> {
-  const rows = await fetchOwnRows("expenses", "user_id", userId, ["created_at", "id"])
+  const rows = await fetchOwnRows("expenses", "user_id", userId, ["target_date", "created_at", "id"])
   const gameIds = new Set<string>()
   collectIds(rows, "game_id", gameIds)
   const games = await fetchByIds("games", "id, name", Array.from(gameIds))
@@ -154,7 +155,7 @@ export async function buildExpensesCsvForUser(userId: string): Promise<string> {
 }
 
 export async function buildIncomesCsvForUser(userId: string): Promise<string> {
-  const rows = await fetchOwnRows("incomes", "user_id", userId, ["created_at", "id"])
+  const rows = await fetchOwnRows("incomes", "user_id", userId, ["income_date", "created_at", "id"])
   return buildIncomesCsv(rows)
 }
 
