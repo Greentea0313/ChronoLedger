@@ -2,26 +2,9 @@
 
 현재 작업 우선순위와 완료 상태의 단일 기준 문서다. Gemini 진행 기록(구 to-do_Gemini 이력, 정리됨)은 별도 작성 이력으로 보존하며, 이 체크리스트와 상태가 다르면 이 문서 및 검증 가능한 구현/테스트 증거를 우선한다.
 
-## Phase 0. SRS 및 설계 진입 게이트
-
-- [x] 0.1 예정 취소/복구와 환불 상태 전이를 분리하고 물리 삭제 금지 정책 및 RPC 경로를 명세했다.
-- [x] 0.2 앱 예상 적립식을 `floor(final_amount * rate / 100)`으로 정하고 공식 정산 비보장 및 수동 보정 정책을 명세했다.
-- [x] 0.3 일정-게임 일치, 템플릿 소유권 및 게임 일치 검증 규칙을 명세하고 SQL 트리거 초안을 추가했다.
-- [x] 0.4 만료 예정 지출과 온라인 강제 처리, 오프라인 캐시 읽기 선택을 명세했다.
-- [x] 0.5 가입 시 초기 재무/지갑 기본값과 멱등 초기화 트리거 초안을 추가했다.
-- [x] 0.6 SRS 작성·사용자 승인 및 SQL 실행 검증 완료. 설계 단계 진입을 승인한다.
-  - 참고: [SRS 초안](spec/SRS.md), [이전 준비도 검토](archive/srs-readiness-review.md), [차단 항목 설명](archive/planning-blockers.md), [결정안 검토](archive/resolved-blockers-review.md). 검토 기록은 당시 상태의 이력이며 최신 기준은 SRS/결정 보완이다.
-  - 현황: SRS 검토와 사용자 승인은 완료됐다. 사용자가 확인한 전용 테스트 프로젝트의 스키마 메타데이터를 대조했고, 승인한 `user-icons` 버킷(private, 102,400 bytes, `image/webp`) 설정도 검증했다. 사용자는 [`sql/TESTS.sql`](../sql/TESTS.sql)을 `ON_ERROR_STOP=1`로 실행해 `PASS: all smoke-test fixtures and mutations rolled back` 최종 메시지를 확인했다. 따라서 스크립트의 선행 스모크 검증이 오류 없이 완료되고 테스트 변경이 롤백된 것으로 판정한다. Phase 0 게이트를 통과해 설계 단계 진입을 승인한다. 이 스모크 테스트는 전체 SRS 수용 기준을 모두 망라하지 않으므로 상세 케이스는 설계/테스트 계획에서 추적한다. 전체 DDL은 재실행하지 않는다.
-
 ## 구현 우선순위: Web/PWA 먼저
 
 ### R41~R44 게스트 일정 열람 및 UI 밀도 개편
-
-- [x] 비로그인 사용자의 게스트 대시보드·게임 일정 열람 경로를 추가함.
-- [x] 게스트에게 공식 일정만 제공하고 로그인 안내를 표시함.
-- [x] 게임 일정 모달에 ON AIR 영역 및 VERSION 아코디언 트리를 추가함.
-- [x] 소비 화면에 게스트 로그인 안내 빈 상태를 추가함.
-- [x] [사용자 수동 검증 완료 2026-11-26] 실제 배포 환경의 anon RLS, 스크린리더, OAuth 왕복을 수동 검증함.
 
 - 과제 제출 조건은 적용하지 않는다. 개인 프로젝트로서 승인된 SRS/SPEC/SCHEMA를 기준으로 진행하며, SQLite·별도 Node.js 웹서버·게시판 요구사항을 추가하지 않는다.
 - 현재 구현 목표는 웹사이트 기능을 우선 완성하는 것이다. Android PWA 실기기 인증 검증은 사용자의 요청으로 후순위에 보류하지만 제품 범위에서 제외하지 않는다.
@@ -31,40 +14,7 @@
 
 ## 상세 설계 문서
 
-- [x] 승인 SRS/SPEC/SCHEMA를 런타임 경계, 데이터 책임, RPC 계약, 주요 흐름, 보안, 오류 및 검증 추적으로 연결하는 [상세 설계](detailed-design.md) 초안을 작성했다.
-- [x] 모바일·데스크톱 앱의 구체 릴리스 버전 번호와 시점/구성은 미결정으로 유지한다. 기존 결정인 Android PWA + Windows Tauri v2, 단일 Next.js 코드베이스/Tauri 정적 export, Web/PWA 우선 순서는 그대로 유지한다. **Netlify 배포 시 Web/Desktop 이중 빌드 분리는 하지 않고 단일 정적 export를 유지하기로 결정했다.**
-- [x] 상세 설계 항목 반영 (게임 구독 및 아이콘 연동, IndexedDB 캐시 등 Phase 4/12 구현 완료): 게임 구독 해제 시 사용자 커스텀 아이콘 연동 삭제 및 관리 구현 완료(Phase 4, Phase 10), 브라우저 로컬 저장소(IndexedDB) 기반 커스텀 자산 보관 및 동기화 구현 완료(Phase 12.3). 백그라운드 Storage 정리 워커의 재시도 보강 및 실기기 접근성 점검은 릴리스 검증(Phase 7.4)에서 계속 추적.
 - [ ] SRS 수용 기준별 세부 테스트 케이스와 성능 측정 환경·목표를 릴리스 검증 자료로 구체화한다. 기준 기기는 중급 Android 실기기로 정했다.
-
-## 설계 자료 검토 및 협업 파이프라인
-
-- [x] 파이프라인 v2 및 5대 AI 모델 협업 체계 확립 완료 (2026-10-19):
-  - `Gemini 4 Argon`(주축 Orchestrator & Architect), `GPT Codex`(Core Logic & Test Maker), `Claude Opus 5.5`(Reviewer & Complex Maker), `GitHub Copilot`(General Maker & Fallback Hub), `Gemini 3.8 Flash`(Fast UI Maker & Subagent) 5대 모델 역할 분배 및 토큰 소진 시 대체(Fallback) 체인을 [`docs/handoff.md`](handoff.md) 및 [`.agents/skills/`](../.agents/skills/)에 정식 반영 완료.
-  - `"인수인계 문서를 확인해"` 명령어 기반 자동 과제 실행(`Active Dispatch Queue`), 미커밋 강제 중단 자동 복구, 토큰 부족 시 비상 인계(`⚠️ HANDOVER_NEEDED` 및 `중단 체크포인트`) 프로토콜 구축 완료.
-- [x] UI 디자인 시트와 한국어 HTML 목업을 SRS와 대조하고 아키텍처/구현 체크리스트에 참조를 추가했다.
-- [x] VS Code GitHub Copilot 저장소 지침과 Maker/Reviewer 프로필을 추가하고 사용자 안내를 연결했다. 기존 `.github/agents/*.agent.md` 파일은 Antigravity 전환 실험 시 `.bak`으로 보존했다.
-- [x] Antigravity용 `.agents/rules/language.md` 및 `.agents/skills/` (`handoff`, `chronoledger-orchestrator`, `chronoledger-maker`, `chronoledger-reviewer`) 구성을 완료하고 5대 AI 모델 자동 위임/대체 체인과 연동했다.
-- [x] Claude Code 및 범용 에이전트 자동 인식 체계 구축 및 구버전 경로 최신화 완료 (2026-10-28):
-  - Claude Code 전용 루트 지침 [`CLAUDE.md`](../CLAUDE.md) 신규 생성 (`@.agents/rules/*.md` 링크 임포트, Claude Pro Opus / Sonnet 역할 및 세부 운용 기준, `"인수인계 문서를 확인해"` 자동 실행 프로토콜, 프로젝트 권위 경로 안내).
-  - 범용 에이전트 전용 루트 지침 [`AGENTS.md`](../AGENTS.md) 신규 생성 (GPT Codex, OpenCode 자동 인식, 5대 AI 모델 역할 분배표, Claude Pro Opus/Sonnet 세부 역할 및 5단계 실행 프로토콜 안내).
-  - 지침 파일 내 구버전 경로 일괄 최신화 (`.github/copilot-instructions.md`, `.agents/skills/chronoledger-orchestrator/SKILL.md`, `.agents/skills/chronoledger-maker/SKILL.md`, `.agents/skills/chronoledger-reviewer/SKILL.md` 내 `md/` 참조를 `.agents/rules/`, `docs/spec/`, `sql/`, `docs/design-previews/`, `docs/archive/`로 변경).
-- [x] 실제 변경 커밋이 존재할 때 같은 Base/Target SHA를 사용해 Reviewer를 실행하고, 결과를 review JSON 스키마로 검증한다. Reviewer 권한 제한과 run 아티팩트 기록 절차도 확인한다. (`완료` - `require-main-run-sha` 및 `12.15-F2` 등 다수 Run 검증 완료)
-- [x] 대시보드·지출·통계 반응형 시안을 만들고 주요 화면 구성과 반응형 동작을 브라우저에서 검증한다. 사용자는 대시보드 그래프 제외, 데스크톱 표/모바일 그룹 카드, 아이콘 전체 표시, 월별 세로 막대/분류별 가로 막대를 결정했다.
-- [x] 시안 검토 후 글자 크기, 쿨 뉴트럴 라이트 팔레트/대비, 기존 다크 팔레트, 그림자, 빈 상태와 보조 피드백 문체를 확정해 UI 디자인 시트·상세 설계에 기록했다.
-- [x] A2z 제작자 페이지의 SIL OFL 1.1 및 눈누의 상업 사용/수정/재배포 허용 안내를 확인했다. 재배포 시 저작권 고지와 OFL 전문이 필요하며, 폰트 자체 단독 판매는 허용되지 않는다.
-- [x] A2Z의 내장 저작권 표기와 SIL OFL 1.1을 확인하고 9개 WOFF2 굵기를 시안 및 웹 앱에서 자체 호스팅한다. 두 배포 위치에 OFL 전문을 동봉한다.
-- [x] 업데이트된 시안을 양 테마와 390/900/1280px에서 재검증해 가로 넘침과 주요 반응형 패널 위치를 확인했다.
-- [x] [사용자 수동 검증 완료 2026-11-26] 제품 UI 구현 시 키보드/스크린리더와 컴포넌트별 대비를 점검한다.
-  - 진행: 로그인 폼의 이름·제목 구조·키보드 초점·44px 입력/48px 버튼 및 주요 텍스트/초점 대비를 확인했다. dashboard 접근성 상태는 코드 수준으로 보완했고, Phase 12.32에서 관리자/게임 요청 모달 설명·통계 기간 이름·관리자 권한 오류 시맨틱을 테스트했다.
-  - 남음: 실제 NVDA/VoiceOver 실행, 인증된 dashboard 동작 점검, 이후 구현될 화면의 접근성/대비 검증.
-- [x] 배포 플랫폼 다각화 재평가 및 리스크 식별 완료 (2026-10-13): Netlify 무료 플랜의 빌드 시간(월 300분) 및 대역폭(월 100GB) 소진 시 신규 배포 차단 및 사이트 자동 정지(Hard Limit) 리스크를 식별하고, 플랫폼별 적합도 비교 평가(1위 Cloudflare Pages, 2위 Vercel, 3위 Netlify, 4위 GitHub Pages)를 [`Netlify_Web_Architecture_Proposal.md`](archive/Netlify_Web_Architecture_Proposal.md)에 반영했다.
-- [x] [사용자 수동 검증 완료 2026-11-26] 배포 플랫폼 이관 및 최적화 검증 (Cloudflare Pages + Supabase pg_cron 권장안):
-  - [x] **Cloudflare Pages 호스팅 환경 구성**: [`.nvmrc`](../.nvmrc) (Node.js 20 LTS), [`public/_headers`](../public/_headers) (불변 캐싱 및 보안 헤더), [`public/_redirects`](../public/_redirects) 설정 완료.
-  - [x] **백그라운드 스케줄러 분리 이관 준비**: 5분 주기 탈퇴 워커를 Supabase PostgreSQL 내부 완결 원자적 함수(`purge_expired_account_deletion_requests`) 및 `pg_cron` 스케줄러로 이관하는 마이그레이션 스크립트([`sql/MIGRATION_PG_CRON.sql`](../sql/MIGRATION_PG_CRON.sql)) 작성 완료.
-  - [x] **탈퇴 API Supabase RPC 완전 통합**: Netlify Functions 호출(`fetch`)을 제거하고 `request_account_deletion`, `get_account_deletion_status` `SECURITY DEFINER` RPC 함수로 프론트엔드 직접 연동 완료 ([`src/lib/account-deletion.ts`](../src/lib/account-deletion.ts)).
-  - [x] [사용자 수동 검증 완료 2026-11-26] **웹 정적 호스팅 이관 검증**: Cloudflare Pages에 Next.js 정적 export(`out/`) 배포 설정, 도메인 연결, `/auth/callback` Google OAuth 왕복 및 PWA 자산 라우팅을 실제 배포 환경에서 검증한다. 저장소 코드 검증만으로 배포·도메인·OAuth 성공을 완료 처리하지 않는다.
-- [x] ~~(폐기/대안) Netlify 후보 유지 시 점검 사항:~~ (Cloudflare Pages 공식 채택으로 제외)
-  - Cloudflare Pages + Supabase pg_cron으로 배포 환경이 공식 확정되어 Netlify 관련 점검 사항은 폐기 및 제외 처리함. (Supabase OAuth Redirect URLs 원격 등록 이력 보존 완료).
 
 ## Gemini 진행 문서 대조 기록 (2026-10-03)
 
@@ -98,136 +48,17 @@
 
 ### 문서 정리
 
-- [x] 오래된 기획 검토 문서를 참조 상태와 최신 기준 문서에 따라 정리
-  - 삭제: `md/fix-proposals.md`, `md/revisions_and_decisions_review.md` (구식 Gemini.sql/Downloads 기준, 활성 문서 참조 없음)
-  - 보존: 현재 체크리스트/인수인계에서 참조하는 SRS 준비도 및 차단 항목 검토 이력
-- [x] SKILL에서 지정한 개발 운영 문서를 `docs/`로 이동하고 문서 링크를 갱신
-  - 완료 파일: `docs/architecture.md`, `docs/handoff.md`, `docs/to-do.md`, `docs/known-pitfalls.md`, `docs/progress.md`, `docs/changelog.md`
-  - 기획 기준 문서는 `docs/spec/`으로 이관하고, SQL은 `sql/`로 분리하여 `md/` 폴더 완전 정리 완료
-- [x] 중구난방으로 파편화된 프로젝트 전체 문서 체계 전면 통합 및 정리
-  - **불필요/중복 파일 삭제 (4종)**: `docs/develop_task_backlog.md`(Phase 12에 흡수 완료), `docs/to-do_Gemini.md`(과거 보존본), `md/agent_rules.md`(중복), `md/SKILL.md`(구버전) 영구 삭제
-  - **비(非)문서 파일 전용 디렉터리 분리**:
-    - `md/*.sql` (15종: SCHEMA, MIGRATION_*, TESTS, SEED 등) -> `sql/`로 이관하여 문서와 코드/DB 스크립트 격리
-    - `docs/*.html` (8종: 디자인 프리뷰, 아이콘 목업) -> `docs/design-previews/`로 이동하여 `docs/` 루트 정리
-  - **기획 기준 문서 일원화**: `md/SRS.md`, `md/SPEC.md`, `md/revisions_and_decisions.md`, `md/ChronoLedger_UI_Design_Sheet.md`, `docs/design-topbar-spec.md` -> `docs/spec/`으로 이관하고 `md/` 폴더 완전 삭제
-  - **과거 검토/구버전 계획 문서 아카이빙 (14종)**: `docs/archive/` 생성 후 1회성 마일스톤 리뷰, 차단 항목 검토, 구버전 계획서(v1/v2) 등 이관 보존
-  - **AI 협업 가이드 단일화**: 파편화된 4개 협업 문서(`ai-collaboration-usage.md`, `ChronoLedger_collaboration_guide.md`, `ChronoLedger_multi_agent_pipeline_v2.md`, `ChronoLedger_pipeline_auto.md`)를 5대 모델 파이프라인 최신 규약에 맞추어 `docs/collaboration-guide.md`로 단일 통합하고 구버전 문서는 아카이브 이관
-  - **최종 `docs/` 최상위 구조 (8대 핵심 운영 문서)**: `architecture.md`, `changelog.md`, `collaboration-guide.md`, `detailed-design.md`, `handoff.md`, `known-pitfalls.md`, `progress.md`, `to-do.md`
-- [x] 멀티 에이전트 협업 아키텍처 검토 의견을 별도 문서로 작성
-  - 결과: `md/multi_agent_collaboration_architecture_review.md` (§8에 최종 보완안 재검토 추가)
-  - 검토만 완료했으며 파이프라인 채택이나 구현은 결정하지 않음
-- [x] 협업 산출물 Schema, 저장 규칙, 보고서 템플릿 및 안전한 worktree 생성 스크립트 추가
-  - 결과: `artifacts/`, `scripts/collaboration/New-CollaborationRun.ps1`
-  - 정적 확인: JSON 문법, PowerShell 구문, 상대 Markdown 링크 통과
-  - 현재 실행 환경은 깨끗하지 않고 Docker가 없어 실제 run/샌드박스 검증은 보류
-- [x] 초보 개발자용 AI 협업 사용 안내 작성 (`docs/ai-collaboration-usage.md`)
-- [x] VS Code GitHub Copilot 저장소 지침 및 Maker/Reviewer custom agent 프로필 추가 (`.github/`)
-- [x] UI 디자인 시트/목업과 Netlify 배포 제안 검토 결과를 진행 문서에 기록
-- [x] 최소 사용자 개입을 위한 ChronoLedger Orchestrator 프로필과 초보자 가이드 추가
-  - Local harness에서 Maker/Reviewer 하위 에이전트 위임, 필수 사용자 승인 지점 및 Gemini 외부 전송 게이트를 정의했다.
-- [x] 협업 리뷰/테스트 JSON용 Schema validator 추가
-- [x] ~~VS Code Local harness에서 Orchestrator, Maker, Reviewer 인식 및 동일-SHA 전체 run 통합 검증~~ (대체됨/불필요)
-  - 현황: Antigravity 5대 모델 파이프라인(Argon, Codex, Opus, Copilot, Flash) 및 서브에이전트 시스템이 완전히 정착되어 VS Code Local harness 전용 통합 검증은 불필요해져 Antigravity 통합 협업 체계로 대체 완료.
-- [x] Netlify와 두 빌드 타깃 제안에 대한 사용자 결정
-  - 결정: **현재는 Web/Desktop 이중 빌드로 분리하지 않고 단일 정적 빌드(`output: 'export'`)를 유지한다.**
-  - 이유: 앱 특성상 SSR/SEO 필요성이 낮고, 복잡한 서버 로직은 Netlify Functions로, 보안은 Supabase RLS로 이미 해결되어 단일 빌드로 요구사항을 모두 충족한다. 관리 포인트(환경 변수, 빌드 설정, 테스트)가 두 배로 늘어나는 비용 대비 이득이 적다. 추후 웹에 서버 전용 기능(SSR, 쿠키 세션 등)이 필수가 되거나 정적 빌드 배포에 한계가 명확히 확인될 경우에만 환경 변수 분기 방식으로 재검토한다.
-- [x] 깨끗한 커밋 상태에서 run 생성 스크립트를 검증하고 생성된 전용 worktree/manifest가 일치하는지 확인
-  - 검증: Phase 5·6·7 run을 깨끗한 `main`에서 `New-CollaborationRun.ps1`로 생성했고, worktree 경로·브랜치·`base_sha`가 manifest와 일치했다.
-  - 후속 발견: 스크립트가 만든 `artifacts/<run>/run.json`이 `main`에 미추적 상태로 남아 새 worktree에서 보이지 않았다. Phase 5~7에서는 Orchestrator가 manifest를 `main`에 커밋한 뒤 worktree에 병합하는 수동 절차로 우회했다.
-- [x] `New-CollaborationRun.ps1`이 manifest를 커밋·전파하도록 개선
-  - 변경: manifest와 `iteration-01/README.md`를 새 worktree 안에 생성하고 `collab/<RunId>` 브랜치의 첫 커밋으로 남긴다. 메인 작업 폴더는 건드리지 않으며 `base_sha`는 기준 커밋 그대로다. 기준 커밋에 같은 run 아티팩트가 이미 있으면 중단하고, 커밋 실패 시 worktree를 보존한 채 오류를 알린다.
-  - 검증: 임시 run(`script-selftest`)으로 메인 clean 유지, worktree clean, manifest 첫 커밋, `run.schema.json` 검증 통과를 확인한 뒤 임시 worktree/브랜치를 삭제했다. 구문 오류 0건. Orchestrator 스킬 4단계와 사용 안내를 갱신했다.
 - [ ] Docker 기반 테스트 샌드박스를 사용할 수 있는 환경에서 격리·네트워크·환경변수 제한을 검증
   - 현황: 이 PC에는 `docker` 명령이 없다. 모든 run의 `test.json`은 `sandbox: unavailable`로 기록했고, 격리 검증은 Docker 준비 전까지 보류한다.
-- [x] ~~Gemini Code Assist/Spark가 같은 run 아티팩트와 커밋을 읽고 쓸 수 있는지 수동 연결 확인~~ (취소)
-  - 현황: Antigravity(AGY) 도입으로 인해 다중 에이전트(Orchestrator, Maker, Reviewer) 파이프라인이 자동화되었으므로 개별 수동 연결 확인은 불필요해짐.
-- [x] Gemini Reviewer 제한 PoC 구현 및 오프라인 회귀 테스트
-  - 단일 run/SHA 고정, 외부 전송 전 전체 diff의 인터랙티브 승인, 기존 리뷰 JSON Schema 검증 및 결과 no-overwrite 저장을 구현했다. `scripts/collaboration`의 오프라인 테스트 12개 통과.
-- [x] Phase 4.4 변경에 대해 [Gemini 수동 리뷰 패킷](archive/Gemini_phase4_manual_review.md)과 exact Target diff를 Gemini에 직접 제공하고 결과를 기존 Copilot 리뷰와 분리해 기록했다. Gemini 판정은 `clean`/발견 없음이며, 실제 Supabase RLS·관리자 RPC 원자성은 미검증이다. API 호출은 하지 않았다.
-- [x] ~~Gemini Reviewer PoC 외부 API 사용 및 도입 여부 결정~~ (대체됨)
-  - 현황: Antigravity 시스템 내장 서브에이전트(chronoledger-reviewer)로 리뷰 과정이 성공적으로 대체되어 기존 수동 PoC 및 단일 API 스크립트 도입은 폐기함.
 
 ### Phase 8 & 9. UI/UX 폴리싱 및 추가 피드백 구현
 
-- [x] A2Z 전역 폰트(자체 호스팅 9 weight, OFL), dark/Cool Neutral Light 토큰, 테마 토글, 컴포넌트·빈 상태·반응형(900/1280) 다듬기
-- [x] [사용자 수동 검증 완료 2026-11-26] 실브라우저 390/900/1280 시각·대비·라이트 테마 검증
 - [ ] 내비게이션 셸 재구성([PROPOSED]) 및 정확한 상태 배경 토큰 여부 결정
-- [x] 캘린더 타일 레이아웃: 일정 시작일에만 버전 태그 표시(PICKUP과 겹칠 경우 VERSION 위, PICKUP 아래). 게임 아이콘과 메모 도트는 우측 정렬.
-- [x] 캘린더 월 전환 애니메이션 추가
-- [x] 닉네임 변경 후 새로고침(F5) 없이 즉각 반영
-- [x] 대시보드 예상 지출 UI 개선: 막대 우측 하단에 남은 금액 대신 실제 예상 지출액을 표시
-- [x] 지출 내역 되돌리기(CANCELLED -> PLANNED) 기능 및 취소된 지출 홈 화면 숨김 처리
-- [x] 예정 지출 모달: 결제 확정 외에 "예정 지출로 등록" 버튼 추가하여 총 자산 즉시 차감 방지
-- [x] 카테고리 축약(식비, 교통, 생활) 및 소비 페이지 그래프 퍼센트(%) 표시
-
-### Phase 7. Web/PWA 통합, 안정화 및 릴리스 검증
-
-- [x] 7.1 게임 버전/픽업 패스 일정 안전 동기화 검증
-  - 대상 파일: `md/SCHEMA.sql` (트리거 검증)
-  - 작업: 관리자가 버전 또는 픽업 일정의 시작일·종료일을 변경했을 때 DB 트리거 동작 확인
-  - verify: 2026-10-12 `md/TESTS.sql`의 SCH-01 및 SCH-02 시나리오 psql 실행에서 관리자의 일정 날짜 변경 시 연결된 `PLANNED` 지출의 시작일·종료일·예정일만 동기화되고 `CONFIRMED`/`CANCELLED` 지출 및 날짜 외 컬럼은 완벽히 보존됨을 검증했다.
-- [x] 7.2 두 달에 걸치는 픽업 일정의 예산 이월/차감 연동 및 만료 모달
-  - 대상 파일: `src/components/expense/overdue-planned-modal.tsx`, `src/lib/budget-calculations.ts`
-  - 작업: 미결제 항목은 종료일 속한 달의 예산으로 배정, 이전 달 결제 시 익월 예정액에서 자동 차감 및 만료 처리 구현
-  - verify: 10/25~11/12 픽업 지출을 10월에 결제했을 때 11월 총 예상 소비액이 즉시 줄어드는지 확인
-- [x] 7.3 PWA 매니페스트, Service Worker(앱 셸 + 사용자별 읽기 API 캐시) 및 오프라인 방어 배너
-  - 대상 파일: `public/manifest.json`, `public/sw.js`, `src/components/pwa/service-worker-register.tsx`, `src/components/ui/offline-banner.tsx`
-  - 작업: PWA 홈 화면 추가 설정, 앱 셸 캐시, 인증 세션의 읽기 API(Supabase REST GET) 캐시 조회, 오프라인 시 쓰기 비활성화(버튼 + 핸들러 가드)
-  - 완료: manifest(`id`, 분리된 maskable 아이콘), `sw.js`(앱 셸 + Supabase `/rest/v1/` GET을 JWT `sub`별 키로 저장, 익명·만료 토큰·비-GET·타 출처 미개입), 로그아웃/세션 없음 시 `caches` 전체 삭제, 쓰기 가드. SW 로직은 `sw.test.ts`로 단위 검증.
-  - 제한: 오프라인 조회는 온라인에서 한 번 이상 본 요청에 한한다. 만료된 토큰으로는 캐시를 제공하지 않으므로 세션 만료 후 오프라인 조회는 막힌다.
-  - verify(7.4에서 실기 확인): 실제 브라우저에서 SW 등록·오프라인 셸/데이터 조회, 로그아웃 후 캐시 삭제
-  - 후속(완료): 정식 브랜드 아이콘 1A(C-Chrono + 메모 도트) 확정 및 에셋 교체 완료 (`public/icons/icon-{512,192,180,maskable-512}.png`).
-- [x] [사용자 수동 검증 완료 2026-11-26] 7.4 Web/PWA MVP 회귀 및 배포 빌드 검증
-  - 대상 파일: Next.js 앱 및 Web/PWA 테스트 설정
-  - 작업: 승인 SRS 수용 기준과 모바일 주요 흐름을 점검하고 정적 export 산출물을 배포 환경에서 검증
-  - verify: 브라우저 빌드/테스트 통과, Android PWA 설치·인증 세션·오프라인 읽기와 쓰기 차단 확인
-
-## Phase 13: 게임별 보유 캐릭터 및 조합 프리셋 (R13)
-
-- [x] 13.1 R13 캐릭터·프리셋 DB 스키마, 마이그레이션(MIGRATION_R13_CHARACTERS_AND_PRESETS.sql), SQL 스모크 테스트 및 TypeScript 타입 구현 (완료 - `4a21555e`, PostgreSQL 17 로컬 stub DB에서 migration 2회 및 전체 TESTS.sql 통과; tsc/lint/Vitest 통과)
-- [x] 13.2 관리자 게임별 성급/분류 축/최대 프리셋 슬롯 설정, 캐릭터 관리 탭, 캐릭터 추가/수정 요청 및 승인/반려 UI 구현 (구현 `688205e`, 결함 수정 `17945d9`. iteration-01 리뷰에서 P2 1건·P3 6건 지적 — iteration-02 수정 진행 예정)
-  - [x] 13.2-F1 iteration-01 지적 수정 (완료 - `e07cc6a`, tsc/lint/Vitest 385개 통과, 빌드·수동 확인 미수행): 캐릭터 요청 아이콘 미리보기·관리자 아이콘 교체 및 `p_default_icon_url` 전달(R13UI-01, P2), 요청 빈 분류 값 제거·UPDATE 대상 검증(R13UI-02), UPDATE 대상 프리필(R13UI-03), 분류 축 행 안정 key(R13UI-04), 캐릭터 삭제 확인 다이얼로그(R13UI-05), §7.3.4 옵션 제거 사용량 경고(R13UI-06), Phase 13.2 단위 테스트(R13UI-07), 캐릭터 아이콘 필수 검증(R13UI-08) (담당: Claude Sonnet)
-  - [x] 13.2-F2 (2026-11-19 완료) `normalizeClassificationSchema` 중복 통합 확인(`character-utils.ts` 단일 정의), `docs/spec/R13_Character_Roster_and_Preset_Spec.md` §2.4/§7.2 `signed URL` 표현을 Object URL 방식으로 보정, P4 서식 3곳 정리 확인함.
-  - [x] 13.2-F3 (2026-11-19 완료) `vitest.config.ts` exclude에 `.claude/worktrees/**` 추가함(루트 `npx vitest run` 시 69파일만 실행됨 확인).
-- [x] 13.3 상단 내비게이션(`Topbar` `캐릭터` 메뉴) 및 전용 캐릭터·프리셋 페이지(`/dashboard/characters`: 구독 게임 선택 바, 보유 캐릭터 체크·커스텀 아이콘·메모 및 조합 프리셋 빌더·미보유 명도 감쇠) 구현 (완료 - `6b755aa`, tsc 0건·lint 통과·Vitest 48파일 364개 통과. 정적 export 빌드·브라우저 수동 확인은 미수행)
-- [x] 13.4 캐릭터 메모 UI 제거, 컴팩트 아이콘 타일 그리드, 즐겨찾기(`is_favorite`) 금색 테두리 및 최상단 노출, 게임별 최대 돌파(`games.max_breakthrough`, `0~12`) 및 보유 캐릭터 아이콘 좌하단 `n★` 배지·클릭 설정 모달 구현 (R43, DB/Types `ba49f13` + UI `8ff4f42`; Vitest 48파일/396개 통과, `main` 병합 `ce4bed2`)
 
 ---
 
 ## 향후 / 진행 로드맵 (Active & Planned Roadmap)
 
-- [x] R1. 모바일 화면 UI 오버플로우(수동 보정 내역 모달, 관리자 페이지네이션, 소비 페이지 픽업 과금 분석 카드) 해결 (`완료` - Gemini 3.8 Flash 완료)
-- [x] R2. 구글 플레이 포인트 적립 누락 버그 해결 및 이벤트 부스트 수식(`1,000원당 n포인트 = 0.1% × n배 고정`) 재설계 (`완료` - 커밋 `7307b99`, Gemini 4 Argon 리뷰 완료)
-  - 지출 등록 및 결제 계산 모듈(`src/lib/payment-calculations.ts`)에서 구글 플레이 포인트 적립식 보정 및 단위 테스트 작성
-- [x] R3. 게임별 상시 메모 기능 추가 (`/dashboard/games` 내 구독 게임 카드 연동, `user_games.memo` 컬럼 확장) (`완료` - 커밋 `53fbd26`, `d75310d`, Gemini 4 Argon 리뷰 완료)
-- [x] R4. 모바일 캘린더 배경 커스터마이징 UI 화면 이탈 해결 및 모바일 버전 배경 리사이징 기준 최적화 (`완료` - 커밋 `f272bfd`, Claude Opus)
-- [x] R5. Supabase SQL Editor용 SQL 문서(sql/*.sql) 분류 및 통합·정리 (`완료` - 커밋 `cee2b76`, Claude Opus)
-- [x] R6. 공식 일정 보기에서 "/" 입력 시 자동 줄바꿈 표시 (`완료` - Gemini 3.8 Flash 완료)
-- [x] R7. 모바일 PWA 설치 시 홈 화면 아이콘 표시 이름(short_name) 'ChroLog' 단축 적용 (`완료` - Gemini 3.8 Flash 완료)
-- [x] R8. 모바일 대시보드(/dashboard) 선택일 상세 드로어 오픈 시 스마트폰 내장 뒤로 가기 연동 (페이지 이탈 방지) (`완료` - 커밋 `f272bfd`, Claude Opus)
-- [x] R9. 소비 페이지(/dashboard/expenses) 카테고리별 지출 비중 클릭 시 카드 내부 하단에 해당 카테고리 확정 지출 내역 펼침 표시 (`완료` - 커밋 `dd01401`, Claude Sonnet)
-- [x] R10. 대시보드 홈(/dashboard) 선택일 게임 일정 표시 조건(start_date/end_date 일치, VERSION은 end_date 제외) 및 전체 진행 일정 토글 + 정렬(start_date 내림차순, 동일 시작일 end_date 오름차순) 변경 (`완료` - 커밋 `335e517`, Claude Sonnet, Claude Opus 통합 리뷰 완료)
-- [x] R11. 소비 페이지 게임 픽업별 과금 분석을 게임별 과금 분석으로 변경 및 지출 모달 내 픽업 배너 연결 제거(버전 일정/패스 유예는 유지) (`완료` - 커밋 `e9a7017`, Claude Sonnet, Claude Opus 통합 리뷰 완료)
-- [x] R12. AI 전용 지침 문서(CLAUDE.md, AGENTS.md, .agents/**, .github/**) 영문화 및 한국어 원본(*-ko.md) docs/archive/agent-rules-ko/ 분리 보관 (`완료` - 커밋 `de71051`, Gemini 3.8 Flash 완료)
-- [x] R14. 지출 모달(`expense-modal.tsx`) 수정·결제 시 기존 사용자 메모(`editingExpense.memo`)가 이벤트 태그로 덮어써지는 기존 결함 보정 (`mergeEventMemo(null, ...)` → 기존 메모 보존, 단위 테스트 추가) 및 잔여 주석 정리 (`완료` - 커밋 `d5522dc`, Claude Sonnet, Gemini 4 Argon 통합 리뷰 완료)
-- [x] R15. 구독 템플릿 동기화 및 중지 시 PLANNED 삭제 개편 (`Phase 12.24`, GPT Codex, 커밋 `1bb175b`)
-- [x] R16. 관리자/게임 모달 정비, 아이콘 자체 WebP Data URL 저장, 비공식 일정 분류 및 설정 토글 (`Phase 12.25`, GitHub Copilot, 커밋 `3c20e70`)
-- [x] R17. 소비 차트 Y축 아이콘·포커스 테두리·모바일 툴팁 교정, 월별 통계 드롭다운, 활성 구독 총액, 예산 경고 배지 (`Phase 12.26`, Claude Sonnet 담당)
-- [x] R18. [P1 보안] `public.users` 본인 UPDATE 정책으로 `role`을 `admin`으로 자기 승격 가능 → `role` 변경 차단 마이그레이션(트리거 또는 컬럼 단위 GRANT) + `TESTS.sql` 단언 추가, 운영 DB 즉시 적용 (Claude Opus) (`완료` - 커밋 `361fbbc`, 운영 DB 적용 완료 2026-11-02 사용자 확인)
-- [x] R19. [P2] MONTHLY_DAY 중복 `PLANNED` 정리가 RLS로 무동작 → `MIGRATION_MONTHLY_PLANNED_DEDUPE.sql` 백필과 소유권 검증 RPC로 전환, 클라이언트 `.delete()` 제거 (Phase 12.28, GPT Codex, 커밋 `bdb064c`; 로컬 PG 신규 설치·마이그레이션 재실행·TESTS 통과)
-- [x] R20. [P3] 비공식 일정을 `VERSION_PASS` 회차 생성·지출 모달 버전 연결에서 항상 제외(토글과 무관, 2026-11-02 사용자 결정) (Phase 12.28, GPT Codex, 커밋 `bdb064c`; 컬럼 미적용 DB 공식 폴백 테스트 통과)
-- [x] R21. [P3] `sql/README.md` B표에 `MIGRATION_TEMPLATE_PAUSE_DELETE_PLANNED.sql`(파괴적 정리) 확인 쿼리·주의 문구 추가
-- [x] R22. [P3] `game-select-modal.tsx` `fetchGames`를 `user?.id` 의존으로 변경, 대시보드 `loadSchedulePreference` 실패 시 공식 일정만 표시로 폴백 (Claude Sonnet) (`완료` - 커밋 `b820a4e`, Claude Opus 대체 수행)
-- [x] R23. 운영 Supabase에 `MIGRATION_USERS_ROLE_GUARD.sql`(R18)·`MIGRATION_MONTHLY_PLANNED_DEDUPE.sql`(R19) 적용 (`완료` - 2026-11-02 사용자 실행 확인)
-- [x] R24. `main` 직접 실행의 Base SHA를 Dispatch Queue에 등록 즉시 기록하고 Target SHA를 Maker 커밋 후 기록하도록 Orchestrator 스킬에 명시한다. `run.schema.json`은 확장하지 않고 가짜 `branch`/`worktree_path` manifest를 만들지 않는다. iteration-01 리뷰에서 발견한 Run README 경로 문자열의 제어문자 손상(P3)을 수정하고 같은 Base SHA부터 새 Target SHA까지 재리뷰해야 완료 처리한다 (`완료` - 커밋 `83d2e18`, `42e52c6`, `5bd515e`; Gemini 4 Argon iteration-02 재리뷰 PASS 및 `main` 병합 완료)
-- [x] R25. 메모 입력란(사이드바·게임·지출 상세·일정 요청) Tab 키를 `\t` 입력으로 동작시키고 Shift+Tab은 포커스 이동 유지, 게임 일정 메모 표시를 `whitespace-pre-wrap`으로 변경 (`Phase 12.30`, Claude Sonnet)
-- [x] R26. 소비 페이지 막대 차트: 게임별 과금 툴팁에 UUID 대신 게임명, 금액 축 눈금 중복(`0만 0만 1만 1만`) 제거, 막대 외곽선 다크·라이트 테마 가시성 개선 (`Phase 12.31`, Claude Sonnet) (`완료` - 커밋 `fc4ea9d`, Claude Opus 리뷰 PASS, 배포 대기)
-- [x] R27. [운영 긴급] 운영 Supabase에 `sql/migrations/MIGRATION_UNOFFICIAL_SCHEDULES.sql` 적용 (미적용 시 관리자 일정 추가·수정, 일정 요청 제출·승인 실패) (사용자 수동) (`완료` - 2026-11-02 사용자 적용)
-- [x] R28. Phase 12.15-F3 & Phase 12.32: `createClient<Database>` 연결 및 RPC/테이블 타입 정밀 보정(`c075045f`, GPT Codex), 관리자·게임 요청 모달 5종 `DialogDescription` 추가·소비 통계 기간 선택 고유 `aria-label` 분리·관리자 권한 거부 시맨틱 danger 토큰 및 `role="alert"` 적용(`3ed5e5d`, GitHub Copilot) (`완료` - Gemini 4 Argon 통합 리뷰 `7243c3b` PASS 및 `main` 병합 완료).
-- [x] R29 (`Phase 12.33`). 나무위키 등 외부 아이콘 URL 등록 시 CORS 실패 해결(`image-resizer.ts` CORS 프록시 폴백 + `/admin`·`/admin/requests` 클립보드 이미지 붙여넣기 `onPaste` 지원) 및 모바일 외부 아이콘 핫링크 차단 방지(`public/_headers`·`layout.tsx` `no-referrer` 적용) (완료 - 커밋 bf3f1a1, GitHub Copilot, Gemini 4 Argon 리뷰 PASS)
-  - 구현: `bf3f1a1` (GitHub Copilot), 정적 리뷰: Gemini 4 Argon PASS (`artifacts/r13-spec-review-and-icon-cors-fix/iteration-01/review.json`). 전체 테스트·타입 검사·린트·문서 마감 완료.
-- [x] R30. 외부 HTTP(S) 게임 아이콘 표시 및 Data URL 재저장 기능 (`Phase 12.34`, 구현 `12148ea`, iteration-02 수정 `334c642f`; iteration-02 리뷰 clean, `main` 병합 `7956064`)
-- [x] R31. [운영] Supabase SQL Editor에서 `sql/migrations/MIGRATION_R13_CHARACTERS_AND_PRESETS.sql` 적용 후 `sql/README.md` B표 확인 쿼리 확인 (사전 조건: `MIGRATION_USERS_ROLE_GUARD.sql` 적용 완료). 앱 배포는 `main` push 후 진행 (사용자 수동) (`완료` - 2026-11-04 사용자 적용, 테이블 4·함수 3·정책 10행 확인)
 - [x] R13. 게임별 보유 캐릭터 체크(사용자 커스텀 아이콘 + 캐릭터별 메모), 게임별 성급·분류 축(`classification_schema`) 최적화, 게임별 최대 슬롯(`max_preset_slots`) 기반 캐릭터 조합 프리셋(미보유 캐릭터 명도 감쇠) 저장 기능 — 영문 명세서 [`docs/spec/R13_Character_Roster_and_Preset_Spec.md`](spec/R13_Character_Roster_and_Preset_Spec.md) 승인 완료 (`APPROVED`, 2026-11-09 `/dashboard/characters` 전용 페이지 분리 반영). Phase 13.1 DB/타입 구현(`4a21555e`, `334c642f`) 및 운영 DB 적용(R31) 완료함. Phase 13.2 관리자 카탈로그·분류 설정·캐릭터 요청 UI 구현(`688205e`) 완료함. Phase 13.3(Topbar `캐릭터` 메뉴·전용 `/dashboard/characters` 페이지 보유 캐릭터 로스터·커스텀 아이콘·조합 프리셋 빌더) 구현(`6b755aa`, 선행 결함 수정 `17945d9`) 완료함. Step 3 iteration-01 통합 리뷰(2026-11-09, P2 1건·P3 6건·P4 1건, 산출물 `b6cd7a0`) 완료함. iteration-02 수정(13.2-F1, `e07cc6a`) 및 재리뷰(지적 8건 해소, P4 서식 1건만 남음, 산출물 `0b8eb4d`) 완료함. `main` 병합 `1f5d43a` 완료함(병합 후 tsc·lint·Vitest 385개·`npm run build` 통과). 남은 확인: 브라우저 수동 확인(사용자), 비차단 후속 13.2-F2.
 
 ### 사용자 추가 검토 확정 과제 (2026-11-09 완료 · Run `r13-4-breakthrough-guest-and-schedule-tree` 병합 `ce4bed2`)
@@ -250,33 +81,17 @@
 - [x] R75. [Run `r75-r64-tests-readme` 완료·`main` 병합 `35d43b6`(2026-11-26, 리뷰 P4 2건 비차단, 🐳 로컬 `TESTS.sql` 54개 2회 PASS) · 후속 · 우선 낮음 · ②·③ 완료(2026-11-19) / ①·④ 남음(Docker 필요)] ① `sql/tests/TESTS.sql` R64 블록에 명세 §7 누락 시나리오 추가(일반 사용자 쓰기 거부, `users.role` 관리자·JWT 없음 쓰기 거부, 비승인 게임 조회 차단·관리자 조회, 잘못된 `axis_key`·빈 옵션·없는 축, 축 삭제·순서 변경 유지·게임 삭제 CASCADE, `updated_at` 갱신, 메시지 단위 검증) 후 임시 DB에서 실행 ② [x] 관리자 아이콘 삭제를 `.delete().select()`로 바꿔 0행이면 실패 표시 ③ [x] 템플릿 저장 후 아이콘 재조회를 취소 가능한 effect(`iconRefreshTick`)로 통합 ④ `sql/README.md`에 아이콘 수정은 upsert 사용 안내 1줄 (DB 스키마 변경 없음, 담당: GPT Codex(①·④))
   - [ ] R75-REV-001·002. [① 완료·Run `p4-followups-r107c-r109-r75` `main` 병합 `ac752b6`(2026-11-26) · ② 보류(비승인 게임 상태 도입 시) · P4 · 선택 후속 · 리뷰 `artifacts/r75-r64-tests-readme/iteration-01/review.json`] ① `sql/tests/TESTS.sql` R64 블록의 잘못된 `axis_key`·빈 옵션 음성 케이스를 트리거 메시지와 CHECK 이름 중 한쪽으로 고정해 개별 방어선 회귀를 잡도록 보완, ② 비승인 게임 0행 조회는 현재 `games_status_check`로 도달 불가이므로 비승인 상태가 도입될 때 동작 기반 테스트로 교체(DB 변경 없음).
 - [x] R39. [Run `r39-daily-notifications` 완료·`main` 병합 `9ae05f9`(2026-11-24, iteration-01 리뷰 P4 1건 비차단, 🐳 로컬 DB 업그레이드 2회·신규 `SCHEMA.sql`·`TESTS.sql` 42개 PASS, Vitest 960개 통과) · 운영 DB `MIGRATION_R39_DAILY_NOTIFICATIONS.sql` 수동 적용·확인 쿼리 완료(사용자, 2026-11-24) · **남음: 실브라우저 설정 카드·KST 09:00 알림 생성 확인(사용자)**] 일일 정기 알림 생성: `public.notification_settings` 테이블 + KST 09:00(`0 0 * * *` UTC) `pg_cron` `enqueue_daily_notifications()` 함수(관심 일정 시작 당일 `FAVORITE_START`, 관심 일정 종료 1일 전 `FAVORITE_END_D1`, 예정 지출 결제 예정일 1일 전 `EXPENSE_D1` 3종) + 설정 화면 알림 토글 카드 — 설계 [`docs/push-notification-research.md`](push-notification-research.md) §4.2·§5.2·§8·§9 (담당: Step 1 GPT Codex DB `▶ READY` → Step 2 Claude Sonnet UI `⏳ WAITING` → Step 3 Claude Opus 리뷰 `⏳ WAITING`)
-- [x] R39-REV-01. [2026-11-25 `r108` 반영·병합 `32ea55d`] [P4 · 선택 후속 · 2026-11-24 리뷰] `src/types/database.types.ts`의 `notification_settings` `Update` 타입에서 `user_id`만 필수로 되어 있음. 다음 타입 갱신 때 선택(`?`)으로 맞춤(동작 영향 없음).
-- [x] R87. [2026-11-19 완료] ① 공용 이미지 모달(`ImageSourceDialog`) 오프라인 시 URL 입력란 blur/Enter 변환 건너뛰기 ② 관리자 분류 아이콘 모달 닫을 때 `iconError` 초기화 ③ 모달 안내·설명 문구 어투(`~합니다`) 통일함.
 - [x] R84. [Run `r84-feedback-and-inbox` 완료·`main` 병합 `660c3fc`(2026-11-19, iteration-03 독립 리뷰 clean, 🐳 로컬 DB 마이그레이션 2회·신규 `SCHEMA.sql`·`TESTS.sql` 40개 PASS, `main` Vitest 895개 통과) · 운영 DB `MIGRATION_R84_FEEDBACK_AND_NOTIFICATIONS.sql` 수동 적용·확인 쿼리 완료(사용자, 2026-11-19) · **남음: 실브라우저 확인(사용자)**] 기타 건의 요청 창구(`feedback_requests`: 기능 제안·오류 신고·기타, 첨부 없음) + `public.notifications` 테이블(본인 조회·`mark_notifications_read` RPC·30일 보관 `pg_cron` 정리)·앱 내 알림함(상단 벨 아이콘·읽지 않은 수 배지) + 관리자 건의 답변·요청 승인/반려 시 알림 행 원자적 생성 — 설계 [`docs/push-notification-research.md`](push-notification-research.md) §5.3·§8·§9
 - [x] R96. [Run `r96-web-push` 완료·`main` 병합 `18d5f0c`(2026-11-24, iteration-02 리뷰 P3 1건·P4 2건 비차단, 🐳 로컬 DB 2회·신규 `SCHEMA.sql`·`TESTS.sql` 43개 PASS) · 운영 DB 마이그레이션 적용·확인 쿼리 완료(사용자, 2026-11-24) · 운영 배포 1~5단계·실기기 수신(`SENT`) 확인 완료(사용자, 2026-11-25) · 안드로이드 배지 흰 사각형 → 투명 배지 `badge-96.png` `main` 직접 수정(2026-11-25) · **남음(사용자): 배포 후 안드로이드 상태 표시줄 아이콘 재확인** · DB/Edge Function/SW 변경 → Opus/Argon 승격 조건] Web Push 외부 발송: VAPID 키·`public.push_subscriptions`(공용 기기 `endpoint` 소유자 교체·로그아웃 시 구독 해제)·4개 `SECURITY DEFINER` RPC(`upsert_push_subscription`·`delete_push_subscription`·`claim_pending_push_notifications`·`complete_push_notification_delivery`)·순수 Web Crypto(`crypto.subtle`) RFC 8291/8292 암호화 모듈 및 Edge Function `send-notifications`·예외 격리된 `pg_net` 웹훅·`public/sw.js` `push`/`notificationclick` 핸들러·iOS 홈 화면 추가 안내 — 확정 명세 [`docs/push-notification-research.md`](push-notification-research.md) §11 (담당: Step 1 GPT Codex / Gemini 4 Neon DB → Step 2 Gemini 4 Neon / Claude Opus Web Crypto·Edge Function·SW·UI → Step 3 Claude Opus 통합 리뷰)
-- [x] R96-REV-07. [P3 · Run `r96-rev07-webhook-config` 완료·`main` 병합 `7445447`(2026-11-24, iteration-01 리뷰 clean, 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 44개 PASS) · 운영 SQL Editor 적용·`set_push_webhook_config` 등록 완료(사용자, 2026-11-25)] 배포 절차 §11.5의 `ALTER DATABASE postgres SET app.settings.*`가 호스팅 Supabase에서 `42501: permission denied`로 차단됨. 단일 행 비공개 설정 테이블 `public.push_webhook_config`(`REVOKE ALL FROM PUBLIC, anon, authenticated, service_role` + RLS 무정책) + `public.set_push_webhook_config` SQL Editor 등록 헬퍼 + 3단계 조회(`push_webhook_config` → 동적 `vault.decrypted_secrets` → `current_setting`)를 도입하는 증분 마이그레이션(`MIGRATION_R96_WEBHOOK_CONFIG.sql`)·`MIGRATION_R96_WEB_PUSH.sql`·`SCHEMA.sql`·`README.md`·`TESTS.sql` 반영(1~3단계 Edge Function 배포·시크릿 등록은 사용자 완료, `R96-REV-06` Vault 연동 지원 포함).
-- [x] R96-REV-05. [2026-11-25 `r108` 반영·병합 `32ea55d`] [P4 · 선택 후속 (`R96-REV-06` Vault 조회 연동은 `R96-REV-07`로 완료)] Edge Function 암호화 사본의 RFC 8291 부록 A 고정 벡터 테스트 추가.
-- [x] R97. [2026-11-23 구현·검증 완료 · DB 변경 없음 · `cargo check` 통과 및 실기기 데스크톱 OS 토스트 수신 확인 완료(`npm run tauri dev` 개발 실행 환경 특성상 발신 앱이 `Windows PowerShell`로 표기됨, 설치본에서는 `ChronoLedger`로 표기)] Windows 데스크톱(Tauri v2) `@tauri-apps/plugin-notification` 연동 및 앱 실행 중 새 알림 OS 네이티브 표시 (`src/lib/tauri-notifications.ts`, `NotificationBell` 연동, `src-tauri` 플러그인·권한 등록) — 설계 [`docs/push-notification-research.md`](push-notification-research.md) §3.3·§8
-- [x] R97-REV-001. [2026-11-25 `r108` 반영·병합 `32ea55d`] [P4 · 선택 후속 · 2026-11-23 리뷰] `src/lib/tauri-notifications.ts`에서 이미 본 ID 저장이 권한 확인 앞이라 권한 질의 IPC 예외 시 그 묶음의 OS 토스트가 재시도 없이 사라짐. 예외 때 이전 `seenIds`로 되돌리거나 권한 응답 뒤에 저장하도록 보완함(직렬화 큐가 있어 중복 위험 없음, DB 변경 없음, 담당: Claude Sonnet)
-- [x] R108-REV-001. [Run `p4-followups-r108-r109` 완료·`main` 병합 `c52705c`(2026-11-25) · P4 · 선택 후속 · 2026-11-25 리뷰] `src/lib/web-push-crypto.test.ts`의 RFC 8291 벡터 테스트가 `crypto.getRandomValues`·`crypto.subtle.generateKey`·`JSON.stringify` 전역 스파이에 결합돼 있어 워커 구현이 바뀌면 암호 회귀 없이 깨질 수 있음. `handleSendNotificationsRequest`에 salt·임시 키쌍·페이로드를 주입할 수 있게 해 스파이를 없앰(DB 변경 없음, 담당: Claude Sonnet)
 - [x] R85. [Run `r85-schedule-times` 완료·`main` 병합 `6204346`(2026-11-21, iteration-01 리뷰 clean, 🐳 로컬 DB 업그레이드 2회·신규 `SCHEMA.sql`·`TESTS.sql` 41개 PASS, Vitest 950개 통과) · 운영 DB `MIGRATION_R85_SCHEDULE_TIMES.sql` 수동 적용·확인 쿼리 완료(사용자, 2026-11-21) · **남음: 실브라우저 확인(사용자)** · 후속 판단: 사용자 게임별 일정 모달 서버 초기화 시각 표시 · 설계 [`docs/r85-schedule-time-design.md`](r85-schedule-time-design.md) §10] 일정 시간 단위 관리: `start_at`·`end_at TIMESTAMPTZ NULL`·예상 표시 + 게임별 서버 초기화 시각 `games.daily_reset_time` 구현 (DB/RPC → 공용 로직·UI → 통합 리뷰)
 - [ ] R90. [⏸️ 잠정 보류 (2026-11-16 사용자 지시, 사용자가 직접 호출할 때만 재개) · `r90-dcinside-crawling-opus-review` 검증 완료] 디시인사이드 게임별 갤러리 공식 탭(`gall.dcinside.com/.../board/lists/?id=...&search_head=...`) 기반 일정 후보 반자동 수집(`schedule_candidates`) 및 관리자 후보 검토 UI 구현:
   - [x] Gemini 4 Argon 1차 기술·약관 실측 검토서 [`docs/dcinside-schedule-crawling-review.md`](dcinside-schedule-crawling-review.md) 작성 완료 (2026-11-16, HTTP 200 SSR `tr.ub-content` 파싱 확인, `robots.txt` `Allow: /` 및 2026-10-07 약관 제11조·제16조 대조, 작성자 식별정보/본문 미수집 완화 설계)
   - [x] Claude Opus 2차 검증 완료 (2026-11-16, §6 작성: 디시인사이드 자동 수집 제외 권장, 경로 A 바로가기+링크 붙여넣기 대안, 구조화 값 저장, R90 Step 1~4 수용 기준 확정안)
   - [ ] (보류) 경로 A/B·R90 범위 결정 (§6.7) — 사용자 호출 시에만 진행
   - [x] 네이버 이용약관 원문(`policy.naver.com/rules/service.html`)의 자동 수집 금지 문구 확인 (2026-11-12 사용자 제공 본문: 사전 허락 없는 자동 수단 게시물 수집 금지, 예외 없음)
-- [x] R95. [2026-11-19 완료] ① 수익 삭제 실패 시 RPC 사유(`error.message`)를 화면에 표시함 ② README 표 위치 정정 완료됨.
-- [x] R98. [Run `r98-character-icon-remove` 완료·`main` 병합 `56c26ce`(2026-11-21, 정적 리뷰 clean, `tsc`·`lint`·Vitest 70파일/900개·`next build` 통과) · DB 변경 없음] 캐릭터 아바타/아이콘 이미지 제거 기능 추가: 관리자 캐릭터 추가/수정 모달(픽업 전용 기존 아이콘 제거 포함), 사용자 캐릭터 등록 요청 모달, 관리자 캐릭터 요청 대기열에 `이미지 제거` 버튼 및 `default_icon_url: null` 반영
 - [ ] R99. [후속 · 우선 낮음 · DB/Storage/RLS 변경 → Opus 승격 조건 ①] 기타 건의(`feedback_requests`, 특히 오류 신고) 스크린샷 이미지 첨부 기능: 전용 비공개 Storage 버킷 + Signed URL 열람 + 장수/크기 제한 + 종료·탈퇴 시 자동 정리 설계 및 구현
-- [x] R100. [2026-11-23 완료 · DB 변경 없음] `/dashboard/characters` 캐릭터 아바타 크기 조절 3단계 프리셋(`작게`/`보통`/`크게`, `localStorage` 저장) 도입함.
-- [x] R101. [2026-11-24 구현·리뷰·병합 완료(`c942e1e`) · 1차 Run `r101-r103-two-month-budget-and-shortcuts` · DB 변경 없음] 당월 + 익월(2개월) 예산(미설정 시 기본 예산 폴백)·고정 구독비(미생성 활성 `MONTHLY_DAY` 정기 구독 포함, 중복 제외)·`PLANNED` 지출·예상 잔여 예산 나란히 비교 뷰 — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2.1 (담당: Step 1 Gemini 4 Hydrogen → Step 2 Claude Sonnet 리뷰)
 - [x] R102. [Run `r102-expense-presets` 완료·`main` 병합 `9ff2ae6`(2026-11-24, iteration-01 P2 1건 → iteration-02 `56e4ab8` clean, 🐳 R96+R102 로컬 DB 각 2회·`TESTS.sql` 44개 PASS) · 운영 DB 적용(R96 다음)·확인 쿼리 완료(사용자, 2026-11-24) · **남음(사용자): 실브라우저 확인**] 자주 쓰는 과금 프리셋 사용자 DB 저장(`public.user_expense_presets`, 계정당 최대 20개 상한 트리거·본인 CRUD RLS·계정 삭제 대기 차단·탈퇴 정리) 및 `ExpenseModal` 상단 칩 원클릭 적용·삭제·**`[프리셋 저장]`** 버튼 — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §3 (담당: Step 1 GPT Codex / Gemini 4 Neon DB → Step 2 Claude Sonnet / Gemini 4 Hydrogen UI → Step 3 Claude Opus 통합 리뷰)
-- [x] R103. [2026-11-24 구현·리뷰·병합 완료(`c942e1e`) · 1차 Run `r101-r103-two-month-budget-and-shortcuts` · DB 변경 없음] 데스크톱 키보드 단축키(`[ / ]` 달 이동·`T` 오늘·`V` 보기 전환·`N` 새 지출 등록·`?` 도움말 토글, 입력창·모달 포커스 가드) 및 선택형 접이식 빠른 시작 안내(`FR-001` 강제 온보딩 금지 준수) — 명세 [`docs/r101-r103-budget-presets-shortcuts-spec.md`](r101-r103-budget-presets-shortcuts-spec.md) §2.2
-- [x] R101-REV-001. [Run `t1-t4-desktop-and-followups` 완료·`main` 병합 `5e63007`(2026-11-25) · 명세 `docs/t1-t4-desktop-and-followups-spec.md` §2.4, `D3`] `src/lib/budget-calculations.ts` `calculateMonthBudgetBreakdown`에서 해당 월(`billing_cycle` 우선, 없으면 귀속월 일치) `CANCELLED` 구독 지출의 `template_id`도 `coveredTemplateIds`에 포함해 당월 고정 구독 예정액에서 제외하고(`EXPENSE_COLUMNS` `billing_cycle` 추가), 익월 예측은 유지함(담당: GPT Codex).
 - [ ] R104. [⏸️ 보류 (2026-11-24 사용자 결정, 직접 호출 시에만 재검토)] 단기(1~2개월) 픽업 재화·과금 계산기(게임별 천장 시스템 차이 검토 안건)
-- [x] R105. [Run `r105-dashboard-summary-bar` 완료·`main` 병합 `fe5bf77`(2026-11-24, 정적 리뷰 clean, `tsc`·`lint`·Vitest 76파일/1021개·`next build` 통과) · DB 변경 없음] 대시보드 홈 상태바(`dashboard-summary`)를 컴팩트 KPI + 월간 예산 페이스 연동 바(오늘 일정·이번 주 관심 일정·이번 주 예정 지출·이번 달 예산 잔여/소진율)로 개편
-- [x] R106. [Run `r106-notification-delete` 완료·`main` 병합 `0ddc229`(2026-11-25, iteration-01 P4 2건 비차단, 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 45개 PASS) · 운영 DB 적용·확인 쿼리·실배포 확인 완료(사용자, 2026-11-25)] 앱 내 알림함(`NotificationBell`) 알림 직접 삭제 기능: `public.delete_notifications(p_notification_ids UUID[] DEFAULT NULL)` `SECURITY DEFINER` RPC(본인 알림 개별·전체 하드 `DELETE`, 비로그인·계정 삭제 대기 차단, 테이블 직접 `DELETE` 미부여) + 알림 항목별 개별 삭제 버튼 및 헤더 `'전체 삭제'` 버튼 — 확정 명세 [`docs/push-notification-research.md`](push-notification-research.md) §12 (담당: Step 1 GPT Codex / Gemini 4 Neon DB → Step 2 Gemini 4 Hydrogen / Claude Sonnet UI → Step 3 Claude Opus 통합 리뷰)
-- [x] R106-REV-001·002. [Run `t1-t4-desktop-and-followups` 완료·`main` 병합 `5e63007`(2026-11-25, 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 49개 PASS) · **운영 DB 적용·확인 쿼리 검증 완료(사용자, 2026-11-25)** · 명세 §2.5~§2.6, `D4`·`D5`] ① 알림함 헤더 `[전체 삭제]` 인라인 2단계 확인(`[삭제 확인]` / `[취소]`) 후 전체 삭제(`null`) 실행(Step 2, Gemini 4 Neon `High`), ② 워커 점유 중 알림 삭제 시 `complete_push_notification_delivery`가 `no_data_found` 대신 만료/성공 엔드포인트 갱신 후 조용히 `RETURN`하도록 마이그레이션 반영(Step 1, GPT Codex).
 - [ ] R107. [명세 완료 2026-11-25(Claude Opus) · Run 등록 대기 · SQL/금전 변경 → Opus 승격 조건 ①] 정기·반복 지출 자동화 — 명세 [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md), 운영 SQL 적용 순서 §6:
   - [x] R107-A. [Run `r107a-server-subscription-generation` 완료·`main` 병합 `7aa2984`(2026-11-25, iteration-01 P4 2건 비차단, 🐳 로컬 2경로 2회 멱등·`TESTS.sql` 48개·2세션 동시성 PASS, Vitest 1,026개 통과) · **운영 DB 적용·확인 쿼리 검증 완료(사용자, 2026-11-25)** · **남음: 앱 배포(`main` push) 및 1주 관찰 후 `R107-A-CLEANUP`**] 서버 측 정기 지출 생성 통일(`pg_cron` `chronoledger-subscription-daily`, `INTERVAL_30` 부분 유니크 인덱스, SQL 단일 구현 + 클라이언트 RPC 전환·폴백) — Run `r107a-server-subscription-generation` (인수 기준 `A-1`~`A-9`)
   - [x] R107A-REV-001·002. [Run `r107c-auto-confirm` 완료·`main` 병합 `9268bf0`(2026-11-26) · P4 · 선택 후속 · 리뷰 `artifacts/r107a-server-subscription-generation/iteration-01/review.json`] ① `R107-B`·`R107-C`에서 `advance_interval_subscription.Args.p_original_target_date`의 `| null` 보존, ② `R107-C`에서 `refund_expense_payment`에 롤백 통합 시 비활성 템플릿(`is_active = false`) 생략 명시 및 검증 완료.
@@ -296,10 +111,6 @@
 
 ## 후속 단계: Windows Tauri 데스크톱 통합 (`t1-t4-desktop-and-followups` 명세 확정 2026-11-25 — [`docs/t1-t4-desktop-and-followups-spec.md`](t1-t4-desktop-and-followups-spec.md))
 
-- [x] T1. [`main` 병합 `5e63007`, 2026-11-25] 웹/Tauri 플랫폼 차이를 `src/lib/auth-adapter.ts`로 분리하고 웹·데스크톱 모두 PKCE(`flowType: 'pkce'`, `exchangeCodeForSession`) 단일 콜백 계약으로 고정함(해시 토큰 `implicit` 경로 제거, Tauri 내 Service Worker 등록 건너뛰기).
-- [x] [사용자 수동 검증 완료 2026-11-26] T2. [코드 `main` 병합 `5e63007` · Redirect URL 등록 완료(사용자, 2026-11-25) · **남음: Rust `cargo check`·`Cargo.lock` 갱신, 실기기 확인**] Tauri v2 `chronoledger://auth/callback` 커스텀 스킴 외부 브라우저 OAuth(동일 Supabase origin 검증)를 연결함. cold-start URL은 프로세스당 1회 `getCurrent()`로 처리하고, Windows 실행 중 링크 전달 및 창 포커스 복원을 위해 `tauri-plugin-single-instance`(`features = ["deep-link"]`)를 `deep-link`보다 먼저 등록함.
-- [x] [사용자 수동 검증 완료 2026-11-26] T3. [단위 테스트 완료 `5e63007` · **남음: Windows 실기기 확인**] OAuth 성공·취소(`access_denied`)·코드 누락/중복·만료 세션 및 상단바 `[로그아웃]` 클릭 시 `/auth` 복귀를 검증함(단위 테스트 + Windows 데스크톱 실기기 확인).
-- [x] [사용자 수동 검증 완료 2026-11-26] T4. [빌드·`Cargo.lock` 완료(`t4-rust-build-and-lock`, `main` 병합 `2829bb7`, `T1T4-REV-002` 버전 불일치 없음) · 사용자 실기기 확인 완료: 로그인 복귀·`single-instance`·캘린더·결제 흐름] Tauri v2 Windows production build(`npm run tauri build`)를 생성하고 단독 실행해 로그인(Supabase Redirect URLs에 `chronoledger://auth/callback` 등록), 캘린더, 결제 흐름을 검증함.
 - 완료 게이트: Web/PWA MVP 조건이 통과되고, 동일 기능의 데스크톱 인증/핵심 흐름 테스트가 통과한 뒤 Windows 앱 배포를 승인한다.
 
 > 열린 항목이 없는 완료 구간과 완료된 `R` 항목은 [`docs/archive/to-do-archive.md`](archive/to-do-archive.md)로 옮김.
