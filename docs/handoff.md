@@ -18,14 +18,14 @@
 
 - **활성 Run**: **`R114` 게임별 월 예산·리포트·알림 (`r114-game-budgets` — Base `85d8adcb294bcd4622eb90df3bb826b94a4445d6`, 브랜치 `collab/r114-game-budgets`, 워크트리 `.worktrees/r114-game-budgets`)** *(명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §4(결정 B1~B12·인수 기준 114-1~114-8)·§7(모델 배정). 직전 Run `r113-data-export`는 2026-11-26 마감함. 이후 `R115` 🐳 → `R116` 순으로 등록함)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `SCHEMA.sql`). 🐳 Docker Desktop 필요. Step 2에서 격리 로컬 DB 업그레이드·신규 2경로 각 2회 멱등·`TESTS.sql` R114-01/02 PASS 재검증함. 운영 DB 미적용.
-- **Iteration 02 Target SHA**: `f577f6d5fb3fabcb7c777905dfea5402cc070c81` *(워크트리 커밋, 미병합, 원격 브랜치: push 안 함. Iteration 01 Target `692ea97b731f7ca171005be3348c8302e16ab59a`, 리뷰 범위는 Base ↔ Iteration 02 Target)* 결제·환불 RPC와 `expenses` 제약은 변경하지 않음(114-8).
+- **Iteration 02 Target SHA**: `f577f6d5fb3fabcb7c777905dfea5402cc070c81` *(main 병합 `b161592d6eb707e37f14f4de1a6b53e16bcf9f40`; artifact 커밋 `e47928f8911ee61b9587210c336193bb6e53b2cb`)* 결제·환불 RPC와 `expenses` 제약은 변경하지 않음(114-8).
 - **모델 배정 근거**: `Gemini Models` 한도 소진 중이라 명세 §7 권고대로 배정함(Step 1 `Claude Opus` = SQL·알림 cron·예산 귀속 규칙, Opus 조건 ①).
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (Iteration 02, SHA: f577f6d5fb3fabcb7c777905dfea5402cc070c81)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R114 SQL·알림·예산 UI)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 명세 §4 전부(마이그레이션·`SCHEMA.sql`·README 확인 쿼리·`TESTS.sql`·`database.types.ts`·`calculateGameBudgetUsage`·게임 카드 월 예산 모달·지출 페이지 "게임별 예산" 목록·설정 알림 토글 2개·미적용 폴백)·인수 기준 114-1~114-8. 허용 파일: 신규 `sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `src/lib/budget-calculations.ts`·`.test.ts`, `src/app/dashboard/games/**`, `src/app/dashboard/expenses/**`, `src/components/settings/notification-settings-card.tsx`·관련 테스트, 루트 `docs/handoff.md`, `docs/progress.md` | `R114-REV-001` 수정함(지출 1,000행 단위 페이지 조회·초과 테스트) |
-| **2** | **`🔄 IN_PROGRESS (main 병합 b161592d6eb707e37f14f4de1a6b53e16bcf9f40, 재검증·문서 마감 남음)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 02 Target `f577f6d` 재리뷰. 🐳 **Docker Desktop 필요**. TS·SQL 귀속 규칙 정적 리뷰·DB 업그레이드/신규 2경로 2회 멱등·`TESTS.sql`·tsc·lint·Vitest·build 재검증·통과 시 `main` 병합·문서 마감 | Iteration 02 재리뷰 대기 |
-| **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 예산 UI·알림 확인 | Step 2 병합 후 안내함 |
+| **2** | **`✅ DONE (artifact e47928f8911ee61b9587210c336193bb6e53b2cb; main 병합 b161592d6eb707e37f14f4de1a6b53e16bcf9f40)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 02 정적 재리뷰·격리 DB 게이트·병합 후 전체 검증 | clean, 업그레이드·신규 경로 통과 |
+| **3** | `▶ READY` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 예산 UI·알림 확인 | Step 2 완료, 아래 완료 기록 참조 |
 
 
 #### 📝 `r114-game-budgets` Step 1 Iteration 02 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
@@ -36,7 +36,7 @@
 - **판단**: 서버 집계 대신 페이지 조회를 고름. 예산 규칙(`calculateGameBudgetUsage`)을 그대로 쓰고 새 RPC·SQL이 필요 없어서임.
 - **검증 (실제 실행)**: 게임 행을 모두 2페이지(1,000행 뒤)에 둔 테스트 추가 — 수정 전 코드에서는 이 테스트 `FAIL` 확인, 수정 후 통과. `tsc`·`lint`·Vitest 82파일/1,122개·`next build` 16/16(워크트리에 `.env.local`이 없어 더미 공개 Supabase 값 사용)·`git diff --check` 통과. SQL 변경이 없어 로컬 DB는 다시 돌리지 않음(Step 2 DB 게이트에서 Base ↔ Target 전체로 확인).
 - **남은 관찰 (수정 안 함)**: 같은 함수의 자동 확정 표시 조회 `.in("id", confirmedIds)`는 확정 ID를 한 번에 URL로 보냄. ID가 많으면 URL이 길어져 실패할 수 있으나, 실패 시 자동 확정 배지만 숨겨짐(예산·금액 영향 없음). R107-C 기존 코드라 이번 범위 밖임.
-- **남음**: Step 2 GPT Codex 재리뷰·DB 게이트·통과 시 `main` 병합 → Step 3 사용자 운영 DB 적용·배포·UI 확인.
+- **완료**: Step 2 재리뷰·DB 게이트·`main` 병합 완료함. 다음은 Step 3 사용자 운영 DB 적용·배포·UI 확인임.
 
 #### 📝 `r114-game-budgets` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
 
@@ -53,7 +53,16 @@
 - **검증**: 원본 로컬 Target DB migration 2회·전체 `TESTS.sql` 통과. 격리 스택에서 Base 업그레이드와 Target 신규 설치 경로 각각 migration 2회·`TESTS.sql` R114-01/02·ROLLBACK 통과. tsc·lint·Vitest 82파일/1,121개·`next build` 16/16·artifact schema(Ajv)·`git diff --check` 통과.
 - **남음**: 지출 전량 페이지네이션 또는 동등한 합산 경로와 1,000행 초과 테스트 추가 → 재리뷰·전체 검증 → 통과 시 `main` 병합 → 사용자 운영 적용·배포 확인.
 
-> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 `"인수인계 문서를 확인해"`로 Step 2 Iteration 02 재리뷰(Base `85d8adc` ↔ Target `f577f6d`)·🐳 DB 게이트·통과 시 `main` 병합함.
+#### 📝 `r114-game-budgets` Step 2 Iteration 02 (Reviewer & Local DB Gate) 완료 기록 (GPT Codex, 2026-11-26)
+
+- **Base ↔ Target**: `85d8adcb294bcd4622eb90df3bb826b94a4445d6` ↔ `f577f6d5fb3fabcb7c777905dfea5402cc070c81`; artifact commit `e47928f8911ee61b9587210c336193bb6e53b2cb`; `main` merge `b161592d6eb707e37f14f4de1a6b53e16bcf9f40`.
+- **정적 리뷰**: 결과 `clean`, finding 없음. artifact schema를 Ajv 6.15.0으로 검증함.
+- **DB 검증**: 원본 `chronoledger-local`을 유지하고 임시 격리 Supabase에서 Base 스키마 업그레이드 경로와 Target 신규 설치 경로를 각각 실행함. 양쪽 모두 migration 2회, R114-01/02 및 rollback 통과함.
+- **앱 검증**: Target 및 병합 후 `main`에서 tsc·lint·Vitest 82파일/1,122개·`next build` 16페이지 통과함.
+- **변경 요약**: 1,000행 상한으로 예산 사용액이 누락될 수 있던 조회를 안정 정렬 페이지네이션으로 고치고 2페이지 회귀 테스트를 추가함. 결제·환불 RPC 및 `expenses` 제약은 바꾸지 않음.
+- **사용자 후속**: 운영 DB에 `MIGRATION_R114_GAME_BUDGETS.sql` 적용 후 `sql/README.md` R114 확인 쿼리 실행, 배포, 예산 모달·게임별 월 예산 목록·80%/100% 알림·월간 리포트를 확인해야 함.
+
+> **다음 단계**: 사용자가 `▶ READY`인 Step 3 운영 DB 마이그레이션·확인 쿼리·배포·화면 및 알림 확인을 진행함. 이후 R114를 마감하고 R115를 등록함.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
