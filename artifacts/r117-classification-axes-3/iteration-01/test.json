@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "r117-classification-axes-3",
+  "iteration": 1,
+  "agent": "GPT Codex",
+  "base_sha": "123a70b699b80398999d171140eec6e471d2cc53",
+  "target_sha": "c5c5a1c1004424fff8c496d0e55a7b18726e8ebc",
+  "role": "dynamic-test",
+  "status": "passed",
+  "created_at": "2026-11-27T01:35:00+09:00",
+  "finished_at": "2026-11-27T01:35:00+09:00",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "TypeScript",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Lint",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest",
+      "command": "npx vitest run (85 files, 1,149 tests)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Production build",
+      "command": "NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=public-test-key npm run build (16 static pages; escalated after sandbox EPERM)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Upgrade path",
+      "command": "Isolated Supabase: Base SCHEMA.sql, R117 migration twice, README user-icons prerequisite, full TESTS.sql (R117-01 and final rollback PASS; no ERROR)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Fresh install path",
+      "command": "Fresh isolated Supabase: Target SCHEMA.sql, R117 migration twice, README user-icons prerequisite, full TESTS.sql (R117-01 and final rollback PASS; no ERROR)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Responsive viewport visual check",
+      "command": "Manual layout inspection at 390/900/1280; deferred for user Step 3",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": null
+    },
+    {
+      "name": "Artifact schema validation",
+      "command": "Node Ajv 6.15.0 validating project review/test schemas with Draft 2020 $defs adapted to Draft 7 definitions; Python jsonschema unavailable",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Diff whitespace",
+      "command": "git diff --check Base..Target",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}

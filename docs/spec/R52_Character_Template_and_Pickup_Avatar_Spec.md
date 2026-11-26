@@ -69,12 +69,13 @@
 | **`character_label`** *(캐릭터 시스템 명칭)* | `classification_schema.character_label` (`string`, 선택) | - (UI/모달/테이블 호칭에 사용) | 미지정 시 기본값 `"캐릭터"`. 지정 시 공백 제거 길이 `1~20자` 문자열이어야 함 (`공명자`, `오퍼레이터`, `에이전트`, `니케` 등). |
 | **`character_rank`** *(전체 등급/성급)* | `classification_schema.rarities` (`string[]`, 필수 배열) | `game_characters.rarity` (`VARCHAR(30)`) | 최고 등급 → 최저 등급 순 문자열 배열 (`0~10개`, 각 `1~20자`, 중복 불가). **`rarities`가 비어 있으면(`[]`) 아직 캐릭터 템플릿이 생성되지 않은 게임으로 판정**하며, 템플릿 생성 시 **최소 1개 이상 필수**. |
 | **`character_class1`** *(분류 기준 1)* | `classification_schema.axes[0]` (`{ key, label, options }`) | `game_characters.attributes[axes[0].key]` | `label`: `1~30자` 분류 명칭(예: `속성`, `원소`). `options`: `1~20개` 고유 선택지 문자열 배열. |
-| **`character_class2`** *(분류 기준 2)* | `classification_schema.axes[1]` (`{ key, label, options }`) | `game_characters.attributes[axes[1].key]` | `axes` 배열 길이는 **최대 2개(`0~2개`)**로 제한함 (`character_class1`, `character_class2`). |
+| **`character_class2`** *(분류 기준 2)* | `classification_schema.axes[1]` (`{ key, label, options }`) | `game_characters.attributes[axes[1].key]` | `label`·`options` 규칙은 분류 기준 1과 같음. |
+| **`character_class3`** *(분류 기준 3, `R117`)* | `classification_schema.axes[2]` (`{ key, label, options }`) | `game_characters.attributes[axes[2].key]` | `label`·`options` 규칙은 분류 기준 1과 같음. `axes` 배열 길이는 **최대 3개(`0~3개`)**로 제한함(`R117`, 2026-11-27에 원 `R13` 설계값으로 되돌림. `R52` 당시에는 최대 2개였음). |
 
 #### DB 검증 함수 갱신 (`public.is_valid_classification_schema(p_schema JSONB)`)
 
 - `p_schema` 내 선택적 `character_label` 키가 존재할 경우 `jsonb_typeof(p_schema -> 'character_label') = 'string'`이고 `length(btrim(p_schema ->> 'character_label')) BETWEEN 1 AND 20`인지 검증함(키가 없으면 기존 데이터 하위 호환 통과).
-- `jsonb_array_length(p_schema -> 'axes') <= 2`로 분류 기준을 최대 2개(`character_class1`, `character_class2`)로 강제함(기존에 3개 축을 가진 데이터가 있는 경우 마이그레이션 전 사전 점검 쿼리로 확인하며, 현재 운영 DB에는 3개 축 사용 게임 없음).
+- (`R117`로 갱신) `jsonb_array_length(p_schema -> 'axes') <= 3`으로 분류 기준을 최대 3개(`character_class1`~`character_class3`)로 강제함. `R52` 원안은 `<= 2`였음(기존에 3개 축을 가진 데이터가 있는 경우 마이그레이션 전 사전 점검 쿼리로 확인하며, 현재 운영 DB에는 3개 축 사용 게임 없음).
 
 ---
 
@@ -146,7 +147,7 @@ ALTER TABLE public.game_schedules
    - 템플릿이 생성된 게임을 선택하면:
      - 상단 액션 버튼이 **`[+ {character_label} 추가]`** (예: `+ 공명자 추가`)와 **`[템플릿 설정 수정]`**으로 표시됨.
      - **성급(`character_rank`)별 분리 표시**: 템플릿의 `rarities` 순서에 따라 성급별 필터 탭(`전체` / `5성 (N)` / `4성 (M)`) 및 성급 그룹 구분이 적용됨.
-     - **동적 컬럼 헤더**: 테이블 헤더가 **`[아이콘 | {character_label} 이름 | 등급 | {class1.label} | {class2.label} | 관리]`**로 동적 구성됨(설정되지 않은 분류 기준 컬럼은 숨김).
+     - **동적 컬럼 헤더**: 테이블 헤더가 **`[아이콘 | {character_label} 이름 | 등급 | {class1.label} | {class2.label} | {class3.label} | 관리]`**로 동적 구성됨(설정되지 않은 분류 기준 컬럼은 숨김, `{class3.label}`은 `R117`부터).
 2. **맞춤형 `{character_label}` 추가/수정 모달**:
    - 모달 제목: **`{게임명} {character_label} 추가`** (수정 시 **`{게임명} {character_label} 수정`**).
    - 입력 필드:
@@ -154,6 +155,7 @@ ALTER TABLE public.game_schedules
      - **`등급 *` (`character_rank`)**: 템플릿의 `rarities` 목록이 드롭다운(`<select>`)으로 제공되며 **필수 선택**임.
      - **`{class1.label} *` (`character_class1`)**: 템플릿에 분류 기준 1이 정의된 경우 해당 `options` 목록이 드롭다운(`<select>`)으로 제공되며 **필수 선택**임.
      - **`{class2.label} *` (`character_class2`)**: 템플릿에 분류 기준 2가 정의된 경우 해당 `options` 목록이 드롭다운(`<select>`)으로 제공되며 **필수 선택**임.
+     - **`{class3.label} *` (`character_class3`, `R117`)**: 템플릿에 분류 기준 3이 정의된 경우 해당 `options` 목록이 드롭다운(`<select>`)으로 제공되며 **필수 선택**임.
      - **`{character_label} 아이콘 *`**: 파일 업로드 / 외부 이미지 URL(CORS 프록시 폴백) / 클립보드 이미지 붙여넣기(`Ctrl+V`) → 256×256 WebP Data URL.
 
 ---
@@ -171,12 +173,12 @@ ALTER TABLE public.game_schedules
      - 보조 문구: **`"보유 캐릭터 체크 및 조합 프리셋은 관리자가 캐릭터 카탈로그를 등록한 게임에서만 제공됩니다."`**를 표시함.
 3. **게임별 `character_label` 및 성급·분류 필터 반영**:
    - 선택된 게임의 `character_label`(예: `공명자`)을 탭/안내 문구(예: `보유 공명자 N / 전체 M`, `+ 공명자 추가 요청`)에 반영함.
-   - 성급(`rarities`) 필터와 최대 2개의 분류 기준(`class1.label`, `class2.label`) 필터 칩을 동적으로 렌더링함.
+   - 성급(`rarities`) 필터와 최대 3개의 분류 기준(`class1.label`~`class3.label`, `R117`) 필터 칩을 동적으로 렌더링함.
 
 ### 4.2 `RequestSubmissionModal` (`+ 추가 요청` → `캐릭터`)
 
 - 사용자가 `캐릭터 추가/수정 요청`을 선택했을 때, **관리자가 캐릭터 템플릿을 활성화한 게임(`rarities.length >= 1`)**만 게임 선택 드롭다운에서 선택 가능하도록 필터링함.
-- 게임 선택 시 해당 게임의 `character_label`, `등급 *` 드롭다운(`rarities`), `{class1.label} *` 드롭다운, `{class2.label} *` 드롭다운으로 입력 폼이 동적으로 재구성됨.
+- 게임 선택 시 해당 게임의 `character_label`, `등급 *` 드롭다운(`rarities`), `{class1.label} *`·`{class2.label} *`·`{class3.label} *` 드롭다운(설정된 분류 기준만, 세 번째는 `R117`부터)으로 입력 폼이 동적으로 재구성됨.
 
 ---
 

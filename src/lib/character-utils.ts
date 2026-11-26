@@ -83,7 +83,7 @@ export function normalizeClassificationSchema(raw: unknown): ClassificationSchem
     })
   }
   const characterLabel = typeof source.character_label === "string" && source.character_label.trim() ? source.character_label.trim() : "캐릭터"
-  return { character_label: characterLabel, rarities: toStringArray(source.rarities), axes: axes.slice(0, 2) }
+  return { character_label: characterLabel, rarities: toStringArray(source.rarities), axes: axes.slice(0, TEMPLATE_AXIS_MAX_COUNT) }
 }
 
 export function isCharacterTemplateActive(game: { classification_schema?: unknown } | null | undefined, characterCount: number): boolean {
@@ -271,13 +271,13 @@ export function filterCharacters(
 }
 
 // ---------------------------------------------------------------------------
-// Classification template (admin form) - mirrors the DB is_valid_classification_schema (R52 / R57)
+// Classification template (admin form) - mirrors the DB is_valid_classification_schema (R52 / R57, up to 3 axes since R117)
 // ---------------------------------------------------------------------------
 
 export const CHARACTER_LABEL_MAX = 20
 export const TEMPLATE_RARITY_MAX_COUNT = 10
 export const TEMPLATE_RARITY_MAX_LENGTH = 20
-export const TEMPLATE_AXIS_MAX_COUNT = 2
+export const TEMPLATE_AXIS_MAX_COUNT = 3
 export const TEMPLATE_AXIS_LABEL_MAX = 30
 export const TEMPLATE_AXIS_OPTION_MAX_COUNT = 20
 export const TEMPLATE_AXIS_OPTION_MAX_LENGTH = 30

@@ -24,6 +24,7 @@ This specification defines **R13**: enabling ChronoLedger users to track owned c
 3. **Per-Game Classification & Rarity Optimization**:
    - Subculture games use different terminology and axes for character classification (e.g., *Genshin*: Rarity `5★/4★` + `원소` + `무기`; *Honkai: Star Rail*: `5★/4★` + `속성` + `운명의 길`; *Arknights*: `6★~1★` + `직군` + `세부직군`; *Nikke*: `SSR/SR/R` + `버스트(I/II/III)` + `코드/무기`).
    - Each game (`public.games`) defines its own **Rarity options** and up to **3 classification axes** (`classification_schema` JSONB). Each character (`public.game_characters`) stores its `rarity` and key-value `attributes` JSONB matching the parent game's schema, enabling fast, zero-join client filtering and sorting in both the roster tab and preset builder.
+   - *(R117, 2026-11-27)* `R52` narrowed the limit to 2 axes; `R117` restored this original 3-axis limit in `is_valid_classification_schema`, the admin template form and `normalizeClassificationSchema`.
 4. **Per-Character Memo Field (No Badge Clutter on Presets)**:
    - Users can toggle ownership (`is_owned`) and write a free-form per-character memo (`user_characters.memo`, e.g., `"2돌 전무"`, `"육성 예정"`, up to 200 chars) in the `보유 캐릭터` tab.
    - Do **not** render memo tags as small badges on party preset cards; keep preset cards visually clean.

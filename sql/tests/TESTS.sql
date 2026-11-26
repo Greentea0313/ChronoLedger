@@ -165,6 +165,8 @@
 --   R115-02 authenticated / I1    I4 위반 1행(미래·2000년 이전·없는 날짜·금액 0/소수/문자/상한 초과·빈/151자 제목·분류·없는/형식 틀린 game_id·
 --                                  501자 메모·객체 아님) 시 행 번호 오류와 전체 미반영, 0행·1,001행 거부, 1,000행 성공, anon 실행 거부.
 --   R115-03 authenticated / I1·I2 배치 취소는 본인·I1 값 행만(환불 행 포함) 삭제(자산 차감·정가≠실결제액 행 유지), 다른 사용자·NULL 배치 0건, 탈퇴 대기 시 두 RPC 거부.
+--   R117-01 fixture / admin     분류 축 3개 허용·4개 거부(검증 함수·games CHECK)·키 중복 거부·2축 유효, 세 번째 축 아이콘 트리거(없는 선택지 거부),
+--                                  세 번째 축 값 요청 승인·없는 값 거부, 세 번째 축 삭제 시 해당 아이콘만 정리.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -1686,7 +1688,8 @@ BEGIN
  OR public.is_valid_classification_schema('{"character_label":"","rarities":[],"axes":[]}'::jsonb)
  OR public.is_valid_classification_schema('{"character_label":"123456789012345678901","rarities":[],"axes":[]}'::jsonb)
  OR public.is_valid_classification_schema('{"character_label":7,"rarities":[],"axes":[]}'::jsonb)
- OR public.is_valid_classification_schema('{"rarities":[],"axes":[{"key":"a","label":"a","options":["1"]},{"key":"b","label":"b","options":["1"]},{"key":"c","label":"c","options":["1"]}]}'::jsonb)
+ OR NOT public.is_valid_classification_schema('{"rarities":[],"axes":[{"key":"a","label":"a","options":["1"]},{"key":"b","label":"b","options":["1"]},{"key":"c","label":"c","options":["1"]}]}'::jsonb)
+ OR public.is_valid_classification_schema('{"rarities":[],"axes":[{"key":"a","label":"a","options":["1"]},{"key":"b","label":"b","options":["1"]},{"key":"c","label":"c","options":["1"]},{"key":"d","label":"d","options":["1"]}]}'::jsonb)
  THEN RAISE EXCEPTION 'FAIL: character template validation regression'; END IF;
 
  v_ids := ARRAY[current_setting('chronoledger.r13_character_1_id')::uuid, current_setting('chronoledger.r13_character_2_id')::uuid];
@@ -6376,6 +6379,100 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: R115-03 undo deletes only untouched rows of the caller (refunded included), edited or asset rows kept, other user 0 rows, pending deletion blocks both RPCs
+
+-- ============================================================================
+-- R117: up to three classification axes (validator limit 2 -> 3). A fresh user and game keep the case independent.
+-- ============================================================================
+SELECT gen_random_uuid() AS r117_user \gset
+SELECT set_config('chronoledger.r117_user', :'r117_user', true);
+INSERT INTO auth.users (id, aud, role, email, encrypted_password, raw_app_meta_data, raw_user_meta_data)
+VALUES (:'r117_user'::uuid, 'authenticated', 'authenticated', 'r117-sqltest-' || replace(:'r117_user', '-', '') || '@example.invalid',
+        '', '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb);
+
+-- R117-01) Three axes accepted, four rejected; an existing two-axis schema stays valid; third-axis icons and requests work.
+DO $$
+DECLARE
+    v_game UUID;
+    v_request UUID;
+    v_three JSONB := '{"rarities":["5성","4성"],"axes":[
+        {"key":"class1","label":"속성","options":["불","물"]},
+        {"key":"class2","label":"무기","options":["검","활"]},
+        {"key":"class3","label":"역할","options":["딜러","힐러"]}]}'::jsonb;
+BEGIN
+    IF NOT public.is_valid_classification_schema(v_three)
+       OR public.is_valid_classification_schema(jsonb_set(v_three, '{axes,3}', '{"key":"class4","label":"진영","options":["A"]}'::jsonb, true))
+       OR NOT public.is_valid_classification_schema('{"rarities":["5성"],"axes":[{"key":"a","label":"a","options":["1"]},{"key":"b","label":"b","options":["1"]}]}'::jsonb)
+       OR public.is_valid_classification_schema(jsonb_set(v_three, '{axes,2,key}', '"class1"'::jsonb)) THEN
+        RAISE EXCEPTION 'FAIL: R117 validator should accept 0-3 axes with unique keys and reject 4';
+    END IF;
+
+    INSERT INTO public.games(name, default_icon_url, classification_schema)
+    VALUES ('R117 game ' || current_setting('chronoledger.r117_user'), 'https://example.invalid/r117.webp', v_three)
+    RETURNING id INTO v_game;
+    PERFORM set_config('chronoledger.r117_game', v_game::text, true);
+
+    BEGIN
+        UPDATE public.games
+        SET classification_schema = jsonb_set(v_three, '{axes,3}', '{"key":"class4","label":"진영","options":["A"]}'::jsonb, true)
+        WHERE id = v_game;
+        RAISE EXCEPTION 'FAIL: R117 four-axis schema accepted by games_classification_schema_check';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLERRM NOT LIKE '%games_classification_schema_check%' THEN RAISE; END IF;
+    END;
+
+    -- Third-axis option icon is accepted; an option missing from the schema is rejected by the trigger.
+    INSERT INTO public.game_classification_icons(game_id, axis_key, option_value, icon_data_url)
+    VALUES (v_game, 'class3', '힐러', 'data:image/webp;base64,UklGRg==');
+    BEGIN
+        INSERT INTO public.game_classification_icons(game_id, axis_key, option_value, icon_data_url)
+        VALUES (v_game, 'class3', '탱커', 'data:image/webp;base64,UklGRg==');
+        RAISE EXCEPTION 'FAIL: R117 icon for a missing third-axis option accepted';
+    EXCEPTION WHEN check_violation THEN
+        IF SQLERRM NOT LIKE '%classification option not found%' THEN RAISE; END IF;
+    END;
+
+    INSERT INTO public.character_requests(user_id, game_id, name, rarity, attributes)
+    VALUES (current_setting('chronoledger.r117_user')::uuid, v_game, 'R117 healer', '5성',
+            '{"class1":"물","class2":"활","class3":"힐러"}'::jsonb)
+    RETURNING id INTO v_request;
+    PERFORM set_config('chronoledger.r117_ok_request', v_request::text, true);
+    INSERT INTO public.character_requests(user_id, game_id, name, rarity, attributes)
+    VALUES (current_setting('chronoledger.r117_user')::uuid, v_game, 'R117 bad role', '5성',
+            '{"class1":"물","class3":"탱커"}'::jsonb)
+    RETURNING id INTO v_request;
+    PERFORM set_config('chronoledger.r117_bad_request', v_request::text, true);
+END $$;
+
+SELECT set_config('request.jwt.claim.sub', :'r117_user', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'r117_user', 'role', 'authenticated', 'app_metadata', jsonb_build_object('role', 'admin'))::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    PERFORM public.approve_character_request(current_setting('chronoledger.r117_ok_request')::uuid);
+    BEGIN
+        PERFORM public.approve_character_request(current_setting('chronoledger.r117_bad_request')::uuid);
+        RAISE EXCEPTION 'FAIL: R117 request with an unknown third-axis value approved';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM NOT LIKE '게임 분류 스키마에 없는 분류 값입니다: class3%' THEN RAISE; END IF;
+    END;
+END $$;
+RESET ROLE;
+
+DO $$
+DECLARE
+    v_game UUID := current_setting('chronoledger.r117_game')::uuid;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.game_characters WHERE game_id = v_game AND name = 'R117 healer'
+                   AND attributes = '{"class1":"물","class2":"활","class3":"힐러"}'::jsonb) THEN
+        RAISE EXCEPTION 'FAIL: R117 approved character should keep all three attributes';
+    END IF;
+    -- Dropping the third axis removes only its icons (R64 cleanup trigger).
+    UPDATE public.games SET classification_schema = classification_schema #- '{axes,2}' WHERE id = v_game;
+    IF EXISTS (SELECT 1 FROM public.game_classification_icons WHERE game_id = v_game AND axis_key = 'class3') THEN
+        RAISE EXCEPTION 'FAIL: R117 removed third-axis icons were not cleaned';
+    END IF;
+END $$;
+\echo PASS: R117-01 three axes accepted and four rejected, third-axis icons/approval validated, two-axis schemas unchanged
 
 SET LOCAL ROLE anon;
 DO $$
