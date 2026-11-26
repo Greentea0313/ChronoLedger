@@ -18,7 +18,7 @@
 
 - **활성 Run**: **`R115` CSV 결제 내역 가져오기 (`r115-csv-import` — Base `a04237f3da787e33dd37a6ca80e4d97322c575cc`, 브랜치 `collab/r115-csv-import`, 워크트리 `.worktrees/r115-csv-import`)** *(명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §5(결정 I1~I16·인수 기준 115-1~115-9)·§7(모델 배정). 직전 Run `r114-game-budgets`는 2026-11-26 마감함. 이후 `R116` 순으로 등록함)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R115_EXPENSE_IMPORT.sql`, `SCHEMA.sql`: `expenses.import_batch_id`·`import_confirmed_expenses`·`delete_import_batch`). 🐳 Docker Desktop 필요(이 PC는 2026-11-26 등록 시점에 엔진 실행 중 확인함). **지출 원장 접점**이라 Step 1은 Opus 승격 조건 ①. 결제·환불 RPC와 기존 정책은 변경하지 않음(115-8).
-- **Iteration 01 Target SHA**: `b8aa935c6bd1065fbf6d9ba053cb56d3edfb7eb6` *(워크트리 커밋 `f0ab294`(SQL)·`b8aa935`(UI), 미병합, 원격 브랜치: push 안 함)*
+- **Iteration 02 Target SHA**: `a01d312dbaf835d33c27b21beb3bd0c32094240e` *(워크트리 커밋, 미병합, 원격 브랜치: push 안 함. Iteration 01 Target `b8aa935c6bd1065fbf6d9ba053cb56d3edfb7eb6`, 리뷰 범위는 Base ↔ Iteration 02 Target)*
 - **핵심 불변식**: 가져온 행은 `CONFIRMED`·`WALLET`·`deduct_from_asset = false`·포인트 0이라 총자산·지갑·포인트 원장이 변하지 않아야 하고, 가져온 행을 환불해도 변하지 않아야 함(115-1·115-2). 위반 1행이 섞이면 전체 거부(115-3).
 - **모델 배정 근거**: `Gemini Models` 한도 소진 중이라 명세 §7 권고대로 배정함. 리뷰어는 Maker와 다른 모델임.
 
@@ -28,6 +28,15 @@
 | **2** | **`▶ READY (Iteration 02 재리뷰, Iteration 01 산출물 db1997d9204b7a4f203d6220c3cee476c8ece1fd)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외, 불가 시 다른 세션의 Claude Opus)* | `Reviewer & Local DB Gate` | Iteration 02 Target 정적 재리뷰·업그레이드/신규 DB 경로·전체 검사 재검증, 통과 시에만 `main` 병합 | Iteration 01에서 P2 1건·P4 1건 발견함 |
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 실제 CSV 1개 가져오기·가져오기 취소 확인 | Step 2 병합 후 안내함 |
 
+
+#### 📝 `r115-csv-import` Step 1 Iteration 02 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `a01d312dbaf835d33c27b21beb3bd0c32094240e` (`collab/r115-csv-import`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (3개)**: `sql/migrations/MIGRATION_R115_EXPENSE_IMPORT.sql`, `sql/SCHEMA.sql`(두 파일의 `delete_import_batch` 본문 일치 확인), `sql/tests/TESTS.sql`. `src/**` 변경 없음.
+- **`R115-REV-001` (P2)**: `delete_import_batch` 삭제 조건에 `original_price = final_amount`를 더해 I1 값을 모두 명시함. 참고로 기존 조건(할인·포인트 할인 0)과 `chk_expense_math` 때문에 정가와 실결제액이 다른 행은 이미 지워지지 않았고, 확정 행의 금액을 바꾸는 경로(정책·RPC)도 없음. `TESTS.sql` R115-03에 같은 배치의 "정가 500·할인 200·실결제 300" 행을 넣고 취소 뒤 남는지 확인함.
+- **`R115-REV-002` (P4)**: R115-03 `\echo` 문구에서 apostrophe를 뺌. 새 실행 로그에 `unterminated quoted string` 없음(이전 로그 6373행에는 있었음).
+- **검증 (실제 실행)**: 🐳 업그레이드(Base `a04237f` → R115 2회 → `TESTS.sql` 62개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 62개 PASS), 두 로그 모두 `ERROR`·`unterminated` 0건. 변이(할인 0·정가=실결제 조건을 함께 제거) 시 R115-03 `FAIL`. `tsc`·`lint`·Vitest 85파일/1,146개·`git diff --check` 통과. `src/**` 변경이 없어 `next build`는 다시 돌리지 않음(Iteration 01 16/16).
+- **남음**: Step 2 GPT Codex Iteration 02 재리뷰·🐳 DB 게이트·통과 시 `main` 병합 → Step 3 사용자 확인.
 
 #### 📝 `r115-csv-import` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-26)
 
@@ -46,7 +55,7 @@
 - **검증 (실제 실행)**: 🐳 업그레이드(Base `a04237f` `SCHEMA.sql` → R115 2회 → `TESTS.sql` 62개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 62개 PASS). 변이 2건(가져오기를 자산 차감으로 바꿈, 취소 RPC의 본인 조건 제거) 모두 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 85파일/1,146개(신규 25개)·`next build` 16/16(더미 공개 Supabase 값)·`git diff --check` 통과. **미검증**: 실제 브라우저 화면·실제 CSV 파일은 Step 3 사용자 확인.
 - **남음**: Step 2 GPT Codex 리뷰·🐳 DB 게이트·통과 시 `main` 병합 → Step 3 사용자 운영 DB 적용·배포·실제 CSV 가져오기·취소 확인.
 
-> **다음 단계**: **Claude Opus (`High` — 도구에서 High 선택)**가 `"인수인계 문서를 확인해"`로 Step 1 Iteration 02에서 R115-REV-001·002를 수정함. 이후 **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 Step 2 Iteration 02 리뷰·🐳 DB 게이트를 재수행함.
+> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 `"인수인계 문서를 확인해"`로 Step 2 Iteration 02 재리뷰(Base `a04237f` ↔ Target `a01d312`)·🐳 DB 게이트·통과 시 `main` 병합함.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
