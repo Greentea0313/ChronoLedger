@@ -9,7 +9,7 @@
                                 "Step 3: spec section 4 Step 3 (3-1..3-2): static review of key/secret exposure, capability scope, endpoint and pubkey consistency, web bundle impact, then re-run checks and merge"
                             ],
     "base_sha":  "9096cd10d30188f7cb850cdffebbdab4609e05f4",
-    "target_sha":  "29e94dadf5f1fb327d610fa256c01743903f300ba",
+    "target_sha":  "40302207017d40e64617e2e3e7864a48d8bf4b1c",
     "branch":  "collab/r110-desktop-auto-update",
     "worktree_path":  ".worktrees/r110-desktop-auto-update",
     "max_iterations":  3,
