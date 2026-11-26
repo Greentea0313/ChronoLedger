@@ -2,6 +2,12 @@ import { supabase } from "@/lib/supabase/client"
 
 const userIconCache = new Map<string, string | null>()
 
+// Object names per user-icons folder, so icons that do not exist are never downloaded.
+// Storage answers a missing object with HTTP 400, which the browser logs once per game without a custom icon.
+// null = listing unavailable (error, or the folder may hold more than one page): fall back to downloading.
+const FOLDER_LIST_LIMIT = 1000
+const folderNamesCache = new Map<string, Promise<Set<string> | null>>()
+
 /**
  * 캐시된 유저 아이콘 메모리 해제 및 초기화
  */
@@ -12,6 +18,37 @@ export function clearUserIconCache(): void {
     }
   })
   userIconCache.clear()
+  folderNamesCache.clear()
+}
+
+function splitObjectPath(filePath: string): { folder: string; name: string } {
+  const slash = filePath.lastIndexOf("/")
+  return { folder: filePath.slice(0, slash), name: filePath.slice(slash + 1) }
+}
+
+function listFolderNames(folder: string): Promise<Set<string> | null> {
+  let pending = folderNamesCache.get(folder)
+  if (!pending) {
+    pending = (async () => {
+      try {
+        const { data, error } = await supabase.storage.from('user-icons').list(folder, { limit: FOLDER_LIST_LIMIT })
+        if (error || !data || data.length >= FOLDER_LIST_LIMIT) return null
+        return new Set(data.map((entry) => entry.name))
+      } catch {
+        return null
+      }
+    })()
+    folderNamesCache.set(folder, pending)
+  }
+  return pending
+}
+
+async function updateFolderNames(filePath: string, exists: boolean): Promise<void> {
+  const { folder, name } = splitObjectPath(filePath)
+  const names = await folderNamesCache.get(folder)
+  if (!names) return
+  if (exists) names.add(name)
+  else names.delete(name)
 }
 
 /**
@@ -29,6 +66,8 @@ async function uploadIconObject(filePath: string, cacheKey: string, imageBlob: B
   if (error) {
     throw new Error(`이미지 업로드에 실패했습니다: ${error.message}`)
   }
+
+  await updateFolderNames(filePath, true)
 
   // 캐시 갱신
   const oldUrl = userIconCache.get(cacheKey)
@@ -50,6 +89,13 @@ async function downloadIconObject(filePath: string, cacheKey: string): Promise<s
   }
 
   if (!supabase.storage) {
+    return null
+  }
+
+  const { folder, name } = splitObjectPath(filePath)
+  const names = await listFolderNames(folder)
+  if (names && !names.has(name)) {
+    userIconCache.set(cacheKey, null)
     return null
   }
 
@@ -83,6 +129,8 @@ async function deleteIconObject(filePath: string, cacheKey: string): Promise<voi
   if (error) {
     throw new Error(`이미지 삭제에 실패했습니다: ${error.message}`)
   }
+
+  await updateFolderNames(filePath, false)
 
   // 캐시 삭제 및 Object URL 정리
   const oldUrl = userIconCache.get(cacheKey)

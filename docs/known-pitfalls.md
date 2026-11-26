@@ -186,3 +186,8 @@
     - 증상: 다른 사용자의 닉네임·역할을 조회하는 화면이 빈 값이나 0행을 받음.
     - 원인: `MIGRATION_USERS_PROFILE_PRIVACY.sql`부터 `users` SELECT 정책이 `auth.uid() = id`임(이메일 앞부분 닉네임·관리자 목록 노출 차단).
     - 방어책: 타인 표시명이 필요하면 공개 범위를 정한 `SECURITY DEFINER` RPC로 필요한 컬럼만 반환함. 정책을 다시 `USING (true)`로 넓히지 않음.
+
+51. **Supabase Storage는 없는 파일에 404가 아니라 400을 반환함**
+    - 증상: 콘솔에 `Failed to load resource ... 400`이 게임 수만큼 찍힘. 응답 본문은 `{"statusCode":"404","error":"not_found"}`임.
+    - 원인: 비공개 `user-icons`에 없는 객체를 `download`하면 HTTP 400으로 응답함. 코드가 처리해도 브라우저 로그는 남음.
+    - 방어책: `src/lib/storage-upload.ts`처럼 폴더 `list`로 존재 여부를 먼저 확인하고 있는 파일만 내려받음. 새 아이콘 종류를 추가할 때도 같은 helper를 씀.

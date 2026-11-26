@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-const { upload, download, remove, from } = vi.hoisted(() => {
+const { upload, download, remove, from, fromResult } = vi.hoisted(() => {
   const upload = vi.fn()
   const download = vi.fn()
   const remove = vi.fn()
-  const from = vi.fn(() => ({ upload, download, remove }))
-  return { upload, download, remove, from }
+  // Without `list` the module falls back to downloading directly (the pre-listing behavior).
+  const fromResult: Record<string, unknown> = { upload, download, remove }
+  const from = vi.fn(() => fromResult)
+  return { upload, download, remove, from, fromResult }
 })
 
 vi.mock("@/lib/supabase/client", () => ({ supabase: { storage: { from } } }))
@@ -124,6 +126,60 @@ describe("storage-upload (R13 custom character icons)", () => {
     await deleteUserIcon(USER_ID, "game-1")
 
     expect(remove).toHaveBeenCalledWith([`${USER_ID}/game-1.webp`])
+  })
+
+  describe("folder listing before download", () => {
+    afterEach(() => {
+      delete (fromResult as { list?: unknown }).list
+    })
+
+    it("skips the download when the folder listing has no such object", async () => {
+      const list = vi.fn().mockResolvedValue({ data: [{ name: "game-1.webp" }], error: null })
+      ;(fromResult as { list?: unknown }).list = list
+
+      expect(await downloadUserIcon(USER_ID, "game-2")).toBeNull()
+      expect(await downloadUserIcon(USER_ID, "game-3")).toBeNull()
+      expect(await downloadUserIcon(USER_ID, "game-1")).toBe("blob:mock-1")
+
+      expect(list).toHaveBeenCalledTimes(1)
+      expect(list).toHaveBeenCalledWith(USER_ID, { limit: 1000 })
+      expect(download).toHaveBeenCalledTimes(1)
+      expect(download).toHaveBeenCalledWith(`${USER_ID}/game-1.webp`)
+    })
+
+    it("lists the characters folder separately from game icons", async () => {
+      const list = vi.fn().mockResolvedValue({ data: [], error: null })
+      ;(fromResult as { list?: unknown }).list = list
+
+      expect(await getCustomCharacterIconUrl(USER_ID, CHARACTER_ID)).toBeNull()
+      expect(list).toHaveBeenCalledWith(`${USER_ID}/characters`, { limit: 1000 })
+      expect(download).not.toHaveBeenCalled()
+    })
+
+    it("falls back to downloading when the listing fails or may be truncated", async () => {
+      const list = vi
+        .fn()
+        .mockResolvedValueOnce({ data: null, error: { message: "boom" } })
+        .mockResolvedValueOnce({ data: Array.from({ length: 1000 }, (_, i) => ({ name: `${i}.webp` })), error: null })
+      ;(fromResult as { list?: unknown }).list = list
+
+      await downloadUserIcon(USER_ID, "game-1")
+      await getCustomCharacterIconUrl(USER_ID, CHARACTER_ID)
+
+      expect(download).toHaveBeenCalledTimes(2)
+    })
+
+    it("drops a deleted icon from the cached listing", async () => {
+      const list = vi.fn().mockResolvedValue({ data: [{ name: "game-1.webp" }], error: null })
+      ;(fromResult as { list?: unknown }).list = list
+
+      await downloadUserIcon(USER_ID, "game-1")
+      await deleteUserIcon(USER_ID, "game-1")
+
+      expect(await downloadUserIcon(USER_ID, "game-1")).toBeNull()
+      expect(download).toHaveBeenCalledTimes(1)
+      expect(list).toHaveBeenCalledTimes(1)
+    })
   })
 
   it("surfaces upload and delete errors", async () => {

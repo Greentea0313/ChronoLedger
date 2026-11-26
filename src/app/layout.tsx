@@ -23,6 +23,10 @@ export const metadata: Metadata = {
     title: "ChroLog",
     statusBarStyle: "black-translucent",
   },
+  // Standard tag next to the apple-* one Next emits for appleWebApp.capable (iOS still needs it); silences Chrome's deprecation warning.
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
