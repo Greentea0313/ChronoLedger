@@ -28,6 +28,16 @@
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 예산 UI·알림 확인 | Step 2 병합 후 안내함 |
 
 
+#### 📝 `r114-game-budgets` Step 1 Iteration 02 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `f577f6d5fb3fabcb7c777905dfea5402cc070c81` (`collab/r114-game-budgets`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (2개)**: `src/app/dashboard/expenses/page.tsx`, `src/app/dashboard/expenses/page.test.tsx`. SQL 변경 없음(Iteration 01과 같음).
+- **수정 (`R114-REV-001`)**: 지출 페이지 `loadExpenses`를 1,000행 단위 `.range()` 페이지 조회로 바꿈. `target_date` 내림차순 → `id` 내림차순으로 정렬해 페이지 경계를 고정하고, 1,000행 미만 페이지에서 멈춤. 한 페이지라도 실패하면 일부만 반영하지 않고 이전 상태를 유지함(기존 오류 처리와 같음). 예산 목록뿐 아니라 같은 `expenses` 상태를 쓰는 기존 통계·목록도 전체 행으로 계산됨.
+- **판단**: 서버 집계 대신 페이지 조회를 고름. 예산 규칙(`calculateGameBudgetUsage`)을 그대로 쓰고 새 RPC·SQL이 필요 없어서임.
+- **검증 (실제 실행)**: 게임 행을 모두 2페이지(1,000행 뒤)에 둔 테스트 추가 — 수정 전 코드에서는 이 테스트 `FAIL` 확인, 수정 후 통과. `tsc`·`lint`·Vitest 82파일/1,122개·`next build` 16/16(워크트리에 `.env.local`이 없어 더미 공개 Supabase 값 사용)·`git diff --check` 통과. SQL 변경이 없어 로컬 DB는 다시 돌리지 않음(Step 2 DB 게이트에서 Base ↔ Target 전체로 확인).
+- **남은 관찰 (수정 안 함)**: 같은 함수의 자동 확정 표시 조회 `.in("id", confirmedIds)`는 확정 ID를 한 번에 URL로 보냄. ID가 많으면 URL이 길어져 실패할 수 있으나, 실패 시 자동 확정 배지만 숨겨짐(예산·금액 영향 없음). R107-C 기존 코드라 이번 범위 밖임.
+- **남음**: Step 2 GPT Codex 재리뷰·DB 게이트·통과 시 `main` 병합 → Step 3 사용자 운영 DB 적용·배포·UI 확인.
+
 #### 📝 `r114-game-budgets` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
 
 - **Target SHA**: `692ea97b731f7ca171005be3348c8302e16ab59a` (`collab/r114-game-budgets`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
@@ -35,7 +45,7 @@
 - **SQL (§4.2)**: `user_games.monthly_budget`(> 0)·설정 열 2개·알림 종류 3개. 새 알림은 날짜를 받는 내부 함수 `enqueue_game_budget_notifications(p_today)`·`enqueue_monthly_report_notifications(p_today)`(service_role 전용)로 만들고 `enqueue_daily_notifications()` 6·7번 절에서 오늘 날짜로 호출함 — 기존 1~5번 절 불변, 테스트에서 날짜 고정 가능. 결제·환불 RPC·`expenses` 제약 변경 없음(114-8, diff 확인).
 - **판단**: ① 예산 알림 본문에 게임 이름만 넣고 금액은 뺌(잠금 화면 보호, 기존 `EXPENSE_*` 선례). ② 월간 리포트의 "예산 초과"는 사용액 > 예산(같으면 초과 아님), 100% 알림은 ≥ 100%. ③ 지출 페이지 예산 목록은 '전체 기간'에서는 숨기고 선택한 달에만 표시, 전월 대비는 기존 분석과 같은 확정·`게임` 분류 기준. ④ 예산 조회는 `user_games`를 따로 읽어 공용 `EXPENSE_COLUMNS`에 넣지 않음.
 - **검증 (실제 실행)**: 🐳 업그레이드(Base `85d8adc` `SCHEMA.sql` → R114 2회 → `TESTS.sql` 59개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 59개 PASS), 함수 3종 본문 일치, README 확인 쿼리 기대값 일치. 귀속 규칙 변이(예정 행을 `target_date`로 귀속)가 처음에 통과해 경계 금액을 고친 뒤 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 82파일/1,121개·`next build` 16/16·`git diff --cached --check` 통과.
-- **후속**: Step 2 Iteration 01에서 `R114-REV-001` 확인됨. Step 1 Iteration 02 수정·초과 행 테스트 → Step 2 재리뷰·DB 게이트·`main` 병합 필요. 이후 Step 3 사용자 운영 DB 적용·배포·UI 확인.
+- **후속**: Step 2 Iteration 01에서 `R114-REV-001` 확인됨 → Iteration 02에서 수정함(위 기록).
 
 #### 📝 `r114-game-budgets` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-26)
 
@@ -43,7 +53,7 @@
 - **검증**: 원본 로컬 Target DB migration 2회·전체 `TESTS.sql` 통과. 격리 스택에서 Base 업그레이드와 Target 신규 설치 경로 각각 migration 2회·`TESTS.sql` R114-01/02·ROLLBACK 통과. tsc·lint·Vitest 82파일/1,121개·`next build` 16/16·artifact schema(Ajv)·`git diff --check` 통과.
 - **남음**: 지출 전량 페이지네이션 또는 동등한 합산 경로와 1,000행 초과 테스트 추가 → 재리뷰·전체 검증 → 통과 시 `main` 병합 → 사용자 운영 적용·배포 확인.
 
-> **다음 단계**: **Claude Opus (`High` — 도구에서 High 선택)**가 `"인수인계 문서를 확인해"`로 Step 1 Iteration 02에서 `R114-REV-001`을 수정하고 1,000행 초과 검증을 추가함. 완료 후 **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 Step 2 재리뷰·DB 게이트·통과 시 병합함.
+> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 `"인수인계 문서를 확인해"`로 Step 2 Iteration 02 재리뷰(Base `85d8adc` ↔ Target `f577f6d`)·🐳 DB 게이트·통과 시 `main` 병합함.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
