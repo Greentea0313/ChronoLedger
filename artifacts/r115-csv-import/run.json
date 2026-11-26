@@ -1,17 +1,17 @@
-﻿{
-    "schema_version":  1,
-    "run_id":  "r115-csv-import",
-    "created_at":  "2026-11-26T13:44:29.3330909+00:00",
-    "objective":  "R115: import confirmed expense records from CSV (own export format auto-detected, or generic CSV with column mapping) via SECURITY DEFINER RPCs import_confirmed_expenses and delete_import_batch; imported rows are CONFIRMED WALLET with deduct_from_asset false and no points so assets, wallets and point ledgers never change; client CSV parser, preview modal and batch undo",
-    "acceptance_criteria":  [
-                                "Step 1 (Maker, Opus, local Docker DB): implement docs/r113-r116-data-budget-public-spec.md section 5 (decisions I1-I16, MIGRATION_R115_EXPENSE_IMPORT.sql idempotent with expenses.import_batch_id, import_confirmed_expenses and delete_import_batch RPCs, SCHEMA.sql, README check queries, TESTS.sql, database.types.ts, src/lib/csv.ts parser, import modal on the expenses page, unmigrated fallback) meeting acceptance 115-1..115-9; payment and refund RPCs and existing policies unchanged.",
-                                "Step 2 (Reviewer and Local DB Gate, different model from Maker): ledger-invariance and permission review (review.json), local Docker DB upgrade and fresh paths applied twice with TESTS.sql passing, tsc/lint/Vitest/build (test.json), merge to main, docs closeout.",
-                                "Step 3 (User): apply production migration and check queries, deploy, import one real CSV and undo it."
-                            ],
-    "base_sha":  "a04237f3da787e33dd37a6ca80e4d97322c575cc",
-    "target_sha":  null,
-    "branch":  "collab/r115-csv-import",
-    "worktree_path":  ".worktrees/r115-csv-import",
-    "max_iterations":  3,
-    "status":  "in_progress"
+{
+  "schema_version": 1,
+  "run_id": "r115-csv-import",
+  "created_at": "2026-11-26T22:44:29.3330909+09:00",
+  "objective": "R115: import confirmed expense records from CSV (own export format auto-detected, or generic CSV with column mapping) via SECURITY DEFINER RPCs import_confirmed_expenses and delete_import_batch; imported rows are CONFIRMED WALLET with deduct_from_asset false and no points so assets, wallets and point ledgers never change; client CSV parser, preview modal and batch undo",
+  "acceptance_criteria": [
+    "Step 1 (Maker, Opus, local Docker DB): implement docs/r113-r116-data-budget-public-spec.md section 5 (decisions I1-I16, MIGRATION_R115_EXPENSE_IMPORT.sql idempotent with expenses.import_batch_id, import_confirmed_expenses and delete_import_batch RPCs, SCHEMA.sql, README check queries, TESTS.sql, database.types.ts, src/lib/csv.ts parser, import modal on the expenses page, unmigrated fallback) meeting acceptance 115-1..115-9; payment and refund RPCs and existing policies unchanged.",
+    "Step 2 (Reviewer and Local DB Gate, different model from Maker): ledger-invariance and permission review (review.json), local Docker DB upgrade and fresh paths applied twice with TESTS.sql passing, tsc/lint/Vitest/build (test.json), merge to main, docs closeout.",
+    "Step 3 (User): apply production migration and check queries, deploy, import one real CSV and undo it."
+  ],
+  "base_sha": "a04237f3da787e33dd37a6ca80e4d97322c575cc",
+  "target_sha": "b8aa935c6bd1065fbf6d9ba053cb56d3edfb7eb6",
+  "branch": "collab/r115-csv-import",
+  "worktree_path": ".worktrees/r115-csv-import",
+  "max_iterations": 3,
+  "status": "in_progress"
 }
