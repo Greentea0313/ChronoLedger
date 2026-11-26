@@ -26,7 +26,7 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (Iteration 02, SHA: 3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R117 SQL 제약·화면 3축 대응·명세)` | 요청 모달의 3축 Vitest 회귀 추가, R52 현재 UI 명세를 class1~3으로 갱신. 레이아웃 실화면 확인은 Step 3로 이관함 | `R117-REV-001`·`002` 보완함 |
 | **2** | **`✅ DONE (artifact a3f7c55, main 병합 065fe4a322c602dad6f6b9fec27b6aee85948cfb)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 02 재리뷰·격리 DB 양 경로·앱 검증·main 재검증 통과 | Step 2 Iteration 02 기록 참조 |
-| **3** | **`▶ READY`** | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 한 게임에 세 번째 분류 축 추가·390/900/1280 화면 및 필터 확인 | R117 운영 적용·화면 확인 필요. 후속: 필터 칩 다시 누르면 `전체`로(`main` `aebb7dc`, 함께 확인) |
+| **3** | **`▶ READY`** | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 한 게임에 세 번째 분류 축 추가·390/900/1280 화면 및 필터 확인 | R117 운영 적용·화면 확인 필요. 후속: 필터 칩 다시 누르면 `전체`로(`main` `aebb7dc`, 사용자 dev 서버 확인 완료) |
 
 
 #### 📝 `r117-classification-axes-3` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-27)
