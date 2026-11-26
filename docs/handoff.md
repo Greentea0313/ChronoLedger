@@ -13,11 +13,19 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함. 아래 `📐 SPEC_NEEDED` 1건은 Run 등록 전 명세 단계임)*
+- **활성 Run 없음** *(직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함. `R110` 명세 완료, Run 등록(`R110-REG`) `▶ READY`)*
 
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
-| `R110-SPEC` | **`📐 SPEC_NEEDED`** | **Gemini 4 Carbon (`High`)** *(Fallback: Claude Opus `High` / Gemini 4 Neon `High`)* | Tauri 데스크톱 앱 자동 업데이트(`R110`) 명세·결정 기록과 Step별 인수 기준 작성(`src/**` 수정 없음). 완료 후 Run 등록은 Gemini 4 Hydrogen에 반환함 | 아래 요구사항 접수 기록 참고 |
+| `R110-SPEC` | **`✅ DONE (2026-11-26)`** *(원 상태 `📐 SPEC_NEEDED`)* | ~~**Gemini 4 Carbon (`High`)**~~ ➡️ **Claude Opus (`High`)** *(Fallback 1로 수행)* | 명세·결정(`U1`~`U14`)·Step별 인수 기준 작성 | ✅ [`docs/r110-desktop-auto-update-spec.md`](r110-desktop-auto-update-spec.md). `src/**`·`src-tauri/**` 수정 없음 |
+| `R110-REG` | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet `Medium`)* | Run `r110-desktop-auto-update` 등록: 깨끗한 트리에서 `New-CollaborationRun.ps1`, 큐 행에는 명세 §4·§5 포인터만 기재(Step 1 `Gemini 4 Neon (High — 도구에서 High 선택)`, Step 2 `Hydrogen`, Step 3 `Claude Opus (High)` 리뷰). 사용자에게 **Step U0(서명 키 생성·Secrets 등록·공개 키 전달)** 선행을 먼저 요청함 | 명세 §4 U0는 사용자 작업이라 Step 1 착수 전 완료 필요 |
+
+#### 📝 `R110-SPEC` 명세 완료 기록 (Claude Opus, 2026-11-26)
+
+- **결정 요약**: 공식 `updater`·`process` 플러그인(U1), endpoint는 공개 저장소의 `releases/latest/download/latest.json` 1개(U2), `tauri-action`으로 `latest.json` 생성(U3), NSIS 단일 번들·`passive` 설치(U4), 공개 키는 커밋·개인 키는 Secrets(U5), 키 백업·분실/유출 대응(U6), 버전 원천 `package.json`·CI 버전 일치 검사(U7), 태그 `desktop-vX.Y.Z`·Release는 데스크톱 전용(U8), 배포 순서 DB → 웹 → 태그(U9).
+- **UI 기본값**: Tauri에서만 앱 시작 시 1회 확인(웹은 import도 안 함), 상단 배너 `[지금 업데이트]`·`[나중에]`(이번 실행만 숨김), 확인 실패는 조용히, 설치 실패는 재시도 버튼(U11~U13). Windows 코드 서명은 범위 제외(U14).
+- **사용자 선행 작업(Step U0)**: 저장소 밖에서 서명 키 생성·백업, GitHub Secrets 5개 등록, 공개 키만 Maker에게 전달.
+- **첫 전환 주의**: 현재 0.1.0 설치본에는 updater가 없어, 0.2.0은 기존 설치본 제거 후 한 번 수동 설치해야 함(§4 Step 4-2).
 
 #### 📐 `R110-SPEC` 요구사항 접수 기록 (Claude Sonnet `Medium`, 2026-11-26)
 
