@@ -73,7 +73,7 @@
   - [ ] 데스크톱(Tauri) 설치본에서 CSP 적용 후 로그인·알림·업데이트 배너 동작 확인(사용자, 미검증)
   - [ ] Cloudflare Pages 빌드 명령이 `npm run build`인지 확인(`next build` 직접 실행 시 CSP 미주입)
 - [ ] R112. [후보 · 사용자 지목 시] 보안·경쟁력 검토 나머지 항목(S4~S7, F1~F5, A1~A4, C1~C10) — 우선순위는 문서 §5
-- [ ] R113. [명세 완료 · Iteration 02 수정 중] 데이터 내보내기·백업(JSON 전체, 지출·수익 CSV, 복원 제외) — 명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §3
+- [ ] R113. [명세 완료 · Iteration 02 리뷰 완료 · 빌드 검증 대기] 데이터 내보내기·백업(JSON 전체, 지출·수익 CSV, 복원 제외) — 명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §3
   - [ ] 사용자 확인: 웹과 Windows 설치본에서 파일 저장 1회씩 확인(113-7)
 - [ ] R114. [명세 완료 · `R113` 마감 뒤 등록 · 🐳] 게임별 월 예산(경고·알림만)·월간 과금 리포트 — 같은 명세 §4
 - [ ] R115. [명세 완료 · `R114` 마감 뒤 등록 · 🐳] CSV 결제 내역 가져오기(확정 기록, 자산·포인트 미반영) — 같은 명세 §5
