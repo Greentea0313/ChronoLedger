@@ -17,13 +17,13 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run**: `r110-desktop-auto-update` *(Step U0·1 완료, Step 2 `▶ READY`. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
+- **활성 Run**: `r110-desktop-auto-update` *(Step U0·1·2 완료, Step 3 `▶ READY`. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
 
 #### 🧩 Run: `r110-desktop-auto-update` *(데스크톱 자동 업데이트)* · **Orchestrator**: Claude Sonnet `Medium` *(2026-11-26 등록, Gemini 주간 한도 소진으로 Hydrogen 대체)*
 
 - **워크트리·브랜치**: `.worktrees/r110-desktop-auto-update`, `collab/r110-desktop-auto-update`
 - **명세**: [`docs/r110-desktop-auto-update-spec.md`](r110-desktop-auto-update-spec.md) §4(단계별 인수 기준)·§5(모델 배정 권고). Step별 핵심 검사만 아래에 두고 세부는 명세를 따름.
-- **리뷰 범위**: Base `9096cd10d30188f7cb850cdffebbdab4609e05f4` ↔ Target은 Step 2 완료 시 기록함.
+- **리뷰 범위**: Base `9096cd10d30188f7cb850cdffebbdab4609e05f4` ↔ Target `29e94dad5f1fb327d610fa256c01743903f300ba` *(Step 2)*.
 - **모델 배정 근거**: Gemini 한도가 리셋되지 않았으므로 명세 §5의 Gemini 배정을 Fallback으로 바꿈. 리셋이 확인되면 아직 시작하지 않은 Step에 한해 §5 원안으로 되돌릴 수 있음.
 - 🐳 Docker 불필요(DB 변경 없음). Step 1 `cargo check`는 Rust 툴체인이 있는 PC 필요.
 
@@ -31,10 +31,10 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `U0` | **`✅ DONE (2026-11-26, 공개 키 수령)`** | **사용자** | 서명 키 쌍 생성·저장소 밖 백업, GitHub Secrets 5개 등록, **공개 키만** Step 1 Maker에게 전달 | 명세 §4 U0-1~U0-3. 개인 키는 저장소 밖(`C:\Users\junha\keys\chronoledger\`)에 생성함. **Secrets 5개 등록 완료(사용자 확인, 2026-11-26)** |
 | **1** | **`✅ DONE (SHA: 20034756e09d1f326f2f59459c86f0fb6061ac61)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | Rust·설정·CI: `updater`·`process` 플러그인, `tauri.conf.json`(`pubkey`·`endpoints`), 최소 capability, 릴리스 워크플로 | 명세 §4 Step 1(1-1~1-5). **`pubkey`(U0-3, 공개 키 값)**: `dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAwOTkwNkI0QzJBNEM0M0IKUldRN3hLVEN0QWFaQUQ4Z1dUbnNtVUIzTWp4emV2OWgwcGIrZnZ1TTFNcnBFMUR0alpkVVY0WHQK` *(`updater.key.pub` 파일 내용 그대로, 개인 키 파일은 열지 않음)*. 허용 파일: `src-tauri/**`, `.github/workflows/**`, `package.json`·`package-lock.json`(플러그인 JS 패키지) |
-| **2** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 배너·updater 래퍼·Vitest (Tauri에서만 동작, 웹은 updater import 없음) | 명세 §4 Step 2(2-1~2-6). 허용 파일: `src/**`(배너·래퍼·테스트·레이아웃 연결) |
-| **3** | `⏳ WAITING` | **GPT Codex** *(Fallback: Claude Sonnet `Medium`)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 명세 §4 Step 3(3-1·3-2). Maker(Opus·Sonnet)와 다른 모델로 둠 |
+| **2** | **`✅ DONE (SHA: 29e94dad5f1fb327d610fa256c01743903f300ba)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 배너·updater 래퍼·Vitest (Tauri에서만 동작, 웹은 updater import 없음) | 명세 §4 Step 2(2-1~2-6). 허용 파일: `src/**`(배너·래퍼·테스트·레이아웃 연결) |
+| **3** | **`▶ READY`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium`)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 명세 §4 Step 3(3-1·3-2). Maker(Opus·Sonnet)와 다른 모델로 둠 |
 
-> **다음 단계**: **Claude Sonnet (Medium)**(Fallback: GitHub Copilot)으로 `"인수인계 문서를 확인해"`를 입력해 Step 2를 진행함. 워크트리에 `node_modules`가 없으면 `npm install`로 새 플러그인 패키지(`@tauri-apps/plugin-updater`·`plugin-process`)를 먼저 설치함.
+> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)로 `"인수인계 문서를 확인해"`를 입력해 Step 3 리뷰를 진행함. Step 2 Maker(Sonnet)와 다른 모델이어야 함. 워크트리 원격 브랜치는 push 안 함(같은 PC 사용 시 불필요).
 
 #### 📝 `r110-desktop-auto-update` Step 1 완료 기록 (Claude Opus, 2026-11-26)
 
