@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r114-game-budgets",
+    "created_at":  "2026-11-26T10:15:56.4726078+00:00",
+    "objective":  "R114: per-game monthly budget (user_games.monthly_budget), budget usage calculation shared by TS and SQL, game budget alerts (80/100 percent) and monthly report notifications via enqueue_daily_notifications, budget modal on the games page and a game budget list on the expenses page",
+    "acceptance_criteria":  [
+                                "Step 1 (Maker, Opus, local Docker DB): implement docs/r113-r116-data-budget-public-spec.md section 4 (decisions B1-B12, migration MIGRATION_R114_GAME_BUDGETS.sql idempotent, SCHEMA.sql, README check queries, TESTS.sql blocks, database.types.ts, calculateGameBudgetUsage, budget modal, expenses game budget list, unmigrated-column fallback) meeting acceptance 114-1..114-8; no change to payment/refund RPCs or expenses constraints.",
+                                "Step 2 (Reviewer and Local DB Gate): static review (review.json) that TS and SQL attribution rules match, local Docker DB upgrade and fresh paths applied twice with TESTS.sql passing, tsc/lint/Vitest/build (test.json), merge to main, docs closeout.",
+                                "Step 3 (User): apply production migration and verify check queries, deploy, confirm budget UI and a notification."
+                            ],
+    "base_sha":  "85d8adcb294bcd4622eb90df3bb826b94a4445d6",
+    "target_sha":  null,
+    "branch":  "collab/r114-game-budgets",
+    "worktree_path":  ".worktrees/r114-game-budgets",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}
