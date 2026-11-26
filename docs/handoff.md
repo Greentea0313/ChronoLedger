@@ -16,7 +16,17 @@
 - **`Gemini Models` 주간 한도 소진** *(사용자 통보, 2026-11-26, 리셋 시점 미확인)*: `Gemini 4 Hydrogen`·`Gemini 4 Neon`·`Gemini 4 Carbon`은 같은 공용 한도를 쓰므로 모두 사용 불가로 봄. 새 행 배정·인계는 다른 한도 묶음(`Claude Sonnet (Medium)`·`Claude Opus (High)`·`GPT Codex`·`GitHub Copilot`)으로 바로 보냄(handoff Skill §3). 리셋되면 사용자가 알려 주거나 Antigravity `View Usage`에서 확인한 모델이 이 절을 지움.
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(직전 Run `r115-csv-import`는 `main` 병합 `35f4461`로 마감함)*
+- **활성 Run**: **`R116` 공개 게임별 일정 페이지·SEO (`r116-public-game-pages` — Base `442fb6965b6c170eea66af2f817b1f2190353c33`, 브랜치 `collab/r116-public-game-pages`, 워크트리 `.worktrees/r116-public-game-pages`)** *(명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §6(결정 P1~P13·인수 기준 116-1~116-8)·§7(모델 배정). 직전 Run `r115-csv-import`는 2026-11-27 마감함. 마지막 후보 Run임)*
+- **DB 변경**: 없음. 🐳 Docker 불필요. 새 환경 변수 `NEXT_PUBLIC_SITE_URL`(없으면 canonical·sitemap 항목만 생략, 빌드 경고). 개인 데이터 비노출(공개 `games`·`is_official` 일정·픽업 캐릭터 이름만, anon 키 전용).
+- **주의 (명세 §6.1)**: 빌드 시점 서버 컴포넌트는 이 코드베이스의 새 관례임(P2). 빌드 시점 조회 실패는 빌드 실패(P9). Cloudflare Pages `_redirects` 규칙이 생성 HTML보다 앞서면 빈 SPA 셸이 나갈 수 있어 배포 뒤 확인(P11, 116-8).
+- **모델 배정 근거**: `Gemini Models` 한도 소진 중이라 명세 §7 권고대로 배정함.
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | `Maker (R116 공개 페이지·메타데이터·sitemap)` | 명세 §6 전부(`src/lib/public-catalog.ts`·P4 범위 함수·`src/app/games/**`(목록·`[gameId]`, `generateStaticParams`·`dynamicParams = false`)·열람 시 최신화 클라이언트 컴포넌트·`generateMetadata`·`src/app/sitemap.ts`·`src/app/robots.ts`·`/auth` 링크·`public/_redirects` 점검·빌드 산출물 검사 스크립트·테스트)·인수 기준 116-1~116-7. 기존 `/auth`·`/dashboard/**`·`/admin`·데스크톱 빌드 영향 금지. `service role` 키 참조 금지. 허용 파일: 신규 `src/lib/public-catalog.ts`·`.test.ts`, `src/app/games/**`, `src/app/sitemap.ts`, `src/app/robots.ts`, `src/app/auth/page.tsx`(링크 1건), `public/_redirects`(필요 시), `scripts/inject-csp.mjs`(필요 시), 빌드 산출물 검사 스크립트, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
+| **2** | **`⏳ WAITING`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Reviewer` | Step 1 완료 후 착수. 공개 범위(개인 데이터 비노출)·CSP·정적 export 경계·빌드 실패 처리 정적 리뷰(`review.json`)·`test.json`(`tsc`·`lint`·Vitest·`next build`·`out/games/*.html` 검사)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+| **3** | `⏳ WAITING` | **사용자** | `NEXT_PUBLIC_SITE_URL` 설정·배포·`curl`로 생성 HTML 확인·Search Console sitemap 제출(116-8) | Step 2 병합 후 안내함 |
+
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
