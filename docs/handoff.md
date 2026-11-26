@@ -18,15 +18,15 @@
 
 - **활성 Run**: **`R117` 캐릭터 분류 축 최대 3개로 확대 (`r117-classification-axes-3` — Base `123a70b699b80398999d171140eec6e471d2cc53`, 브랜치 `collab/r117-classification-axes-3`, 워크트리 `.worktrees/r117-classification-axes-3`)** *(사용자 요청·결정 2026-11-27: `R116`보다 먼저, 최대 3개(원 `R13` 설계값). 별도 명세 문서 없음 — 아래 수용 기준과 `docs/spec/R13_Character_Roster_and_Preset_Spec.md`·`R52_Character_Template_and_Pickup_Avatar_Spec.md`의 "최대 2개" 서술을 3개로 갱신함)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R117_CLASSIFICATION_AXES_3.sql`, `SCHEMA.sql`: `is_valid_classification_schema`의 `jsonb_array_length(axes) > 2` → `> 3`). 🐳 Docker Desktop 필요(이 PC는 2026-11-27 등록 시점에 엔진 실행 중 확인함). 금전·원장 접점 없음, 기존 2축 데이터는 그대로 유효.
-- **Iteration 02 Target SHA**: `3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8` *(워크트리 커밋, 미병합, 원격 브랜치: push 안 함. Iteration 01 Target `c5c5a1c1004424fff8c496d0e55a7b18726e8ebc`, 리뷰 범위는 Base ↔ Iteration 02 Target)*
+- **Iteration 02 Target SHA**: `3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8` *(리뷰 완료·`main` 병합 `065fe4a322c602dad6f6b9fec27b6aee85948cfb`; 원격 Maker 브랜치는 push 안 함. 리뷰 범위는 Base ↔ Iteration 02 Target)*
 - **수용 기준**: ① 3축 스키마 허용·4축 거부·기존 2축 게임 불변 ② 세 번째 축으로 캐릭터 `attributes` 검증·`game_classification_icons` 트리거·승인 RPC가 동작 ③ `character-utils.ts` `TEMPLATE_AXIS_MAX_COUNT = 3`·정규화 `slice(0, 3)` ④ 필터 막대·캐릭터 목록·프리셋·요청 모달·관리자 템플릿 폼이 3축에서 동작하고 390/900/1280 레이아웃 확인 ⑤ 마이그레이션 미적용 DB에서도 앱이 깨지지 않는 폴백 ⑥ `R13`·`R52` 명세 문구 갱신 ⑦ 로컬 DB `TESTS.sql`·tsc·lint·Vitest·`next build` 통과.
 - **모델 배정 근거**: `Gemini Models` 한도 소진 중. SQL 제약 함수 재정의라 Step 1은 `Claude Opus`(승격 조건 ① SQL), 리뷰어는 Maker와 다른 모델임.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (Iteration 02, SHA: 3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R117 SQL 제약·화면 3축 대응·명세)` | 요청 모달의 3축 Vitest 회귀 추가, R52 현재 UI 명세를 class1~3으로 갱신. 레이아웃 실화면 확인은 Step 3로 이관함 | `R117-REV-001`·`002` 보완함 |
-| **2** | **`🔄 IN_PROGRESS (main 병합 065fe4a322c602dad6f6b9fec27b6aee85948cfb, 재검증·문서 마감 남음)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 01 정적 리뷰·DB 게이트·검증 아티팩트 완료, Maker 보완 후 재리뷰 대기 | Step 2 Iteration 01 기록 참조 |
-| **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 한 게임에 세 번째 분류 축 추가·390/900/1280 화면 및 필터 확인 | Step 2 병합 후 안내함 |
+| **2** | **`✅ DONE (artifact a3f7c55, main 병합 065fe4a322c602dad6f6b9fec27b6aee85948cfb)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 02 재리뷰·격리 DB 양 경로·앱 검증·main 재검증 통과 | Step 2 Iteration 02 기록 참조 |
+| **3** | **`▶ READY`** | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 한 게임에 세 번째 분류 축 추가·390/900/1280 화면 및 필터 확인 | R117 운영 적용·화면 확인 필요 |
 
 
 #### 📝 `r117-classification-axes-3` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-27)
@@ -56,7 +56,15 @@
 - **앱 검증**: tsc·lint·Vitest 85파일/1,149개·`next build` 16/16 통과함. artifact schema는 Python `jsonschema` 부재로 Node Ajv 6.15.0의 Draft 7 변환 검증을 사용함. 390/900/1280 실화면 점검은 미실행이며 Step 3 확인으로 둠.
 - **남음**: Claude Opus가 Iteration 02에서 요청 모달 3축 테스트와 R52 현재 UI 명세를 보완함. 이후 GPT Codex가 재리뷰·🐳 DB 게이트를 수행함. 병합하지 않음.
 
-> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 `"인수인계 문서를 확인해"`로 Step 2 Iteration 02 재리뷰(Base `123a70b` ↔ Target `3c8168e`)·🐳 DB 게이트·통과 시 `main` 병합함.
+#### 📝 `r117-classification-axes-3` Step 2 Iteration 02 검토 기록 (GPT Codex, 2026-11-27)
+
+- **Base ↔ Target**: `123a70b699b80398999d171140eec6e471d2cc53` ↔ `3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8`; artifact commit `a3f7c55`, main 병합 `065fe4a322c602dad6f6b9fec27b6aee85948cfb`임.
+- **정적 결과**: `clean`임. `R117-REV-001`은 3축 요청 폼에서 세 번째 축 누락 제출 거부 및 3개 값 payload 테스트로 보완됨. `R117-REV-002`는 R52 §3.3·§4.2의 현재 UI 설명을 class1~class3로 갱신하고 R52 당시 상한 결정은 역사 맥락으로 유지함.
+- **DB 검증**: Docker Desktop 4.98.0 엔진 연결 확인함. 사용자 화면의 기존 `chronoledger-local`은 유지하고 별도 격리 스택 2개를 사용함. Base 업그레이드 및 Target 신규 설치에서 migration 각 2회와 전체 `TESTS.sql` 63개 블록 PASS, `R117-01`·최종 rollback PASS, SQL `ERROR` 0건임. 테스트 스택·볼륨·임시 폴더 정리 완료함.
+- **앱 검증**: Target 및 병합 후 main에서 각각 tsc·lint·Vitest 85파일/1,150개 통과함. main `next build` 16/16 및 CSP 13개 HTML 주입 통과함. artifact schema는 Python `jsonschema` 부재로 Node Ajv 6.15.0 Draft 7 변환 검증을 사용함. `src`·`sql` 병합 후 변경 없음 확인함.
+- **남음**: 사용자 운영 DB migration·README 확인 쿼리 적용, 배포, 게임 하나의 3축 설정과 390/900/1280 화면·필터 확인임. 실제 화면은 수동 점검하지 않음.
+
+> **다음 단계**: **사용자**가 Step 3 운영 DB 적용·배포·3축 화면 확인을 진행함. 완료 후 `R116` Step 1이 `▶ READY`가 됨.
 
 - **대기 Run (R117 완료 후 재개, 워크트리는 생성돼 있음)**: **`R116` 공개 게임별 일정 페이지·SEO (`r116-public-game-pages` — Base `442fb6965b6c170eea66af2f817b1f2190353c33`, 브랜치 `collab/r116-public-game-pages`, 워크트리 `.worktrees/r116-public-game-pages`)** *(명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §6(결정 P1~P13·인수 기준 116-1~116-8)·§7(모델 배정). 직전 Run `r115-csv-import`는 2026-11-27 마감함. 마지막 후보 Run임)*
 - **DB 변경**: 없음. 🐳 Docker 불필요. 새 환경 변수 `NEXT_PUBLIC_SITE_URL`(없으면 canonical·sitemap 항목만 생략, 빌드 경고). 개인 데이터 비노출(공개 `games`·`is_official` 일정·픽업 캐릭터 이름만, anon 키 전용).

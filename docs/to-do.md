@@ -79,8 +79,8 @@
   - [ ] 사용자 확인: 운영 DB migration·README 확인 쿼리 적용, 배포, 예산 UI·알림·월간 리포트 확인
 - [x] R115. [**운영 DB 적용·확인 쿼리·배포·실제 가져오기·취소 확인 완료(사용자, 2026-11-27)** · Run `r115-csv-import` 병합 `35f4461`(2026-11-26, Iteration 02 리뷰 clean, 🐳 격리 DB 업그레이드·신규 경로 PASS, Vitest 1,146개 통과)] CSV 결제 내역 가져오기(확정 기록, 자산·포인트 미반영) — 같은 명세 §5
   - [ ] 사용자 확인: 운영 DB migration·README 확인 쿼리 적용, 배포, 실제 CSV 1개 가져오기·취소 확인
-- [ ] R117. [Run `r117-classification-axes-3` 등록 2026-11-27 · Iteration 01 P3 2건 보완 후 재리뷰 · 🐳 · 사용자 결정: 게임별 캐릭터 분류 축 최대 2개 → 3개(`R116`보다 먼저)] `is_valid_classification_schema`·`TEMPLATE_AXIS_MAX_COUNT`·정규화·화면 3축 대응·`R13`/`R52` 명세 갱신.
-  - [ ] Maker 수정: 요청 모달 3축 Vitest 회귀 추가, R52 현재 UI 명세 §3.3·§4.2에 class3 반영
+- [ ] R117. [Step 1·2 완료 · `main` 병합 `065fe4a` · 사용자 운영 확인 대기 · 🐳 격리 DB 두 경로 PASS] 게임별 캐릭터 분류 축 최대 2개 → 3개 확대(`R116`보다 먼저).
+  - [ ] 사용자 확인: 운영 DB migration·README 확인 쿼리 적용, 배포, 게임 하나의 세 번째 축 설정 및 390/900/1280 화면·필터 확인
 - [ ] R116. [Run `r116-public-game-pages` 등록 2026-11-27 · `R117` 완료 후 Step 1 재개 · 대기] 공개 게임별 일정 페이지·`robots.txt`·sitemap(빌드 생성, 배포 때만 갱신) — 같은 명세 §6
 
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)

@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-27 (`r117-classification-axes-3` Step 2 Iteration 02 — GPT Codex)**: 재리뷰 `clean`, artifact `a3f7c55`, `main` 병합 `065fe4a`. 업그레이드·신규 격리 DB 각 migration 2회 및 `TESTS.sql` 63개 블록 PASS, main tsc·lint·Vitest 1,150개·build 통과함. 다음: 사용자 운영 적용·3축 화면 확인임.
 - **2026-11-27 (`r117-classification-axes-3` Step 1 Iteration 02 — Claude Opus `High`)**: `R117-REV-001`·`002` 보완, 워크트리 커밋 `3c8168e`(미병합·미push). 요청 모달 3축 필수·제출 테스트 추가(2축 자르기 변이 FAIL 확인), R52 명세 관리자 표·모달·요청 폼에 세 번째 축 추가. Vitest 1,150개 통과. 다음: Step 2 `GPT Codex` 재리뷰.
 - **2026-11-27 (`r117-classification-axes-3` Step 2 Iteration 01 — GPT Codex)**: 격리 DB 업그레이드·신규 설치 각 migration 2회와 R117-01 테스트 통과함. tsc·lint·Vitest 1,149개·build 통과. P3 2건(요청 모달 3축 Vitest 누락, R52 현재 UI 명세의 class3 누락)으로 병합 보류함. 다음: Claude Opus `High` 수정임.
 - **2026-11-27 (`r117-classification-axes-3` Step 1 — Claude Opus `High`)**: 워크트리 커밋 `c5c5a1c`(미병합·미push). 캐릭터 분류 축 상한을 2개에서 3개로 바꿈(DB 검증 함수·관리자 템플릿 폼·정규화 함수, `R13`·`R52` 명세). 🐳 로컬 2경로 각 2회 멱등·`TESTS.sql` 63개 PASS, 변이 2건 FAIL, Vitest 1,149개·`build` 통과. 실제 화면 레이아웃은 미확인. 다음: Step 2 `GPT Codex`.
