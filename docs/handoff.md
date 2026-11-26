@@ -32,7 +32,7 @@
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 773af3702f1c0cad0628499246f1e41fcc670790)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 설정 페이지 "데이터 내보내기" 카드(버튼 3개), `src/lib/export-format.ts`(열 순서·라벨·코드 매핑·수식 방지), 페이지 조회(`.range()` 1,000행), 오프라인 가드, Vitest | 명세 §3.1~3.4(113-1~113-6). 허용 파일: `src/app/dashboard/settings/**`, `src/components/**`(신규 내보내기 카드), `src/lib/export-format*.ts`·`src/lib/data-export*.ts`와 각 테스트. **DB·Tauri·`sql/**` 변경 금지**. 핵심: `push_subscriptions` 등 제외 목록 준수, `catalog`는 이름만, 조회 실패 테이블은 `skipped`에 기록 |
-| **2** | **`▶ READY`** | **GPT Codex** *(Fallback: Claude Opus `High` — 도구에서 High 선택)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 개인 데이터 노출 범위(포함·제외 목록, 자격 증명 비포함)·수식 주입 방지·웹 번들 영향 확인. Step 1과 다른 모델 |
+| **2** | **`🔄 IN_PROGRESS (산출물 커밋 aebb3855c67d5d776f7a1c900470d9f7e800a72c, 병합 전)`** | **GPT Codex** *(Fallback: Claude Opus `High` — 도구에서 High 선택)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 개인 데이터 노출 범위(포함·제외 목록, 자격 증명 비포함)·수식 주입 방지·웹 번들 영향 확인. Step 1과 다른 모델 |
 | **3** | `⏳ WAITING` | **사용자** | 웹·Windows 설치본에서 파일 저장 1회씩 확인(113-7) | 설치본 저장 실패 시 `R113-TAURI-SAVE` 후속 등록 |
 
 > **다음 단계**: **GPT Codex**(Fallback: Claude Opus `High` — 도구에서 High 선택)로 `"인수인계 문서를 확인해"`를 입력해 Step 2 리뷰를 진행함. Maker(Sonnet)와 다른 모델이어야 함. 워크트리 `node_modules`가 없으면 `npm ci`로 설치함. 원격 브랜치는 push 안 함(같은 PC면 불필요).
