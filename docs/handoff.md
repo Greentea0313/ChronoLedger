@@ -17,7 +17,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run**: `r110-desktop-auto-update` *(Step U0 사용자 선행 대기. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
+- **활성 Run**: `r110-desktop-auto-update` *(Step U0 완료, Step 1 `▶ READY`. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
 
 #### 🧩 Run: `r110-desktop-auto-update` *(데스크톱 자동 업데이트)* · **Orchestrator**: Claude Sonnet `Medium` *(2026-11-26 등록, Gemini 주간 한도 소진으로 Hydrogen 대체)*
 
@@ -29,12 +29,12 @@
 
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
-| `U0` | **`⏳ 사용자 작업 대기`** | **사용자** | 서명 키 쌍 생성·저장소 밖 백업, GitHub Secrets 5개 등록, **공개 키만** Step 1 Maker에게 전달 | 명세 §4 U0-1~U0-3. 개인 키는 채팅·파일로 전달하지 않음 |
-| **1** | **`⏳ WAITING`** *(U0 완료 시 `▶ READY`)* | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | Rust·설정·CI: `updater`·`process` 플러그인, `tauri.conf.json`(`pubkey`·`endpoints`), 최소 capability, 릴리스 워크플로 | 명세 §4 Step 1(1-1~1-5). 허용 파일: `src-tauri/**`, `.github/workflows/**`, `package.json`·`package-lock.json`(플러그인 JS 패키지) |
+| `U0` | **`✅ DONE (2026-11-26, 공개 키 수령)`** | **사용자** | 서명 키 쌍 생성·저장소 밖 백업, GitHub Secrets 5개 등록, **공개 키만** Step 1 Maker에게 전달 | 명세 §4 U0-1~U0-3. 개인 키는 저장소 밖(`C:\Users\junha\keys\chronoledger\`)에 생성함. **Secrets 5개 등록은 Step 4(태그 push) 전까지 사용자가 확인함**(Step 1~3에는 불필요) |
+| **1** | **`▶ READY`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | Rust·설정·CI: `updater`·`process` 플러그인, `tauri.conf.json`(`pubkey`·`endpoints`), 최소 capability, 릴리스 워크플로 | 명세 §4 Step 1(1-1~1-5). **`pubkey`(U0-3, 공개 키 값)**: `dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAwOTkwNkI0QzJBNEM0M0IKUldRN3hLVEN0QWFaQUQ4Z1dUbnNtVUIzTWp4emV2OWgwcGIrZnZ1TTFNcnBFMUR0alpkVVY0WHQK` *(`updater.key.pub` 파일 내용 그대로, 개인 키 파일은 열지 않음)*. 허용 파일: `src-tauri/**`, `.github/workflows/**`, `package.json`·`package-lock.json`(플러그인 JS 패키지) |
 | **2** | `⏳ WAITING` | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 배너·updater 래퍼·Vitest (Tauri에서만 동작, 웹은 updater import 없음) | 명세 §4 Step 2(2-1~2-6). 허용 파일: `src/**`(배너·래퍼·테스트·레이아웃 연결) |
 | **3** | `⏳ WAITING` | **GPT Codex** *(Fallback: Claude Sonnet `Medium`)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 명세 §4 Step 3(3-1·3-2). Maker(Opus·Sonnet)와 다른 모델로 둠 |
 
-> **다음 단계 (사용자)**: 명세 §4 Step U0를 먼저 수행함. 키 생성과 Secrets 등록이 끝나면 **공개 키만** 채팅으로 알려 주면 Step 1을 `▶ READY`로 바꿈. 그 뒤 **Claude Opus (High)**로 바꾸고 도구에서 High를 선택한 뒤 `"인수인계 문서를 확인해"`를 입력함.
+> **다음 단계**: **Claude Opus (High)**로 바꾸고 도구에서 High를 선택한 뒤 `"인수인계 문서를 확인해"`를 입력함. Step 1 완료 후 Step 2는 Claude Sonnet(Medium)임.
 
 #### 📝 `R110-SPEC` 명세 완료 기록 (Claude Opus, 2026-11-26)
 
@@ -75,7 +75,7 @@
 | `R96` | 완료 · 운영 배포 1~5단계 완료 | 운영 DB 마이그레이션·Edge Function·시크릿·`R96-REV-07` 웹훅 설정(`set_push_webhook_config`)·`NEXT_PUBLIC_VAPID_PUBLIC_KEY` 적용 완료, Windows Chrome·안드로이드 실기기 수신 확인(`SENT`, 2026-11-25). 안드로이드 상태 표시줄 흰 사각형은 투명 배지 `badge-96.png`로 `main` 직접 수정함(배포 후 재확인 필요) | `docs/to-do.md` R96·R96-REV-07, [`docs/push-notification-research.md`](push-notification-research.md) §11.5 |
 | `R107` | `R107-A·B` 운영 적용 완료 · **`R107-C` `main` 병합 (`9268bf0`)·운영 DB 적용 완료** | 정기·반복 지출 자동화: `R107-A`·`R107-B` 운영 적용 완료 → `R107-C` 자동 확정·원자 환불 롤백 `main` 병합 완료, 운영 `MIGRATION_R107C_AUTO_CONFIRM.sql` 적용·확인 쿼리 검증 완료(2026-11-26), 앱 배포·구독 모달 동작 1회 확인은 사용자 수행. 후속: `R107C-REV-001·002`(P4), `R107-A-CLEANUP`(1주 관찰 후) | [`docs/r107-recurring-expense-automation-spec.md`](r107-recurring-expense-automation-spec.md) §6, `docs/to-do.md` `R107` |
 | `R109` | **운영 적용·일괄 이전 완료** | 아이콘 Storage 이전(공용 `game-assets` 버킷). 운영 적용·배포·일괄 이전 검증 완료(2026-11-25). `R109-REV-001·002`는 `p4-followups-r108-r109`(`main` 병합 `c52705c`)에서 완료, `R109-REV-003`(P4 선택)·`R109-CLEANUP`은 사용자 지목 시 | [`docs/r109-icon-storage-migration-spec.md`](r109-icon-storage-migration-spec.md) §4, `docs/to-do.md` R109 |
-| `R110` | **Run 등록 완료 · Step U0 사용자 선행 대기** | Tauri 데스크톱 앱 자동 업데이트. 명세 완료, Run `r110-desktop-auto-update` 등록(2026-11-26). 서명 키·Secrets 준비(U0) 후 Step 1 착수 | 위 활성 Run 표, [`docs/r110-desktop-auto-update-spec.md`](r110-desktop-auto-update-spec.md) §4 |
+| `R110` | **Run 등록 완료 · Step U0 완료 · Step 1 `▶ READY`** | Tauri 데스크톱 앱 자동 업데이트. 명세 완료, Run `r110-desktop-auto-update` 등록(2026-11-26). U0 완료(공개 키 수령), Step 1 착수 가능 | 위 활성 Run 표, [`docs/r110-desktop-auto-update-spec.md`](r110-desktop-auto-update-spec.md) §4 |
 | `R50` | `📝 AGENDA` | 인증 보안 설정 점검(읽기 전용). 사용자 요청 시에만 착수 | 보관 문서 「병행 검토 안건: 인증 보안 설정 점검」 절 |
 | `R90` | `⏸️ 잠정 보류` | 일정 후보 수집. **사용자가 직접 호출할 때만 재개, 재개 추천 금지** | `docs/dcinside-schedule-crawling-review.md` §6, 보관 문서 「보류 Run 기록」 절 |
 | `R104` | `⏸️ 보류` | 단기 픽업 재화·과금 계산기 (2026-11-24 사용자 결정으로 보류, 직접 호출 시에만 재검토) | `docs/to-do.md` `R104` |
