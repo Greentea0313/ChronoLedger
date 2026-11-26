@@ -14,8 +14,6 @@
 ### ⛽ 쿼터 상태 (Quota Status)
 
 - **`Gemini Models` 주간 한도 소진** *(사용자 통보, 2026-11-26, 리셋 시점 미확인)*: `Gemini 4 Hydrogen`·`Gemini 4 Neon`·`Gemini 4 Carbon`은 같은 공용 한도를 쓰므로 모두 사용 불가로 봄. 새 행 배정·인계는 다른 한도 묶음(`Claude Sonnet (Medium)`·`Claude Opus (High)`·`GPT Codex`·`GitHub Copilot`)으로 바로 보냄(handoff Skill §3). 리셋되면 사용자가 알려 주거나 Antigravity `View Usage`에서 확인한 모델이 이 절을 지움.
-- **`GPT Codex` 월간 한도 소진** *(사용자 통보, 2026-11-26, 리셋 시점 미확인)*: 새 행에 배정하지 않고 Fallback(`Claude Opus (High)`·`Claude Sonnet (Medium)`·`GitHub Copilot`)으로 보냄. 리셋되면 사용자가 알려 주면 이 줄을 지움.
-
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 Run**: `r113-data-export` *(2026-11-26 등록, Step 1 `▶ READY`. 직전 Run `r110-desktop-auto-update`는 2026-11-26 마감함. `R114`~`R116`은 `R113` 마감 뒤 차례로 등록함)*
@@ -28,13 +26,13 @@
 - **워크트리·브랜치**: `.worktrees/r113-data-export`, `collab/r113-data-export` *(매니페스트 `artifacts/r113-data-export/run.json`)*
 - **명세**: [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §3(결정 E1~E7·JSON/CSV 형식·인수 기준 113-1~113-7)·§7(모델 배정). 세부는 명세를 따름.
 - **리뷰 범위**: Base `57c76645d4595348d865af321c447b6adcd84464` ↔ Target은 Step 1 완료 시 기록함.
-- **모델 배정 근거**: 명세 §7 원안은 Step 2 `GPT Codex`였으나 Codex 월간 한도 소진으로 Fallback `Claude Opus (High)`로 바꿈(Maker인 Sonnet과 다른 모델). Gemini 한도도 소진 상태임.
+- **모델 배정 근거**: 명세 §7 원안대로 Step 2는 `GPT Codex`임(다른 계정으로 로그인해 사용 가능, 사용자 확인 2026-11-26). Gemini 한도는 소진 상태라 Step 1은 Sonnet임.
 - 🐳 Docker 불필요(DB 변경 없음). Tauri 플러그인·Rust 변경 없음(E7).
 
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
 | **1** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 설정 페이지 "데이터 내보내기" 카드(버튼 3개), `src/lib/export-format.ts`(열 순서·라벨·코드 매핑·수식 방지), 페이지 조회(`.range()` 1,000행), 오프라인 가드, Vitest | 명세 §3.1~3.4(113-1~113-6). 허용 파일: `src/app/dashboard/settings/**`, `src/components/**`(신규 내보내기 카드), `src/lib/export-format*.ts`·`src/lib/data-export*.ts`와 각 테스트. **DB·Tauri·`sql/**` 변경 금지**. 핵심: `push_subscriptions` 등 제외 목록 준수, `catalog`는 이름만, 조회 실패 테이블은 `skipped`에 기록 |
-| **2** | `⏳ WAITING` | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GitHub Copilot — Maker와 다른 모델)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 개인 데이터 노출 범위(포함·제외 목록, 자격 증명 비포함)·수식 주입 방지·웹 번들 영향 확인. Step 1과 다른 모델 |
+| **2** | `⏳ WAITING` | **GPT Codex** *(Fallback: Claude Opus `High` — 도구에서 High 선택)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 개인 데이터 노출 범위(포함·제외 목록, 자격 증명 비포함)·수식 주입 방지·웹 번들 영향 확인. Step 1과 다른 모델 |
 | **3** | `⏳ WAITING` | **사용자** | 웹·Windows 설치본에서 파일 저장 1회씩 확인(113-7) | 설치본 저장 실패 시 `R113-TAURI-SAVE` 후속 등록 |
 
 > **다음 단계**: **Claude Sonnet (Medium)**(Fallback: GitHub Copilot)으로 `"인수인계 문서를 확인해"`를 입력해 Step 1을 진행함. 워크트리에 `node_modules`가 없으면 `npm ci`로 먼저 설치함.
