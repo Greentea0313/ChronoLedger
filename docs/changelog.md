@@ -1,9 +1,9 @@
 # 변경 이력
 
-## 2026-11-27 (데스크톱 앱 `desktop-v0.3.1` 릴리스 준비)
+## 2026-11-27 (데스크톱 앱 `desktop-v0.3.1` 릴리스)
 
 - **기본 창 크기 16:9**: 데스크톱 앱 기본 창을 1600×900(16:9)으로 열고 최소 크기 960×540, 시작 시 가운데 배치함. 창 크기 저장 기능은 두지 않아 사용자가 크기를 바꿔도 다음 실행은 항상 이 크기로 시작함.
-- **버전**: `package.json`·`package-lock.json`·`src-tauri/Cargo.toml`·`Cargo.lock`을 `0.3.1`로 올림. 태그 `desktop-v0.3.1` push 후 Actions 성공 확인 필요(`docs/desktop-release.md` §2).
+- **버전**: `package.json`·`package-lock.json`·`src-tauri/Cargo.toml`·`Cargo.lock`을 `0.3.1`로 올림. 태그 `desktop-v0.3.1` push·릴리스 완료(사용자 확인, 2026-11-27).
 
 ## 2026-11-27 (데스크톱 앱 `desktop-v0.3.0` 릴리스)
 
