@@ -29,7 +29,7 @@
 
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
-| `U0` | **`✅ DONE (2026-11-26, 공개 키 수령)`** | **사용자** | 서명 키 쌍 생성·저장소 밖 백업, GitHub Secrets 5개 등록, **공개 키만** Step 1 Maker에게 전달 | 명세 §4 U0-1~U0-3. 개인 키는 저장소 밖(`C:\Users\junha\keys\chronoledger\`)에 생성함. **Secrets 5개 등록은 Step 4(태그 push) 전까지 사용자가 확인함**(Step 1~3에는 불필요) |
+| `U0` | **`✅ DONE (2026-11-26, 공개 키 수령)`** | **사용자** | 서명 키 쌍 생성·저장소 밖 백업, GitHub Secrets 5개 등록, **공개 키만** Step 1 Maker에게 전달 | 명세 §4 U0-1~U0-3. 개인 키는 저장소 밖(`C:\Users\junha\keys\chronoledger\`)에 생성함. **Secrets 5개 등록 완료(사용자 확인, 2026-11-26)** |
 | **1** | **`✅ DONE (SHA: 20034756e09d1f326f2f59459c86f0fb6061ac61)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | Rust·설정·CI: `updater`·`process` 플러그인, `tauri.conf.json`(`pubkey`·`endpoints`), 최소 capability, 릴리스 워크플로 | 명세 §4 Step 1(1-1~1-5). **`pubkey`(U0-3, 공개 키 값)**: `dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAwOTkwNkI0QzJBNEM0M0IKUldRN3hLVEN0QWFaQUQ4Z1dUbnNtVUIzTWp4emV2OWgwcGIrZnZ1TTFNcnBFMUR0alpkVVY0WHQK` *(`updater.key.pub` 파일 내용 그대로, 개인 키 파일은 열지 않음)*. 허용 파일: `src-tauri/**`, `.github/workflows/**`, `package.json`·`package-lock.json`(플러그인 JS 패키지) |
 | **2** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 배너·updater 래퍼·Vitest (Tauri에서만 동작, 웹은 updater import 없음) | 명세 §4 Step 2(2-1~2-6). 허용 파일: `src/**`(배너·래퍼·테스트·레이아웃 연결) |
 | **3** | `⏳ WAITING` | **GPT Codex** *(Fallback: Claude Sonnet `Medium`)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 명세 §4 Step 3(3-1·3-2). Maker(Opus·Sonnet)와 다른 모델로 둠 |
