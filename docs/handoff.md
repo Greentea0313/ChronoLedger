@@ -39,6 +39,15 @@
 - **검증 (실제 실행)**: 🐳 업그레이드(Base `123a70b` `SCHEMA.sql` → R117 2회 → `TESTS.sql` 63개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 63개 PASS), 두 로그 `ERROR` 0건. 변이 2건(상한 2·상한 4) 모두 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 85파일/1,149개(신규·갱신 6개)·`next build` 16/16(더미 공개 Supabase 값)·`git diff --check` 통과. **미검증**: 390/900/1280 실제 화면 레이아웃(④)은 브라우저로 보지 않음. Step 2 리뷰 또는 Step 3 사용자 확인 필요.
 - **남음**: Step 2 GPT Codex 리뷰·🐳 DB 게이트·통과 시 `main` 병합 → Step 3 사용자 운영 DB 적용·배포·3번째 축 추가·필터 확인 → 이후 `R116` Step 1 `▶ READY`.
 
+#### 📝 `r117-classification-axes-3` Step 1 Iteration 02 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-27)
+
+- **Target SHA**: `3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8` (`collab/r117-classification-axes-3`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (2개)**: `src/components/game/request-submission-modal.test.tsx`, `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`. 실행 코드·SQL 변경 없음.
+- **`R117-REV-001` (P3)**: 요청 모달에 3축 템플릿 게임만 쓰는 테스트를 추가함. 세 번째 축을 고르지 않으면 "역할을(를) 선택해 주세요."로 막히고, 고르면 세 값이 모두 `attributes`로 제출됨. 다른 테스트가 쓰는 공용 fixture(1축)는 바꾸지 않음. 축 정규화를 다시 2개로 자르면 이 테스트가 `FAIL`로 잡는 것을 확인함.
+- **`R117-REV-002` (P3)**: R52 명세 §3.3 관리자 표 열·캐릭터 추가/수정 모달 필드, §4.2 요청 폼에 `{class3.label}`을 추가함(`R117`부터라는 표시). R52 당시 결정 문구(§2.2 "R52 원안은 `<= 2`")는 그대로 둠.
+- **검증 (실제 실행)**: `tsc`·`lint`·Vitest 85파일/1,150개·`git diff --check` 통과. 실행 코드·SQL이 바뀌지 않아 `next build`·로컬 DB는 다시 돌리지 않음(Iteration 01: build 16/16, `TESTS.sql` 63개 PASS). 실제 화면 레이아웃은 Step 3 사용자 확인으로 넘김(큐 행 결정대로).
+- **남음**: Step 2 GPT Codex Iteration 02 재리뷰·🐳 DB 게이트·통과 시 `main` 병합 → Step 3 사용자 확인 → `R116` Step 1 `▶ READY`.
+
 #### 📝 `r117-classification-axes-3` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-27)
 
 - **Base ↔ Target**: `123a70b699b80398999d171140eec6e471d2cc53` ↔ `c5c5a1c1004424fff8c496d0e55a7b18726e8ebc`; artifact commit `95a75d68481492e4101b4ebce2816e159dd975f5`.
@@ -47,7 +56,7 @@
 - **앱 검증**: tsc·lint·Vitest 85파일/1,149개·`next build` 16/16 통과함. artifact schema는 Python `jsonschema` 부재로 Node Ajv 6.15.0의 Draft 7 변환 검증을 사용함. 390/900/1280 실화면 점검은 미실행이며 Step 3 확인으로 둠.
 - **남음**: Claude Opus가 Iteration 02에서 요청 모달 3축 테스트와 R52 현재 UI 명세를 보완함. 이후 GPT Codex가 재리뷰·🐳 DB 게이트를 수행함. 병합하지 않음.
 
-> **다음 단계**: **Claude Opus (`High` — 도구에서 High 선택)**가 `"인수인계 문서를 확인해"`로 Step 1 Iteration 02 보완을 수행함. 이후 **GPT Codex**가 Iteration 02 재리뷰·🐳 DB 게이트를 다시 진행함.
+> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 `"인수인계 문서를 확인해"`로 Step 2 Iteration 02 재리뷰(Base `123a70b` ↔ Target `3c8168e`)·🐳 DB 게이트·통과 시 `main` 병합함.
 
 - **대기 Run (R117 완료 후 재개, 워크트리는 생성돼 있음)**: **`R116` 공개 게임별 일정 페이지·SEO (`r116-public-game-pages` — Base `442fb6965b6c170eea66af2f817b1f2190353c33`, 브랜치 `collab/r116-public-game-pages`, 워크트리 `.worktrees/r116-public-game-pages`)** *(명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §6(결정 P1~P13·인수 기준 116-1~116-8)·§7(모델 배정). 직전 Run `r115-csv-import`는 2026-11-27 마감함. 마지막 후보 Run임)*
 - **DB 변경**: 없음. 🐳 Docker 불필요. 새 환경 변수 `NEXT_PUBLIC_SITE_URL`(없으면 canonical·sitemap 항목만 생략, 빌드 경고). 개인 데이터 비노출(공개 `games`·`is_official` 일정·픽업 캐릭터 이름만, anon 키 전용).
