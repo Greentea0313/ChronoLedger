@@ -24,8 +24,8 @@
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY (Iteration 02: R115-REV-001 P2·R115-REV-002 P4 수정)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R115 SQL RPC·CSV 파서·가져오기 UI)` | 🐳 **Docker Desktop 필요**. `delete_import_batch`가 편집된 가져오기 행을 지우지 않도록 I1 전체 불변 확인·회귀 테스트 추가, `TESTS.sql` psql 출력 경고 수정. 기존 합의 범위만 보완 | Maker Iteration 02 요청됨 |
-| **2** | **`⏳ WAITING (Iteration 01 산출물 db1997d9204b7a4f203d6220c3cee476c8ece1fd; Maker 수정 후 재리뷰)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외, 불가 시 다른 세션의 Claude Opus)* | `Reviewer & Local DB Gate` | Iteration 02 Target 정적 재리뷰·업그레이드/신규 DB 경로·전체 검사 재검증, 통과 시에만 `main` 병합 | Iteration 01에서 P2 1건·P4 1건 발견함 |
+| **1** | **`✅ DONE (Iteration 02, SHA: a01d312dbaf835d33c27b21beb3bd0c32094240e)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R115 SQL RPC·CSV 파서·가져오기 UI)` | 🐳 **Docker Desktop 필요**. `delete_import_batch`가 편집된 가져오기 행을 지우지 않도록 I1 전체 불변 확인·회귀 테스트 추가, `TESTS.sql` psql 출력 경고 수정. 기존 합의 범위만 보완 | `R115-REV-001`·`002` 수정함 |
+| **2** | **`▶ READY (Iteration 02 재리뷰, Iteration 01 산출물 db1997d9204b7a4f203d6220c3cee476c8ece1fd)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외, 불가 시 다른 세션의 Claude Opus)* | `Reviewer & Local DB Gate` | Iteration 02 Target 정적 재리뷰·업그레이드/신규 DB 경로·전체 검사 재검증, 통과 시에만 `main` 병합 | Iteration 01에서 P2 1건·P4 1건 발견함 |
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 실제 CSV 1개 가져오기·가져오기 취소 확인 | Step 2 병합 후 안내함 |
 
 
