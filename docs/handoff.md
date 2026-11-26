@@ -24,9 +24,9 @@
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: c5c5a1c1004424fff8c496d0e55a7b18726e8ebc)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R117 SQL 제약·화면 3축 대응·명세)` | 🐳 **Docker Desktop 필요**. 위 수용 기준 ①~⑥. 허용 파일: 신규 `sql/migrations/MIGRATION_R117_CLASSIFICATION_AXES_3.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/lib/character-utils.ts`·`.test.ts`, `src/components/character/**`, `src/components/game/request-submission-modal.tsx`, `src/app/admin/page.tsx`·`page.test.tsx`, `src/app/dashboard/games/**`(필요 시), `docs/spec/R13_Character_Roster_and_Preset_Spec.md`, `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **2** | **`▶ READY`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요**. 정적 리뷰(`review.json`)·`test.json`(로컬 DB 업그레이드·신규 2경로 2회 멱등·`TESTS.sql`·`tsc`·`lint`·Vitest·`next build`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
-| **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 한 게임에 세 번째 분류 축 추가·필터 확인 | Step 2 병합 후 안내함 |
+| **1** | **`▶ READY (Iteration 02: R117-REV-001·002 보완)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R117 SQL 제약·화면 3축 대응·명세)` | 요청 모달의 3축 Vitest 회귀 추가, R52 현재 UI 명세를 class1~3으로 갱신. 레이아웃 실화면 확인은 Step 3로 이관함 | 수정 Iteration 02 필요 |
+| **2** | **`🔄 IN_PROGRESS (산출물 커밋 95a75d68481492e4101b4ebce2816e159dd975f5, P3 2건·병합 전)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 01 정적 리뷰·DB 게이트·검증 아티팩트 완료, Maker 보완 후 재리뷰 대기 | Step 2 Iteration 01 기록 참조 |
+| **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 한 게임에 세 번째 분류 축 추가·390/900/1280 화면 및 필터 확인 | Step 2 병합 후 안내함 |
 
 
 #### 📝 `r117-classification-axes-3` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-27)
@@ -39,7 +39,15 @@
 - **검증 (실제 실행)**: 🐳 업그레이드(Base `123a70b` `SCHEMA.sql` → R117 2회 → `TESTS.sql` 63개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 63개 PASS), 두 로그 `ERROR` 0건. 변이 2건(상한 2·상한 4) 모두 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 85파일/1,149개(신규·갱신 6개)·`next build` 16/16(더미 공개 Supabase 값)·`git diff --check` 통과. **미검증**: 390/900/1280 실제 화면 레이아웃(④)은 브라우저로 보지 않음. Step 2 리뷰 또는 Step 3 사용자 확인 필요.
 - **남음**: Step 2 GPT Codex 리뷰·🐳 DB 게이트·통과 시 `main` 병합 → Step 3 사용자 운영 DB 적용·배포·3번째 축 추가·필터 확인 → 이후 `R116` Step 1 `▶ READY`.
 
-> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 `"인수인계 문서를 확인해"`로 Step 2 리뷰(Base `123a70b` ↔ Target `c5c5a1c`)·🐳 DB 게이트·통과 시 `main` 병합함.
+#### 📝 `r117-classification-axes-3` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-27)
+
+- **Base ↔ Target**: `123a70b699b80398999d171140eec6e471d2cc53` ↔ `c5c5a1c1004424fff8c496d0e55a7b18726e8ebc`; artifact commit `95a75d68481492e4101b4ebce2816e159dd975f5`.
+- **정적 결과**: `findings` 2건임. `R117-REV-001` P3 — 요청 모달 테스트 fixture는 기존 분류 축 1개만 두어 세 번째 축 입력·필수 검증·제출 값을 확인하지 않음. `R117-REV-002` P3 — R52 현재 UI 명세 §3.3·§4.2가 분류 축을 class1/class2까지만 기재해 R117의 3축 기준과 어긋남.
+- **DB 검증**: 격리 Docker Supabase 업그레이드(Base `SCHEMA.sql` → R117 migration 2회 → 전체 `TESTS.sql`) 및 신규 설치(Target `SCHEMA.sql` → migration 2회 → 전체 `TESTS.sql`) 모두 R117-01 및 최종 rollback PASS, SQL `ERROR` 없음. 비공개 `user-icons` 버킷은 README 전제에 따라 테스트 DB에 구성함.
+- **앱 검증**: tsc·lint·Vitest 85파일/1,149개·`next build` 16/16 통과함. artifact schema는 Python `jsonschema` 부재로 Node Ajv 6.15.0의 Draft 7 변환 검증을 사용함. 390/900/1280 실화면 점검은 미실행이며 Step 3 확인으로 둠.
+- **남음**: Claude Opus가 Iteration 02에서 요청 모달 3축 테스트와 R52 현재 UI 명세를 보완함. 이후 GPT Codex가 재리뷰·🐳 DB 게이트를 수행함. 병합하지 않음.
+
+> **다음 단계**: **Claude Opus (`High` — 도구에서 High 선택)**가 `"인수인계 문서를 확인해"`로 Step 1 Iteration 02 보완을 수행함. 이후 **GPT Codex**가 Iteration 02 재리뷰·🐳 DB 게이트를 다시 진행함.
 
 - **대기 Run (R117 완료 후 재개, 워크트리는 생성돼 있음)**: **`R116` 공개 게임별 일정 페이지·SEO (`r116-public-game-pages` — Base `442fb6965b6c170eea66af2f817b1f2190353c33`, 브랜치 `collab/r116-public-game-pages`, 워크트리 `.worktrees/r116-public-game-pages`)** *(명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §6(결정 P1~P13·인수 기준 116-1~116-8)·§7(모델 배정). 직전 Run `r115-csv-import`는 2026-11-27 마감함. 마지막 후보 Run임)*
 - **DB 변경**: 없음. 🐳 Docker 불필요. 새 환경 변수 `NEXT_PUBLIC_SITE_URL`(없으면 canonical·sitemap 항목만 생략, 빌드 경고). 개인 데이터 비노출(공개 `games`·`is_official` 일정·픽업 캐릭터 이름만, anon 키 전용).
