@@ -37,6 +37,14 @@
 
 > **다음 단계**: **GPT Codex**(Fallback: Claude Opus `High` — 도구에서 High 선택)로 `"인수인계 문서를 확인해"`를 입력해 Step 2 리뷰를 진행함. Maker(Sonnet)와 다른 모델이어야 함. 워크트리 `node_modules`가 없으면 `npm ci`로 설치함. 원격 브랜치는 push 안 함(같은 PC면 불필요).
 
+#### 📝 `r113-data-export` Step 1 완료 기록 (Claude Sonnet `Medium`, 2026-11-26)
+
+- **SHA**: `773af3702f1c0cad0628499246f1e41fcc670790`(워크트리, 미push). 신규 `src/lib/export-format.ts`·`data-export.ts`, `src/components/settings/data-export-card.tsx`, 각 Vitest 3종, 수정 `src/app/dashboard/settings/page.tsx`(카드 1줄).
+- **구현**: 설정 페이지 "데이터 내보내기" 카드(버튼 3개, 진행 중 전체 비활성, 완료·실패 안내). JSON은 §3.2 형식(19개 본인 테이블, `skipped`·`catalog` 포함), CSV는 §3.3(BOM·CRLF·따옴표·수식 방지, 숫자 열은 숫자로 출력). 1,000행 단위 `.range()` 조회, 오프라인이면 조회 없이 안내.
+- **판단**: `catalog`는 참조된 게임·일정 이름만 담고 실패 시 `skipped`에 `catalog`로 기록함. 일정 테이블 이름은 `game_schedules`임(명세의 `schedules`는 논리명). 알 수 없는 코드는 원문 코드로 내보냄.
+- **검증(실행함)**: `tsc` 0, lint 0, Vitest 82파일/1109개(신규 25개), `next build` 16/16, `git diff --check` 통과. 113-1~113-6 대응. **미검증**: 113-7(웹·설치본 실제 저장)은 사용자 Step 3임.
+- **남음**: Step 2 리뷰(`GPT Codex`)·병합. 원격 브랜치: push 안 함.
+
 #### 📝 `R113`~`R116` 명세 완료 기록 (Claude Opus, 2026-11-26)
 
 - **사용자 결정**: 내보내기는 JSON 전체+CSV·복원 제외, 게임 예산은 경고·알림만·매달 같은 한도·예정+확정 합산, 가져오기는 확정 기록·자산·포인트 미반영·자체 형식+일반 CSV 열 지정, 공개 페이지는 빌드 생성·배포 때만 갱신·진행/예정+최근 3개월.
