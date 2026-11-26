@@ -16,7 +16,17 @@
 - **`Gemini Models` 주간 한도 소진** *(사용자 통보, 2026-11-26, 리셋 시점 미확인)*: `Gemini 4 Hydrogen`·`Gemini 4 Neon`·`Gemini 4 Carbon`은 같은 공용 한도를 쓰므로 모두 사용 불가로 봄. 새 행 배정·인계는 다른 한도 묶음(`Claude Sonnet (Medium)`·`Claude Opus (High)`·`GPT Codex`·`GitHub Copilot`)으로 바로 보냄(handoff Skill §3). 리셋되면 사용자가 알려 주거나 Antigravity `View Usage`에서 확인한 모델이 이 절을 지움.
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run 없음** *(직전 Run `r114-game-budgets`는 `main` 병합 `b161592`로 마감함)*
+- **활성 Run**: **`R115` CSV 결제 내역 가져오기 (`r115-csv-import` — Base `a04237f3da787e33dd37a6ca80e4d97322c575cc`, 브랜치 `collab/r115-csv-import`, 워크트리 `.worktrees/r115-csv-import`)** *(명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §5(결정 I1~I16·인수 기준 115-1~115-9)·§7(모델 배정). 직전 Run `r114-game-budgets`는 2026-11-26 마감함. 이후 `R116` 순으로 등록함)*
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R115_EXPENSE_IMPORT.sql`, `SCHEMA.sql`: `expenses.import_batch_id`·`import_confirmed_expenses`·`delete_import_batch`). 🐳 Docker Desktop 필요(이 PC는 2026-11-26 등록 시점에 엔진 실행 중 확인함). **지출 원장 접점**이라 Step 1은 Opus 승격 조건 ①. 결제·환불 RPC와 기존 정책은 변경하지 않음(115-8).
+- **핵심 불변식**: 가져온 행은 `CONFIRMED`·`WALLET`·`deduct_from_asset = false`·포인트 0이라 총자산·지갑·포인트 원장이 변하지 않아야 하고, 가져온 행을 환불해도 변하지 않아야 함(115-1·115-2). 위반 1행이 섞이면 전체 거부(115-3).
+- **모델 배정 근거**: `Gemini Models` 한도 소진 중이라 명세 §7 권고대로 배정함. 리뷰어는 Maker와 다른 모델임.
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`▶ READY`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R115 SQL RPC·CSV 파서·가져오기 UI)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 명세 §5 전부(마이그레이션·`SCHEMA.sql`·README 확인 쿼리·`TESTS.sql`·`database.types.ts`·`src/lib/csv.ts`·해석 로직·지출 페이지 `CSV 가져오기` 단계형 모달·미적용 폴백)·인수 기준 115-1~115-9. 허용 파일: 신규 `sql/migrations/MIGRATION_R115_EXPENSE_IMPORT.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, 신규 `src/lib/csv.ts`·`.test.ts`와 가져오기 해석 모듈·테스트, `src/lib/export-format.ts`(파서 공유 시), `src/app/dashboard/expenses/**`, 신규 `src/components/expense/**` 가져오기 모달, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
+| **2** | **`⏳ WAITING`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외, 불가 시 다른 세션의 Claude Opus)* | `Reviewer & Local DB Gate` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요**. 원장 불변·권한(IDOR)·검증 정적 리뷰(`review.json`)·`test.json`(로컬 DB 업그레이드·신규 2경로 2회 멱등·`TESTS.sql`·`tsc`·`lint`·Vitest·`next build`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+| **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 실제 CSV 1개 가져오기·가져오기 취소 확인 | Step 2 병합 후 안내함 |
+
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
