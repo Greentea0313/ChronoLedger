@@ -125,6 +125,7 @@ describe("ExpensesPage", () => {
     // 헤더 및 버튼 확인
     expect(await screen.findByRole("heading", { name: "소비" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "+ 지출 추가" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "CSV 가져오기" })).toBeTruthy()
     expect(screen.getByRole("tab", { name: "지출 내역 및 통계" })).toBeTruthy()
     expect(screen.getByRole("tab", { name: "정기 구독" })).toBeTruthy()
 
