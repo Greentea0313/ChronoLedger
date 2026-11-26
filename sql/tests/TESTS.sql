@@ -160,6 +160,11 @@
 --   R114-01 DB fixture 역할       게임 월 예산 80%·100% 알림(예정+확정·end_date 귀속·포인트 할인 후 금액·정기 구독 포함·game_id 없음/취소/환불 제외),
 --                                  한 달 종류별 1회·같은 날 재실행 0건·토글 false 제외·100% 직행 시 100만·본문 금액 미포함·내부 함수 권한.
 --   R114-02 DB fixture 역할       MONTHLY_REPORT 1일만·전월 확정 합·전월 대비 ±%·전월 기록 없음·예산 초과 게임 수·토글 false/확정 0건 제외·재실행 0건.
+--   R115-01 authenticated / I1    가져오기 행 CONFIRMED·WALLET·자산 미차감·할인/포인트 0·제목 trim·빈 메모 NULL, 가져오기와 환불 후
+--                                  총자산·지갑 3종·포인트 원장 불변, 환불 행 CANCELLED/PAYMENT_REFUND.
+--   R115-02 authenticated / I1    I4 위반 1행(미래·2000년 이전·없는 날짜·금액 0/소수/문자/상한 초과·빈/151자 제목·분류·없는/형식 틀린 game_id·
+--                                  501자 메모·객체 아님) 시 행 번호 오류와 전체 미반영, 0행·1,001행 거부, 1,000행 성공, anon 실행 거부.
+--   R115-03 authenticated / I1·I2 배치 취소는 본인·I1 값 행만(환불 행 포함) 삭제, 다른 사용자·NULL 배치 0건, 탈퇴 대기 시 두 RPC 거부.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -6115,6 +6120,257 @@ BEGIN
     END IF;
 END $$;
 \echo PASS: R114-02 monthly report on the 1st only, totals/percent/over-budget count, no previous record, toggle off, idempotent
+
+-- ============================================================================
+-- R115: CSV import of confirmed expenses (spec docs/r113-r116-data-budget-public-spec.md §5, 115-1~115-4).
+-- Fresh users I1 (importer) and I2 (other user). Imported rows must never touch total_asset, wallets or the point ledger.
+-- ============================================================================
+SELECT gen_random_uuid() AS r115_i1 \gset
+SELECT gen_random_uuid() AS r115_i2 \gset
+SELECT set_config('chronoledger.r115_i1', :'r115_i1', true);
+SELECT set_config('chronoledger.r115_i2', :'r115_i2', true);
+INSERT INTO auth.users (id, aud, role, email, encrypted_password, raw_app_meta_data, raw_user_meta_data)
+SELECT u.id, 'authenticated', 'authenticated', 'r115-sqltest-' || replace(u.id::text, '-', '') || '@example.invalid',
+       '', '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb
+FROM (VALUES (:'r115_i1'::uuid), (:'r115_i2'::uuid)) AS u(id);
+
+-- R115-00) Fixture: schema, privileges, I1 balances and a catalog game.
+DO $$
+DECLARE
+    v_i1 UUID := current_setting('chronoledger.r115_i1')::uuid;
+    v_game UUID;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'expenses'
+                   AND column_name = 'import_batch_id' AND data_type = 'uuid' AND is_nullable = 'YES')
+       OR NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'expenses'
+                      AND indexname = 'idx_expenses_user_import_batch' AND indexdef LIKE '%WHERE (import_batch_id IS NOT NULL)%') THEN
+        RAISE EXCEPTION 'FAIL: R115 import_batch_id column or partial index missing';
+    END IF;
+    IF has_function_privilege('anon', 'public.import_confirmed_expenses(jsonb)', 'EXECUTE')
+       OR has_function_privilege('anon', 'public.delete_import_batch(uuid)', 'EXECUTE')
+       OR NOT has_function_privilege('authenticated', 'public.import_confirmed_expenses(jsonb)', 'EXECUTE')
+       OR NOT has_function_privilege('authenticated', 'public.delete_import_batch(uuid)', 'EXECUTE')
+       OR NOT (SELECT prosecdef FROM pg_proc WHERE oid = 'public.import_confirmed_expenses(jsonb)'::regprocedure)
+       OR NOT (SELECT prosecdef FROM pg_proc WHERE oid = 'public.delete_import_batch(uuid)'::regprocedure) THEN
+        RAISE EXCEPTION 'FAIL: R115 RPC privileges or SECURITY DEFINER';
+    END IF;
+
+    UPDATE public.user_finances SET total_asset = 50000 WHERE user_id = v_i1;
+    UPDATE public.store_wallets SET current_balance = 300 WHERE user_id = v_i1 AND platform = 'GOOGLE_PLAY';
+    INSERT INTO public.store_wallets(user_id, platform, current_balance, earn_rate) VALUES (v_i1, 'NAVER_PAY', 7000, 0)
+    ON CONFLICT (user_id, platform) DO UPDATE SET current_balance = 7000;
+    INSERT INTO public.games(name, default_icon_url) VALUES ('R115 game ' || v_i1::text, 'https://example.invalid/r115.webp') RETURNING id INTO v_game;
+    PERFORM set_config('chronoledger.r115_game', v_game::text, true);
+END $$;
+
+-- R115-01) I1 imports three rows: stored with the I1 values, ledger unchanged (115-1). One row is refunded (115-2).
+SELECT set_config('request.jwt.claim.sub', :'r115_i1', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'r115_i1', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_result JSONB;
+    v_refund UUID;
+BEGIN
+    v_result := public.import_confirmed_expenses(jsonb_build_array(
+        jsonb_build_object('target_date', '2026-10-01', 'title', 'R115 imported game', 'category', '게임', 'amount', 12000,
+                           'game_id', current_setting('chronoledger.r115_game'), 'memo', '메모' || chr(10) || '[가져오기] 결제수단: 네이버페이'),
+        jsonb_build_object('target_date', '2026-10-02', 'title', '  R115 imported food  ', 'category', '식비', 'amount', 3000),
+        jsonb_build_object('target_date', '2000-01-01', 'title', 'R115 imported oldest', 'category', '기타', 'amount', 1, 'game_id', NULL, 'memo', '')
+    ));
+    IF (v_result->>'inserted')::int <> 3 OR v_result->>'batch_id' IS NULL THEN
+        RAISE EXCEPTION 'FAIL: R115 import result %', v_result;
+    END IF;
+    PERFORM set_config('chronoledger.r115_batch', v_result->>'batch_id', true);
+
+    SELECT id INTO v_refund FROM public.expenses WHERE import_batch_id = (v_result->>'batch_id')::uuid AND title = 'R115 imported food';
+    IF v_refund IS NULL THEN
+        RAISE EXCEPTION 'FAIL: R115 title should be trimmed';
+    END IF;
+    PERFORM public.refund_expense_payment(v_refund);
+    PERFORM set_config('chronoledger.r115_refunded', v_refund::text, true);
+END $$;
+RESET ROLE;
+
+DO $$
+DECLARE
+    v_i1 UUID := current_setting('chronoledger.r115_i1')::uuid;
+    v_batch UUID := current_setting('chronoledger.r115_batch')::uuid;
+BEGIN
+    IF (SELECT count(*) FROM public.expenses WHERE user_id = v_i1 AND import_batch_id = v_batch) <> 3
+       OR EXISTS (
+           SELECT 1 FROM public.expenses
+           WHERE user_id = v_i1 AND import_batch_id = v_batch
+             AND NOT (payment_method = 'WALLET' AND deduct_from_asset = false AND original_price = final_amount
+                      AND discount_amount = 0 AND point_discount_amount = 0 AND used_points = 0 AND earned_points = 0
+                      AND point_platform IS NULL AND template_id IS NULL AND schedule_id IS NULL AND pickup_schedule_id IS NULL
+                      AND start_date IS NULL AND end_date IS NULL)
+       ) THEN
+        RAISE EXCEPTION 'FAIL: R115 imported rows must carry the I1 values (115-1)';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE user_id = v_i1 AND import_batch_id = v_batch AND title = 'R115 imported game'
+                   AND status = 'CONFIRMED' AND category = '게임' AND target_date = DATE '2026-10-01' AND final_amount = 12000
+                   AND game_id = current_setting('chronoledger.r115_game')::uuid AND memo LIKE '메모%[가져오기] 결제수단: 네이버페이')
+       OR NOT EXISTS (SELECT 1 FROM public.expenses WHERE user_id = v_i1 AND import_batch_id = v_batch AND title = 'R115 imported oldest'
+                      AND status = 'CONFIRMED' AND game_id IS NULL AND memo IS NULL AND final_amount = 1) THEN
+        RAISE EXCEPTION 'FAIL: R115 imported values (date/amount/game/memo)';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.expenses WHERE id = current_setting('chronoledger.r115_refunded')::uuid
+                   AND status = 'CANCELLED' AND cancellation_kind = 'PAYMENT_REFUND') THEN
+        RAISE EXCEPTION 'FAIL: R115 refunded import should be CANCELLED/PAYMENT_REFUND (115-2)';
+    END IF;
+    IF (SELECT total_asset FROM public.user_finances WHERE user_id = v_i1) <> 50000
+       OR (SELECT current_balance FROM public.store_wallets WHERE user_id = v_i1 AND platform = 'GOOGLE_PLAY') <> 300
+       OR (SELECT current_balance FROM public.store_wallets WHERE user_id = v_i1 AND platform = 'NAVER_PAY') <> 7000
+       OR (SELECT current_balance FROM public.store_wallets WHERE user_id = v_i1 AND platform = 'GALAXY_STORE') <> 0
+       OR EXISTS (SELECT 1 FROM public.store_point_transactions WHERE user_id = v_i1) THEN
+        RAISE EXCEPTION 'FAIL: R115 import or refund changed total_asset, wallets or the point ledger (115-1/115-2)';
+    END IF;
+END $$;
+\echo PASS: R115-01 imported rows are CONFIRMED WALLET without asset/points, import and refund leave asset/wallets/ledger unchanged
+
+-- R115-02) Validation rejects the whole call; 1,000 rows succeed and 1,001 fail (115-3).
+SELECT set_config('request.jwt.claim.sub', :'r115_i1', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'r115_i1', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_ok JSONB := jsonb_build_object('target_date', '2026-10-03', 'title', 'R115 valid', 'category', '게임', 'amount', 500);
+    v_tomorrow TEXT := to_char((NOW() AT TIME ZONE 'Asia/Seoul')::date + 1, 'YYYY-MM-DD');
+    v_case RECORD;
+    v_before BIGINT;
+    v_result JSONB;
+BEGIN
+    SELECT count(*) INTO v_before FROM public.expenses WHERE user_id = auth.uid();
+    FOR v_case IN
+        SELECT * FROM (VALUES
+            (jsonb_build_array(v_ok, v_ok || jsonb_build_object('target_date', v_tomorrow)), '2번째 행: 날짜는'),
+            (jsonb_build_array(v_ok, v_ok || jsonb_build_object('target_date', '1999-12-31')), '2번째 행: 날짜는'),
+            (jsonb_build_array(v_ok || jsonb_build_object('target_date', '2026-02-30')), '1번째 행: 날짜 형식'),
+            (jsonb_build_array(v_ok || jsonb_build_object('target_date', '2026/10/03')), '1번째 행: 날짜 형식'),
+            (jsonb_build_array(v_ok, v_ok, v_ok || jsonb_build_object('amount', 0)), '3번째 행: 금액'),
+            (jsonb_build_array(v_ok || jsonb_build_object('amount', 1.5)), '1번째 행: 금액'),
+            (jsonb_build_array(v_ok || jsonb_build_object('amount', '500')), '1번째 행: 금액'),
+            (jsonb_build_array(v_ok || jsonb_build_object('amount', 10000000001)), '1번째 행: 금액'),
+            (jsonb_build_array(v_ok || jsonb_build_object('amount', -500)), '1번째 행: 금액'),
+            (jsonb_build_array(v_ok || jsonb_build_object('title', '   ')), '1번째 행: 항목명'),
+            (jsonb_build_array(v_ok || jsonb_build_object('title', repeat('가', 151))), '1번째 행: 항목명'),
+            (jsonb_build_array(v_ok || jsonb_build_object('category', '쇼핑')), '1번째 행: 분류'),
+            (jsonb_build_array(v_ok || jsonb_build_object('game_id', gen_random_uuid())), '1번째 행: 존재하지 않는 게임'),
+            (jsonb_build_array(v_ok || jsonb_build_object('game_id', 'not-a-uuid')), '1번째 행: 존재하지 않는 게임'),
+            (jsonb_build_array(v_ok || jsonb_build_object('memo', repeat('m', 501))), '1번째 행: 메모'),
+            (jsonb_build_array(v_ok, '"text"'::jsonb), '2번째 행: 형식'),
+            ('[]'::jsonb, '1행부터 1,000행까지'),
+            ((SELECT jsonb_agg(v_ok) FROM generate_series(1, 1001)), '1행부터 1,000행까지'),
+            (v_ok, '행 목록 형식')
+        ) AS t(rows, expected)
+    LOOP
+        BEGIN
+            PERFORM public.import_confirmed_expenses(v_case.rows);
+            RAISE EXCEPTION 'FAIL: R115 invalid import accepted (expected %)', v_case.expected;
+        EXCEPTION WHEN raise_exception THEN
+            IF SQLERRM LIKE 'FAIL:%' OR position(v_case.expected IN SQLERRM) = 0 THEN
+                RAISE EXCEPTION 'FAIL: R115 expected "%" but got "%"', v_case.expected, SQLERRM;
+            END IF;
+        END;
+    END LOOP;
+    IF (SELECT count(*) FROM public.expenses WHERE user_id = auth.uid()) <> v_before THEN
+        RAISE EXCEPTION 'FAIL: R115 a rejected import left rows behind (115-3)';
+    END IF;
+
+    SELECT public.import_confirmed_expenses((SELECT jsonb_agg(v_ok) FROM generate_series(1, 1000))) INTO v_result;
+    IF (v_result->>'inserted')::int <> 1000 THEN
+        RAISE EXCEPTION 'FAIL: R115 1,000-row import result %', v_result;
+    END IF;
+    IF public.delete_import_batch((v_result->>'batch_id')::uuid) <> 1000 THEN
+        RAISE EXCEPTION 'FAIL: R115 1,000-row batch undo count';
+    END IF;
+END $$;
+RESET ROLE;
+
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.import_confirmed_expenses('[]'::jsonb);
+        RAISE EXCEPTION 'FAIL: anon executed import_confirmed_expenses';
+    EXCEPTION WHEN insufficient_privilege THEN
+        NULL;
+    END;
+    BEGIN
+        PERFORM public.delete_import_batch(gen_random_uuid());
+        RAISE EXCEPTION 'FAIL: anon executed delete_import_batch';
+    EXCEPTION WHEN insufficient_privilege THEN
+        NULL;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R115-02 one invalid row rejects the whole import with its row number, 1,000 rows accepted, 1,001 rejected, anon denied
+
+-- R115-03) delete_import_batch only deletes the caller's untouched I1 rows (115-4).
+DO $$
+BEGIN
+    -- A row in the same batch that does not carry the I1 values (asset deducted) must survive the undo.
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, payment_method, deduct_from_asset, import_batch_id)
+    VALUES (current_setting('chronoledger.r115_i1')::uuid, 'R115 not importable shape', '기타', 'CONFIRMED', DATE '2026-10-04', 100, 100, 'WALLET', true,
+            current_setting('chronoledger.r115_batch')::uuid);
+END $$;
+
+SELECT set_config('request.jwt.claim.sub', :'r115_i2', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'r115_i2', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    IF public.delete_import_batch(current_setting('chronoledger.r115_batch')::uuid) <> 0 OR public.delete_import_batch(NULL) <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R115 another user deleted rows from I1 batch (115-4)';
+    END IF;
+END $$;
+RESET ROLE;
+
+SELECT set_config('request.jwt.claim.sub', :'r115_i1', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'r115_i1', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+    v_n INTEGER;
+BEGIN
+    IF (SELECT count(*) FROM public.expenses WHERE import_batch_id = current_setting('chronoledger.r115_batch')::uuid) <> 4 THEN
+        RAISE EXCEPTION 'FAIL: R115 I2 undo changed I1 rows';
+    END IF;
+    v_n := public.delete_import_batch(current_setting('chronoledger.r115_batch')::uuid);
+    IF v_n <> 3 THEN
+        RAISE EXCEPTION 'FAIL: R115 own undo should delete 3 rows (incl. refunded), got %', v_n;
+    END IF;
+    IF (SELECT count(*) FROM public.expenses WHERE import_batch_id = current_setting('chronoledger.r115_batch')::uuid) <> 1
+       OR NOT EXISTS (SELECT 1 FROM public.expenses WHERE title = 'R115 not importable shape') THEN
+        RAISE EXCEPTION 'FAIL: R115 undo must keep rows without the I1 values';
+    END IF;
+END $$;
+RESET ROLE;
+
+-- Pending account deletion blocks both RPCs.
+INSERT INTO public.account_deletion_requests(user_id, status_token_hash)
+VALUES (:'r115_i2'::uuid, repeat('f', 64));
+SELECT set_config('request.jwt.claim.sub', :'r115_i2', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', :'r115_i2', 'role', 'authenticated')::text, true);
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
+    BEGIN
+        PERFORM public.import_confirmed_expenses(jsonb_build_array(jsonb_build_object('target_date', '2026-10-03', 'title', 'x', 'category', '기타', 'amount', 1)));
+        RAISE EXCEPTION 'FAIL: R115 import allowed while account deletion is pending';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM NOT LIKE '계정 삭제가 진행 중%' THEN RAISE; END IF;
+    END;
+    BEGIN
+        PERFORM public.delete_import_batch(gen_random_uuid());
+        RAISE EXCEPTION 'FAIL: R115 undo allowed while account deletion is pending';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM NOT LIKE '계정 삭제가 진행 중%' THEN RAISE; END IF;
+    END;
+END $$;
+RESET ROLE;
+\echo PASS: R115-03 undo deletes only the caller's untouched rows (refunded included), other user 0 rows, pending deletion blocks both RPCs
 
 SET LOCAL ROLE anon;
 DO $$
