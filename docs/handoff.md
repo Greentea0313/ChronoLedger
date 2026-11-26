@@ -29,6 +29,18 @@
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 한 게임에 세 번째 분류 축 추가·필터 확인 | Step 2 병합 후 안내함 |
 
 
+#### 📝 `r117-classification-axes-3` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-27)
+
+- **Target SHA**: `c5c5a1c1004424fff8c496d0e55a7b18726e8ebc` (`collab/r117-classification-axes-3`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (11개)**: 신규 `sql/migrations/MIGRATION_R117_CLASSIFICATION_AXES_3.sql`, `sql/SCHEMA.sql`, `sql/README.md`(R117 행·R52 행 재실행 경고), `sql/tests/TESTS.sql`(R52 검증 줄 갱신·R117-01), `src/lib/character-utils.ts`·`.test.ts`, `src/app/admin/page.tsx`·`.test.tsx`, `src/components/character/character-filter-bar.test.tsx`, `docs/spec/R52_Character_Template_and_Pickup_Avatar_Spec.md`, `docs/spec/R13_Character_Roster_and_Preset_Spec.md`.
+- **SQL (①②)**: `is_valid_classification_schema`의 축 상한만 `> 2` → `> 3`(본문 나머지 불변, 마이그레이션·`SCHEMA.sql` 본문 동일). `games_classification_schema_check`가 같은 함수를 참조해 제약 재생성 없음, 기존 0~2축 게임 그대로 유효. 승인 RPC·분류 아이콘 트리거는 축 전체를 돌기 때문에 변경 없음. 기존 R52 테스트의 "3축 거부" 줄은 "3축 허용·4축 거부"로 바꿈.
+- **화면 (③④)**: `TEMPLATE_AXIS_MAX_COUNT = 3`, `normalizeClassificationSchema`는 `slice(0, TEMPLATE_AXIS_MAX_COUNT)`. 관리자 템플릿 폼의 "최대 2개" 문구 2곳과 `축 추가` 상한을 상수로 바꿈. 필터 막대·캐릭터 목록·프리셋·요청 모달·관리자 캐릭터 폼은 이미 `schema.axes` 전체를 돌고 있어 코드 변경 없음(각 축이 세로로 한 줄씩 쌓이는 구조).
+- **판단**: ① `R13` 명세는 원래 "최대 3개"라 문구가 맞아, `R52`가 2개로 줄였다가 `R117`이 되돌렸다는 한 줄만 추가함. `R52` 명세는 `character_class3` 행과 상한 문구를 갱신함. ② 마이그레이션 미적용 DB(⑤)에서는 관리자가 3번째 축을 저장하면 기존 CHECK 위반 처리 문구("캐릭터 템플릿 형식이 올바르지 않습니다…")가 나오고, 나머지 화면은 그대로 동작함(새 열·RPC 없음). ③ `R52` 마이그레이션을 다시 실행하면 상한이 2로 돌아가므로 README 두 행과 마이그레이션 머리말에 재실행 경고를 둠.
+- **검증 (실제 실행)**: 🐳 업그레이드(Base `123a70b` `SCHEMA.sql` → R117 2회 → `TESTS.sql` 63개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 63개 PASS), 두 로그 `ERROR` 0건. 변이 2건(상한 2·상한 4) 모두 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 85파일/1,149개(신규·갱신 6개)·`next build` 16/16(더미 공개 Supabase 값)·`git diff --check` 통과. **미검증**: 390/900/1280 실제 화면 레이아웃(④)은 브라우저로 보지 않음. Step 2 리뷰 또는 Step 3 사용자 확인 필요.
+- **남음**: Step 2 GPT Codex 리뷰·🐳 DB 게이트·통과 시 `main` 병합 → Step 3 사용자 운영 DB 적용·배포·3번째 축 추가·필터 확인 → 이후 `R116` Step 1 `▶ READY`.
+
+> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 `"인수인계 문서를 확인해"`로 Step 2 리뷰(Base `123a70b` ↔ Target `c5c5a1c`)·🐳 DB 게이트·통과 시 `main` 병합함.
+
 - **대기 Run (R117 완료 후 재개, 워크트리는 생성돼 있음)**: **`R116` 공개 게임별 일정 페이지·SEO (`r116-public-game-pages` — Base `442fb6965b6c170eea66af2f817b1f2190353c33`, 브랜치 `collab/r116-public-game-pages`, 워크트리 `.worktrees/r116-public-game-pages`)** *(명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §6(결정 P1~P13·인수 기준 116-1~116-8)·§7(모델 배정). 직전 Run `r115-csv-import`는 2026-11-27 마감함. 마지막 후보 Run임)*
 - **DB 변경**: 없음. 🐳 Docker 불필요. 새 환경 변수 `NEXT_PUBLIC_SITE_URL`(없으면 canonical·sitemap 항목만 생략, 빌드 경고). 개인 데이터 비노출(공개 `games`·`is_official` 일정·픽업 캐릭터 이름만, anon 키 전용).
 - **주의 (명세 §6.1)**: 빌드 시점 서버 컴포넌트는 이 코드베이스의 새 관례임(P2). 빌드 시점 조회 실패는 빌드 실패(P9). Cloudflare Pages `_redirects` 규칙이 생성 HTML보다 앞서면 빈 SPA 셸이 나갈 수 있어 배포 뒤 확인(P11, 116-8).
