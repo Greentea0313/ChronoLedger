@@ -25,7 +25,7 @@
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (Iteration 02, SHA: 3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R117 SQL 제약·화면 3축 대응·명세)` | 요청 모달의 3축 Vitest 회귀 추가, R52 현재 UI 명세를 class1~3으로 갱신. 레이아웃 실화면 확인은 Step 3로 이관함 | `R117-REV-001`·`002` 보완함 |
-| **2** | **`▶ READY (Iteration 02 재리뷰, Iteration 01 산출물 95a75d68481492e4101b4ebce2816e159dd975f5)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 01 정적 리뷰·DB 게이트·검증 아티팩트 완료, Maker 보완 후 재리뷰 대기 | Step 2 Iteration 01 기록 참조 |
+| **2** | **`🔄 IN_PROGRESS (산출물 커밋 a3f7c55, 정적·앱·격리 DB 검증 통과, 병합 전)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 01 정적 리뷰·DB 게이트·검증 아티팩트 완료, Maker 보완 후 재리뷰 대기 | Step 2 Iteration 01 기록 참조 |
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 한 게임에 세 번째 분류 축 추가·390/900/1280 화면 및 필터 확인 | Step 2 병합 후 안내함 |
 
 
