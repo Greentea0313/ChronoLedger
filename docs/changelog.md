@@ -1,5 +1,10 @@
 # 변경 이력
 
+## 2026-11-26 (`R110` 후속 — 데스크톱 릴리스 수정·아이콘)
+
+- **릴리스 빌드 수정 (`package.json`)**: `@tauri-apps/plugin-deep-link`를 `^2.6.3`으로 올려 Rust crate와 minor 버전을 맞춤(`tauri build` 중단 해소).
+- **프로젝트 아이콘 적용 (`src-tauri/icons/`)**: Tauri 기본 아이콘을 프로젝트 아이콘(시계 `C`, 둥근 사각형 투명 모서리)으로 교체해 설치 파일·바로가기·작업표시줄에 반영함. 앱 버전 `0.2.2`.
+
 ## 2026-11-26 (Run `r110-desktop-auto-update` 병합 `a83503a` — `R110` 데스크톱 자동 업데이트)
 
 - **자동 업데이트 플러그인·서명 (`src-tauri/`)**: `tauri-plugin-updater`·`tauri-plugin-process` 등록, capability는 `updater:default`·`process:allow-restart`만 추가함. NSIS 단일 번들·서명된 업데이트 산출물·공개 키·단일 endpoint(GitHub Releases `latest.json`)를 설정하고 앱 버전을 `0.2.0`으로 올림.

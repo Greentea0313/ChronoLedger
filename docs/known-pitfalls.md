@@ -161,3 +161,18 @@
     - 원인: 안드로이드는 `showNotification`의 `badge` 이미지에서 색을 버리고 알파(투명도)만 써서 흰색 실루엣으로 그림. 불투명 배경이 있으면 실루엣이 사각형이 됨.
     - 방어책: 배지는 투명 배경 RGBA PNG(`public/icons/badge-96.png`)만 씀. 아이콘을 바꾸면 배지도 배경 없이 다시 만들고 `sw.test.ts`의 RGBA 검사를 통과시킴.
     - 알림창을 내렸을 때 우측에 보이는 큰 이미지는 `showNotification`의 `icon`임. 앱 아이콘(`icon-192.png`)은 어두운 둥근 사각형 배경이 있어 검은 사각형으로 보였기에(2026-11-25) 투명 배경 `public/icons/push-icon-192.png`를 따로 둠. 푸시 아이콘을 바꾸면 `SHELL_CACHE` 버전을 올려야 설치된 PWA가 새 이미지를 받음.
+
+46. **Tauri npm 플러그인과 Rust crate의 minor 버전 불일치**
+    - 증상: `tauri build`가 시작 2초 만에 `Found version mismatched Tauri packages`로 중단됨(R110 첫 릴리스 실행 실패, 2026-11-26).
+    - 원인: `@tauri-apps/plugin-deep-link` npm 2.0.0과 `tauri-plugin-deep-link` crate 2.6.1처럼 같은 플러그인의 npm·Rust minor가 다름. 로컬 `cargo check`·`next build`·Vitest로는 잡히지 않음.
+    - 방어책: 플러그인 추가·갱신 때 `npx tauri info`로 불일치 경고가 없는지 확인하고, `package.json` 범위를 `Cargo.lock` minor에 맞춤. 릴리스 전에는 서명 없이도 `npx tauri build`를 한 번 실행해 봄.
+
+47. **GitHub Codespaces secrets는 Actions 워크플로에서 읽히지 않음**
+    - 증상: 릴리스 빌드의 `next build`가 `Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY.`로 모든 페이지 prerender에서 실패함(R110, 2026-11-26).
+    - 원인: Settings → Secrets and variables → **Codespaces**에 등록한 값은 Codespaces 전용임. 워크플로의 `secrets.*`는 **Actions → Repository secrets**만 읽으며, 없으면 빈 값이 됨.
+    - 방어책: 릴리스용 Secrets 5개는 반드시 `https://github.com/<owner>/<repo>/settings/secrets/actions`의 Repository secrets에 등록함. 값은 채팅·로그에 남기지 않음.
+
+48. **데스크톱 아이콘 교체 후 작업표시줄·바로가기에 이전 아이콘이 남음**
+    - 증상: 새 아이콘으로 빌드·설치해도 작업표시줄이나 바로가기가 이전(기본) 아이콘을 보임.
+    - 원인: Windows 아이콘 캐시. 아이콘은 `src-tauri/icons/`가 exe에 박히며, 파일 교체는 재빌드·재설치로만 반영됨.
+    - 방어책: `npx tauri icon <1024px 원본>`으로 `icons/`를 재생성하고(Windows 전용이므로 `android/`·`ios/`·`64x64.png`는 삭제), 반영이 늦으면 탐색기를 재시작함. 필요하면 작업표시줄 고정을 해제 후 다시 고정함.

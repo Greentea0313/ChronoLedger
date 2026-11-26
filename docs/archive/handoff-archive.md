@@ -6,6 +6,44 @@
 
 - **차단 해소 기록 (2026-11-02)**: GitHub Copilot이 Step 4를 Base/Target SHA 미기재로 `🛑 BLOCKED` 처리(`f9afbb5`)함. Claude Opus(Orchestrator 1순위 대체)가 Run 등록 시 누락했던 비교 범위를 위 「리뷰 비교 범위」에 확정하고 `▶ READY`로 복귀.
 
+### 🗂️ 이전 Run 기록 (완료): `p4-followups-r107c-r109-r75` *(`R109-REV-003`·`R107C-REV-001·002`·`R75-REV-001` P4 후속 일괄 처리)*
+
+- **Run ID**: `p4-followups-r107c-r109-r75` **(완료, `main` 병합 `ac752b6`, 문서 마감 2026-11-26)** · **Orchestrator**: Gemini 4 Hydrogen *(등록)* · Claude Opus `High` *(Step 4 마감 대체 실행)*
+- **Worktree 경로**: `.worktrees/p4-followups-r107c-r109-r75` (브랜치 `collab/p4-followups-r107c-r109-r75`, 매니페스트 `artifacts/p4-followups-r107c-r109-r75/run.json`, 미삭제·원격 미push)
+- **Base SHA**: `328704b7fdd5fc9f908894499a8d82acef0a8169` · **Target SHA**: `66d4547f7856e3a70c1ab6fbf6a34622c95fc944` *(Step 1 `1c04860`, 산출물 `524cb2a`, `main` 병합 `ac752b6`)*
+- **DB 변경**: 있음 (`MIGRATION_R107C_REV002_AUTO_CONFIRMED_STATUS_CHECK.sql`, `SCHEMA.sql`). **운영 적용·검증 완료(사용자, 2026-11-26)**.
+
+| 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1** | **`✅ DONE (SHA: 1c048600213e727a3e25a9f6d75fb0f9bb2381cb)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`) / GitHub Copilot)* | `Maker (R109-REV-003·R107C-REV-001 UI 보완)` | `R109-REV-003`: `/admin` 캐릭터 저장·삭제 핸들러에서 `fetchCharacters()`와 함께 `fetchPendingCharacterAssetCount()` 호출. `R107C-REV-001`: 구독 모달 수정 저장 시 미결제 `PLANNED` 지출 동기화 `update`에 `payment_method`·`point_platform` 포함. 각각 Vitest 추가, `tsc`·`lint`·Vitest 통과 후 커밋. 허용 파일: `src/app/admin/page.tsx`·`page.test.tsx`, `src/components/subscription/subscription-modal.tsx`·`subscription-modal.test.tsx`, 루트 `docs/handoff.md`, `docs/progress.md` | ✅ 아래 Step 1 완료 기록 (실행: Claude Sonnet `Medium` 대체) |
+| **2** | **`✅ DONE (SHA: 66d4547f7856e3a70c1ab6fbf6a34622c95fc944)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: Gemini 4 Neon (`High` — 도구에서 High 선택) / GPT Codex)* | `Maker (R107C-REV-002 CHECK·R75-REV-001 테스트)` | 🐳 **Docker Desktop 필요**. `R107C-REV-002`: 신규 `sql/migrations/MIGRATION_R107C_REV002_AUTO_CONFIRMED_STATUS_CHECK.sql`(멱등 `CHECK (auto_confirmed_at IS NULL OR status <> 'PLANNED')`, 위반 행 사전 확인), `sql/SCHEMA.sql`, `sql/README.md` B표 행·확인 쿼리, `TESTS.sql` 블록. 자동 확정·환불 롤백·`restore_cancelled_expense` 경로가 이 제약을 위반하지 않는지 점검. `R75-REV-001`: `TESTS.sql` R64 블록의 잘못된 `axis_key`·빈 옵션 음성 케이스를 방어선별로 고정. 허용 파일: 위 SQL 파일들, `src/types/database.types.ts`(필요 시), 루트 `docs/handoff.md`, `docs/progress.md` | ✅ 아래 Step 2 완료 기록 |
+| **3** | **`✅ DONE (SHA: 524cb2a, main 병합 ac752b6)`** | **Gemini 4 Carbon (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex — Maker인 Opus·Hydrogen 제외)* | `Reviewer & Local DB Gate` | Step 2 완료 후 착수. 🐳 **Docker Desktop 필요**. 통합 정적 리뷰(`review.json`)·`test.json`(로컬 DB 업그레이드·신규 2경로 2회 멱등·`TESTS.sql`·`tsc`·`lint`·Vitest·`next build`)·`main` 병합 | ✅ 아래 Step 3 완료 기록 (지적 0건, 🐳 로컬 2경로·`TESTS.sql` 56개 PASS, `main` 병합 `ac752b6`) |
+| **4** | **`✅ DONE (2026-11-26, 문서 마감)`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet (`Medium`))* | `Orchestrator (마감)` | Step 3 병합 후 착수. 문서 아카이브 마감 및 운영 DB 적용 절차 안내 | ✅ 문서 마감 완료 (실행: Claude Opus `High` 대체) |
+
+#### 📝 `p4-followups-r107c-r109-r75` Step 3·4 완료 기록 (Gemini 4 Carbon `High` 리뷰·병합 → Claude Opus `High` 마감 대체, 2026-11-26)
+
+- **Step 3 (Gemini 4 Carbon)**: Base `328704b` ↔ Target `66d4547` 정적 리뷰 `clean`(지적 0건), `test.json` `passed`(`diff --check`·`tsc`·`lint`·Vitest·`next build`, 🐳 로컬 업그레이드 경로(위반 행 `NOT VALID` 전환·정리 후 재검증 포함)·신규 설치 경로 각 2회 멱등·`TESTS.sql` 56개 PASS). 산출물 커밋 `524cb2a`(`run.json` `target_sha` 기록), `main` 병합 `ac752b6`(no-ff). 병합 직후 토큰 소진으로 종료돼 문서 기록 없이 끝남.
+- **Step 4 (Claude Opus 대체 실행)**: 산출물 2종 스키마 재검증, 병합 결과가 브랜치 끝과 `src`·`sql`·`supabase` 차이 없음 확인. 병합 후 `main` 재검증 `tsc`·`next lint`·Vitest 78파일/1,076개·`next build`(더미 `NEXT_PUBLIC_SUPABASE_*`) 통과. `R75-REV-002`는 비승인 게임 상태가 없어 도달 불가라 보류함.
+- **운영 반영**: `MIGRATION_R107C_REV002_AUTO_CONFIRMED_STATUS_CHECK.sql` 운영 적용·검증 완료(사용자, 2026-11-26). 남음: `main` push로 웹 배포(Step 1 UI 보완 반영). 원격 브랜치 `collab/p4-followups-r107c-r109-r75`: push 안 함.
+
+#### 📝 `p4-followups-r107c-r109-r75` Step 2 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `66d4547f7856e3a70c1ab6fbf6a34622c95fc944` (`collab/p4-followups-r107c-r109-r75`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (4개)**: 신규 `sql/migrations/MIGRATION_R107C_REV002_AUTO_CONFIRMED_STATUS_CHECK.sql`, `sql/SCHEMA.sql`, `sql/README.md`(B표 행·적용 전 위반 행 확인 쿼리), `sql/tests/TESTS.sql`. 타입 변경 없음.
+- **`R107C-REV-002`**: `chk_expense_auto_confirmed_status` `CHECK (auto_confirmed_at IS NULL OR status <> 'PLANNED')`. 위반 행이 없으면 검증된 제약으로, 있으면 `NOT VALID`로 추가하고 NOTICE로 건수를 출력함(정리 후 재실행하면 검증된 제약으로 바뀜). 자동 확정(확정 후 기록)·환불(CONFIRMED → CANCELLED)·환불 롤백(PLANNED 날짜만 변경)·`restore_cancelled_expense`(PLANNED 상태에서 취소된 행만 복구) 경로는 위반하지 않음 — 제약이 있는 상태에서 R107C-01~03이 그대로 통과함.
+- **`R75-REV-001`**: BEFORE 트리거가 CHECK보다 먼저 실행되므로 트리거 경로 음성 3건은 트리거 메시지만 허용하도록 고정함. 새 블록에서 검증 트리거를 끈 채(롤백 전용 트랜잭션) `axis_key` 형식 2건·빈 옵션 1건이 각각 정확한 제약 이름(`GET STACKED DIAGNOSTICS CONSTRAINT_NAME`)으로 거부되는지 확인함. 트리거를 끄지 않는 변이에서 `FAIL`로 잡힘.
+- **검증 (실제 실행)**: 🐳 업그레이드(Base `328704b` `SCHEMA.sql` → 마이그레이션 2회 → `TESTS.sql` 56개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 56개 PASS). 위반 행 1건을 만든 뒤 적용 시 `NOT VALID`+NOTICE·새 위반 쓰기 거부, 정리 후 재실행 시 `convalidated=true` 확인. `tsc`·`lint`·Vitest 78파일/1,076개·`git diff --cached --check` 통과.
+- **남은 작업**: Step 3(**Gemini 4 Carbon (`High`)**, 🐳)가 Base `328704b` ↔ Target 통합 리뷰·로컬 DB 게이트·`main` 병합 수행함.
+
+#### 📝 `p4-followups-r107c-r109-r75` Step 1 (Maker) 완료 기록 (Claude Sonnet `Medium`, Gemini 4 Hydrogen 대체 실행, 2026-11-26)
+
+- **Target SHA**: `1c048600213e727a3e25a9f6d75fb0f9bb2381cb` (`collab/p4-followups-r107c-r109-r75`, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (4개)**: `src/app/admin/page.tsx`, `src/app/admin/page.test.tsx`, `src/components/subscription/subscription-modal.tsx`, `src/components/subscription/subscription-modal.test.tsx`.
+- **`R109-REV-003`**: 캐릭터 저장·삭제·템플릿 삭제 성공 후 `fetchCharacters()` 뒤에 `fetchPendingCharacterAssetCount()`를 호출해 `[아이콘 Storage 일괄 이전 (N)]` 배지가 새로고침 없이 갱신됨. 삭제 후 건수 재조회 Vitest 1건 추가(해당 호출을 빼면 실패함을 뮤테이션으로 확인함).
+- **`R107C-REV-001`**: 구독 수정 저장 시 미결제 `PLANNED` 지출 동기화 `update`에 `payment_method`와 `point_platform`(`WALLET`이면 `null`, 아니면 결제수단 값, `subscription-sync.ts`·SQL 생성 규칙과 동일)을 포함함. `GALAXY_STORE`·`WALLET` 전환 Vitest 1건 추가.
+- **검증 (실제 실행, 워크트리)**: `git diff --check`, `npx tsc --noEmit`, `npm run lint`(경고·오류 0건), `npx vitest run --dir src` 78파일 1,076개 통과.
+- **남은 작업**: Step 2(`Claude Opus (High)`, 🐳)가 `R107C-REV-002` `CHECK` 마이그레이션·`R75-REV-001` 테스트를 수행함.
+
 ### 🗂️ 이전 Run 기록 (완료): `r75-r64-tests-readme` *(`R75` ①·④ R64 SQL 회귀 테스트 보강)*
 
 - **Run ID**: `r75-r64-tests-readme` **(완료, `main` 병합 `35d43b6`, 문서 마감 2026-11-26)** · **Orchestrator**: Claude Sonnet `Medium` *(등록·리뷰·병합·마감)*

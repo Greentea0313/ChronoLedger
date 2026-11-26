@@ -6,7 +6,7 @@ Windows Tauri 앱의 서명 릴리스·자동 업데이트 운영 절차임. 결
 
 - 업데이트 endpoint: `https://github.com/Greentea0313/ChronoLedger/releases/latest/download/latest.json` (공개 저장소 전제).
 - 서명 공개 키: `src-tauri/tauri.conf.json` `plugins.updater.pubkey`. 개인 키·암호는 저장소에 두지 않음.
-- GitHub Secrets 5개: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.
+- GitHub Secrets 5개(**Settings → Secrets and variables → Actions → Repository secrets**, Codespaces secrets는 Actions에서 읽히지 않음): `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.
 - 번들은 NSIS 단일. GitHub Release는 데스크톱 전용으로만 사용함(다른 Release를 만들면 `latest`가 바뀜).
 
 ## 2. 새 버전 릴리스
@@ -33,7 +33,12 @@ Windows Tauri 앱의 서명 릴리스·자동 업데이트 운영 절차임. 결
 - **분실**: 기존 설치본은 새 업데이트를 검증하지 못함. 새 키로 만든 설치본을 사용자가 한 번 수동 설치해야 함.
 - **유출 의심**: Secrets를 즉시 삭제하고, 옛 키로 서명한 "새 공개 키를 담은" 마지막 릴리스를 낸 뒤 새 키로 전환함. 옛 키가 이미 악용됐다면 수동 재설치함.
 
-## 6. 주의
+## 6. 아이콘 교체
+
+- 1024px 정사각 PNG로 `npx tauri icon <원본.png>`을 실행해 `src-tauri/icons/`를 재생성함. Windows 전용이므로 `android/`·`ios/`·`64x64.png`는 지움. 둥근 모서리는 원본 알파로 표현함.
+- 새 아이콘은 새 버전 릴리스로 배포함(기존 설치본은 자동 업데이트). 바로가기·작업표시줄에 이전 아이콘이 남으면 탐색기를 재시작함.
+
+## 7. 주의
 
 - 저장소를 비공개로 바꾸면 endpoint URL이 404가 되므로 별도 호스팅으로 옮기는 후속 작업이 필요함.
-- 서명 포함 빌드와 실제 업데이트 동작은 첫 태그 push 전까지 검증되지 않았음.
+- 서명 포함 빌드와 `0.2.0` → `0.2.1` 자동 업데이트 동작은 2026-11-26 실기기에서 확인됨.
