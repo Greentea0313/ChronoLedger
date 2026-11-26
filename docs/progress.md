@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-27 (`r117-classification-axes-3` Step 2 Iteration 01 — GPT Codex)**: 격리 DB 업그레이드·신규 설치 각 migration 2회와 R117-01 테스트 통과함. tsc·lint·Vitest 1,149개·build 통과. P3 2건(요청 모달 3축 Vitest 누락, R52 현재 UI 명세의 class3 누락)으로 병합 보류함. 다음: Claude Opus `High` 수정임.
 - **2026-11-27 (`r117-classification-axes-3` Step 1 — Claude Opus `High`)**: 워크트리 커밋 `c5c5a1c`(미병합·미push). 캐릭터 분류 축 상한을 2개에서 3개로 바꿈(DB 검증 함수·관리자 템플릿 폼·정규화 함수, `R13`·`R52` 명세). 🐳 로컬 2경로 각 2회 멱등·`TESTS.sql` 63개 PASS, 변이 2건 FAIL, Vitest 1,149개·`build` 통과. 실제 화면 레이아웃은 미확인. 다음: Step 2 `GPT Codex`.
 - **2026-11-27 (`R117` Run 등록 — Claude Sonnet `Medium`)**: 사용자 요청으로 `R116`보다 먼저 캐릭터 분류 축 최대 2개 → 3개 확대 Run `r117-classification-axes-3`(Base `123a70b`, 🐳)을 등록하고 Step 1(`Claude Opus`) `▶ READY`로 함. `R116` Step 1은 `⏳ WAITING`으로 돌려 `R117` 뒤에 재개함.
 - **2026-11-27 (`R116` Run 등록 — Claude Sonnet `Medium`)**: Run `r116-public-game-pages`(Base `442fb69`, DB 변경 없음) 워크트리 생성·Step 1(`Claude Sonnet`) `▶ READY` 등록함. `R113`~`R116` 4종 중 마지막 Run임.
