@@ -3757,6 +3757,7 @@ BEGIN
       AND e.import_batch_id = p_batch_id
       AND e.payment_method = 'WALLET'
       AND e.deduct_from_asset = false
+      AND e.original_price = e.final_amount
       AND e.discount_amount = 0
       AND e.point_discount_amount = 0
       AND e.used_points = 0

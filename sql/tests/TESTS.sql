@@ -164,7 +164,7 @@
 --                                  총자산·지갑 3종·포인트 원장 불변, 환불 행 CANCELLED/PAYMENT_REFUND.
 --   R115-02 authenticated / I1    I4 위반 1행(미래·2000년 이전·없는 날짜·금액 0/소수/문자/상한 초과·빈/151자 제목·분류·없는/형식 틀린 game_id·
 --                                  501자 메모·객체 아님) 시 행 번호 오류와 전체 미반영, 0행·1,001행 거부, 1,000행 성공, anon 실행 거부.
---   R115-03 authenticated / I1·I2 배치 취소는 본인·I1 값 행만(환불 행 포함) 삭제, 다른 사용자·NULL 배치 0건, 탈퇴 대기 시 두 RPC 거부.
+--   R115-03 authenticated / I1·I2 배치 취소는 본인·I1 값 행만(환불 행 포함) 삭제(자산 차감·정가≠실결제액 행 유지), 다른 사용자·NULL 배치 0건, 탈퇴 대기 시 두 RPC 거부.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -6310,9 +6310,13 @@ RESET ROLE;
 -- R115-03) delete_import_batch only deletes the caller's untouched I1 rows (115-4).
 DO $$
 BEGIN
-    -- A row in the same batch that does not carry the I1 values (asset deducted) must survive the undo.
+    -- Rows in the same batch that no longer carry the I1 values must survive the undo (R115-REV-001):
+    -- asset deducted, and price edited so original_price <> final_amount (chk_expense_math needs a discount for that).
     INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, payment_method, deduct_from_asset, import_batch_id)
     VALUES (current_setting('chronoledger.r115_i1')::uuid, 'R115 not importable shape', '기타', 'CONFIRMED', DATE '2026-10-04', 100, 100, 'WALLET', true,
+            current_setting('chronoledger.r115_batch')::uuid);
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, discount_amount, final_amount, payment_method, deduct_from_asset, import_batch_id)
+    VALUES (current_setting('chronoledger.r115_i1')::uuid, 'R115 edited price', '기타', 'CONFIRMED', DATE '2026-10-04', 500, 200, 300, 'WALLET', false,
             current_setting('chronoledger.r115_batch')::uuid);
 END $$;
 
@@ -6334,15 +6338,16 @@ DO $$
 DECLARE
     v_n INTEGER;
 BEGIN
-    IF (SELECT count(*) FROM public.expenses WHERE import_batch_id = current_setting('chronoledger.r115_batch')::uuid) <> 4 THEN
+    IF (SELECT count(*) FROM public.expenses WHERE import_batch_id = current_setting('chronoledger.r115_batch')::uuid) <> 5 THEN
         RAISE EXCEPTION 'FAIL: R115 I2 undo changed I1 rows';
     END IF;
     v_n := public.delete_import_batch(current_setting('chronoledger.r115_batch')::uuid);
     IF v_n <> 3 THEN
         RAISE EXCEPTION 'FAIL: R115 own undo should delete 3 rows (incl. refunded), got %', v_n;
     END IF;
-    IF (SELECT count(*) FROM public.expenses WHERE import_batch_id = current_setting('chronoledger.r115_batch')::uuid) <> 1
-       OR NOT EXISTS (SELECT 1 FROM public.expenses WHERE title = 'R115 not importable shape') THEN
+    IF (SELECT count(*) FROM public.expenses WHERE import_batch_id = current_setting('chronoledger.r115_batch')::uuid) <> 2
+       OR NOT EXISTS (SELECT 1 FROM public.expenses WHERE title = 'R115 not importable shape')
+       OR NOT EXISTS (SELECT 1 FROM public.expenses WHERE title = 'R115 edited price') THEN
         RAISE EXCEPTION 'FAIL: R115 undo must keep rows without the I1 values';
     END IF;
 END $$;
@@ -6370,7 +6375,7 @@ BEGIN
     END;
 END $$;
 RESET ROLE;
-\echo PASS: R115-03 undo deletes only the caller's untouched rows (refunded included), other user 0 rows, pending deletion blocks both RPCs
+\echo PASS: R115-03 undo deletes only untouched rows of the caller (refunded included), edited or asset rows kept, other user 0 rows, pending deletion blocks both RPCs
 
 SET LOCAL ROLE anon;
 DO $$
