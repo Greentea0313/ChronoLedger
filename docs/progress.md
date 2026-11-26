@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-26 (`r115-csv-import` Step 2 Iteration 01 — GPT Codex)**: artifact `db1997d` 작성·스키마 검증함. 정적 리뷰 P2 1건(가져온 금액 편집 행을 취소 RPC가 지울 수 있음), P4 1건(psql 테스트 출력 경고) 발견해 병합 보류함. 격리 업그레이드·신규 DB SQL 테스트, tsc·lint·Vitest 1,146개·build 통과함. 다음: Claude Opus `High`가 수정함.
 - **2026-11-26 (`r115-csv-import` Step 1 — Claude Opus `High`)**: 워크트리 커밋 `b8aa935`(미병합·미push). 확정 지출 가져오기 RPC 2종(`import_confirmed_expenses`·`delete_import_batch`, 가져온 행은 `WALLET`·자산 미차감·포인트 0), CSV 파서·해석 로직, 지출 페이지 `CSV 가져오기` 단계형 모달 구현. 🐳 로컬 2경로 각 2회 멱등·`TESTS.sql` 62개 PASS, 변이 2건 FAIL 확인, Vitest 1,146개·`build` 통과. 다음: Step 2 `GPT Codex`.
 - **2026-11-26 (`R114` 문서 마감·`R115` Run 등록 — Claude Sonnet `Medium`)**: `R114` 직전 완료 Run 기록을 교체하고 Step 상세 기록을 `handoff-archive.md`로 이관함. Run `r115-csv-import`(Base `a04237f`, 🐳) 워크트리 생성·Step 1(`Claude Opus`) `▶ READY` 등록함. 다음 Run `R116`은 `R115` 마감 뒤 등록함.
 - **2026-11-26 (`R114` 운영 적용·실기기 확인 완료 — 사용자)**: 운영 DB `MIGRATION_R114_GAME_BUDGETS.sql` 적용, README 확인 쿼리 3종 확인, 배포 후 지출 페이지 "게임별 예산" 목록(사용량/한도·진행 막대·초과 경고색) 확인함. 남음: 80%·100% 알림·월간 리포트 수신 확인(선택), `R114` 문서 마감·`R115` 등록.
