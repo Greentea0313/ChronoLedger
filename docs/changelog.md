@@ -1,5 +1,9 @@
 # 변경 이력
 
+## 2026-11-26 (`main` 직접 수정 `e0e3f84` — `R113` CSV 날짜순 정렬)
+
+- **내보내기 CSV 정렬 (`src/lib/data-export.ts`)**: 지출 CSV는 '날짜'(`target_date`), 수익 CSV는 '날짜'(`income_date`) 오름차순으로 내보내고 같은 날짜는 생성시각·ID 순으로 둠. 이전에는 앱에 기록된 순서(생성시각)라 날짜가 뒤섞여 보였음. JSON 백업 순서는 그대로임.
+
 ## 2026-11-26 (Run `r113-data-export` 병합 `7f2e4d9` — `R113` 데이터 내보내기·백업)
 
 - **설정 페이지 "데이터 내보내기" 카드 (`src/components/settings/data-export-card.tsx`, `src/lib/data-export.ts`, `src/lib/export-format.ts`)**: 본인 데이터 전체 JSON 백업(19개 본인 테이블, 참조 게임·일정 이름 `catalog`, 실패 항목 `skipped`)과 지출·수익 CSV(BOM·CRLF·따옴표·수식 방지)를 내려받음. 1,000행 단위로 나눠 조회하고 오프라인이면 조회 없이 안내함. 복원 기능은 없음.
