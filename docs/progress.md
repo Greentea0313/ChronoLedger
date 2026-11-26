@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-27 (`R117` Run 등록 — Claude Sonnet `Medium`)**: 사용자 요청으로 `R116`보다 먼저 캐릭터 분류 축 최대 2개 → 3개 확대 Run `r117-classification-axes-3`(Base `123a70b`, 🐳)을 등록하고 Step 1(`Claude Opus`) `▶ READY`로 함. `R116` Step 1은 `⏳ WAITING`으로 돌려 `R117` 뒤에 재개함.
 - **2026-11-27 (`R116` Run 등록 — Claude Sonnet `Medium`)**: Run `r116-public-game-pages`(Base `442fb69`, DB 변경 없음) 워크트리 생성·Step 1(`Claude Sonnet`) `▶ READY` 등록함. `R113`~`R116` 4종 중 마지막 Run임.
 - **2026-11-27 (`R115` 운영 적용·실사용 확인 완료 — 사용자 / 문서 마감 — Claude Sonnet `Medium`)**: 운영 DB 적용·배포 후 더미 CSV(자체 형식·일반 EUC-KR)로 미리보기·가져오기 5건·취소를 확인함. 총자산·지갑·포인트는 전후 동일, 예상 지출만 가져온 확정 기록만큼 변동(I16 설계). `R115` 직전 완료 Run 기록 교체·아카이브 이관함. 다음 Run `R116` 등록.
 - **2026-11-26 (`r115-csv-import` Step 2 Iteration 02 — GPT Codex)**: Maker 수정 재리뷰 `clean`, artifact `4f16282`, `main` 병합 `35f4461`. 격리 DB 업그레이드·신규 설치 각 migration 2회 및 R115-01~03 통과, 병합 후 tsc·lint·Vitest 1,146개·build 통과함. 다음: 사용자 운영 DB 적용·실제 CSV 가져오기와 취소 확인임.
