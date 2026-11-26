@@ -217,4 +217,23 @@ describe("ExpenseImportModal (R115)", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("1,000행까지")
     expect(screen.queryByLabelText("날짜 열")).toBeNull()
   })
+
+  it("일반 CSV는 헤더 이름으로 열 지정 기본값을 자동 선택한다 (I11)", async () => {
+    setup()
+    const header = ["결제일,상품명,결제금액,카테고리,게임,비고", '2026.10.03,테스트 결제,"4,700원",식비,,메모', ""].join("\r\n")
+    // 열 이름 추측만 고정한다(EUC-KR 디코딩은 csv.test.ts가 검증함).
+    render(<ExpenseImportModal open onOpenChange={vi.fn()} existingExpenses={[]} onChanged={vi.fn()} />)
+    await chooseFile(csvFile(header, "generic.csv"))
+
+    const selected = async (label: string) => {
+      const el = (await screen.findByLabelText(label)) as HTMLSelectElement
+      return el.options[el.selectedIndex]?.text
+    }
+    expect(await selected("날짜 열")).toBe("결제일")
+    expect(await selected("금액 열")).toBe("결제금액")
+    expect(await selected("항목명 열")).toBe("상품명")
+    expect(await selected("분류 열")).toBe("카테고리")
+    expect(await selected("게임 열")).toBe("게임")
+    expect(await selected("메모 열")).toBe("비고")
+  })
 })
