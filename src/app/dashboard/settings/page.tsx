@@ -10,6 +10,7 @@ import { FinanceSettingsCard } from "@/components/finance/finance-settings-card"
 import { UserRequestsCard } from "@/components/game/user-requests-card"
 import { ProfileAvatarCard } from "@/components/profile/profile-avatar-card"
 import { ProfileNicknameCard } from "@/components/profile/profile-nickname-card"
+import { DataExportCard } from "@/components/settings/data-export-card"
 import { NotificationSettingsCard } from "@/components/settings/notification-settings-card"
 import { useAuth } from "@/lib/auth-context"
 import { requestAccountDeletion } from "@/lib/account-deletion"
@@ -141,6 +142,8 @@ export default function SettingsPage() {
       </Card>
 
       {user?.id && <NotificationSettingsCard userId={user.id} />}
+
+      {user?.id && <DataExportCard userId={user.id} />}
 
       <Card className="border-danger/50 text-content">
         <CardHeader>
