@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-27 (`desktop-v0.3.1` 설치본 확인 완료 — 사용자 / 기록 — Claude Sonnet `Medium`)**: 설치본 업데이트 배너와 창 크기(16:9) 실기기 확인을 사용자가 마쳤다고 알려 `handoff.md` `R110` 행에 반영함.
 - **2026-11-27 (`desktop-v0.3.1` 릴리스 완료 — 사용자 / 기록 — Claude Sonnet `Medium`)**: 사용자가 `main` push·태그 `desktop-v0.3.1` push·릴리스를 마쳤다고 알려 `changelog.md`·`handoff.md` `R110` 행에 반영함. 기본 창 1600×900(16:9)·최소 960×540·가운데 배치가 이 릴리스에 포함됨. 설치본 업데이트 배너와 창 크기 실기기 확인 결과는 별도 기록 없음.
 - **2026-11-27 (`R117` 운영 확인 완료 — 사용자 / 문서 마감 — Claude Sonnet `Medium`)**: 운영 DB 적용·배포·3축 화면 확인을 사용자가 마쳤다고 알려 Step 3을 `DONE`으로 기록하고 `R117` 직전 완료 Run 기록 교체·상세 기록 아카이브 이관함. `R116` Step 1을 `▶ READY`로 되돌림. 직전 안내에서 큐를 다시 읽지 않고 `R117` Step 1을 `READY`라고 잘못 안내함(스킬 closeout §3 위반) — 이후 안내 전 항상 큐를 재확인함.
 - **2026-11-27 (`desktop-v0.3.1` 릴리스 준비 — Claude Sonnet `Medium`, `main` 직접 수정)**: 버전을 `0.3.1`로 올림(`package.json`·`package-lock.json`·`Cargo.toml`·`Cargo.lock`)하고 `changelog.md`에 기재함. 사용자가 `main` push 후 태그 `desktop-v0.3.1`을 push해야 릴리스가 만들어짐(미수행). 직전 창 크기 변경(`9bbf449`)이 이 릴리스에 포함됨.
