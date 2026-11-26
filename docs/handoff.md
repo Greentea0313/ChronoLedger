@@ -32,9 +32,16 @@
 | `U0` | **`✅ DONE (2026-11-26, 공개 키 수령)`** | **사용자** | 서명 키 쌍 생성·저장소 밖 백업, GitHub Secrets 5개 등록, **공개 키만** Step 1 Maker에게 전달 | 명세 §4 U0-1~U0-3. 개인 키는 저장소 밖(`C:\Users\junha\keys\chronoledger\`)에 생성함. **Secrets 5개 등록 완료(사용자 확인, 2026-11-26)** |
 | **1** | **`✅ DONE (SHA: 20034756e09d1f326f2f59459c86f0fb6061ac61)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | Rust·설정·CI: `updater`·`process` 플러그인, `tauri.conf.json`(`pubkey`·`endpoints`), 최소 capability, 릴리스 워크플로 | 명세 §4 Step 1(1-1~1-5). **`pubkey`(U0-3, 공개 키 값)**: `dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAwOTkwNkI0QzJBNEM0M0IKUldRN3hLVEN0QWFaQUQ4Z1dUbnNtVUIzTWp4emV2OWgwcGIrZnZ1TTFNcnBFMUR0alpkVVY0WHQK` *(`updater.key.pub` 파일 내용 그대로, 개인 키 파일은 열지 않음)*. 허용 파일: `src-tauri/**`, `.github/workflows/**`, `package.json`·`package-lock.json`(플러그인 JS 패키지) |
 | **2** | **`✅ DONE (SHA: 29e94dad5f1fb327d610fa256c01743903f300ba)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 배너·updater 래퍼·Vitest (Tauri에서만 동작, 웹은 updater import 없음) | 명세 §4 Step 2(2-1~2-6). 허용 파일: `src/**`(배너·래퍼·테스트·레이아웃 연결) |
-| **3** | **`▶ READY`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium`)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 명세 §4 Step 3(3-1·3-2). Maker(Opus·Sonnet)와 다른 모델로 둠 |
+| **3** | **`🛑 BLOCKED (검증 실패: Vitest 1건·next build EPERM)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium`)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 정적 리뷰 clean. 전체 Vitest에서 기존 대시보드 테스트 1건 실패, `next build`는 `.next` 디렉터리 생성 권한 오류. 스키마 검증된 산출물 커밋 `46dd615`; 실패 원인 해소 후 재검증 필요 |
 
-> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)로 `"인수인계 문서를 확인해"`를 입력해 Step 3 리뷰를 진행함. Step 2 Maker(Sonnet)와 다른 모델이어야 함. 워크트리 원격 브랜치는 push 안 함(같은 PC 사용 시 불필요).
+> **다음 단계**: Step 3은 `🛑 BLOCKED`임. 대시보드 Vitest 실패와 `next build`의 `.next` `EPERM`을 해소한 뒤 **GPT Codex**(Fallback: Claude Sonnet `Medium`)로 `"인수인계 문서를 확인해"`를 입력해 재검증함. 통과 후에만 `main` 병합함. 워크트리 원격 브랜치는 push 안 함(같은 PC 사용 시 불필요).
+
+#### 📝 `r110-desktop-auto-update` Step 3 검증 기록 (GPT Codex, 2026-11-26, 병합 보류)
+
+- **범위**: Base `9096cd10d30188f7cb850cdffebbdab4609e05f4` ↔ Target `29e94dadf5f1fb327d610fa256c01743903f300ba`. 정적 리뷰 결과 `clean`; 공개 서명 키·단일 endpoint 정합, capability 최소 권한, updater 동적 import 및 웹 경로 비실행, 개인 키/암호 값 노출 없음 확인함.
+- **산출물**: `artifacts/r110-desktop-auto-update/iteration-01/review.json`·`test.json`, `run.json`의 `target_sha` 기록. 커밋 `46dd615cb978171015a2896713ddf37d640c4270`; 두 JSON 스키마 검증 통과함.
+- **검증**: `npx tsc --noEmit`·`npm run lint`·R110 배너 Vitest 8개·`cargo check`·`git diff --check` 통과함. 전체 Vitest는 1,084개 중 1,083개 통과, 기존 대시보드 예산 요약 테스트 1개가 대시보드 데이터 로드 실패로 실패함(단독 실행에서도 재현). `npm run build`는 `.next/server/app/dashboard` 생성 시 `EPERM`으로 실패함.
+- **남은 작업**: 실패 원인을 해소하고 Step 3 재검증 후 통과하면 `main` 병합, 병합 후 재검증·문서 마감함. 이번 턴에는 구현 파일 변경 및 병합 없음.
 
 #### 📝 `r110-desktop-auto-update` Step 1 완료 기록 (Claude Opus, 2026-11-26)
 
