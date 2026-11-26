@@ -2303,7 +2303,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         expect(screen.queryByLabelText("최대 프리셋 슬롯")).toBeNull()
         expect(screen.queryByLabelText("최대 돌파 단계")).toBeNull()
         expect(screen.queryByLabelText("희귀도 목록")).toBeNull()
-        expect(screen.queryByText("분류 기준 (최대 2개)")).toBeNull()
+        expect(screen.queryByText("분류 기준 (최대 3개)")).toBeNull()
 
         fireEvent.change(screen.getByLabelText("게임 이름 *"), { target: { value: "원신 리뉴얼" } })
         fireEvent.click(screen.getByRole("button", { name: "수정 저장" }))
@@ -2322,7 +2322,7 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
         fireEvent.click(await screen.findByRole("button", { name: "템플릿 설정 수정" }))
 
         expect(screen.getByRole("heading", { name: "원신 캐릭터 템플릿 수정" })).toBeTruthy()
-        expect(screen.getByText("캐릭터 시스템 명칭·등급·분류 기준(최대 2개)·최대 프리셋 슬롯·최대 돌파 단계를 설정함.")).toBeTruthy()
+        expect(screen.getByText("캐릭터 시스템 명칭·등급·분류 기준(최대 3개)·최대 프리셋 슬롯·최대 돌파 단계를 설정함.")).toBeTruthy()
         expect(screen.getByLabelText("등급 목록 (최고 등급부터) *")).toBeTruthy()
       })
 
@@ -2350,14 +2350,14 @@ describe("AdminPage - 게임 분류 설정 및 캐릭터 관리 (Phase 13.2)", (
       })
     })
 
-    it("분류 기준은 최대 2개까지만 추가할 수 있다", async () => {
+    it("분류 기준은 최대 3개까지만 추가할 수 있다 (R117)", async () => {
       await openTemplateEditModal()
-      fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
-      fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
+      // Four clicks: the fourth must be ignored whatever the starting axis count is.
+      for (let i = 0; i < 4; i += 1) fireEvent.click(screen.getByRole("button", { name: "축 추가" }))
 
-      expect(screen.getByLabelText("분류 축 2 이름")).toBeTruthy()
-      expect(screen.queryByLabelText("분류 축 3 이름")).toBeNull()
-      expect(screen.getByText("분류 기준 (최대 2개)")).toBeTruthy()
+      expect(screen.getByLabelText("분류 축 3 이름")).toBeTruthy()
+      expect(screen.queryByLabelText("분류 축 4 이름")).toBeNull()
+      expect(screen.getByText("분류 기준 (최대 3개)")).toBeTruthy()
     })
 
     it("캐릭터 시스템 명칭이 20자를 넘으면 저장하지 않는다", async () => {

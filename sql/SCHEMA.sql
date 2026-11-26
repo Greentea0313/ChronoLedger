@@ -235,7 +235,7 @@ BEGIN
        OR jsonb_typeof(p_schema -> 'rarities') <> 'array'
        OR jsonb_typeof(p_schema -> 'axes') <> 'array'
        OR jsonb_array_length(p_schema -> 'rarities') > 10
-       OR jsonb_array_length(p_schema -> 'axes') > 2
+       OR jsonb_array_length(p_schema -> 'axes') > 3
        OR (p_schema ? 'character_label' AND (jsonb_typeof(p_schema -> 'character_label') <> 'string' OR length(btrim(p_schema ->> 'character_label')) NOT BETWEEN 1 AND 20)) THEN
         RETURN false;
     END IF;

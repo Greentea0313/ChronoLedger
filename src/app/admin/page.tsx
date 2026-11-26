@@ -51,6 +51,7 @@ import {
   sortCharactersByClassification,
   splitCommaList,
   validateClassificationTemplate,
+  TEMPLATE_AXIS_MAX_COUNT,
   type ClassificationAxis,
   type ClassificationSchema,
 } from "@/lib/character-utils"
@@ -2902,7 +2903,7 @@ export default function AdminPage() {
             </DialogTitle>
             <DialogDescription className="text-xs text-content-secondary">
               {isTemplateFlow
-                ? "캐릭터 시스템 명칭·등급·분류 기준(최대 2개)·최대 프리셋 슬롯·최대 돌파 단계를 설정함."
+                ? `캐릭터 시스템 명칭·등급·분류 기준(최대 ${TEMPLATE_AXIS_MAX_COUNT}개)·최대 프리셋 슬롯·최대 돌파 단계를 설정함.`
                 : editingGame
                 ? "게임 명칭 및 기본 대표 아이콘 URL을 변경합니다."
                 : "공식 마스터 카탈로그에 새로운 게임을 등록합니다."}
@@ -3005,8 +3006,8 @@ export default function AdminPage() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium">분류 기준 (최대 2개)</label>
-                <Button type="button" size="sm" variant="outline" onClick={() => setGameFormAxes((current) => current.length >= 2 ? current : [...current, { rowId: nextAxisRowId(), key: assignAxisKey(current.map((item) => item.key)), label: "", options: "" }])}>축 추가</Button>
+                <label className="block text-sm font-medium">{`분류 기준 (최대 ${TEMPLATE_AXIS_MAX_COUNT}개)`}</label>
+                <Button type="button" size="sm" variant="outline" onClick={() => setGameFormAxes((current) => current.length >= TEMPLATE_AXIS_MAX_COUNT ? current : [...current, { rowId: nextAxisRowId(), key: assignAxisKey(current.map((item) => item.key)), label: "", options: "" }])}>축 추가</Button>
               </div>
               {gameFormAxes.map((axis, index) => (
                 <div key={axis.rowId} className="grid grid-cols-[1fr_2fr_auto] gap-2">

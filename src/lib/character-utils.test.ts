@@ -75,6 +75,32 @@ describe("normalizeMaxPresetSlots", () => {
 })
 
 describe("filterCharacters", () => {
+  it("combines filters on all three axes (R117)", () => {
+    const threeAxis: ClassificationSchema = {
+      character_label: "캐릭터",
+      rarities: [],
+      axes: [
+        { key: "class1", label: "속성", options: ["불", "물"] },
+        { key: "class2", label: "무기", options: ["검", "활"] },
+        { key: "class3", label: "역할", options: ["딜러", "힐러"] },
+      ],
+    }
+    const make = (id: string, attributes: Record<string, string>): GameCharacter => ({
+      id, game_id: "g", name: id, default_icon_url: null, rarity: null, attributes,
+    })
+    const characters = [
+      make("a", { class1: "물", class2: "활", class3: "힐러" }),
+      make("b", { class1: "물", class2: "활", class3: "딜러" }),
+      make("c", { class1: "불", class2: "검", class3: "힐러" }),
+      make("d", { class1: "물", class2: "활" }),
+    ]
+    const ids = (axes: Record<string, string>) =>
+      filterCharacters(characters, { ...EMPTY_CHARACTER_FILTERS, axes }, threeAxis, () => false).map((c) => c.id)
+    expect(ids({ class3: "힐러" })).toEqual(["a", "c"])
+    expect(ids({ class1: "물", class2: "활", class3: "힐러" })).toEqual(["a"])
+    expect(ids({ class3: OTHER_FILTER_VALUE })).toEqual(["d"])
+  })
+
   it("filters by ownership", () => {
     expect(run({ ownership: "owned" })).toEqual(["c1", "c3"])
     expect(run({ ownership: "unowned" })).toEqual(["c2", "c4"])
@@ -145,10 +171,11 @@ describe("breakthrough and favorites", () => {
 
 
 describe("R52 character template helpers", () => {
-  it("normalizes the character label and caps visible axes at two", () => {
+  it("normalizes the character label and caps visible axes at three (R117)", () => {
     expect(normalizeClassificationSchema({ character_label: "  요원 ", rarities: [], axes: [] }).character_label).toBe("요원")
     expect(normalizeClassificationSchema({ character_label: "  ", rarities: [], axes: [] }).character_label).toBe("캐릭터")
-    expect(normalizeClassificationSchema({ rarities: [], axes: [schema.axes[0], schema.axes[1], { key: "third", label: "third", options: ["x"] }] }).axes).toHaveLength(2)
+    const extra = [{ key: "third", label: "third", options: ["x"] }, { key: "fourth", label: "fourth", options: ["y"] }]
+    expect(normalizeClassificationSchema({ rarities: [], axes: [schema.axes[0], schema.axes[1], ...extra] }).axes).toHaveLength(3)
   })
 
   it("treats a game with rarities or existing characters as template-active", () => {
@@ -214,8 +241,11 @@ describe("validateClassificationTemplate", () => {
     expect(validateClassificationTemplate({ ...valid, rarities: Array.from({ length: 10 }, (_, i) => `R${i}`) })).toBeNull()
   })
 
-  it("limits axes to two with a 1~30 character name", () => {
-    expect(validateClassificationTemplate({ ...valid, axes: [axis(), axis({ key: "class2" }), axis({ key: "class3" })] })).toContain("최대 2개")
+  it("limits axes to three with a 1~30 character name (R117)", () => {
+    expect(validateClassificationTemplate({ ...valid, axes: [axis(), axis({ key: "class2" }), axis({ key: "class3" })] })).toBeNull()
+    expect(
+      validateClassificationTemplate({ ...valid, axes: [axis(), axis({ key: "class2" }), axis({ key: "class3" }), axis({ key: "class4" })] }),
+    ).toBe("분류 기준은 최대 3개까지 설정할 수 있습니다.")
     expect(validateClassificationTemplate({ ...valid, axes: [axis({ label: " " })] })).toBe("분류 기준 1의 이름을 1~30자로 입력해 주세요.")
     expect(validateClassificationTemplate({ ...valid, axes: [axis({ label: "가".repeat(31) })] })).toContain("1~30자")
   })
