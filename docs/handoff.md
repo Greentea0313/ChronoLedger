@@ -16,7 +16,7 @@
 - **`Gemini Models` 주간 한도 소진** *(사용자 통보, 2026-11-26, 리셋 시점 미확인)*: `Gemini 4 Hydrogen`·`Gemini 4 Neon`·`Gemini 4 Carbon`은 같은 공용 한도를 쓰므로 모두 사용 불가로 봄. 새 행 배정·인계는 다른 한도 묶음(`Claude Sonnet (Medium)`·`Claude Opus (High)`·`GPT Codex`·`GitHub Copilot`)으로 바로 보냄(handoff Skill §3). 리셋되면 사용자가 알려 주거나 Antigravity `View Usage`에서 확인한 모델이 이 절을 지움.
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run**: `r113-data-export` *(2026-11-26 등록, Step 1 완료, Step 2 `▶ READY`. 직전 Run `r110-desktop-auto-update`는 2026-11-26 마감함. `R114`~`R116`은 `R113` 마감 뒤 차례로 등록함)*
+- **활성 Run**: `r113-data-export` *(2026-11-26 등록, Step 2 Iteration 01에서 P2 1건 확인, Step 1 Iteration 02 `▶ READY`. 직전 Run `r110-desktop-auto-update`는 2026-11-26 마감함. `R114`~`R116`은 `R113` 마감 뒤 차례로 등록함)*
 
 - **`✅ DONE (2026-11-26, Claude Opus High)` — 기능 후보 4종 명세(`R113`~`R116`)**: 명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) 작성함(사용자 질문 카드 결정 8건, 결정표·단계별 인수 기준·모델 배정 권고·위험). Run 순서는 `R113` 내보내기 → `R114` 게임별 예산 🐳 → `R115` CSV 가져오기 🐳 → `R116` 공개 일정 페이지임.
 - **`✅ DONE (2026-11-26, Claude Sonnet Medium)` — `R113-REG` Run 등록**: Run `r113-data-export` 워크트리 생성·Step 배정 완료(Gemini 4 Hydrogen 대체). `R114`~`R116`은 `R113` 마감 뒤 차례로 등록함(사용자가 순서를 바꾸면 그에 따름).
@@ -31,11 +31,18 @@
 
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
-| **1** | **`✅ DONE (SHA: 773af3702f1c0cad0628499246f1e41fcc670790)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 설정 페이지 "데이터 내보내기" 카드(버튼 3개), `src/lib/export-format.ts`(열 순서·라벨·코드 매핑·수식 방지), 페이지 조회(`.range()` 1,000행), 오프라인 가드, Vitest | 명세 §3.1~3.4(113-1~113-6). 허용 파일: `src/app/dashboard/settings/**`, `src/components/**`(신규 내보내기 카드), `src/lib/export-format*.ts`·`src/lib/data-export*.ts`와 각 테스트. **DB·Tauri·`sql/**` 변경 금지**. 핵심: `push_subscriptions` 등 제외 목록 준수, `catalog`는 이름만, 조회 실패 테이블은 `skipped`에 기록 |
-| **2** | **`🔄 IN_PROGRESS (산출물 커밋 aebb3855c67d5d776f7a1c900470d9f7e800a72c, 병합 전)`** | **GPT Codex** *(Fallback: Claude Opus `High` — 도구에서 High 선택)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | 개인 데이터 노출 범위(포함·제외 목록, 자격 증명 비포함)·수식 주입 방지·웹 번들 영향 확인. Step 1과 다른 모델 |
+| **1** | **`▶ READY (Iteration 02, P2 수정)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 리뷰 finding 수정: 다운로드 클릭 직후 Blob URL을 해제하는 순서 보완, 수정 커밋 기록 | 허용 파일: `src/lib/data-export.ts` 및 관련 테스트만. DB·Tauri 설정 변경 금지. 명세 §3.1~3.4(113-1~113-6) 유지 |
+| **2** | **`⏳ WAITING (수정 Target 재리뷰)`** | **GPT Codex** *(Fallback: Claude Opus `High` — 도구에서 High 선택)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | Iteration 01 finding `R113-REV-001` 수정 확인 필요. 개인 데이터 노출 범위·수식 주입 방지·웹 번들 영향 확인 |
 | **3** | `⏳ WAITING` | **사용자** | 웹·Windows 설치본에서 파일 저장 1회씩 확인(113-7) | 설치본 저장 실패 시 `R113-TAURI-SAVE` 후속 등록 |
 
-> **다음 단계**: **GPT Codex**(Fallback: Claude Opus `High` — 도구에서 High 선택)로 `"인수인계 문서를 확인해"`를 입력해 Step 2 리뷰를 진행함. Maker(Sonnet)와 다른 모델이어야 함. 워크트리 `node_modules`가 없으면 `npm ci`로 설치함. 원격 브랜치는 push 안 함(같은 PC면 불필요).
+> **다음 단계**: **Claude Sonnet (`Medium`)**(Fallback: GitHub Copilot)으로 `"인수인계 문서를 확인해"`를 입력해 Iteration 02에서 `R113-REV-001`을 수정함. 수정 Target 커밋 후 **GPT Codex**가 Step 2를 재개함. 원격 브랜치는 push 안 함(같은 PC면 불필요).
+
+#### 📝 `r113-data-export` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-26)
+
+- **범위**: Base `57c76645d4595348d865af321c447b6adcd84464` ↔ Target `773af3702f1c0cad0628499246f1e41fcc670790`. Target은 워크트리 HEAD였고 이후 `src`·`sql` 차이 없음.
+- **결과**: `R113-REV-001` P2 1건 기록함. `src/lib/data-export.ts`에서 다운로드 앵커 클릭 직후 Blob URL을 동기 해제함. 클라이언트에 따라 저장 시작 전에 URL이 폐기될 수 있어 지연 해제 또는 완료 신호가 필요함. 실제 웹·Windows 저장은 113-7에서 확인 필요함.
+- **검증**: TypeScript·lint·Vitest 82파일/1,109개·`next build` 16/16 통과함. 빌드에는 더미 공개 Supabase 환경값을 사용함. 리뷰·검증 아티팩트는 커밋 `aebb3855c67d5d776f7a1c900470d9f7e800a72c`에 기록함.
+- **남음**: Sonnet Iteration 02 수정 → GPT Codex 재리뷰·재검증 → 통과 시 `main` 병합 → 사용자 웹·Windows 설치본 저장 확인(113-7).
 
 #### 📝 `r113-data-export` Step 1 완료 기록 (Claude Sonnet `Medium`, 2026-11-26)
 
