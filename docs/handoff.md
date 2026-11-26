@@ -11,6 +11,10 @@
 
 - **현재 알림 없음**
 
+### ⛽ 쿼터 상태 (Quota Status)
+
+- **`Gemini Models` 주간 한도 소진** *(사용자 통보, 2026-11-26, 리셋 시점 미확인)*: `Gemini 4 Hydrogen`·`Gemini 4 Neon`·`Gemini 4 Carbon`은 같은 공용 한도를 쓰므로 모두 사용 불가로 봄. 새 행 배정·인계는 다른 한도 묶음(`Claude Sonnet (Medium)`·`Claude Opus (High)`·`GPT Codex`·`GitHub Copilot`)으로 바로 보냄(handoff Skill §3). 리셋되면 사용자가 알려 주거나 Antigravity `View Usage`에서 확인한 모델이 이 절을 지움.
+
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 Run 없음** *(직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함. `R110` 명세 완료, Run 등록(`R110-REG`) `▶ READY`)*
@@ -18,7 +22,7 @@
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
 | `R110-SPEC` | **`✅ DONE (2026-11-26)`** *(원 상태 `📐 SPEC_NEEDED`)* | ~~**Gemini 4 Carbon (`High`)**~~ ➡️ **Claude Opus (`High`)** *(Fallback 1로 수행)* | 명세·결정(`U1`~`U14`)·Step별 인수 기준 작성 | ✅ [`docs/r110-desktop-auto-update-spec.md`](r110-desktop-auto-update-spec.md). `src/**`·`src-tauri/**` 수정 없음 |
-| `R110-REG` | **`▶ READY`** | **Gemini 4 Hydrogen (`Medium`)** *(Fallback: Claude Sonnet `Medium`)* | Run `r110-desktop-auto-update` 등록: 깨끗한 트리에서 `New-CollaborationRun.ps1`, 큐 행에는 명세 §4·§5 포인터만 기재(Step 1 `Gemini 4 Neon (High — 도구에서 High 선택)`, Step 2 `Hydrogen`, Step 3 `Claude Opus (High)` 리뷰). 사용자에게 **Step U0(서명 키 생성·Secrets 등록·공개 키 전달)** 선행을 먼저 요청함 | 명세 §4 U0는 사용자 작업이라 Step 1 착수 전 완료 필요 |
+| `R110-REG` | **`▶ READY`** | ~~**Gemini 4 Hydrogen (`Medium`)**~~ ➡️ **Claude Sonnet (`Medium`)** *(Gemini 주간 한도 소진으로 대체. Fallback: GitHub Copilot)* | Run `r110-desktop-auto-update` 등록: 깨끗한 트리에서 `New-CollaborationRun.ps1`, 큐 행에는 명세 §4·§5 포인터만 기재(Step 1 `Gemini 4 Neon (High — 도구에서 High 선택)`, Step 2 `Hydrogen`, Step 3 `Claude Opus (High)` 리뷰. **Gemini 한도가 리셋되지 않았으면** Step 1은 `Claude Opus (High)`·Step 2는 `Claude Sonnet (Medium)`으로 배정하고, Step 3 리뷰는 Maker와 다른 `GPT Codex`(Fallback `Claude Sonnet`)로 둠). 사용자에게 **Step U0(서명 키 생성·Secrets 등록·공개 키 전달)** 선행을 먼저 요청함 | 명세 §4 U0는 사용자 작업이라 Step 1 착수 전 완료 필요 |
 
 #### 📝 `R110-SPEC` 명세 완료 기록 (Claude Opus, 2026-11-26)
 
