@@ -21,14 +21,14 @@ export type Database = {
                   ]
                 },"expenses": {
                   Row: {
-                    "auto_confirm_blocked": boolean,"auto_confirmed_at": string | null,"billing_cycle": string | null,"cancellation_kind": string | null,"category": string,"created_at": string | null,"deduct_from_asset": boolean,"discount_amount": number,"earned_points": number,"end_date": string | null,"final_amount": number,"game_id": string | null,"id": string,"memo": string | null,"original_price": number,"payment_method": string,"pickup_schedule_id": string | null,"point_discount_amount": number,"point_platform": string | null,"schedule_id": string | null,"start_date": string | null,"status": string,"target_date": string,"template_id": string | null,"title": string,"used_points": number,"user_id": string
+                    "auto_confirm_blocked": boolean,"auto_confirmed_at": string | null,"billing_cycle": string | null,"cancellation_kind": string | null,"category": string,"created_at": string | null,"deduct_from_asset": boolean,"discount_amount": number,"earned_points": number,"end_date": string | null,"final_amount": number,"game_id": string | null,"id": string,"import_batch_id": string | null,"memo": string | null,"original_price": number,"payment_method": string,"pickup_schedule_id": string | null,"point_discount_amount": number,"point_platform": string | null,"schedule_id": string | null,"start_date": string | null,"status": string,"target_date": string,"template_id": string | null,"title": string,"used_points": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "auto_confirm_blocked"?: boolean,"auto_confirmed_at"?: string | null,"billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category": string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date": string,"template_id"?: string | null,"title": string,"used_points"?: number,"user_id": string
+                    "auto_confirm_blocked"?: boolean,"auto_confirmed_at"?: string | null,"billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category": string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"import_batch_id"?: string | null,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date": string,"template_id"?: string | null,"title": string,"used_points"?: number,"user_id": string
                   }
                   Update: {
-                    "auto_confirm_blocked"?: boolean,"auto_confirmed_at"?: string | null,"billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category"?: string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date"?: string,"template_id"?: string | null,"title"?: string,"used_points"?: number,"user_id"?: string
+                    "auto_confirm_blocked"?: boolean,"auto_confirmed_at"?: string | null,"billing_cycle"?: string | null,"cancellation_kind"?: string | null,"category"?: string,"created_at"?: string | null,"deduct_from_asset"?: boolean,"discount_amount"?: number,"earned_points"?: number,"end_date"?: string | null,"final_amount"?: number,"game_id"?: string | null,"id"?: string,"import_batch_id"?: string | null,"memo"?: string | null,"original_price"?: number,"payment_method"?: string,"pickup_schedule_id"?: string | null,"point_discount_amount"?: number,"point_platform"?: string | null,"schedule_id"?: string | null,"start_date"?: string | null,"status"?: string,"target_date"?: string,"template_id"?: string | null,"title"?: string,"used_points"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -512,6 +512,9 @@ isOneToOne: false
 "complete_push_notification_delivery":
 { Args: { "p_expired_endpoints"?: string[],"p_notification_id": string,"p_status": string,"p_succeeded_endpoints"?: string[] }; Returns: undefined
                            },
+"delete_import_batch":
+{ Args: { "p_batch_id": string }; Returns: number
+                           },
 "delete_income":
 { Args: { "p_income_id": string }; Returns: undefined
                            },
@@ -544,6 +547,9 @@ isOneToOne: false
                            },
 "get_account_deletion_status":
 { Args: { "p_status_token": string }; Returns: Json
+                           },
+"import_confirmed_expenses":
+{ Args: { "p_rows": Json }; Returns: Json
                            },
 "mark_notifications_read":
 { Args: { "p_notification_ids"?: string[] | null }; Returns: number

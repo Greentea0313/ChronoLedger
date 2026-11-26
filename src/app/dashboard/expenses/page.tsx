@@ -22,6 +22,7 @@ import { ChevronLeft, ChevronRight, Trash2, History } from "lucide-react"
 import { preloadImages } from "@/lib/icon-preload"
 import { downloadUserIcon } from "@/lib/storage-upload"
 import { IncomeModal } from "@/components/finance/income-modal"
+import { ExpenseImportModal } from "@/components/expense/expense-import-modal"
 import { TwoMonthBudgetCard } from "@/components/finance/two-month-budget-card"
 import { calculateGameBudgetUsage, calculateTwoMonthBudgetComparison, getNextMonthKey } from "@/lib/budget-calculations"
 import { formatAmountAxisTick, getGameTooltipLabel } from "@/lib/chart-format"
@@ -210,6 +211,7 @@ export default function ExpensesPage() {
   // 모달 제어 상태
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   // R93: the history card switches between expenses and incomes.
   const [historyView, setHistoryView] = useState<"expenses" | "incomes">("expenses")
   const [incomes, setIncomes] = useState<IncomeRow[]>([])
@@ -1128,9 +1130,16 @@ export default function ExpensesPage() {
           <h1 className="text-2xl font-bold text-primary">소비</h1>
           <p className="mt-1 text-sm text-content-secondary">카테고리별 지출 통계 및 전체 내역</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {activeTab === "expenses" ? (
             <>
+              <Button
+                variant="outline"
+                onClick={() => setIsImportModalOpen(true)}
+                className="h-10 font-medium"
+              >
+                CSV 가져오기
+              </Button>
               <Button
                 onClick={() => setIsIncomeModalOpen(true)}
                 className="h-10 bg-emerald-600 hover:bg-emerald-500 text-primary-foreground font-medium"
@@ -2386,6 +2395,14 @@ export default function ExpensesPage() {
         onCompleted={handleModalCompleted}
         plannedExpense={payingExpense}
         editingExpense={editingPlannedExpense}
+      />
+
+      {/* R115: CSV 결제 내역 가져오기 */}
+      <ExpenseImportModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        existingExpenses={expenses}
+        onChanged={() => void loadExpenses()}
       />
 
       {/* 수익(자산 증액) 추가 모달 */}

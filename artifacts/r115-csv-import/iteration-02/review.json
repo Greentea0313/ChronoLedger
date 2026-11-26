@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r115-csv-import",
+  "iteration": 2,
+  "agent": "GPT Codex",
+  "base_sha": "a04237f3da787e33dd37a6ca80e4d97322c575cc",
+  "target_sha": "a01d312dbaf835d33c27b21beb3bd0c32094240e",
+  "role": "static-review",
+  "status": "clean",
+  "created_at": "2026-11-26T14:45:22Z",
+  "findings": []
+}
