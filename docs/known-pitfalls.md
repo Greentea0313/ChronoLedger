@@ -195,3 +195,7 @@
 52. **CI Node 버전·환경변수와 테스트 결합**
    - `.nvmrc`(Node 20)는 Cloudflare Pages 빌드용이고, Vitest 5·jsdom 30은 Node 22.22 이상(또는 24.15 이상)을 요구함. CI(`.github/workflows/ci.yml`)는 `.nvmrc`를 쓰지 않고 `node-version: 24`로 고정함. Node 20으로 `npm run test`를 돌리면 jsdom 로드 오류로 테스트 파일 전체가 실패함.
    - CI는 더미 `NEXT_PUBLIC_SUPABASE_URL`을 전역 환경변수로 주므로 이 값에 의존하는 테스트(`game-asset-storage` 계열)는 `vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", …)`로 고정해야 함. 로컬 재현: `NEXT_PUBLIC_SUPABASE_URL=https://ci-placeholder.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=ci-placeholder-anon-key npm run test -- --run`.
+
+53. **워크트리 자체 `node_modules`와 루트 실행 파일 혼용**
+   - 증상: 워크트리에서 `node ../../node_modules/next/dist/bin/next build`를 실행하면 정적 생성 단계에서 `TypeError: Cannot read properties of null (reading 'useContext')`가 남(2026-11-26, `r113-data-export`). 워크트리에 `npm install`로 자체 `node_modules`가 생긴 경우, 루트 `next`와 워크트리 React가 함께 로드돼 React가 두 벌이 됨.
+   - 방어책: 워크트리에 `node_modules`가 있으면 그 안의 실행 파일(`node node_modules/next/dist/bin/next build` 등)을 쓰고, 없을 때만 루트 `../../node_modules`를 씀. 같은 Run에서 다른 도구가 보고한 `.next/types/app` `EPERM`은 이 PC에서 재현되지 않았음(도구 샌드박스 권한 문제로 추정).
