@@ -18,14 +18,14 @@
 
 - **활성 Run**: **`R117` 캐릭터 분류 축 최대 3개로 확대 (`r117-classification-axes-3` — Base `123a70b699b80398999d171140eec6e471d2cc53`, 브랜치 `collab/r117-classification-axes-3`, 워크트리 `.worktrees/r117-classification-axes-3`)** *(사용자 요청·결정 2026-11-27: `R116`보다 먼저, 최대 3개(원 `R13` 설계값). 별도 명세 문서 없음 — 아래 수용 기준과 `docs/spec/R13_Character_Roster_and_Preset_Spec.md`·`R52_Character_Template_and_Pickup_Avatar_Spec.md`의 "최대 2개" 서술을 3개로 갱신함)*
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R117_CLASSIFICATION_AXES_3.sql`, `SCHEMA.sql`: `is_valid_classification_schema`의 `jsonb_array_length(axes) > 2` → `> 3`). 🐳 Docker Desktop 필요(이 PC는 2026-11-27 등록 시점에 엔진 실행 중 확인함). 금전·원장 접점 없음, 기존 2축 데이터는 그대로 유효.
-- **Iteration 01 Target SHA**: `c5c5a1c1004424fff8c496d0e55a7b18726e8ebc` *(워크트리 커밋, 미병합, 원격 브랜치: push 안 함)*
+- **Iteration 02 Target SHA**: `3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8` *(워크트리 커밋, 미병합, 원격 브랜치: push 안 함. Iteration 01 Target `c5c5a1c1004424fff8c496d0e55a7b18726e8ebc`, 리뷰 범위는 Base ↔ Iteration 02 Target)*
 - **수용 기준**: ① 3축 스키마 허용·4축 거부·기존 2축 게임 불변 ② 세 번째 축으로 캐릭터 `attributes` 검증·`game_classification_icons` 트리거·승인 RPC가 동작 ③ `character-utils.ts` `TEMPLATE_AXIS_MAX_COUNT = 3`·정규화 `slice(0, 3)` ④ 필터 막대·캐릭터 목록·프리셋·요청 모달·관리자 템플릿 폼이 3축에서 동작하고 390/900/1280 레이아웃 확인 ⑤ 마이그레이션 미적용 DB에서도 앱이 깨지지 않는 폴백 ⑥ `R13`·`R52` 명세 문구 갱신 ⑦ 로컬 DB `TESTS.sql`·tsc·lint·Vitest·`next build` 통과.
 - **모델 배정 근거**: `Gemini Models` 한도 소진 중. SQL 제약 함수 재정의라 Step 1은 `Claude Opus`(승격 조건 ① SQL), 리뷰어는 Maker와 다른 모델임.
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY (Iteration 02: R117-REV-001·002 보완)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R117 SQL 제약·화면 3축 대응·명세)` | 요청 모달의 3축 Vitest 회귀 추가, R52 현재 UI 명세를 class1~3으로 갱신. 레이아웃 실화면 확인은 Step 3로 이관함 | 수정 Iteration 02 필요 |
-| **2** | **`⏳ WAITING (Maker Iteration 02 보완 후 재리뷰; 산출물 95a75d68481492e4101b4ebce2816e159dd975f5)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 01 정적 리뷰·DB 게이트·검증 아티팩트 완료, Maker 보완 후 재리뷰 대기 | Step 2 Iteration 01 기록 참조 |
+| **1** | **`✅ DONE (Iteration 02, SHA: 3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R117 SQL 제약·화면 3축 대응·명세)` | 요청 모달의 3축 Vitest 회귀 추가, R52 현재 UI 명세를 class1~3으로 갱신. 레이아웃 실화면 확인은 Step 3로 이관함 | `R117-REV-001`·`002` 보완함 |
+| **2** | **`▶ READY (Iteration 02 재리뷰, Iteration 01 산출물 95a75d68481492e4101b4ebce2816e159dd975f5)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 01 정적 리뷰·DB 게이트·검증 아티팩트 완료, Maker 보완 후 재리뷰 대기 | Step 2 Iteration 01 기록 참조 |
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 한 게임에 세 번째 분류 축 추가·390/900/1280 화면 및 필터 확인 | Step 2 병합 후 안내함 |
 
 
