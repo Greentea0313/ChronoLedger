@@ -17,7 +17,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run**: `r110-desktop-auto-update` *(Step U0·1·2 완료, Step 3 `▶ READY`. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
+- **활성 Run**: `r110-desktop-auto-update` *(Step U0·1·2 완료, Step 3 `🛑 BLOCKED`—Vitest 1건·`next build` `EPERM`. 직전 Run `p4-followups-r107c-r109-r75`는 `main` 병합 `ac752b6`로 마감함)*
 
 #### 🧩 Run: `r110-desktop-auto-update` *(데스크톱 자동 업데이트)* · **Orchestrator**: Claude Sonnet `Medium` *(2026-11-26 등록, Gemini 주간 한도 소진으로 Hydrogen 대체)*
 
