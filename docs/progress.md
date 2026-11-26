@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-26 (`r115-csv-import` Step 2 Iteration 02 — GPT Codex)**: Maker 수정 재리뷰 `clean`, artifact `4f16282`, `main` 병합 `35f4461`. 격리 DB 업그레이드·신규 설치 각 migration 2회 및 R115-01~03 통과, 병합 후 tsc·lint·Vitest 1,146개·build 통과함. 다음: 사용자 운영 DB 적용·실제 CSV 가져오기와 취소 확인임.
 - **2026-11-26 (`r115-csv-import` Step 1 Iteration 02 — Claude Opus `High`)**: `R115-REV-001`·`002` 수정, 워크트리 커밋 `a01d312`(미병합·미push). 배치 취소 조건에 정가=실결제액 추가·정가 편집 행 유지 테스트, `TESTS.sql` echo 경고 제거. 🐳 로컬 2경로 62개 PASS·경고 0건, 변이 FAIL 확인. 다음: Step 2 `GPT Codex` 재리뷰.
 - **2026-11-26 (`r115-csv-import` Step 2 Iteration 01 — GPT Codex)**: artifact `db1997d` 작성·스키마 검증함. 정적 리뷰 P2 1건(가져온 금액 편집 행을 취소 RPC가 지울 수 있음), P4 1건(psql 테스트 출력 경고) 발견해 병합 보류함. 격리 업그레이드·신규 DB SQL 테스트, tsc·lint·Vitest 1,146개·build 통과함. 다음: Claude Opus `High`가 수정함.
 - **2026-11-26 (`r115-csv-import` Step 1 — Claude Opus `High`)**: 워크트리 커밋 `b8aa935`(미병합·미push). 확정 지출 가져오기 RPC 2종(`import_confirmed_expenses`·`delete_import_batch`, 가져온 행은 `WALLET`·자산 미차감·포인트 0), CSV 파서·해석 로직, 지출 페이지 `CSV 가져오기` 단계형 모달 구현. 🐳 로컬 2경로 각 2회 멱등·`TESTS.sql` 62개 PASS, 변이 2건 FAIL 확인, Vitest 1,146개·`build` 통과. 다음: Step 2 `GPT Codex`.

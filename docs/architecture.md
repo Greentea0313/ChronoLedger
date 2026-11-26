@@ -45,7 +45,7 @@ Supabase
 - `src/components/calendar/`: 반응형 월간 캘린더, 일정 배너, 메모 도트, 선택 날짜 상세 및 예산 화면. 타일에는 금액을 그리지 않는다.
 - `src/components/calendar/desktop-calendar.tsx`: 6주 월간 그리드와 타일 렌더링(배너/아이콘/메모 도트 전용, 금액 미표시).
 - `src/components/calendar/hero-sidebar.tsx`, `mobile-drawer.tsx`: 선택일 상세, 예산 진행률, 포인트 요약을 데스크톱/모바일 각각의 레이아웃으로 표시한다.
-- `src/components/expense/`: 예정 지출 입력, 결제/환불 RPC 호출, 예산 요약 및 만료 예정 지출 흐름.
+- `src/components/expense/`: 예정 지출 입력, 결제/환불 RPC 호출, 예산 요약·만료 예정 지출 및 CSV 가져오기 모달 흐름. `src/lib/csv.ts`는 RFC 4180 CSV 파싱·UTF-8/EUC-KR 디코딩, `src/lib/expense-import.ts`는 가져오기 행 해석·중복 의심·검증 페이로드 구성을 담당함(R115). `import_confirmed_expenses`·`delete_import_batch`는 가져오기 값과 배치 취소 권한을 서버에서 검증함.
 - `src/components/game/`: 공용 카탈로그 선택 및 게임 요청, 일정·캐릭터 추가/수정 제안, 기타 건의(`feedback_requests`) 제출 및 내 요청 현황 조회, 개인 아이콘 업로드/표시.
 - `src/components/layout/notification-bell.tsx`: 로그인 사용자 상단바 앱 내 알림함(최근 30건·미읽음 배지·KST 시각·`mark_notifications_read` RPC·상대 경로 이동, R84).
 - `src/lib/schedule-preferences.ts`: `users.show_unofficial_schedules` 설정 조회·저장 및 마이그레이션 미적용 상태 처리. 공식 여부는 `game_schedules.is_official`/`schedule_requests.is_official`로 관리하며, 사용자 설정에 따라 일정 화면에서 비공식 일정을 필터링한다.
