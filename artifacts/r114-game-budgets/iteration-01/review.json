@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r114-game-budgets",
+  "iteration": 1,
+  "agent": "GPT Codex",
+  "base_sha": "85d8adcb294bcd4622eb90df3bb826b94a4445d6",
+  "target_sha": "692ea97b731f7ca171005be3348c8302e16ab59a",
+  "role": "static-review",
+  "status": "findings",
+  "created_at": "2026-11-26T21:57:54+09:00",
+  "findings": [
+    {
+      "id": "R114-REV-001",
+      "severity": "P2",
+      "file": "src/app/dashboard/expenses/page.tsx",
+      "line": 728,
+      "evidence": "The new game budget usage calculation consumes the `expenses` state. `loadExpenses` fills that state from a single `.select(EXPENSE_COLUMNS).eq(\"user_id\", userId).order(...)` request (lines 291-295) without `.range()` pagination. Supabase/PostgREST defaults to at most 1,000 returned rows.",
+      "impact": "When a user has more than the API row limit, the game budget list silently sums only the returned subset. Older months can be undercounted or shown as zero, contrary to B2 and acceptance criterion 114-5.",
+      "recommendation": "Fetch all expense pages needed for budget calculations with deterministic ordering and `.range()` pagination, or use a server-side aggregate that applies the same PLANNED/CONFIRMED and end_date attribution rules; add a test with more than 1,000 rows."
+    }
+  ]
+}

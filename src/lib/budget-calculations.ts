@@ -204,3 +204,42 @@ export function calculateTwoMonthBudgetComparison(params: {
     }),
   }
 }
+
+export interface GameBudgetExpense extends BudgetExpense {
+  game_id?: string | null
+}
+
+export interface GameBudget {
+  game_id: string
+  monthly_budget: number
+}
+
+export interface GameBudgetUsage {
+  game_id: string
+  budget: number
+  used: number
+  /** used / budget (1 = 100%). */
+  ratio: number
+}
+
+/**
+ * R114: 게임별 월 예산 사용액. 분류와 무관하게 game_id가 같은 PLANNED·CONFIRMED 지출의 final_amount 합이며,
+ * 귀속 달은 월 예산과 같은 getBudgetDate 규칙(예정은 end_date 달)을 쓴다. 서버 알림(enqueue_game_budget_notifications)과 같은 규칙.
+ */
+export function calculateGameBudgetUsage(
+  expenses: readonly GameBudgetExpense[],
+  month: MonthKey,
+  budgets: readonly GameBudget[],
+): GameBudgetUsage[] {
+  const used = new Map<string, number>()
+  expenses.forEach((expense) => {
+    if (!expense.game_id || !isBudgetCounted(expense) || !sameMonth(getBudgetDate(expense), month)) return
+    used.set(expense.game_id, (used.get(expense.game_id) ?? 0) + expense.final_amount)
+  })
+  return budgets
+    .filter((budget) => budget.monthly_budget > 0)
+    .map((budget) => {
+      const amount = used.get(budget.game_id) ?? 0
+      return { game_id: budget.game_id, budget: budget.monthly_budget, used: amount, ratio: amount / budget.monthly_budget }
+    })
+}

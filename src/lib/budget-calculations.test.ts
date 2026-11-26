@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   calculateConfirmedExpense,
+  calculateGameBudgetUsage,
   calculateExpectedExpense,
   calculateMonthBudgetBreakdown,
   calculateRemainingBudget,
@@ -235,5 +236,51 @@ describe("budget-calculations", () => {
     expect(nov.confirmedAmount).toBe(5900)
     expect(dec.confirmedAmount).toBe(10000)
     expect(calculateConfirmedExpense(expenses, { year: 2026, month: 12 })).toBe(10000)
+  })
+})
+
+describe("calculateGameBudgetUsage (R114)", () => {
+  const october = { year: 2026, month: 10 }
+  const budgets = [
+    { game_id: "g1", monthly_budget: 10000 },
+    { game_id: "g2", monthly_budget: 5000 },
+  ]
+
+  it("114-1: game_id 기준 예정+확정 합, 예정은 end_date 달, 취소·환불·game_id 없는 지출 제외", () => {
+    const usage = calculateGameBudgetUsage(
+      [
+        // Confirmed after point discount: final_amount is used.
+        { game_id: "g1", status: "CONFIRMED", target_date: "2026-10-05", final_amount: 5000 },
+        // PLANNED ending in October counts in October; PLANNED ending in November does not.
+        { game_id: "g1", status: "PLANNED", target_date: "2026-09-28", end_date: "2026-10-02", final_amount: 2000 },
+        { game_id: "g1", status: "PLANNED", target_date: "2026-10-30", end_date: "2026-11-02", final_amount: 1000 },
+        // Cancelled and refunded rows are CANCELLED.
+        { game_id: "g1", status: "CANCELLED", target_date: "2026-10-10", final_amount: 4000 },
+        { game_id: "g1", status: "CANCELLED", target_date: "2026-10-11", final_amount: 4000 },
+        // A '정기 구독' expense with the game still counts (category is not part of the input).
+        { game_id: "g1", status: "CONFIRMED", target_date: "2026-10-12", final_amount: 1000 },
+        // No game_id: excluded.
+        { game_id: null, status: "CONFIRMED", target_date: "2026-10-12", final_amount: 9000 },
+        { status: "CONFIRMED", target_date: "2026-10-12", final_amount: 9000 },
+        // Other month.
+        { game_id: "g2", status: "CONFIRMED", target_date: "2026-09-30", final_amount: 7000 },
+      ],
+      october,
+      budgets,
+    )
+    expect(usage).toEqual([
+      { game_id: "g1", budget: 10000, used: 8000, ratio: 0.8 },
+      { game_id: "g2", budget: 5000, used: 0, ratio: 0 },
+    ])
+  })
+
+  it("예산이 없거나 0 이하인 게임은 결과에 넣지 않는다", () => {
+    expect(
+      calculateGameBudgetUsage(
+        [{ game_id: "g3", status: "CONFIRMED", target_date: "2026-10-01", final_amount: 100 }],
+        october,
+        [{ game_id: "g3", monthly_budget: 0 }],
+      ),
+    ).toEqual([])
   })
 })

@@ -24,10 +24,12 @@ import { GameIcon } from "@/components/ui/game-icon"
 import { GamesPageSkeleton } from "@/components/ui/page-skeletons"
 import { preloadImages } from "@/lib/icon-preload"
 import { insertTabOnKeyDown } from "@/lib/textarea-tab"
+import { isOffline, OFFLINE_WRITE_MESSAGE } from "@/lib/offline-guard"
+import { Input } from "@/components/ui/input"
 import { FavoriteScheduleActions } from "@/components/calendar/favorite-schedule-actions"
 import { ScheduleTypeBadge } from "@/components/calendar/schedule-type-badge"
 import { getPickupAvatars, PickupAvatars } from "@/components/calendar/pickup-avatars"
-import { Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, X } from "lucide-react"
+import { Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit3, FileText, Gamepad2, ImagePlus, Loader2, Trash2, Wallet, X } from "lucide-react"
 
 const GAMES_PER_PAGE = 12
 
@@ -44,11 +46,25 @@ function getPaginationRange(current: number, total: number): (number | "...")[] 
   return [1, "...", current - 1, current, current + 1, "...", total]
 }
 
+/** R114: 게임 월 예산 상한(1,000억 원). */
+const MAX_GAME_MONTHLY_BUDGET = 100_000_000_000
+
+/** 월 예산 입력을 해석한다. 빈 값은 해제(null), 1원 이상 1,000억 원 이하 정수만 허용한다. */
+function parseGameBudgetInput(input: string): { value: number | null } | { error: string } {
+  const normalized = input.replace(/[,\s]/g, "")
+  if (normalized === "") return { value: null }
+  if (!/^\d+$/.test(normalized)) return { error: "숫자만 입력하세요." }
+  const value = Number(normalized)
+  if (value < 1 || value > MAX_GAME_MONTHLY_BUDGET) return { error: "1원 이상 1,000억 원 이하로 입력하세요." }
+  return { value }
+}
+
 interface UserGameRow {
   id: string
   game_id: string
   custom_icon_path: string | null
   memo?: string | null
+  monthly_budget?: number | null
   games: {
     id: string
     name: string
@@ -447,6 +463,12 @@ export default function GamesPage() {
   const [editingGameId, setEditingGameId] = useState<string | null>(null)
   const [memoInput, setMemoInput] = useState("")
   const [isSavingMemo, setIsSavingMemo] = useState(false)
+  // R114: 월 예산 열이 없는 DB(마이그레이션 미적용)면 예산 UI를 숨긴다.
+  const [isBudgetSupported, setIsBudgetSupported] = useState(true)
+  const [budgetGameId, setBudgetGameId] = useState<string | null>(null)
+  const [budgetInput, setBudgetInput] = useState("")
+  const [budgetError, setBudgetError] = useState<string | null>(null)
+  const [isSavingBudget, setIsSavingBudget] = useState(false)
 
   const memoEditingGame = useMemo(
     () => userGames.find((g) => g.id === editingGameId) ?? null,
@@ -547,12 +569,23 @@ export default function GamesPage() {
     if (!hasLoadedInitialRef.current) {
       setIsLoading(true)
     }
-    const initialResult = await supabase
+    const budgetResult = await supabase
       .from("user_games")
-      .select("id, game_id, custom_icon_path, memo, games(id, name, default_icon_url)")
+      .select("id, game_id, custom_icon_path, memo, monthly_budget, games(id, name, default_icon_url)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-    let data = initialResult.data
+    let data = budgetResult.data
+    setIsBudgetSupported(!budgetResult.error)
+
+    // R114: monthly_budget 열이 없으면(42703) 예산 UI 없이 기존 열만 다시 조회한다.
+    const initialResult = budgetResult.error
+      ? await supabase
+          .from("user_games")
+          .select("id, game_id, custom_icon_path, memo, games(id, name, default_icon_url)")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+      : budgetResult
+    if (budgetResult.error) data = initialResult.data as typeof data
 
     // DB에 아직 memo 컬럼 마이그레이션이 적용되지 않은 경우 기본 컬럼으로 폴백 조회하여 카드와 UI가 정상 노출되게 보장
     if (initialResult.error) {
@@ -692,6 +725,50 @@ export default function GamesPage() {
     } catch {
       alert("게임 구독 해제 중 오류가 발생했습니다.")
     }
+  }
+
+  const budgetEditingGame = useMemo(
+    () => userGames.find((g) => g.id === budgetGameId) ?? null,
+    [userGames, budgetGameId]
+  )
+
+  // 모달은 열 때만 현재 값으로 초기화한다(배경 재조회가 입력을 지우지 않게 함).
+  const handleStartEditBudget = (ug: UserGameRow) => {
+    setBudgetGameId(ug.id)
+    setBudgetInput(ug.monthly_budget ? String(ug.monthly_budget) : "")
+    setBudgetError(null)
+  }
+
+  const handleCancelEditBudget = () => {
+    setBudgetGameId(null)
+    setBudgetInput("")
+    setBudgetError(null)
+  }
+
+  const handleSaveBudget = async (ug: UserGameRow) => {
+    if (!user) return
+    if (isOffline()) {
+      setBudgetError(OFFLINE_WRITE_MESSAGE)
+      return
+    }
+    const parsed = parseGameBudgetInput(budgetInput)
+    if ("error" in parsed) {
+      setBudgetError(parsed.error)
+      return
+    }
+    setIsSavingBudget(true)
+    const { error } = await supabase
+      .from("user_games")
+      .update({ monthly_budget: parsed.value })
+      .eq("id", ug.id)
+      .eq("user_id", user.id)
+    setIsSavingBudget(false)
+    if (error) {
+      setBudgetError(`월 예산을 저장하지 못했습니다: ${error.message}`)
+      return
+    }
+    setUserGames((prev) => prev.map((item) => (item.id === ug.id ? { ...item, monthly_budget: parsed.value } : item)))
+    handleCancelEditBudget()
   }
 
   const handleStartEditMemo = (ug: UserGameRow) => {
@@ -957,6 +1034,18 @@ export default function GamesPage() {
                               <span>메모 작성</span>
                             </Button>
                           )}
+                          {isBudgetSupported && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStartEditBudget(ug)}
+                              className="mt-2 h-7 w-full justify-start px-2 text-[11px] text-content-secondary hover:text-content hover:bg-surface-3"
+                            >
+                              <Wallet className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                              {ug.monthly_budget ? `월 예산 ${ug.monthly_budget.toLocaleString("ko-KR")}원` : "월 예산 설정"}
+                            </Button>
+                          )}
                         </div>
                       </div>
 
@@ -1159,6 +1248,65 @@ export default function GamesPage() {
               ) : (
                 <Check className="w-3.5 h-3.5 mr-1" />
               )}
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* R114: 게임별 월 예산(경고·알림만, 등록은 막지 않음) */}
+      <Dialog
+        open={budgetGameId !== null}
+        onOpenChange={(open) => {
+          if (!open) handleCancelEditBudget()
+        }}
+      >
+        <DialogContent className="max-w-sm bg-surface text-content border-line">
+          <DialogHeader>
+            <DialogTitle className="text-content">{budgetEditingGame?.games?.name || "게임"} 월 예산</DialogTitle>
+            <DialogDescription className="text-content-secondary">
+              매달 같은 한도로 예정+확정 지출을 합산해 80%·100%에 알림을 보냅니다. 지출 등록은 막지 않습니다. 비우면 예산을 해제합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-3 space-y-2">
+            <Input
+              value={budgetInput}
+              onChange={(e) => {
+                setBudgetInput(e.target.value)
+                setBudgetError(null)
+              }}
+              inputMode="numeric"
+              placeholder="예: 50000"
+              className="bg-surface-2 border-line-control text-content"
+              aria-label={`${budgetEditingGame?.games?.name || "게임"} 월 예산 입력`}
+              autoFocus
+            />
+            {budgetError && (
+              <p role="alert" className="text-xs text-danger">
+                {budgetError}
+              </p>
+            )}
+          </div>
+          <DialogFooter className="mt-4 flex flex-row items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCancelEditBudget}
+              disabled={isSavingBudget}
+              className="text-xs border-line-control hover:bg-surface-3 text-content"
+            >
+              <X className="w-3.5 h-3.5 mr-1" />
+              취소
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => budgetEditingGame && void handleSaveBudget(budgetEditingGame)}
+              disabled={isSavingBudget}
+              className="text-xs bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
+            >
+              {isSavingBudget ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1" />}
               저장
             </Button>
           </DialogFooter>

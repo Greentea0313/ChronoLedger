@@ -157,6 +157,9 @@
 --   R107C-REV-002 fixture / C     chk_expense_auto_confirmed_status 검증됨, PLANNED 행 auto_confirmed_at 삽입·본인 수정 -> check_violation.
 --   PRIV-01 fixture / B           users SELECT 본인 행만(B는 A 프로필 조회 불가), 가입 닉네임은 메타데이터 nickname 공백 제거·20자(없으면 NULL),
 --                                  65자·공백 닉네임 -> chk_users_nickname_length check_violation.
+--   R114-01 DB fixture 역할       게임 월 예산 80%·100% 알림(예정+확정·end_date 귀속·포인트 할인 후 금액·정기 구독 포함·game_id 없음/취소/환불 제외),
+--                                  한 달 종류별 1회·같은 날 재실행 0건·토글 false 제외·100% 직행 시 100만·본문 금액 미포함·내부 함수 권한.
+--   R114-02 DB fixture 역할       MONTHLY_REPORT 1일만·전월 확정 합·전월 대비 ±%·전월 기록 없음·예산 초과 게임 수·토글 false/확정 0건 제외·재실행 0건.
 --   ACL-01 anon                   authenticated 전용 RPC 실행 -> insufficient_privilege.
 --   END    DB fixture 역할         ROLLBACK 출력 -> fixture 및 데이터 변경 전부 제거.
 --
@@ -5953,6 +5956,165 @@ BEGIN
 END $$;
 RESET ROLE;
 \echo PASS: PRIV-01 users profiles are own-row only, signup nickname never derives from email, nickname CHECK enforced
+
+-- ============================================================================
+-- R114: game monthly budgets and monthly report (spec docs/r113-r116-data-budget-public-spec.md §4, 114-2/114-3).
+-- Fresh users G1..G4, G6 keep the cases independent. Fixed dates (2026-10-15 / 2026-11-01) drive the date-taking helpers.
+-- ============================================================================
+SELECT gen_random_uuid() AS r114_g1 \gset
+SELECT gen_random_uuid() AS r114_g2 \gset
+SELECT gen_random_uuid() AS r114_g3 \gset
+SELECT gen_random_uuid() AS r114_g4 \gset
+SELECT gen_random_uuid() AS r114_g6 \gset
+SELECT set_config('chronoledger.r114_g1', :'r114_g1', true);
+SELECT set_config('chronoledger.r114_g2', :'r114_g2', true);
+SELECT set_config('chronoledger.r114_g3', :'r114_g3', true);
+SELECT set_config('chronoledger.r114_g4', :'r114_g4', true);
+SELECT set_config('chronoledger.r114_g6', :'r114_g6', true);
+INSERT INTO auth.users (id, aud, role, email, encrypted_password, raw_app_meta_data, raw_user_meta_data)
+SELECT u.id, 'authenticated', 'authenticated', 'codex-sqltest-' || replace(u.id::text, '-', '') || '@example.invalid',
+       '', '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb
+FROM (VALUES (:'r114_g1'::uuid), (:'r114_g2'::uuid), (:'r114_g3'::uuid), (:'r114_g4'::uuid), (:'r114_g6'::uuid)) AS u(id);
+
+-- R114-01) Schema, privileges and the 114-1 boundary cases on the server side (114-2).
+DO $$
+DECLARE
+    v_g1 UUID := current_setting('chronoledger.r114_g1')::uuid;
+    v_g2 UUID := current_setting('chronoledger.r114_g2')::uuid;
+    v_g4 UUID := current_setting('chronoledger.r114_g4')::uuid;
+    v_game UUID;
+    v_n INTEGER;
+    v_body TEXT;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_games' AND column_name = 'monthly_budget')
+       OR (SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notification_settings'
+           AND column_name IN ('game_budget_alert', 'monthly_report') AND column_default = 'true' AND is_nullable = 'NO') <> 2 THEN
+        RAISE EXCEPTION 'FAIL: R114 columns missing';
+    END IF;
+    IF has_function_privilege('authenticated', 'public.enqueue_game_budget_notifications(date)', 'EXECUTE')
+       OR has_function_privilege('anon', 'public.enqueue_game_budget_notifications(date)', 'EXECUTE')
+       OR has_function_privilege('authenticated', 'public.enqueue_monthly_report_notifications(date)', 'EXECUTE')
+       OR has_function_privilege('anon', 'public.enqueue_monthly_report_notifications(date)', 'EXECUTE')
+       OR NOT has_function_privilege('service_role', 'public.enqueue_game_budget_notifications(date)', 'EXECUTE')
+       OR NOT has_function_privilege('service_role', 'public.enqueue_monthly_report_notifications(date)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'FAIL: R114 helper privileges';
+    END IF;
+
+    INSERT INTO public.games(name, default_icon_url) VALUES ('R114 game ' || v_g1::text, 'https://example.invalid/r114.webp') RETURNING id INTO v_game;
+    PERFORM set_config('chronoledger.r114_game', v_game::text, true);
+    BEGIN
+        INSERT INTO public.user_games(user_id, game_id, monthly_budget) VALUES (v_g1, v_game, 0);
+        RAISE EXCEPTION 'FAIL: R114 monthly_budget 0 accepted';
+    EXCEPTION WHEN check_violation THEN NULL;
+    END;
+    INSERT INTO public.user_games(user_id, game_id, monthly_budget) VALUES (v_g1, v_game, 10000), (v_g2, v_game, 1000), (v_g4, v_game, 1000);
+    INSERT INTO public.notification_settings(user_id, game_budget_alert, monthly_report) VALUES (v_g2, false, false)
+    ON CONFLICT (user_id) DO UPDATE SET game_budget_alert = false, monthly_report = false;
+
+    -- G1 October usage (114-1 cases): confirmed after point discount 5000, PLANNED ending in October 2000,
+    -- '정기 구독' with the game 1000 -> 8000 (80%). Excluded: PLANNED ending in November, cancelled, refunded, no game_id.
+    -- Using target_date instead of end_date for PLANNED rows would give 7000 (70%) and no alert.
+    INSERT INTO public.expenses(user_id, game_id, title, category, status, target_date, original_price, point_discount_amount, used_points, point_platform, final_amount)
+    VALUES (v_g1, v_game, 'R114 confirmed', '게임', 'CONFIRMED', DATE '2026-10-05', 6000, 1000, 1000, 'GOOGLE_PLAY', 5000);
+    INSERT INTO public.expenses(user_id, game_id, title, category, status, target_date, start_date, end_date, original_price, final_amount)
+    VALUES (v_g1, v_game, 'R114 planned oct', '게임', 'PLANNED', DATE '2026-09-28', DATE '2026-09-28', DATE '2026-10-02', 2000, 2000),
+           (v_g1, v_game, 'R114 planned nov', '게임', 'PLANNED', DATE '2026-10-30', DATE '2026-10-30', DATE '2026-11-02', 1000, 1000);
+    INSERT INTO public.expenses(user_id, game_id, title, category, status, cancellation_kind, target_date, original_price, final_amount)
+    VALUES (v_g1, v_game, 'R114 cancelled', '게임', 'CANCELLED', 'PLANNED_CANCEL', DATE '2026-10-10', 4000, 4000),
+           (v_g1, v_game, 'R114 refunded', '게임', 'CANCELLED', 'PAYMENT_REFUND', DATE '2026-10-11', 4000, 4000);
+    INSERT INTO public.expenses(user_id, game_id, title, category, status, target_date, original_price, final_amount)
+    VALUES (v_g1, v_game, 'R114 game subscription', '정기 구독', 'CONFIRMED', DATE '2026-10-12', 1000, 1000);
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount)
+    VALUES (v_g1, 'R114 no game', '게임', 'CONFIRMED', DATE '2026-10-12', 9000, 9000);
+    -- G2 is over budget but has the alert toggle off; G4 jumps straight past 100%.
+    INSERT INTO public.expenses(user_id, game_id, title, category, status, target_date, original_price, final_amount)
+    VALUES (v_g2, v_game, 'R114 g2', '게임', 'CONFIRMED', DATE '2026-10-05', 5000, 5000),
+           (v_g4, v_game, 'R114 g4', '게임', 'CONFIRMED', DATE '2026-10-05', 5000, 5000);
+
+    PERFORM public.enqueue_game_budget_notifications(DATE '2026-10-15');
+    IF (SELECT count(*) FROM public.notifications WHERE user_id = v_g1 AND kind = 'GAME_BUDGET_80' AND source_id = v_game AND scheduled_for = DATE '2026-10-01') <> 1
+       OR EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_g1 AND kind = 'GAME_BUDGET_100') THEN
+        RAISE EXCEPTION 'FAIL: R114 80%% alert for exactly 8000 of 10000';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_g2 AND kind LIKE 'GAME_BUDGET_%') THEN
+        RAISE EXCEPTION 'FAIL: R114 alert created although game_budget_alert=false';
+    END IF;
+    IF (SELECT count(*) FROM public.notifications WHERE user_id = v_g4 AND kind = 'GAME_BUDGET_100') <> 1
+       OR EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_g4 AND kind = 'GAME_BUDGET_80') THEN
+        RAISE EXCEPTION 'FAIL: R114 a user past 100%% must get only GAME_BUDGET_100';
+    END IF;
+    -- Same-day re-run adds nothing.
+    v_n := public.enqueue_game_budget_notifications(DATE '2026-10-15');
+    IF v_n <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R114 re-run created % alerts', v_n;
+    END IF;
+    -- G1 reaches 100% later in the month: GAME_BUDGET_100 once, the 80% row stays single.
+    INSERT INTO public.expenses(user_id, game_id, title, category, status, target_date, original_price, final_amount)
+    VALUES (v_g1, v_game, 'R114 confirmed 2', '게임', 'CONFIRMED', DATE '2026-10-13', 2000, 2000);
+    PERFORM public.enqueue_game_budget_notifications(DATE '2026-10-20');
+    PERFORM public.enqueue_game_budget_notifications(DATE '2026-10-21');
+    IF (SELECT count(*) FROM public.notifications WHERE user_id = v_g1 AND kind = 'GAME_BUDGET_100') <> 1
+       OR (SELECT count(*) FROM public.notifications WHERE user_id = v_g1 AND kind = 'GAME_BUDGET_80') <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R114 100%% alert not created exactly once';
+    END IF;
+    SELECT body INTO v_body FROM public.notifications WHERE user_id = v_g1 AND kind = 'GAME_BUDGET_100';
+    IF v_body NOT LIKE 'R114 game %' OR v_body LIKE '%10000%' OR v_body LIKE '%10,000%' OR v_body LIKE '%8000%' THEN
+        RAISE EXCEPTION 'FAIL: R114 alert body must name the game without amounts (%)', v_body;
+    END IF;
+
+    -- The daily batch calls both helpers with the real KST date without raising.
+    PERFORM public.enqueue_daily_notifications();
+END $$;
+\echo PASS: R114-01 game budget 80/100 alerts once per month, attribution cases, toggle off, re-run idempotent, privileges
+
+-- R114-02) Monthly report on the 1st (114-3).
+DO $$
+DECLARE
+    v_g1 UUID := current_setting('chronoledger.r114_g1')::uuid;
+    v_g2 UUID := current_setting('chronoledger.r114_g2')::uuid;
+    v_g3 UUID := current_setting('chronoledger.r114_g3')::uuid;
+    v_g4 UUID := current_setting('chronoledger.r114_g4')::uuid;
+    v_g6 UUID := current_setting('chronoledger.r114_g6')::uuid;
+    v_game UUID := current_setting('chronoledger.r114_game')::uuid;
+    v_n INTEGER;
+BEGIN
+    INSERT INTO public.user_games(user_id, game_id, monthly_budget) VALUES (v_g3, v_game, 5000);
+    INSERT INTO public.expenses(user_id, game_id, title, category, status, target_date, original_price, final_amount)
+    VALUES (v_g3, NULL, 'R114 g3 sep', '식비', 'CONFIRMED', DATE '2026-09-10', 10000, 10000),
+           (v_g3, v_game, 'R114 g3 oct', '게임', 'CONFIRMED', DATE '2026-10-10', 12000, 12000),
+           (v_g4, NULL, 'R114 g4 sep', '식비', 'CONFIRMED', DATE '2026-09-10', 10000, 10000);
+    -- G6 has only a PLANNED October row: no report.
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount)
+    VALUES (v_g6, 'R114 g6 planned', '기타', 'PLANNED', DATE '2026-10-10', 3000, 3000);
+
+    IF public.enqueue_monthly_report_notifications(DATE '2026-11-02') <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R114 monthly report created on a day other than the 1st';
+    END IF;
+    PERFORM public.enqueue_monthly_report_notifications(DATE '2026-11-01');
+
+    -- G1: October confirmed 5000 + 1000 + 2000 + 9000 (no game) = 17000, no September record, game usage 10000 is not over 10000.
+    IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_g1 AND kind = 'MONTHLY_REPORT'
+                   AND source_id = v_g1 AND scheduled_for = DATE '2026-10-01' AND title = '10월 지출 리포트'
+                   AND body = '10월 확정 지출 17,000원(전월 기록 없음) · 예산 초과 게임 0개' AND link_path = '/dashboard/expenses') THEN
+        RAISE EXCEPTION 'FAIL: R114 G1 report (%)', (SELECT body FROM public.notifications WHERE user_id = v_g1 AND kind = 'MONTHLY_REPORT');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_g3 AND kind = 'MONTHLY_REPORT'
+                   AND body = '10월 확정 지출 12,000원(전월 대비 +20%) · 예산 초과 게임 1개') THEN
+        RAISE EXCEPTION 'FAIL: R114 G3 report (%)', (SELECT body FROM public.notifications WHERE user_id = v_g3 AND kind = 'MONTHLY_REPORT');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_g4 AND kind = 'MONTHLY_REPORT'
+                   AND body = '10월 확정 지출 5,000원(전월 대비 -50%) · 예산 초과 게임 1개') THEN
+        RAISE EXCEPTION 'FAIL: R114 G4 report (%)', (SELECT body FROM public.notifications WHERE user_id = v_g4 AND kind = 'MONTHLY_REPORT');
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.notifications WHERE user_id IN (v_g2, v_g6) AND kind = 'MONTHLY_REPORT') THEN
+        RAISE EXCEPTION 'FAIL: R114 report for monthly_report=false or a user without confirmed spending';
+    END IF;
+    v_n := public.enqueue_monthly_report_notifications(DATE '2026-11-01');
+    IF v_n <> 0 THEN
+        RAISE EXCEPTION 'FAIL: R114 monthly report re-run created % rows', v_n;
+    END IF;
+END $$;
+\echo PASS: R114-02 monthly report on the 1st only, totals/percent/over-budget count, no previous record, toggle off, idempotent
 
 SET LOCAL ROLE anon;
 DO $$

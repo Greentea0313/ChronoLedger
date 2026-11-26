@@ -87,26 +87,26 @@ isOneToOne: false
                   Relationships: []
                 },"notifications": {
                   Row: {
-                    "body": string,"created_at": string,"id": string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "EXPENSE_AUTO_CONFIRMED" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts": number,"push_claimed_at": string | null,"push_status": "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at": string | null,"read_at": string | null,"scheduled_for": string | null,"source_id": string | null,"title": string,"user_id": string
+                    "body": string,"created_at": string,"id": string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "EXPENSE_AUTO_CONFIRMED" | "GAME_BUDGET_80" | "GAME_BUDGET_100" | "MONTHLY_REPORT" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts": number,"push_claimed_at": string | null,"push_status": "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at": string | null,"read_at": string | null,"scheduled_for": string | null,"source_id": string | null,"title": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body": string,"created_at"?: string,"id"?: string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "EXPENSE_AUTO_CONFIRMED" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title": string,"user_id": string
+                    "body": string,"created_at"?: string,"id"?: string,"kind": "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "EXPENSE_AUTO_CONFIRMED" | "GAME_BUDGET_80" | "GAME_BUDGET_100" | "MONTHLY_REPORT" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title": string,"user_id": string
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"id"?: string,"kind"?: "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "EXPENSE_AUTO_CONFIRMED" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title"?: string,"user_id"?: string
+                    "body"?: string,"created_at"?: string,"id"?: string,"kind"?: "FAVORITE_START" | "FAVORITE_END_D1" | "EXPENSE_D1" | "EXPENSE_DUE_TODAY" | "EXPENSE_AUTO_CONFIRMED" | "GAME_BUDGET_80" | "GAME_BUDGET_100" | "MONTHLY_REPORT" | "REQUEST_APPROVED" | "REQUEST_REJECTED" | "FEEDBACK_ANSWERED","link_path": string,"push_attempts"?: number,"push_claimed_at"?: string | null,"push_status"?: "PENDING" | "SENT" | "SKIPPED" | "FAILED","pushed_at"?: string | null,"read_at"?: string | null,"scheduled_for"?: string | null,"source_id"?: string | null,"title"?: string,"user_id"?: string
                   }
                   Relationships: []
                 },"notification_settings": {
                   Row: {
-                    "expense_due_today": boolean,"favorite_schedule_end_d1": boolean,"favorite_schedule_start": boolean,"planned_expense_d1": boolean,"push_enabled": boolean,"request_result": boolean,"updated_at": string,"user_id": string
+                    "expense_due_today": boolean,"favorite_schedule_end_d1": boolean,"favorite_schedule_start": boolean,"game_budget_alert": boolean,"monthly_report": boolean,"planned_expense_d1": boolean,"push_enabled": boolean,"request_result": boolean,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "expense_due_today"?: boolean,"favorite_schedule_end_d1"?: boolean,"favorite_schedule_start"?: boolean,"planned_expense_d1"?: boolean,"push_enabled"?: boolean,"request_result"?: boolean,"updated_at"?: string,"user_id": string
+                    "expense_due_today"?: boolean,"favorite_schedule_end_d1"?: boolean,"favorite_schedule_start"?: boolean,"game_budget_alert"?: boolean,"monthly_report"?: boolean,"planned_expense_d1"?: boolean,"push_enabled"?: boolean,"request_result"?: boolean,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "expense_due_today"?: boolean,"favorite_schedule_end_d1"?: boolean,"favorite_schedule_start"?: boolean,"planned_expense_d1"?: boolean,"push_enabled"?: boolean,"request_result"?: boolean,"updated_at"?: string,"user_id"?: string
+                    "expense_due_today"?: boolean,"favorite_schedule_end_d1"?: boolean,"favorite_schedule_start"?: boolean,"game_budget_alert"?: boolean,"monthly_report"?: boolean,"planned_expense_d1"?: boolean,"push_enabled"?: boolean,"request_result"?: boolean,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: []
                 },"game_characters": {
@@ -398,14 +398,14 @@ isOneToOne: false
                   ]
                 },"user_games": {
                   Row: {
-                    "created_at": string | null,"custom_icon_path": string | null,"game_id": string,"id": string,"memo": string | null,"updated_at": string | null,"user_id": string
+                    "created_at": string | null,"custom_icon_path": string | null,"game_id": string,"id": string,"memo": string | null,"monthly_budget": number | null,"updated_at": string | null,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string | null,"custom_icon_path"?: string | null,"game_id": string,"id"?: string,"memo"?: string | null,"updated_at"?: string | null,"user_id": string
+                    "created_at"?: string | null,"custom_icon_path"?: string | null,"game_id": string,"id"?: string,"memo"?: string | null,"monthly_budget"?: number | null,"updated_at"?: string | null,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string | null,"custom_icon_path"?: string | null,"game_id"?: string,"id"?: string,"memo"?: string | null,"updated_at"?: string | null,"user_id"?: string
+                    "created_at"?: string | null,"custom_icon_path"?: string | null,"game_id"?: string,"id"?: string,"memo"?: string | null,"monthly_budget"?: number | null,"updated_at"?: string | null,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -529,6 +529,12 @@ isOneToOne: false
                            },
 "enqueue_daily_notifications":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"enqueue_game_budget_notifications":
+{ Args: { "p_today": string }; Returns: number
+                           },
+"enqueue_monthly_report_notifications":
+{ Args: { "p_today": string }; Returns: number
                            },
 "ensure_subscription_expenses":
 { Args: Record<PropertyKey, never>; Returns: number

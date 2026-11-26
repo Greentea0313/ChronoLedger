@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "r114-game-budgets",
+  "iteration": 1,
+  "agent": "GPT Codex",
+  "base_sha": "85d8adcb294bcd4622eb90df3bb826b94a4445d6",
+  "target_sha": "692ea97b731f7ca171005be3348c8302e16ab59a",
+  "role": "dynamic-test",
+  "status": "passed",
+  "created_at": "2026-11-26T21:42:00+09:00",
+  "finished_at": "2026-11-26T21:57:54+09:00",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "Local target schema migration idempotence and SQL tests",
+      "command": "Docker local Supabase: MIGRATION_R114_GAME_BUDGETS.sql twice, then sql/tests/TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Upgrade path",
+      "command": "Isolated Supabase: Base SCHEMA.sql, R114 migration twice, TESTS.sql (R114-01/02 and rollback passed)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Fresh install path",
+      "command": "Isolated Supabase reset, Target SCHEMA.sql, R114 migration twice, TESTS.sql (R114-01/02 and rollback passed)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "TypeScript",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Lint",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest",
+      "command": "npx vitest run (82 files, 1,121 tests)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Production build",
+      "command": "NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=public-test-key npm run build (16 static pages)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Diff whitespace check",
+      "command": "git diff --check",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Artifact schema validation",
+      "command": "Node Ajv 6.15.0 against project review.schema.json and test.schema.json",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}

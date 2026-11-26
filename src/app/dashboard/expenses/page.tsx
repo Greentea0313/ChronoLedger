@@ -23,10 +23,12 @@ import { preloadImages } from "@/lib/icon-preload"
 import { downloadUserIcon } from "@/lib/storage-upload"
 import { IncomeModal } from "@/components/finance/income-modal"
 import { TwoMonthBudgetCard } from "@/components/finance/two-month-budget-card"
-import { calculateTwoMonthBudgetComparison, getNextMonthKey } from "@/lib/budget-calculations"
+import { calculateGameBudgetUsage, calculateTwoMonthBudgetComparison, getNextMonthKey } from "@/lib/budget-calculations"
 import { formatAmountAxisTick, getGameTooltipLabel } from "@/lib/chart-format"
 
 const EXPENSES_PER_PAGE = 10
+/** PostgREST 기본 최대 행 수. 지출은 이 단위로 끝까지 나눠 읽는다(R114-REV-001). */
+const EXPENSE_FETCH_PAGE_SIZE = 1000
 const INCOMES_PER_PAGE = 10
 
 interface IncomeRow {
@@ -165,6 +167,18 @@ const buildMonthOptions = (targetDates: string[], currentMonthKey: string): Mont
   ]
 }
 
+interface GameBudgetRow {
+  game_id: string
+  monthly_budget: number
+  name: string
+}
+
+/** 이전 달 키(YYYY-MM). */
+const previousMonthKey = (monthKey: string) => {
+  const [year, month] = monthKey.split("-").map(Number)
+  return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, "0")}`
+}
+
 const matchesMonth = (selected: string, targetDate: string, currentMonthKey: string) => {
   if (selected === MONTH_ALL) return true
   return targetDate.slice(0, 7) === (selected === MONTH_CURRENT ? currentMonthKey : selected)
@@ -228,6 +242,8 @@ export default function ExpensesPage() {
   const [gameIcons, setGameIcons] = useState<Record<string, string>>({})
   const [defaultBudget, setDefaultBudget] = useState(0)
   const [monthlyBudgetMap, setMonthlyBudgetMap] = useState<Record<string, number>>({})
+  // R114: 게임별 월 예산. 열이 없는 DB(마이그레이션 미적용)면 빈 목록으로 두어 예산 영역을 숨긴다.
+  const [gameBudgets, setGameBudgets] = useState<GameBudgetRow[]>([])
 
   const userId = user?.id
 
@@ -274,15 +290,26 @@ export default function ExpensesPage() {
       }
     }
 
-    const { data, error } = await supabase
-      .from("expenses")
-      .select(EXPENSE_COLUMNS)
-      .eq("user_id", userId)
-      .order("target_date", { ascending: false })
+    // 1,000행을 넘는 사용자도 예산·통계가 전체 지출로 계산되도록 페이지를 끝까지 읽는다.
+    // id를 보조 정렬로 두어 페이지 경계가 흔들리지 않게 하고, 한 페이지라도 실패하면 일부만 반영하지 않는다.
+    let rows: ExpenseRow[] | null = []
+    for (let offset = 0; ; offset += EXPENSE_FETCH_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select(EXPENSE_COLUMNS)
+        .eq("user_id", userId)
+        .order("target_date", { ascending: false })
+        .order("id", { ascending: false })
+        .range(offset, offset + EXPENSE_FETCH_PAGE_SIZE - 1)
+      if (error || !data) {
+        rows = null
+        break
+      }
+      rows.push(...(data as unknown as ExpenseRow[]))
+      if (data.length < EXPENSE_FETCH_PAGE_SIZE) break
+    }
 
-
-    if (!error && data) {
-      const rows = data as unknown as ExpenseRow[]
+    if (rows) {
       setExpenses(rows)
       preloadImages(rows.map((e) => e.games?.default_icon_url).filter(Boolean) as string[])
       void loadCustomIconsForGameIds(rows.map((e) => e.game_id).filter(Boolean) as string[])
@@ -313,6 +340,32 @@ export default function ExpensesPage() {
     hasLoadedInitialRef.current = true
     setIsLoading(false)
   }, [userId, loadCustomIconsForGameIds])
+
+  const loadGameBudgets = useCallback(async () => {
+    if (!userId) return
+    try {
+      const { data, error } = await supabase
+        .from("user_games")
+        .select("game_id, monthly_budget, games(name)")
+        .eq("user_id", userId)
+      if (error || !Array.isArray(data)) {
+        setGameBudgets([])
+        return
+      }
+      const rows = data as unknown as Array<{ game_id: string; monthly_budget?: number | null; games?: { name?: string | null } | null }>
+      setGameBudgets(
+        rows
+          .filter((row) => typeof row.monthly_budget === "number" && row.monthly_budget > 0)
+          .map((row) => ({ game_id: row.game_id, monthly_budget: Number(row.monthly_budget), name: row.games?.name || "게임" })),
+      )
+    } catch {
+      setGameBudgets([])
+    }
+  }, [userId])
+
+  useEffect(() => {
+    void loadGameBudgets()
+  }, [loadGameBudgets])
 
   const loadIncomes = useCallback(async () => {
     if (!userId) return
@@ -678,6 +731,26 @@ export default function ExpensesPage() {
 
     return { totalGameSpent, list, hasData: list.length > 0 }
   }, [expenses, gameMonth, currentMonthKey, gameIcons])
+
+  // R114: 선택한 달의 게임별 예산 사용액(예정+확정, game_id 기준)과 게임 확정 합계의 전월 대비. '전체 기간'에서는 표시하지 않는다.
+  const gameBudgetSummary = useMemo(() => {
+    if (gameMonth === MONTH_ALL) return null
+    const monthKey = gameMonth === MONTH_CURRENT ? currentMonthKey : gameMonth
+    const [year, month] = monthKey.split("-").map(Number)
+    const names = new Map(gameBudgets.map((budget) => [budget.game_id, budget.name]))
+    const usage = calculateGameBudgetUsage(expenses, { year, month }, gameBudgets).map((item) => ({
+      ...item,
+      name: names.get(item.game_id) ?? "게임",
+    }))
+    const prevKey = previousMonthKey(monthKey)
+    const confirmedGameTotal = (key: string) =>
+      expenses
+        .filter((exp) => exp.status === "CONFIRMED" && exp.category === "게임" && exp.target_date.slice(0, 7) === key)
+        .reduce((sum, exp) => sum + exp.final_amount, 0)
+    const current = confirmedGameTotal(monthKey)
+    const previous = confirmedGameTotal(prevKey)
+    return { usage, current, previous }
+  }, [expenses, gameBudgets, gameMonth, currentMonthKey])
 
   // 1. 각 지출의 정렬 및 기간 판정 기준 날짜 (미결제 기간형은 마감일 end_date, 결제 완료 및 특정일은 target_date 기준)
   const getExpenseEffectiveDate = (expense: ExpenseRow): string => {
@@ -1492,6 +1565,48 @@ export default function ExpensesPage() {
                       })}
                     </div>
                   </div>
+                </div>
+              )}
+              {gameBudgetSummary && (
+                <div className="mt-4 space-y-3 border-t border-line pt-4">
+                  <p data-testid="game-spend-month-over-month" className="text-xs text-content-secondary">
+                    {gameBudgetSummary.previous > 0
+                      ? (() => {
+                          const diff = gameBudgetSummary.current - gameBudgetSummary.previous
+                          const percent = Math.round((diff / gameBudgetSummary.previous) * 100)
+                          const sign = diff > 0 ? "+" : diff < 0 ? "-" : ""
+                          return `게임 확정 결제 전월 대비 ${sign}${Math.abs(diff).toLocaleString()}원 (${percent > 0 ? "+" : ""}${percent}%)`
+                        })()
+                      : "게임 확정 결제 전월 대비: 전월 기록 없음"}
+                  </p>
+                  {gameBudgetSummary.usage.length > 0 && (
+                    <div className="space-y-2" data-testid="game-budget-list">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-content">게임별 예산</span>
+                        <span className="text-[11px] text-content-muted">예정 포함 · 게임 연결 지출 전체 기준</span>
+                      </div>
+                      {gameBudgetSummary.usage.map((item) => {
+                        const percent = Math.round(item.ratio * 100)
+                        const barColor = item.ratio >= 1 ? "bg-danger" : item.ratio >= 0.8 ? "bg-warning" : "bg-primary"
+                        const textColor = item.ratio >= 1 ? "text-danger" : item.ratio >= 0.8 ? "text-warning" : "text-content-secondary"
+                        return (
+                          <div key={item.game_id} className="space-y-1" data-testid={`game-budget-${item.game_id}`}>
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="font-medium text-content truncate" title={item.name}>
+                                {item.name}
+                              </span>
+                              <span className={`shrink-0 ${textColor}`}>
+                                {item.used.toLocaleString()} / {item.budget.toLocaleString()} 원 ({percent}%)
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
+                              <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(100, percent)}%` }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
