@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-26 (`R114` 운영 적용·실기기 확인 완료 — 사용자)**: 운영 DB `MIGRATION_R114_GAME_BUDGETS.sql` 적용, README 확인 쿼리 3종 확인, 배포 후 지출 페이지 "게임별 예산" 목록(사용량/한도·진행 막대·초과 경고색) 확인함. 남음: 80%·100% 알림·월간 리포트 수신 확인(선택), `R114` 문서 마감·`R115` 등록.
 - **2026-11-26 (`r114-game-budgets` Step 2 Iteration 02 — GPT Codex)**: Base `85d8adcb` ↔ Target `f577f6d5` 정적 재리뷰 `clean`, artifact `e47928f` 검증 후 `main` 병합 `b161592`. 격리 DB 업그레이드·신규 경로 각 migration 2회 및 R114-01/02·rollback 통과, 병합 후 tsc·lint·Vitest 1,122개·build 통과함. 다음: 사용자 운영 DB 적용·확인 쿼리·배포·예산 UI 및 알림 확인임.
 - **2026-11-26 (`r114-game-budgets` Step 1 Iteration 02 — Claude Opus `High`)**: `R114-REV-001` 수정, 워크트리 커밋 `f577f6d`(미병합·미push). 지출 페이지가 지출을 1,000행 단위 `.range()`로 끝까지 읽고, 실패 시 일부만 반영하지 않음. 2페이지 행을 합산하는 테스트 추가(수정 전 `FAIL` 확인). Vitest 1,122개·`build` 통과. 다음: Step 2 `GPT Codex` 재리뷰.
 - **2026-11-26 (`r114-game-budgets` Step 2 Iteration 01 — GPT Codex)**: 정적 리뷰 P2 1건(`R114-REV-001`: 지출 단일 조회가 1,000행 상한에서 잘려 게임별 예산 사용액 누락 가능), artifact `b8e3f62`. 업그레이드·신규 로컬 DB 양 경로 migration 2회·SQL 테스트 통과, tsc·lint·Vitest 1,121개·build 통과. 다음: Claude Opus가 페이지네이션 수정 후 Codex 재리뷰.

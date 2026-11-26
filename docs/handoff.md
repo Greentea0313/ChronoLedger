@@ -25,7 +25,7 @@
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (Iteration 02, SHA: f577f6d5fb3fabcb7c777905dfea5402cc070c81)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R114 SQL·알림·예산 UI)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 명세 §4 전부(마이그레이션·`SCHEMA.sql`·README 확인 쿼리·`TESTS.sql`·`database.types.ts`·`calculateGameBudgetUsage`·게임 카드 월 예산 모달·지출 페이지 "게임별 예산" 목록·설정 알림 토글 2개·미적용 폴백)·인수 기준 114-1~114-8. 허용 파일: 신규 `sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `src/lib/budget-calculations.ts`·`.test.ts`, `src/app/dashboard/games/**`, `src/app/dashboard/expenses/**`, `src/components/settings/notification-settings-card.tsx`·관련 테스트, 루트 `docs/handoff.md`, `docs/progress.md` | `R114-REV-001` 수정함(지출 1,000행 단위 페이지 조회·초과 테스트) |
 | **2** | **`✅ DONE (artifact e47928f8911ee61b9587210c336193bb6e53b2cb; main 병합 b161592d6eb707e37f14f4de1a6b53e16bcf9f40)`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Iteration 02 정적 재리뷰·격리 DB 게이트·병합 후 전체 검증 | clean, 업그레이드·신규 경로 통과 |
-| **3** | `▶ READY` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 예산 UI·알림 확인 | Step 2 완료, 아래 완료 기록 참조 |
+| **3** | **`✅ DONE (2026-11-26, 사용자 확인)`** | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 예산 UI·알림 확인 | 운영 DB `MIGRATION_R114_GAME_BUDGETS.sql` 적용·README 확인 쿼리 3종 확인·배포 후 지출 페이지 "게임별 예산" 목록 실기기 확인 완료(화면 캡처로 사용량·한도·진행 막대·초과 경고색 확인). 80%·100% 알림·월간 리포트 수신은 사용자 별도 언급 없음(확인 필요 시 다음 09:00 KST 배치 이후 확인) |
 
 
 #### 📝 `r114-game-budgets` Step 1 Iteration 02 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
@@ -62,7 +62,7 @@
 - **변경 요약**: 1,000행 상한으로 예산 사용액이 누락될 수 있던 조회를 안정 정렬 페이지네이션으로 고치고 2페이지 회귀 테스트를 추가함. 결제·환불 RPC 및 `expenses` 제약은 바꾸지 않음.
 - **사용자 후속**: 운영 DB에 `MIGRATION_R114_GAME_BUDGETS.sql` 적용 후 `sql/README.md` R114 확인 쿼리 실행, 배포, 예산 모달·게임별 월 예산 목록·80%/100% 알림·월간 리포트를 확인해야 함.
 
-> **다음 단계**: 사용자가 `▶ READY`인 Step 3 운영 DB 마이그레이션·확인 쿼리·배포·화면 및 알림 확인을 진행함. 이후 R114를 마감하고 R115를 등록함.
+> **다음 단계**: Step 3 완료(2026-11-26). 남은 일은 `R114` 문서 마감(직전 완료 Run 기록 교체·아카이브 이관)과 `R115` 🐳 Run 등록임. 사용자가 지목하면 Orchestrator가 처리함.
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
