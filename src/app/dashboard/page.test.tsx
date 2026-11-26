@@ -1072,6 +1072,7 @@ describe("DashboardPage summary bar (R105)", () => {
     window.localStorage.setItem("chronoledger:quick-start-dismissed:user-1", "1")
     useAuth.mockReturnValue({ user: signedIn ? { id: "user-1" } : null, isLoading: false })
     ensureMonthlySubscriptionExpenses.mockResolvedValue(0)
+    loadSchedulePreference.mockResolvedValue({ showUnofficialSchedules: false, isAvailable: true })
 
     const finance = createQueryBuilder()
     finance.maybeSingle.mockResolvedValue({ data: { total_asset: 0, default_budget: 0 }, error: null })
