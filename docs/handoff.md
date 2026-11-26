@@ -29,6 +29,18 @@
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 실제 CSV 1개 가져오기·가져오기 취소 확인 | Step 2 병합 후 안내함 |
 
 
+#### 📝 `r115-csv-import` Step 1 (Maker) 완료 기록 (Claude Opus `High`, 2026-11-26)
+
+- **Target SHA**: `b8aa935c6bd1065fbf6d9ba053cb56d3edfb7eb6` (`collab/r115-csv-import`, 커밋 `f0ab294` SQL·`b8aa935` UI, 원격 브랜치: **push 안 함**, `run.json` 미수정)
+- **변경 파일 (14개)**: 신규 `sql/migrations/MIGRATION_R115_EXPENSE_IMPORT.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`(R115-01~03), `src/types/database.types.ts`, 신규 `src/lib/csv.ts`·`.test.ts`, 신규 `src/lib/expense-import.ts`·`.test.ts`, 신규 `src/components/expense/expense-import-modal.tsx`·`.test.tsx`, `src/app/dashboard/expenses/page.tsx`·`.test.tsx`.
+- **SQL (§5.2)**: `expenses.import_batch_id`·부분 인덱스, `import_confirmed_expenses(JSONB)`(I1 값 강제·I4 검증·행 번호 오류·전체 거부·`{batch_id, inserted}`)·`delete_import_batch(UUID)`(본인·I1 값 행만, 환불된 행 포함). 둘 다 `SECURITY DEFINER`·`anon` 회수·탈퇴 대기 거부. `SCHEMA.sql`은 추가만 있음(삭제 줄 0), 결제·환불 RPC·정책 diff 없음(115-8).
+- **클라이언트**: `csv.ts`(RFC 4180 읽기·UTF-8 실패 시 EUC-KR), `expense-import.ts`(자체 형식 감지·`결제 완료` 행만·실결제액·이미 있는 ID 제외, 일반 CSV 열 지정·기본 분류 `게임`, 날짜·금액 해석, 제외 사유, 개수 기준 중복 의심), 지출 페이지 `CSV 가져오기` 버튼과 단계형 모달(파일 → 열 지정 → 미리보기 → 완료, 최근 가져오기 5건 취소, 오프라인 차단, 미적용 시 안내 문구·파일 선택 비활성).
+- **판단**: ① 제목 150자 초과 행은 제외 사유 `항목명 150자 초과`를 하나 더 둠(서버가 거부하는 값, 잘라 넣지 않음). ② 메모 500자를 넘으면 원래 메모를 줄이고 `[가져오기] …` 줄은 남김. ③ 메모에 붙이는 정보는 결제수단(`내 지갑` 외)·정가(실결제액과 다를 때)·미매칭 게임 이름. ④ 날짜는 월·일 한 자리도 받음(`2026/1/5`). ⑤ 최근 가져오기 목록은 RPC를 늘리지 않고 `expenses`를 1,000행씩 읽어 묶음. ⑥ `import_batch_id`는 기존 `PLANNED` 정책으로 클라이언트가 넣을 수는 있으나, 취소 RPC가 I1 값 행만 지우므로 원장에 흔적 있는 행은 지워지지 않음.
+- **검증 (실제 실행)**: 🐳 업그레이드(Base `a04237f` `SCHEMA.sql` → R115 2회 → `TESTS.sql` 62개 PASS)·신규(Target `SCHEMA.sql` → 2회 → 62개 PASS). 변이 2건(가져오기를 자산 차감으로 바꿈, 취소 RPC의 본인 조건 제거) 모두 `FAIL`로 잡힘. `tsc`·`lint`·Vitest 85파일/1,146개(신규 25개)·`next build` 16/16(더미 공개 Supabase 값)·`git diff --check` 통과. **미검증**: 실제 브라우저 화면·실제 CSV 파일은 Step 3 사용자 확인.
+- **남음**: Step 2 GPT Codex 리뷰·🐳 DB 게이트·통과 시 `main` 병합 → Step 3 사용자 운영 DB 적용·배포·실제 CSV 가져오기·취소 확인.
+
+> **다음 단계**: **GPT Codex**(Fallback: Claude Sonnet `Medium`)가 `"인수인계 문서를 확인해"`로 Step 2 리뷰(Base `a04237f` ↔ Target `b8aa935`)·🐳 DB 게이트·통과 시 `main` 병합함.
+
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
 - **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*
