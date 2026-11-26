@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-27 (데스크톱 `desktop-v0.3.0` 릴리스 — Claude Opus `High`, 사용자 요청)**: `main` push(`8bad5c0`) 후 버전 0.3.0 커밋 `e7c4dc1`·태그 push. 새 기능이 여럿이라 패치 대신 0.3.0으로 올림. `cargo metadata --locked` 통과, Actions `Desktop release` 성공, 설치 파일·서명·`latest.json`(0.3.0) 게시 확인. 남음: 설치본에서 업데이트 배너·자동 업데이트 실제 확인(사용자).
 - **2026-11-27 (`R117` 후속 필터 칩 토글 — Claude Opus `High`, 사용자 요청·`main` 직접 `aebb7dc`)**: 캐릭터 필터의 보유 여부·희귀도·분류 축 칩을 다시 누르면 `전체`로 돌아가게 함. 필터 막대 테스트 1건 추가, `tsc`·`lint`·Vitest 1,151개 통과. dev 서버 종료 후 `next build` 16/16 통과. 사용자가 dev 서버 화면에서 정상 동작 확인함(2026-11-27). 남음: push(웹 배포).
 - **2026-11-27 (`r117-classification-axes-3` Step 2 Iteration 02 — GPT Codex)**: 재리뷰 `clean`, artifact `a3f7c55`, `main` 병합 `065fe4a`. 업그레이드·신규 격리 DB 각 migration 2회 및 `TESTS.sql` 63개 블록 PASS, main tsc·lint·Vitest 1,150개·build 통과함. 다음: 사용자 운영 적용·3축 화면 확인임.
 - **2026-11-27 (`r117-classification-axes-3` Step 1 Iteration 02 — Claude Opus `High`)**: `R117-REV-001`·`002` 보완, 워크트리 커밋 `3c8168e`(미병합·미push). 요청 모달 3축 필수·제출 테스트 추가(2축 자르기 변이 FAIL 확인), R52 명세 관리자 표·모달·요청 폼에 세 번째 축 추가. Vitest 1,150개 통과. 다음: Step 2 `GPT Codex` 재리뷰.
