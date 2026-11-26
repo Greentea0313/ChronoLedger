@@ -17,13 +17,14 @@
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
 - **활성 Run**: **`R114` 게임별 월 예산·리포트·알림 (`r114-game-budgets` — Base `85d8adcb294bcd4622eb90df3bb826b94a4445d6`, 브랜치 `collab/r114-game-budgets`, 워크트리 `.worktrees/r114-game-budgets`)** *(명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §4(결정 B1~B12·인수 기준 114-1~114-8)·§7(모델 배정). 직전 Run `r113-data-export`는 2026-11-26 마감함. 이후 `R115` 🐳 → `R116` 순으로 등록함)*
-- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `SCHEMA.sql`). 🐳 Docker Desktop 필요. **이 PC는 2026-11-26 현재 Docker 엔진이 꺼져 있음 → Step 1 시작 전 `Docker Desktop을 켜고 Engine running 확인` 필요.** 결제·환불 RPC와 `expenses` 제약은 변경하지 않음(114-8).
+- **DB 변경**: 있음 (`sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `SCHEMA.sql`). 🐳 Docker Desktop 필요. Step 1에서 로컬 업그레이드·신규 2경로 각 2회 멱등·`TESTS.sql` 59개 PASS 확인함(Step 2 병합 게이트에서 재검증 필요). 운영 DB 미적용.
+- **Target SHA (Step 1)**: `692ea97b731f7ca171005be3348c8302e16ab59a` *(워크트리 커밋, 미병합, 원격 브랜치: push 안 함)* 결제·환불 RPC와 `expenses` 제약은 변경하지 않음(114-8).
 - **모델 배정 근거**: `Gemini Models` 한도 소진 중이라 명세 §7 권고대로 배정함(Step 1 `Claude Opus` = SQL·알림 cron·예산 귀속 규칙, Opus 조건 ①).
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`▶ READY`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R114 SQL·알림·예산 UI)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 명세 §4 전부(마이그레이션·`SCHEMA.sql`·README 확인 쿼리·`TESTS.sql`·`database.types.ts`·`calculateGameBudgetUsage`·게임 카드 월 예산 모달·지출 페이지 "게임별 예산" 목록·설정 알림 토글 2개·미적용 폴백)·인수 기준 114-1~114-8. 허용 파일: 신규 `sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `src/lib/budget-calculations.ts`·`.test.ts`, `src/app/dashboard/games/**`, `src/app/dashboard/expenses/**`, `src/components/settings/notification-settings-card.tsx`·관련 테스트, 루트 `docs/handoff.md`, `docs/progress.md` | 대기 중 |
-| **2** | **`⏳ WAITING`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요**. TS·SQL 귀속 규칙 일치 정적 리뷰(`review.json`)·`test.json`(로컬 DB 업그레이드·신규 2경로 2회 멱등·`TESTS.sql`·`tsc`·`lint`·Vitest·`next build`)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
+| **1** | **`✅ DONE (SHA: 692ea97b731f7ca171005be3348c8302e16ab59a)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R114 SQL·알림·예산 UI)` | 🐳 **Docker Desktop 필요** (Docker 미설치 PC면 `⚠️ LOCAL_DB_DEFERRED` 기록 후 Step 2 이관). 명세 §4 전부(마이그레이션·`SCHEMA.sql`·README 확인 쿼리·`TESTS.sql`·`database.types.ts`·`calculateGameBudgetUsage`·게임 카드 월 예산 모달·지출 페이지 "게임별 예산" 목록·설정 알림 토글 2개·미적용 폴백)·인수 기준 114-1~114-8. 허용 파일: 신규 `sql/migrations/MIGRATION_R114_GAME_BUDGETS.sql`, `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/types/database.types.ts`, `src/lib/budget-calculations.ts`·`.test.ts`, `src/app/dashboard/games/**`, `src/app/dashboard/expenses/**`, `src/components/settings/notification-settings-card.tsx`·관련 테스트, 루트 `docs/handoff.md`, `docs/progress.md` | ✅ 아래 Step 1 완료 기록 |
+| **2** | **`▶ READY`** | **GPT Codex** *(Fallback: Claude Sonnet `Medium` — Maker인 Opus 제외)* | `Reviewer & Local DB Gate` | Step 1 완료 후 착수. 🐳 **Docker Desktop 필요**. TS·SQL 귀속 규칙 일치 정적 리뷰(`review.json`)·`test.json`(로컬 DB 업그레이드·신규 2경로 2회 멱등·`TESTS.sql`·`tsc`·`lint`·Vitest·`next build`)·`main` 병합·문서 마감 | 대기 중 |
 | **3** | `⏳ WAITING` | **사용자** | 운영 DB 마이그레이션 적용·확인 쿼리, 배포, 예산 UI·알림 확인 | Step 2 병합 후 안내함 |
 
 
