@@ -9,7 +9,7 @@
     "Step 3 (User): apply production migration and check queries, deploy, import one real CSV and undo it."
   ],
   "base_sha": "a04237f3da787e33dd37a6ca80e4d97322c575cc",
-  "target_sha": "b8aa935c6bd1065fbf6d9ba053cb56d3edfb7eb6",
+  "target_sha": "a01d312dbaf835d33c27b21beb3bd0c32094240e",
   "branch": "collab/r115-csv-import",
   "worktree_path": ".worktrees/r115-csv-import",
   "max_iterations": 3,

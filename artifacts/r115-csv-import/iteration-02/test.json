@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "r115-csv-import",
+  "iteration": 2,
+  "agent": "GPT Codex",
+  "base_sha": "a04237f3da787e33dd37a6ca80e4d97322c575cc",
+  "target_sha": "a01d312dbaf835d33c27b21beb3bd0c32094240e",
+  "role": "dynamic-test",
+  "status": "passed",
+  "created_at": "2026-11-26T14:45:22Z",
+  "finished_at": "2026-11-26T14:45:22Z",
+  "sandbox": "docker",
+  "redactions_applied": false,
+  "tests": [
+    {
+      "name": "TypeScript",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Lint",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest",
+      "command": "npx vitest run (85 files, 1,146 tests)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Production build",
+      "command": "NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=public-test-key npm run build (16 static pages; escalated after sandbox EPERM)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Upgrade path",
+      "command": "Isolated Supabase Base SCHEMA.sql, R115 migration twice, README user-icons prerequisite, full TESTS.sql (R115-01..03 and rollback PASS; no ERROR)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Fresh install path",
+      "command": "Fresh isolated Supabase Target SCHEMA.sql, R115 migration twice, README user-icons prerequisite, full TESTS.sql (R115-01..03 and rollback PASS; no ERROR)",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Ledger and permission scope",
+      "command": "Base..Target static review: I1 import values, refund invariance, own-batch deletion and anon/authenticated RPC grants; payment/refund RPC and existing policy diff absent",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Artifact schema",
+      "command": "Node Ajv 6.15.0 validating project review/test schemas with Draft 2020 $defs adapted to Draft 7 definitions; Python jsonschema unavailable",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Diff whitespace",
+      "command": "git diff --check Base..Target",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    }
+  ]
+}
