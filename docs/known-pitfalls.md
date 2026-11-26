@@ -191,3 +191,7 @@
     - 증상: 콘솔에 `Failed to load resource ... 400`이 게임 수만큼 찍힘. 응답 본문은 `{"statusCode":"404","error":"not_found"}`임.
     - 원인: 비공개 `user-icons`에 없는 객체를 `download`하면 HTTP 400으로 응답함. 코드가 처리해도 브라우저 로그는 남음.
     - 방어책: `src/lib/storage-upload.ts`처럼 폴더 `list`로 존재 여부를 먼저 확인하고 있는 파일만 내려받음. 새 아이콘 종류를 추가할 때도 같은 helper를 씀.
+
+52. **CI Node 버전·환경변수와 테스트 결합**
+   - `.nvmrc`(Node 20)는 Cloudflare Pages 빌드용이고, Vitest 5·jsdom 30은 Node 22.22 이상(또는 24.15 이상)을 요구함. CI(`.github/workflows/ci.yml`)는 `.nvmrc`를 쓰지 않고 `node-version: 24`로 고정함. Node 20으로 `npm run test`를 돌리면 jsdom 로드 오류로 테스트 파일 전체가 실패함.
+   - CI는 더미 `NEXT_PUBLIC_SUPABASE_URL`을 전역 환경변수로 주므로 이 값에 의존하는 테스트(`game-asset-storage` 계열)는 `vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", …)`로 고정해야 함. 로컬 재현: `NEXT_PUBLIC_SUPABASE_URL=https://ci-placeholder.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=ci-placeholder-anon-key npm run test -- --run`.

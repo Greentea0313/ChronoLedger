@@ -15,6 +15,9 @@ const GAME_ASSET_URL = `https://proj.supabase.co/storage/v1/object/public/game-a
 const charAssetUrl = (gameId: string) =>
   `https://proj.supabase.co/storage/v1/object/public/game-assets/characters/${gameId}/${"b".repeat(64)}.webp`
 
+// game-asset-storage compares asset URLs with NEXT_PUBLIC_SUPABASE_URL; pin it so CI placeholders or a local .env do not change results.
+vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://proj.supabase.co")
+
 vi.mock("@/lib/auth-context", () => ({ useAuth }))
 vi.mock("@/lib/supabase/client", () => ({ supabase: { from } }))
 vi.mock("@/lib/dashboard-date", () => ({ getKstToday: mockGetKstToday }))
