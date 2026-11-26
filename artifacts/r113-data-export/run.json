@@ -1,0 +1,17 @@
+﻿{
+    "schema_version":  1,
+    "run_id":  "r113-data-export",
+    "created_at":  "2026-11-26T06:13:58.6186223+00:00",
+    "objective":  "R113: client-side personal data export (full JSON backup, expenses CSV, incomes CSV) from the settings page. No DB changes.",
+    "acceptance_criteria":  [
+                                "Step 1: spec docs/r113-r116-data-budget-public-spec.md section 3 (113-1..113-6): settings export card with 3 buttons, JSON backup format with include/exclude lists (no push_subscriptions), paged fetch beyond 1000 rows, CSV BOM/CRLF/quoting/formula-injection guard, offline guard, shared src/lib/export-format.ts, no DB/Tauri changes, tsc/lint/Vitest/next build pass",
+                                "Step 2: static review of personal-data exposure scope (include/exclude lists, own-rows RLS only, no credentials in file), formula injection guard and web bundle impact",
+                                "Step 3 (user): save one file each on web and Windows installer (113-7); if installer save fails register R113-TAURI-SAVE"
+                            ],
+    "base_sha":  "57c76645d4595348d865af321c447b6adcd84464",
+    "target_sha":  "2a446e72f329ed479c01e1344182c0d0f8d3e2ad",
+    "branch":  "collab/r113-data-export",
+    "worktree_path":  ".worktrees/r113-data-export",
+    "max_iterations":  3,
+    "status":  "in_progress"
+}

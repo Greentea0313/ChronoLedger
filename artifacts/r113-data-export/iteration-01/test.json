@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "run_id": "r113-data-export",
+  "iteration": 1,
+  "agent": "GPT Codex",
+  "role": "dynamic-test",
+  "base_sha": "57c76645d4595348d865af321c447b6adcd84464",
+  "target_sha": "773af3702f1c0cad0628499246f1e41fcc670790",
+  "status": "passed",
+  "created_at": "2026-11-26T15:30:12+09:00",
+  "finished_at": "2026-11-26T15:30:12+09:00",
+  "sandbox": "unavailable",
+  "redactions_applied": false,
+  "tests": [
+    { "name": "TypeScript", "command": "npx tsc --noEmit", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Lint", "command": "npm run lint", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Vitest", "command": "npx vitest run (82 files, 1,109 tests)", "status": "passed", "exit_code": 0, "log_path": null },
+    { "name": "Production build", "command": "NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=public-test-key npm run build", "status": "passed", "exit_code": 0, "log_path": null }
+  ]
+}
