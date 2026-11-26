@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r114-game-budgets",
+  "iteration": 2,
+  "agent": "GPT Codex",
+  "base_sha": "85d8adcb294bcd4622eb90df3bb826b94a4445d6",
+  "target_sha": "f577f6d5fb3fabcb7c777905dfea5402cc070c81",
+  "role": "static-review",
+  "status": "clean",
+  "created_at": "2026-11-26T22:15:09+09:00",
+  "findings": []
+}
