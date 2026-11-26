@@ -9,7 +9,7 @@
                                 "Step 3 (user): save one file each on web and Windows installer (113-7); if installer save fails register R113-TAURI-SAVE"
                             ],
     "base_sha":  "57c76645d4595348d865af321c447b6adcd84464",
-    "target_sha":  "773af3702f1c0cad0628499246f1e41fcc670790",
+    "target_sha":  "2a446e72f329ed479c01e1344182c0d0f8d3e2ad",
     "branch":  "collab/r113-data-export",
     "worktree_path":  ".worktrees/r113-data-export",
     "max_iterations":  3,

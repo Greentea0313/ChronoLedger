@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r113-data-export",
+  "iteration": 2,
+  "agent": "GPT Codex",
+  "base_sha": "57c76645d4595348d865af321c447b6adcd84464",
+  "target_sha": "2a446e72f329ed479c01e1344182c0d0f8d3e2ad",
+  "role": "static-review",
+  "status": "clean",
+  "created_at": "2026-11-26T18:40:00+09:00",
+  "findings": []
+}
