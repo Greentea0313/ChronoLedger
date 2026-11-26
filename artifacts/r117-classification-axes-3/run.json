@@ -9,7 +9,7 @@
     "Step 3 (User): apply the production migration and check queries, deploy, add a third axis to one game and confirm filters."
   ],
   "base_sha": "123a70b699b80398999d171140eec6e471d2cc53",
-  "target_sha": "c5c5a1c1004424fff8c496d0e55a7b18726e8ebc",
+  "target_sha": "3c8168eb01b2697e4b36f2d0eaf7d4612cd77bd8",
   "branch": "collab/r117-classification-axes-3",
   "worktree_path": ".worktrees/r117-classification-axes-3",
   "max_iterations": 3,
