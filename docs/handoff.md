@@ -16,7 +16,7 @@
 - **`Gemini Models` 주간 한도 소진** *(사용자 통보, 2026-11-26, 리셋 시점 미확인)*: `Gemini 4 Hydrogen`·`Gemini 4 Neon`·`Gemini 4 Carbon`은 같은 공용 한도를 쓰므로 모두 사용 불가로 봄. 새 행 배정·인계는 다른 한도 묶음(`Claude Sonnet (Medium)`·`Claude Opus (High)`·`GPT Codex`·`GitHub Copilot`)으로 바로 보냄(handoff Skill §3). 리셋되면 사용자가 알려 주거나 Antigravity `View Usage`에서 확인한 모델이 이 절을 지움.
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run**: `r113-data-export` *(2026-11-26 등록, Step 2 Iteration 01에서 P2 1건 확인, Step 1 Iteration 02 `▶ READY`. 직전 Run `r110-desktop-auto-update`는 2026-11-26 마감함. `R114`~`R116`은 `R113` 마감 뒤 차례로 등록함)*
+- **활성 Run**: `r113-data-export` *(2026-11-26 등록, Step 2 Iteration 02 리뷰 완료·빌드 `🛑 BLOCKED`, Step 1 Iteration 02 `✅ DONE`. 직전 Run `r110-desktop-auto-update`는 2026-11-26 마감함. `R114`~`R116`은 `R113` 마감 뒤 차례로 등록함)*
 
 - **`✅ DONE (2026-11-26, Claude Opus High)` — 기능 후보 4종 명세(`R113`~`R116`)**: 명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) 작성함(사용자 질문 카드 결정 8건, 결정표·단계별 인수 기준·모델 배정 권고·위험). Run 순서는 `R113` 내보내기 → `R114` 게임별 예산 🐳 → `R115` CSV 가져오기 🐳 → `R116` 공개 일정 페이지임.
 - **`✅ DONE (2026-11-26, Claude Sonnet Medium)` — `R113-REG` Run 등록**: Run `r113-data-export` 워크트리 생성·Step 배정 완료(Gemini 4 Hydrogen 대체). `R114`~`R116`은 `R113` 마감 뒤 차례로 등록함(사용자가 순서를 바꾸면 그에 따름).
@@ -32,10 +32,16 @@
 | Step | 상태 | 담당 모델 | 작업 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (Iteration 02, SHA: 2a446e72f329ed479c01e1344182c0d0f8d3e2ad)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | 리뷰 finding 수정: 다운로드 클릭 직후 Blob URL을 해제하는 순서 보완, 수정 커밋 기록 | 허용 파일: `src/lib/data-export.ts` 및 관련 테스트만. DB·Tauri 설정 변경 금지. 명세 §3.1~3.4(113-1~113-6) 유지 |
-| **2** | **`▶ READY (수정 Target 재리뷰)`** | **GPT Codex** *(Fallback: Claude Opus `High` — 도구에서 High 선택)* | Base↔Target 정적 리뷰(`review.json`)·재검증(`test.json`)·통과 시 `main` 병합 | Iteration 01 finding `R113-REV-001` 수정 확인 필요. 개인 데이터 노출 범위·수식 주입 방지·웹 번들 영향 확인 |
+| **2** | **`🛑 BLOCKED (next build EPERM 재현)`** | **GPT Codex** *(Fallback: Claude Opus `High` — 도구에서 High 선택)* | Base↔Target 정적 리뷰·재검증 완료, 빌드 통과 후 `main` 병합 | Iteration 02 artifact `68b73e5`; 리뷰 `clean`, tsc·lint·Vitest 통과. `next build` 2회 `.next/types/app` 생성에서 EPERM, 스키마 검증은 Python `jsonschema` 모듈 부재로 미실행. 재검증 환경에서 빌드·스키마 검증 후 병합 판단 |
 | **3** | `⏳ WAITING` | **사용자** | 웹·Windows 설치본에서 파일 저장 1회씩 확인(113-7) | 설치본 저장 실패 시 `R113-TAURI-SAVE` 후속 등록 |
 
-> **다음 단계**: **GPT Codex**(Fallback: Claude Opus `High` — 도구에서 High 선택)가 `"인수인계 문서를 확인해"`로 Step 2를 재개해 `R113-REV-001` 수정 확인·재리뷰·재검증·통과 시 `main` 병합을 수행함. 수정 Target `2a446e72f329ed479c01e1344182c0d0f8d3e2ad` *(Iteration 02, Base `57c76645d4595348d865af321c447b6adcd84464`, 원격 브랜치는 `aebb385`까지 push됨, 수정 커밋은 push 안 함 — 다른 PC에서 이어 갈 때만 push)*. 수정: `src/lib/data-export.ts`가 Blob URL을 클릭 직후가 아니라 10초 뒤에 해제함, `data-export.test.ts`에 가짜 타이머 검증 반영. `tsc`·`lint`·Vitest 82파일/1,109개·`git diff --check` 통과(Node 24, 워크트리를 `origin/collab/r113-data-export`에서 복원). `next build`·113-7 웹·설치본 저장 확인은 미실행임.
+> **다음 단계**: **GPT Codex**(Fallback: Claude Opus `High` — 도구에서 High 선택)가 `"인수인계 문서를 확인해"`로 Step 2를 이어서 수행함. `next build`가 통과하는 환경에서 빌드와 artifact 스키마 검증을 재시도하고 통과 시 `main` 병합함. 수정 Target `2a446e72f329ed479c01e1344182c0d0f8d3e2ad` *(Iteration 02, Base `57c76645d4595348d865af321c447b6adcd84464`, 원격 브랜치는 `aebb385`까지 push됨, 수정 커밋은 push 안 함 — 다른 PC에서 이어 갈 때만 push)*. 수정: `src/lib/data-export.ts`가 Blob URL을 클릭 직후가 아니라 10초 뒤에 해제함, `data-export.test.ts`에 가짜 타이머 검증 반영. `tsc`·`lint`·Vitest 82파일/1,109개·`git diff --check` 통과(Node 24, 워크트리를 `origin/collab/r113-data-export`에서 복원). `next build`·113-7 웹·설치본 저장 확인은 미실행임.
+
+#### 📝 `r113-data-export` Step 2 Iteration 02 검토 기록 (GPT Codex, 2026-11-26)
+
+- **범위**: Base `57c76645d4595348d865af321c447b6adcd84464` ↔ Target `2a446e72f329ed479c01e1344182c0d0f8d3e2ad`. R113-REV-001 수정 확인, 본인 행 필터·제외 테이블·CSV 수식 방지·웹 경로 의존성 검토 결과 `clean`임. 산출물·매니페스트 커밋 `68b73e5681d5f3622dc27afb4d146cbf66de3464`.
+- **검증**: tsc·lint·Vitest 82파일/1,109개 통과, `git diff --check` 통과함. `next build`는 두 번 `.next/types/app` 디렉터리 생성에서 `EPERM`으로 실패함. 스키마 검증 스크립트는 Python `jsonschema` 모듈 부재로 실행하지 못함(BOM 제거 후 run/review/test JSON 파싱 통과).
+- **남음**: 빌드·스키마 검증을 지원하는 환경에서 재실행 후 통과 시 Step 2 병합, 이후 사용자 웹·Windows 설치본 저장 확인(113-7).
 
 #### 📝 `r113-data-export` Step 2 Iteration 01 검토 기록 (GPT Codex, 2026-11-26)
 
@@ -61,7 +67,7 @@
 
 ### 📌 중단 체크포인트 (Handover Checkpoint)
 
-- **현재 기록된 중단 체크포인트 없음** *(작업 도중 `⚠️ HANDOVER_NEEDED` 발생 시 이 영역에 완료 내역·남은 작업·가정·검증 상태를 기록함)*
+- **r113-data-export Step 2 체크포인트 (2026-11-26)**: 완료: Target `2a446e72f329ed479c01e1344182c0d0f8d3e2ad` 기준 리뷰 `clean`, 산출물 커밋 `68b73e5681d5f3622dc27afb4d146cbf66de3464`. 남음: 일반적인 권한의 Node 환경에서 `next build` 재시도, Python `jsonschema` 설치 환경에서 두 산출물 스키마 검증, 통과 시 main 병합, 이후 113-7 사용자 웹·Windows 저장 확인. 가정: 코드 변경이 아닌 현재 Windows `.next/types/app` 생성 권한 문제로 보임(미확정). 실행: tsc·lint·Vitest 82/1,109 통과, build 2회 EPERM, schema validator 모듈 누락. 작업 트리 변경 없음.
 
 ### 🗓️ 예약·보류·안건 요약 (자동 실행 대상 아님)
 
