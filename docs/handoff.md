@@ -46,6 +46,14 @@
 | **3** | **`⏳ WAITING (Step 2 완료 후)`** | **GPT Codex** *(Fallback: GitHub Copilot — 두 Maker와 다른 모델)* | `Reviewer & Local DB Gate` | Base `bbf5114` ↔ Maker Target 정적 리뷰, `review.json`·`test.json`, 업그레이드/신규 DB 각각 migration 2회·전체 `TESTS.sql`, tsc·lint·Vitest·build·실화면 390/900/1280 점검, 통과 시 main 병합·문서 마감. Step 1이 GPT Codex로 대체되면 reviewer는 GitHub Copilot으로 변경함. 허용: `artifacts/r118-payment-notification-popup/**`, 루트 운영 문서 | Step 2 대기 |
 | **4** | `⏳ WAITING` | **사용자** | 운영 DB `MIGRATION_R118_EXPENSE_D1_SUMMARY.sql` 적용·README 확인 쿼리·배포, 다음 날 09:00 알림 1건·팝업·누적 차트 확인 | Step 3 병합 후 안내함 |
 
+#### 📝 `r118-payment-notification-popup` Step 1 완료 기록 (2026-11-27, Claude Opus `High`)
+
+- **Target SHA**: `959c8c81e610d37a63801b61410c04d7eb9660b6` (워크트리 커밋, 미병합·원격 미push)
+- **변경 파일**: 신규 `sql/migrations/MIGRATION_R118_EXPENSE_D1_SUMMARY.sql`, `sql/SCHEMA.sql`(`enqueue_daily_notifications()` 3번 절만), `sql/README.md`(B절 1행·확인 쿼리), `sql/tests/TESTS.sql`(R39 `EXPENSE_D1` 단정 요약 형식으로 갱신·기본값 재실행 정리 조건 수정·새 `R118A-01` 블록·헤더 표), `src/components/settings/notification-settings-card.tsx`(설명 문구 1건)
+- **결정·가정**: 마이그레이션 함수 본문은 `SCHEMA.sql` 본문을 글자 그대로 복사함(CR 제거 후 동일 확인). `R118A-01`은 전용 사용자 C를 만들어 앞선 R39·R107B 고정 데이터와 섞이지 않게 함. 설정 문구 전용 Vitest는 추가하지 않음(문구 1건, 토글 저장·복원은 기존 `settings/page.test.tsx`가 검증).
+- **검증 (실제 실행)**: 🐳 로컬 Supabase `db reset` 후 ① 업그레이드 경로(Base `bbf5114` `SCHEMA.sql` → 마이그레이션 2회) ② 신규 경로(새 `SCHEMA.sql` → 마이그레이션 2회) 각각 `TESTS.sql` 64개 블록 PASS·최종 `ROLLBACK` PASS. 두 경로 함수 본문 해시 일치, README 확인 쿼리 `true, true, true, false`. 변이: 구버전 함수로 되돌리면 R39 `EXPENSE_D1` 단정 FAIL 확인 후 복원. `tsc`·`lint`·Vitest 85파일 1,152개·`git diff --check` 통과. 테스트 로그 WARNING 5건은 기존 R107-A/C 실패 격리 블록의 의도된 출력임.
+- **남음**: Step 2(UI)·Step 3(리뷰·병합)·Step 4(운영 적용). `next build`·실화면은 Step 2 이후 확인함.
+
 #### ⏸️ 대기 Run: `R116` 공개 게임별 일정 페이지·SEO (`r116-public-game-pages`)
 
 - **Base / Worktree**: `442fb6965b6c170eea66af2f817b1f2190353c33` / `.worktrees/r116-public-game-pages`. 승인 명세 [`docs/r113-r116-data-budget-public-spec.md`](r113-r116-data-budget-public-spec.md) §6(결정 P1~P13·인수 기준 116-1~116-8)·§7 기준임. R118 Step 4 완료 후 Step 1을 재개함.
