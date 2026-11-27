@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r118-payment-notification-popup",
+  "iteration": 1,
+  "agent": "GPT Codex",
+  "role": "static-review",
+  "base_sha": "bbf5114be937578e4db7b89da69e1aa32cf70238",
+  "target_sha": "1c74e41101e71586ba9b6a7a62f430d64365776a",
+  "status": "findings",
+  "created_at": "2026-11-27T15:48:00+09:00",
+  "findings": [
+    {
+      "id": "R118-REV-001",
+      "severity": "P3",
+      "file": "src/components/layout/notification-report-popup.tsx",
+      "line": 40,
+      "evidence": "월간 리포트는 이전 달 1일부터 대상 달 말일까지 expenses를 한 번 조회하며 range/페이지 처리가 없음. Supabase Data API 기본 최대 행 수(1,000)를 넘는 결과는 잘릴 수 있음.",
+      "impact": "두 달 합계가 1,000건을 넘는 사용자는 카테고리 비교 차트가 일부 확정 지출을 누락해 월간 지출 리포트를 과소 표시할 수 있음.",
+      "recommendation": "전체 결과를 보장하도록 1,000행 단위 페이지 조회를 추가하고 페이지 전체를 합산하도록 수정함."
+    }
+  ]
+}\n
