@@ -59,7 +59,7 @@
 - **Target SHA**: `1c74e41101e71586ba9b6a7a62f430d64365776a` (워크트리 커밋, 미병합·원격 미push)
 - **변경 파일**: 신규 `src/lib/monthly-report.ts`·`.test.ts`, 신규 `src/components/layout/notification-payment-popup.tsx`·`notification-report-popup.tsx`·`notification-popups.test.tsx`, `notification-bell.tsx`·`.test.tsx`(조회 열 `kind, scheduled_for` 추가·팝업 분기), `src/app/dashboard/expenses/page.tsx`·`.test.tsx`(일별 누적 확정 지출 카드).
 - **결정·가정**: 팝업 조회에 `user_id` 조건을 추가함(RLS와 이중 방어, 명세 B3의 「본인」 반영). 팝업 닫힘 시 `onCloseAutoFocus`로 알림함 버튼에 포커스 복귀. 월간 리포트 팝업은 알림 본문(`body`)을 설명으로 그대로 표시. 누적 카드는 지출 탭 그리드에 `lg:col-span-2` 전체 폭으로 배치(차트 3개라 홀수 칸 방지). 선택 달 색 `#6366F1`(월별 추이 막대와 동일), 전달 색 `rgb(var(--text-secondary))`.
-- **검증 (실제 실행)**: `tsc --noEmit`·`npm run lint`·Vitest 전체 1,168개(신규 포함)·`git diff --check` 통과. `next build`는 컴파일 성공 후 워크트리에 `.env.local`이 없어 페이지 데이터 수집 단계에서 `Missing NEXT_PUBLIC_SUPABASE_URL` 오류로 중단됨(코드 문제 아님, Reviewer가 환경 변수를 두고 재실행 필요).
+- **검증 (실제 실행)**: `tsc --noEmit`·`npm run lint`·Vitest 전체 1,168개(신규 포함)·`git diff --check` 통과. `next build` 통과(정적 페이지 16/16, 워크트리에 메인의 `.env.local`을 복사해 실행, 해당 파일은 gitignore 대상이라 미커밋). Reviewer도 워크트리에 `.env.local` 복사 필요.
 - **남음(미검증)**: 390/900/1280 너비·라이트/다크 실화면 확인(118B-5·118C-4)은 하지 않음 → Step 3 Reviewer 또는 사용자 확인. 원격 브랜치 push 안 함.
 
 #### ⏸️ 대기 Run: `R116` 공개 게임별 일정 페이지·SEO (`r116-public-game-pages`)
