@@ -42,8 +42,8 @@
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 959c8c81e610d37a63801b61410c04d7eb9660b6)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R118-A SQL·알림 설정 문구)` | 명세 §3.2·§3.3, 118A-1~7. 허용: `sql/migrations/MIGRATION_R118_EXPENSE_D1_SUMMARY.sql`(신규), `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/components/settings/notification-settings-card.tsx`·`.test.tsx`, 루트 `docs/handoff.md`·`docs/progress.md` | 구현 커밋 대기 |
-| **2** | **`✅ DONE (Iteration 02 SHA: af624ea6fc2419096f51d969f90231191e23e01b)`** | **GPT Codex** *(GitHub Copilot 토큰 소진에 따른 Fallback 수행)* | `Maker (R118-B·C 조회 페이지 처리 보완)` | `notification-report-popup.tsx`의 월간 조회를 1,000행 이상 페이지 처리하고 누락 없는 차트 합산 및 회귀 테스트를 추가함. 허용: `src/components/layout/notification-bell.tsx`·`.test.tsx`, 신규 `src/components/layout/notification-*-popup.tsx`·테스트, 신규 `src/lib/monthly-report.ts`·`.test.ts`, `src/app/dashboard/expenses/page.tsx`·관련 테스트, 루트 `docs/handoff.md`·`docs/progress.md` | 구현 커밋 완료, 아래 Step 2 완료 기록 참조 |
-| **3** | **`▶ READY (Iteration 02 후속 리뷰)`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High`))* | `Reviewer & Local DB Gate` | Base `bbf5114` ↔ Maker Target 정적 리뷰, `review.json`·`test.json`, 업그레이드/신규 DB 각각 migration 2회·전체 `TESTS.sql`, tsc·lint·Vitest·build·실화면 390/900/1280 점검, 통과 시 main 병합·문서 마감. Step 1이 GPT Codex로 대체되면 reviewer는 GitHub Copilot으로 변경함. 허용: `artifacts/r118-payment-notification-popup/**`, 루트 운영 문서 | 구현 커밋 대기 없음, Step 3 착수 가능 |
+| **2** | **`✅ DONE (Iteration 02 SHA: af624ea6fc2419096f51d969f90231191e23e01b)`** | **GPT Codex** *(GitHub Copilot 토큰 소진에 따른 Fallback 수행)* | `Maker (R118-B·C 조회 페이지 처리 보완)` | `notification-report-popup.tsx`의 월간 조회를 1,000행 이상 페이지 처리하고 누락 없는 차트 합산 및 회귀 테스트를 추가함. 허용: `src/components/layout/notification-bell.tsx`·`.test.tsx`, 신규 `src/components/layout/notification-*-popup.tsx`·테스트, 신규 `src/lib/monthly-report.ts`·`.test.ts`, `src/app/dashboard/expenses/page.tsx`·관련 테스트, 루트 `docs/handoff.md`·`docs/progress.md` | Iteration 02 완료 기록 참조 |
+| **3** | **`▶ READY (Iteration 02 후속 리뷰)`** | **Claude Sonnet (`Medium`)** *(Fallback: Claude Opus (`High`))* | `Reviewer & Local DB Gate` | Base `bbf5114` ↔ Maker Target 정적 리뷰, `review.json`·`test.json`, 업그레이드/신규 DB 각각 migration 2회·전체 `TESTS.sql`, tsc·lint·Vitest·build·실화면 390/900/1280 점검, 통과 시 main 병합·문서 마감. Copilot 토큰 소진과 GPT Codex의 Iteration 02 Maker 대체에 따라 Claude Sonnet을 독립 리뷰어로 지정함. 허용: `artifacts/r118-payment-notification-popup/**`, 루트 운영 문서 | 구현 커밋 대기 없음, Step 3 착수 가능 |
 | **4** | `⏳ WAITING` | **사용자** | 운영 DB `MIGRATION_R118_EXPENSE_D1_SUMMARY.sql` 적용·README 확인 쿼리·배포, 다음 날 09:00 알림 1건·팝업·누적 차트 확인 | Step 3 병합 후 안내함 |
 
 #### 📝 `r118-payment-notification-popup` Step 1 완료 기록 (2026-11-27, Claude Opus `High`)
@@ -61,6 +61,14 @@
 - **결정·가정**: 팝업 조회에 `user_id` 조건을 추가함(RLS와 이중 방어, 명세 B3의 「본인」 반영). 팝업 닫힘 시 `onCloseAutoFocus`로 알림함 버튼에 포커스 복귀. 월간 리포트 팝업은 알림 본문(`body`)을 설명으로 그대로 표시. 누적 카드는 지출 탭 그리드에 `lg:col-span-2` 전체 폭으로 배치(차트 3개라 홀수 칸 방지). 선택 달 색 `#6366F1`(월별 추이 막대와 동일), 전달 색 `rgb(var(--text-secondary))`.
 - **검증 (실제 실행)**: `tsc --noEmit`·`npm run lint`·Vitest 전체 1,168개(신규 포함)·`git diff --check` 통과. `next build` 통과(정적 페이지 16/16, 워크트리에 메인의 `.env.local`을 복사해 실행, 해당 파일은 gitignore 대상이라 미커밋). Reviewer도 워크트리에 `.env.local` 복사 필요.
 - **남음(미검증)**: 390/900/1280 너비·라이트/다크 실화면 확인(118B-5·118C-4)은 하지 않음 → Step 3 Reviewer 또는 사용자 확인. 원격 브랜치 push 안 함.
+
+#### 📝 `r118-payment-notification-popup` Step 2 Iteration 02 완료 기록 (2026-11-27, GPT Codex — Copilot Fallback)
+
+- **Target SHA**: `af624ea6fc2419096f51d969f90231191e23e01b` (워크트리 커밋, 미병합·미push)
+- **변경 파일**: `src/components/layout/notification-report-popup.tsx`, `src/components/layout/notification-popups.test.tsx`.
+- **조치**: R118-REV-001에 따라 월간 리포트 조회를 날짜·ID 오름차순으로 정렬하고 1,000행 단위 페이지 처리함. 한 페이지 조회 실패 시 부분 합계 대신 오류 상태를 표시함. 첫 1,000건과 다음 페이지 데이터가 모두 차트 합계에 반영되는 회귀 테스트 추가함.
+- **검증 (실제 실행)**: `npx tsc --noEmit`, `npm run lint`, 대상 Vitest 8건, 전체 Vitest 87파일·1,169건, `npm run build`(정적 페이지 16/16), `git diff --check` 통과함. 코드 변경이 UI 전용이라 SQL은 수정하지 않음.
+- **남음**: Step 3 독립 정적 리뷰·재검증, 390/900/1280 너비 및 라이트/다크 실화면 확인, 이후 Step 4 운영 적용·사용자 확인임. Copilot 토큰 소진에 따라 Maker Fallback으로 GPT Codex가 수행함.
 
 #### ⏸️ 대기 Run: `R116` 공개 게임별 일정 페이지·SEO (`r116-public-game-pages`)
 

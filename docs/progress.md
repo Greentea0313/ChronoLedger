@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-27 (`r118-payment-notification-popup` Step 2 Iteration 02 — GPT Codex, Copilot Fallback)**: 월간 리포트 팝업의 1,000행 제한 누락을 날짜·ID 정렬 페이지 조회와 회귀 테스트로 수정함(`af624ea`, 미병합·미push). tsc·lint·Vitest 87파일 1,169개·`next build`·diff 검사 통과함. 다음: 독립 리뷰와 실화면 확인(Step 3).
 - **2026-11-27 (`r118-payment-notification-popup` Step 2 — Claude Sonnet `Medium`)**: 워크트리 커밋 `1c74e41`(미병합·미push). 알림함에서 결제 예정 알림·월간 리포트 알림 클릭 시 그 자리 팝업(읽기 전용), 월간 카테고리 전달 비교 막대, 지출 페이지 일별 누적 확정 지출 꺾은선 추가함. tsc·lint·Vitest 1,168개 통과, `next build` 통과(워크트리에 `.env.local` 복사 후), 실화면 미확인. 다음: GPT Codex Reviewer(Step 3).
 - **2026-11-27 (`r118-payment-notification-popup` Step 1 — Claude Opus `High`)**: 워크트리 커밋 `959c8c8`(미병합·미push). 전날 결제 예정 알림을 사용자·결제일당 `내일 결제 예정 N건` 1건으로 바꿈(`enqueue_daily_notifications()` 3번 절만). 🐳 업그레이드·신규 경로 각 migration 2회·`TESTS.sql` 64개 PASS, 변이 FAIL 확인, Vitest 1,152개 통과. 다음: Step 2 `Claude Sonnet` UI.
 - **2026-11-27 (`r118-payment-notification-popup` Run 등록 — GPT Codex Orchestrator)**: Base `bbf5114`에서 전용 worktree·manifest를 생성함. Step 1 Claude Opus `High` SQL `▶ READY`, Step 2 Claude Sonnet `Medium` UI, Step 3 GPT Codex Reviewer, Step 4 사용자로 순차 배정함. R116은 R118 Step 4까지 대기함.
