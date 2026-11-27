@@ -61,7 +61,7 @@ describe("NotificationBell", () => {
 
     await waitFor(() => expect(screen.getByTestId("notification-badge").textContent).toBe("2"))
     expect(from).toHaveBeenCalledWith("notifications")
-    expect(builder.select).toHaveBeenCalledWith("id, title, body, link_path, read_at, created_at")
+    expect(builder.select).toHaveBeenCalledWith("id, title, body, link_path, read_at, created_at, kind, scheduled_for")
     expect(builder.eq).toHaveBeenCalledWith("user_id", "u1")
     expect(builder.order).toHaveBeenCalledWith("created_at", { ascending: false })
     expect(builder.limit).toHaveBeenCalledWith(30)

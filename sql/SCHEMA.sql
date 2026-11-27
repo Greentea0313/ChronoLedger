@@ -2284,15 +2284,15 @@ BEGIN
     GET DIAGNOSTICS v_rows = ROW_COUNT;
     v_inserted_count := v_inserted_count + v_rows;
 
-    -- 3) 예정 지출 결제 예정일 1일 전 (EXPENSE_D1): 잠금 화면 보호를 위해 금액·메모 원문 미포함
+    -- 3) 내일 결제 예정 지출 요약 (EXPENSE_D1, R118-A): 사용자·결제일당 1건, 금액·항목명·메모 원문 미포함
     INSERT INTO public.notifications(user_id, kind, title, body, link_path, source_id, scheduled_for)
     SELECT
         e.user_id,
         'EXPENSE_D1',
-        '내일 결제 예정인 지출이 있습니다',
-        '예정된 결제 일정을 지출 관리에서 확인하세요.',
+        '내일 결제 예정 ' || count(*)::text || '건',
+        '내일 결제 예정인 지출을 지출 관리에서 확인하세요.',
         '/dashboard/expenses',
-        e.id,
+        e.user_id,
         v_tomorrow
     FROM public.expenses e
     LEFT JOIN public.notification_settings ns ON ns.user_id = e.user_id
@@ -2300,6 +2300,8 @@ BEGIN
       AND e.target_date = v_tomorrow
       AND coalesce(ns.planned_expense_d1, true) = true
       AND NOT public.account_deletion_is_pending(e.user_id)
+    GROUP BY e.user_id
+    HAVING count(*) >= 1
     ON CONFLICT (user_id, kind, source_id, scheduled_for) WHERE scheduled_for IS NOT NULL DO NOTHING;
     GET DIAGNOSTICS v_rows = ROW_COUNT;
     v_inserted_count := v_inserted_count + v_rows;

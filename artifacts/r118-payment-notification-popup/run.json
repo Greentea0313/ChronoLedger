@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "r118-payment-notification-popup",
+  "created_at": "2026-11-27T04:40:17.7645613+00:00",
+  "objective": "R118 명세에 따라 결제 예정 알림 요약, 인앱 알림 팝업, 월간 지출 차트 구현",
+  "acceptance_criteria": [
+    "R118-A: spec §3.2·§3.3와 118A-1~7에 따라 EXPENSE_D1을 사용자·결제일별 요약 1건으로 전환하고, 알림 제목·본문·중복·설정·개인정보·회귀 기준을 검증함.",
+    "R118-A: 재실행 안전한 SQL migration, SCHEMA.sql·README·TESTS.sql을 동기화하고 업그레이드/신규 격리 DB에서 migration 2회와 전체 TESTS.sql을 통과시킴.",
+    "R118-B: spec §4.1·§4.2와 118B-1~6에 따라 해당 알림 종류 클릭 시 읽음 처리 후 공통 알림함에서 관련 결제만 읽기 전용 팝업으로 표시하고, 나머지는 기존 링크 이동을 유지함.",
+    "R118-C: spec §5.1~§5.3와 118C-1~4에 따라 카테고리별 월간 비교 막대와 일별 누적 확정 지출 추이를 구현하고, 순수 함수의 날짜·정렬·누적 규칙을 Vitest로 검증함.",
+    "월간 차트·팝업 조회는 명세의 CONFIRMED/PLANNED 범위와 target_date·scheduled_for 기준을 따르며 기존 R114 지출·예산 집계를 바꾸지 않음.",
+    "tsc, lint, 전체 Vitest, production build 통과 및 390/900/1280 너비·라이트/다크 테마 수동 확인을 기록함.",
+    "리뷰어가 Base..Target 정적 리뷰와 Docker 격리 DB 업그레이드/신규 경로 검증을 마친 뒤에만 main 병합을 수행함.",
+    "결제·환불 RPC, expenses 제약/RLS, 푸시 notificationclick, Tauri 토스트 동작은 변경하지 않음."
+  ],
+  "base_sha": "bbf5114be937578e4db7b89da69e1aa32cf70238",
+  "target_sha": "af624ea6fc2419096f51d969f90231191e23e01b",
+  "branch": "collab/r118-payment-notification-popup",
+  "worktree_path": ".worktrees/r118-payment-notification-popup",
+  "max_iterations": 3,
+  "status": "in_progress"
+}

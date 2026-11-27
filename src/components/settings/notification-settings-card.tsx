@@ -48,7 +48,7 @@ const DAILY_AND_EVENT_OPTIONS: { key: Exclude<SettingKey, "push_enabled">; label
   {
     key: "planned_expense_d1",
     label: "예정 지출 결제일 1일 전",
-    description: "내일 결제 예정인 지출이 있으면 오늘 오전 9시(KST)에 알려줌. 금액은 알림에 표시하지 않음.",
+    description: "내일 결제 예정인 지출이 있으면 오늘 오전 9시(KST)에 건수만 요약해 1번 알려줌. 금액과 항목명은 표시하지 않음.",
   },
   {
     key: "expense_due_today",

@@ -128,6 +128,9 @@
 --                                  설정 행 없음 기본 true·expense_due_today=false 및 탈퇴 대기 사용자 제외.
 --   R107B-02 DB fixture 역할       EXPENSE_DUE_TODAY 푸시 선점·완료: 미구독/push_enabled=false -> SKIPPED,
 --                                  push_enabled=true+구독 보유 -> claim 반환 및 SENT 전이.
+--   R118A-01 DB fixture 역할       EXPENSE_D1 사용자·결제일당 요약 1행('내일 결제 예정 N건', source_id=user_id)·N=0 미생성·
+--                                  확정/취소/다른 날짜 제외·건별 행 미생성·민감정보 비노출·당일 재실행 N 불변·다음 결제일 새 행·
+--                                  설정 행 없음 기본 true·planned_expense_d1=false 및 탈퇴 대기 사용자 제외.
 --   R64    anon / B / admin        game_classification_icons 관리자 INSERT·UPSERT(updated_at 전진)·DELETE,
 --                                  일반 사용자·user_metadata 스푸핑 쓰기 거부(INSERT 42501·UPDATE/DELETE 0행)·anon 쓰기 거부,
 --                                  승인 게임 조회(anon/일반/관리자)·비승인 게임 차단(games_status_check + APPROVED RLS 정책 정의),
@@ -2586,8 +2589,9 @@ BEGIN
     IF (SELECT count(*) FROM public.notifications
         WHERE user_id = v_user_b
           AND kind = 'EXPENSE_D1'
-          AND source_id = v_e_planned
+          AND source_id = v_user_b
           AND scheduled_for = v_tomorrow
+          AND title = '내일 결제 예정 1건'
           AND link_path = '/dashboard/expenses'
           AND position('99000' IN title || body) = 0
           AND position('R39 비밀 지출 메모' IN title || body) = 0
@@ -2670,7 +2674,8 @@ BEGIN
     -- User without a notification_settings row defaults to all 3 daily notifications enabled.
     DELETE FROM public.notification_settings WHERE user_id = v_user_b;
     DELETE FROM public.notifications
-    WHERE user_id = v_user_b AND source_id IN (v_s_start, v_s_end, v_e_planned);
+    WHERE user_id = v_user_b
+      AND (source_id IN (v_s_start, v_s_end) OR (kind = 'EXPENSE_D1' AND source_id = v_user_b));
     v_inserted := public.enqueue_daily_notifications();
     IF v_inserted <> 3 THEN
         RAISE EXCEPTION 'FAIL: R39 default-enabled enqueue without settings row expected 3 rows, got %', v_inserted;
@@ -3758,6 +3763,113 @@ BEGIN
     DELETE FROM public.expenses WHERE id IN (v_e1, v_e2, v_e3, v_e_overdue, v_e_confirmed, v_e_cancelled, v_e_a);
 END $$;
 \echo PASS: R107B EXPENSE_DUE_TODAY daily summary, privacy, dedupe, opt-out, pending-deletion, and push SKIPPED/SENT checks
+
+-- R118A-01: EXPENSE_D1 is one summary row per user and payment date (title '내일 결제 예정 N건', source_id = user_id),
+-- N=0 none, CONFIRMED/CANCELLED/other dates excluded, no per-expense rows, no amount/title/memo leak, same-day rerun keeps N,
+-- next payment date gets a new row, missing settings defaults true, planned_expense_d1=false and pending-deletion excluded.
+-- Uses a dedicated user C so earlier R39/R107B fixtures do not affect N.
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claims', '', true);
+DO $$
+DECLARE
+    v_user_a UUID := current_setting('chronoledger.test_user_id')::uuid;
+    v_user_c UUID := gen_random_uuid();
+    v_today DATE := (NOW() AT TIME ZONE 'Asia/Seoul')::date;
+    v_tomorrow DATE := v_today + 1;
+    v_nt public.notifications%ROWTYPE;
+BEGIN
+    INSERT INTO auth.users (id, aud, role, email, encrypted_password, raw_app_meta_data, raw_user_meta_data)
+    VALUES (v_user_c, 'authenticated', 'authenticated', 'r118a-' || replace(v_user_c::text, '-', '') || '@example.invalid', '',
+            '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb);
+    DELETE FROM public.notification_settings WHERE user_id = v_user_c;
+
+    -- N=0: no PLANNED expense tomorrow -> no EXPENSE_D1 row.
+    PERFORM public.enqueue_daily_notifications();
+    IF EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_user_c AND kind = 'EXPENSE_D1') THEN
+        RAISE EXCEPTION 'FAIL: R118A generated EXPENSE_D1 for user with 0 PLANNED expenses tomorrow';
+    END IF;
+
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, memo)
+    VALUES
+        (v_user_c, 'R118A 비밀 항목1 77000원', '게임', 'PLANNED', v_tomorrow, 77000, 77000, 'R118A 비밀 메모1'),
+        (v_user_c, 'R118A 비밀 항목2', '정기 구독', 'PLANNED', v_tomorrow, 12000, 12000, 'R118A 비밀 메모2'),
+        (v_user_c, 'R118A 비밀 항목3', '기타', 'PLANNED', v_tomorrow, 3000, 3000, NULL),
+        (v_user_c, 'R118A 내일 확정', '게임', 'CONFIRMED', v_tomorrow, 5000, 5000, NULL),
+        (v_user_c, 'R118A 모레 예정', '게임', 'PLANNED', v_tomorrow + 1, 5000, 5000, NULL),
+        (v_user_c, 'R118A 오늘 예정', '게임', 'PLANNED', v_today, 5000, 5000, NULL);
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount, cancellation_kind, memo)
+    VALUES (v_user_c, 'R118A 내일 취소', '게임', 'CANCELLED', v_tomorrow, 5000, 5000, 'PLANNED_CANCEL', NULL);
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount)
+    VALUES (v_user_a, 'R118A 대기 사용자 내일 예정', '게임', 'PLANNED', v_tomorrow, 4000, 4000);
+
+    PERFORM public.enqueue_daily_notifications();
+    IF (SELECT count(*) FROM public.notifications WHERE user_id = v_user_c AND kind = 'EXPENSE_D1') <> 1 THEN
+        RAISE EXCEPTION 'FAIL: R118A expected exactly 1 EXPENSE_D1 summary row for user C, got %',
+            (SELECT count(*) FROM public.notifications WHERE user_id = v_user_c AND kind = 'EXPENSE_D1');
+    END IF;
+    SELECT * INTO v_nt FROM public.notifications WHERE user_id = v_user_c AND kind = 'EXPENSE_D1';
+    IF v_nt.title <> '내일 결제 예정 3건'
+       OR v_nt.body <> '내일 결제 예정인 지출을 지출 관리에서 확인하세요.'
+       OR v_nt.source_id IS DISTINCT FROM v_user_c
+       OR v_nt.scheduled_for IS DISTINCT FROM v_tomorrow
+       OR v_nt.link_path <> '/dashboard/expenses'
+       OR position('R118A' IN v_nt.title || v_nt.body) > 0
+       OR position('77000' IN v_nt.title || v_nt.body) > 0
+       OR position('77,000' IN v_nt.title || v_nt.body) > 0
+       OR position('메모' IN v_nt.title || v_nt.body) > 0 THEN
+        RAISE EXCEPTION 'FAIL: R118A EXPENSE_D1 summary malformed or leaked sensitive data (title=%, body=%, source=%, date=%)',
+            v_nt.title, v_nt.body, v_nt.source_id, v_nt.scheduled_for;
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM public.notifications n
+        JOIN public.expenses e ON e.id = n.source_id
+        WHERE n.user_id = v_user_c AND n.kind = 'EXPENSE_D1'
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R118A still generated a per-expense EXPENSE_D1 row';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM public.notifications
+        WHERE user_id = v_user_a AND kind = 'EXPENSE_D1' AND scheduled_for = v_tomorrow
+    ) THEN
+        RAISE EXCEPTION 'FAIL: R118A generated EXPENSE_D1 for pending-deletion user A';
+    END IF;
+
+    -- Same-day rerun after adding a 4th PLANNED row: still 1 row, title unchanged.
+    INSERT INTO public.expenses(user_id, title, category, status, target_date, original_price, final_amount)
+    VALUES (v_user_c, 'R118A 비밀 항목4', '기타', 'PLANNED', v_tomorrow, 1000, 1000);
+    PERFORM public.enqueue_daily_notifications();
+    IF (SELECT count(*) FROM public.notifications WHERE user_id = v_user_c AND kind = 'EXPENSE_D1') <> 1
+       OR (SELECT title FROM public.notifications WHERE user_id = v_user_c AND kind = 'EXPENSE_D1') <> '내일 결제 예정 3건' THEN
+        RAISE EXCEPTION 'FAIL: R118A same-day rerun was not deduplicated or changed N';
+    END IF;
+
+    -- Next payment date: shift the existing row to an earlier date, rerun creates a fresh row with the current N.
+    UPDATE public.notifications SET scheduled_for = v_today WHERE id = v_nt.id;
+    PERFORM public.enqueue_daily_notifications();
+    IF (SELECT count(*) FROM public.notifications WHERE user_id = v_user_c AND kind = 'EXPENSE_D1') <> 2
+       OR (SELECT title FROM public.notifications
+           WHERE user_id = v_user_c AND kind = 'EXPENSE_D1' AND scheduled_for = v_tomorrow) <> '내일 결제 예정 4건' THEN
+        RAISE EXCEPTION 'FAIL: R118A next payment date did not create a new summary row';
+    END IF;
+
+    -- Opt-out: planned_expense_d1 = false -> no row. Default (no settings row) was covered above.
+    DELETE FROM public.notifications WHERE user_id = v_user_c AND kind = 'EXPENSE_D1';
+    INSERT INTO public.notification_settings(user_id, planned_expense_d1)
+    VALUES (v_user_c, false)
+    ON CONFLICT (user_id) DO UPDATE SET planned_expense_d1 = false, updated_at = NOW();
+    PERFORM public.enqueue_daily_notifications();
+    IF EXISTS (SELECT 1 FROM public.notifications WHERE user_id = v_user_c AND kind = 'EXPENSE_D1') THEN
+        RAISE EXCEPTION 'FAIL: R118A generated EXPENSE_D1 despite planned_expense_d1 = false';
+    END IF;
+
+    -- Clean up user C and the pending-user fixture so later blocks are unaffected.
+    DELETE FROM public.notifications WHERE user_id = v_user_c;
+    DELETE FROM public.notification_settings WHERE user_id = v_user_c;
+    DELETE FROM public.expenses WHERE user_id = v_user_c;
+    DELETE FROM public.expenses WHERE user_id = v_user_a AND title = 'R118A 대기 사용자 내일 예정';
+    DELETE FROM auth.users WHERE id = v_user_c;
+END $$;
+\echo PASS: R118A EXPENSE_D1 per-user payment-date summary, privacy, dedupe, next-date, opt-out, and pending-deletion checks
 
 -- User A's PENDING account deletion request (R13-07) is only needed up to R35; later blocks write as user A.
 DELETE FROM public.account_deletion_requests WHERE user_id = :'test_user_id'::uuid AND status_token_hash = repeat('a', 64);

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "run_id": "r118-payment-notification-popup",
+  "iteration": 1,
+  "agent": "GPT Codex",
+  "role": "dynamic-test",
+  "base_sha": "bbf5114be937578e4db7b89da69e1aa32cf70238",
+  "target_sha": "1c74e41101e71586ba9b6a7a62f430d64365776a",
+  "status": "passed",
+  "created_at": "2026-11-27T15:48:00+09:00",
+  "finished_at": "2026-11-27T15:57:50+09:00",
+  "sandbox": "docker",
+  "redactions_applied": true,
+  "tests": [
+    {
+      "name": "TypeScript",
+      "command": "npx tsc --noEmit",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "ESLint",
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Vitest 전체",
+      "command": "npx vitest run",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Production build",
+      "command": "npm run build",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Base 스키마 업그레이드 DB",
+      "command": "Base SCHEMA.sql 적용 → R118 migration 2회 → 전체 TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "Target 신규 설치 DB",
+      "command": "Target SCHEMA.sql 적용 → R118 migration 2회 → 전체 TESTS.sql",
+      "status": "passed",
+      "exit_code": 0,
+      "log_path": null
+    },
+    {
+      "name": "수동 화면 확인",
+      "command": "390/900/1280 너비 및 라이트/다크 테마",
+      "status": "skipped",
+      "exit_code": null,
+      "log_path": "해당 사용자 세션·테스트 데이터가 없어 미확인"
+    }
+  ]
+}

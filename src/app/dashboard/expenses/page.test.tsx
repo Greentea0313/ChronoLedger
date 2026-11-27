@@ -952,6 +952,22 @@ describe("ExpensesPage", () => {
       expect(screen.queryByRole("button", { name: /^교통/ })).toBeNull()
     })
 
+    it("일별 누적 확정 지출 카드는 이번 달 기본 선택, 전체 기간 옵션 없이 달 선택에 반응한다 (R118-C)", async () => {
+      useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
+      from.mockReturnValue(createExpenseQueryBuilder(accordionExpenses))
+
+      render(<ExpensesPage />)
+      expect(await screen.findByText("일별 누적 확정 지출")).toBeTruthy()
+
+      const select = document.getElementById("cumulative-month-select") as HTMLSelectElement
+      expect(select.value).toBe("CURRENT")
+      expect(Array.from(select.options).map((o) => o.value)).toEqual(["CURRENT", "2026-09"])
+      expect(screen.getByRole("img", { name: "10월 일별 누적 확정 지출 차트" })).toBeTruthy()
+
+      fireEvent.change(select, { target: { value: "2026-09" } })
+      expect(screen.getByRole("img", { name: "9월 일별 누적 확정 지출 차트" })).toBeTruthy()
+    })
+
     it("아코디언 항목 클릭 시 ExpenseDetailModal이 열린다", async () => {
       useAuth.mockReturnValue({ user: { id: "user-123" }, isLoading: false })
       from.mockReturnValue(createExpenseQueryBuilder(accordionExpenses))

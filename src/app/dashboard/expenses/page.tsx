@@ -26,6 +26,7 @@ import { ExpenseImportModal } from "@/components/expense/expense-import-modal"
 import { TwoMonthBudgetCard } from "@/components/finance/two-month-budget-card"
 import { calculateGameBudgetUsage, calculateTwoMonthBudgetComparison, getNextMonthKey } from "@/lib/budget-calculations"
 import { formatAmountAxisTick, getGameTooltipLabel } from "@/lib/chart-format"
+import { buildCumulativeDailySpend, getPreviousMonthKey } from "@/lib/monthly-report"
 
 const EXPENSES_PER_PAGE = 10
 /** PostgREST 기본 최대 행 수. 지출은 이 단위로 끝까지 나눠 읽는다(R114-REV-001). */
@@ -66,6 +67,9 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -238,6 +242,7 @@ export default function ExpensesPage() {
   const [activeMonthlyIndex, setActiveMonthlyIndex] = useState<number | null>(null)
   const [activeGameIndex, setActiveGameIndex] = useState<number | null>(null)
   const [categoryMonth, setCategoryMonth] = useState<string>(MONTH_CURRENT)
+  const [cumulativeMonth, setCumulativeMonth] = useState<string>(MONTH_CURRENT)
   const [gameMonth, setGameMonth] = useState<string>(MONTH_CURRENT)
 
   // 사용자 지정 게임 아이콘 URL 맵 (gameId -> objectUrl)
@@ -588,6 +593,14 @@ export default function ExpensesPage() {
     () => buildMonthOptions(expenses.filter((e) => e.status === "CONFIRMED").map((e) => e.target_date), currentMonthKey),
     [expenses, currentMonthKey],
   )
+  // R118-C: 일별 누적 확정 지출은 달 단위 비교라 '전체 기간' 옵션이 없다.
+  const cumulativeMonthOptions = useMemo(() => categoryMonthOptions.filter((o) => o.value !== MONTH_ALL), [categoryMonthOptions])
+  const cumulativeMonthKey = cumulativeMonth === MONTH_CURRENT ? currentMonthKey : cumulativeMonth
+  const cumulativeData = useMemo(() => {
+    const { days } = buildCumulativeDailySpend(expenses, cumulativeMonthKey, getKstToday())
+    const hasSpending = days.some((d) => (d.current ?? 0) > 0 || (d.previous ?? 0) > 0)
+    return { days, hasSpending }
+  }, [expenses, cumulativeMonthKey])
   const gameMonthOptions = useMemo(
     () =>
       buildMonthOptions(
@@ -1391,6 +1404,76 @@ export default function ExpensesPage() {
                           })}
                         </Bar>
                       </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 일별 누적 확정 지출 (R118-C) */}
+            <Card className="flex flex-col lg:col-span-2">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+                <CardTitle>일별 누적 확정 지출</CardTitle>
+                {renderMonthSelect("cumulative-month-select", "일별 누적 확정 지출 기간 선택", cumulativeMonth, setCumulativeMonth, cumulativeMonthOptions)}
+              </CardHeader>
+              <CardContent className="flex-1 min-h-[300px]">
+                {!cumulativeData.hasSpending ? (
+                  <EmptyState message="확정된 지출 내역이 없습니다." hint="결제 완료된 지출만 누적 추이에 반영됩니다. 다른 기간을 선택해 보세요." />
+                ) : (
+                  <div
+                    role="img"
+                    aria-label={`${Number(cumulativeMonthKey.slice(5))}월 일별 누적 확정 지출 차트`}
+                    className="h-[260px] w-full"
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart accessibilityLayer={false} data={cumulativeData.days} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                        <CartesianGrid vertical={false} stroke="rgb(var(--border))" strokeDasharray="3 3" opacity={0.6} />
+                        <XAxis
+                          dataKey="day"
+                          axisLine={{ stroke: "rgb(var(--border))", strokeWidth: 1 }}
+                          tickLine={{ stroke: "rgb(var(--border))" }}
+                          tick={{ fill: "rgb(var(--text-secondary))", fontSize: 12 }}
+                          tickFormatter={(value) => `${value}일`}
+                        />
+                        <YAxis
+                          axisLine={{ stroke: "rgb(var(--border))", strokeWidth: 1 }}
+                          tickLine={{ stroke: "rgb(var(--border))" }}
+                          tick={{ fill: "rgb(var(--text-secondary))", fontSize: 12 }}
+                          tickFormatter={formatAmountAxisTick}
+                        />
+                        <Tooltip
+                          wrapperStyle={TOOLTIP_WRAPPER_STYLE}
+                          contentStyle={{
+                            backgroundColor: "rgb(var(--surface))",
+                            borderColor: "rgb(var(--border))",
+                            borderRadius: "8px",
+                            color: "rgb(var(--text-primary))",
+                          }}
+                          itemStyle={{ color: "rgb(var(--text-primary))" }}
+                          labelFormatter={(label) => `${label}일`}
+                          formatter={(value: unknown) => `${Number(value).toLocaleString()} 원`}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Line
+                          type="monotone"
+                          dataKey="current"
+                          name={`${Number(cumulativeMonthKey.slice(5))}월`}
+                          stroke="#6366F1"
+                          strokeWidth={2}
+                          dot={false}
+                          connectNulls={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="previous"
+                          name={`${Number(getPreviousMonthKey(cumulativeMonthKey).slice(5))}월`}
+                          stroke="rgb(var(--text-secondary))"
+                          strokeWidth={2}
+                          strokeDasharray="5 4"
+                          dot={false}
+                          connectNulls={false}
+                        />
+                      </LineChart>
                     </ResponsiveContainer>
                   </div>
                 )}

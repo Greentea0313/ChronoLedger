@@ -8,6 +8,8 @@ import { supabase } from "@/lib/supabase/client"
 import { isOffline } from "@/lib/offline-guard"
 import { notifyNewTauriNotifications } from "@/lib/tauri-notifications"
 import { cn } from "@/lib/utils"
+import { NotificationPaymentPopup } from "./notification-payment-popup"
+import { NotificationReportPopup } from "./notification-report-popup"
 
 const NOTIFICATION_LIMIT = 30
 const TAURI_POLL_INTERVAL_MS = 60_000
@@ -19,7 +21,11 @@ export interface NotificationRow {
   link_path: string
   read_at: string | null
   created_at: string
+  kind?: string
+  scheduled_for?: string | null
 }
+
+const PAYMENT_POPUP_KINDS = ["EXPENSE_D1", "EXPENSE_DUE_TODAY"]
 
 /** `notifications` not migrated yet (R84): behave as an empty inbox instead of failing the top bar. */
 function isMissingNotificationsTable(error: { code?: string } | null | undefined): boolean {
@@ -58,13 +64,15 @@ export function NotificationBell({ userId, className }: { userId: string; classN
   const [items, setItems] = useState<NotificationRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const [confirmingDeleteAll, setConfirmingDeleteAll] = useState(false)
+  const [popup, setPopup] = useState<{ type: "payment" | "report"; item: NotificationRow } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const bellButtonRef = useRef<HTMLButtonElement>(null)
 
   const load = useCallback(async () => {
     try {
       const { data, error: loadError } = await supabase
         .from("notifications")
-        .select("id, title, body, link_path, read_at, created_at")
+        .select("id, title, body, link_path, read_at, created_at, kind, scheduled_for")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(NOTIFICATION_LIMIT)
@@ -185,15 +193,31 @@ export function NotificationBell({ userId, className }: { userId: string; classN
   const handleSelect = async (item: NotificationRow) => {
     setError(null)
     if (item.read_at === null) await markRead([item.id])
+    if (item.scheduled_for) {
+      const type = item.kind && PAYMENT_POPUP_KINDS.includes(item.kind) ? "payment" : item.kind === "MONTHLY_REPORT" ? "report" : null
+      if (type) {
+        setOpen(false)
+        setPopup({ type, item })
+        return
+      }
+    }
     if (isSafeLinkPath(item.link_path)) {
       setOpen(false)
       router.push(item.link_path)
     }
   }
 
+  const closePopup = () => setPopup(null)
+  const navigateFromPopup = () => {
+    const path = popup?.item.link_path
+    setPopup(null)
+    if (path && isSafeLinkPath(path)) router.push(path)
+  }
+
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <button
+        ref={bellButtonRef}
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -310,6 +334,31 @@ export function NotificationBell({ userId, className }: { userId: string; classN
             </ul>
           )}
         </div>
+      )}
+      {popup?.type === "payment" && popup.item.scheduled_for && (
+        <NotificationPaymentPopup
+          userId={userId}
+          scheduledFor={popup.item.scheduled_for}
+          onNavigate={navigateFromPopup}
+          onClose={closePopup}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            bellButtonRef.current?.focus()
+          }}
+        />
+      )}
+      {popup?.type === "report" && popup.item.scheduled_for && (
+        <NotificationReportPopup
+          userId={userId}
+          scheduledFor={popup.item.scheduled_for}
+          body={popup.item.body}
+          onNavigate={navigateFromPopup}
+          onClose={closePopup}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            bellButtonRef.current?.focus()
+          }}
+        />
       )}
     </div>
   )
