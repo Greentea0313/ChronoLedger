@@ -81,8 +81,9 @@
   - [ ] 사용자 확인: 운영 DB migration·README 확인 쿼리 적용, 배포, 실제 CSV 1개 가져오기·취소 확인
 - [x] R117. [**운영 적용·배포·화면 확인 완료(사용자 확인, 2026-11-27)** · Step 1·2 완료 · `main` 병합 `065fe4a` · 🐳 격리 DB 두 경로 PASS] 게임별 캐릭터 분류 축 최대 2개 → 3개 확대(`R116`보다 먼저).
   - [ ] 사용자 확인: 운영 DB migration·README 확인 쿼리 적용, 배포, 게임 하나의 세 번째 축 설정 및 390/900/1280 화면·필터 확인
-- [ ] R118. [명세 확정 2026-11-27 · Run 등록 대기(GPT Codex Orchestrator)] 전날 결제 예정 알림 요약(`내일 결제 예정 N건` 1건)·알림함 팝업(결제 예정·월간 리포트)·리포트 차트·지출 페이지 일별 누적 추이 — [`docs/r118-payment-notification-report-popup-spec.md`](r118-payment-notification-report-popup-spec.md)
-- [ ] R116. [Run `r116-public-game-pages` 등록 2026-11-27 · R118 명세 처리로 Step 1 대기, 순서는 Orchestrator가 정함] 공개 게임별 일정 페이지·`robots.txt`·sitemap(빌드 생성, 배포 때만 갱신) — 같은 명세 §6
+- [ ] R118. [Run `r118-payment-notification-popup` 등록 2026-11-27 · Base `bbf5114` · Step 1 Claude Opus `High` `▶ READY` · 🐳] 전날 결제 예정 요약 알림·알림 팝업·월간 리포트 차트·일별 누적 추이 — [`docs/r118-payment-notification-report-popup-spec.md`](r118-payment-notification-report-popup-spec.md)
+  - [ ] 사용자 확인: 운영 DB migration·README 확인 쿼리 적용, 배포, 다음 날 09:00 알림 1건·팝업·차트 확인
+- [ ] R116. [Run `r116-public-game-pages` 등록 2026-11-27 · R118 Step 4 완료 후 Step 1 재개] 공개 게임별 일정 페이지·`robots.txt`·sitemap(빌드 생성, 배포 때만 갱신) — 같은 명세 §6
 
 ### 경쟁 서비스(픽업지지) 비교 기반 개선 후보 (2026-11-09 등록 · Gemini 4 Argon 리뷰 확정)
 

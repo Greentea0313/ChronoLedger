@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-27 (`r118-payment-notification-popup` Run 등록 — GPT Codex Orchestrator)**: Base `bbf5114`에서 전용 worktree·manifest를 생성함. Step 1 Claude Opus `High` SQL `▶ READY`, Step 2 Claude Sonnet `Medium` UI, Step 3 GPT Codex Reviewer, Step 4 사용자로 순차 배정함. R116은 R118 Step 4까지 대기함.
 - **2026-11-27 (`R118` 명세 확정 — Claude Opus `High`, Chief Architect Fallback 1)**: 질문 카드 4건으로 결제 알림·리포트 차트·알림 팝업 결정을 받아 [`docs/r118-payment-notification-report-popup-spec.md`](r118-payment-notification-report-popup-spec.md) 작성함(SQL은 `enqueue_daily_notifications()` 3번 절만, 나머지 클라이언트). `src/**`·`sql/**` 미수정. 다음: GPT Codex Orchestrator가 Run 등록·`R116`과 순서 결정.
 - **2026-11-27 (추가 결제 알림·월간 그래프·대시보드 팝업 요구 접수)**: 기존 R107-B/R114 결정과 여러 모듈에 걸친 변경으로 `SPEC_NEEDED` 등록함. Gemini 공용 한도 소진으로 Claude Opus `High`에 설계 판단을 이관하고, R116은 명세 확정까지 대기함. Run은 아직 등록하지 않음.
 - **2026-11-27 (`desktop-v0.3.2` 릴리스 실패 원인 수정 — Claude Sonnet `Medium`, `main` 직접 수정)**: 사용자가 버전을 올리지 않은 채 태그 `desktop-v0.3.2`만 push해 `Desktop release` 워크플로 버전 일치 검사(태그·`package.json`·`Cargo.toml`)가 실패함. 버전을 `0.3.2`로 올림. 사용자가 원격 태그를 지우고 `main` push 후 태그를 다시 만들어 push해야 함(미수행).
