@@ -33,7 +33,7 @@
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
-- **활성 Run**: **`R118` 결제 예정 알림 요약·월간 리포트 차트·알림 팝업 (`r118-payment-notification-popup` — Base `bbf5114be937578e4db7b89da69e1aa32cf70238`, 브랜치 `collab/r118-payment-notification-popup`, 워크트리 `.worktrees/r118-payment-notification-popup`)** *(승인 명세 [`docs/r118-payment-notification-report-popup-spec.md`](r118-payment-notification-report-popup-spec.md) §0~§8. Run manifest `artifacts/r118-payment-notification-popup/run.json`, Step 1 Target `959c8c81e610d37a63801b61410c04d7eb9660b6`, 최종 Target은 Step 2 Maker 완료 후 기입함)*
+- **활성 Run**: **`R118` 결제 예정 알림 요약·월간 리포트 차트·알림 팝업 (`r118-payment-notification-popup` — Base `bbf5114be937578e4db7b89da69e1aa32cf70238`, 브랜치 `collab/r118-payment-notification-popup`, 워크트리 `.worktrees/r118-payment-notification-popup`)** *(승인 명세 [`docs/r118-payment-notification-report-popup-spec.md`](r118-payment-notification-report-popup-spec.md) §0~§8. Run manifest `artifacts/r118-payment-notification-popup/run.json`, Step 1 Target `959c8c81e610d37a63801b61410c04d7eb9660b6`, Step 2 Target `1c74e41101e71586ba9b6a7a62f430d64365776a`)*
 - **목표**: 결제일 전날 사용자별 1건 요약 알림, 알림함의 결제/월간 리포트 팝업, 월간 카테고리 비교 차트·일별 누적 지출 추이 구현함.
 - **DB 변경**: 있음 (`sql/migrations/MIGRATION_R118_EXPENSE_D1_SUMMARY.sql`, `sql/SCHEMA.sql`, `sql/tests/TESTS.sql`). 🐳 격리 로컬 Supabase 필요. 결제·환불 RPC, RLS 및 `expenses` 제약은 수정 금지함.
 - **수용 기준**: ① 명세 §3.2·§3.3 및 118A-1~7: `EXPENSE_D1` 사용자·결제일별 1건 요약, 마이그레이션/기준 스키마/README/테스트 동기화 ② 명세 §4.1·§4.2 및 118B-1~6: 알림함 선택 시 유형별 읽기 전용 팝업·기존 이동 동작 유지 ③ 명세 §5.1~§5.3 및 118C-1~4: 카테고리별 월 비교·일별 누적 확정 지출 차트 ④ 날짜·KST·정렬·빈/오류 상태 Vitest 검증 ⑤ tsc·lint·Vitest·build 통과 ⑥ 390/900/1280 너비·라이트/다크 실화면 확인 ⑦ 리뷰어의 정적 리뷰·격리 DB 업그레이드/신규 경로 통과 후 병합 ⑧ 기기 푸시·Tauri 클릭 동작 불변.
@@ -42,8 +42,8 @@
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
 | **1** | **`✅ DONE (SHA: 959c8c81e610d37a63801b61410c04d7eb9660b6)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Maker (R118-A SQL·알림 설정 문구)` | 명세 §3.2·§3.3, 118A-1~7. 허용: `sql/migrations/MIGRATION_R118_EXPENSE_D1_SUMMARY.sql`(신규), `sql/SCHEMA.sql`, `sql/README.md`, `sql/tests/TESTS.sql`, `src/components/settings/notification-settings-card.tsx`·`.test.tsx`, 루트 `docs/handoff.md`·`docs/progress.md` | 구현 커밋 대기 |
-| **2** | **`▶ READY`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | `Maker (R118-B·C 알림 팝업·차트)` | 명세 §4·§5, 118B-1~6·118C-1~4. 허용: `src/components/layout/notification-bell.tsx`·`.test.tsx`, 신규 `src/components/layout/notification-*-popup.tsx`·테스트, 신규 `src/lib/monthly-report.ts`·`.test.ts`, `src/app/dashboard/expenses/page.tsx`·관련 테스트, 루트 `docs/handoff.md`·`docs/progress.md` | Step 1 대기 |
-| **3** | **`⏳ WAITING (Step 2 완료 후)`** | **GPT Codex** *(Fallback: GitHub Copilot — 두 Maker와 다른 모델)* | `Reviewer & Local DB Gate` | Base `bbf5114` ↔ Maker Target 정적 리뷰, `review.json`·`test.json`, 업그레이드/신규 DB 각각 migration 2회·전체 `TESTS.sql`, tsc·lint·Vitest·build·실화면 390/900/1280 점검, 통과 시 main 병합·문서 마감. Step 1이 GPT Codex로 대체되면 reviewer는 GitHub Copilot으로 변경함. 허용: `artifacts/r118-payment-notification-popup/**`, 루트 운영 문서 | Step 2 대기 |
+| **2** | **`✅ DONE (SHA: 1c74e41101e71586ba9b6a7a62f430d64365776a)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | `Maker (R118-B·C 알림 팝업·차트)` | 명세 §4·§5, 118B-1~6·118C-1~4. 허용: `src/components/layout/notification-bell.tsx`·`.test.tsx`, 신규 `src/components/layout/notification-*-popup.tsx`·테스트, 신규 `src/lib/monthly-report.ts`·`.test.ts`, `src/app/dashboard/expenses/page.tsx`·관련 테스트, 루트 `docs/handoff.md`·`docs/progress.md` | 구현 커밋 완료, 아래 Step 2 완료 기록 참조 |
+| **3** | **`▶ READY`** | **GPT Codex** *(Fallback: GitHub Copilot — 두 Maker와 다른 모델)* | `Reviewer & Local DB Gate` | Base `bbf5114` ↔ Maker Target 정적 리뷰, `review.json`·`test.json`, 업그레이드/신규 DB 각각 migration 2회·전체 `TESTS.sql`, tsc·lint·Vitest·build·실화면 390/900/1280 점검, 통과 시 main 병합·문서 마감. Step 1이 GPT Codex로 대체되면 reviewer는 GitHub Copilot으로 변경함. 허용: `artifacts/r118-payment-notification-popup/**`, 루트 운영 문서 | 구현 커밋 대기 없음, Step 3 착수 가능 |
 | **4** | `⏳ WAITING` | **사용자** | 운영 DB `MIGRATION_R118_EXPENSE_D1_SUMMARY.sql` 적용·README 확인 쿼리·배포, 다음 날 09:00 알림 1건·팝업·누적 차트 확인 | Step 3 병합 후 안내함 |
 
 #### 📝 `r118-payment-notification-popup` Step 1 완료 기록 (2026-11-27, Claude Opus `High`)
@@ -53,6 +53,14 @@
 - **결정·가정**: 마이그레이션 함수 본문은 `SCHEMA.sql` 본문을 글자 그대로 복사함(CR 제거 후 동일 확인). `R118A-01`은 전용 사용자 C를 만들어 앞선 R39·R107B 고정 데이터와 섞이지 않게 함. 설정 문구 전용 Vitest는 추가하지 않음(문구 1건, 토글 저장·복원은 기존 `settings/page.test.tsx`가 검증).
 - **검증 (실제 실행)**: 🐳 로컬 Supabase `db reset` 후 ① 업그레이드 경로(Base `bbf5114` `SCHEMA.sql` → 마이그레이션 2회) ② 신규 경로(새 `SCHEMA.sql` → 마이그레이션 2회) 각각 `TESTS.sql` 64개 블록 PASS·최종 `ROLLBACK` PASS. 두 경로 함수 본문 해시 일치, README 확인 쿼리 `true, true, true, false`. 변이: 구버전 함수로 되돌리면 R39 `EXPENSE_D1` 단정 FAIL 확인 후 복원. `tsc`·`lint`·Vitest 85파일 1,152개·`git diff --check` 통과. 테스트 로그 WARNING 5건은 기존 R107-A/C 실패 격리 블록의 의도된 출력임.
 - **남음**: Step 2(UI)·Step 3(리뷰·병합)·Step 4(운영 적용). `next build`·실화면은 Step 2 이후 확인함.
+
+#### 📝 `r118-payment-notification-popup` Step 2 완료 기록 (2026-11-27, Claude Sonnet `Medium`)
+
+- **Target SHA**: `1c74e41101e71586ba9b6a7a62f430d64365776a` (워크트리 커밋, 미병합·원격 미push)
+- **변경 파일**: 신규 `src/lib/monthly-report.ts`·`.test.ts`, 신규 `src/components/layout/notification-payment-popup.tsx`·`notification-report-popup.tsx`·`notification-popups.test.tsx`, `notification-bell.tsx`·`.test.tsx`(조회 열 `kind, scheduled_for` 추가·팝업 분기), `src/app/dashboard/expenses/page.tsx`·`.test.tsx`(일별 누적 확정 지출 카드).
+- **결정·가정**: 팝업 조회에 `user_id` 조건을 추가함(RLS와 이중 방어, 명세 B3의 「본인」 반영). 팝업 닫힘 시 `onCloseAutoFocus`로 알림함 버튼에 포커스 복귀. 월간 리포트 팝업은 알림 본문(`body`)을 설명으로 그대로 표시. 누적 카드는 지출 탭 그리드에 `lg:col-span-2` 전체 폭으로 배치(차트 3개라 홀수 칸 방지). 선택 달 색 `#6366F1`(월별 추이 막대와 동일), 전달 색 `rgb(var(--text-secondary))`.
+- **검증 (실제 실행)**: `tsc --noEmit`·`npm run lint`·Vitest 전체 1,168개(신규 포함)·`git diff --check` 통과. `next build`는 컴파일 성공 후 워크트리에 `.env.local`이 없어 페이지 데이터 수집 단계에서 `Missing NEXT_PUBLIC_SUPABASE_URL` 오류로 중단됨(코드 문제 아님, Reviewer가 환경 변수를 두고 재실행 필요).
+- **남음(미검증)**: 390/900/1280 너비·라이트/다크 실화면 확인(118B-5·118C-4)은 하지 않음 → Step 3 Reviewer 또는 사용자 확인. 원격 브랜치 push 안 함.
 
 #### ⏸️ 대기 Run: `R116` 공개 게임별 일정 페이지·SEO (`r116-public-game-pages`)
 
