@@ -1,4 +1,5 @@
 # 프로젝트 진행 현황
+- **2026-11-27 (`desktop-v0.3.3` 릴리스 준비 — Claude Sonnet `Medium`, `main` 직접 수정)**: 버전을 `0.3.3`으로 올림(`package.json`·`package-lock.json`·`Cargo.toml`·`Cargo.lock` 앱 항목). `R118` 포함 릴리스용이며 태그 `desktop-v0.3.3` 생성·push는 사용자가 함.
 - **2026-11-27 (`R118` 운영 DB 적용 확인 — 사용자 / 기록 — Claude Sonnet `Medium`)**: 사용자가 `MIGRATION_R118_EXPENSE_D1_SUMMARY.sql` 운영 적용·검증을 마쳤다고 알려 Step 4를 `IN_PROGRESS`로 갱신함. 빌드 릴리스·화면 확인 후 Run을 닫고 `R116`을 재개함.
 - **2026-11-27 (`r118-payment-notification-popup` Step 3 — Claude Sonnet `Medium`, 독립 리뷰어)**: 정적 리뷰 clean(`R118-REV-001` 해소 확인), 🐳 업그레이드·신규 두 경로 migration 2회·`TESTS.sql` 64 PASS, tsc·lint·Vitest 1,169건·build 통과 후 `main` 병합 `df6af75`. 실화면 미확인. 다음: 사용자 Step 4(운영 DB 적용·배포·화면 확인).
 - **2026-11-27 (`r118-payment-notification-popup` Step 2 Iteration 02 — GPT Codex, Copilot Fallback)**: 월간 리포트 팝업의 1,000행 제한 누락을 날짜·ID 정렬 페이지 조회와 회귀 테스트로 수정함(`af624ea`, 미병합·미push). tsc·lint·Vitest 87파일 1,169개·`next build`·diff 검사 통과함. 다음: 독립 리뷰와 실화면 확인(Step 3).
