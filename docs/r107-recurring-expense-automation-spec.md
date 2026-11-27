@@ -112,6 +112,7 @@
 - **대상**: 오늘이 예정일인 `PLANNED` 전부. `R107-A`의 서버 생성 덕분에 앱 미접속 사용자도 포함됨.
 - **중복 방지**: 사용자·kind·날짜당 1건(`uq_notifications_daily_source`). cron 재실행 시 N이 늘어도 갱신하지 않음.
 - **`EXPENSE_D1` 병행**: 전날 예고(`EXPENSE_D1`)와 당일 요약(`EXPENSE_DUE_TODAY`)은 목적이 달라 함께 유지함.
+  - *(2026-11-27 개정, `R118-A`)*: 전날 예고도 건별 → 사용자·결제일당 `내일 결제 예정 N건` 1건으로 바꿈. 당일 요약은 유지함. [`docs/r118-payment-notification-report-popup-spec.md`](r118-payment-notification-report-popup-spec.md) §3
 
 ### 4.3 인수 기준과 검증 (`R107-B`)
 

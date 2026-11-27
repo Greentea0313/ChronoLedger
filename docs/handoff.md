@@ -19,8 +19,8 @@
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`📐 SPEC_NEEDED`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Gemini 4 Carbon의 Fallback 1; Gemini 공용 한도 소진으로 Carbon/Neon 배정 보류, 그 외 설계 권한 fallback 없음)* | `Chief Architect Fallback 1 (설계만, src/** 수정 금지)` | 아래 요구사항 접수 기록의 미결 제품 결정과 수용 기준을 명세함 | R118 후보, Run/worktree 생성 전 |
-| **2** | **`⏳ WAITING (Step 1 명세 확정 후)`** | **GPT Codex** *(사용자 요청에 따른 임시 Orchestrator; Fallback: GitHub Copilot)* | `Orchestrator` | Opus 명세 완료 후 별도 Run 등록·worktree 생성·Maker/Reviewer 라우팅함. 명세 확정 전 Run은 등록하지 않음 | Step 1 완료 대기 |
+| **1** | **`✅ DONE (2026-11-27, 명세 확정)`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Gemini 4 Carbon의 Fallback 1; Gemini 공용 한도 소진으로 Carbon/Neon 배정 보류, 그 외 설계 권한 fallback 없음)* | `Chief Architect Fallback 1 (설계만, src/** 수정 금지)` | 아래 요구사항 접수 기록의 미결 제품 결정과 수용 기준을 명세함 | [`docs/r118-payment-notification-report-popup-spec.md`](r118-payment-notification-report-popup-spec.md) — 질문 카드 4건 확정(U1~U4), `R118-A`(SQL)·`B`(알림 팝업)·`C`(리포트 차트·누적 추이) 결정·인수 기준·모델 배정 권고(§7) |
+| **2** | **`▶ READY`** | **GPT Codex** *(사용자 요청에 따른 임시 Orchestrator; Fallback: GitHub Copilot)* | `Orchestrator` | 명세 §7 권고로 Run `r118-payment-notification-popup` 등록·worktree 생성·Maker/Reviewer 라우팅함. `R116` Step 1과의 진행 순서도 이때 정함(둘 다 `READY`로 두지 않음) | 명세 확정, Run 등록 대기 |
 
 #### 📝 요구사항 접수 기록 (2026-11-27)
 
@@ -29,6 +29,7 @@
 - **결정 필요**: ① 기존 `EXPENSE_D1` 항목별 알림과 `EXPENSE_DUE_TODAY` 일별 요약 중 무엇을 대체/유지할지, “1회”의 범위와 발송 시점(KST), 해당 일의 예정 지출 집계 규칙 ② 월간 차트 종류·기간·축·`PLANNED` 포함 여부와 R114 리포트/예산 그래프와의 관계 ③ 팝업 대상 알림 종류와 지출 선택 규칙(예정일·상태·정렬), 읽음 처리, 상세 금액·항목명 노출 범위 ④ 알림 클릭 동작을 대시보드 팝업으로 바꿀 범위.
 - **관련 문서·코드**: `docs/r113-r116-data-budget-public-spec.md` §4(B7·B9·B11·114-3·114-5), `docs/r107-recurring-expense-automation-spec.md` §5, `docs/push-notification-research.md` §11.3, `sql/SCHEMA.sql` `enqueue_daily_notifications()`, `src/components/layout/notification-bell.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/expenses/page.tsx`, `docs/to-do.md` R107-B.
 - **우선순위**: 사용자 요청에 따라 R116 Step 1은 명세 처리 동안 대기함. R116 기존 승인 범위는 보존하며 새 Run 등록은 Opus의 명세·수용 기준 확정 뒤 진행함.
+- **처리 결과 (2026-11-27, Claude Opus `High`)**: ① 건별 `EXPENSE_D1` → 사용자·결제일당 `내일 결제 예정 N건` 1건, 당일 `EXPENSE_DUE_TODAY` 유지 ② 월간 리포트 알림 팝업에 카테고리별 확정 지출 막대(대상 달 vs 전달) + 지출 페이지 일별 누적 확정 지출 꺾은선 ③ 팝업 대상은 결제 예정 알림 2종과 월간 리포트, 결제 예정 팝업은 `target_date = scheduled_for`의 `PLANNED`·`CONFIRMED` 읽기 전용 목록 ④ 상단 알림함에서 어느 화면이든 그 자리 팝업, 푸시 클릭은 현행 이동. 상세는 명세 §1~§6.
 
 ### 🚦 현재 활성 Run 및 과제 할당표 (Active Dispatch Table)
 
@@ -39,7 +40,7 @@
 
 | 순서 | 상태 | 담당 모델 (Level) (대체 Fallback 체인) | 역할 | 수행 과제 및 허용 파일 범위 | 산출물 / 완료 기록 |
 | :---: | :---: | :--- | :--- | :--- | :--- |
-| **1** | **`⏳ WAITING (SPEC_NEEDED 처리 우선)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | `Maker (R116 공개 페이지·메타데이터·sitemap)` | 명세 §6 전부(`src/lib/public-catalog.ts`·P4 범위 함수·`src/app/games/**`(목록·`[gameId]`, `generateStaticParams`·`dynamicParams = false`)·열람 시 최신화 클라이언트 컴포넌트·`generateMetadata`·`src/app/sitemap.ts`·`src/app/robots.ts`·`/auth` 링크·`public/_redirects` 점검·빌드 산출물 검사 스크립트·테스트)·인수 기준 116-1~116-7. 기존 `/auth`·`/dashboard/**`·`/admin`·데스크톱 빌드 영향 금지. `service role` 키 참조 금지. 허용 파일: 신규 `src/lib/public-catalog.ts`·`.test.ts`, `src/app/games/**`, `src/app/sitemap.ts`, `src/app/robots.ts`, `src/app/auth/page.tsx`(링크 1건), `public/_redirects`(필요 시), `scripts/inject-csp.mjs`(필요 시), 빌드 산출물 검사 스크립트, 루트 `docs/handoff.md`, `docs/progress.md` | 명세 선행으로 대기함 |
+| **1** | **`⏳ WAITING (R118 Run 등록 때 Orchestrator가 순서 결정)`** | **Claude Sonnet (`Medium`)** *(Fallback: GitHub Copilot)* | `Maker (R116 공개 페이지·메타데이터·sitemap)` | 명세 §6 전부(`src/lib/public-catalog.ts`·P4 범위 함수·`src/app/games/**`(목록·`[gameId]`, `generateStaticParams`·`dynamicParams = false`)·열람 시 최신화 클라이언트 컴포넌트·`generateMetadata`·`src/app/sitemap.ts`·`src/app/robots.ts`·`/auth` 링크·`public/_redirects` 점검·빌드 산출물 검사 스크립트·테스트)·인수 기준 116-1~116-7. 기존 `/auth`·`/dashboard/**`·`/admin`·데스크톱 빌드 영향 금지. `service role` 키 참조 금지. 허용 파일: 신규 `src/lib/public-catalog.ts`·`.test.ts`, `src/app/games/**`, `src/app/sitemap.ts`, `src/app/robots.ts`, `src/app/auth/page.tsx`(링크 1건), `public/_redirects`(필요 시), `scripts/inject-csp.mjs`(필요 시), 빌드 산출물 검사 스크립트, 루트 `docs/handoff.md`, `docs/progress.md` | 명세 선행으로 대기함 |
 | **2** | **`⏳ WAITING`** | **Claude Opus (`High` — 도구에서 High 선택)** *(Fallback: GPT Codex)* | `Reviewer` | Step 1 완료 후 착수. 공개 범위(개인 데이터 비노출)·CSP·정적 export 경계·빌드 실패 처리 정적 리뷰(`review.json`)·`test.json`(`tsc`·`lint`·Vitest·`next build`·`out/games/*.html` 검사)·`main` 병합·문서 마감 | `⏳ Step 1 완료 대기` |
 | **3** | `⏳ WAITING` | **사용자** | `NEXT_PUBLIC_SITE_URL` 설정·배포·`curl`로 생성 HTML 확인·Search Console sitemap 제출(116-8) | Step 2 병합 후 안내함 |
 
