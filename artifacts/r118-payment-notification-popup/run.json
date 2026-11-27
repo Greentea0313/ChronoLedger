@@ -14,7 +14,7 @@
     "결제·환불 RPC, expenses 제약/RLS, 푸시 notificationclick, Tauri 토스트 동작은 변경하지 않음."
   ],
   "base_sha": "bbf5114be937578e4db7b89da69e1aa32cf70238",
-  "target_sha": "1c74e41101e71586ba9b6a7a62f430d64365776a",
+  "target_sha": "af624ea6fc2419096f51d969f90231191e23e01b",
   "branch": "collab/r118-payment-notification-popup",
   "worktree_path": ".worktrees/r118-payment-notification-popup",
   "max_iterations": 3,

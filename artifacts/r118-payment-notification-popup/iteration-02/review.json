@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "r118-payment-notification-popup",
+  "iteration": 2,
+  "agent": "Claude Sonnet (Medium)",
+  "base_sha": "bbf5114be937578e4db7b89da69e1aa32cf70238",
+  "target_sha": "af624ea6fc2419096f51d969f90231191e23e01b",
+  "role": "static-review",
+  "status": "clean",
+  "created_at": "2026-11-27T17:00:00+09:00",
+  "findings": []
+}
