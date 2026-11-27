@@ -10,6 +10,7 @@ import type { NotificationPopupProps } from "./notification-payment-popup"
 
 const CURRENT_COLOR = "#6366F1"
 const PREVIOUS_COLOR = "rgb(var(--text-secondary))"
+const REPORT_FETCH_PAGE_SIZE = 1000
 
 /** 다음 달 1일(YYYY-MM-01). */
 function nextMonthStart(month: string): string {
@@ -37,19 +38,27 @@ export function NotificationReportPopup({
     let cancelled = false
     void (async () => {
       try {
-        const { data, error } = await supabase
-          .from("expenses")
-          .select("category, final_amount, target_date, status")
-          .eq("user_id", userId)
-          .eq("status", "CONFIRMED")
-          .gte("target_date", `${previousMonth}-01`)
-          .lt("target_date", nextMonthStart(month))
-        if (cancelled) return
-        if (error) {
-          setFailed(true)
-          return
+        const allExpenses: ReportExpense[] = []
+        for (let offset = 0; ; offset += REPORT_FETCH_PAGE_SIZE) {
+          const { data, error } = await supabase
+            .from("expenses")
+            .select("category, final_amount, target_date, status")
+            .eq("user_id", userId)
+            .eq("status", "CONFIRMED")
+            .gte("target_date", `${previousMonth}-01`)
+            .lt("target_date", nextMonthStart(month))
+            .order("target_date", { ascending: true })
+            .order("id", { ascending: true })
+            .range(offset, offset + REPORT_FETCH_PAGE_SIZE - 1)
+          if (cancelled) return
+          if (error || !data) {
+            setFailed(true)
+            return
+          }
+          allExpenses.push(...(data as ReportExpense[]))
+          if (data.length < REPORT_FETCH_PAGE_SIZE) break
         }
-        setExpenses((data ?? []) as ReportExpense[])
+        setExpenses(allExpenses)
       } catch {
         if (!cancelled) setFailed(true)
       }

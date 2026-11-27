@@ -26,14 +26,27 @@ const notification = (id: string, overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 })
 
-/** `notifications` inbox query + one `expenses` query builder whose awaited result is `expenseResult`. */
-function mockTables(inbox: unknown[], expenseResult: { data: unknown[] | null; error: { message: string } | null }) {
+/** `notifications` inbox query + paged `expenses` query builder with the given page results. */
+function mockTables(
+  inbox: unknown[],
+  expenseResult:
+    | { data: unknown[] | null; error: { message: string } | null }
+    | Array<{ data: unknown[] | null; error: { message: string } | null }>,
+) {
   const expenseBuilder: Record<string, ReturnType<typeof vi.fn>> = {}
-  const chain = ["select", "eq", "in", "gte", "lt"]
+  const chain = ["select", "eq", "in", "gte", "lt", "order", "range"]
   chain.forEach((name) => {
     expenseBuilder[name] = vi.fn().mockReturnValue(expenseBuilder)
   })
-  Object.assign(expenseBuilder, { then: (resolve: (v: unknown) => unknown) => Promise.resolve(expenseResult).then(resolve) })
+  const expensePages = Array.isArray(expenseResult) ? expenseResult : [expenseResult]
+  let currentPage = 0
+  expenseBuilder.range.mockImplementation((start: number) => {
+    currentPage = Math.floor(start / 1000)
+    return expenseBuilder
+  })
+  Object.assign(expenseBuilder, {
+    then: (resolve: (v: unknown) => unknown) => Promise.resolve(expensePages[currentPage] ?? { data: [], error: null }).then(resolve),
+  })
   const inboxBuilder = {
     select: vi.fn(),
     eq: vi.fn(),
@@ -166,6 +179,33 @@ describe("NotificationBell popups (R118-B·C)", () => {
     expect(expenses.eq).toHaveBeenCalledWith("status", "CONFIRMED")
     expect(expenses.gte).toHaveBeenCalledWith("target_date", "2026-09-01")
     expect(expenses.lt).toHaveBeenCalledWith("target_date", "2026-11-01")
+  })
+
+  it("fetches every report page so rows after the 1,000-row limit are included", async () => {
+    const firstPage = Array.from({ length: 1000 }, (_, index) => ({
+      id: `oct-${String(index).padStart(4, "0")}`,
+      status: "CONFIRMED",
+      category: "식비",
+      final_amount: 10,
+      target_date: "2026-10-05",
+    }))
+    const expenses = mockTables(
+      [notification("r", { kind: "MONTHLY_REPORT", scheduled_for: "2026-10-01" })],
+      [
+        { data: firstPage, error: null },
+        { data: [{ id: "oct-z", status: "CONFIRMED", category: "게임", final_amount: 20000, target_date: "2026-10-20" }], error: null },
+      ],
+    )
+    render(<NotificationBell userId="u1" />)
+    await clickNotification("알림 r")
+
+    const dialog = await screen.findByRole("dialog", { name: "10월 지출 리포트" })
+    await waitFor(() => expect(within(dialog).getByText(/10월 10,000원 · 9월 0원/)).toBeTruthy())
+    expect(within(dialog).getByText(/10월 20,000원 · 9월 0원/)).toBeTruthy()
+    expect(expenses.range).toHaveBeenNthCalledWith(1, 0, 999)
+    expect(expenses.range).toHaveBeenNthCalledWith(2, 1000, 1999)
+    expect(expenses.order).toHaveBeenCalledWith("target_date", { ascending: true })
+    expect(expenses.order).toHaveBeenCalledWith("id", { ascending: true })
   })
 
   it("shows the report empty state when nothing is confirmed", async () => {
